@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
 			
 			/// <inheritdoc />
-            internal override void PackFromRgb24(Span<Rgb24> source, Span<Rgba32> destPixels, int count)
+            internal override void PackFromRgb24(ReadOnlySpan<Rgb24> source, Span<Rgba32> destPixels, int count)
             {
                 GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
 
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void ToRgb24(Span<Rgba32> sourcePixels, Span<Rgb24> dest, int count)
+            internal override void ToRgb24(ReadOnlySpan<Rgba32> sourcePixels, Span<Rgb24> dest, int count)
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void PackFromBgr24(Span<Bgr24> source, Span<Rgba32> destPixels, int count)
+            internal override void PackFromBgr24(ReadOnlySpan<Bgr24> source, Span<Rgba32> destPixels, int count)
             {
                 GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
 
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void ToBgr24(Span<Rgba32> sourcePixels, Span<Bgr24> dest, int count)
+            internal override void ToBgr24(ReadOnlySpan<Rgba32> sourcePixels, Span<Bgr24> dest, int count)
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void PackFromBgra32(Span<Bgra32> source, Span<Rgba32> destPixels, int count)
+            internal override void PackFromBgra32(ReadOnlySpan<Bgra32> source, Span<Rgba32> destPixels, int count)
             {
                 GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
 
@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void ToBgra32(Span<Rgba32> sourcePixels, Span<Bgra32> dest, int count)
+            internal override void ToBgra32(ReadOnlySpan<Rgba32> sourcePixels, Span<Bgra32> dest, int count)
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
@@ -109,6 +109,38 @@ namespace SixLabors.ImageSharp.PixelFormats
                     ref Rgba32 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Bgra32 dp = ref Unsafe.Add(ref destRef, i);
                     dp = sp.ToBgra32();
+                }
+            }
+		
+			/// <inheritdoc />
+            internal override void PackFromArgb32(ReadOnlySpan<Argb32> source, Span<Rgba32> destPixels, int count)
+            {
+                GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+
+                ref Argb32 sourceRef = ref MemoryMarshal.GetReference(source);
+                ref Rgba32 destRef = ref MemoryMarshal.GetReference(destPixels);
+
+                for (int i = 0; i < count; i++)
+                {
+                    ref Argb32 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Rgba32 dp = ref Unsafe.Add(ref destRef, i);
+                    dp = sp.ToRgba32();
+                }
+            }
+		
+			/// <inheritdoc />
+            internal override void ToArgb32(ReadOnlySpan<Rgba32> sourcePixels, Span<Argb32> dest, int count)
+            {
+                GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
+
+                ref Rgba32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+                ref Argb32 destRef = ref MemoryMarshal.GetReference(dest);
+
+                for (int i = 0; i < count; i++)
+                {
+                    ref Rgba32 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Argb32 dp = ref Unsafe.Add(ref destRef, i);
+                    dp = sp.ToArgb32();
                 }
             }
 		

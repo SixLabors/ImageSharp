@@ -25,6 +25,12 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             return new TolerantImageComparer(imageThreshold, perPixelManhattanThreshold);
         }
 
+        /// <summary>
+        /// Returns Tolerant(imageThresholdInPercents/100)
+        /// </summary>
+        public static ImageComparer TolerantPercentage(float imageThresholdInPercents, int perPixelManhattanThreshold = 0)
+            => Tolerant(imageThresholdInPercents / 100F, perPixelManhattanThreshold);
+
         public abstract ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(
             ImageFrame<TPixelA> expected,
             ImageFrame<TPixelB> actual)
@@ -110,21 +116,23 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             IEnumerable<ImageSimilarityReport<TPixelA, TPixelB>> reports = comparer.CompareImages(expected, actual);
             if (reports.Any())
             {
-                List<ImageSimilarityReport<TPixelA, TPixelB>> cleanedReports = new List<ImageSimilarityReport<TPixelA, TPixelB>>(reports.Count());
-                foreach (var r in reports)
+                var cleanedReports = new List<ImageSimilarityReport<TPixelA, TPixelB>>(reports.Count());
+                foreach (ImageSimilarityReport<TPixelA, TPixelB> r in reports)
                 {
-                    var outsideChanges = r.Differences.Where(x => !(
-                        ignoredRegion.X <= x.Position.X &&
-                        x.Position.X <= ignoredRegion.Right &&
-                        ignoredRegion.Y <= x.Position.Y &&
-                        x.Position.Y <= ignoredRegion.Bottom));
+                    IEnumerable<PixelDifference> outsideChanges = r.Differences.Where(
+                        x =>
+                        !(ignoredRegion.X <= x.Position.X
+                        && x.Position.X <= ignoredRegion.Right
+                        && ignoredRegion.Y <= x.Position.Y
+                        && x.Position.Y <= ignoredRegion.Bottom));
+
                     if (outsideChanges.Any())
                     {
                         cleanedReports.Add(new ImageSimilarityReport<TPixelA, TPixelB>(r.ExpectedImage, r.ActualImage, outsideChanges, null));
                     }
                 }
 
-                if (cleanedReports.Any())
+                if (cleanedReports.Count > 0)
                 {
                     throw new ImageDifferenceIsOverThresholdException(cleanedReports);
                 }

@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Memory
@@ -12,37 +13,42 @@ namespace SixLabors.ImageSharp.Memory
     /// interpreted as a 2D region of <see cref="Width"/> x <see cref="Height"/> elements.
     /// </summary>
     /// <typeparam name="T">The value type.</typeparam>
-    internal class Buffer2D<T> : IBuffer2D<T>, IDisposable
+    internal sealed class Buffer2D<T> : IDisposable
         where T : struct
     {
+        private MemorySource<T> memorySource;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Buffer2D{T}"/> class.
         /// </summary>
-        /// <param name="wrappedBuffer">The buffer to wrap</param>
+        /// <param name="memorySource">The buffer to wrap</param>
         /// <param name="width">The number of elements in a row</param>
         /// <param name="height">The number of rows</param>
-        public Buffer2D(IBuffer<T> wrappedBuffer, int width, int height)
+        public Buffer2D(MemorySource<T> memorySource, int width, int height)
         {
-            this.Buffer = wrappedBuffer;
+            this.memorySource = memorySource;
             this.Width = width;
             this.Height = height;
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets the width.
+        /// </summary>
         public int Width { get; private set; }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets the height.
+        /// </summary>
         public int Height { get; private set; }
 
         /// <summary>
-        /// Gets the span to the whole area.
+        /// Gets the backing <see cref="MemorySource{T}"/>
         /// </summary>
-        public Span<T> Span => this.Buffer.Span;
+        public MemorySource<T> MemorySource => this.memorySource;
 
-        /// <summary>
-        /// Gets the backing <see cref="IBuffer{T}"/>
-        /// </summary>
-        public IBuffer<T> Buffer { get; private set; }
+        public Memory<T> Memory => this.MemorySource.Memory;
+
+        public Span<T> Span => this.Memory.Span;
 
         /// <summary>
         /// Gets a reference to the element at the specified position.
@@ -55,9 +61,9 @@ namespace SixLabors.ImageSharp.Memory
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                DebugGuard.MustBeLessThan(x, this.Width, nameof(x));
-                DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
-                Span<T> span = this.Buffer.Span;
+                ImageSharp.DebugGuard.MustBeLessThan(x, this.Width, nameof(x));
+                ImageSharp.DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
+                Span<T> span = this.Span;
                 return ref span[(this.Width * y) + x];
             }
         }
@@ -67,23 +73,23 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         public void Dispose()
         {
-            this.Buffer?.Dispose();
+            this.MemorySource.Dispose();
         }
 
         /// <summary>
-        /// Swap the contents (<see cref="Buffer"/>, <see cref="Width"/>, <see cref="Height"/>) of the two buffers.
-        /// Useful to transfer the contents of a temporary <see cref="Buffer2D{T}"/> to a persistent <see cref="ImageFrame{TPixel}.PixelBuffer"/>
+        /// Swaps the contents of 'destination' with 'source' if the buffers are owned (1),
+        /// copies the contents of 'source' to 'destination' otherwise (2). Buffers should be of same size in case 2!
         /// </summary>
-        /// <param name="a">The first buffer</param>
-        /// <param name="b">The second buffer</param>
-        public static void SwapContents(Buffer2D<T> a, Buffer2D<T> b)
+        public static void SwapOrCopyContent(Buffer2D<T> destination, Buffer2D<T> source)
+        {
+            MemorySource<T>.SwapOrCopyContent(ref destination.memorySource, ref source.memorySource);
+            SwapDimensionData(destination, source);
+        }
+
+        private static void SwapDimensionData(Buffer2D<T> a, Buffer2D<T> b)
         {
             Size aSize = a.Size();
             Size bSize = b.Size();
-
-            IBuffer<T> temp = a.Buffer;
-            a.Buffer = b.Buffer;
-            b.Buffer = temp;
 
             b.Width = aSize.Width;
             b.Height = aSize.Height;

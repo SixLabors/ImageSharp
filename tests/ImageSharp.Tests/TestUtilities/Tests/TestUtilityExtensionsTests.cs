@@ -6,14 +6,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+
 using Xunit;
 using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using SixLabors.ImageSharp.Processing.Effects;
-
     public class TestUtilityExtensionsTests
     {
         public TestUtilityExtensionsTests(ITestOutputHelper output)
@@ -28,20 +29,18 @@ namespace SixLabors.ImageSharp.Tests
         {
             var image = new Image<TPixel>(10, 10);
 
-            using (PixelAccessor<TPixel> pixels = image.Lock())
+            Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
+            for (int i = 0; i < 10; i++)
             {
-                for (int i = 0; i < 10; i++)
+                for (int j = 0; j < 10; j++)
                 {
-                    for (int j = 0; j < 10; j++)
-                    {
-                        var v = new Vector4(i, j, 0, 1);
-                        v /= 10;
+                    var v = new Vector4(i, j, 0, 1);
+                    v /= 10;
 
-                        var color = default(TPixel);
-                        color.PackFromVector4(v);
+                    var color = default(TPixel);
+                    color.PackFromVector4(v);
 
-                        pixels[i, j] = color;
-                    }
+                    pixels[i, j] = color;
                 }
             }
 
@@ -55,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             Image<TPixel> a = provider.GetImage();
-            Image<TPixel> b = provider.GetImage(x=>x.OilPaint(3, 2));
+            Image<TPixel> b = provider.GetImage(x => x.OilPaint(3, 2));
 
             Assert.False(a.IsEquivalentTo(b, compareAlpha));
         }

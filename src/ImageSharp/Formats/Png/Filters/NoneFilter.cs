@@ -3,7 +3,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Png.Filters
 {
@@ -20,12 +19,12 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         /// <param name="scanline">The scanline to encode</param>
         /// <param name="result">The filtered scanline result.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(Span<byte> scanline, Span<byte> result)
+        public static void Encode(ReadOnlySpan<byte> scanline, Span<byte> result)
         {
             // Insert a byte before the data.
             result[0] = 0;
             result = result.Slice(1);
-            SpanHelper.Copy(scanline, result);
+            scanline.Slice(0, Math.Min(scanline.Length, result.Length)).CopyTo(result);
         }
     }
 }

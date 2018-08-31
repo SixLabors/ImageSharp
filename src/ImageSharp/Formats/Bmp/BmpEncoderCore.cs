@@ -3,9 +3,11 @@
 
 using System;
 using System.IO;
-using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
@@ -19,21 +21,18 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private int padding;
 
-        /// <summary>
-        /// Gets or sets the number of bits per pixel.
-        /// </summary>
         private readonly BmpBitsPerPixel bitsPerPixel;
 
-        private readonly MemoryManager memoryManager;
+        private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BmpEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The encoder options</param>
-        /// <param name="memoryManager">The memory manager</param>
-        public BmpEncoderCore(IBmpEncoderOptions options, MemoryManager memoryManager)
+        /// <param name="memoryAllocator">The memory manager</param>
+        public BmpEncoderCore(IBmpEncoderOptions options, MemoryAllocator memoryAllocator)
         {
-            this.memoryManager = memoryManager;
+            this.memoryAllocator = memoryAllocator;
             this.bitsPerPixel = options.BitsPerPixel;
         }
 
@@ -54,114 +53,110 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int bytesPerLine = 4 * (((image.Width * bpp) + 31) / 32);
             this.padding = bytesPerLine - (image.Width * (int)this.bitsPerPixel);
 
-            // Do not use IDisposable pattern here as we want to preserve the stream.
-            EndianBinaryWriter writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
+            // Set Resolution.
+            ImageMetaData meta = image.MetaData;
+            int hResolution = 0;
+            int vResolution = 0;
 
-            BmpInfoHeader infoHeader = new BmpInfoHeader
+            if (meta.ResolutionUnits != PixelResolutionUnit.AspectRatio)
             {
-                HeaderSize = BmpInfoHeader.BitmapInfoHeaderSize,
-                Height = image.Height,
-                Width = image.Width,
-                BitsPerPixel = bpp,
-                Planes = 1,
-                ImageSize = image.Height * bytesPerLine,
-                ClrUsed = 0,
-                ClrImportant = 0
-            };
+                if (meta.HorizontalResolution > 0 && meta.VerticalResolution > 0)
+                {
+                    switch (meta.ResolutionUnits)
+                    {
+                        case PixelResolutionUnit.PixelsPerInch:
 
-            BmpFileHeader fileHeader = new BmpFileHeader
-            {
-                Type = 19778, // BM
-                Offset = 54,
-                FileSize = 54 + infoHeader.ImageSize
-            };
+                            hResolution = (int)Math.Round(UnitConverter.InchToMeter(meta.HorizontalResolution));
+                            vResolution = (int)Math.Round(UnitConverter.InchToMeter(meta.VerticalResolution));
+                            break;
 
-            WriteHeader(writer, fileHeader);
-            this.WriteInfo(writer, infoHeader);
-            this.WriteImage(writer, image.Frames.RootFrame);
+                        case PixelResolutionUnit.PixelsPerCentimeter:
 
-            writer.Flush();
-        }
+                            hResolution = (int)Math.Round(UnitConverter.CmToMeter(meta.HorizontalResolution));
+                            vResolution = (int)Math.Round(UnitConverter.CmToMeter(meta.VerticalResolution));
+                            break;
 
-        /// <summary>
-        /// Writes the bitmap header data to the binary stream.
-        /// </summary>
-        /// <param name="writer">
-        /// The <see cref="EndianBinaryWriter"/> containing the stream to write to.
-        /// </param>
-        /// <param name="fileHeader">
-        /// The <see cref="BmpFileHeader"/> containing the header data.
-        /// </param>
-        private static void WriteHeader(EndianBinaryWriter writer, BmpFileHeader fileHeader)
-        {
-            writer.Write(fileHeader.Type);
-            writer.Write(fileHeader.FileSize);
-            writer.Write(fileHeader.Reserved);
-            writer.Write(fileHeader.Offset);
-        }
+                        case PixelResolutionUnit.PixelsPerMeter:
+                            hResolution = (int)Math.Round(meta.HorizontalResolution);
+                            vResolution = (int)Math.Round(meta.VerticalResolution);
 
-        /// <summary>
-        /// Writes the bitmap information to the binary stream.
-        /// </summary>
-        /// <param name="writer">
-        /// The <see cref="EndianBinaryWriter"/> containing the stream to write to.
-        /// </param>
-        /// <param name="infoHeader">
-        /// The <see cref="BmpFileHeader"/> containing the detailed information about the image.
-        /// </param>
-        private void WriteInfo(EndianBinaryWriter writer, BmpInfoHeader infoHeader)
-        {
-            writer.Write(infoHeader.HeaderSize);
-            writer.Write(infoHeader.Width);
-            writer.Write(infoHeader.Height);
-            writer.Write(infoHeader.Planes);
-            writer.Write(infoHeader.BitsPerPixel);
-            writer.Write((int)infoHeader.Compression);
-            writer.Write(infoHeader.ImageSize);
-            writer.Write(infoHeader.XPelsPerMeter);
-            writer.Write(infoHeader.YPelsPerMeter);
-            writer.Write(infoHeader.ClrUsed);
-            writer.Write(infoHeader.ClrImportant);
+                            break;
+                    }
+                }
+            }
+
+            var infoHeader = new BmpInfoHeader(
+                headerSize: BmpInfoHeader.Size,
+                height: image.Height,
+                width: image.Width,
+                bitsPerPixel: bpp,
+                planes: 1,
+                imageSize: image.Height * bytesPerLine,
+                clrUsed: 0,
+                clrImportant: 0,
+                xPelsPerMeter: hResolution,
+                yPelsPerMeter: vResolution);
+
+            var fileHeader = new BmpFileHeader(
+                type: 19778, // BM
+                offset: 54,
+                reserved: 0,
+                fileSize: 54 + infoHeader.ImageSize);
+
+#if NETCOREAPP2_1
+            Span<byte> buffer = stackalloc byte[40];
+#else
+            byte[] buffer = new byte[40];
+#endif
+            fileHeader.WriteTo(buffer);
+
+            stream.Write(buffer, 0, BmpFileHeader.Size);
+
+            infoHeader.WriteTo(buffer);
+
+            stream.Write(buffer, 0, 40);
+
+            this.WriteImage(stream, image.Frames.RootFrame);
+
+            stream.Flush();
         }
 
         /// <summary>
         /// Writes the pixel data to the binary stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
+        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
         /// <param name="image">
         /// The <see cref="ImageFrame{TPixel}"/> containing pixel data.
         /// </param>
-        private void WriteImage<TPixel>(EndianBinaryWriter writer, ImageFrame<TPixel> image)
+        private void WriteImage<TPixel>(Stream stream, ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (PixelAccessor<TPixel> pixels = image.Lock())
+            Buffer2D<TPixel> pixels = image.PixelBuffer;
+            switch (this.bitsPerPixel)
             {
-                switch (this.bitsPerPixel)
-                {
-                    case BmpBitsPerPixel.Pixel32:
-                        this.Write32Bit(writer, pixels);
-                        break;
+                case BmpBitsPerPixel.Pixel32:
+                    this.Write32Bit(stream, pixels);
+                    break;
 
-                    case BmpBitsPerPixel.Pixel24:
-                        this.Write24Bit(writer, pixels);
-                        break;
-                }
+                case BmpBitsPerPixel.Pixel24:
+                    this.Write24Bit(stream, pixels);
+                    break;
             }
         }
 
         private IManagedByteBuffer AllocateRow(int width, int bytesPerPixel)
         {
-            return this.memoryManager.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, this.padding);
+            return this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, this.padding);
         }
 
         /// <summary>
         /// Writes the 32bit color palette to the stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
-        /// <param name="pixels">The <see cref="PixelAccessor{TPixel}"/> containing pixel data.</param>
-        private void Write32Bit<TPixel>(EndianBinaryWriter writer, PixelAccessor<TPixel> pixels)
+        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
+        private void Write32Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 4))
@@ -169,8 +164,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToBgra32Bytes(pixelSpan, row.Span, pixelSpan.Length);
-                    writer.Write(row.Array, 0, row.Length());
+                    PixelOperations<TPixel>.Instance.ToBgra32Bytes(pixelSpan, row.GetSpan(), pixelSpan.Length);
+                    stream.Write(row.Array, 0, row.Length());
                 }
             }
         }
@@ -179,9 +174,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Writes the 24bit color palette to the stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
-        /// <param name="pixels">The <see cref="PixelAccessor{TPixel}"/> containing pixel data.</param>
-        private void Write24Bit<TPixel>(EndianBinaryWriter writer, PixelAccessor<TPixel> pixels)
+        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
+        private void Write24Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 3))
@@ -189,8 +184,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToBgr24Bytes(pixelSpan, row.Span, pixelSpan.Length);
-                    writer.Write(row.Array, 0, row.Length());
+                    PixelOperations<TPixel>.Instance.ToBgr24Bytes(pixelSpan, row.GetSpan(), pixelSpan.Length);
+                    stream.Write(row.Array, 0, row.Length());
                 }
             }
         }

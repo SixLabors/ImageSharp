@@ -1,11 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
@@ -18,10 +19,10 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ConstructorImageMetaData()
         {
-            ImageMetaData metaData = new ImageMetaData();
+            var metaData = new ImageMetaData();
 
-            ExifProfile exifProfile = new ExifProfile();
-            ImageProperty imageProperty = new ImageProperty("name", "value");
+            var exifProfile = new ExifProfile();
+            var imageProperty = new ImageProperty("name", "value");
 
             metaData.ExifProfile = exifProfile;
             metaData.HorizontalResolution = 4;
@@ -29,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests
             metaData.Properties.Add(imageProperty);
             metaData.RepeatCount = 1;
 
-            ImageMetaData clone = new ImageMetaData(metaData);
+            ImageMetaData clone = metaData.Clone();
 
             Assert.Equal(exifProfile.ToByteArray(), clone.ExifProfile.ToByteArray());
             Assert.Equal(4, clone.HorizontalResolution);
@@ -41,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void HorizontalResolution()
         {
-            ImageMetaData metaData = new ImageMetaData();
+            var metaData = new ImageMetaData();
             Assert.Equal(96, metaData.HorizontalResolution);
 
             metaData.HorizontalResolution=0;
@@ -57,7 +58,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void VerticalResolution()
         {
-            ImageMetaData metaData = new ImageMetaData();
+            var metaData = new ImageMetaData();
             Assert.Equal(96, metaData.VerticalResolution);
 
             metaData.VerticalResolution = 0;
@@ -73,11 +74,11 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void SyncProfiles()
         {
-            ExifProfile exifProfile = new ExifProfile();
+            var exifProfile = new ExifProfile();
             exifProfile.SetValue(ExifTag.XResolution, new Rational(200));
             exifProfile.SetValue(ExifTag.YResolution, new Rational(300));
 
-            Image<Rgba32> image = new Image<Rgba32>(1, 1);
+            var image = new Image<Rgba32>(1, 1);
             image.MetaData.ExifProfile = exifProfile;
             image.MetaData.HorizontalResolution = 400;
             image.MetaData.VerticalResolution = 500;

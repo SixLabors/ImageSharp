@@ -6,7 +6,7 @@ using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
     /// <summary>
     /// Tests the <see cref="Rgba32"/> struct.
@@ -88,26 +88,22 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void FromAndToHex()
         {
-            Rgba32 color = Rgba32.FromHex("#AABBCCDD");
+            // 8 digit hex matches css4 spec. RRGGBBAA
+            var color = Rgba32.FromHex("#AABBCCDD"); // 170, 187, 204, 221
             Assert.Equal(170, color.R);
             Assert.Equal(187, color.G);
             Assert.Equal(204, color.B);
             Assert.Equal(221, color.A);
 
-            color.A = 170;
-            color.B = 187;
-            color.G = 204;
-            color.R = 221;
-
-            Assert.Equal("DDCCBBAA", color.ToHex());
+            Assert.Equal("AABBCCDD", color.ToHex());
 
             color.R = 0;
 
-            Assert.Equal("00CCBBAA", color.ToHex());
+            Assert.Equal("00BBCCDD", color.ToHex());
 
             color.A = 255;
 
-            Assert.Equal("00CCBBFF", color.ToHex());
+            Assert.Equal("00BBCCFF", color.ToHex());
         }
 
         /// <summary>
@@ -124,6 +120,222 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(4, colorBase[3]);
 
             Assert.Equal(4, sizeof(Rgba32));
+        }
+
+        [Fact]
+        public void Rgba32_PackedValues()
+        {
+            Assert.Equal(0x80001Au, new Rgba32(+0.1f, -0.3f, +0.5f, -0.7f).PackedValue);
+            // Test the limits.
+            Assert.Equal((uint)0x0, new Rgba32(Vector4.Zero).PackedValue);
+            Assert.Equal(0xFFFFFFFF, new Rgba32(Vector4.One).PackedValue);
+        }
+
+        [Fact]
+        public void Rgba32_ToVector4()
+        {
+            Assert.Equal(Vector4.One, new Rgba32(Vector4.One).ToVector4());
+            Assert.Equal(Vector4.Zero, new Rgba32(Vector4.Zero).ToVector4());
+            Assert.Equal(Vector4.UnitX, new Rgba32(Vector4.UnitX).ToVector4());
+            Assert.Equal(Vector4.UnitY, new Rgba32(Vector4.UnitY).ToVector4());
+            Assert.Equal(Vector4.UnitZ, new Rgba32(Vector4.UnitZ).ToVector4());
+            Assert.Equal(Vector4.UnitW, new Rgba32(Vector4.UnitW).ToVector4());
+        }
+
+        [Fact]
+        public void Rgba32_ToScaledVector4()
+        {
+            // arrange
+            var rgba = new Rgba32(Vector4.One);
+
+            // act
+            Vector4 actual = rgba.ToScaledVector4();
+
+            // assert
+            Assert.Equal(1, actual.X);
+            Assert.Equal(1, actual.Y);
+            Assert.Equal(1, actual.Z);
+            Assert.Equal(1, actual.W);
+        }
+
+        [Fact]
+        public void Rgba32_PackFromScaledVector4()
+        {
+            // arrange
+            var rgba = new Rgba32(Vector4.One);
+            var actual = default(Rgba32);
+            uint expected = 0xFFFFFFFF;
+
+            // act
+            Vector4 scaled = rgba.ToScaledVector4();
+            actual.PackFromScaledVector4(scaled);
+
+            // assert
+            Assert.Equal(expected, actual.PackedValue);
+        }
+
+        [Fact]
+        public void Rgba32_Clamping()
+        {
+            Assert.Equal(Vector4.Zero, new Rgba32(Vector4.One * -1234.0f).ToVector4());
+            Assert.Equal(Vector4.One, new Rgba32(Vector4.One * +1234.0f).ToVector4());
+        }
+
+        [Fact]
+        public void Rgba32_ToRgb24()
+        {
+            // arrange
+            var rgba = new Rgba32(+0.1f, -0.3f, +0.5f, -0.7f);
+            var actual = default(Rgb24);
+            var expected = new Rgb24(0x1a, 0, 0x80);
+
+            // act
+            rgba.ToRgb24(ref actual);
+
+            // assert
+            Assert.Equal(expected.R, actual.R);
+            Assert.Equal(expected.G, actual.G);
+            Assert.Equal(expected.B, actual.B);
+        }
+
+        [Fact]
+        public void Rgba32_ToRgba32()
+        {
+            // arrange
+            var rgba = new Rgba32(+0.1f, -0.3f, +0.5f, -0.7f);
+            var actual = default(Rgba32);
+            var expected = new Rgba32(0x1a, 0, 0x80, 0);
+
+            // act
+            rgba.ToRgba32(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void Rgba32_ToBgr24()
+        {
+            // arrange
+            var rgba = new Rgba32(+0.1f, -0.3f, +0.5f, -0.7f);
+            var actual = default(Bgr24);
+            var expected = new Bgr24(0x1a, 0, 0x80);
+
+            // act
+            rgba.ToBgr24(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void Rgba32_ToBgra32()
+        {
+            // arrange
+            var rgba = new Rgba32(+0.1f, -0.3f, +0.5f, -0.7f);
+            var actual = default(Bgra32);
+            var expected = new Bgra32(0x1a, 0, 0x80, 0);
+
+            // act
+            rgba.ToBgra32(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void Rgba32_ToArgb32()
+        {
+            // arrange
+            var rgba = new Rgba32(+0.1f, -0.3f, +0.5f, -0.7f);
+            var actual = default(Argb32);
+            var expected = new Argb32(0x1a, 0, 0x80, 0);
+
+            // act
+            rgba.ToArgb32(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void Rgba32_PackFromRgba32_ToRgba32()
+        {
+            // arrange
+            var rgba = default(Rgba32);
+            var actual = default(Rgba32);
+            var expected = new Rgba32(0x1a, 0, 0x80, 0);
+
+            // act 
+            rgba.PackFromRgba32(expected);
+            rgba.ToRgba32(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void Rgba32_PackFromBgra32_ToRgba32()
+        {
+            // arrange
+            var rgba = default(Rgba32);
+            var actual = default(Bgra32);
+            var expected = new Bgra32(0x1a, 0, 0x80, 0);
+
+            // act 
+            rgba.PackFromBgra32(expected);
+            rgba.ToBgra32(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void Rgba32_PackFromArgb32_ToArgb32()
+        {
+            // arrange
+            var rgba = default(Rgba32);
+            var actual = default(Argb32);
+            var expected = new Argb32(0x1a, 0, 0x80, 0);
+
+            // act 
+            rgba.PackFromArgb32(expected);
+            rgba.ToArgb32(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void Rgba32_PackFromRgb48_ToRgb48()
+        {
+            // arrange
+            var input = default(Rgba32);
+            var actual = default(Rgb48);
+            var expected = new Rgb48(65535, 0, 65535);
+
+            // act
+            input.PackFromRgb48(expected);
+            input.ToRgb48(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void Rgba32_PackFromRgba64_ToRgba64()
+        {
+            // arrange
+            var input = default(Rgba32);
+            var actual = default(Rgba64);
+            var expected = new Rgba64(65535, 0, 65535, 0);
+
+            // act
+            input.PackFromRgba64(expected);
+            input.ToRgba64(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
         }
     }
 }

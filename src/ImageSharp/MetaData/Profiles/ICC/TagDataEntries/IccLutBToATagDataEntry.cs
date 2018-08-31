@@ -147,14 +147,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            var entry = other as IccLutBToATagDataEntry;
-            return entry != null && this.Equals(entry);
+            return other is IccLutBToATagDataEntry entry && this.Equals(entry);
         }
 
         /// <inheritdoc/>
         public bool Equals(IccLutBToATagDataEntry other)
         {
-            if (ReferenceEquals(null, other))
+            if (other is null)
             {
                 return false;
             }
@@ -178,17 +177,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
-            return obj is IccLutBToATagDataEntry && this.Equals((IccLutBToATagDataEntry)obj);
+            return obj is IccLutBToATagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc/>
@@ -201,18 +190,18 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 hashCode = (hashCode * 397) ^ this.OutputChannelCount;
                 hashCode = (hashCode * 397) ^ this.Matrix3x3.GetHashCode();
                 hashCode = (hashCode * 397) ^ this.Matrix3x1.GetHashCode();
-                hashCode = (hashCode * 397) ^ (this.ClutValues != null ? this.ClutValues.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.CurveB != null ? this.CurveB.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.CurveM != null ? this.CurveM.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.CurveA != null ? this.CurveA.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.ClutValues?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.CurveB?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.CurveM?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.CurveA?.GetHashCode() ?? 0);
                 return hashCode;
             }
         }
 
         private bool EqualsCurve(IccTagDataEntry[] thisCurves, IccTagDataEntry[] entryCurves)
         {
-            bool thisNull = thisCurves == null;
-            bool entryNull = entryCurves == null;
+            bool thisNull = thisCurves is null;
+            bool entryNull = entryCurves is null;
 
             if (thisNull && entryNull)
             {
@@ -282,7 +271,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
         private Vector3? CreateMatrix3x1(float[] matrix)
         {
-            if (matrix == null)
+            if (matrix is null)
             {
                 return null;
             }
@@ -292,7 +281,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
         private Matrix4x4? CreateMatrix3x3(float[,] matrix)
         {
-            if (matrix == null)
+            if (matrix is null)
             {
                 return null;
             }

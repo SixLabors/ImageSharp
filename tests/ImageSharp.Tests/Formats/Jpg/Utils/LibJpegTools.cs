@@ -1,13 +1,13 @@
+using System;
+using System.Runtime.InteropServices;
+using System.Diagnostics;
+using System.IO;
+using System.Numerics;
+
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
+
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
-    using System;
-    using System.Diagnostics;
-    using System.IO;
-    using System.Numerics;
-    using System.Reflection;
-
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-
     /// <summary>
     /// Utilities to read raw libjpeg data for reference conversion.
     /// </summary>
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                     totalDiff += diff;
                 }
             }
-            
+
             int count = w * h;
             double total = (double)totalDiff;
             double average = (double)totalDiff / (count * Block8x8.Size);
@@ -65,7 +65,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             }
 
             string args = $@"""{sourceFile}"" ""{destFile}""";
-            var process = Process.Start(DumpToolFullPath, args);
+            var process = new Process
+            {
+                StartInfo =
+                                      {
+                                          FileName = DumpToolFullPath,
+                                          Arguments = args,
+                                          WindowStyle = ProcessWindowStyle.Hidden
+                                      }
+            };
+            process.Start();
             process.WaitForExit();
         }
 
@@ -85,22 +94,22 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             try
             {
                 RunDumpJpegCoeffsTool(testFile.FullPath, coeffFileFullPath);
-                
+
                 using (var dumpStream = new FileStream(coeffFileFullPath, FileMode.Open))
                 using (var rdr = new BinaryReader(dumpStream))
                 {
                     int componentCount = rdr.ReadInt16();
-                    ComponentData[] result = new ComponentData[componentCount];
+                    var result = new ComponentData[componentCount];
 
                     for (int i = 0; i < componentCount; i++)
                     {
                         int widthInBlocks = rdr.ReadInt16();
                         int heightInBlocks = rdr.ReadInt16();
-                        ComponentData resultComponent = new ComponentData(widthInBlocks, heightInBlocks, i);
+                        var resultComponent = new ComponentData(widthInBlocks, heightInBlocks, i);
                         result[i] = resultComponent;
                     }
 
-                    byte[] buffer = new byte[64*sizeof(short)];
+                    byte[] buffer = new byte[64 * sizeof(short)];
 
                     for (int i = 0; i < result.Length; i++)
                     {
@@ -112,7 +121,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                             {
                                 rdr.Read(buffer, 0, buffer.Length);
 
-                                short[] block = buffer.AsSpan().NonPortableCast<byte, short>().ToArray();
+                                short[] block = MemoryMarshal.Cast<byte, short>(buffer.AsSpan()).ToArray();
                                 c.MakeBlock(block, y, x);
                             }
                         }

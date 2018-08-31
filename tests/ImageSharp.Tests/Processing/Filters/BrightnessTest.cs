@@ -2,15 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors;
-using SixLabors.Primitives;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Filters;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Effects
 {
-    using SixLabors.ImageSharp.Processing.Filters;
-    using SixLabors.ImageSharp.Processing.Filters.Processors;
-
     public class BrightnessTest : BaseImageOperationsExtensionTest
     {
         [Fact]

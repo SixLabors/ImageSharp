@@ -5,7 +5,9 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 
 using BenchmarkDotNet.Attributes;
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
+
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
+
 // ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Benchmarks.General

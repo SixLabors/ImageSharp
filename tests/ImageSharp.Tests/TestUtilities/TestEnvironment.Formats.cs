@@ -14,10 +14,10 @@ namespace SixLabors.ImageSharp.Tests
 {
     public static partial class TestEnvironment
     {
-        private static Lazy<Configuration> configuration = new Lazy<Configuration>(CreateDefaultConfiguration);
+        private static readonly Lazy<Configuration> ConfigurationLazy = new Lazy<Configuration>(CreateDefaultConfiguration);
 
-        internal static Configuration Configuration => configuration.Value;
-        
+        internal static Configuration Configuration => ConfigurationLazy.Value;
+
         internal static IImageDecoder GetReferenceDecoder(string filePath)
         {
             IImageFormat format = GetImageFormat(filePath);
@@ -32,8 +32,8 @@ namespace SixLabors.ImageSharp.Tests
 
         internal static IImageFormat GetImageFormat(string filePath)
         {
-            string extension = Path.GetExtension(filePath).ToLower();
-            if (extension[0] == '.') extension = extension.Substring(1);
+            string extension = Path.GetExtension(filePath);
+
             IImageFormat format = Configuration.ImageFormatsManager.FindFormatByFileExtension(extension);
             return format;
         }
@@ -52,33 +52,28 @@ namespace SixLabors.ImageSharp.Tests
 
         private static Configuration CreateDefaultConfiguration()
         {
-            var configuration = new Configuration(
-                new PngConfigurationModule(),
+            var cfg = new Configuration(
                 new JpegConfigurationModule(),
                 new GifConfigurationModule()
             );
 
-            if (!IsLinux)
-            {
-                configuration.ConfigureCodecs(
-                    ImageFormats.Png,
-                    SystemDrawingReferenceDecoder.Instance,
-                    SystemDrawingReferenceEncoder.Png,
-                    new PngImageFormatDetector());
+            // Magick codecs should work on all platforms
+            IImageEncoder pngEncoder = IsWindows ? (IImageEncoder)SystemDrawingReferenceEncoder.Png : new PngEncoder();
+            IImageEncoder bmpEncoder = IsWindows ? (IImageEncoder)SystemDrawingReferenceEncoder.Bmp : new BmpEncoder();
 
-                configuration.ConfigureCodecs(
-                    ImageFormats.Bmp,
-                    SystemDrawingReferenceDecoder.Instance,
-                    SystemDrawingReferenceEncoder.Png,
-                    new PngImageFormatDetector());
-            }
-            else
-            {
-                configuration.Configure(new PngConfigurationModule());
-                configuration.Configure(new BmpConfigurationModule());
-            }
+            cfg.ConfigureCodecs(
+                ImageFormats.Png,
+                MagickReferenceDecoder.Instance,
+                pngEncoder,
+                new PngImageFormatDetector());
 
-            return configuration;
+            cfg.ConfigureCodecs(
+                ImageFormats.Bmp,
+                SystemDrawingReferenceDecoder.Instance,
+                bmpEncoder,
+                new BmpImageFormatDetector());
+
+            return cfg;
         }
     }
 }

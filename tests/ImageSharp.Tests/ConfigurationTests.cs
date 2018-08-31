@@ -2,14 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.IO;
-using SixLabors.ImageSharp.PixelFormats;
 using Moq;
+using SixLabors.ImageSharp.IO;
 using Xunit;
+// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests
 {
@@ -18,14 +15,14 @@ namespace SixLabors.ImageSharp.Tests
     /// </summary>
     public class ConfigurationTests
     {
-        public Configuration ConfigurationEmpty { get; private set; }
-        public Configuration DefaultConfiguration { get; private set; }
+        public Configuration ConfigurationEmpty { get; }
+        public Configuration DefaultConfiguration { get; }
 
         public ConfigurationTests()
         {
             // the shallow copy of configuration should behave exactly like the default configuration,
             // so by using the copy, we test both the default and the copy.
-            this.DefaultConfiguration = Configuration.CreateDefaultInstance().ShallowCopy(); 
+            this.DefaultConfiguration = Configuration.CreateDefaultInstance().ShallowCopy();
             this.ConfigurationEmpty = new Configuration();
         }
 
@@ -34,31 +31,22 @@ namespace SixLabors.ImageSharp.Tests
         {
             Assert.IsType<LocalFileSystem>(this.DefaultConfiguration.FileSystem);
             Assert.IsType<LocalFileSystem>(this.ConfigurationEmpty.FileSystem);
-        }        
+        }
 
         /// <summary>
         /// Test that the default configuration is not null.
         /// </summary>
         [Fact]
-        public void TestDefultConfigurationIsNotNull()
+        public void TestDefaultConfigurationIsNotNull()
         {
             Assert.True(Configuration.Default != null);
-        }
-
-        /// <summary>
-        /// Test that the default configuration parallel options is not null.
-        /// </summary>
-        [Fact]
-        public void TestDefultConfigurationParallelOptionsIsNotNull()
-        {
-            Assert.True(Configuration.Default.ParallelOptions != null);
         }
 
         /// <summary>
         /// Test that the default configuration read origin options is set to begin.
         /// </summary>
         [Fact]
-        public void TestDefultConfigurationReadOriginIsCurrent()
+        public void TestDefaultConfigurationReadOriginIsCurrent()
         {
             Assert.True(Configuration.Default.ReadOrigin == ReadOrigin.Current);
         }
@@ -68,10 +56,23 @@ namespace SixLabors.ImageSharp.Tests
         /// environment processor count.
         /// </summary>
         [Fact]
-        public void TestDefultConfigurationMaxDegreeOfParallelism()
+        public void TestDefaultConfigurationMaxDegreeOfParallelism()
         {
-            Assert.True(Configuration.Default.ParallelOptions.MaxDegreeOfParallelism == Environment.ProcessorCount);
+            Assert.True(Configuration.Default.MaxDegreeOfParallelism == Environment.ProcessorCount);
+
+            var cfg = new Configuration();
+            Assert.True(cfg.MaxDegreeOfParallelism == Environment.ProcessorCount);
         }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-42)]
+        public void Set_MaxDegreeOfParallelism_ToNonPositiveValue_Throws(int value)
+        {
+            var cfg = new Configuration();
+            Assert.Throws<ArgumentOutOfRangeException>(() => cfg.MaxDegreeOfParallelism = value);
+        }
+
 
         [Fact]
         public void ConstructorCallConfigureOnFormatProvider()
@@ -90,6 +91,27 @@ namespace SixLabors.ImageSharp.Tests
             config.Configure(provider.Object);
 
             provider.Verify(x => x.Configure(config));
+        }
+
+        [Fact]
+        public void ConfigurationCannotAddDuplicates()
+        {
+            const int count = 4;
+            Configuration config = Configuration.Default;
+
+            Assert.Equal(count, config.ImageFormats.Count());
+
+            config.ImageFormatsManager.AddImageFormat(ImageFormats.Bmp);
+
+            Assert.Equal(count, config.ImageFormats.Count());
+        }
+
+        [Fact]
+        public void DefaultConfigurationHasCorrectFormatCount()
+        {
+            Configuration config = Configuration.Default;
+
+            Assert.Equal(4, config.ImageFormats.Count());
         }
     }
 }

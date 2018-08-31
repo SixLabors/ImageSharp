@@ -27,15 +27,24 @@ namespace SixLabors.ImageSharp.Tests
             public const string Palette8Bpp = "Png/palette-8bpp.png";
             public const string Bpp1 = "Png/bpp1.png";
             public const string Gray4Bpp = "Png/gray_4bpp.png";
+            public const string Gray16Bit = "Png/gray-16.png";
+            public const string GrayAlpha8Bit = "Png/gray-alpha-8.png";
+            public const string GrayAlpha16Bit = "Png/gray-alpha-16.png";
+            public const string GrayTrns16BitInterlaced = "Png/gray-16-tRNS-interlaced.png";
+            public const string Rgb24BppTrans = "Png/rgb-8-tRNS.png";
             public const string Rgb48Bpp = "Png/rgb-48bpp.png";
+            public const string Rgb48BppInterlaced = "Png/rgb-48bpp-interlaced.png";
+            public const string Rgb48BppTrans = "Png/rgb-16-tRNS.png";
+            public const string Rgba64Bpp = "Png/rgb-16-alpha.png";
             public const string CalliphoraPartial = "Png/CalliphoraPartial.png";
             public const string CalliphoraPartialGrayscale = "Png/CalliphoraPartialGrayscale.png";
             public const string Bike = "Png/Bike.png";
             public const string BikeGrayscale = "Png/BikeGrayscale.png";
-            public const string Rgb48BppInterlaced = "Png/rgb-48bpp-interlaced.png";
             public const string SnakeGame = "Png/SnakeGame.png";
             public const string Icon = "Png/icon.png";
             public const string Kaboom = "Png/kaboom.png";
+            public const string PDSrc = "Png/pd-source.png";
+            public const string PDDest = "Png/pd-dest.png";
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";
@@ -56,6 +65,12 @@ namespace SixLabors.ImageSharp.Tests
             public const string Banner7Adam7InterlaceMode = "Png/banner7-adam.png";
             public const string Banner8Index = "Png/banner8-index.png";
 
+            public const string Ratio1x4 = "Png/ratio-1x4.png";
+            public const string Ratio4x1 = "Png/ratio-4x1.png";
+
+            public const string Ducky = "Png/ducky.png";
+            public const string Rainbow = "Png/rainbow.png";
+
             public static class Bad
             {
                 // Odd chunk lengths
@@ -70,7 +85,7 @@ namespace SixLabors.ImageSharp.Tests
                 Powerpoint, SplashInterlaced, Interlaced,
                 Filter0, Filter1, Filter2, Filter3, Filter4,
                 FilterVar, VimImage1, VimImage2, VersioningImage1,
-                VersioningImage2
+                VersioningImage2, Ratio4x1, Ratio1x4
             };
         }
 
@@ -115,22 +130,28 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Jpeg420Small = "Jpg/baseline/jpeg420small.jpg";
                 public const string Testorig420 = "Jpg/baseline/testorig.jpg";
                 public const string MultiScanBaselineCMYK = "Jpg/baseline/MultiScanBaselineCMYK.jpg";
+                public const string Ratio1x1 = "Jpg/baseline/ratio-1x1.jpg";
 
                 public static readonly string[] All =
-                    {
-                        Cmyk, Ycck, Exif, Floorplan,
-                        Calliphora, Turtle, GammaDalaiLamaGray,
-                        Hiyamugi, Jpeg400, Jpeg420Exif, Jpeg444,
-                    };
+                {
+                    Cmyk, Ycck, Exif, Floorplan,
+                    Calliphora, Turtle, GammaDalaiLamaGray,
+                    Hiyamugi, Jpeg400, Jpeg420Exif, Jpeg444, Ratio1x1
+                };
             }
 
-            public class Issues
+            public static class Issues
             {
                 public const string CriticalEOF214 = "Jpg/issues/Issue214-CriticalEOF.jpg";
                 public const string MissingFF00ProgressiveGirl159 = "Jpg/issues/Issue159-MissingFF00-Progressive-Girl.jpg";
+                public const string MissingFF00ProgressiveBedroom159 = "Jpg/issues/Issue159-MissingFF00-Progressive-Bedroom.jpg";
                 public const string BadCoeffsProgressive178 = "Jpg/issues/Issue178-BadCoeffsProgressive-Lemon.jpg";
                 public const string BadZigZagProgressive385 = "Jpg/issues/Issue385-BadZigZag-Progressive.jpg";
                 public const string MultiHuffmanBaseline394 = "Jpg/issues/Issue394-MultiHuffmanBaseline-Speakers.jpg";
+                public const string NoEoiProgressive517 = "Jpg/issues/Issue517-No-EOI-Progressive.jpg";
+                public const string BadRstProgressive518 = "Jpg/issues/Issue518-Bad-RST-Progressive.jpg";
+                public const string InvalidCast520 = "Jpg/issues/Issue520-InvalidCast.jpg";
+                public const string DhtHasWrongLength624 = "Jpg/issues/Issue624-DhtHasWrongLength-Progressive-N.jpg";
             }
 
             public static readonly string[] All = Baseline.All.Concat(Progressive.All).ToArray();
@@ -147,12 +168,30 @@ namespace SixLabors.ImageSharp.Tests
             public const string V5Header = "Bmp/BITMAPV5HEADER.bmp";
             public const string RLE = "Bmp/RunLengthEncoded.bmp";
             public const string RLEInverted = "Bmp/RunLengthEncoded-inverted.bmp";
+            public const string Bit1 = "Bmp/pal1.bmp";
+            public const string Bit1Pal1 = "Bmp/pal1p1.bmp";
+            public const string Bit4 = "Bmp/pal4.bmp";
             public const string Bit8 = "Bmp/test8.bmp";
             public const string Bit8Inverted = "Bmp/test8-inverted.bmp";
             public const string Bit16 = "Bmp/test16.bmp";
             public const string Bit16Inverted = "Bmp/test16-inverted.bmp";
 
-            public static readonly string[] All = { Car, F, NegHeight, CoreHeader, V5Header, RLE, RLEInverted, Bit8, Bit8Inverted, Bit16, Bit16Inverted };
+            public static readonly string[] All
+            = {
+                Car,
+                F,
+                NegHeight,
+                CoreHeader,
+                V5Header, RLE,
+                RLEInverted,
+                Bit1,
+                Bit1Pal1,
+                Bit4,
+                Bit8,
+                Bit8Inverted,
+                Bit16,
+                Bit16Inverted
+            };
         }
 
         public static class Gif
@@ -162,15 +201,17 @@ namespace SixLabors.ImageSharp.Tests
             public const string Cheers = "Gif/cheers.gif";
             public const string Trans = "Gif/trans.gif";
             public const string Kumin = "Gif/kumin.gif";
+            public const string Ratio4x1 = "Gif/base_4x1.gif";
+            public const string Ratio1x4 = "Gif/base_1x4.gif";
 
-            public class Issues
+            public static class Issues
             {
                 public const string BadAppExtLength = "Gif/issues/issue405_badappextlength252.gif";
                 public const string BadAppExtLength_2 = "Gif/issues/issue405_badappextlength252-2.gif";
                 public const string BadDescriptorWidth = "Gif/issues/issue403_baddescriptorwidth.gif";
             }
 
-            public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin };
+            public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin, Ratio4x1, Ratio1x4 };
         }
     }
 }

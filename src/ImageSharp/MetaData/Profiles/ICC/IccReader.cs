@@ -84,27 +84,36 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         private IccTagDataEntry[] ReadTagData(IccDataReader reader)
         {
             IccTagTableEntry[] tagTable = this.ReadTagTable(reader);
-            IccTagDataEntry[] entries = new IccTagDataEntry[tagTable.Length];
+            var entries = new List<IccTagDataEntry>(tagTable.Length);
             var store = new Dictionary<uint, IccTagDataEntry>();
-            for (int i = 0; i < tagTable.Length; i++)
+
+            foreach (IccTagTableEntry tag in tagTable)
             {
                 IccTagDataEntry entry;
-                uint offset = tagTable[i].Offset;
-                if (store.ContainsKey(offset))
+                if (store.ContainsKey(tag.Offset))
                 {
-                    entry = store[offset];
+                    entry = store[tag.Offset];
                 }
                 else
                 {
-                    entry = reader.ReadTagDataEntry(tagTable[i]);
-                    store.Add(offset, entry);
+                    try
+                    {
+                        entry = reader.ReadTagDataEntry(tag);
+                    }
+                    catch
+                    {
+                        // Ignore tags that could not be read
+                        continue;
+                    }
+
+                    store.Add(tag.Offset, entry);
                 }
 
-                entry.TagSignature = tagTable[i].Signature;
-                entries[i] = entry;
+                entry.TagSignature = tag.Signature;
+                entries.Add(entry);
             }
 
-            return entries;
+            return entries.ToArray();
         }
 
         private IccTagTableEntry[] ReadTagTable(IccDataReader reader)
@@ -112,17 +121,29 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             reader.SetIndex(128);   // An ICC header is 128 bytes long
 
             uint tagCount = reader.ReadUInt32();
-            IccTagTableEntry[] table = new IccTagTableEntry[tagCount];
 
+            // Prevent creating huge arrays because of corrupt profiles.
+            // A normal profile usually has 5-15 entries
+            if (tagCount > 100)
+            {
+                return new IccTagTableEntry[0];
+            }
+
+            var table = new List<IccTagTableEntry>((int)tagCount);
             for (int i = 0; i < tagCount; i++)
             {
                 uint tagSignature = reader.ReadUInt32();
                 uint tagOffset = reader.ReadUInt32();
                 uint tagSize = reader.ReadUInt32();
-                table[i] = new IccTagTableEntry((IccProfileTag)tagSignature, tagOffset, tagSize);
+
+                // Exclude entries that have nonsense values and could cause exceptions further on
+                if (tagOffset < reader.DataLength && tagSize < reader.DataLength - 128)
+                {
+                    table.Add(new IccTagTableEntry((IccProfileTag)tagSignature, tagOffset, tagSize));
+                }
             }
 
-            return table;
+            return table.ToArray();
         }
     }
 }

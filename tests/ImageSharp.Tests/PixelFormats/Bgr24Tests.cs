@@ -5,7 +5,7 @@ using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
     public class Bgr24Tests
     {
@@ -22,13 +22,13 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(g, p.G);
             Assert.Equal(b, p.B);
         }
-        
+
         [Fact]
         public unsafe void ByteLayoutIsSequentialBgr()
         {
             var color = new Bgr24(1, 2, 3);
             byte* ptr = (byte*)&color;
-        
+
             Assert.Equal(3, ptr[0]);
             Assert.Equal(2, ptr[1]);
             Assert.Equal(1, ptr[2]);
@@ -138,6 +138,38 @@ namespace SixLabors.ImageSharp.Tests
             rgb.ToBgra32(ref bgra);
 
             Assert.Equal(new Bgra32(1, 2, 3, 255), bgra);
+        }
+
+        [Fact]
+        public void Bgr24_PackFromRgb48_ToRgb48()
+        {
+            // arrange
+            var input = default(Bgr24);
+            var actual = default(Rgb48);
+            var expected = new Rgb48(65535, 0, 65535);
+
+            // act
+            input.PackFromRgb48(expected);
+            input.ToRgb48(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void Bgr24_PackFromRgba64_ToRgba64()
+        {
+            // arrange
+            var input = default(Bgr24);
+            var actual = default(Rgba64);
+            var expected = new Rgba64(65535, 0, 65535, 65535);
+
+            // act
+            input.PackFromRgba64(expected);
+            input.ToRgba64(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
         }
     }
 }

@@ -14,7 +14,7 @@
         #>
 
 			/// <inheritdoc />
-            internal override void PackFrom<#=pixelType#>(Span<<#=pixelType#>> source, Span<Rgba32> destPixels, int count)
+            internal override void PackFrom<#=pixelType#>(ReadOnlySpan<<#=pixelType#>> source, Span<Rgba32> destPixels, int count)
             {
                 GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
 
@@ -36,7 +36,7 @@
         #>
 
 			/// <inheritdoc />
-            internal override void To<#=pixelType#>(Span<Rgba32> sourcePixels, Span<<#=pixelType#>> dest, int count)
+            internal override void To<#=pixelType#>(ReadOnlySpan<Rgba32> sourcePixels, Span<<#=pixelType#>> dest, int count)
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
@@ -79,6 +79,9 @@ namespace SixLabors.ImageSharp.PixelFormats
     
     GeneratePackFromMethod("Bgra32", "dp = sp.ToRgba32();");
     GenerateConvertToMethod("Bgra32", "dp = sp.ToBgra32();");
+
+    GeneratePackFromMethod("Argb32", "dp = sp.ToRgba32();");
+    GenerateConvertToMethod("Argb32", "dp = sp.ToArgb32();");
 			#>
 
 		}

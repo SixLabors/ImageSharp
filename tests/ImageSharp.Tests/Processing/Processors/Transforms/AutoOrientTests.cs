@@ -5,28 +5,27 @@ using System;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
-    using SixLabors.ImageSharp.Processing.Transforms;
-
     public class AutoOrientTests : FileTestBase
     {
         public static readonly string[] FlipFiles = { TestImages.Bmp.F };
 
-        public static readonly TheoryData<RotateType, FlipType, ushort> OrientationValues
-            = new TheoryData<RotateType, FlipType, ushort>
+        public static readonly TheoryData<RotateMode, FlipMode, ushort> OrientationValues
+            = new TheoryData<RotateMode, FlipMode, ushort>
         {
-            { RotateType.None,      FlipType.None,       0 },
-            { RotateType.None,      FlipType.None,       1 },
-            { RotateType.None,      FlipType.Horizontal, 2 },
-            { RotateType.Rotate180, FlipType.None,       3 },
-            { RotateType.Rotate180, FlipType.Horizontal, 4 },
-            { RotateType.Rotate90,  FlipType.Horizontal, 5 },
-            { RotateType.Rotate270, FlipType.None,       6 },
-            { RotateType.Rotate90,  FlipType.Vertical,   7 },
-            { RotateType.Rotate90,  FlipType.None,       8 },
+            { RotateMode.None,      FlipMode.None,       0 },
+            { RotateMode.None,      FlipMode.None,       1 },
+            { RotateMode.None,      FlipMode.Horizontal, 2 },
+            { RotateMode.Rotate180, FlipMode.None,       3 },
+            { RotateMode.Rotate180, FlipMode.Horizontal, 4 },
+            { RotateMode.Rotate90,  FlipMode.Horizontal, 5 },
+            { RotateMode.Rotate270, FlipMode.None,       6 },
+            { RotateMode.Rotate90,  FlipMode.Vertical,   7 },
+            { RotateMode.Rotate90,  FlipMode.None,       8 },
         };
 
         public static readonly TheoryData<ExifDataType, byte[]> InvalidOrientationValues
@@ -41,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
         [Theory]
         [WithFileCollection(nameof(FlipFiles), nameof(OrientationValues), DefaultPixelType)]
-        public void ImageShouldAutoRotate<TPixel>(TestImageProvider<TPixel> provider, RotateType rotateType, FlipType flipType, ushort orientation)
+        public void ImageShouldAutoRotate<TPixel>(TestImageProvider<TPixel> provider, RotateMode rotateType, FlipMode flipType, ushort orientation)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -77,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.MetaData.ExifProfile = new ExifProfile(bytes);
-                image.Mutate(x=>x.AutoOrient());
+                image.Mutate(x => x.AutoOrient());
             }
         }
     }

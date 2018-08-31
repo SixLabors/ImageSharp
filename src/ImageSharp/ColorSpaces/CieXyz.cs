@@ -15,11 +15,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
     internal readonly struct CieXyz : IColorVector, IEquatable<CieXyz>, IAlmostEquatable<CieXyz, float>
     {
         /// <summary>
-        /// Represents a <see cref="CieXyz"/> that has X, Y, and Z values set to zero.
-        /// </summary>
-        public static readonly CieXyz Empty = default(CieXyz);
-
-        /// <summary>
         /// The backing vector for SIMD support.
         /// </summary>
         private readonly Vector3 backingVector;
@@ -40,7 +35,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// Initializes a new instance of the <see cref="CieXyz"/> struct.
         /// </summary>
         /// <param name="vector">The vector representing the x, y, z components.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyz(Vector3 vector)
             : this()
         {
@@ -78,18 +72,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
             get => this.backingVector.Z;
         }
 
-        /// <summary>
-        /// Gets a value indicating whether this <see cref="CieXyz"/> is empty.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.Equals(Empty);
-
         /// <inheritdoc />
-        public Vector3 Vector
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector;
-        }
+        public Vector3 Vector => this.backingVector;
 
         /// <summary>
         /// Compares two <see cref="CieXyz"/> objects for equality.
@@ -128,6 +112,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
             return this.backingVector.GetHashCode();
@@ -136,24 +121,15 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (this.IsEmpty)
-            {
-                return "CieXyz [ Empty ]";
-            }
-
-            return $"CieXyz [ X={this.X:#0.##}, Y={this.Y:#0.##}, Z={this.Z:#0.##} ]";
+            return this.Equals(default)
+                ? "CieXyz [ Empty ]"
+                : $"CieXyz [ X={this.X:#0.##}, Y={this.Y:#0.##}, Z={this.Z:#0.##} ]";
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
-            if (obj is CieXyz)
-            {
-                return this.Equals((CieXyz)obj);
-            }
-
-            return false;
+            return obj is CieXyz other && this.Equals(other);
         }
 
         /// <inheritdoc/>

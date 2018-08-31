@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// <summary>
     /// Packed pixel type containing unsigned normalized values, ranging from 0 to 1, using 4 bits each for x, y, z, and w.
     /// <para>
-    /// Ranges from &lt;0, 0, 0, 0&gt; to &lt;1, 1, 1, 1&gt; in vector form.
+    /// Ranges from [0, 0, 0, 0] to [1, 1, 1, 1] in vector form.
     /// </para>
     /// </summary>
     public struct Bgra4444 : IPixel<Bgra4444>, IPackedVector<ushort>
@@ -70,6 +70,20 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         public PixelOperations<Bgra4444> CreatePixelOperations() => new PixelOperations<Bgra4444>();
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromScaledVector4(Vector4 vector)
+        {
+            this.PackFromVector4(vector);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector4 ToScaledVector4()
+        {
+            return this.ToVector4();
+        }
+
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()
@@ -99,6 +113,20 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromArgb32(Argb32 source)
+        {
+            this.PackFromVector4(source.ToVector4());
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromBgra32(Bgra32 source)
+        {
+            this.PackFromVector4(source.ToVector4());
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgb24(ref Rgb24 dest)
         {
             Vector4 vector = this.ToVector4() * 255F;
@@ -110,6 +138,17 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgba32(ref Rgba32 dest)
+        {
+            Vector4 vector = this.ToVector4() * 255F;
+            dest.R = (byte)vector.X;
+            dest.G = (byte)vector.Y;
+            dest.B = (byte)vector.Z;
+            dest.A = (byte)vector.W;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToArgb32(ref Argb32 dest)
         {
             Vector4 vector = this.ToVector4() * 255F;
             dest.R = (byte)vector.X;
@@ -139,10 +178,26 @@ namespace SixLabors.ImageSharp.PixelFormats
             dest.A = (byte)vector.W;
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromRgb48(Rgb48 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgb48(ref Rgb48 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromRgba64(Rgba64 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgba64(ref Rgba64 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            return (obj is Bgra4444) && this.Equals((Bgra4444)obj);
+            return obj is Bgra4444 other && this.Equals(other);
         }
 
         /// <inheritdoc />
@@ -160,10 +215,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode()
-        {
-            return this.PackedValue.GetHashCode();
-        }
+        public override int GetHashCode() => this.PackedValue.GetHashCode();
 
         /// <summary>
         /// Packs the <see cref="float"/> components into a <see cref="ushort"/>.

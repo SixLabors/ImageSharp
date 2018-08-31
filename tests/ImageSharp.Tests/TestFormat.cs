@@ -18,12 +18,9 @@ namespace SixLabors.ImageSharp.Tests
     /// </summary>
     public class TestFormat : IConfigurationModule, IImageFormat
     {
+        // We should not change Configuration.Default in individual tests!
+        // Create new configuration instances with new Configuration(TestFormat.GlobalTestFormat) instead!
         public static TestFormat GlobalTestFormat { get; } = new TestFormat();
-
-        public static void RegisterGlobalTestFormat()
-        {
-            Configuration.Default.Configure(GlobalTestFormat);
-        }
 
         public TestFormat()
         {
@@ -41,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests
 
         public MemoryStream CreateStream(byte[] marker = null)
         {
-            MemoryStream ms = new MemoryStream();
+            var ms = new MemoryStream();
             byte[] data = this.header;
             ms.Write(data, 0, data.Length);
             if (marker != null)
@@ -155,12 +152,12 @@ namespace SixLabors.ImageSharp.Tests
 
             private TestFormat testFormat;
 
-            public int HeaderSize => testFormat.HeaderSize;
+            public int HeaderSize => this.testFormat.HeaderSize;
 
             public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
             {
-                if (testFormat.IsSupportedFileFormat(header))
-                    return testFormat;
+                if (this.testFormat.IsSupportedFileFormat(header))
+                    return this.testFormat;
 
                 return null;
             }

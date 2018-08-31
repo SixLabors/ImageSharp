@@ -3,8 +3,6 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-using SixLabors.ImageSharp.Processing.Drawing;
-
 namespace SixLabors.ImageSharp.Benchmarks
 {
     using System.Drawing;

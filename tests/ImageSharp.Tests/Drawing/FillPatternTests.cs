@@ -2,18 +2,16 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Drawing;
-using SixLabors.ImageSharp.Processing.Drawing.Brushes;
+using SixLabors.ImageSharp.Primitives;
+using SixLabors.ImageSharp.Processing;
 
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using SixLabors.ImageSharp.Primitives;
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Transforms;
-
     public class FillPatternBrushTests : FileTestBase
     {
         private void Test(string name, Rgba32 background, IBrush<Rgba32> brush, Rgba32[,] expectedPattern)
@@ -21,36 +19,33 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             string path = TestEnvironment.CreateOutputDirectory("Fill", "PatternBrush");
             using (var image = new Image<Rgba32>(20, 20))
             {
-                image.Mutate(x => x
-                    .Fill(background)
-                    .Fill(brush));
+                image.Mutate(x => x.Fill(background).Fill(brush));
 
                 image.Save($"{path}/{name}.png");
 
-                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
+                Buffer2D<Rgba32> sourcePixels = image.GetRootFramePixelBuffer();
+                // lets pick random spots to start checking
+                var r = new Random();
+                var expectedPatternFast = new DenseMatrix<Rgba32>(expectedPattern);
+                int xStride = expectedPatternFast.Columns;
+                int yStride = expectedPatternFast.Rows;
+                int offsetX = r.Next(image.Width / xStride) * xStride;
+                int offsetY = r.Next(image.Height / yStride) * yStride;
+                for (int x = 0; x < xStride; x++)
                 {
-                    // lets pick random spots to start checking
-                    var r = new Random();
-                    var expectedPatternFast = new DenseMatrix<Rgba32>(expectedPattern);
-                    int xStride = expectedPatternFast.Columns;
-                    int yStride = expectedPatternFast.Rows;
-                    int offsetX = r.Next(image.Width / xStride) * xStride;
-                    int offsetY = r.Next(image.Height / yStride) * yStride;
-                    for (var x = 0; x < xStride; x++)
+                    for (int y = 0; y < yStride; y++)
                     {
-                        for (var y = 0; y < yStride; y++)
+                        int actualX = x + offsetX;
+                        int actualY = y + offsetY;
+                        Rgba32 expected = expectedPatternFast[y, x]; // inverted pattern
+                        Rgba32 actual = sourcePixels[actualX, actualY];
+                        if (expected != actual)
                         {
-                            int actualX = x + offsetX;
-                            int actualY = y + offsetY;
-                            Rgba32 expected = expectedPatternFast[y, x]; // inverted pattern
-                            Rgba32 actual = sourcePixels[actualX, actualY];
-                            if (expected != actual)
-                            {
-                                Assert.True(false, $"Expected {expected} but found {actual} at ({actualX},{actualY})");
-                            }
+                            Assert.True(false, $"Expected {expected} but found {actual} at ({actualX},{actualY})");
                         }
                     }
                 }
+
                 image.Mutate(x => x.Resize(80, 80));
                 image.Save($"{path}/{name}x4.png");
             }

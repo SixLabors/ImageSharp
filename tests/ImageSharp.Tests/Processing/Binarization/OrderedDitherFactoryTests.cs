@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Primitives;
+using SixLabors.ImageSharp.Processing.Processors.Dithering;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Binarization
 {
-    using SixLabors.ImageSharp.Primitives;
-    using SixLabors.ImageSharp.Processing.Dithering.Ordered;
-
     public class OrderedDitherFactoryTests
     {
         private static readonly DenseMatrix<uint> Expected2x2Matrix = new DenseMatrix<uint>(

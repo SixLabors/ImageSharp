@@ -5,16 +5,14 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-
-using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests
 {
     public abstract partial class TestImageProvider<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-
         /// <summary>
         /// A test image provider that produces test patterns.
         /// </summary>
@@ -33,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests
             {
             }
 
-            public override string SourceFileOrDescription => $"TestPattern{this.Width}x{this.Height}";
+            public override string SourceFileOrDescription => TestUtils.AsInvariantString($"TestPattern{this.Width}x{this.Height}");
 
             public override Image<TPixel> GetImage()
             {
@@ -57,19 +55,18 @@ namespace SixLabors.ImageSharp.Tests
             private static void DrawTestPattern(Image<TPixel> image)
             {
                 // first lets split the image into 4 quadrants
-                using (PixelAccessor<TPixel> pixels = image.Lock())
-                {
-                    BlackWhiteChecker(pixels); // top left
-                    VerticalBars(pixels); // top right
-                    TransparentGradients(pixels); // bottom left
-                    Rainbow(pixels); // bottom right
-                }
+                Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
+                BlackWhiteChecker(pixels); // top left
+                VerticalBars(pixels); // top right
+                TransparentGradients(pixels); // bottom left
+                Rainbow(pixels); // bottom right
             }
+
             /// <summary>
             /// Fills the top right quadrant with alternating solid vertical bars.
             /// </summary>
             /// <param name="pixels"></param>
-            private static void VerticalBars(PixelAccessor<TPixel> pixels)
+            private static void VerticalBars(Buffer2D<TPixel> pixels)
             {
                 // topLeft
                 int left = pixels.Width / 2;
@@ -82,11 +79,12 @@ namespace SixLabors.ImageSharp.Tests
                     stride = 1;
                 }
 
-                TPixel[] c = {
-                                     NamedColors<TPixel>.HotPink,
-                                     NamedColors<TPixel>.Blue
-                                 };
-                
+                TPixel[] c =
+                {
+                    NamedColors<TPixel>.HotPink,
+                    NamedColors<TPixel>.Blue
+                };
+
                 for (int y = top; y < bottom; y++)
                 {
                     int p = 0;
@@ -106,7 +104,7 @@ namespace SixLabors.ImageSharp.Tests
             /// fills the top left quadrant with a black and white checker board.
             /// </summary>
             /// <param name="pixels"></param>
-            private static void BlackWhiteChecker(PixelAccessor<TPixel> pixels)
+            private static void BlackWhiteChecker(Buffer2D<TPixel> pixels)
             {
                 // topLeft
                 int left = 0;
@@ -114,10 +112,11 @@ namespace SixLabors.ImageSharp.Tests
                 int top = 0;
                 int bottom = pixels.Height / 2;
                 int stride = pixels.Width / 6;
-                TPixel[] c = {
-                                     NamedColors<TPixel>.Black,
-                                     NamedColors<TPixel>.White
-                                 };
+                TPixel[] c = 
+                {
+                    NamedColors<TPixel>.Black,
+                    NamedColors<TPixel>.White
+                };
 
                 int p = 0;
                 for (int y = top; y < bottom; y++)
@@ -145,7 +144,7 @@ namespace SixLabors.ImageSharp.Tests
             /// Fills the bottom left quadrent with 3 horizental bars in Red, Green and Blue with a alpha gradient from left (transparent) to right (solid).
             /// </summary>
             /// <param name="pixels"></param>
-            private static void TransparentGradients(PixelAccessor<TPixel> pixels)
+            private static void TransparentGradients(Buffer2D<TPixel> pixels)
             {
                 // topLeft
                 int left = 0;
@@ -190,7 +189,7 @@ namespace SixLabors.ImageSharp.Tests
             /// A better algorithm could be used but it works
             /// </summary>
             /// <param name="pixels"></param>
-            private static void Rainbow(PixelAccessor<TPixel> pixels)
+            private static void Rainbow(Buffer2D<TPixel> pixels)
             {
                 int left = pixels.Width / 2;
                 int right = pixels.Width;
@@ -199,7 +198,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 int pixelCount = left * top;
                 uint stepsPerPixel = (uint)(uint.MaxValue / pixelCount);
-                TPixel c = default(TPixel);
+                TPixel c = default;
                 Rgba32 t = new Rgba32(0);
 
                 for (int x = left; x < right; x++)

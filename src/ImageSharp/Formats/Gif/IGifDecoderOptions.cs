@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         bool IgnoreMetadata { get; }
 
         /// <summary>
-        /// Gets the encoding that should be used when reading comments.
+        /// Gets the text encoding that should be used when reading comments.
         /// </summary>
         Encoding TextEncoding { get; }
 

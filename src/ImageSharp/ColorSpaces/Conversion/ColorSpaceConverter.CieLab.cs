@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLabColorSapce;
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLchColorSapce;
 
@@ -22,10 +21,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(CieLch color)
+        public CieLab ToCieLab(in CieLch color)
         {
-            Guard.NotNull(color, nameof(color));
-
             // Conversion (perserving white point)
             CieLab unadapted = CieLchToCieLabConverter.Convert(color);
 
@@ -43,10 +40,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(CieLchuv color)
+        public CieLab ToCieLab(in CieLchuv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLab(xyzColor);
         }
@@ -56,10 +51,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(CieLuv color)
+        public CieLab ToCieLab(in CieLuv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLab(xyzColor);
         }
@@ -69,10 +62,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(CieXyy color)
+        public CieLab ToCieLab(in CieXyy color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLab(xyzColor);
         }
@@ -82,17 +73,15 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(CieXyz color)
+        public CieLab ToCieLab(in CieXyz color)
         {
-            Guard.NotNull(color, nameof(color));
-
             // Adaptation
             CieXyz adapted = !this.WhitePoint.Equals(this.TargetLabWhitePoint) && this.IsChromaticAdaptationPerformed
                 ? this.ChromaticAdaptation.Transform(color, this.WhitePoint, this.TargetLabWhitePoint)
                 : color;
 
             // Conversion
-            CieXyzToCieLabConverter converter = new CieXyzToCieLabConverter(this.TargetLabWhitePoint);
+            var converter = new CieXyzToCieLabConverter(this.TargetLabWhitePoint);
             return converter.Convert(adapted);
         }
 
@@ -101,10 +90,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(Cmyk color)
+        public CieLab ToCieLab(in Cmyk color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLab(xyzColor);
         }
@@ -114,10 +101,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(Hsl color)
+        public CieLab ToCieLab(in Hsl color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLab(xyzColor);
         }
@@ -127,10 +112,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(Hsv color)
+        public CieLab ToCieLab(in Hsv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLab(xyzColor);
         }
@@ -140,10 +123,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(HunterLab color)
+        public CieLab ToCieLab(in HunterLab color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLab(xyzColor);
         }
@@ -153,10 +134,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(Lms color)
+        public CieLab ToCieLab(in Lms color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLab(xyzColor);
         }
@@ -166,10 +145,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(LinearRgb color)
+        public CieLab ToCieLab(in LinearRgb color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLab(xyzColor);
         }
@@ -179,10 +156,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(Rgb color)
+        public CieLab ToCieLab(in Rgb color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLab(xyzColor);
         }
@@ -192,10 +167,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
-        public CieLab ToCieLab(YCbCr color)
+        public CieLab ToCieLab(in YCbCr color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLab(xyzColor);
         }

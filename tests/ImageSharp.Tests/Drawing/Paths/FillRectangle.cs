@@ -3,9 +3,8 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
-using SixLabors.ImageSharp.Processing.Drawing;
-using SixLabors.ImageSharp.Processing.Drawing.Brushes;
-using SixLabors.ImageSharp.Processing.Drawing.Processors;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Drawing;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing.Paths
@@ -26,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
-            Shapes.RectangularePolygon rect = Assert.IsType<Shapes.RectangularePolygon>(region.Shape);
+            Shapes.RectangularPolygon rect = Assert.IsType<Shapes.RectangularPolygon>(region.Shape);
             Assert.Equal(rect.Location.X, this.rectangle.X);
             Assert.Equal(rect.Location.Y, this.rectangle.Y);
             Assert.Equal(rect.Size.Width, this.rectangle.Width);
@@ -38,13 +37,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsBrushRectangleAndOptions()
         {
-            this.operations.Fill(this.brush, this.rectangle, this.noneDefault);
+            this.operations.Fill(this.noneDefault, this.brush, this.rectangle);
             FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>();
 
             Assert.Equal(this.noneDefault, processor.Options);
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
-            Shapes.RectangularePolygon rect = Assert.IsType<Shapes.RectangularePolygon>(region.Shape);
+            Shapes.RectangularPolygon rect = Assert.IsType<Shapes.RectangularPolygon>(region.Shape);
             Assert.Equal(rect.Location.X, this.rectangle.X);
             Assert.Equal(rect.Location.Y, this.rectangle.Y);
             Assert.Equal(rect.Size.Width, this.rectangle.Width);
@@ -62,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
-            Shapes.RectangularePolygon rect = Assert.IsType<Shapes.RectangularePolygon>(region.Shape);
+            Shapes.RectangularPolygon rect = Assert.IsType<Shapes.RectangularPolygon>(region.Shape);
             Assert.Equal(rect.Location.X, this.rectangle.X);
             Assert.Equal(rect.Location.Y, this.rectangle.Y);
             Assert.Equal(rect.Size.Width, this.rectangle.Width);
@@ -75,13 +74,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsColorRectangleAndOptions()
         {
-            this.operations.Fill(this.color, this.rectangle, this.noneDefault);
+            this.operations.Fill(this.noneDefault, this.color, this.rectangle);
             FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>();
 
             Assert.Equal(this.noneDefault, processor.Options);
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
-            Shapes.RectangularePolygon rect = Assert.IsType<Shapes.RectangularePolygon>(region.Shape);
+            Shapes.RectangularPolygon rect = Assert.IsType<Shapes.RectangularPolygon>(region.Shape);
             Assert.Equal(rect.Location.X, this.rectangle.X);
             Assert.Equal(rect.Location.Y, this.rectangle.Y);
             Assert.Equal(rect.Size.Width, this.rectangle.Width);

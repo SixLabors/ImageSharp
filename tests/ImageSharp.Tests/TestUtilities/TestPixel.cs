@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using SixLabors.ImageSharp.PixelFormats;
+
 using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities

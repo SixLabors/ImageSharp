@@ -1,22 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Buffers;
+using BenchmarkDotNet.Attributes;
+
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
 // ReSharper disable InconsistentNaming
 
-namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
+namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
-    using BenchmarkDotNet.Attributes;
-
-    using SixLabors.ImageSharp.Memory;
-    using SixLabors.ImageSharp.PixelFormats;
-
     public abstract class ToXyzw<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private IBuffer<TPixel> source;
+        private IMemoryOwner<TPixel> source;
 
-        private IBuffer<byte> destination;
+        private IMemoryOwner<byte> destination;
 
         [Params(16, 128, 1024)]
         public int Count { get; set; }
@@ -24,8 +25,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
         [GlobalSetup]
         public void Setup()
         {
-            this.source = Configuration.Default.MemoryManager.Allocate<TPixel>(this.Count);
-            this.destination = Configuration.Default.MemoryManager.Allocate<byte>(this.Count * 4);
+            this.source = Configuration.Default.MemoryAllocator.Allocate<TPixel>(this.Count);
+            this.destination = Configuration.Default.MemoryAllocator.Allocate<byte>(this.Count * 4);
         }
 
         [GlobalCleanup]
@@ -38,8 +39,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
         [Benchmark(Baseline = true)]
         public void PerElement()
         {
-            Span<TPixel> s = this.source.Span;
-            Span<byte> d = this.destination.Span;
+            Span<TPixel> s = this.source.GetSpan();
+            Span<byte> d = this.destination.GetSpan();
 
             var rgba = default(Rgba32);
 
@@ -58,13 +59,13 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new PixelOperations<TPixel>().ToRgba32Bytes(this.source.Span, this.destination.Span, this.Count);
+            new PixelOperations<TPixel>().ToRgba32Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-            PixelOperations<TPixel>.Instance.ToRgba32Bytes(this.source.Span, this.destination.Span, this.Count);
+            PixelOperations<TPixel>.Instance.ToRgba32Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
         }
     }
 

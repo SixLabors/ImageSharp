@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.Globalization;
 
 namespace SixLabors.ImageSharp.PixelFormats
@@ -23,21 +24,17 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>Returns a <typeparamref name="TPixel"/> that represents the color defined by the provided RGBA heax string.</returns>
         public static TPixel FromHex(string hex)
         {
-            Guard.NotNullOrEmpty(hex, nameof(hex));
+            Guard.NotNullOrWhiteSpace(hex, nameof(hex));
 
             hex = ToRgbaHex(hex);
-            uint packedValue;
-            if (hex == null || !uint.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out packedValue))
+
+            if (hex is null || !uint.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint packedValue))
             {
                 throw new ArgumentException("Hexadecimal string is not in the correct format.", nameof(hex));
             }
 
-            TPixel result = default(TPixel);
-            Rgba32 rgba = new Rgba32(
-                (byte)(packedValue >> 24),
-                (byte)(packedValue >> 16),
-                (byte)(packedValue >> 8),
-                (byte)(packedValue >> 0));
+            TPixel result = default;
+            var rgba = new Rgba32(BinaryPrimitives.ReverseEndianness(packedValue));
 
             result.PackFromRgba32(rgba);
             return result;
@@ -62,7 +59,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>Returns a <typeparamref name="TPixel"/> that represents the color defined by the provided RGBA values.</returns>
         public static TPixel FromRGBA(byte red, byte green, byte blue, byte alpha)
         {
-            TPixel color = default(TPixel);
+            TPixel color = default;
             color.PackFromRgba32(new Rgba32(red, green, blue, alpha));
             return color;
         }
@@ -76,7 +73,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </returns>
         private static string ToRgbaHex(string hex)
         {
-            hex = hex.StartsWith("#") ? hex.Substring(1) : hex;
+            if (hex[0] == '#')
+            {
+                hex = hex.Substring(1);
+            }
 
             if (hex.Length == 8)
             {
@@ -93,12 +93,12 @@ namespace SixLabors.ImageSharp.PixelFormats
                 return null;
             }
 
-            string red = char.ToString(hex[0]);
-            string green = char.ToString(hex[1]);
-            string blue = char.ToString(hex[2]);
-            string alpha = hex.Length == 3 ? "F" : char.ToString(hex[3]);
+            char r = hex[0];
+            char g = hex[1];
+            char b = hex[2];
+            char a = hex.Length == 3 ? 'F' : hex[3];
 
-            return string.Concat(red, red, green, green, blue, blue, alpha, alpha);
+            return new string(new[] { r, r, g, g, b, b, a, a });
         }
     }
 }

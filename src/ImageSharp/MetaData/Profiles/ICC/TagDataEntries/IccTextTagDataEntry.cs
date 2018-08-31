@@ -27,8 +27,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccTextTagDataEntry(string text, IccProfileTag tagSignature)
             : base(IccTypeSignature.Text, tagSignature)
         {
-            Guard.NotNull(text, nameof(text));
-            this.Text = text;
+            this.Text = text ?? throw new ArgumentNullException(nameof(text));
         }
 
         /// <summary>
@@ -39,14 +38,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            var entry = other as IccTextTagDataEntry;
-            return entry != null && this.Equals(entry);
+            return other is IccTextTagDataEntry entry && this.Equals(entry);
         }
 
         /// <inheritdoc />
         public bool Equals(IccTextTagDataEntry other)
         {
-            if (ReferenceEquals(null, other))
+            if (other is null)
             {
                 return false;
             }
@@ -62,17 +60,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
-            return obj is IccTextTagDataEntry && this.Equals((IccTextTagDataEntry)obj);
+            return obj is IccTextTagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc />
@@ -80,7 +68,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             unchecked
             {
-                return (base.GetHashCode() * 397) ^ (this.Text != null ? this.Text.GetHashCode() : 0);
+                return (base.GetHashCode() * 397) ^ (this.Text?.GetHashCode() ?? 0);
             }
         }
     }

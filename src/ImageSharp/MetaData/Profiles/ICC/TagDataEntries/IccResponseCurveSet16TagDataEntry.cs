@@ -53,14 +53,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            var entry = other as IccResponseCurveSet16TagDataEntry;
-            return entry != null && this.Equals(entry);
+            return other is IccResponseCurveSet16TagDataEntry entry && this.Equals(entry);
         }
 
         /// <inheritdoc />
         public bool Equals(IccResponseCurveSet16TagDataEntry other)
         {
-            if (ReferenceEquals(null, other))
+            if (other is null)
             {
                 return false;
             }
@@ -78,17 +77,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
-            return obj is IccResponseCurveSet16TagDataEntry && this.Equals((IccResponseCurveSet16TagDataEntry)obj);
+            return obj is IccResponseCurveSet16TagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc />
@@ -98,7 +87,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             {
                 int hashCode = base.GetHashCode();
                 hashCode = (hashCode * 397) ^ this.ChannelCount.GetHashCode();
-                hashCode = (hashCode * 397) ^ (this.Curves != null ? this.Curves.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.Curves?.GetHashCode() ?? 0);
                 return hashCode;
             }
         }

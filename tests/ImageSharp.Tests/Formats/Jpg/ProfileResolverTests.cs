@@ -1,14 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Text;
+
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
+
+using Xunit;
+
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using System.Text;
-
-    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
-
-    using Xunit;
-
     public class ProfileResolverTests
     {
         private static readonly byte[] JFifMarker = Encoding.ASCII.GetBytes("JFIF\0");

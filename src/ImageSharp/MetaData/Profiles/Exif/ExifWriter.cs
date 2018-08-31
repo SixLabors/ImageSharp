@@ -2,9 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Text;
+using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 {
@@ -14,303 +15,27 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
     internal sealed class ExifWriter
     {
         /// <summary>
-        /// The start index.
-        /// </summary>
-        private const int StartIndex = 6;
-
-        /// <summary>
-        /// The collection if Image File Directory tags
-        /// </summary>
-        private static readonly ExifTag[] IfdTags =
-        {
-            ExifTag.SubfileType,
-            ExifTag.OldSubfileType,
-            ExifTag.ImageWidth,
-            ExifTag.ImageLength,
-            ExifTag.BitsPerSample,
-            ExifTag.Compression,
-            ExifTag.PhotometricInterpretation,
-            ExifTag.Thresholding,
-            ExifTag.CellWidth,
-            ExifTag.CellLength,
-            ExifTag.FillOrder,
-            ExifTag.DocumentName,
-            ExifTag.ImageDescription,
-            ExifTag.Make,
-            ExifTag.Model,
-            ExifTag.StripOffsets,
-            ExifTag.Orientation,
-            ExifTag.SamplesPerPixel,
-            ExifTag.RowsPerStrip,
-            ExifTag.StripByteCounts,
-            ExifTag.MinSampleValue,
-            ExifTag.MaxSampleValue,
-            ExifTag.XResolution,
-            ExifTag.YResolution,
-            ExifTag.PlanarConfiguration,
-            ExifTag.PageName,
-            ExifTag.XPosition,
-            ExifTag.YPosition,
-            ExifTag.FreeOffsets,
-            ExifTag.FreeByteCounts,
-            ExifTag.GrayResponseUnit,
-            ExifTag.GrayResponseCurve,
-            ExifTag.T4Options,
-            ExifTag.T6Options,
-            ExifTag.ResolutionUnit,
-            ExifTag.PageNumber,
-            ExifTag.ColorResponseUnit,
-            ExifTag.TransferFunction,
-            ExifTag.Software,
-            ExifTag.DateTime,
-            ExifTag.Artist,
-            ExifTag.HostComputer,
-            ExifTag.Predictor,
-            ExifTag.WhitePoint,
-            ExifTag.PrimaryChromaticities,
-            ExifTag.ColorMap,
-            ExifTag.HalftoneHints,
-            ExifTag.TileWidth,
-            ExifTag.TileLength,
-            ExifTag.TileOffsets,
-            ExifTag.TileByteCounts,
-            ExifTag.BadFaxLines,
-            ExifTag.CleanFaxData,
-            ExifTag.ConsecutiveBadFaxLines,
-            ExifTag.InkSet,
-            ExifTag.InkNames,
-            ExifTag.NumberOfInks,
-            ExifTag.DotRange,
-            ExifTag.TargetPrinter,
-            ExifTag.ExtraSamples,
-            ExifTag.SampleFormat,
-            ExifTag.SMinSampleValue,
-            ExifTag.SMaxSampleValue,
-            ExifTag.TransferRange,
-            ExifTag.ClipPath,
-            ExifTag.XClipPathUnits,
-            ExifTag.YClipPathUnits,
-            ExifTag.Indexed,
-            ExifTag.JPEGTables,
-            ExifTag.OPIProxy,
-            ExifTag.ProfileType,
-            ExifTag.FaxProfile,
-            ExifTag.CodingMethods,
-            ExifTag.VersionYear,
-            ExifTag.ModeNumber,
-            ExifTag.Decode,
-            ExifTag.DefaultImageColor,
-            ExifTag.T82ptions,
-            ExifTag.JPEGProc,
-            ExifTag.JPEGInterchangeFormat,
-            ExifTag.JPEGInterchangeFormatLength,
-            ExifTag.JPEGRestartInterval,
-            ExifTag.JPEGLosslessPredictors,
-            ExifTag.JPEGPointTransforms,
-            ExifTag.JPEGQTables,
-            ExifTag.JPEGDCTables,
-            ExifTag.JPEGACTables,
-            ExifTag.YCbCrCoefficients,
-            ExifTag.YCbCrSubsampling,
-            ExifTag.YCbCrSubsampling,
-            ExifTag.YCbCrPositioning,
-            ExifTag.ReferenceBlackWhite,
-            ExifTag.StripRowCounts,
-            ExifTag.XMP,
-            ExifTag.Rating,
-            ExifTag.RatingPercent,
-            ExifTag.ImageID,
-            ExifTag.CFARepeatPatternDim,
-            ExifTag.CFAPattern2,
-            ExifTag.BatteryLevel,
-            ExifTag.Copyright,
-            ExifTag.MDFileTag,
-            ExifTag.MDScalePixel,
-            ExifTag.MDLabName,
-            ExifTag.MDSampleInfo,
-            ExifTag.MDPrepDate,
-            ExifTag.MDPrepTime,
-            ExifTag.MDFileUnits,
-            ExifTag.PixelScale,
-            ExifTag.IntergraphPacketData,
-            ExifTag.IntergraphRegisters,
-            ExifTag.IntergraphMatrix,
-            ExifTag.ModelTiePoint,
-            ExifTag.SEMInfo,
-            ExifTag.ModelTransform,
-            ExifTag.ImageLayer,
-            ExifTag.FaxRecvParams,
-            ExifTag.FaxSubaddress,
-            ExifTag.FaxRecvTime,
-            ExifTag.ImageSourceData,
-            ExifTag.XPTitle,
-            ExifTag.XPComment,
-            ExifTag.XPAuthor,
-            ExifTag.XPKeywords,
-            ExifTag.XPSubject,
-            ExifTag.GDALMetadata,
-            ExifTag.GDALNoData
-        };
-
-        /// <summary>
-        /// The collection of Exif tags
-        /// </summary>
-        private static readonly ExifTag[] ExifTags =
-        {
-            ExifTag.ExposureTime,
-            ExifTag.FNumber,
-            ExifTag.ExposureProgram,
-            ExifTag.SpectralSensitivity,
-            ExifTag.ISOSpeedRatings,
-            ExifTag.OECF,
-            ExifTag.Interlace,
-            ExifTag.TimeZoneOffset,
-            ExifTag.SelfTimerMode,
-            ExifTag.SensitivityType,
-            ExifTag.StandardOutputSensitivity,
-            ExifTag.RecommendedExposureIndex,
-            ExifTag.ISOSpeed,
-            ExifTag.ISOSpeedLatitudeyyy,
-            ExifTag.ISOSpeedLatitudezzz,
-            ExifTag.ExifVersion,
-            ExifTag.DateTimeOriginal,
-            ExifTag.DateTimeDigitized,
-            ExifTag.OffsetTime,
-            ExifTag.OffsetTimeOriginal,
-            ExifTag.OffsetTimeDigitized,
-            ExifTag.ComponentsConfiguration,
-            ExifTag.CompressedBitsPerPixel,
-            ExifTag.ShutterSpeedValue,
-            ExifTag.ApertureValue,
-            ExifTag.BrightnessValue,
-            ExifTag.ExposureBiasValue,
-            ExifTag.MaxApertureValue,
-            ExifTag.SubjectDistance,
-            ExifTag.MeteringMode,
-            ExifTag.LightSource,
-            ExifTag.Flash,
-            ExifTag.FocalLength,
-            ExifTag.FlashEnergy2,
-            ExifTag.SpatialFrequencyResponse2,
-            ExifTag.Noise,
-            ExifTag.FocalPlaneXResolution2,
-            ExifTag.FocalPlaneYResolution2,
-            ExifTag.FocalPlaneResolutionUnit2,
-            ExifTag.ImageNumber,
-            ExifTag.SecurityClassification,
-            ExifTag.ImageHistory,
-            ExifTag.SubjectArea,
-            ExifTag.ExposureIndex2,
-            ExifTag.TIFFEPStandardID,
-            ExifTag.SensingMethod2,
-            ExifTag.MakerNote,
-            ExifTag.UserComment,
-            ExifTag.SubsecTime,
-            ExifTag.SubsecTimeOriginal,
-            ExifTag.SubsecTimeDigitized,
-            ExifTag.AmbientTemperature,
-            ExifTag.Humidity,
-            ExifTag.Pressure,
-            ExifTag.WaterDepth,
-            ExifTag.Acceleration,
-            ExifTag.CameraElevationAngle,
-            ExifTag.FlashpixVersion,
-            ExifTag.ColorSpace,
-            ExifTag.PixelXDimension,
-            ExifTag.PixelYDimension,
-            ExifTag.RelatedSoundFile,
-            ExifTag.FlashEnergy,
-            ExifTag.SpatialFrequencyResponse,
-            ExifTag.FocalPlaneXResolution,
-            ExifTag.FocalPlaneYResolution,
-            ExifTag.FocalPlaneResolutionUnit,
-            ExifTag.SubjectLocation,
-            ExifTag.ExposureIndex,
-            ExifTag.SensingMethod,
-            ExifTag.FileSource,
-            ExifTag.SceneType,
-            ExifTag.CFAPattern,
-            ExifTag.CustomRendered,
-            ExifTag.ExposureMode,
-            ExifTag.WhiteBalance,
-            ExifTag.DigitalZoomRatio,
-            ExifTag.FocalLengthIn35mmFilm,
-            ExifTag.SceneCaptureType,
-            ExifTag.GainControl,
-            ExifTag.Contrast,
-            ExifTag.Saturation,
-            ExifTag.Sharpness,
-            ExifTag.DeviceSettingDescription,
-            ExifTag.SubjectDistanceRange,
-            ExifTag.ImageUniqueID,
-            ExifTag.OwnerName,
-            ExifTag.SerialNumber,
-            ExifTag.LensInfo,
-            ExifTag.LensMake,
-            ExifTag.LensModel,
-            ExifTag.LensSerialNumber
-          };
-
-        /// <summary>
-        /// The collection of GPS tags
-        /// </summary>
-        private static readonly ExifTag[] GPSTags =
-        {
-            ExifTag.GPSVersionID,
-            ExifTag.GPSLatitudeRef,
-            ExifTag.GPSLatitude,
-            ExifTag.GPSLongitudeRef,
-            ExifTag.GPSLongitude,
-            ExifTag.GPSAltitudeRef,
-            ExifTag.GPSAltitude,
-            ExifTag.GPSTimestamp,
-            ExifTag.GPSSatellites,
-            ExifTag.GPSStatus,
-            ExifTag.GPSMeasureMode,
-            ExifTag.GPSDOP,
-            ExifTag.GPSSpeedRef,
-            ExifTag.GPSSpeed,
-            ExifTag.GPSTrackRef,
-            ExifTag.GPSTrack,
-            ExifTag.GPSImgDirectionRef,
-            ExifTag.GPSImgDirection,
-            ExifTag.GPSMapDatum,
-            ExifTag.GPSDestLatitudeRef,
-            ExifTag.GPSDestLatitude,
-            ExifTag.GPSDestLongitudeRef,
-            ExifTag.GPSDestLongitude,
-            ExifTag.GPSDestBearingRef,
-            ExifTag.GPSDestBearing,
-            ExifTag.GPSDestDistanceRef,
-            ExifTag.GPSDestDistance,
-            ExifTag.GPSProcessingMethod,
-            ExifTag.GPSAreaInformation,
-            ExifTag.GPSDateStamp,
-            ExifTag.GPSDifferential
-        };
-
-        /// <summary>
         /// Which parts will be written.
         /// </summary>
         private ExifParts allowedParts;
-        private Collection<ExifValue> values;
-        private Collection<int> dataOffsets;
-        private Collection<int> ifdIndexes;
-        private Collection<int> exifIndexes;
-        private Collection<int> gpsIndexes;
+        private IList<ExifValue> values;
+        private List<int> dataOffsets;
+        private readonly List<int> ifdIndexes;
+        private readonly List<int> exifIndexes;
+        private readonly List<int> gpsIndexes;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ExifWriter"/> class.
         /// </summary>
         /// <param name="values">The values.</param>
         /// <param name="allowedParts">The allowed parts.</param>
-        public ExifWriter(Collection<ExifValue> values, ExifParts allowedParts)
+        public ExifWriter(IList<ExifValue> values, ExifParts allowedParts)
         {
             this.values = values;
             this.allowedParts = allowedParts;
-            this.ifdIndexes = this.GetIndexes(ExifParts.IfdTags, IfdTags);
-            this.exifIndexes = this.GetIndexes(ExifParts.ExifTags, ExifTags);
-            this.gpsIndexes = this.GetIndexes(ExifParts.GPSTags, GPSTags);
+            this.ifdIndexes = this.GetIndexes(ExifParts.IfdTags, ExifTags.Ifd);
+            this.exifIndexes = this.GetIndexes(ExifParts.ExifTags, ExifTags.Exif);
+            this.gpsIndexes = this.GetIndexes(ExifParts.GPSTags, ExifTags.Gps);
         }
 
         /// <summary>
@@ -321,6 +46,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// </returns>
         public byte[] GetData()
         {
+            uint startIndex = 0;
             uint length;
             int exifIndex = -1;
             int gpsIndex = -1;
@@ -356,64 +82,104 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 return null;
             }
 
-            length += 10 + 4 + 2;
+            // two bytes for the byte Order marker 'II', followed by the number 42 (0x2A) and a 0, making 4 bytes total
+            length += (uint)ExifConstants.LittleEndianByteOrderMarker.Length;
+
+            length += 4 + 2;
 
             byte[] result = new byte[length];
-            result[0] = (byte)'E';
-            result[1] = (byte)'x';
-            result[2] = (byte)'i';
-            result[3] = (byte)'f';
-            result[4] = 0x00;
-            result[5] = 0x00;
-            result[6] = (byte)'I';
-            result[7] = (byte)'I';
-            result[8] = 0x2A;
-            result[9] = 0x00;
 
-            int i = 10;
-            uint ifdOffset = ((uint)i - StartIndex) + 4;
+            int i = 0;
+
+            // the byte order marker for little-endian, followed by the number 42 and a 0
+            ExifConstants.LittleEndianByteOrderMarker.AsSpan().CopyTo(result.AsSpan(start: i));
+            i += ExifConstants.LittleEndianByteOrderMarker.Length;
+
+            uint ifdOffset = ((uint)i - startIndex) + 4;
             uint thumbnailOffset = ifdOffset + ifdLength + exifLength + gpsLength;
 
             if (exifLength > 0)
             {
-                this.values[exifIndex].Value = ifdOffset + ifdLength;
+                this.values[exifIndex] = this.values[exifIndex].WithValue(ifdOffset + ifdLength);
             }
 
             if (gpsLength > 0)
             {
-                this.values[gpsIndex].Value = ifdOffset + ifdLength + exifLength;
+                this.values[gpsIndex] = this.values[gpsIndex].WithValue(ifdOffset + ifdLength + exifLength);
             }
 
-            i = Write(BitConverter.GetBytes(ifdOffset), result, i);
+            i = WriteUInt32(ifdOffset, result, i);
             i = this.WriteHeaders(this.ifdIndexes, result, i);
-            i = Write(BitConverter.GetBytes(thumbnailOffset), result, i);
-            i = this.WriteData(this.ifdIndexes, result, i);
+            i = WriteUInt32(thumbnailOffset, result, i);
+            i = this.WriteData(startIndex, this.ifdIndexes, result, i);
 
             if (exifLength > 0)
             {
                 i = this.WriteHeaders(this.exifIndexes, result, i);
-                i = this.WriteData(this.exifIndexes, result, i);
+                i = this.WriteData(startIndex, this.exifIndexes, result, i);
             }
 
             if (gpsLength > 0)
             {
                 i = this.WriteHeaders(this.gpsIndexes, result, i);
-                i = this.WriteData(this.gpsIndexes, result, i);
+                i = this.WriteData(startIndex, this.gpsIndexes, result, i);
             }
 
-            Write(BitConverter.GetBytes((ushort)0), result, i);
+            WriteUInt16((ushort)0, result, i);
 
             return result;
         }
 
-        private static int Write(byte[] source, byte[] destination, int offset)
+        private static unsafe int WriteSingle(float value, Span<byte> destination, int offset)
         {
-            Buffer.BlockCopy(source, 0, destination, offset, source.Length);
+            BinaryPrimitives.WriteInt32LittleEndian(destination.Slice(offset, 4), *((int*)&value));
+
+            return offset + 4;
+        }
+
+        private static unsafe int WriteDouble(double value, Span<byte> destination, int offset)
+        {
+            BinaryPrimitives.WriteInt64LittleEndian(destination.Slice(offset, 8), *((long*)&value));
+
+            return offset + 8;
+        }
+
+        private static int Write(ReadOnlySpan<byte> source, Span<byte> destination, int offset)
+        {
+            source.CopyTo(destination.Slice(offset, source.Length));
 
             return offset + source.Length;
         }
 
-        private int GetIndex(Collection<int> indexes, ExifTag tag)
+        private static int WriteInt16(short value, Span<byte> destination, int offset)
+        {
+            BinaryPrimitives.WriteInt16LittleEndian(destination.Slice(offset, 2), value);
+
+            return offset + 2;
+        }
+
+        private static int WriteUInt16(ushort value, Span<byte> destination, int offset)
+        {
+            BinaryPrimitives.WriteUInt16LittleEndian(destination.Slice(offset, 2), value);
+
+            return offset + 2;
+        }
+
+        private static int WriteUInt32(uint value, Span<byte> destination, int offset)
+        {
+            BinaryPrimitives.WriteUInt32LittleEndian(destination.Slice(offset, 4), value);
+
+            return offset + 4;
+        }
+
+        private static int WriteInt32(int value, Span<byte> destination, int offset)
+        {
+            BinaryPrimitives.WriteInt32LittleEndian(destination.Slice(offset, 4), value);
+
+            return offset + 4;
+        }
+
+        private int GetIndex(IList<int> indexes, ExifTag tag)
         {
             foreach (int index in indexes)
             {
@@ -429,14 +195,14 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return newIndex;
         }
 
-        private Collection<int> GetIndexes(ExifParts part, ExifTag[] tags)
+        private List<int> GetIndexes(ExifParts part, ExifTag[] tags)
         {
             if (((int)this.allowedParts & (int)part) == 0)
             {
-                return new Collection<int>();
+                return new List<int>();
             }
 
-            Collection<int> result = new Collection<int>();
+            var result = new List<int>();
             for (int i = 0; i < this.values.Count; i++)
             {
                 ExifValue value = this.values[i];
@@ -456,7 +222,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return result;
         }
 
-        private uint GetLength(IEnumerable<int> indexes)
+        private uint GetLength(IList<int> indexes)
         {
             uint length = 0;
 
@@ -477,7 +243,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return length;
         }
 
-        private int WriteArray(ExifValue value, byte[] destination, int offset)
+        private int WriteArray(ExifValue value, Span<byte> destination, int offset)
         {
             if (value.DataType == ExifDataType.Ascii)
             {
@@ -493,7 +259,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return newOffset;
         }
 
-        private int WriteData(Collection<int> indexes, byte[] destination, int offset)
+        private int WriteData(uint startIndex, List<int> indexes, Span<byte> destination, int offset)
         {
             if (this.dataOffsets.Count == 0)
             {
@@ -508,7 +274,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 ExifValue value = this.values[index];
                 if (value.Length > 4)
                 {
-                    Write(BitConverter.GetBytes(newOffset - StartIndex), destination, this.dataOffsets[i++]);
+                    WriteUInt32((uint)(newOffset - startIndex), destination, this.dataOffsets[i++]);
                     newOffset = this.WriteValue(value, destination, newOffset);
                 }
             }
@@ -516,11 +282,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return newOffset;
         }
 
-        private int WriteHeaders(Collection<int> indexes, byte[] destination, int offset)
+        private int WriteHeaders(List<int> indexes, Span<byte> destination, int offset)
         {
-            this.dataOffsets = new Collection<int>();
+            this.dataOffsets = new List<int>();
 
-            int newOffset = Write(BitConverter.GetBytes((ushort)indexes.Count), destination, offset);
+            int newOffset = WriteUInt16((ushort)indexes.Count, destination, offset);
 
             if (indexes.Count == 0)
             {
@@ -530,9 +296,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             foreach (int index in indexes)
             {
                 ExifValue value = this.values[index];
-                newOffset = Write(BitConverter.GetBytes((ushort)value.Tag), destination, newOffset);
-                newOffset = Write(BitConverter.GetBytes((ushort)value.DataType), destination, newOffset);
-                newOffset = Write(BitConverter.GetBytes((uint)value.NumberOfComponents), destination, newOffset);
+                newOffset = WriteUInt16((ushort)value.Tag, destination, newOffset);
+                newOffset = WriteUInt16((ushort)value.DataType, destination, newOffset);
+                newOffset = WriteUInt32((uint)value.NumberOfComponents, destination, newOffset);
 
                 if (value.Length > 4)
                 {
@@ -549,23 +315,19 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return newOffset;
         }
 
-        private int WriteRational(Rational value, byte[] destination, int offset)
+        private static void WriteRational(Span<byte> destination, in Rational value)
         {
-            Write(BitConverter.GetBytes(value.Numerator), destination, offset);
-            Write(BitConverter.GetBytes(value.Denominator), destination, offset + 4);
-
-            return offset + 8;
+            BinaryPrimitives.WriteUInt32LittleEndian(destination.Slice(0, 4), value.Numerator);
+            BinaryPrimitives.WriteUInt32LittleEndian(destination.Slice(4, 4), value.Denominator);
         }
 
-        private int WriteSignedRational(SignedRational value, byte[] destination, int offset)
+        private static void WriteSignedRational(Span<byte> destination, in SignedRational value)
         {
-            Write(BitConverter.GetBytes(value.Numerator), destination, offset);
-            Write(BitConverter.GetBytes(value.Denominator), destination, offset + 4);
-
-            return offset + 8;
+            BinaryPrimitives.WriteInt32LittleEndian(destination.Slice(0, 4), value.Numerator);
+            BinaryPrimitives.WriteInt32LittleEndian(destination.Slice(4, 4), value.Denominator);
         }
 
-        private int WriteValue(ExifDataType dataType, object value, byte[] destination, int offset)
+        private int WriteValue(ExifDataType dataType, object value, Span<byte> destination, int offset)
         {
             switch (dataType)
             {
@@ -576,30 +338,32 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                     destination[offset] = (byte)value;
                     return offset + 1;
                 case ExifDataType.DoubleFloat:
-                    return Write(BitConverter.GetBytes((double)value), destination, offset);
+                    return WriteDouble((double)value, destination, offset);
                 case ExifDataType.Short:
-                    return Write(BitConverter.GetBytes((ushort)value), destination, offset);
+                    return WriteUInt16((ushort)value, destination, offset);
                 case ExifDataType.Long:
-                    return Write(BitConverter.GetBytes((uint)value), destination, offset);
+                    return WriteUInt32((uint)value, destination, offset);
                 case ExifDataType.Rational:
-                    return this.WriteRational((Rational)value, destination, offset);
+                    WriteRational(destination.Slice(offset, 8), (Rational)value);
+                    return offset + 8;
                 case ExifDataType.SignedByte:
                     destination[offset] = unchecked((byte)((sbyte)value));
                     return offset + 1;
                 case ExifDataType.SignedLong:
-                    return Write(BitConverter.GetBytes((int)value), destination, offset);
+                    return WriteInt32((int)value, destination, offset);
                 case ExifDataType.SignedShort:
-                    return Write(BitConverter.GetBytes((short)value), destination, offset);
+                    return WriteInt16((short)value, destination, offset);
                 case ExifDataType.SignedRational:
-                    return this.WriteSignedRational((SignedRational)value, destination, offset);
+                    WriteSignedRational(destination.Slice(offset, 8), (SignedRational)value);
+                    return offset + 8;
                 case ExifDataType.SingleFloat:
-                    return Write(BitConverter.GetBytes((float)value), destination, offset);
+                    return WriteSingle((float)value, destination, offset);
                 default:
                     throw new NotImplementedException();
             }
         }
 
-        private int WriteValue(ExifValue value, byte[] destination, int offset)
+        private int WriteValue(ExifValue value, Span<byte> destination, int offset)
         {
             if (value.IsArray && value.DataType != ExifDataType.Ascii)
             {

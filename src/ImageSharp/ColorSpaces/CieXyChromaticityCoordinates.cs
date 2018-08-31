@@ -15,11 +15,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
     internal readonly struct CieXyChromaticityCoordinates : IEquatable<CieXyChromaticityCoordinates>, IAlmostEquatable<CieXyChromaticityCoordinates, float>
     {
         /// <summary>
-        /// Represents a <see cref="CieXyChromaticityCoordinates"/> that has X, Y values set to zero.
-        /// </summary>
-        public static readonly CieXyChromaticityCoordinates Empty = default(CieXyChromaticityCoordinates);
-
-        /// <summary>
         /// The backing vector for SIMD support.
         /// </summary>
         private readonly Vector2 backingVector;
@@ -70,12 +65,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <summary>
-        /// Gets a value indicating whether this <see cref="CieXyChromaticityCoordinates"/> is empty.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.Equals(Empty);
-
-        /// <summary>
         /// Compares two <see cref="CieXyChromaticityCoordinates"/> objects for equality.
         /// </summary>
         /// <param name="left">
@@ -112,6 +101,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
             return this.backingVector.GetHashCode();
@@ -120,24 +110,15 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (this.IsEmpty)
-            {
-                return "CieXyChromaticityCoordinates [Empty]";
-            }
-
-            return $"CieXyChromaticityCoordinates [ X={this.X:#0.##}, Y={this.Y:#0.##}]";
+            return this.Equals(default)
+                ? "CieXyChromaticityCoordinates [Empty]"
+                : $"CieXyChromaticityCoordinates [ X={this.X:#0.##}, Y={this.Y:#0.##}]";
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
-            if (obj is CieXyChromaticityCoordinates)
-            {
-                return this.Equals((CieXyChromaticityCoordinates)obj);
-            }
-
-            return false;
+            return obj is CieXyChromaticityCoordinates other && this.Equals(other);
         }
 
         /// <inheritdoc/>

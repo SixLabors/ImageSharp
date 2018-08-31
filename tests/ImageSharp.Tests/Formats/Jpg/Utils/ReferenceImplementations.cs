@@ -1,31 +1,28 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-
-
 // ReSharper disable InconsistentNaming
 
+using System;
+using System.Runtime.CompilerServices;
+
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
-    using System;
-    using System.Runtime.CompilerServices;
-
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-
     /// <summary>
     /// This class contains simplified (unefficient) reference implementations to produce verification data for unit tests
     /// Floating point DCT code Ported from https://github.com/norishigefukushima/dct_simd
     /// </summary>
     internal static partial class ReferenceImplementations
     {
-        public static unsafe void DequantizeBlock(Block8x8F* blockPtr, Block8x8F* qtPtr, int* unzigPtr)
+        public static unsafe void DequantizeBlock(Block8x8F* blockPtr, Block8x8F* qtPtr, byte* unzigPtr)
         {
             float* b = (float*)blockPtr;
             float* qtp = (float*)qtPtr;
             for (int qtIndex = 0; qtIndex < Block8x8F.Size; qtIndex++)
             {
-                int i = unzigPtr[qtIndex];
+                byte i = unzigPtr[qtIndex];
                 float* unzigPos = b + i;
 
                 float val = *unzigPos;
@@ -115,7 +112,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         /// <param name="dest">The destination block of integers</param>
         /// <param name="qt">The quantization table</param>
         /// <param name="unzigPtr">Pointer to <see cref="ZigZag.Data"/> </param>
-        public static unsafe void QuantizeRational(Block8x8F* src, int* dest, Block8x8F* qt, int* unzigPtr)
+        public static unsafe void QuantizeRational(Block8x8F* src, int* dest, Block8x8F* qt, byte* unzigPtr)
         {
             float* s = (float*)src;
             float* q = (float*)qt;

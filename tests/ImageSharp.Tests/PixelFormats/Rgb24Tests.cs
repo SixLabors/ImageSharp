@@ -6,7 +6,7 @@ using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
     public class Rgb24Tests
     {
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.False(a.Equals(b));
             Assert.False(a.Equals((object)b));
         }
-        
+
         [Fact]
         public void PackFromRgba32()
         {
@@ -138,6 +138,38 @@ namespace SixLabors.ImageSharp.Tests
             rgb.ToBgra32(ref bgra);
 
             Assert.Equal(new Bgra32(1, 2, 3, 255), bgra);
+        }
+
+        [Fact]
+        public void Rgb24_PackFromRgb48_ToRgb48()
+        {
+            // arrange
+            var input = default(Rgb24);
+            var actual = default(Rgb48);
+            var expected = new Rgb48(65535, 0, 65535);
+
+            // act
+            input.PackFromRgb48(expected);
+            input.ToRgb48(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void Rgb24_PackFromRgba64_ToRgba64()
+        {
+            // arrange
+            var input = default(Rgb24);
+            var actual = default(Rgba64);
+            var expected = new Rgba64(65535, 0, 65535, 65535);
+
+            // act
+            input.PackFromRgba64(expected);
+            input.ToRgba64(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
         }
     }
 }

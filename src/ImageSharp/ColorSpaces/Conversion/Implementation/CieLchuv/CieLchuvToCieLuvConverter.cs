@@ -3,7 +3,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.ColorSpaces;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLchuvColorSapce
 {
@@ -14,10 +13,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLchuvCol
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieLuv Convert(CieLchuv input)
+        public CieLuv Convert(in CieLchuv input)
         {
-            DebugGuard.NotNull(input, nameof(input));
-
             // Conversion algorithm described here:
             // https://en.wikipedia.org/wiki/CIELUV#Cylindrical_representation_.28CIELCH.29
             float l = input.L, c = input.C, hDegrees = input.H;

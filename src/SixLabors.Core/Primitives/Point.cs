@@ -258,10 +258,7 @@ namespace SixLabors.Primitives
         public void Offset(Point point) => this.Offset(point.X, point.Y);
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return HashHelpers.Combine(this.X.GetHashCode(), this.Y.GetHashCode());
-        }
+        public override int GetHashCode() => HashHelpers.Combine(this.X.GetHashCode(), this.Y.GetHashCode());
 
         /// <inheritdoc/>
         public override string ToString() => $"Point [ X={this.X}, Y={this.Y} ]";

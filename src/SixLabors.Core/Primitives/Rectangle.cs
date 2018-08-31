@@ -444,6 +444,10 @@ namespace SixLabors.Primitives
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(Rectangle other) => this.X == other.X && this.Y == other.Y && this.Width == other.Width && this.Height == other.Height;
+        public bool Equals(Rectangle other) =>
+            this.X.Equals(other.X) &&
+            this.Y.Equals(other.Y) &&
+            this.Width.Equals(other.Width) &&
+            this.Height.Equals(other.Height);
     }
 }

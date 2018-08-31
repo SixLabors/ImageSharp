@@ -65,7 +65,7 @@ namespace SixLabors.Helpers.Tests
             });
 
             Assert.Equal("myParamName", exception.ParamName);
-            Assert.True(exception.Message.Contains($"Value must be greater than {min}."));
+            Assert.Contains($"Value must be greater than {min}.", exception.Message);
         }
 
         [Theory]
@@ -108,7 +108,7 @@ namespace SixLabors.Helpers.Tests
             });
 
             Assert.Equal("myParamName", exception.ParamName);
-            Assert.True(exception.Message.Contains($"Value must be greater than or equal to {min} and less than or equal to {max}."));
+            Assert.Contains($"Value must be greater than or equal to {min} and less than or equal to {max}.", exception.Message);
         }
 
         [Theory]
@@ -128,7 +128,7 @@ namespace SixLabors.Helpers.Tests
             });
 
             Assert.Equal("myParamName", exception.ParamName);
-            Assert.True(exception.Message.Contains($"The size must be at least 3."));
+            Assert.Contains("The size must be at least 3.", exception.Message);
         }
     }
 }

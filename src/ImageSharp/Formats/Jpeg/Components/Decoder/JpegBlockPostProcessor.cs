@@ -2,9 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.InteropServices;
-
 using SixLabors.ImageSharp.Memory;
-using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
@@ -43,6 +41,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegBlockPostProcessor"/> struct.
         /// </summary>
+        /// <param name="decoder">The raw jpeg data.</param>
+        /// <param name="component">The raw component.</param>
         public JpegBlockPostProcessor(IRawJpegData decoder, IJpegComponent component)
         {
             int qtIndex = component.QuantizationTableIndex;
@@ -61,9 +61,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// - Level shift by +128, clip to [0, 255]
         /// - Copy the resultin color values into 'destArea' scaling up the block by amount defined in <see cref="subSamplingDivisors"/>
         /// </summary>
+        /// <param name="sourceBlock">The source block.</param>
+        /// <param name="destArea">The destination buffer area.</param>
         public void ProcessBlockColorsInto(
             ref Block8x8 sourceBlock,
-            BufferArea<float> destArea)
+            in BufferArea<float> destArea)
         {
             ref Block8x8F b = ref this.SourceBlock;
             b.LoadFrom(ref sourceBlock);

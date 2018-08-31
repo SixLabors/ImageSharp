@@ -14,6 +14,12 @@ namespace SixLabors.ImageSharp.Formats
     public class ImageFormatManager
     {
         /// <summary>
+        /// Used for locking against as there is no ConcurrentSet type.
+        /// <see href="https://github.com/dotnet/corefx/issues/6318"/>
+        /// </summary>
+        private static readonly object HashLock = new object();
+
+        /// <summary>
         /// The list of supported <see cref="IImageEncoder"/> keyed to mime types.
         /// </summary>
         private readonly ConcurrentDictionary<IImageFormat, IImageEncoder> mimeTypeEncoders = new ConcurrentDictionary<IImageFormat, IImageEncoder>();
@@ -26,7 +32,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <summary>
         /// The list of supported <see cref="IImageFormat"/>s.
         /// </summary>
-        private readonly ConcurrentBag<IImageFormat> imageFormats = new ConcurrentBag<IImageFormat>();
+        private readonly HashSet<IImageFormat> imageFormats = new HashSet<IImageFormat>();
 
         /// <summary>
         /// The list of supported <see cref="IImageFormatDetector"/>s.
@@ -74,7 +80,14 @@ namespace SixLabors.ImageSharp.Formats
             Guard.NotNull(format, nameof(format));
             Guard.NotNull(format.MimeTypes, nameof(format.MimeTypes));
             Guard.NotNull(format.FileExtensions, nameof(format.FileExtensions));
-            this.imageFormats.Add(format);
+
+            lock (HashLock)
+            {
+                if (!this.imageFormats.Contains(format))
+                {
+                    this.imageFormats.Add(format);
+                }
+            }
         }
 
         /// <summary>

@@ -4,16 +4,15 @@
 using System.Collections.Generic;
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Filters;
+using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Filters
 {
-    using SixLabors.ImageSharp.Processing.Filters;
-    using SixLabors.ImageSharp.Processing.Filters.Processors;
-    using SixLabors.ImageSharp.Processing.Processors;
-
     public class GrayscaleTest : BaseImageOperationsExtensionTest
     {
         public static IEnumerable<object[]> ModeTheoryData = new[] {
@@ -27,7 +26,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
         {
             this.operations.Grayscale(mode);
             var p = this.Verify<T>();
-
         }
 
         [Theory]

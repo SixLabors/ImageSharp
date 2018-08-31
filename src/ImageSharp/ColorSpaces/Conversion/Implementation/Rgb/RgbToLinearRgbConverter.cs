@@ -11,10 +11,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
     internal class RgbToLinearRgbConverter : IColorConversion<Rgb, LinearRgb>
     {
         /// <inheritdoc/>
-        public LinearRgb Convert(Rgb input)
+        public LinearRgb Convert(in Rgb input)
         {
-            Guard.NotNull(input, nameof(input));
-
             Vector3 vector = input.Vector;
             vector.X = input.WorkingSpace.Companding.Expand(vector.X);
             vector.Y = input.WorkingSpace.Companding.Expand(vector.Y);

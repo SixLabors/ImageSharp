@@ -206,8 +206,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public int WriteColorantTableTagDataEntry(IccColorantTableTagDataEntry value)
         {
             int count = this.WriteUInt32((uint)value.ColorantData.Length);
-            foreach (IccColorantTableEntry colorant in value.ColorantData)
+
+            for (int i = 0; i < value.ColorantData.Length; i++)
             {
+                ref IccColorantTableEntry colorant = ref value.ColorantData[i];
+
                 count += this.WriteAsciiString(colorant.Name, 32, true);
                 count += this.WriteUInt16(colorant.Pcs1);
                 count += this.WriteUInt16(colorant.Pcs2);
@@ -683,8 +686,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public int WriteProfileSequenceDescTagDataEntry(IccProfileSequenceDescTagDataEntry value)
         {
             int count = this.WriteUInt32((uint)value.Descriptions.Length);
-            foreach (IccProfileDescription desc in value.Descriptions)
+
+            for (int i = 0; i < value.Descriptions.Length; i++)
             {
+                ref IccProfileDescription desc = ref value.Descriptions[i];
+
                 count += this.WriteProfileDescription(desc);
             }
 
@@ -706,13 +712,15 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             // Jump over position table
             long tablePosition = this.dataStream.Position;
             this.dataStream.Position += length * 8;
-            IccPositionNumber[] table = new IccPositionNumber[length];
+            var table = new IccPositionNumber[length];
 
             for (int i = 0; i < length; i++)
             {
+                ref IccProfileSequenceIdentifier sequenceIdentifier = ref value.Data[i];
+
                 uint offset = (uint)(this.dataStream.Position - start);
-                int size = this.WriteProfileId(value.Data[i].Id);
-                size += this.WriteTagDataEntry(new IccMultiLocalizedUnicodeTagDataEntry(value.Data[i].Description));
+                int size = this.WriteProfileId(sequenceIdentifier.Id);
+                size += this.WriteTagDataEntry(new IccMultiLocalizedUnicodeTagDataEntry(sequenceIdentifier.Description));
                 size += this.WritePadding();
                 table[i] = new IccPositionNumber(offset, (uint)size);
                 count += size;
@@ -893,7 +901,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             int size, count = 0;
 
-            if (value.Ascii == null)
+            if (value.Ascii is null)
             {
                 count += this.WriteUInt32(0);
             }
@@ -906,7 +914,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 this.dataStream.Position += size;
             }
 
-            if (value.Unicode == null)
+            if (value.Unicode is null)
             {
                 count += this.WriteUInt32(0);
                 count += this.WriteUInt32(0);
@@ -921,7 +929,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 this.dataStream.Position += size;
             }
 
-            if (value.ScriptCode == null)
+            if (value.ScriptCode is null)
             {
                 count += this.WriteUInt16(0);
                 count += this.WriteByte(0);

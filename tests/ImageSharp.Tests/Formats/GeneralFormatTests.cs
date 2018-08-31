@@ -13,9 +13,11 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests
 {
     using System;
+    using System.Reflection;
 
+    using SixLabors.Memory;
     using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Quantization;
+    using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
     public class GeneralFormatTests : FileTestBase
     {
@@ -61,44 +63,36 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-        [Fact]
-        public void QuantizeImageShouldPreserveMaximumColorPrecision()
-        {
-            string path = TestEnvironment.CreateOutputDirectory("Quantize");
-
-            foreach (TestFile file in Files)
-            {
-                using (Image<Rgba32> srcImage = Image.Load<Rgba32>(file.Bytes, out var mimeType))
+        public static readonly TheoryData<string> QuantizerNames =
+            new TheoryData<string>
                 {
-                    using (Image<Rgba32> image = srcImage.Clone())
-                    {
-                        using (FileStream output = File.OpenWrite($"{path}/Octree-{file.FileName}"))
-                        {
-                            image.Mutate(x => x.Quantize(QuantizationMode.Octree));
-                            image.Save(output, mimeType);
+                    nameof(KnownQuantizers.Octree),
+                    nameof(KnownQuantizers.Palette),
+                    nameof(KnownQuantizers.Wu)
+                };
 
-                        }
-                    }
+        [Theory]
+        [WithFile(TestImages.Png.CalliphoraPartial, nameof(QuantizerNames), PixelTypes.Rgba32)]
+        [WithFile(TestImages.Png.Bike, nameof(QuantizerNames), PixelTypes.Rgba32)]
+        public void QuantizeImageShouldPreserveMaximumColorPrecision<TPixel>(TestImageProvider<TPixel> provider, string quantizerName)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            provider.Configuration.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithModeratePooling();
 
-                    using (Image<Rgba32> image = srcImage.Clone())
-                    {
-                        using (FileStream output = File.OpenWrite($"{path}/Wu-{file.FileName}"))
-                        {
-                            image.Mutate(x => x.Quantize(QuantizationMode.Wu));
-                            image.Save(output, mimeType);
-                        }
-                    }
+            IQuantizer quantizer = GetQuantizer(quantizerName);
 
-                    using (Image<Rgba32> image = srcImage.Clone())
-                    {
-                        using (FileStream output = File.OpenWrite($"{path}/Palette-{file.FileName}"))
-                        {
-                            image.Mutate(x => x.Quantize(QuantizationMode.Palette));
-                            image.Save(output, mimeType);
-                        }
-                    }
-                }
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.DebugSave(provider, new PngEncoder() { ColorType = PngColorType.Palette, Quantizer = quantizer }, testOutputDetails: quantizerName);
             }
+
+            provider.Configuration.MemoryAllocator.ReleaseRetainedResources();
+        }
+
+        private static IQuantizer GetQuantizer(string name)
+        {
+            PropertyInfo property = typeof(KnownQuantizers).GetTypeInfo().GetProperty(name);
+            return (IQuantizer)property.GetMethod.Invoke(null, new object[0]);
         }
 
         [Fact]
@@ -155,7 +149,7 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
         }
-        
+
         [Theory]
         [InlineData(10, 10, "png")]
         [InlineData(100, 100, "png")]
@@ -183,7 +177,7 @@ namespace SixLabors.ImageSharp.Tests
                     memoryStream.Position = 0;
 
                     var imageInfo = Image.Identify(memoryStream);
-                    
+
                     Assert.Equal(imageInfo.Width, width);
                     Assert.Equal(imageInfo.Height, height);
                 }

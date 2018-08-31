@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 
 namespace SixLabors.ImageSharp
 {
@@ -15,78 +14,63 @@ namespace SixLabors.ImageSharp
     internal static class Guard
     {
         /// <summary>
-        /// Verifies, that the method parameter with specified object value is not null
-        /// and throws an exception if it is found to be so.
+        /// Ensures that the value is not null.
         /// </summary>
-        /// <param name="target">The target object, which cannot be null.</param>
+        /// <param name="value">The target object, which cannot be null.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
-        /// <param name="message">The error message, if any to add to the exception.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="target"/> is null</exception>
-        public static void NotNull(object target, string parameterName, string message = "")
+        /// <exception cref="ArgumentNullException"><paramref name="value"/> is null</exception>
+        public static void NotNull<T>(T value, string parameterName)
+            where T : class
         {
-            if (target == null)
+            if (value is null)
             {
-                if (!string.IsNullOrWhiteSpace(message))
-                {
-                    throw new ArgumentNullException(parameterName, message);
-                }
-
                 throw new ArgumentNullException(parameterName);
             }
         }
 
         /// <summary>
-        /// Verifies, that the string method parameter with specified object value and message
-        /// is not null, not empty and does not contain only blanks and throws an exception
-        /// if the object is null.
+        /// Ensures that the target value is not null, empty, or whitespace.
         /// </summary>
-        /// <param name="target">The target string, which should be checked against being null or empty.</param>
+        /// <param name="value">The target string, which should be checked against being null or empty.</param>
         /// <param name="parameterName">Name of the parameter.</param>
-        /// <param name="message">The error message, if any to add to the exception.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="target"/> is null.</exception>
-        /// <exception cref="ArgumentException"><paramref name="target"/> is empty or contains only blanks.</exception>
-        public static void NotNullOrEmpty(string target, string parameterName, string message = "")
+        /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is empty or contains only blanks.</exception>
+        public static void NotNullOrWhiteSpace(string value, string parameterName)
         {
-            NotNull(target, parameterName, message);
-
-            if (string.IsNullOrWhiteSpace(target))
+            if (value is null)
             {
-                if (!string.IsNullOrWhiteSpace(message))
-                {
-                    throw new ArgumentException(message, parameterName);
-                }
+                throw new ArgumentNullException(parameterName);
+            }
 
-                throw new ArgumentException("Value cannot be null or empty and cannot contain only blanks.", parameterName);
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                throw new ArgumentException("Must not be empty or whitespace.", parameterName);
             }
         }
 
         /// <summary>
-        /// Verifies, that the enumeration is not null and not empty.
+        /// Ensures that the enumeration is not null or empty.
         /// </summary>
-        /// <typeparam name="T">The type of objects in the <paramref name="target"/></typeparam>
-        /// <param name="target">The target enumeration, which should be checked against being null or empty.</param>
+        /// <typeparam name="T">The type of objects in the <paramref name="value"/></typeparam>
+        /// <param name="value">The target enumeration, which should be checked against being null or empty.</param>
         /// <param name="parameterName">Name of the parameter.</param>
-        /// <param name="message">The error message, if any to add to the exception.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="target"/> is null.</exception>
-        /// <exception cref="ArgumentException"><paramref name="target"/> is empty.</exception>
-        public static void NotNullOrEmpty<T>(IEnumerable<T> target, string parameterName, string message = "")
+        /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+        /// <exception cref="ArgumentException"><paramref name="value"/> is empty.</exception>
+        public static void NotNullOrEmpty<T>(ICollection<T> value, string parameterName)
         {
-            NotNull(target, parameterName, message);
-
-            if (!target.Any())
+            if (value is null)
             {
-                if (!string.IsNullOrWhiteSpace(message))
-                {
-                    throw new ArgumentException(message, parameterName);
-                }
+                throw new ArgumentNullException(parameterName);
+            }
 
-                throw new ArgumentException("Value cannot be empty.", parameterName);
+            if (value.Count == 0)
+            {
+                throw new ArgumentException("Must not be empty.", parameterName);
             }
         }
 
         /// <summary>
-        /// Verifies that the specified value is less than a maximum value
-        /// and throws an exception if it is not.
+        /// Ensures that the specified value is less than a maximum value.
         /// </summary>
         /// <param name="value">The target value, which should be validated.</param>
         /// <param name="max">The maximum value.</param>
@@ -100,7 +84,7 @@ namespace SixLabors.ImageSharp
         {
             if (value.CompareTo(max) >= 0)
             {
-                throw new ArgumentOutOfRangeException(parameterName, $"Value must be less than {max}.");
+                throw new ArgumentOutOfRangeException(parameterName, $"Value {value} must be less than {max}.");
             }
         }
 
@@ -120,7 +104,7 @@ namespace SixLabors.ImageSharp
         {
             if (value.CompareTo(max) > 0)
             {
-                throw new ArgumentOutOfRangeException(parameterName, $"Value must be less than or equal to {max}.");
+                throw new ArgumentOutOfRangeException(parameterName, $"Value {value} must be less than or equal to {max}.");
             }
         }
 
@@ -142,7 +126,7 @@ namespace SixLabors.ImageSharp
             {
                 throw new ArgumentOutOfRangeException(
                     parameterName,
-                    $"Value must be greater than {min}.");
+                    $"Value {value} must be greater than {min}.");
             }
         }
 
@@ -162,7 +146,7 @@ namespace SixLabors.ImageSharp
         {
             if (value.CompareTo(min) < 0)
             {
-                throw new ArgumentOutOfRangeException(parameterName, $"Value must be greater than or equal to {min}.");
+                throw new ArgumentOutOfRangeException(parameterName, $"Value {value} must be greater than or equal to {min}.");
             }
         }
 
@@ -183,7 +167,7 @@ namespace SixLabors.ImageSharp
         {
             if (value.CompareTo(min) < 0 || value.CompareTo(max) > 0)
             {
-                throw new ArgumentOutOfRangeException(parameterName, $"Value must be greater than or equal to {min} and less than or equal to {max}.");
+                throw new ArgumentOutOfRangeException(parameterName, $"Value {value} must be greater than or equal to {min} and less than or equal to {max}.");
             }
         }
 
@@ -191,15 +175,9 @@ namespace SixLabors.ImageSharp
         /// Verifies, that the method parameter with specified target value is true
         /// and throws an exception if it is found to be so.
         /// </summary>
-        /// <param name="target">
-        /// The target value, which cannot be false.
-        /// </param>
-        /// <param name="parameterName">
-        /// The name of the parameter that is to be checked.
-        /// </param>
-        /// <param name="message">
-        /// The error message, if any to add to the exception.
-        /// </param>
+        /// <param name="target">The target value, which cannot be false.</param>
+        /// <param name="parameterName">The name of the parameter that is to be checked.</param>
+        /// <param name="message">The error message, if any to add to the exception.</param>
         /// <exception cref="ArgumentException">
         /// <paramref name="target"/> is false
         /// </exception>
@@ -230,18 +208,36 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Verifies, that the `target` span has the length of 'minSpan', or longer.
+        /// Verifies, that the `source` span has the length of 'minLength', or longer.
         /// </summary>
         /// <typeparam name="T">The element type of the spans</typeparam>
-        /// <param name="target">The target span.</param>
+        /// <param name="source">The source span.</param>
         /// <param name="minLength">The minimum length.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <exception cref="ArgumentException">
-        /// <paramref name="target"/> is true
+        /// <paramref name="source"/> has less than <paramref name="minLength"/> items
         /// </exception>
-        public static void MustBeSizedAtLeast<T>(Span<T> target, int minLength, string parameterName)
+        public static void MustBeSizedAtLeast<T>(ReadOnlySpan<T> source, int minLength, string parameterName)
         {
-            if (target.Length < minLength)
+            if (source.Length < minLength)
+            {
+                throw new ArgumentException($"Span-s must be at least of length {minLength}!", parameterName);
+            }
+        }
+
+        /// <summary>
+        /// Verifies, that the `source` span has the length of 'minLength', or longer.
+        /// </summary>
+        /// <typeparam name="T">The element type of the spans</typeparam>
+        /// <param name="source">The target span.</param>
+        /// <param name="minLength">The minimum length.</param>
+        /// <param name="parameterName">The name of the parameter that is to be checked.</param>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="source"/> has less than <paramref name="minLength"/> items
+        /// </exception>
+        public static void MustBeSizedAtLeast<T>(Span<T> source, int minLength, string parameterName)
+        {
+            if (source.Length < minLength)
             {
                 throw new ArgumentException($"Span-s must be at least of length {minLength}!", parameterName);
             }

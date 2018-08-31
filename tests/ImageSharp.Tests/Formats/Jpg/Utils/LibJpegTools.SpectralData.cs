@@ -1,16 +1,17 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Linq;
+using System.Numerics;
+
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
-    using System;
-    using System.Linq;
-    using System.Numerics;
-
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
-    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
-    using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
-    using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
 
     internal static partial class LibJpegTools
     {
@@ -29,17 +30,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 this.Components = components;
             }
 
-            public static SpectralData LoadFromImageSharpDecoder(PdfJsJpegDecoderCore decoder)
+            public static SpectralData LoadFromImageSharpDecoder(JpegDecoderCore decoder)
             {
-                PdfJsFrameComponent[] srcComponents = decoder.Frame.Components;
-                LibJpegTools.ComponentData[] destComponents = srcComponents.Select(LibJpegTools.ComponentData.Load).ToArray();
-
-                return new SpectralData(destComponents);
-            }
-
-            public static SpectralData LoadFromImageSharpDecoder(OrigJpegDecoderCore decoder)
-            {
-                OrigComponent[] srcComponents = decoder.Components;
+                JpegComponent[] srcComponents = decoder.Frame.Components;
                 LibJpegTools.ComponentData[] destComponents = srcComponents.Select(LibJpegTools.ComponentData.Load).ToArray();
 
                 return new SpectralData(destComponents);
@@ -58,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                     return null;
                 }
 
-                Image<Rgba32> result = new Image<Rgba32>(c0.WidthInBlocks * 8, c0.HeightInBlocks * 8);
+                var result = new Image<Rgba32>(c0.WidthInBlocks * 8, c0.HeightInBlocks * 8);
 
                 for (int by = 0; by < c0.HeightInBlocks; by++)
                 {
@@ -92,8 +85,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                         float val1 = c0.GetBlockValue(block1, x, y);
                         float val2 = c0.GetBlockValue(block2, x, y);
 
-                        Vector4 v = new Vector4(val0, val1, val2, 1);
-                        Rgba32 color = default(Rgba32);
+                        var v = new Vector4(val0, val1, val2, 1);
+                        Rgba32 color = default;
                         color.PackFromVector4(v);
 
                         int yy = by * 8 + y;
@@ -105,8 +98,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public bool Equals(SpectralData other)
             {
-                if (Object.ReferenceEquals(null, other)) return false;
-                if (Object.ReferenceEquals(this, other)) return true;
+                if (other is null)
+                {
+                    return false;
+                }
+
+                if (ReferenceEquals(this, other))
+                {
+                    return true;
+                }
+
                 if (this.ComponentCount != other.ComponentCount)
                 {
                     return false;
@@ -123,17 +124,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public override bool Equals(object obj)
             {
-                if (Object.ReferenceEquals(null, obj)) return false;
-                if (Object.ReferenceEquals(this, obj)) return true;
-                if (obj.GetType() != this.GetType()) return false;
-                return this.Equals((SpectralData)obj);
+                return obj is SpectralData other && this.Equals(other);
             }
 
             public override int GetHashCode()
             {
                 unchecked
                 {
-                    return (this.ComponentCount * 397) ^ (this.Components != null ? this.Components[0].GetHashCode() : 0);
+                    return (this.ComponentCount * 397) ^ (this.Components?[0].GetHashCode() ?? 0);
                 }
             }
 

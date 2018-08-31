@@ -5,14 +5,14 @@ using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
     public class Bgra32Tests
     {
         public static readonly TheoryData<byte, byte, byte, byte> ColorData =
             new TheoryData<byte, byte, byte, byte>()
                 {
-                    { 1, 2, 3, 4 }, { 4, 5, 6, 7 }, { 0, 255, 42, 0 }, { 1, 2, 3, 255 } 
+                    { 1, 2, 3, 4 }, { 4, 5, 6, 7 }, { 0, 255, 42, 0 }, { 1, 2, 3, 255 }
                 };
 
         [Theory]
@@ -145,6 +145,38 @@ namespace SixLabors.ImageSharp.Tests
             rgb.ToBgra32(ref bgra);
 
             Assert.Equal(new Bgra32(1, 2, 3, 4), bgra);
+        }
+
+        [Fact]
+        public void Bgra32_PackFromRgb48_ToRgb48()
+        {
+            // arrange
+            var input = default(Bgra32);
+            var actual = default(Rgb48);
+            var expected = new Rgb48(65535, 0, 65535);
+
+            // act
+            input.PackFromRgb48(expected);
+            input.ToRgb48(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void Bgra32_PackFromRgba64_ToRgba64()
+        {
+            // arrange
+            var input = default(Bgra32);
+            var actual = default(Rgba64);
+            var expected = new Rgba64(65535, 0, 65535, 0);
+
+            // act
+            input.PackFromRgba64(expected);
+            input.ToRgba64(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
         }
     }
 }

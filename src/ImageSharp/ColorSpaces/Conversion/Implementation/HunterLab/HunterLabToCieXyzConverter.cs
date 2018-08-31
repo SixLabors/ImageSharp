@@ -3,7 +3,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.ColorSpaces;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HunterLabColorSapce
 {
@@ -14,10 +13,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HunterLabCo
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieXyz Convert(HunterLab input)
+        public CieXyz Convert(in HunterLab input)
         {
-            DebugGuard.NotNull(input, nameof(input));
-
             // Conversion algorithm described here: http://en.wikipedia.org/wiki/Lab_color_space#Hunter_Lab
             float l = input.L, a = input.A, b = input.B;
             float xn = input.WhitePoint.X, yn = input.WhitePoint.Y, zn = input.WhitePoint.Z;

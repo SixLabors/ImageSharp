@@ -3,7 +3,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.ColorSpaces;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CmykColorSapce
 {
@@ -14,7 +13,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CmykColorSa
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Rgb Convert(Cmyk input)
+        public Rgb Convert(in Cmyk input)
         {
             float r = (1F - input.C) * (1F - input.K);
             float g = (1F - input.M) * (1F - input.K);
@@ -25,7 +24,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CmykColorSa
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Cmyk Convert(Rgb input)
+        public Cmyk Convert(in Rgb input)
         {
             // To CMYK
             float c = 1F - input.R;

@@ -4,9 +4,8 @@
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
-using SixLabors.ImageSharp.Processing.Drawing;
-using SixLabors.ImageSharp.Processing.Drawing.Brushes;
-using SixLabors.ImageSharp.Processing.Drawing.Processors;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Drawing;
 using SixLabors.Shapes;
 using Xunit;
 
@@ -31,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
                 }));
 
         IPathCollection pathCollection;
-        
+
         public FillPathCollection()
         {
             this.pathCollection = new PathCollection(this.path1, this.path2);
@@ -61,7 +60,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsBrushPathOptions()
         {
-            this.operations.Fill(this.brush, this.pathCollection, this.noneDefault);
+            this.operations.Fill(this.noneDefault, this.brush, this.pathCollection);
 
             for (int i = 0; i < 2; i++)
             {
@@ -100,7 +99,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsColorPathAndOptions()
         {
-            this.operations.Fill(this.color, this.pathCollection, this.noneDefault);
+            this.operations.Fill(this.noneDefault, this.color, this.pathCollection);
 
             for (int i = 0; i < 2; i++)
             {

@@ -90,6 +90,11 @@ namespace SixLabors.ImageSharp.Primitives
         }
 
         /// <summary>
+        /// Gets a Span wrapping the Data.
+        /// </summary>
+        internal Span<T> Span => new Span<T>(this.Data);
+
+        /// <summary>
         /// Gets or sets the item at the specified position.
         /// </summary>
         /// <param name="row">The row-coordinate of the item. Must be greater than or equal to zero and less than the height of the array.</param>
@@ -146,19 +151,13 @@ namespace SixLabors.ImageSharp.Primitives
         /// </summary>
         /// <param name="value">The value to fill each item with</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Fill(T value)
-        {
-            for (int i = 0; i < this.Data.Length; i++)
-            {
-                this.Data[i] = value;
-            }
-        }
+        public void Fill(T value) => this.Span.Fill(value);
 
         /// <summary>
         /// Clears the matrix setting each value to the default value for the element type
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear() => Array.Clear(this.Data, 0, this.Data.Length);
+        public void Clear() => this.Span.Clear();
 
         /// <summary>
         /// Checks the coordinates to ensure they are within bounds.
@@ -183,31 +182,13 @@ namespace SixLabors.ImageSharp.Primitives
         }
 
         /// <inheritdoc/>
-        public bool Equals(DenseMatrix<T> other)
-        {
-            if (this.Columns != other.Columns)
-            {
-                return false;
-            }
-
-            if (this.Rows != other.Rows)
-            {
-                return false;
-            }
-
-            for (int i = 0; i < this.Data.Length; i++)
-            {
-                if (!this.Data[i].Equals(other.Data[i]))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
+        public bool Equals(DenseMatrix<T> other) =>
+            this.Columns == other.Columns &&
+            this.Rows == other.Rows &&
+            this.Span.SequenceEqual(other.Span);
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => obj is DenseMatrix<T> matrix && this.Equals(matrix);
+        public override bool Equals(object obj) => obj is DenseMatrix<T> other && this.Equals(other);
 
         /// <inheritdoc/>
         public override int GetHashCode() => this.Data.GetHashCode();

@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             this.ChannelValues = channelValues;
 
             int channelLength = channelValues[0].Length;
-            bool channelsNotSame = channelValues.Any(t => t == null || t.Length != channelLength);
+            bool channelsNotSame = channelValues.Any(t => t is null || t.Length != channelLength);
             Guard.IsFalse(channelsNotSame, nameof(channelValues), "The number of values per channel is not the same for all channels");
         }
 
@@ -82,14 +82,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            var entry = other as IccChromaticityTagDataEntry;
-            return entry != null && this.Equals(entry);
+            return other is IccChromaticityTagDataEntry entry && this.Equals(entry);
         }
 
         /// <inheritdoc/>
         public bool Equals(IccChromaticityTagDataEntry other)
         {
-            if (ReferenceEquals(null, other))
+            if (other is null)
             {
                 return false;
             }
@@ -105,17 +104,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
-            return obj is IccChromaticityTagDataEntry && this.Equals((IccChromaticityTagDataEntry)obj);
+            return obj is IccChromaticityTagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc/>
@@ -125,7 +114,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             {
                 int hashCode = base.GetHashCode();
                 hashCode = (hashCode * 397) ^ (int)this.ColorantType;
-                hashCode = (hashCode * 397) ^ (this.ChannelValues != null ? this.ChannelValues.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.ChannelValues?.GetHashCode() ?? 0);
                 return hashCode;
             }
         }

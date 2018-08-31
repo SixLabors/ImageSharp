@@ -6,12 +6,13 @@
         <VersionPrefix Condition="$(packageversion) == ''">0.0.1</VersionPrefix>
         <Authors>SixLabors and contributors</Authors>
         <TargetFrameworks>netstandard1.1;netstandard2.0</TargetFrameworks>
+        <LangVersion>7.2</LangVersion>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <AssemblyName>SixLabors.ImageSharp.Drawing</AssemblyName>
         <PackageId>SixLabors.ImageSharp.Drawing</PackageId>
         <PackageTags>Image Draw Shape Path Font</PackageTags>
-        <PackageIconUrl>https://raw.githubusercontent.com/SixLabors/ImageSharp/master/build/icons/imagesharp-logo-128.png</PackageIconUrl>
+        <PackageIconUrl>https://raw.githubusercontent.com/SixLabors/Branding/master/icons/imagesharp/sixlabors.imagesharp.128.png</PackageIconUrl>
         <PackageProjectUrl>https://github.com/SixLabors/ImageSharp</PackageProjectUrl>
         <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
         <RepositoryType>git</RepositoryType>
@@ -36,11 +37,10 @@
         <ProjectReference Include="..\ImageSharp\ImageSharp.csproj" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="SixLabors.Core" Version="1.0.0-ci0005" />
-        <PackageReference Include="SixLabors.Shapes.Text" Version="1.0.0-ci0005" />
-        <PackageReference Include="SixLabors.Shapes" Version="1.0.0-ci0005" />
         <AdditionalFiles Include="..\..\stylecop.json" />
-        <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta004">
+        <PackageReference Include="SixLabors.Fonts" Version="1.0.0-beta0007" />
+        <PackageReference Include="SixLabors.Shapes" Version="1.0.0-beta0007" />
+        <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta007">
             <PrivateAssets>All</PrivateAssets>
         </PackageReference>
     </ItemGroup>

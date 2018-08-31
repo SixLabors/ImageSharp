@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.PixelFormats
 {
@@ -735,9 +736,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         private static TPixel[] GetWebSafePalette()
         {
             Rgba32[] constants = ColorConstants.WebSafeColors;
-            TPixel[] safe = new TPixel[constants.Length + 1];
+            var safe = new TPixel[constants.Length + 1];
 
-            Span<byte> constantsBytes = constants.AsSpan().NonPortableCast<Rgba32, byte>();
+            Span<byte> constantsBytes = MemoryMarshal.Cast<Rgba32, byte>(constants.AsSpan());
             PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(constantsBytes, safe, constants.Length);
             return safe;
         }

@@ -7,7 +7,7 @@ using System.Linq;
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
     /// <summary>
-    /// A one dimensional curve
+    /// A one dimensional ICC curve.
     /// </summary>
     internal sealed class IccOneDimensionalCurve : IEquatable<IccOneDimensionalCurve>
     {
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc />
         public bool Equals(IccOneDimensionalCurve other)
         {
-            if (other == null)
+            if (other is null)
             {
                 return false;
             }
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return true;
             }
 
-            return this.BreakPoints.SequenceEqual(other.BreakPoints)
+            return this.BreakPoints.AsSpan().SequenceEqual(other.BreakPoints)
                 && this.Segments.SequenceEqual(other.Segments);
         }
     }

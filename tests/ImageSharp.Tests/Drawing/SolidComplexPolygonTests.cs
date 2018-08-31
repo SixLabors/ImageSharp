@@ -3,47 +3,42 @@
 
 using System.Numerics;
 
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Drawing;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.Shapes;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Overlays;
-
     public class SolidComplexPolygonTests : FileTestBase
     {
         [Fact]
         public void ImageShouldBeOverlayedByPolygonOutline()
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "ComplexPolygon");
-            Polygon simplePath = new Polygon(new LinearLineSegment(
+            var simplePath = new Polygon(new LinearLineSegment(
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)));
 
-            Polygon hole1 = new Polygon(new LinearLineSegment(
+            var hole1 = new Polygon(new LinearLineSegment(
                             new Vector2(37, 85),
                             new Vector2(93, 85),
                             new Vector2(65, 137)));
             IPath clipped = simplePath.Clip(hole1);
             // var clipped = new Rectangle(10, 10, 100, 100).Clip(new Rectangle(20, 0, 20, 20));
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
-                image.Mutate(x => x
-                    .BackgroundColor(Rgba32.Blue)
-                    .Fill(Rgba32.HotPink, clipped));
+                image.Mutate(x => x.BackgroundColor(Rgba32.Blue).Fill(Rgba32.HotPink, clipped));
                 image.Save($"{path}/Simple.png");
 
-                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
-                {
-                    Assert.Equal(Rgba32.HotPink, sourcePixels[20, 35]);
+                Buffer2D<Rgba32> sourcePixels = image.GetRootFramePixelBuffer();
+                Assert.Equal(Rgba32.HotPink, sourcePixels[20, 35]);
 
-                    //inside hole
-                    Assert.Equal(Rgba32.Blue, sourcePixels[60, 100]);
-                }
+                //inside hole
+                Assert.Equal(Rgba32.Blue, sourcePixels[60, 100]);
             }
         }
 
@@ -52,30 +47,26 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedPolygonOutlineWithOverlap()
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "ComplexPolygon");
-            Polygon simplePath = new Polygon(new LinearLineSegment(
+            var simplePath = new Polygon(new LinearLineSegment(
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)));
 
-            Polygon hole1 = new Polygon(new LinearLineSegment(
+            var hole1 = new Polygon(new LinearLineSegment(
                             new Vector2(37, 85),
                             new Vector2(130, 40),
                             new Vector2(65, 137)));
 
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
-                image.Mutate(x => x
-                    .BackgroundColor(Rgba32.Blue)
-                    .Fill(Rgba32.HotPink, simplePath.Clip(hole1)));
+                image.Mutate(x => x.BackgroundColor(Rgba32.Blue).Fill(Rgba32.HotPink, simplePath.Clip(hole1)));
                 image.Save($"{path}/SimpleOverlapping.png");
 
-                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
-                {
-                    Assert.Equal(Rgba32.HotPink, sourcePixels[20, 35]);
+                Buffer2D<Rgba32> sourcePixels = image.GetRootFramePixelBuffer();
+                Assert.Equal(Rgba32.HotPink, sourcePixels[20, 35]);
 
-                    //inside hole
-                    Assert.Equal(Rgba32.Blue, sourcePixels[60, 100]);
-                }
+                //inside hole
+                Assert.Equal(Rgba32.Blue, sourcePixels[60, 100]);
             }
         }
 
@@ -83,34 +74,32 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedPolygonOutlineWithOpacity()
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "ComplexPolygon");
-            Polygon simplePath = new Polygon(new LinearLineSegment(
+            var simplePath = new Polygon(new LinearLineSegment(
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)));
 
-            Polygon hole1 = new Polygon(new LinearLineSegment(
+            var hole1 = new Polygon(new LinearLineSegment(
                             new Vector2(37, 85),
                             new Vector2(93, 85),
                             new Vector2(65, 137)));
-            Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            var color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
+
+            using (var image = new Image<Rgba32>(500, 500))
             {
-                image.Mutate(x => x
-                    .BackgroundColor(Rgba32.Blue)
-                    .Fill(color, simplePath.Clip(hole1)));
+                image.Mutate(x => x.BackgroundColor(Rgba32.Blue).Fill(color, simplePath.Clip(hole1)));
                 image.Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount
-                Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
+                var mergedColor = new Rgba32(
+                    Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
 
-                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
-                {
-                    Assert.Equal(mergedColor, sourcePixels[20, 35]);
+                Buffer2D<Rgba32> sourcePixels = image.GetRootFramePixelBuffer();
+                Assert.Equal(mergedColor, sourcePixels[20, 35]);
 
-                    //inside hole
-                    Assert.Equal(Rgba32.Blue, sourcePixels[60, 100]);
-                }
+                //inside hole
+                Assert.Equal(Rgba32.Blue, sourcePixels[60, 100]);
             }
         }
     }

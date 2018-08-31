@@ -1,14 +1,14 @@
 // ReSharper disable InconsistentNaming
+using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
+
+using Xunit.Abstractions;
+
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
-    using System;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-
-    using Xunit.Abstractions;
-
     internal static partial class ReferenceImplementations
     {
         /// <summary>
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 float[] temp = new float[64];
 
                 iDCT2D_llm(s, d, temp);
-                Block8x8F result = default(Block8x8F);
+                Block8x8F result = default;
                 result.LoadFrom(d);
                 return result;
             }
@@ -48,12 +48,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 float[] temp = new float[64];
 
                 fDCT2D_llm(s, d, temp);
-                Block8x8F result = default(Block8x8F);
+                Block8x8F result = default;
                 result.LoadFrom(d);
                 return result;
             }
 
-            private static double cos(double x) => Math.Cos(x);
+            private static double Cos(double x) => Math.Cos(x);
 
             private const double M_PI = Math.PI;
 
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 float[] r = new float[8];
                 for (int i = 0; i < 8; i++)
                 {
-                    r[i] = (float)(cos((double)i / 16.0 * M_PI) * M_SQRT2);
+                    r[i] = (float)(Cos((double)i / 16.0 * M_PI) * M_SQRT2);
                     output?.WriteLine($"float r{i} = {r[i]:R}f;");
                 }
                 return r;
@@ -214,8 +214,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 /*y[0] = c0 + c1;
                 y[4] = c0 - c1;*/
 
-                Vector4 w0 = new Vector4(0.541196f);
-                Vector4 w1 = new Vector4(1.306563f);
+                var w0 = new Vector4(0.541196f);
+                var w1 = new Vector4(1.306563f);
 
                 _mm_store_ps(d, 16, ((w0 * c2) + (w1 * c3)));
 
@@ -248,7 +248,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 _mm_store_ps(d, 40, (c3 - c1));
                 //y[5] = c3 - c1; y[3] = c0 - c2;
 
-                Vector4 invsqrt2 = new Vector4(0.707107f);
+                var invsqrt2 = new Vector4(0.707107f);
                 c0 = ((c0 + c2) * invsqrt2);
                 c3 = ((c3 + c1) * invsqrt2);
                 //c0 = (c0 + c2) * invsqrt2;
@@ -279,7 +279,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
                 fDCT2D8x4_32f(temp.Slice(4), d.Slice(4));
 
-                Vector4 c = new Vector4(0.1250f);
+                var c = new Vector4(0.1250f);
 
                 _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//0
                 _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//1
@@ -520,7 +520,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 y[1] = c0 + c3;
                 y[7] = c0 - c3;
             }
-            
+
             internal static void fDCT2D_llm(
                 Span<float> s,
                 Span<float> d,

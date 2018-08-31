@@ -5,7 +5,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace SixLabors.ImageSharp.Formats
 {
@@ -14,6 +13,12 @@ namespace SixLabors.ImageSharp.Formats
     /// </summary>
     public class ImageFormatManager
     {
+        /// <summary>
+        /// Used for locking against as there is no ConcurrentSet type.
+        /// <see href="https://github.com/dotnet/corefx/issues/6318"/>
+        /// </summary>
+        private static readonly object HashLock = new object();
+
         /// <summary>
         /// The list of supported <see cref="IImageEncoder"/> keyed to mime types.
         /// </summary>
@@ -27,7 +32,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <summary>
         /// The list of supported <see cref="IImageFormat"/>s.
         /// </summary>
-        private readonly ConcurrentBag<IImageFormat> imageFormats = new ConcurrentBag<IImageFormat>();
+        private readonly HashSet<IImageFormat> imageFormats = new HashSet<IImageFormat>();
 
         /// <summary>
         /// The list of supported <see cref="IImageFormatDetector"/>s.
@@ -75,7 +80,14 @@ namespace SixLabors.ImageSharp.Formats
             Guard.NotNull(format, nameof(format));
             Guard.NotNull(format.MimeTypes, nameof(format.MimeTypes));
             Guard.NotNull(format.FileExtensions, nameof(format.FileExtensions));
-            this.imageFormats.Add(format);
+
+            lock (HashLock)
+            {
+                if (!this.imageFormats.Contains(format))
+                {
+                    this.imageFormats.Add(format);
+                }
+            }
         }
 
         /// <summary>
@@ -85,6 +97,13 @@ namespace SixLabors.ImageSharp.Formats
         /// <returns>The <see cref="IImageFormat"/> if found otherwise null</returns>
         public IImageFormat FindFormatByFileExtension(string extension)
         {
+            Guard.NotNullOrWhiteSpace(extension, nameof(extension));
+
+            if (extension[0] == '.')
+            {
+                extension = extension.Substring(1);
+            }
+
             return this.imageFormats.FirstOrDefault(x => x.FileExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase));
         }
 
@@ -151,12 +170,10 @@ namespace SixLabors.ImageSharp.Formats
         public IImageDecoder FindDecoder(IImageFormat format)
         {
             Guard.NotNull(format, nameof(format));
-            if (this.mimeTypeDecoders.TryGetValue(format, out IImageDecoder decoder))
-            {
-                return decoder;
-            }
 
-            return null;
+            return this.mimeTypeDecoders.TryGetValue(format, out IImageDecoder decoder)
+                ? decoder
+                : null;
         }
 
         /// <summary>
@@ -167,12 +184,10 @@ namespace SixLabors.ImageSharp.Formats
         public IImageEncoder FindEncoder(IImageFormat format)
         {
             Guard.NotNull(format, nameof(format));
-            if (this.mimeTypeEncoders.TryGetValue(format, out IImageEncoder encoder))
-            {
-                return encoder;
-            }
 
-            return null;
+            return this.mimeTypeEncoders.TryGetValue(format, out IImageEncoder encoder)
+                ? encoder
+                : null;
         }
 
         /// <summary>

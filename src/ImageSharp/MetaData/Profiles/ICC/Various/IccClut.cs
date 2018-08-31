@@ -94,9 +94,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public float[][] Values { get; }
 
         /// <summary>
-        /// Gets or sets the CLUT data type (important when writing a profile)
+        /// Gets the CLUT data type (important when writing a profile)
         /// </summary>
-        public IccClutDataType DataType { get; set; }
+        public IccClutDataType DataType { get; }
 
         /// <summary>
         /// Gets the number of input channels
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public bool Equals(IccClut other)
         {
-            if (ReferenceEquals(null, other))
+            if (other is null)
             {
                 return false;
             }
@@ -130,23 +130,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 && this.DataType == other.DataType
                 && this.InputChannelCount == other.InputChannelCount
                 && this.OutputChannelCount == other.OutputChannelCount
-                && this.GridPointCount.SequenceEqual(other.GridPointCount);
+                && this.GridPointCount.AsSpan().SequenceEqual(other.GridPointCount);
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
-            return obj is IccClut && this.Equals((IccClut)obj);
+            return obj is IccClut other && this.Equals(other);
         }
 
         /// <inheritdoc/>
@@ -154,11 +144,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             unchecked
             {
-                int hashCode = this.Values != null ? this.Values.GetHashCode() : 0;
+                int hashCode = this.Values?.GetHashCode() ?? 0;
                 hashCode = (hashCode * 397) ^ (int)this.DataType;
                 hashCode = (hashCode * 397) ^ this.InputChannelCount;
                 hashCode = (hashCode * 397) ^ this.OutputChannelCount;
-                hashCode = (hashCode * 397) ^ (this.GridPointCount != null ? this.GridPointCount.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.GridPointCount?.GetHashCode() ?? 0);
                 return hashCode;
             }
         }
@@ -172,7 +162,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
             for (int i = 0; i < this.Values.Length; i++)
             {
-                if (!this.Values[i].SequenceEqual(other.Values[i]))
+                if (!this.Values[i].AsSpan().SequenceEqual(other.Values[i]))
                 {
                     return false;
                 }

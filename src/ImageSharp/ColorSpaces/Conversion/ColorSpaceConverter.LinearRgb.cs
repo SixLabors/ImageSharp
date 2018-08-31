@@ -19,10 +19,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
-        public LinearRgb ToLinearRgb(CieLab color)
+        public LinearRgb ToLinearRgb(in CieLab color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToLinearRgb(xyzColor);
         }
@@ -32,10 +30,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
-        public LinearRgb ToLinearRgb(CieLch color)
+        public LinearRgb ToLinearRgb(in CieLch color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToLinearRgb(xyzColor);
         }
@@ -45,10 +41,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
-        public LinearRgb ToLinearRgb(CieLchuv color)
+        public LinearRgb ToLinearRgb(in CieLchuv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToLinearRgb(xyzColor);
         }
@@ -58,10 +52,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
-        public LinearRgb ToLinearRgb(CieLuv color)
+        public LinearRgb ToLinearRgb(in CieLuv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToLinearRgb(xyzColor);
         }
@@ -71,10 +63,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
-        public LinearRgb ToLinearRgb(CieXyy color)
+        public LinearRgb ToLinearRgb(in CieXyy color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToLinearRgb(xyzColor);
         }
@@ -84,10 +74,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
-        public LinearRgb ToLinearRgb(CieXyz color)
+        public LinearRgb ToLinearRgb(in CieXyz color)
         {
-            Guard.NotNull(color, nameof(color));
-
             // Adaptation
             CieXyz adapted = this.TargetRgbWorkingSpace.WhitePoint.Equals(this.WhitePoint) || !this.IsChromaticAdaptationPerformed
                 ? color
@@ -103,10 +91,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
-        public LinearRgb ToLinearRgb(Cmyk color)
+        public LinearRgb ToLinearRgb(in Cmyk color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var rgb = this.ToRgb(color);
             return this.ToLinearRgb(rgb);
         }
@@ -116,10 +102,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
-        public LinearRgb ToLinearRgb(Hsl color)
+        public LinearRgb ToLinearRgb(in Hsl color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var rgb = this.ToRgb(color);
             return this.ToLinearRgb(rgb);
         }
@@ -129,10 +113,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
-        public LinearRgb ToLinearRgb(Hsv color)
+        public LinearRgb ToLinearRgb(in Hsv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var rgb = this.ToRgb(color);
             return this.ToLinearRgb(rgb);
         }
@@ -142,10 +124,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
-        public LinearRgb ToLinearRgb(HunterLab color)
+        public LinearRgb ToLinearRgb(in HunterLab color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToLinearRgb(xyzColor);
         }
@@ -155,10 +135,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
-        public LinearRgb ToLinearRgb(Lms color)
+        public LinearRgb ToLinearRgb(in Lms color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToLinearRgb(xyzColor);
         }
@@ -168,10 +146,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
-        public LinearRgb ToLinearRgb(Rgb color)
+        public LinearRgb ToLinearRgb(in Rgb color)
         {
-            Guard.NotNull(color, nameof(color));
-
             // Conversion
             return RgbToLinearRgbConverter.Convert(color);
         }
@@ -181,10 +157,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
-        public LinearRgb ToLinearRgb(YCbCr color)
+        public LinearRgb ToLinearRgb(in YCbCr color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var rgb = this.ToRgb(color);
             return this.ToLinearRgb(rgb);
         }
@@ -194,7 +168,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="workingSpace">The target working space</param>
         /// <returns>The <see cref="CieXyzToLinearRgbConverter"/></returns>
-        private CieXyzToLinearRgbConverter GetCieXyxToLinearRgbConverter(IRgbWorkingSpace workingSpace)
+        private CieXyzToLinearRgbConverter GetCieXyxToLinearRgbConverter(RgbWorkingSpace workingSpace)
         {
             if (this.cieXyzToLinearRgbConverter != null && this.cieXyzToLinearRgbConverter.TargetWorkingSpace.Equals(workingSpace))
             {

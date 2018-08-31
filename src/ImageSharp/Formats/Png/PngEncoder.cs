@@ -4,7 +4,7 @@
 using System.IO;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Quantization;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Png
 {
@@ -14,19 +14,20 @@ namespace SixLabors.ImageSharp.Formats.Png
     public sealed class PngEncoder : IImageEncoder, IPngEncoderOptions
     {
         /// <summary>
-        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being encoded.
+        /// Gets or sets the number of bits per sample or per palette index (not per pixel).
+        /// Not all values are allowed for all <see cref="ColorType"/> values.
         /// </summary>
-        public bool IgnoreMetadata { get; set; }
+        public PngBitDepth BitDepth { get; set; } = PngBitDepth.Bit8;
 
         /// <summary>
-        /// Gets or sets the size of the color palette to use. Set to zero to leave png encoding to use pixel data.
+        /// Gets or sets the color type.
         /// </summary>
-        public int PaletteSize { get; set; } = 0;
+        public PngColorType ColorType { get; set; } = PngColorType.RgbWithAlpha;
 
         /// <summary>
-        /// Gets or sets the png color type
+        /// Gets or sets the filter method.
         /// </summary>
-        public PngColorType PngColorType { get; set; } = PngColorType.RgbWithAlpha;
+        public PngFilterMethod FilterMethod { get; set; } = PngFilterMethod.Paeth;
 
         /// <summary>
         /// Gets or sets the compression level 1-9.
@@ -44,8 +45,9 @@ namespace SixLabors.ImageSharp.Formats.Png
 
         /// <summary>
         /// Gets or sets quantizer for reducing the color count.
+        /// Defaults to the <see cref="WuQuantizer"/>
         /// </summary>
-        public IQuantizer Quantizer { get; set; }
+        public IQuantizer Quantizer { get; set; } = new WuQuantizer();
 
         /// <summary>
         /// Gets or sets the transparency threshold.
@@ -67,7 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var encoder = new PngEncoderCore(image.GetMemoryManager(), this))
+            using (var encoder = new PngEncoderCore(image.GetMemoryAllocator(), this))
             {
                 encoder.Encode(image, stream);
             }

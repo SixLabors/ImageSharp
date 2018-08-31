@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 
 namespace SixLabors.ImageSharp.Formats.Png
 {
@@ -16,26 +17,12 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <inheritdoc/>
         public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
         {
-            if (this.IsSupportedFileFormat(header))
-            {
-                return ImageFormats.Png;
-            }
-
-            return null;
+            return this.IsSupportedFileFormat(header) ? ImageFormats.Png : null;
         }
 
         private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
         {
-            // TODO: This should be in constants
-            return header.Length >= this.HeaderSize &&
-                   header[0] == 0x89 &&
-                   header[1] == 0x50 && // P
-                   header[2] == 0x4E && // N
-                   header[3] == 0x47 && // G
-                   header[4] == 0x0D && // CR
-                   header[5] == 0x0A && // LF
-                   header[6] == 0x1A && // EOF
-                   header[7] == 0x0A;   // LF
+            return header.Length >= this.HeaderSize && BinaryPrimitives.ReadUInt64BigEndian(header) == PngConstants.HeaderValue;
         }
     }
 }

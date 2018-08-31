@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream)
         {
-            Guard.NotNull(stream, "stream");
+            Guard.NotNull(stream, nameof(stream));
 
             var decoder = new GifDecoderCore(configuration, this);
             return decoder.Identify(stream);

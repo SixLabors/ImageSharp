@@ -3,23 +3,25 @@
 
 using System;
 using System.Reflection;
+using Castle.Core.Internal;
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using Castle.Core.Internal;
-
-    using SixLabors.ImageSharp.Processing;
-
     public interface ITestImageProvider
     {
         PixelTypes PixelType { get; }
         ImagingTestCaseUtility Utility { get; }
+        string SourceFileOrDescription { get; }
+
+        Configuration Configuration { get; set; }
     }
+
     /// <summary>
     /// Provides <see cref="Image{TPixel}" /> instances for parametric unit tests.
     /// </summary>
@@ -30,6 +32,8 @@ namespace SixLabors.ImageSharp.Tests
         public PixelTypes PixelType { get; private set; } = typeof(TPixel).GetPixelType();
 
         public virtual string SourceFileOrDescription => "";
+
+        public Configuration Configuration { get; set; } = Configuration.Default.ShallowCopy();
 
         /// <summary>
         /// Utility instance to provide informations about the test image & manage input/output
@@ -96,7 +100,7 @@ namespace SixLabors.ImageSharp.Tests
         /// </summary>
         public Image<TPixel> GetImage(Action<IImageProcessingContext<TPixel>> operationsToApply)
         {
-            var img = GetImage();
+            Image<TPixel> img = GetImage();
             img.Mutate(operationsToApply);
             return img;
         }

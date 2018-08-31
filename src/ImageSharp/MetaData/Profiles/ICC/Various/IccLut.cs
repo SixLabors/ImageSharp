@@ -2,27 +2,25 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Linq;
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
     /// <summary>
     /// Lookup Table
     /// </summary>
-    internal sealed class IccLut : IEquatable<IccLut>
+    internal readonly struct IccLut : IEquatable<IccLut>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="IccLut"/> class.
+        /// Initializes a new instance of the <see cref="IccLut"/> struct.
         /// </summary>
         /// <param name="values">The LUT values</param>
         public IccLut(float[] values)
         {
-            Guard.NotNull(values, nameof(values));
-            this.Values = values;
+            this.Values = values ?? throw new ArgumentNullException(nameof(values));
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="IccLut"/> class.
+        /// Initializes a new instance of the <see cref="IccLut"/> struct.
         /// </summary>
         /// <param name="values">The LUT values</param>
         public IccLut(ushort[] values)
@@ -39,7 +37,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="IccLut"/> class.
+        /// Initializes a new instance of the <see cref="IccLut"/> struct.
         /// </summary>
         /// <param name="values">The LUT values</param>
         public IccLut(byte[] values)
@@ -63,17 +61,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public bool Equals(IccLut other)
         {
-            if (other == null)
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, other))
+            if (ReferenceEquals(this.Values, other.Values))
             {
                 return true;
             }
 
-            return this.Values.SequenceEqual(other.Values);
+            return this.Values.AsSpan().SequenceEqual(other.Values);
         }
     }
 }

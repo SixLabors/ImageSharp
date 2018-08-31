@@ -113,26 +113,13 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         public override bool CanWrite => true;
 
         /// <inheritdoc/>
-        public override long Length
-        {
-            get
-            {
-                throw new NotSupportedException();
-            }
-        }
+        public override long Length => throw new NotSupportedException();
 
         /// <inheritdoc/>
         public override long Position
         {
-            get
-            {
-                throw new NotSupportedException();
-            }
-
-            set
-            {
-                throw new NotSupportedException();
-            }
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
         }
 
         /// <inheritdoc/>
@@ -163,7 +150,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         public override void Write(byte[] buffer, int offset, int count)
         {
             this.deflateStream.Write(buffer, offset, count);
-            this.adler32.Update(buffer, offset, count);
+            this.adler32.Update(buffer.AsSpan(offset, count));
         }
 
         /// <inheritdoc/>

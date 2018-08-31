@@ -16,12 +16,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     internal readonly struct YCbCr : IColorVector, IEquatable<YCbCr>, IAlmostEquatable<YCbCr, float>
     {
         /// <summary>
-        /// Represents a <see cref="YCbCr"/> that has Y, Cb, and Cr values set to zero.
-        /// </summary>
-        public static readonly YCbCr Empty = default(YCbCr);
-
-        /// <summary>
-        /// Vector which is used in clamping to the max value
+        /// Vector which is used in clamping to the max value.
         /// </summary>
         private static readonly Vector3 VectorMax = new Vector3(255F);
 
@@ -82,18 +77,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
             get => this.backingVector.Z;
         }
 
-        /// <summary>
-        /// Gets a value indicating whether this <see cref="YCbCr"/> is empty.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.Equals(Empty);
-
         /// <inheritdoc/>
-        public Vector3 Vector
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector;
-        }
+        public Vector3 Vector => this.backingVector;
 
         /// <summary>
         /// Compares two <see cref="YCbCr"/> objects for equality.
@@ -107,7 +92,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(YCbCr left, YCbCr right)
         {
             return left.Equals(right);
@@ -132,6 +116,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
             return this.backingVector.GetHashCode();
@@ -140,24 +125,15 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (this.IsEmpty)
-            {
-                return "YCbCr [ Empty ]";
-            }
-
-            return $"YCbCr [ Y={this.Y}, Cb={this.Cb}, Cr={this.Cr} ]";
+            return this.Equals(default)
+                ? "YCbCr [ Empty ]"
+                : $"YCbCr [ Y={this.Y}, Cb={this.Cb}, Cr={this.Cr} ]";
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
-            if (obj is YCbCr)
-            {
-                return this.Equals((YCbCr)obj);
-            }
-
-            return false;
+            return obj is YCbCr other && this.Equals(other);
         }
 
         /// <inheritdoc/>

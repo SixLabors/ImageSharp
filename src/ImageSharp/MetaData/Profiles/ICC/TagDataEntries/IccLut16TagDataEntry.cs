@@ -111,14 +111,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            var entry = other as IccLut16TagDataEntry;
-            return entry != null && this.Equals(entry);
+            return other is IccLut16TagDataEntry entry && this.Equals(entry);
         }
 
         /// <inheritdoc/>
         public bool Equals(IccLut16TagDataEntry other)
         {
-            if (ReferenceEquals(null, other))
+            if (other is null)
             {
                 return false;
             }
@@ -138,17 +137,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
-            return obj is IccLut16TagDataEntry && this.Equals((IccLut16TagDataEntry)obj);
+            return obj is IccLut16TagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc/>
@@ -158,9 +147,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             {
                 int hashCode = base.GetHashCode();
                 hashCode = (hashCode * 397) ^ this.Matrix.GetHashCode();
-                hashCode = (hashCode * 397) ^ (this.InputValues != null ? this.InputValues.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.ClutValues != null ? this.ClutValues.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.OutputValues != null ? this.OutputValues.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.InputValues?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.ClutValues?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.OutputValues?.GetHashCode() ?? 0);
                 return hashCode;
             }
         }

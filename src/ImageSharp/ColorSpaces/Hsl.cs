@@ -14,12 +14,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     internal readonly struct Hsl : IColorVector, IEquatable<Hsl>, IAlmostEquatable<Hsl, float>
     {
         /// <summary>
-        /// Represents a <see cref="Hsl"/> that has H, S, and L values set to zero.
-        /// </summary>
-        public static readonly Hsl Empty = default(Hsl);
-
-        /// <summary>
-        /// Max range used for clamping
+        /// Max range used for clamping.
         /// </summary>
         private static readonly Vector3 VectorMax = new Vector3(360, 1, 1);
 
@@ -80,18 +75,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
             get => this.backingVector.Z;
         }
 
-        /// <summary>
-        /// Gets a value indicating whether this <see cref="Hsl"/> is empty.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.Equals(Empty);
-
         /// <inheritdoc/>
-        public Vector3 Vector
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector;
-        }
+        public Vector3 Vector => this.backingVector;
 
         /// <summary>
         /// Compares two <see cref="Hsl"/> objects for equality.
@@ -130,6 +115,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
             return this.backingVector.GetHashCode();
@@ -138,24 +124,15 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (this.IsEmpty)
-            {
-                return "Hsl [ Empty ]";
-            }
-
-            return $"Hsl [ H={this.H:#0.##}, S={this.S:#0.##}, L={this.L:#0.##} ]";
+            return this.Equals(default)
+                ? "Hsl [ Empty ]"
+                : $"Hsl [ H={this.H:#0.##}, S={this.S:#0.##}, L={this.L:#0.##} ]";
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
-            if (obj is Hsl)
-            {
-                return this.Equals((Hsl)obj);
-            }
-
-            return false;
+            return obj is Hsl other && this.Equals(other);
         }
 
         /// <inheritdoc/>

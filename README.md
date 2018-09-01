@@ -70,6 +70,9 @@ Our API is designed to be simple to consume. Here's an example of the code requi
 On platforms supporting netstandard 1.3+
 
 ```csharp
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+
 // Image.Load(string path) is a shortcut for our default type. 
 // Other pixel formats use Image.Load<TPixel>(string path))
 using (Image<Rgba32> image = Image.Load("foo.jpg"))
@@ -83,6 +86,9 @@ using (Image<Rgba32> image = Image.Load("foo.jpg"))
 On netstandard 1.1 - 1.2
 
 ```csharp
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+
 // Image.Load(Stream stream) is a shortcut for our default type.
 // Other pixel formats use Image.Load<TPixel>(Stream stream))
 using (FileStream stream = File.OpenRead("foo.jpg"))
@@ -99,6 +105,9 @@ using (Image<Rgba32> image = Image.Load(stream))
 Setting individual pixel values can be performed as follows:
 
 ```csharp
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+
 // Individual pixels
 using (Image<Rgba32> image = new Image<Rgba32>(400, 400))
 {

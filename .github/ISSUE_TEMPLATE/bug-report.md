@@ -1,3 +1,9 @@
+---
+name: Bug report
+about: Create a report to help us improve
+
+---
+
 ### Prerequisites
 
 - [ ] I have written a descriptive issue title

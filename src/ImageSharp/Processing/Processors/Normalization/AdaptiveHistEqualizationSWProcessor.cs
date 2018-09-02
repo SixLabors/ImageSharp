@@ -12,7 +12,7 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 {
     /// <summary>
-    /// Applies an adaptive histogram equalization to the image.
+    /// Applies an adaptive histogram equalization to the image using an sliding window approach.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class AdaptiveHistEqualizationSWProcessor<TPixel> : HistogramEqualizationProcessor<TPixel>

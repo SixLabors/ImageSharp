@@ -12,7 +12,8 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 {
     /// <summary>
-    /// Applies an adaptive histogram equalization to the image.
+    /// Applies an adaptive histogram equalization to the image. The image is split up in tiles. For each tile a cumulative distribution function (cdf) is calculated.
+    /// To calculate the final equalized pixel value, the cdf value of four adjacent tiles will be interpolated.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class AdaptiveHistEqualizationProcessor<TPixel> : HistogramEqualizationProcessor<TPixel>
@@ -55,52 +56,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int halfTileWidth = tileWidth / 2;
             int halfTileHeight = tileHeight / 2;
 
-            var cdfData = new CdfData[numTilesX, numTilesY];
             using (System.Buffers.IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
             using (System.Buffers.IMemoryOwner<int> cdfBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
             {
                 Span<int> histogram = histogramBuffer.GetSpan();
                 Span<int> cdf = cdfBuffer.GetSpan();
 
-                // The image is split up into square tiles of the size of the parameter GridSize.
-                // For each tile the cumulative distribution function will be calculated.
+                // The image is split up into tiles. For each tile the cumulative distribution function will be calculated.
+                CdfData[,] cdfData = this.CalculateLookupTables(source, histogram, cdf, numTilesX, numTilesY, tileWidth, tileHeight);
+
                 int tileX = 0;
                 int tileY = 0;
-                for (int y = 0; y < source.Height; y += tileHeight)
-                {
-                    tileX = 0;
-                    for (int x = 0; x < source.Width; x += tileWidth)
-                    {
-                        histogram.Clear();
-                        cdf.Clear();
-                        int ylimit = Math.Min(y + tileHeight, source.Height);
-                        int xlimit = Math.Min(x + tileWidth, source.Width);
-                        for (int dy = y; dy < ylimit; dy++)
-                        {
-                            for (int dx = x; dx < xlimit; dx++)
-                            {
-                                int luminace = this.GetLuminance(source[dx, dy], this.LuminanceLevels);
-                                histogram[luminace]++;
-                            }
-                        }
-
-                        if (this.ClipHistogramEnabled)
-                        {
-                            this.ClipHistogram(histogram, this.ClipLimitPercentage, pixelsInTile);
-                        }
-
-                        int cdfMin = this.CalculateCdf(cdf, histogram, histogram.Length - 1);
-                        var currentCdf = new CdfData(cdf.ToArray(), cdfMin);
-                        cdfData[tileX, tileY] = currentCdf;
-
-                        tileX++;
-                    }
-
-                    tileY++;
-                }
-
-                tileX = 0;
-                tileY = 0;
                 for (int y = halfTileHeight; y < source.Height - tileHeight; y += tileHeight)
                 {
                     tileX = 0;
@@ -128,7 +94,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                                 float cdfRightTopLuminance = cdfData[xRight, yTop].RemapGreyValue(luminace, pixelsInTile);
                                 float cdfLeftBottomLuminance = cdfData[xLeft, yBottom].RemapGreyValue(luminace, pixelsInTile);
                                 float cdfRightBottomLuminance = cdfData[xRight, yBottom].RemapGreyValue(luminace, pixelsInTile);
-                                float luminanceEqualized = this.BilinearInterpolation(tilePosX, tilePosY, tilePosX / (float)(tileWidth - 1), ty, cdfLeftTopLuminance, cdfRightTopLuminance, cdfLeftBottomLuminance, cdfRightBottomLuminance);
+                                float luminanceEqualized = this.BilinearInterpolation(tilePosX / (float)(tileWidth - 1), ty, cdfLeftTopLuminance, cdfRightTopLuminance, cdfLeftBottomLuminance, cdfRightBottomLuminance);
 
                                 pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
                                 tilePosX++;
@@ -146,10 +112,61 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         }
 
         /// <summary>
+        /// Calculates the lookup tables for each tile of the image.
+        /// </summary>
+        /// <param name="source">The input image for which the tiles will be calculated.</param>
+        /// <param name="histogram">Histogram buffer.</param>
+        /// <param name="cdf">Buffer for calculating the cumulative distribution function.</param>
+        /// <param name="numTilesX">Number of tiles in the X Direction.</param>
+        /// <param name="numTilesY">Number of tiles in Y Direction</param>
+        /// <param name="tileWidth">Width in pixels of one tile.</param>
+        /// <param name="tileHeight">Height in pixels of one tile.</param>
+        /// <returns>All lookup tables for each tile in the image.</returns>
+        private CdfData[,] CalculateLookupTables(ImageFrame<TPixel> source, Span<int> histogram, Span<int> cdf, int numTilesX, int numTilesY, int tileWidth, int tileHeight)
+        {
+            var cdfData = new CdfData[numTilesX, numTilesY];
+            int pixelsInTile = tileWidth * tileHeight;
+            int tileX = 0;
+            int tileY = 0;
+            for (int y = 0; y < source.Height; y += tileHeight)
+            {
+                tileX = 0;
+                for (int x = 0; x < source.Width; x += tileWidth)
+                {
+                    histogram.Clear();
+                    cdf.Clear();
+                    int ylimit = Math.Min(y + tileHeight, source.Height);
+                    int xlimit = Math.Min(x + tileWidth, source.Width);
+                    for (int dy = y; dy < ylimit; dy++)
+                    {
+                        for (int dx = x; dx < xlimit; dx++)
+                        {
+                            int luminace = this.GetLuminance(source[dx, dy], this.LuminanceLevels);
+                            histogram[luminace]++;
+                        }
+                    }
+
+                    if (this.ClipHistogramEnabled)
+                    {
+                        this.ClipHistogram(histogram, this.ClipLimitPercentage, pixelsInTile);
+                    }
+
+                    int cdfMin = this.CalculateCdf(cdf, histogram, histogram.Length - 1);
+                    var currentCdf = new CdfData(cdf.ToArray(), cdfMin);
+                    cdfData[tileX, tileY] = currentCdf;
+
+                    tileX++;
+                }
+
+                tileY++;
+            }
+
+            return cdfData;
+        }
+
+        /// <summary>
         /// Bilinear interpolation between four tiles.
         /// </summary>
-        /// <param name="x">X position.</param>
-        /// <param name="y">Y position.</param>
         /// <param name="tx">The interpolation value in x direction in the range of [0, 1].</param>
         /// <param name="ty">The interpolation value in y direction in the range of [0, 1].</param>
         /// <param name="lt">Luminance from top left tile.</param>
@@ -157,7 +174,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="lb">Luminance from left bottom tile.</param>
         /// <param name="rb">Luminance from right bottom tile.</param>
         /// <returns>Interpolated Luminance.</returns>
-        private float BilinearInterpolation(int x, int y, float tx, float ty, float lt, float rt, float lb, float rb)
+        private float BilinearInterpolation(float tx, float ty, float lt, float rt, float lb, float rb)
         {
             return this.LinearInterpolation(this.LinearInterpolation(lt, rt, tx), this.LinearInterpolation(lb, rb, tx), ty);
         }

@@ -46,12 +46,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int numberOfPixels = source.Width * source.Height;
             Span<TPixel> pixels = source.GetPixelSpan();
 
-            int pixelsInGrid = this.GridSize * this.GridSize;
-            int halfGridSize = this.GridSize / 2;
-            int xtiles = Convert.ToInt32(Math.Ceiling(source.Width / (double)this.GridSize));
-            int ytiles = Convert.ToInt32(Math.Ceiling(source.Height / (double)this.GridSize));
+            int numTilesX = 20;
+            int numTilesY = 20;
 
-            var cdfData = new CdfData[xtiles, ytiles];
+            int tileWidth = Convert.ToInt32(Math.Ceiling(source.Width / (double)numTilesX));
+            int tileHeight = Convert.ToInt32(Math.Ceiling(source.Height / (double)numTilesY));
+            int pixelsInTile = tileWidth * tileHeight;
+            int halfTileWidth = tileWidth / 2;
+            int halfTileHeight = tileHeight / 2;
+
+            var cdfData = new CdfData[numTilesX, numTilesY];
             using (System.Buffers.IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
             using (System.Buffers.IMemoryOwner<int> cdfBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
             {
@@ -60,17 +64,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
                 // The image is split up into square tiles of the size of the parameter GridSize.
                 // For each tile the cumulative distribution function will be calculated.
-                int cdfPosX = 0;
-                int cdfPosY = 0;
-                for (int y = 0; y < source.Height; y += this.GridSize)
+                int tileX = 0;
+                int tileY = 0;
+                for (int y = 0; y < source.Height; y += tileHeight)
                 {
-                    cdfPosX = 0;
-                    for (int x = 0; x < source.Width; x += this.GridSize)
+                    tileX = 0;
+                    for (int x = 0; x < source.Width; x += tileWidth)
                     {
                         histogram.Clear();
                         cdf.Clear();
-                        int ylimit = Math.Min(y + this.GridSize, source.Height);
-                        int xlimit = Math.Min(x + this.GridSize, source.Width);
+                        int ylimit = Math.Min(y + tileHeight, source.Height);
+                        int xlimit = Math.Min(x + tileWidth, source.Width);
                         for (int dy = y; dy < ylimit; dy++)
                         {
                             for (int dx = x; dx < xlimit; dx++)
@@ -82,62 +86,61 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
                         if (this.ClipHistogramEnabled)
                         {
-                            this.ClipHistogram(histogram, this.ClipLimitPercentage, pixelsInGrid);
+                            this.ClipHistogram(histogram, this.ClipLimitPercentage, pixelsInTile);
                         }
 
                         int cdfMin = this.CalculateCdf(cdf, histogram, histogram.Length - 1);
                         var currentCdf = new CdfData(cdf.ToArray(), cdfMin);
-                        cdfData[cdfPosX, cdfPosY] = currentCdf;
+                        cdfData[tileX, tileY] = currentCdf;
 
-                        cdfPosX++;
+                        tileX++;
                     }
 
-                    cdfPosY++;
+                    tileY++;
                 }
 
-                int tilePosX = 0;
-                int tilePosY = 0;
-                for (int y = halfGridSize; y < source.Height - this.GridSize; y += this.GridSize)
+                tileX = 0;
+                tileY = 0;
+                for (int y = halfTileHeight; y < source.Height - tileHeight; y += tileHeight)
                 {
-                    tilePosX = 0;
-                    for (int x = halfGridSize; x < source.Width - this.GridSize; x += this.GridSize)
+                    tileX = 0;
+                    for (int x = halfTileWidth; x < source.Width - tileWidth; x += tileWidth)
                     {
-                        int gridPosX = 0;
-                        int gridPosY = 0;
-                        int ylimit = Math.Min(y + this.GridSize, source.Height);
-                        int xlimit = Math.Min(x + this.GridSize, source.Width);
+                        int tilePosX = 0;
+                        int tilePosY = 0;
+                        int ylimit = Math.Min(y + tileHeight, source.Height);
+                        int xlimit = Math.Min(x + tileWidth, source.Width);
                         for (int dy = y; dy < ylimit; dy++)
                         {
-                            gridPosX = 0;
-                            float ty = gridPosY / (float)(this.GridSize - 1);
-                            int yTop = tilePosY;
+                            tilePosX = 0;
+                            float ty = tilePosY / (float)(tileHeight - 1);
+                            int yTop = tileY;
                             int yBottom = yTop + 1;
                             for (int dx = x; dx < xlimit; dx++)
                             {
                                 TPixel sourcePixel = source[dx, dy];
                                 int luminace = this.GetLuminance(sourcePixel, this.LuminanceLevels);
 
-                                int xLeft = tilePosX;
-                                int xRight = tilePosX + 1;
+                                int xLeft = tileX;
+                                int xRight = tileX + 1;
 
-                                float cdfLeftTopLuminance = cdfData[xLeft, yTop].RemapGreyValue(luminace, pixelsInGrid);
-                                float cdfRightTopLuminance = cdfData[xRight, yTop].RemapGreyValue(luminace, pixelsInGrid);
-                                float cdfLeftBottomLuminance = cdfData[xLeft, yBottom].RemapGreyValue(luminace, pixelsInGrid);
-                                float cdfRightBottomLuminance = cdfData[xRight, yBottom].RemapGreyValue(luminace, pixelsInGrid);
-
-                                float luminanceEqualized = this.BilinearInterpolation(gridPosX, gridPosY, gridPosX / (float)(this.GridSize - 1), ty, cdfLeftTopLuminance, cdfRightTopLuminance, cdfLeftBottomLuminance, cdfRightBottomLuminance);
+                                float cdfLeftTopLuminance = cdfData[xLeft, yTop].RemapGreyValue(luminace, pixelsInTile);
+                                float cdfRightTopLuminance = cdfData[xRight, yTop].RemapGreyValue(luminace, pixelsInTile);
+                                float cdfLeftBottomLuminance = cdfData[xLeft, yBottom].RemapGreyValue(luminace, pixelsInTile);
+                                float cdfRightBottomLuminance = cdfData[xRight, yBottom].RemapGreyValue(luminace, pixelsInTile);
+                                float luminanceEqualized = this.BilinearInterpolation(tilePosX, tilePosY, tilePosX / (float)(tileWidth - 1), ty, cdfLeftTopLuminance, cdfRightTopLuminance, cdfLeftBottomLuminance, cdfRightBottomLuminance);
 
                                 pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
-                                gridPosX++;
+                                tilePosX++;
                             }
 
-                            gridPosY++;
+                            tilePosY++;
                         }
 
-                        tilePosX++;
+                        tileX++;
                     }
 
-                    tilePosY++;
+                    tileY++;
                 }
             }
         }
@@ -198,11 +201,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             /// Remaps the grey value with the cdf.
             /// </summary>
             /// <param name="luminance">The original luminance.</param>
-            /// <param name="pixelsInGrid">The pixels in grid.</param>
+            /// <param name="pixelsInTile">The number of pixels in the tile.</param>
             /// <returns>The remapped luminance.</returns>
-            public float RemapGreyValue(int luminance, int pixelsInGrid)
+            public float RemapGreyValue(int luminance, int pixelsInTile)
             {
-                return (pixelsInGrid - this.CdfMin) == 0 ? this.Cdf[luminance] / (float)pixelsInGrid : this.Cdf[luminance] / (float)(pixelsInGrid - this.CdfMin);
+                return (pixelsInTile - this.CdfMin) == 0 ? this.Cdf[luminance] / (float)pixelsInTile : this.Cdf[luminance] / (float)(pixelsInTile - this.CdfMin);
             }
         }
     }

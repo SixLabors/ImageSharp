@@ -3,8 +3,10 @@ using System.Buffers.Binary;
 
 namespace SixLabors.ImageSharp.Formats.Apng
 {
-    public struct ApngFrameControlChuck
+    internal struct ApngFrameControlChuck
     {
+        public const int Size = 26;
+
         public uint SequenceNumber { get; set; }
 
         public uint Width { get; set; }
@@ -23,8 +25,13 @@ namespace SixLabors.ImageSharp.Formats.Apng
 
         public ApngBlendMethod BlendOp { get; set; }
 
-        public ApngFrameControlChuck Parse(ReadOnlySpan<byte> data)
+        public static ApngFrameControlChuck Parse(ReadOnlySpan<byte> data)
         {
+            if (data.Length != Size)
+            {
+                throw new ArgumentException($"Must be {Size} bytes", nameof(data));
+            }
+
             return new ApngFrameControlChuck
             {
                 SequenceNumber = BinaryPrimitives.ReadUInt32BigEndian(data.Slice(0, 4)),

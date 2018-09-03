@@ -28,9 +28,17 @@ namespace SixLabors.ImageSharp.MetaData
         {
             DebugGuard.NotNull(other, nameof(other));
 
+            this.ColorTableLength = other.ColorTableLength;
             this.FrameDelay = other.FrameDelay;
             this.DisposalMethod = other.DisposalMethod;
         }
+
+        /// <summary>
+        /// Gets or sets the length of the color table for paletted images.
+        /// If not 0, then this field indicates the maximum number of colors to use when quantizing the
+        /// image frame.
+        /// </summary>
+        public int ColorTableLength { get; set; }
 
         /// <summary>
         /// Gets or sets the frame delay for animated images.
@@ -51,9 +59,6 @@ namespace SixLabors.ImageSharp.MetaData
         /// Clones this ImageFrameMetaData.
         /// </summary>
         /// <returns>The cloned instance.</returns>
-        public ImageFrameMetaData Clone()
-        {
-            return new ImageFrameMetaData(this);
-        }
+        public ImageFrameMetaData Clone() => new ImageFrameMetaData(this);
     }
 }

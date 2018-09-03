@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
@@ -164,7 +165,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public IImageInfo Identify(Stream stream)
         {
             this.ReadImageHeaders(stream, out _, out _);
-            return new ImageInfo(new PixelTypeInfo(this.infoHeader.BitsPerPixel), this.infoHeader.Width, this.infoHeader.Height, this.metaData);
+
+            var size = new Size(this.infoHeader.Width, this.infoHeader.Height);
+            return new BmpInfo(new PixelTypeInfo(this.infoHeader.BitsPerPixel), size, this.metaData);
         }
 
         /// <summary>
@@ -175,10 +178,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="inverted">Whether the bitmap is inverted.</param>
         /// <returns>The <see cref="int"/> representing the inverted value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int Invert(int y, int height, bool inverted)
-        {
-            return (!inverted) ? height - y - 1 : y;
-        }
+        private static int Invert(int y, int height, bool inverted) => (!inverted) ? height - y - 1 : y;
 
         /// <summary>
         /// Calculates the amount of bytes to pad a row.
@@ -206,10 +206,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="value">The masked and shifted value</param>
         /// <returns>The <see cref="byte"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static byte GetBytesFrom5BitValue(int value)
-        {
-            return (byte)((value << 3) | (value >> 2));
-        }
+        private static byte GetBytesFrom5BitValue(int value) => (byte)((value << 3) | (value >> 2));
 
         /// <summary>
         /// Looks up color values and builds the image from de-compressed RLE8 data.
@@ -524,8 +521,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
 
             // Resolution is stored in PPM.
-            var meta = new ImageMetaData();
-            meta.ResolutionUnits = PixelResolutionUnit.PixelsPerMeter;
+            var meta = new ImageMetaData
+            {
+                ResolutionUnits = PixelResolutionUnit.PixelsPerMeter
+            };
             if (this.infoHeader.XPelsPerMeter > 0 && this.infoHeader.YPelsPerMeter > 0)
             {
                 meta.HorizontalResolution = this.infoHeader.XPelsPerMeter;

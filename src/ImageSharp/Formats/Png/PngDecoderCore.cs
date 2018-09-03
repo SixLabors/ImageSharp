@@ -1273,14 +1273,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="data">The <see cref="T:ReadOnlySpan{byte}"/> containing data.</param>
         private void ReadHeaderChunk(ReadOnlySpan<byte> data)
         {
-            this.header = new PngHeader(
-                width: BinaryPrimitives.ReadInt32BigEndian(data.Slice(0, 4)),
-                height: BinaryPrimitives.ReadInt32BigEndian(data.Slice(4, 4)),
-                bitDepth: data[8],
-                colorType: (PngColorType)data[9],
-                compressionMethod: data[10],
-                filterMethod: data[11],
-                interlaceMethod: (PngInterlaceMode)data[12]);
+            this.header = PngHeader.Parse(data);
         }
 
         /// <summary>

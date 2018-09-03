@@ -234,7 +234,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.InitExifProfile();
             this.InitIccProfile();
             this.InitDerivedMetaDataProperties();
-            return new ImageInfo(new PixelTypeInfo(this.BitsPerPixel), this.ImageWidth, this.ImageHeight, this.MetaData);
+
+            return new JpegInfo(new PixelTypeInfo(this.BitsPerPixel), new Size(this.ImageWidth, this.ImageHeight), this.MetaData);
         }
 
         /// <summary>
@@ -899,9 +900,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="values">The values</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void BuildHuffmanTable(HuffmanTables tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
-        {
-            tables[index] = new HuffmanTable(this.configuration.MemoryAllocator, codeLengths, values);
-        }
+            => tables[index] = new HuffmanTable(this.configuration.MemoryAllocator, codeLengths, values);
 
         /// <summary>
         /// Reads a <see cref="ushort"/> from the stream advancing it by two bytes

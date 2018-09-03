@@ -179,5 +179,44 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 Assert.True(fileInfoGlobal.Length < fileInfoLocal.Length);
             }
         }
+
+        [Fact]
+        public void NonMutatingEncodePreservesPaletteCount()
+        {
+            using (var inStream = new MemoryStream(TestFile.Create(TestImages.Gif.Leo).Bytes))
+            using (var outStream = new MemoryStream())
+            {
+                var info = (GifInfo)Image.Identify(inStream);
+                GifColorTableMode colorMode = info.ColorTableMode;
+                inStream.Position = 0;
+
+                var image = Image.Load(inStream);
+                var encoder = new GifEncoder()
+                {
+                    ColorTableMode = colorMode,
+                    Quantizer = new OctreeQuantizer(image.Frames.RootFrame.MetaData.ColorTableLength)
+                };
+
+                image.Save(outStream, encoder);
+                outStream.Position = 0;
+
+                var cloneInfo = (GifInfo)Image.Identify(outStream);
+                outStream.Position = 0;
+                var clone = Image.Load(outStream);
+
+                // Gifiddle and Cyotek GifInfo say this image has 64 colors.
+                Assert.Equal(64, image.Frames.RootFrame.MetaData.ColorTableLength);
+                Assert.Equal(info.ColorTableMode, cloneInfo.ColorTableMode);
+
+                for (int i = 0; i < image.Frames.Count; i++)
+                {
+                    Assert.Equal(image.Frames[i].MetaData.ColorTableLength, clone.Frames[i].MetaData.ColorTableLength);
+                    Assert.Equal(image.Frames[i].MetaData.FrameDelay, clone.Frames[i].MetaData.FrameDelay);
+                }
+
+                image.Dispose();
+                clone.Dispose();
+            }
+        }
     }
 }

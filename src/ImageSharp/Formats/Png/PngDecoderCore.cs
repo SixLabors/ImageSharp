@@ -10,7 +10,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.Memory;
@@ -18,6 +17,7 @@ using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Png
 {
@@ -349,7 +349,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 throw new ImageFormatException("PNG Image does not contain a header chunk");
             }
 
-            return new ImageInfo(new PixelTypeInfo(this.CalculateBitsPerPixel()), this.header.Width, this.header.Height, metadata);
+            return new PngInfo(new PixelTypeInfo(this.CalculateBitsPerPixel()), new Size(this.header.Width, this.header.Height), metadata);
         }
 
         /// <summary>
@@ -360,9 +360,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <returns>The <see cref="int"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static byte ReadByteLittleEndian(ReadOnlySpan<byte> buffer, int offset)
-        {
-            return (byte)(((buffer[offset] & 0xFF) << 16) | (buffer[offset + 1] & 0xFF));
-        }
+            => (byte)(((buffer[offset] & 0xFF) << 16) | (buffer[offset + 1] & 0xFF));
 
         /// <summary>
         /// Attempts to convert a byte array to a new array where each value in the original array is represented by the

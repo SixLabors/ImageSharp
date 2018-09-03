@@ -146,7 +146,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
                 else
                 {
-                    using (QuantizedFrame<TPixel> paletteQuantized = palleteQuantizer.CreateFrameQuantizer(() => quantized.Palette).QuantizeFrame(frame))
+                    using (QuantizedFrame<TPixel> paletteQuantized
+                        = palleteQuantizer.CreateFrameQuantizer(() => quantized.Palette).QuantizeFrame(frame))
                     {
                         this.WriteImageData(paletteQuantized, stream);
                     }
@@ -157,13 +158,25 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void EncodeLocal<TPixel>(Image<TPixel> image, QuantizedFrame<TPixel> quantized, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
+            ImageFrame<TPixel> previousFrame = null;
             foreach (ImageFrame<TPixel> frame in image.Frames)
             {
                 if (quantized is null)
                 {
-                    quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
+                    // Allow each frame to be encoded at whatever color depth the frame designates if set.
+                    if (previousFrame != null
+                        && previousFrame.MetaData.ColorTableLength != frame.MetaData.ColorTableLength
+                        && frame.MetaData.ColorTableLength > 0)
+                    {
+                        quantized = this.quantizer.CreateFrameQuantizer<TPixel>(frame.MetaData.ColorTableLength).QuantizeFrame(frame);
+                    }
+                    else
+                    {
+                        quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
+                    }
                 }
 
+                this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length).Clamp(1, 8);
                 this.WriteGraphicalControlExtension(frame.MetaData, this.GetTransparentIndex(quantized), stream);
                 this.WriteImageDescriptor(frame, true, stream);
                 this.WriteColorTable(quantized, stream);
@@ -171,6 +184,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
                 quantized?.Dispose();
                 quantized = null; // So next frame can regenerate it
+                previousFrame = frame;
             }
         }
 
@@ -210,10 +224,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <param name="stream">The stream to write to.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteHeader(Stream stream)
-        {
-            stream.Write(GifConstants.MagicNumber, 0, GifConstants.MagicNumber.Length);
-        }
+        private void WriteHeader(Stream stream) => stream.Write(GifConstants.MagicNumber, 0, GifConstants.MagicNumber.Length);
 
         /// <summary>
         /// Writes the logical screen descriptor to the stream.
@@ -226,7 +237,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void WriteLogicalScreenDescriptor<TPixel>(Image<TPixel> image, int transparencyIndex, bool useGlobalTable, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            byte packedValue = GifLogicalScreenDescriptor.GetPackedValue(useGlobalTable, this.bitDepth - 1, false, this.bitDepth - 1);
+            byte packedValue = GifLogicalScreenDescriptor.GetPackedValue(useGlobalTable, this.bitDepth, false, this.bitDepth - 1);
 
             // The Pixel Aspect Ratio is defined to be the quotient of the pixel's
             // width over its height.  The value range in this field allows
@@ -382,7 +393,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 localColorTableFlag: hasColorTable,
                 interfaceFlag: false,
                 sortFlag: false,
-                localColorTableSize: (byte)this.bitDepth);
+                localColorTableSize: this.bitDepth - 1);
 
             var descriptor = new GifImageDescriptor(
                 left: 0,
@@ -407,7 +418,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             int pixelCount = image.Palette.Length;
 
-            int colorTableLength = (int)Math.Pow(2, this.bitDepth) * 3; // The maximium number of colors for the bit depth
+            // The maximium number of colors for the bit depth
+            int colorTableLength = (int)Math.Pow(2, this.bitDepth) * 3;
             Rgb24 rgb = default;
 
             using (IManagedByteBuffer colorTable = this.memoryAllocator.AllocateManagedByteBuffer(colorTableLength))

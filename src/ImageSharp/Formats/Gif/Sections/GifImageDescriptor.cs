@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             return MemoryMarshal.Cast<byte, GifImageDescriptor>(buffer)[0];
         }
 
-        public static byte GetPackedValue(bool localColorTableFlag, bool interfaceFlag, bool sortFlag, byte localColorTableSize)
+        public static byte GetPackedValue(bool localColorTableFlag, bool interfaceFlag, bool sortFlag, int localColorTableSize)
         {
             /*
             Local Color Table Flag     | 1 Bit

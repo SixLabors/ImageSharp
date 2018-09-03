@@ -3,7 +3,6 @@
 
 using System;
 using System.Buffers;
-using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -128,10 +127,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// the second pass quantizes a color based on the position in the histogram.
         /// </remarks>
         public WuFrameQuantizer(WuQuantizer quantizer)
-            : base(quantizer, false)
+            : this(quantizer, quantizer.MaxColors)
         {
-            this.colors = quantizer.MaxColors;
         }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WuFrameQuantizer{TPixel}"/> class.
+        /// </summary>
+        /// <param name="quantizer">The wu quantizer.</param>
+        /// <param name="maxColors">The maximum number of colors to hold in the color palette.</param>
+        /// <remarks>
+        /// The Wu quantizer is a two pass algorithm. The initial pass sets up the 3-D color histogram,
+        /// the second pass quantizes a color based on the position in the histogram.
+        /// </remarks>
+        public WuFrameQuantizer(WuQuantizer quantizer, int maxColors)
+            : base(quantizer, false) => this.colors = maxColors;
 
         /// <inheritdoc/>
         public override QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image)

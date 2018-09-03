@@ -60,6 +60,21 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// The data chunk which contains the Exif profile.
         /// </summary>
-        Exif = 0x65584966U // eXIf
+        Exif = 0x65584966U, // eXIf
+
+        /// <summary>
+        /// This chuck specifies the animation control options.
+        /// </summary>
+        AnimationControl = 0x6163544C, // acTL
+
+        /// <summary>
+        /// The chuck specifies the frame control options.
+        /// </summary>
+        FrameControl = 0x6663544C, // fcTL
+
+        /// <summary>
+        /// The chuck contains frame data.
+        /// </summary>
+        FrameData = 0x66644154 // fdAT
     }
 }

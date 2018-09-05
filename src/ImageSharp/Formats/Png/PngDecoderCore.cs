@@ -17,7 +17,6 @@ using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Png
 {
@@ -349,7 +348,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 throw new ImageFormatException("PNG Image does not contain a header chunk");
             }
 
-            return new PngInfo(new PixelTypeInfo(this.CalculateBitsPerPixel()), new Size(this.header.Width, this.header.Height), metadata);
+            return new ImageInfo(new PixelTypeInfo(this.CalculateBitsPerPixel()), this.header.Width, this.header.Height, metadata);
         }
 
         /// <summary>

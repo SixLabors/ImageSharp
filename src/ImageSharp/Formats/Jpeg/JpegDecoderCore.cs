@@ -235,7 +235,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.InitIccProfile();
             this.InitDerivedMetaDataProperties();
 
-            return new JpegInfo(new PixelTypeInfo(this.BitsPerPixel), new Size(this.ImageWidth, this.ImageHeight), this.MetaData);
+            return new ImageInfo(new PixelTypeInfo(this.BitsPerPixel), this.ImageWidth, this.ImageHeight, this.MetaData);
         }
 
         /// <summary>

@@ -48,16 +48,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             using (var sourceBitmap = new System.Drawing.Bitmap(stream))
             {
                 var pixelType = new PixelTypeInfo(System.Drawing.Image.GetPixelFormatSize(sourceBitmap.PixelFormat));
-                var size = new SixLabors.Primitives.Size(sourceBitmap.Width, sourceBitmap.Height);
-                return new SystemDrawingInfo(pixelType, size, new ImageMetaData());
-            }
-        }
-
-        private class SystemDrawingInfo : ImageInfo
-        {
-            public SystemDrawingInfo(PixelTypeInfo pixelType, SixLabors.Primitives.Size size, ImageMetaData metaData)
-                : base(pixelType, size, metaData)
-            {
+                return new ImageInfo(pixelType, sourceBitmap.Width, sourceBitmap.Height, new ImageMetaData());
             }
         }
     }

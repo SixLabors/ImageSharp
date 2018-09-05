@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Gets the disposal method which indicates the way in which the
         /// graphic is to be treated after being displayed.
         /// </summary>
-        public DisposalMethod DisposalMethod => (DisposalMethod)((this.Packed & 0x1C) >> 2);
+        public GifDisposalMethod DisposalMethod => (GifDisposalMethod)((this.Packed & 0x1C) >> 2);
 
         /// <summary>
         /// Gets a value indicating whether transparency flag is to be set.
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             return MemoryMarshal.Cast<byte, GifGraphicControlExtension>(buffer)[0];
         }
 
-        public static byte GetPackedValue(DisposalMethod disposalMethod, bool userInputFlag = false, bool transparencyFlag = false)
+        public static byte GetPackedValue(GifDisposalMethod disposalMethod, bool userInputFlag = false, bool transparencyFlag = false)
         {
             /*
             Reserved               | 3 Bits

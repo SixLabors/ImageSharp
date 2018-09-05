@@ -10,7 +10,6 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
@@ -165,9 +164,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public IImageInfo Identify(Stream stream)
         {
             this.ReadImageHeaders(stream, out _, out _);
-
-            var size = new Size(this.infoHeader.Width, this.infoHeader.Height);
-            return new BmpInfo(new PixelTypeInfo(this.infoHeader.BitsPerPixel), size, this.metaData);
+            return new ImageInfo(new PixelTypeInfo(this.infoHeader.BitsPerPixel), this.infoHeader.Width, this.infoHeader.Height, this.metaData);
         }
 
         /// <summary>

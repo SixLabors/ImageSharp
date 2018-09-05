@@ -61,9 +61,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private GifImageDescriptor imageDescriptor;
 
         /// <summary>
-        /// The metadata
+        /// The abstract metadata.
         /// </summary>
         private ImageMetaData metaData;
+
+        /// <summary>
+        /// The gif specific metadata.
+        /// </summary>
+        private GifMetaData gifMetaData;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GifDecoderCore"/> class.
@@ -134,11 +139,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                                 this.ReadComments();
                                 break;
                             case GifConstants.ApplicationExtensionLabel:
-
-                                // The application extension length should be 11 but we've got test images that incorrectly
-                                // set this to 252.
-                                int appLength = stream.ReadByte();
-                                this.Skip(appLength); // No need to read.
+                                this.ReadApplicationExtension();
                                 break;
                             case GifConstants.PlainTextLabel:
                                 int plainLength = stream.ReadByte();
@@ -163,6 +164,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 this.globalColorTable?.Dispose();
             }
 
+            image?.MetaData.AddOrUpdateGifMetaData(this.gifMetaData);
             return image;
         }
 
@@ -197,11 +199,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                                 this.ReadComments();
                                 break;
                             case GifConstants.ApplicationExtensionLabel:
-
-                                // The application extension length should be 11 but we've got test images that incorrectly
-                                // set this to 252.
-                                int appLength = stream.ReadByte();
-                                this.Skip(appLength); // No need to read.
+                                this.ReadApplicationExtension();
                                 break;
                             case GifConstants.PlainTextLabel:
                                 int plainLength = stream.ReadByte();
@@ -226,16 +224,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 this.globalColorTable?.Dispose();
             }
 
-            GifColorTableMode colorTableMode = this.logicalScreenDescriptor.GlobalColorTableFlag
-            ? GifColorTableMode.Global
-            : GifColorTableMode.Local;
-
-            var size = new Size(this.logicalScreenDescriptor.Width, this.logicalScreenDescriptor.Height);
-
-            return new GifInfo(
-                colorTableMode,
+            this.metaData.AddOrUpdateGifMetaData(this.gifMetaData);
+            return new ImageInfo(
                 new PixelTypeInfo(this.logicalScreenDescriptor.BitsPerPixel),
-                size,
+                this.logicalScreenDescriptor.Width,
+                this.logicalScreenDescriptor.Height,
                 this.metaData);
         }
 
@@ -267,6 +260,41 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.stream.Read(this.buffer, 0, 7);
 
             this.logicalScreenDescriptor = GifLogicalScreenDescriptor.Parse(this.buffer);
+        }
+
+        /// <summary>
+        /// Reads the application extension block parsing any animation information
+        /// if present.
+        /// </summary>
+        private void ReadApplicationExtension()
+        {
+            int appLength = this.stream.ReadByte();
+
+            // If the length is 11 then it's a valid extension and most likely
+            // a NETSCAPE or ANIMEXTS extension. We want the loop count from this.
+            if (appLength == GifConstants.ApplicationBlockSize)
+            {
+                this.stream.Skip(appLength);
+                int subBlockSize = this.stream.ReadByte();
+
+                // TODO: There's also a NETSCAPE buffer extension.
+                // http://www.vurdalakov.net/misc/gif/netscape-buffering-application-extension
+                if (subBlockSize == GifConstants.NetscapeLoopingSubBlockSize)
+                {
+                    this.stream.Read(this.buffer, 0, GifConstants.NetscapeLoopingSubBlockSize);
+                    this.gifMetaData.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer.AsSpan(1)).RepeatCount;
+                    this.stream.Skip(1); // Skip the terminator.
+                    return;
+                }
+
+                // Could be XMP or something else not supported yet.
+                // Back up and skip.
+                this.stream.Position -= appLength + 1;
+                this.Skip(appLength);
+                return;
+            }
+
+            this.Skip(appLength); // Not supported by any known decoder.
         }
 
         /// <summary>
@@ -399,7 +427,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             }
             else
             {
-                if (this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
+                if (this.graphicsControlExtension.DisposalMethod == GifDisposalMethod.RestoreToPrevious)
                 {
                     prevFrame = previousFrame;
                 }
@@ -482,7 +510,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             previousFrame = currentFrame ?? image.Frames.RootFrame;
 
-            if (this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToBackground)
+            if (this.graphicsControlExtension.DisposalMethod == GifDisposalMethod.RestoreToBackground)
             {
                 this.restoreArea = new Rectangle(descriptor.Left, descriptor.Top, descriptor.Width, descriptor.Height);
             }
@@ -514,24 +542,26 @@ namespace SixLabors.ImageSharp.Formats.Gif
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SetFrameMetaData(ImageFrameMetaData meta)
         {
+            var gifMeta = new GifFrameMetaData();
             if (this.graphicsControlExtension.DelayTime > 0)
             {
-                meta.FrameDelay = this.graphicsControlExtension.DelayTime;
+                gifMeta.FrameDelay = this.graphicsControlExtension.DelayTime;
             }
 
             // Frames can either use the global table or their own local table.
             if (this.logicalScreenDescriptor.GlobalColorTableFlag
                 && this.logicalScreenDescriptor.GlobalColorTableSize > 0)
             {
-                meta.ColorTableLength = this.logicalScreenDescriptor.GlobalColorTableSize;
+                gifMeta.ColorTableLength = this.logicalScreenDescriptor.GlobalColorTableSize;
             }
             else if (this.imageDescriptor.LocalColorTableFlag
                 && this.imageDescriptor.LocalColorTableSize > 0)
             {
-                meta.ColorTableLength = this.imageDescriptor.LocalColorTableSize;
+                gifMeta.ColorTableLength = this.imageDescriptor.LocalColorTableSize;
             }
 
-            meta.DisposalMethod = this.graphicsControlExtension.DisposalMethod;
+            gifMeta.DisposalMethod = this.graphicsControlExtension.DisposalMethod;
+            meta.AddOrUpdateGifFrameMetaData(gifMeta);
         }
 
         /// <summary>
@@ -575,10 +605,17 @@ namespace SixLabors.ImageSharp.Formats.Gif
             }
 
             this.metaData = meta;
+            this.gifMetaData = new GifMetaData
+            {
+                ColorTableMode = this.logicalScreenDescriptor.GlobalColorTableFlag
+                ? GifColorTableMode.Global
+                : GifColorTableMode.Local
+            };
 
             if (this.logicalScreenDescriptor.GlobalColorTableFlag)
             {
                 int globalColorTableLength = this.logicalScreenDescriptor.GlobalColorTableSize * 3;
+                this.gifMetaData.GlobalColorTableLength = globalColorTableLength;
 
                 this.globalColorTable = this.MemoryAllocator.AllocateManagedByteBuffer(globalColorTableLength, AllocationOptions.Clean);
 

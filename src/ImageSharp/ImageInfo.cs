@@ -3,26 +3,26 @@
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.MetaData;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
 {
     /// <summary>
     /// Contains information about the image including dimensions, pixel type information and additional metadata
     /// </summary>
-    public abstract class ImageInfo : IImageInfo
+    internal sealed class ImageInfo : IImageInfo
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageInfo"/> class.
         /// </summary>
         /// <param name="pixelType">The image pixel type information.</param>
-        /// <param name="size">The size of the image in pixels.</param>
+        /// <param name="width">The width of the image in pixels.</param>
+        /// <param name="height">The height of the image in pixels.</param>
         /// <param name="metaData">The images metadata.</param>
-        protected ImageInfo(PixelTypeInfo pixelType, Size size, ImageMetaData metaData)
+        public ImageInfo(PixelTypeInfo pixelType, int width, int height, ImageMetaData metaData)
         {
             this.PixelType = pixelType;
-            this.Width = size.Width;
-            this.Height = size.Height;
+            this.Width = width;
+            this.Height = height;
             this.MetaData = metaData;
         }
 

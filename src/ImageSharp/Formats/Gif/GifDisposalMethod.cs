@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
     /// in an animation sequence.
     /// <see href="http://www.w3.org/Graphics/GIF/spec-gif89a.txt"/> section 23
     /// </summary>
-    public enum DisposalMethod
+    public enum GifDisposalMethod
     {
         /// <summary>
         /// No disposal specified.

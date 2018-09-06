@@ -71,6 +71,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.textEncoding = options.TextEncoding ?? GifConstants.DefaultEncoding;
             this.quantizer = options.Quantizer;
             this.ignoreMetadata = options.IgnoreMetadata;
+            this.colorTableMode = options.ColorTableMode;
         }
 
         /// <summary>
@@ -246,7 +247,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void WriteLogicalScreenDescriptor<TPixel>(Image<TPixel> image, int transparencyIndex, bool useGlobalTable, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            byte packedValue = GifLogicalScreenDescriptor.GetPackedValue(useGlobalTable, this.bitDepth, false, this.bitDepth - 1);
+            byte packedValue = GifLogicalScreenDescriptor.GetPackedValue(useGlobalTable, this.bitDepth - 1, false, this.bitDepth - 1);
 
             // The Pixel Aspect Ratio is defined to be the quotient of the pixel's
             // width over its height.  The value range in this field allows

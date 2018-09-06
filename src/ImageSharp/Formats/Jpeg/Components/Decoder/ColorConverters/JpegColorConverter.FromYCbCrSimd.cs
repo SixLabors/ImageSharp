@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
             }
 
-            public override void ConvertToRgba(ComponentValues values, Span<Vector4> result)
+            public override void ConvertToRgba(in ComponentValues values, Span<Vector4> result)
             {
                 int remainder = result.Length % 8;
                 int simdCount = result.Length - remainder;
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             /// <summary>
             /// SIMD convert using buffers of sizes divisable by 8.
             /// </summary>
-            internal static void ConvertCore(ComponentValues values, Span<Vector4> result)
+            internal static void ConvertCore(in ComponentValues values, Span<Vector4> result)
             {
                 DebugGuard.IsTrue(result.Length % 8 == 0, nameof(result), "result.Length should be divisable by 8!");
 

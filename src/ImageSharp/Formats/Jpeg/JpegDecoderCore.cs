@@ -268,7 +268,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.fastACTables = new FastACTables(this.configuration.MemoryAllocator);
             }
 
-            while (fileMarker.Marker != JpegConstants.Markers.EOI)
+            // Break only when we discover a valid EOI marker.
+            // https://github.com/SixLabors/ImageSharp/issues/695
+            while (fileMarker.Marker != JpegConstants.Markers.EOI
+                || (fileMarker.Marker == JpegConstants.Markers.EOI && fileMarker.Invalid))
             {
                 if (!fileMarker.Invalid)
                 {
@@ -898,10 +901,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="codeLengths">The codelengths</param>
         /// <param name="values">The values</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void BuildHuffmanTable(HuffmanTables tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
-        {
-            tables[index] = new HuffmanTable(this.configuration.MemoryAllocator, codeLengths, values);
-        }
+        private void BuildHuffmanTable(HuffmanTables tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values) 
+            => tables[index] = new HuffmanTable(this.configuration.MemoryAllocator, codeLengths, values);
 
         /// <summary>
         /// Reads a <see cref="ushort"/> from the stream advancing it by two bytes

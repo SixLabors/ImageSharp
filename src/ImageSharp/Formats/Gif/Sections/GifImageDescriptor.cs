@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 value |= 1 << 5;
             }
 
-            value |= (byte)(localColorTableSize - 1);
+            value |= (byte)localColorTableSize;
 
             return value;
         }

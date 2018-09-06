@@ -143,7 +143,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                                         scanlineDirty = true;
                                     }
 
-                                    if (scanline[startX] > 1) { scanline[startX] = 1; }
+                                    if (scanline[startX] > 1)
+                                    {
+                                        scanline[startX] = 1;
+                                    }
                                 }
 
                                 if (endX >= 0 && endX < scanline.Length)
@@ -154,7 +157,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                                         scanlineDirty = true;
                                     }
 
-                                    if (scanline[endX] > 1) { scanline[endX] = 1; }
+                                    if (scanline[endX] > 1)
+                                    {
+                                        scanline[endX] = 1;
+                                    }
                                 }
 
                                 int nextX = startX + 1;
@@ -165,7 +171,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                                     scanline[x] += subpixelFraction;
                                     scanlineDirty = true;
 
-                                    if (scanline[x] > 1) { scanline[x] = 1; }
+                                    if (scanline[x] > 1)
+                                    {
+                                        scanline[x] = 1;
+                                    }
                                 }
                             }
                         }

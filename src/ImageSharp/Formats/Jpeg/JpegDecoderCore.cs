@@ -901,7 +901,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="codeLengths">The codelengths</param>
         /// <param name="values">The values</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void BuildHuffmanTable(HuffmanTables tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values) 
+        private void BuildHuffmanTable(HuffmanTables tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
             => tables[index] = new HuffmanTable(this.configuration.MemoryAllocator, codeLengths, values);
 
         /// <summary>

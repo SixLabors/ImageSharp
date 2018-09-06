@@ -93,7 +93,16 @@ namespace SixLabors.ImageSharp.Processing
 
                 MemoryAllocator memoryAllocator = this.Target.MemoryAllocator;
 
-                if (this.Options.BlendPercentage == 1f)
+#if DEBUG
+                for (int i = 0; i < scanline.Length; i++)
+                {
+                    Guard.MustBeBetweenOrEqualTo(scanline[i], 0, 1, nameof(scanline));
+                }
+#endif
+
+                float opacity = this.Options.BlendPercentage.Clamp(0, 1);
+
+                if (opacity == 1f)
                 {
                     this.Blender.Blend(memoryAllocator, destinationRow, destinationRow, this.Colors.GetSpan(), scanline);
                 }
@@ -105,7 +114,7 @@ namespace SixLabors.ImageSharp.Processing
 
                         for (int i = 0; i < scanline.Length; i++)
                         {
-                            amountSpan[i] = scanline[i] * this.Options.BlendPercentage;
+                            amountSpan[i] = scanline[i] * opacity;
                         }
 
                         this.Blender.Blend(memoryAllocator, destinationRow, destinationRow, this.Colors.GetSpan(), amountSpan);

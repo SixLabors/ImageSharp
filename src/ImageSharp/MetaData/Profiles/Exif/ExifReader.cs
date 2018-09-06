@@ -88,19 +88,19 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             }
 
             uint ifdOffset = this.ReadUInt32();
-            this.AddValues(values, (int)ifdOffset);
+            this.AddValues(values, ifdOffset);
 
             uint thumbnailOffset = this.ReadUInt32();
-            this.GetThumbnail((int)thumbnailOffset);
+            this.GetThumbnail(thumbnailOffset);
 
             if (this.exifOffset != 0)
             {
-                this.AddValues(values, (int)this.exifOffset);
+                this.AddValues(values, this.exifOffset);
             }
 
             if (this.gpsOffset != 0)
             {
-                this.AddValues(values, (int)this.gpsOffset);
+                this.AddValues(values, this.gpsOffset);
             }
 
             return values;
@@ -153,9 +153,14 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// </summary>
         /// <param name="values">The values.</param>
         /// <param name="index">The index.</param>
-        private void AddValues(List<ExifValue> values, int index)
+        private void AddValues(List<ExifValue> values, uint index)
         {
-            this.position = index;
+            if (index > (uint)this.exifData.Length)
+            {
+                return;
+            }
+
+            this.position = (int)index;
             int count = this.ReadUInt16();
 
             for (int i = 0; i < count; i++)
@@ -431,7 +436,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return null;
         }
 
-        private void GetThumbnail(int offset)
+        private void GetThumbnail(uint offset)
         {
             var values = new List<ExifValue>();
             this.AddValues(values, offset);

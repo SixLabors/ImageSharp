@@ -8,18 +8,22 @@ namespace SixLabors.ImageSharp.Formats.Gif
     /// <summary>
     /// Registers the image encoders, decoders and mime type detectors for the gif format.
     /// </summary>
-    internal sealed class GifFormat : IImageFormat
+    internal sealed class GifFormat : ImageFormatBase<GifFormat>
     {
-        /// <inheritdoc/>
-        public string Name => "GIF";
+        private GifFormat()
+        {
+        }
 
         /// <inheritdoc/>
-        public string DefaultMimeType => "image/gif";
+        public override string Name => "GIF";
 
         /// <inheritdoc/>
-        public IEnumerable<string> MimeTypes => GifConstants.MimeTypes;
+        public override string DefaultMimeType => "image/gif";
 
         /// <inheritdoc/>
-        public IEnumerable<string> FileExtensions => GifConstants.FileExtensions;
+        public override IEnumerable<string> MimeTypes => GifConstants.MimeTypes;
+
+        /// <inheritdoc/>
+        public override IEnumerable<string> FileExtensions => GifConstants.FileExtensions;
     }
 }

@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using SixLabors.ImageSharp.Formats;
 
 namespace SixLabors.ImageSharp.MetaData
 {
@@ -11,7 +12,7 @@ namespace SixLabors.ImageSharp.MetaData
     /// </summary>
     public sealed class ImageFrameMetaData
     {
-        private readonly Dictionary<string, object> metaData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<IImageFormat, IImageFormatFrameMetaData> metaData = new Dictionary<IImageFormat, IImageFormatFrameMetaData>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrameMetaData"/> class.
@@ -31,7 +32,7 @@ namespace SixLabors.ImageSharp.MetaData
         {
             DebugGuard.NotNull(other, nameof(other));
 
-            foreach (KeyValuePair<string, object> meta in other.metaData)
+            foreach (KeyValuePair<IImageFormat, IImageFormatFrameMetaData> meta in other.metaData)
             {
                 this.metaData.Add(meta.Key, meta.Value);
             }
@@ -51,7 +52,7 @@ namespace SixLabors.ImageSharp.MetaData
         /// <exception cref="ArgumentNullException">key is null.</exception>
         /// <exception cref="ArgumentNullException">value is null.</exception>
         /// <exception cref="ArgumentException">An element with the same key already exists in the <see cref="ImageMetaData"/>.</exception>
-        public void AddOrUpdateMetaData(string key, object value)
+        public void AddOrUpdateFormatMetaData(IImageFormat key, IImageFormatFrameMetaData value)
         {
             // Don't think this needs to be threadsafe.
             Guard.NotNull(value, nameof(value));
@@ -61,27 +62,22 @@ namespace SixLabors.ImageSharp.MetaData
         /// <summary>
         /// Gets the metadata value associated with the specified key.
         /// </summary>
-        /// <typeparam name="T">The type of value.</typeparam>
+        /// <typeparam name="T">The type of metadata.</typeparam>
         /// <param name="key">The key of the value to get.</param>
-        /// <param name="value">
-        /// When this method returns, contains the metadata value associated with the specified key,
-        /// if the key is found; otherwise, the default value for the type of the value parameter.
-        /// This parameter is passed uninitialized.
-        /// </param>
         /// <returns>
-        /// true if the <see cref="ImageMetaData"/> contains an element with
-        /// the specified key; otherwise, false.
+        /// The <typeparamref name="T"/>.
         /// </returns>
-        public bool TryGetMetaData<T>(string key, out T value)
+        public T GetOrAddFormatMetaData<T>(IImageFormat key)
+            where T : IImageFormatFrameMetaData, new()
         {
-            if (this.metaData.TryGetValue(key, out object meta))
+            if (this.metaData.TryGetValue(key, out IImageFormatFrameMetaData meta))
             {
-                value = (T)meta;
-                return true;
+                return (T)meta;
             }
 
-            value = default;
-            return false;
+            var newMeta = new T();
+            this.AddOrUpdateFormatMetaData(key, newMeta);
+            return newMeta;
         }
     }
 }

@@ -27,10 +27,10 @@ namespace SixLabors.ImageSharp.Tests
             };
 
             var metaData = new ImageFrameMetaData();
-            metaData.AddOrUpdateGifFrameMetaData(gifFrameMetaData);
+            metaData.AddOrUpdateFormatMetaData(GifFormat.Instance, gifFrameMetaData);
 
             var clone = new ImageFrameMetaData(metaData);
-            GifFrameMetaData cloneGifFrameMetaData = clone.GetGifFrameMetaData();
+            GifFrameMetaData cloneGifFrameMetaData = clone.GetOrAddFormatMetaData<GifFrameMetaData>(GifFormat.Instance);
 
             Assert.Equal(frameDelay, cloneGifFrameMetaData.FrameDelay);
             Assert.Equal(colorTableLength, cloneGifFrameMetaData.ColorTableLength);

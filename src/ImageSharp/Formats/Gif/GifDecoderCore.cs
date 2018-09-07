@@ -164,7 +164,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 this.globalColorTable?.Dispose();
             }
 
-            image?.MetaData.AddOrUpdateGifMetaData(this.gifMetaData);
+            image?.MetaData.AddOrUpdateFormatMetaData(GifFormat.Instance, this.gifMetaData);
             return image;
         }
 
@@ -224,7 +224,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 this.globalColorTable?.Dispose();
             }
 
-            this.metaData.AddOrUpdateGifMetaData(this.gifMetaData);
+            this.metaData.AddOrUpdateFormatMetaData(GifFormat.Instance, this.gifMetaData);
             return new ImageInfo(
                 new PixelTypeInfo(this.logicalScreenDescriptor.BitsPerPixel),
                 this.logicalScreenDescriptor.Width,
@@ -561,7 +561,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             }
 
             gifMeta.DisposalMethod = this.graphicsControlExtension.DisposalMethod;
-            meta.AddOrUpdateGifFrameMetaData(gifMeta);
+            meta.AddOrUpdateFormatMetaData(GifFormat.Instance, gifMeta);
         }
 
         /// <summary>

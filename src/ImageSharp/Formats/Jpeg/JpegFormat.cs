@@ -8,18 +8,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     /// <summary>
     /// Registers the image encoders, decoders and mime type detectors for the jpeg format.
     /// </summary>
-    internal sealed class JpegFormat : IImageFormat
+    internal sealed class JpegFormat : ImageFormatBase<JpegFormat>
     {
-        /// <inheritdoc/>
-        public string Name => "JPEG";
+        private JpegFormat()
+        {
+        }
 
         /// <inheritdoc/>
-        public string DefaultMimeType => "image/jpeg";
+        public override string Name => "JPEG";
 
         /// <inheritdoc/>
-        public IEnumerable<string> MimeTypes => JpegConstants.MimeTypes;
+        public override string DefaultMimeType => "image/jpeg";
 
         /// <inheritdoc/>
-        public IEnumerable<string> FileExtensions => JpegConstants.FileExtensions;
+        public override IEnumerable<string> MimeTypes => JpegConstants.MimeTypes;
+
+        /// <inheritdoc/>
+        public override IEnumerable<string> FileExtensions => JpegConstants.FileExtensions;
     }
 }

@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <inheritdoc/>
         public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
         {
-            return this.IsSupportedFileFormat(header) ? ImageFormats.Gif : null;
+            return this.IsSupportedFileFormat(header) ? GifFormat.Instance : null;
         }
 
         private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)

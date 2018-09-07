@@ -27,11 +27,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         internal static readonly byte[] MagicNumber = Encoding.UTF8.GetBytes(FileType + FileVersion);
 
         /// <summary>
-        /// Gets the key used for storing and retriving metadata.
-        /// </summary>
-        public const string MetaDataKey = FileType;
-
-        /// <summary>
         /// The extension block introducer <value>!</value>.
         /// </summary>
         public const byte ExtensionIntroducer = 0x21;

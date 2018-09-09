@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             for (int i = 0; i < image.Frames.Count; i++)
             {
                 ImageFrame<TPixel> frame = image.Frames[i];
-                GifFrameMetaData frameMetaData = frame.MetaData.GetOrAddFormatMetaData<GifFrameMetaData>(GifFormat.Instance);
+                GifFrameMetaData frameMetaData = frame.MetaData.GetOrAddFormatMetaData(GifFormat.Instance);
                 this.WriteGraphicalControlExtension(frameMetaData, transparencyIndex, stream);
                 this.WriteImageDescriptor(frame, false, stream);
 
@@ -169,7 +169,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             GifFrameMetaData previousMeta = null;
             foreach (ImageFrame<TPixel> frame in image.Frames)
             {
-                GifFrameMetaData meta = frame.MetaData.GetOrAddFormatMetaData<GifFrameMetaData>(GifFormat.Instance);
+                GifFrameMetaData meta = frame.MetaData.GetOrAddFormatMetaData(GifFormat.Instance);
                 if (quantized is null)
                 {
                     // Allow each frame to be encoded at whatever color depth the frame designates if set.

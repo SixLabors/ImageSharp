@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.MetaData
     /// </summary>
     public sealed class ImageFrameMetaData
     {
-        private readonly Dictionary<IImageFormat, IImageFormatFrameMetaData> metaData = new Dictionary<IImageFormat, IImageFormatFrameMetaData>();
+        private readonly Dictionary<IImageFormat, object> metaData = new Dictionary<IImageFormat, object>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrameMetaData"/> class.
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.MetaData
         {
             DebugGuard.NotNull(other, nameof(other));
 
-            foreach (KeyValuePair<IImageFormat, IImageFormatFrameMetaData> meta in other.metaData)
+            foreach (KeyValuePair<IImageFormat, object> meta in other.metaData)
             {
                 this.metaData.Add(meta.Key, meta.Value);
             }
@@ -47,12 +47,16 @@ namespace SixLabors.ImageSharp.MetaData
         /// <summary>
         /// Adds or updates the specified key and value to the <see cref="ImageMetaData"/>.
         /// </summary>
+        /// <typeparam name="TFormatMetaData">The type of format metadata.</typeparam>
+        /// <typeparam name="TFormatFrameMetaData">The type of format frame metadata.</typeparam>
         /// <param name="key">The key of the metadata to add.</param>
         /// <param name="value">The value of the element to add.</param>
         /// <exception cref="ArgumentNullException">key is null.</exception>
         /// <exception cref="ArgumentNullException">value is null.</exception>
         /// <exception cref="ArgumentException">An element with the same key already exists in the <see cref="ImageMetaData"/>.</exception>
-        public void AddOrUpdateFormatMetaData(IImageFormat key, IImageFormatFrameMetaData value)
+        public void AddOrUpdateFormatMetaData<TFormatMetaData, TFormatFrameMetaData>(IImageFormat<TFormatMetaData, TFormatFrameMetaData> key, TFormatFrameMetaData value)
+            where TFormatMetaData : class
+            where TFormatFrameMetaData : class
         {
             // Don't think this needs to be threadsafe.
             Guard.NotNull(value, nameof(value));
@@ -62,20 +66,22 @@ namespace SixLabors.ImageSharp.MetaData
         /// <summary>
         /// Gets the metadata value associated with the specified key.
         /// </summary>
-        /// <typeparam name="T">The type of metadata.</typeparam>
+        /// <typeparam name="TFormatMetaData">The type of format metadata.</typeparam>
+        /// <typeparam name="TFormatFrameMetaData">The type of format frame metadata.</typeparam>
         /// <param name="key">The key of the value to get.</param>
         /// <returns>
-        /// The <typeparamref name="T"/>.
+        /// The <typeparamref name="TFormatFrameMetaData"/>.
         /// </returns>
-        public T GetOrAddFormatMetaData<T>(IImageFormat key)
-            where T : IImageFormatFrameMetaData, new()
+        public TFormatFrameMetaData GetOrAddFormatMetaData<TFormatMetaData, TFormatFrameMetaData>(IImageFormat<TFormatMetaData, TFormatFrameMetaData> key)
+            where TFormatMetaData : class
+            where TFormatFrameMetaData : class
         {
-            if (this.metaData.TryGetValue(key, out IImageFormatFrameMetaData meta))
+            if (this.metaData.TryGetValue(key, out object meta))
             {
-                return (T)meta;
+                return (TFormatFrameMetaData)meta;
             }
 
-            var newMeta = new T();
+            TFormatFrameMetaData newMeta = key.CreateDefaultFormatFrameMetaData();
             this.AddOrUpdateFormatMetaData(key, newMeta);
             return newMeta;
         }

@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.MetaData
         /// </summary>
         public const double DefaultVerticalResolution = 96;
 
-        private readonly Dictionary<IImageFormat, IImageFormatMetaData> metaData = new Dictionary<IImageFormat, IImageFormatMetaData>();
+        private readonly Dictionary<IImageFormat, object> metaData = new Dictionary<IImageFormat, object>();
         private double horizontalResolution;
         private double verticalResolution;
 
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.MetaData
             this.VerticalResolution = other.VerticalResolution;
             this.ResolutionUnits = other.ResolutionUnits;
 
-            foreach (KeyValuePair<IImageFormat, IImageFormatMetaData> meta in other.metaData)
+            foreach (KeyValuePair<IImageFormat, object> meta in other.metaData)
             {
                 this.metaData.Add(meta.Key, meta.Value);
             }
@@ -134,12 +134,14 @@ namespace SixLabors.ImageSharp.MetaData
         /// <summary>
         /// Adds or updates the specified key and value to the <see cref="ImageMetaData"/>.
         /// </summary>
+        /// <typeparam name="TFormatMetaData">The type of format metadata.</typeparam>
         /// <param name="key">The key of the metadata to add.</param>
         /// <param name="value">The value of the element to add.</param>
         /// <exception cref="ArgumentNullException">key is null.</exception>
         /// <exception cref="ArgumentNullException">value is null.</exception>
         /// <exception cref="ArgumentException">An element with the same key already exists in the <see cref="ImageMetaData"/>.</exception>
-        public void AddOrUpdateFormatMetaData(IImageFormat key, IImageFormatMetaData value)
+        public void AddOrUpdateFormatMetaData<TFormatMetaData>(IImageFormat<TFormatMetaData> key, TFormatMetaData value)
+            where TFormatMetaData : class
         {
             // Don't think this needs to be threadsafe.
             Guard.NotNull(value, nameof(value));
@@ -149,20 +151,20 @@ namespace SixLabors.ImageSharp.MetaData
         /// <summary>
         /// Gets the metadata value associated with the specified key.
         /// </summary>
-        /// <typeparam name="T">The type of metadata.</typeparam>
+        /// <typeparam name="TFormatMetaData">The type of metadata.</typeparam>
         /// <param name="key">The key of the value to get.</param>
         /// <returns>
-        /// The <typeparamref name="T"/>.
+        /// The <typeparamref name="TFormatMetaData"/>.
         /// </returns>
-        public T GetOrAddFormatMetaData<T>(IImageFormat key)
-            where T : IImageFormatMetaData, new()
+        public TFormatMetaData GetOrAddFormatMetaData<TFormatMetaData>(IImageFormat<TFormatMetaData> key)
+             where TFormatMetaData : class
         {
-            if (this.metaData.TryGetValue(key, out IImageFormatMetaData meta))
+            if (this.metaData.TryGetValue(key, out object meta))
             {
-                return (T)meta;
+                return (TFormatMetaData)meta;
             }
 
-            var newMeta = new T();
+            TFormatMetaData newMeta = key.CreateDefaultFormatMetaData();
             this.AddOrUpdateFormatMetaData(key, newMeta);
             return newMeta;
         }

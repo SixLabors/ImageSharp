@@ -1,14 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.MetaData;
-
 namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
     /// Provides Gif specific metadata information for the image.
     /// </summary>
-    public class GifMetaData : IImageFormatMetaData
+    public class GifMetaData
     {
         /// <summary>
         /// Gets or sets the number of times any animation is repeated.

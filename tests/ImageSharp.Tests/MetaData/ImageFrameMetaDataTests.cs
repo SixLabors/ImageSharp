@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests
             metaData.AddOrUpdateFormatMetaData(GifFormat.Instance, gifFrameMetaData);
 
             var clone = new ImageFrameMetaData(metaData);
-            GifFrameMetaData cloneGifFrameMetaData = clone.GetOrAddFormatMetaData<GifFrameMetaData>(GifFormat.Instance);
+            GifFrameMetaData cloneGifFrameMetaData = clone.GetOrAddFormatMetaData(GifFormat.Instance);
 
             Assert.Equal(frameDelay, cloneGifFrameMetaData.FrameDelay);
             Assert.Equal(colorTableLength, cloneGifFrameMetaData.ColorTableLength);

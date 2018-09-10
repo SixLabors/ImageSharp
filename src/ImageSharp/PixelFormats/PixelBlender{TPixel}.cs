@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 PixelOperations<TPixel>.Instance.ToScaledVector4(background, backgroundSpan, destination.Length);
                 PixelOperations<TPixelSrc>.Instance.ToScaledVector4(source, sourceSpan, destination.Length);
 
-                this.BlendFunction(destinationSpan, backgroundSpan, sourceSpan, amount.Clamp(0, 1));
+                this.BlendFunction(destinationSpan, backgroundSpan, sourceSpan, amount);
 
                 PixelOperations<TPixel>.Instance.PackFromScaledVector4(destinationSpan, destination, destination.Length);
             }

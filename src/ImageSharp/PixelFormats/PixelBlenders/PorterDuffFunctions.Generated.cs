@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalSrc(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return source;
         }
@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalSrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Atop(backdrop, source, Normal(backdrop, source));
         }
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalSrcOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Over(backdrop, source, Normal(backdrop, source));
         }
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalSrcIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return In(backdrop, source, Normal(backdrop, source));
         }
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalSrcOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Out(backdrop, source);
         }
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalDestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Atop(source, backdrop, Normal(source, backdrop));
         }
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalDestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Over(source, backdrop, Normal(source, backdrop));
         }
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalDestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return In(source, backdrop, Normal(source, backdrop));
         }
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalDestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Out(source, backdrop);
         }
@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalXor(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Xor(backdrop, source);
         }   
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 NormalClear(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Clear(backdrop, source);
         }
@@ -115,8 +115,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(NormalSrc(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(NormalSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -126,8 +127,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(NormalSrcAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(NormalSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -137,8 +139,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(NormalSrcOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(NormalSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -148,8 +151,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(NormalSrcIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(NormalSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -159,8 +163,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(NormalSrcOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(NormalSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -170,8 +175,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(NormalDest(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(NormalDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -181,8 +187,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(NormalDestAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(NormalDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -192,8 +199,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(NormalDestOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(NormalDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -203,8 +211,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(NormalDestIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(NormalDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -214,8 +223,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(NormalDestOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(NormalDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -225,8 +235,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(NormalClear(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(NormalClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -236,8 +247,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(NormalXor(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(NormalXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -245,7 +257,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplySrc(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return source;
         }
@@ -253,7 +265,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplySrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Atop(backdrop, source, Multiply(backdrop, source));
         }
@@ -261,7 +273,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplySrcOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Over(backdrop, source, Multiply(backdrop, source));
         }
@@ -269,7 +281,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplySrcIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return In(backdrop, source, Multiply(backdrop, source));
         }
@@ -277,7 +289,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplySrcOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Out(backdrop, source);
         }
@@ -291,7 +303,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplyDestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Atop(source, backdrop, Multiply(source, backdrop));
         }
@@ -299,7 +311,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplyDestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Over(source, backdrop, Multiply(source, backdrop));
         }
@@ -307,7 +319,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplyDestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return In(source, backdrop, Multiply(source, backdrop));
         }
@@ -315,7 +327,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplyDestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Out(source, backdrop);
         }
@@ -323,7 +335,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplyXor(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Xor(backdrop, source);
         }   
@@ -331,7 +343,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 MultiplyClear(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Clear(backdrop, source);
         }
@@ -341,8 +353,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplySrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(MultiplySrc(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(MultiplySrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -352,8 +365,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplySrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(MultiplySrcAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(MultiplySrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -363,8 +377,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplySrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(MultiplySrcOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(MultiplySrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -374,8 +389,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplySrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(MultiplySrcIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(MultiplySrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -385,8 +401,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplySrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(MultiplySrcOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(MultiplySrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -396,8 +413,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplyDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(MultiplyDest(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(MultiplyDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -407,8 +425,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplyDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(MultiplyDestAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(MultiplyDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -418,8 +437,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplyDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(MultiplyDestOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(MultiplyDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -429,8 +449,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplyDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(MultiplyDestIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(MultiplyDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -440,8 +461,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplyDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(MultiplyDestOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(MultiplyDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -451,8 +473,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplyClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(MultiplyClear(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(MultiplyClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -462,8 +485,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplyXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(MultiplyXor(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(MultiplyXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -471,7 +495,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddSrc(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return source;
         }
@@ -479,7 +503,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddSrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Atop(backdrop, source, Add(backdrop, source));
         }
@@ -487,7 +511,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddSrcOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Over(backdrop, source, Add(backdrop, source));
         }
@@ -495,7 +519,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddSrcIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return In(backdrop, source, Add(backdrop, source));
         }
@@ -503,7 +527,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddSrcOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Out(backdrop, source);
         }
@@ -517,7 +541,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddDestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Atop(source, backdrop, Add(source, backdrop));
         }
@@ -525,7 +549,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddDestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Over(source, backdrop, Add(source, backdrop));
         }
@@ -533,7 +557,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddDestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return In(source, backdrop, Add(source, backdrop));
         }
@@ -541,7 +565,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddDestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Out(source, backdrop);
         }
@@ -549,7 +573,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddXor(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Xor(backdrop, source);
         }   
@@ -557,7 +581,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 AddClear(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Clear(backdrop, source);
         }
@@ -567,8 +591,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(AddSrc(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(AddSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -578,8 +603,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(AddSrcAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(AddSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -589,8 +615,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(AddSrcOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(AddSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -600,8 +627,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(AddSrcIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(AddSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -611,8 +639,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(AddSrcOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(AddSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -622,8 +651,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(AddDest(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(AddDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -633,8 +663,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(AddDestAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(AddDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -644,8 +675,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(AddDestOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(AddDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -655,8 +687,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(AddDestIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(AddDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -666,8 +699,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(AddDestOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(AddDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -677,8 +711,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(AddClear(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(AddClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -688,8 +723,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(AddXor(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(AddXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -697,7 +733,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractSrc(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return source;
         }
@@ -705,7 +741,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractSrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Atop(backdrop, source, Subtract(backdrop, source));
         }
@@ -713,7 +749,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractSrcOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Over(backdrop, source, Subtract(backdrop, source));
         }
@@ -721,7 +757,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractSrcIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return In(backdrop, source, Subtract(backdrop, source));
         }
@@ -729,7 +765,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractSrcOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Out(backdrop, source);
         }
@@ -743,7 +779,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractDestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Atop(source, backdrop, Subtract(source, backdrop));
         }
@@ -751,7 +787,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractDestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Over(source, backdrop, Subtract(source, backdrop));
         }
@@ -759,7 +795,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractDestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return In(source, backdrop, Subtract(source, backdrop));
         }
@@ -767,7 +803,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractDestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Out(source, backdrop);
         }
@@ -775,7 +811,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractXor(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Xor(backdrop, source);
         }   
@@ -783,7 +819,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 SubtractClear(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Clear(backdrop, source);
         }
@@ -793,8 +829,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(SubtractSrc(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(SubtractSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -804,8 +841,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(SubtractSrcAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(SubtractSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -815,8 +853,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(SubtractSrcOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(SubtractSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -826,8 +865,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(SubtractSrcIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(SubtractSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -837,8 +877,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(SubtractSrcOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(SubtractSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -848,8 +889,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(SubtractDest(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(SubtractDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -859,8 +901,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(SubtractDestAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(SubtractDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -870,8 +913,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(SubtractDestOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(SubtractDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -881,8 +925,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(SubtractDestIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(SubtractDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -892,8 +937,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(SubtractDestOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(SubtractDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -903,8 +949,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(SubtractClear(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(SubtractClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -914,8 +961,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(SubtractXor(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(SubtractXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -923,7 +971,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenSrc(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return source;
         }
@@ -931,7 +979,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenSrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Atop(backdrop, source, Screen(backdrop, source));
         }
@@ -939,7 +987,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenSrcOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Over(backdrop, source, Screen(backdrop, source));
         }
@@ -947,7 +995,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenSrcIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return In(backdrop, source, Screen(backdrop, source));
         }
@@ -955,7 +1003,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenSrcOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Out(backdrop, source);
         }
@@ -969,7 +1017,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenDestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Atop(source, backdrop, Screen(source, backdrop));
         }
@@ -977,7 +1025,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenDestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Over(source, backdrop, Screen(source, backdrop));
         }
@@ -985,7 +1033,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenDestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return In(source, backdrop, Screen(source, backdrop));
         }
@@ -993,7 +1041,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenDestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Out(source, backdrop);
         }
@@ -1001,7 +1049,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenXor(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Xor(backdrop, source);
         }   
@@ -1009,7 +1057,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 ScreenClear(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Clear(backdrop, source);
         }
@@ -1019,8 +1067,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(ScreenSrc(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(ScreenSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1030,8 +1079,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(ScreenSrcAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(ScreenSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1041,8 +1091,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(ScreenSrcOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(ScreenSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1052,8 +1103,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(ScreenSrcIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(ScreenSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1063,8 +1115,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(ScreenSrcOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(ScreenSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1074,8 +1127,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(ScreenDest(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(ScreenDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1085,8 +1139,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(ScreenDestAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(ScreenDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1096,8 +1151,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(ScreenDestOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(ScreenDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1107,8 +1163,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(ScreenDestIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(ScreenDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1118,8 +1175,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(ScreenDestOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(ScreenDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1129,8 +1187,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(ScreenClear(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(ScreenClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1140,8 +1199,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(ScreenXor(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(ScreenXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1149,7 +1209,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenSrc(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return source;
         }
@@ -1157,7 +1217,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenSrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Atop(backdrop, source, Darken(backdrop, source));
         }
@@ -1165,7 +1225,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenSrcOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Over(backdrop, source, Darken(backdrop, source));
         }
@@ -1173,7 +1233,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenSrcIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return In(backdrop, source, Darken(backdrop, source));
         }
@@ -1181,7 +1241,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenSrcOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Out(backdrop, source);
         }
@@ -1195,7 +1255,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenDestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Atop(source, backdrop, Darken(source, backdrop));
         }
@@ -1203,7 +1263,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenDestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Over(source, backdrop, Darken(source, backdrop));
         }
@@ -1211,7 +1271,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenDestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return In(source, backdrop, Darken(source, backdrop));
         }
@@ -1219,7 +1279,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenDestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Out(source, backdrop);
         }
@@ -1227,7 +1287,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenXor(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Xor(backdrop, source);
         }   
@@ -1235,7 +1295,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 DarkenClear(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Clear(backdrop, source);
         }
@@ -1245,8 +1305,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(DarkenSrc(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(DarkenSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1256,8 +1317,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(DarkenSrcAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(DarkenSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1267,8 +1329,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(DarkenSrcOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(DarkenSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1278,8 +1341,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(DarkenSrcIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(DarkenSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1289,8 +1353,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(DarkenSrcOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(DarkenSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1300,8 +1365,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(DarkenDest(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(DarkenDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1311,8 +1377,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(DarkenDestAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(DarkenDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1322,8 +1389,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(DarkenDestOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(DarkenDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1333,8 +1401,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(DarkenDestIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(DarkenDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1344,8 +1413,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(DarkenDestOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(DarkenDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1355,8 +1425,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(DarkenClear(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(DarkenClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1366,8 +1437,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(DarkenXor(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(DarkenXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1375,7 +1447,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenSrc(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return source;
         }
@@ -1383,7 +1455,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenSrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Atop(backdrop, source, Lighten(backdrop, source));
         }
@@ -1391,7 +1463,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenSrcOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Over(backdrop, source, Lighten(backdrop, source));
         }
@@ -1399,7 +1471,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenSrcIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return In(backdrop, source, Lighten(backdrop, source));
         }
@@ -1407,7 +1479,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenSrcOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Out(backdrop, source);
         }
@@ -1421,7 +1493,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenDestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Atop(source, backdrop, Lighten(source, backdrop));
         }
@@ -1429,7 +1501,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenDestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Over(source, backdrop, Lighten(source, backdrop));
         }
@@ -1437,7 +1509,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenDestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return In(source, backdrop, Lighten(source, backdrop));
         }
@@ -1445,7 +1517,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenDestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Out(source, backdrop);
         }
@@ -1453,7 +1525,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenXor(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Xor(backdrop, source);
         }   
@@ -1461,7 +1533,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 LightenClear(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Clear(backdrop, source);
         }
@@ -1471,8 +1543,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(LightenSrc(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(LightenSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1482,8 +1555,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(LightenSrcAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(LightenSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1493,8 +1567,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(LightenSrcOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(LightenSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1504,8 +1579,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(LightenSrcIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(LightenSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1515,8 +1591,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(LightenSrcOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(LightenSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1526,8 +1603,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(LightenDest(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(LightenDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1537,8 +1615,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(LightenDestAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(LightenDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1548,8 +1627,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(LightenDestOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(LightenDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1559,8 +1639,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(LightenDestIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(LightenDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1570,8 +1651,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(LightenDestOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(LightenDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1581,8 +1663,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(LightenClear(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(LightenClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1592,8 +1675,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(LightenXor(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(LightenXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1601,7 +1685,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlaySrc(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return source;
         }
@@ -1609,7 +1693,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlaySrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Atop(backdrop, source, Overlay(backdrop, source));
         }
@@ -1617,7 +1701,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlaySrcOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Over(backdrop, source, Overlay(backdrop, source));
         }
@@ -1625,7 +1709,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlaySrcIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return In(backdrop, source, Overlay(backdrop, source));
         }
@@ -1633,7 +1717,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlaySrcOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Out(backdrop, source);
         }
@@ -1647,7 +1731,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlayDestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Atop(source, backdrop, Overlay(source, backdrop));
         }
@@ -1655,7 +1739,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlayDestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Over(source, backdrop, Overlay(source, backdrop));
         }
@@ -1663,7 +1747,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlayDestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return In(source, backdrop, Overlay(source, backdrop));
         }
@@ -1671,7 +1755,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlayDestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Out(source, backdrop);
         }
@@ -1679,7 +1763,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlayXor(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Xor(backdrop, source);
         }   
@@ -1687,7 +1771,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 OverlayClear(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Clear(backdrop, source);
         }
@@ -1697,8 +1781,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlaySrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(OverlaySrc(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(OverlaySrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1708,8 +1793,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlaySrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(OverlaySrcAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(OverlaySrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1719,8 +1805,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlaySrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(OverlaySrcOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(OverlaySrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1730,8 +1817,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlaySrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(OverlaySrcIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(OverlaySrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1741,8 +1829,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlaySrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(OverlaySrcOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(OverlaySrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1752,8 +1841,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlayDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(OverlayDest(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(OverlayDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1763,8 +1853,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlayDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(OverlayDestAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(OverlayDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1774,8 +1865,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlayDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(OverlayDestOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(OverlayDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1785,8 +1877,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlayDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(OverlayDestIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(OverlayDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1796,8 +1889,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlayDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(OverlayDestOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(OverlayDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1807,8 +1901,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlayClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(OverlayClear(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(OverlayClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1818,8 +1913,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlayXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(OverlayXor(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(OverlayXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1827,7 +1923,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightSrc(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return source;
         }
@@ -1835,7 +1931,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightSrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Atop(backdrop, source, HardLight(backdrop, source));
         }
@@ -1843,7 +1939,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightSrcOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Over(backdrop, source, HardLight(backdrop, source));
         }
@@ -1851,7 +1947,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightSrcIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return In(backdrop, source, HardLight(backdrop, source));
         }
@@ -1859,7 +1955,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightSrcOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Out(backdrop, source);
         }
@@ -1873,7 +1969,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightDestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Atop(source, backdrop, HardLight(source, backdrop));
         }
@@ -1881,7 +1977,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightDestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Over(source, backdrop, HardLight(source, backdrop));
         }
@@ -1889,7 +1985,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightDestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return In(source, backdrop, HardLight(source, backdrop));
         }
@@ -1897,7 +1993,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightDestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Out(source, backdrop);
         }
@@ -1905,7 +2001,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightXor(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Xor(backdrop, source);
         }   
@@ -1913,7 +2009,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLightClear(Vector4 backdrop, Vector4 source, float opacity)
         {
-            source.W *= opacity.Clamp(0,1);
+            source.W *= opacity;
 
             return Clear(backdrop, source);
         }
@@ -1923,8 +2019,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(HardLightSrc(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(HardLightSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1934,8 +2031,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(HardLightSrcAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(HardLightSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1945,8 +2043,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(HardLightSrcOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(HardLightSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1956,8 +2055,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(HardLightSrcIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(HardLightSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1967,8 +2067,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(HardLightSrcOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(HardLightSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1978,8 +2079,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(HardLightDest(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(HardLightDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -1989,8 +2091,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(HardLightDestAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(HardLightDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -2000,8 +2103,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(HardLightDestOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(HardLightDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -2011,8 +2115,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(HardLightDestIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(HardLightDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -2022,8 +2127,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(HardLightDestOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(HardLightDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -2033,8 +2139,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(HardLightClear(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(HardLightClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 
@@ -2044,8 +2151,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
+            opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromVector4(HardLightXor(backdrop.ToVector4(),source.ToVector4(),opacity));
+            dest.PackFromScaledVector4(HardLightXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 

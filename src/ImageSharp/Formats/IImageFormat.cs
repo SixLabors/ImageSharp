@@ -6,36 +6,6 @@ using System.Collections.Generic;
 namespace SixLabors.ImageSharp.Formats
 {
     /// <summary>
-    /// Defines the contract for an image format containing metadata with multiple frames.
-    /// </summary>
-    /// <typeparam name="TFormatMetaData">The type of format metadata.</typeparam>
-    /// <typeparam name="TFormatFrameMetaData">The type of format frame metadata.</typeparam>
-    public interface IImageFormat<TFormatMetaData, TFormatFrameMetaData> : IImageFormat<TFormatMetaData>
-        where TFormatMetaData : class
-        where TFormatFrameMetaData : class
-    {
-        /// <summary>
-        /// Creates a default instance of the format frame metadata.
-        /// </summary>
-        /// <returns>The <typeparamref name="TFormatFrameMetaData"/>.</returns>
-        TFormatFrameMetaData CreateDefaultFormatFrameMetaData();
-    }
-
-    /// <summary>
-    /// Defines the contract for an image format containing metadata.
-    /// </summary>
-    /// <typeparam name="TFormatMetaData">The type of format metadata.</typeparam>
-    public interface IImageFormat<TFormatMetaData> : IImageFormat
-        where TFormatMetaData : class
-    {
-        /// <summary>
-        /// Creates a default instance of the format metadata.
-        /// </summary>
-        /// <returns>The <typeparamref name="TFormatMetaData"/>.</returns>
-        TFormatMetaData CreateDefaultFormatMetaData();
-    }
-
-    /// <summary>
     /// Defines the contract for an image format.
     /// </summary>
     public interface IImageFormat
@@ -59,5 +29,35 @@ namespace SixLabors.ImageSharp.Formats
         /// Gets the file extensions this image format commonly uses.
         /// </summary>
         IEnumerable<string> FileExtensions { get; }
+    }
+
+    /// <summary>
+    /// Defines the contract for an image format containing metadata.
+    /// </summary>
+    /// <typeparam name="TFormatMetaData">The type of format metadata.</typeparam>
+    public interface IImageFormat<out TFormatMetaData> : IImageFormat
+        where TFormatMetaData : class
+    {
+        /// <summary>
+        /// Creates a default instance of the format metadata.
+        /// </summary>
+        /// <returns>The <typeparamref name="TFormatMetaData"/>.</returns>
+        TFormatMetaData CreateDefaultFormatMetaData();
+    }
+
+    /// <summary>
+    /// Defines the contract for an image format containing metadata with multiple frames.
+    /// </summary>
+    /// <typeparam name="TFormatMetaData">The type of format metadata.</typeparam>
+    /// <typeparam name="TFormatFrameMetaData">The type of format frame metadata.</typeparam>
+    public interface IImageFormat<out TFormatMetaData, out TFormatFrameMetaData> : IImageFormat<TFormatMetaData>
+        where TFormatMetaData : class
+        where TFormatFrameMetaData : class
+    {
+        /// <summary>
+        /// Creates a default instance of the format frame metadata.
+        /// </summary>
+        /// <returns>The <typeparamref name="TFormatFrameMetaData"/>.</returns>
+        TFormatFrameMetaData CreateDefaultFormatFrameMetaData();
     }
 }

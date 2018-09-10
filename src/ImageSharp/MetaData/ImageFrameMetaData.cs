@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.MetaData
     /// </summary>
     public sealed class ImageFrameMetaData
     {
-        private readonly Dictionary<IImageFormat, object> metaData = new Dictionary<IImageFormat, object>();
+        private readonly Dictionary<IImageFormat, object> formatMetaData = new Dictionary<IImageFormat, object>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrameMetaData"/> class.
@@ -32,9 +32,9 @@ namespace SixLabors.ImageSharp.MetaData
         {
             DebugGuard.NotNull(other, nameof(other));
 
-            foreach (KeyValuePair<IImageFormat, object> meta in other.metaData)
+            foreach (KeyValuePair<IImageFormat, object> meta in other.formatMetaData)
             {
-                this.metaData.Add(meta.Key, meta.Value);
+                this.formatMetaData.Add(meta.Key, meta.Value);
             }
         }
 
@@ -54,13 +54,15 @@ namespace SixLabors.ImageSharp.MetaData
         /// <exception cref="ArgumentNullException">key is null.</exception>
         /// <exception cref="ArgumentNullException">value is null.</exception>
         /// <exception cref="ArgumentException">An element with the same key already exists in the <see cref="ImageMetaData"/>.</exception>
-        public void AddOrUpdateFormatMetaData<TFormatMetaData, TFormatFrameMetaData>(IImageFormat<TFormatMetaData, TFormatFrameMetaData> key, TFormatFrameMetaData value)
+        public void AddOrUpdateFormatMetaData<TFormatMetaData, TFormatFrameMetaData>(
+            IImageFormat<TFormatMetaData, TFormatFrameMetaData> key,
+            TFormatFrameMetaData value)
             where TFormatMetaData : class
             where TFormatFrameMetaData : class
         {
             // Don't think this needs to be threadsafe.
             Guard.NotNull(value, nameof(value));
-            this.metaData[key] = value;
+            this.formatMetaData[key] = value;
         }
 
         /// <summary>
@@ -76,7 +78,7 @@ namespace SixLabors.ImageSharp.MetaData
             where TFormatMetaData : class
             where TFormatFrameMetaData : class
         {
-            if (this.metaData.TryGetValue(key, out object meta))
+            if (this.formatMetaData.TryGetValue(key, out object meta))
             {
                 return (TFormatFrameMetaData)meta;
             }

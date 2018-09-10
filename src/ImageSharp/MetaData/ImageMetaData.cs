@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.MetaData
         /// </summary>
         public const double DefaultVerticalResolution = 96;
 
-        private readonly Dictionary<IImageFormat, object> metaData = new Dictionary<IImageFormat, object>();
+        private readonly Dictionary<IImageFormat, object> formatMetaData = new Dictionary<IImageFormat, object>();
         private double horizontalResolution;
         private double verticalResolution;
 
@@ -52,9 +52,9 @@ namespace SixLabors.ImageSharp.MetaData
             this.VerticalResolution = other.VerticalResolution;
             this.ResolutionUnits = other.ResolutionUnits;
 
-            foreach (KeyValuePair<IImageFormat, object> meta in other.metaData)
+            foreach (KeyValuePair<IImageFormat, object> meta in other.formatMetaData)
             {
-                this.metaData.Add(meta.Key, meta.Value);
+                this.formatMetaData.Add(meta.Key, meta.Value);
             }
 
             foreach (ImageProperty property in other.Properties)
@@ -145,7 +145,7 @@ namespace SixLabors.ImageSharp.MetaData
         {
             // Don't think this needs to be threadsafe.
             Guard.NotNull(value, nameof(value));
-            this.metaData[key] = value;
+            this.formatMetaData[key] = value;
         }
 
         /// <summary>
@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.MetaData
         public TFormatMetaData GetOrAddFormatMetaData<TFormatMetaData>(IImageFormat<TFormatMetaData> key)
              where TFormatMetaData : class
         {
-            if (this.metaData.TryGetValue(key, out object meta))
+            if (this.formatMetaData.TryGetValue(key, out object meta))
             {
                 return (TFormatMetaData)meta;
             }

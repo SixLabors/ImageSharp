@@ -8,6 +8,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// </summary>
     public class BmpMetaData
     {
-        // TODO: Analyse what properties we would like to preserve.
+        /// <summary>
+        /// Gets or sets the number of bits per pixel.
+        /// </summary>
+        public BmpBitsPerPixel BitsPerPixel { get; set; } = BmpBitsPerPixel.Pixel24;
+
+        // TODO: Colors used once we support encoding palette bmps.
     }
 }

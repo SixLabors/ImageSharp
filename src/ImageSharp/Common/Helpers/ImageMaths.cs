@@ -36,10 +36,15 @@ namespace SixLabors.ImageSharp
         /// The <see cref="int"/>
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetBitsNeededForColorDepth(int colors)
-        {
-            return Math.Max(1, (int)Math.Ceiling(Math.Log(colors, 2)));
-        }
+        public static int GetBitsNeededForColorDepth(int colors) => Math.Max(1, (int)Math.Ceiling(Math.Log(colors, 2)));
+
+        /// <summary>
+        /// Returns how many colors will be created by the specified number of bits.
+        /// </summary>
+        /// <param name="bitDepth">The bit depth.</param>
+        /// <returns>The <see cref="int"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetColorCountForBitDepth(int bitDepth) => (int)Math.Pow(2, bitDepth);
 
         /// <summary>
         /// Implementation of 1D Gaussian G(x) function
@@ -132,10 +137,7 @@ namespace SixLabors.ImageSharp
         /// The bounding <see cref="Rectangle"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Rectangle GetBoundingRectangle(Point topLeft, Point bottomRight)
-        {
-            return new Rectangle(topLeft.X, topLeft.Y, bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y);
-        }
+        public static Rectangle GetBoundingRectangle(Point topLeft, Point bottomRight) => new Rectangle(topLeft.X, topLeft.Y, bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y);
 
         /// <summary>
         /// Finds the bounding rectangle based on the first instance of any color component other

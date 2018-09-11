@@ -268,7 +268,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.fastACTables = new FastACTables(this.configuration.MemoryAllocator);
             }
 
-            while (fileMarker.Marker != JpegConstants.Markers.EOI)
+            // Break only when we discover a valid EOI marker.
+            // https://github.com/SixLabors/ImageSharp/issues/695
+            while (fileMarker.Marker != JpegConstants.Markers.EOI
+                || (fileMarker.Marker == JpegConstants.Markers.EOI && fileMarker.Invalid))
             {
                 if (!fileMarker.Invalid)
                 {
@@ -463,13 +466,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
             else if (this.isExif)
             {
-                double horizontalValue = this.MetaData.ExifProfile.TryGetValue(ExifTag.XResolution, out ExifValue horizontalTag)
-                    ? ((Rational)horizontalTag.Value).ToDouble()
-                    : 0;
-
-                double verticalValue = this.MetaData.ExifProfile.TryGetValue(ExifTag.YResolution, out ExifValue verticalTag)
-                    ? ((Rational)verticalTag.Value).ToDouble()
-                    : 0;
+                double horizontalValue = this.GetExifResolutionValue(ExifTag.XResolution);
+                double verticalValue = this.GetExifResolutionValue(ExifTag.YResolution);
 
                 if (horizontalValue > 0 && verticalValue > 0)
                 {
@@ -477,6 +475,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     this.MetaData.VerticalResolution = verticalValue;
                     this.MetaData.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(this.MetaData.ExifProfile);
                 }
+            }
+        }
+
+        private double GetExifResolutionValue(ExifTag tag)
+        {
+            if (!this.MetaData.ExifProfile.TryGetValue(tag, out ExifValue exifValue))
+            {
+                return 0;
+            }
+
+            switch (exifValue.DataType)
+            {
+                case ExifDataType.Rational:
+                    return ((Rational)exifValue.Value).ToDouble();
+                case ExifDataType.Long:
+                    return (uint)exifValue.Value;
+                case ExifDataType.DoubleFloat:
+                    return (double)exifValue.Value;
+                default:
+                    return 0;
             }
         }
 
@@ -899,9 +917,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="values">The values</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void BuildHuffmanTable(HuffmanTables tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
-        {
-            tables[index] = new HuffmanTable(this.configuration.MemoryAllocator, codeLengths, values);
-        }
+            => tables[index] = new HuffmanTable(this.configuration.MemoryAllocator, codeLengths, values);
 
         /// <summary>
         /// Reads a <see cref="ushort"/> from the stream advancing it by two bytes

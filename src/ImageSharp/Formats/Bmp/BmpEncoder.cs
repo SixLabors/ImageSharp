@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Gets or sets the number of bits per pixel.
         /// </summary>
-        public BmpBitsPerPixel BitsPerPixel { get; set; } = BmpBitsPerPixel.Pixel24;
+        public BmpBitsPerPixel? BitsPerPixel { get; set; }
 
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)

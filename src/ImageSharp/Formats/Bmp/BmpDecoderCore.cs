@@ -596,7 +596,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     || this.infoHeader.BitsPerPixel == 4
                     || this.infoHeader.BitsPerPixel == 8)
                 {
-                    colorMapSize = (int)Math.Pow(2, this.infoHeader.BitsPerPixel) * 4;
+                    colorMapSize = ImageMaths.GetColorCountForBitDepth(this.infoHeader.BitsPerPixel) * 4;
                 }
             }
             else

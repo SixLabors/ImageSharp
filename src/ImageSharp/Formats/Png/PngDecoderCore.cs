@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Formats.Apng;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.Memory;
@@ -72,6 +72,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Reusable buffer for reading crc values.
         /// </summary>
         private readonly byte[] crcBuffer = new byte[4];
+
+        /// <summary>
+        /// Reusable generic buffer.
+        /// </summary>
+        private readonly byte[] buffer = new byte[4];
 
         /// <summary>
         /// Reusable crc for validating chunks.
@@ -189,6 +194,16 @@ namespace SixLabors.ImageSharp.Formats.Png
         private bool hasTrans;
 
         /// <summary>
+        /// The animation control chuck data.
+        /// </summary>
+        private ApngAnimationControlChuck animationControl;
+
+        /// <summary>
+        /// The last frameControl chuck data.
+        /// </summary>
+        private ApngFrameControlChuck frameControl;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
@@ -248,6 +263,33 @@ namespace SixLabors.ImageSharp.Formats.Png
                                     this.ReadScanlines(deframeStream.CompressedStream, image.Frames.RootFrame);
                                     this.currentStream.Read(this.crcBuffer, 0, 4);
                                     break;
+
+                                case PngChunkType.AnimationControl:
+                                    byte[] animationControlData = new byte[ApngAnimationControlChuck.Size]; // TODO: Stack allocate on .NETCORE
+
+                                    this.currentStream.Read(animationControlData, 0, ApngAnimationControlChuck.Size);
+
+                                    this.animationControl = ApngAnimationControlChuck.Parse(animationControlData);
+
+                                    break;
+
+                                case PngChunkType.FrameControl:
+                                    byte[] frameControlData = new byte[ApngFrameControlChuck.Size]; // TODO: Stack allocate on .NETCORE
+
+                                    this.currentStream.Read(frameControlData, 0, ApngFrameControlChuck.Size);
+
+                                    this.frameControl = ApngFrameControlChuck.Parse(frameControlData);
+                                    break;
+
+                                case PngChunkType.FrameData:
+                                    this.currentStream.Read(this.buffer, 0, 4);
+
+                                    uint frameIndex = BinaryPrimitives.ReadUInt32BigEndian(this.buffer);
+
+                                    // TODO: Read the image data using the frame control settings and add to frames collection
+
+                                    break;
+
                                 case PngChunkType.Palette:
                                     byte[] pal = new byte[chunk.Length];
                                     Buffer.BlockCopy(chunk.Data.Array, 0, pal, 0, chunk.Length);
@@ -1273,14 +1315,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="data">The <see cref="T:ReadOnlySpan{byte}"/> containing data.</param>
         private void ReadHeaderChunk(ReadOnlySpan<byte> data)
         {
-            this.header = new PngHeader(
-                width: BinaryPrimitives.ReadInt32BigEndian(data.Slice(0, 4)),
-                height: BinaryPrimitives.ReadInt32BigEndian(data.Slice(4, 4)),
-                bitDepth: data[8],
-                colorType: (PngColorType)data[9],
-                compressionMethod: data[10],
-                filterMethod: data[11],
-                interlaceMethod: (PngInterlaceMode)data[12]);
+            this.header = PngHeader.Parse(data);
         }
 
         /// <summary>

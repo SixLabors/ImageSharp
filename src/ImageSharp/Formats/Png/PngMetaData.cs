@@ -8,6 +8,20 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// </summary>
     public class PngMetaData
     {
-        // TODO: Analyse what properties we would like to preserve.
+        /// <summary>
+        /// Gets or sets the number of bits per sample or per palette index (not per pixel).
+        /// Not all values are allowed for all <see cref="ColorType"/> values.
+        /// </summary>
+        public PngBitDepth BitDepth { get; set; } = PngBitDepth.Bit8;
+
+        /// <summary>
+        /// Gets or sets the color type.
+        /// </summary>
+        public PngColorType ColorType { get; set; } = PngColorType.RgbWithAlpha;
+
+        /// <summary>
+        /// Gets or sets the gamma value for the image.
+        /// </summary>
+        public float Gamma { get; set; }
     }
 }

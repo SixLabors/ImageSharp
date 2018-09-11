@@ -730,7 +730,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 case PngColorType.Grayscale:
 
-                    int factor = 255 / ((int)Math.Pow(2, this.header.BitDepth) - 1);
+                    int factor = 255 / (ImageMaths.GetColorCountForBitDepth(this.header.BitDepth) - 1);
 
                     if (!this.hasTrans)
                     {
@@ -952,7 +952,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 case PngColorType.Grayscale:
 
-                    int factor = 255 / ((int)Math.Pow(2, this.header.BitDepth) - 1);
+                    int factor = 255 / (ImageMaths.GetColorCountForBitDepth(this.header.BitDepth) - 1);
 
                     if (!this.hasTrans)
                     {
@@ -1303,12 +1303,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 filterMethod: data[11],
                 interlaceMethod: (PngInterlaceMode)data[12]);
 
-            // TODO: Figure out how we can determine the number of colors and support more bit depths.
-            if (bitDepth == 8 || bitDepth == 16)
-            {
-                pngMetaData.BitDepth = (PngBitDepth)bitDepth;
-            }
-
+            pngMetaData.BitDepth = (PngBitDepth)bitDepth;
             pngMetaData.ColorType = this.header.ColorType;
         }
 

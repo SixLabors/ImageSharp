@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            this.gifMetaData = image.MetaData.GetOrAddFormatMetaData<GifMetaData>(GifFormat.Instance);
+            this.gifMetaData = image.MetaData.GetOrAddFormatMetaData(GifFormat.Instance);
             this.colorTableMode = this.colorTableMode ?? this.gifMetaData.ColorTableMode;
             bool useGlobalTable = this.colorTableMode.Equals(GifColorTableMode.Global);
 
@@ -412,7 +412,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             int pixelCount = image.Palette.Length;
 
             // The maximium number of colors for the bit depth
-            int colorTableLength = (int)Math.Pow(2, this.bitDepth) * 3;
+            int colorTableLength = ImageMaths.GetColorCountForBitDepth(this.bitDepth) * 3;
             Rgb24 rgb = default;
 
             using (IManagedByteBuffer colorTable = this.memoryAllocator.AllocateManagedByteBuffer(colorTableLength))

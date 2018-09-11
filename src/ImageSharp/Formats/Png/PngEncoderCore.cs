@@ -49,11 +49,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly PngFilterMethod pngFilterMethod;
 
         /// <summary>
-        /// The quantizer for reducing the color count.
-        /// </summary>
-        private readonly IQuantizer quantizer;
-
-        /// <summary>
         /// Gets or sets the CompressionLevel value
         /// </summary>
         private readonly int compressionLevel;
@@ -62,6 +57,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Gets or sets the alpha threshold value
         /// </summary>
         private readonly byte threshold;
+
+        /// <summary>
+        /// The quantizer for reducing the color count.
+        /// </summary>
+        private IQuantizer quantizer;
 
         /// <summary>
         /// Gets or sets a value indicating whether to write the gamma chunk
@@ -185,8 +185,6 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.gamma = this.gamma ?? pngMetaData.Gamma;
             this.writeGamma = this.gamma > 0;
             this.pngColorType = this.pngColorType ?? pngMetaData.ColorType;
-
-            // TODO: We don't take full advantage of this information yet.
             this.pngBitDepth = this.pngBitDepth ?? pngMetaData.BitDepth;
             this.use16Bit = this.pngBitDepth.Equals(PngBitDepth.Bit16);
 
@@ -196,17 +194,27 @@ namespace SixLabors.ImageSharp.Formats.Png
             ReadOnlySpan<byte> quantizedPixelsSpan = default;
             if (this.pngColorType == PngColorType.Palette)
             {
+                byte bits;
+
+                // Use the metadata to determine what quantization depth to use if no quantizer has been set.
+                if (this.quantizer == null)
+                {
+                    bits = (byte)Math.Min(8u, (short)this.pngBitDepth);
+                    int colorSize = ImageMaths.GetColorCountForBitDepth(bits);
+                    this.quantizer = new WuQuantizer(colorSize);
+                }
+
                 // Create quantized frame returning the palette and set the bit depth.
                 quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(image.Frames.RootFrame);
                 quantizedPixelsSpan = quantized.GetPixelSpan();
-                byte bits = (byte)ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length).Clamp(1, 8);
+                bits = (byte)ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length).Clamp(1, 8);
 
                 // Png only supports in four pixel depths: 1, 2, 4, and 8 bits when using the PLTE chunk
                 if (bits == 3)
                 {
                     bits = 4;
                 }
-                else if (bits >= 5 || bits <= 7)
+                else if (bits >= 5 && bits <= 7)
                 {
                     bits = 8;
                 }
@@ -556,7 +564,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             byte pixelCount = palette.Length.ToByte();
 
             // Get max colors for bit depth.
-            int colorTableLength = (int)Math.Pow(2, header.BitDepth) * 3;
+            int colorTableLength = ImageMaths.GetColorCountForBitDepth(header.BitDepth) * 3;
             Rgba32 rgba = default;
             bool anyAlpha = false;
 
@@ -700,7 +708,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void WriteDataChunks<TPixel>(ImageFrame<TPixel> pixels, ReadOnlySpan<byte> quantizedPixelsSpan, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            this.bytesPerScanline = this.width * this.bytesPerPixel;
+            this.bytesPerScanline = this.CalculateScanlineLength(this.width);
             int resultLength = this.bytesPerScanline + 1;
 
             this.previousScanline = this.memoryAllocator.AllocateManagedByteBuffer(this.bytesPerScanline, AllocationOptions.Clean);
@@ -827,6 +835,27 @@ namespace SixLabors.ImageSharp.Formats.Png
             BinaryPrimitives.WriteUInt32BigEndian(this.buffer, (uint)this.crc.Value);
 
             stream.Write(this.buffer, 0, 4); // write the crc
+        }
+
+        /// <summary>
+        /// Calculates the scanline length.
+        /// </summary>
+        /// <param name="width">The width of the row.</param>
+        /// <returns>
+        /// The <see cref="int"/> representing the length.
+        /// </returns>
+        private int CalculateScanlineLength(int width)
+        {
+            int mod = this.bitDepth == 16 ? 16 : 8;
+            int scanlineLength = width * this.bitDepth * this.bytesPerPixel;
+
+            int amount = scanlineLength % mod;
+            if (amount != 0)
+            {
+                scanlineLength += mod - amount;
+            }
+
+            return scanlineLength / mod;
         }
     }
 }

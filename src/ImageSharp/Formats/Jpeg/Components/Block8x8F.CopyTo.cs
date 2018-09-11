@@ -5,7 +5,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Memory;
-using SixLabors.Memory;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
@@ -15,7 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Copy block data into the destination color buffer pixel area with the provided horizontal and vertical.
         /// </summary>
-        public void CopyTo(BufferArea<float> area, int horizontalScale, int verticalScale)
+        public void CopyTo(in BufferArea<float> area, int horizontalScale, int verticalScale)
         {
             if (horizontalScale == 1 && verticalScale == 1)
             {
@@ -57,7 +56,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         // [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void CopyTo(BufferArea<float> area)
+        public void CopyTo(in BufferArea<float> area)
         {
             ref byte selfBase = ref Unsafe.As<Block8x8F, byte>(ref this);
             ref byte destBase = ref Unsafe.As<float, byte>(ref area.GetReferenceToOrigin());
@@ -81,7 +80,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             Unsafe.CopyBlock(ref d, ref s, 8 * sizeof(float));
         }
 
-        private void CopyTo2x2(BufferArea<float> area)
+        private void CopyTo2x2(in BufferArea<float> area)
         {
             ref float destBase = ref area.GetReferenceToOrigin();
             int destStride = area.Stride;

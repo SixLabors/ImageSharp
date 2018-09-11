@@ -4,7 +4,6 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
-using System.Linq;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Png.Filters;
@@ -45,21 +44,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly Crc32 crc = new Crc32();
 
         /// <summary>
-        /// The png bit depth
-        /// </summary>
-        private readonly PngBitDepth pngBitDepth;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether to use 16 bit encoding for supported color types.
-        /// </summary>
-        private readonly bool use16Bit;
-
-        /// <summary>
-        /// The png color type.
-        /// </summary>
-        private readonly PngColorType pngColorType;
-
-        /// <summary>
         /// The png filter method.
         /// </summary>
         private readonly PngFilterMethod pngFilterMethod;
@@ -75,19 +59,34 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly int compressionLevel;
 
         /// <summary>
-        /// Gets or sets the Gamma value
-        /// </summary>
-        private readonly float gamma;
-
-        /// <summary>
-        /// Gets or sets the Threshold value
+        /// Gets or sets the alpha threshold value
         /// </summary>
         private readonly byte threshold;
 
         /// <summary>
-        /// Gets or sets a value indicating whether to Write Gamma
+        /// Gets or sets a value indicating whether to write the gamma chunk
         /// </summary>
-        private readonly bool writeGamma;
+        private bool writeGamma;
+
+        /// <summary>
+        /// The png bit depth
+        /// </summary>
+        private PngBitDepth? pngBitDepth;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to use 16 bit encoding for supported color types.
+        /// </summary>
+        private bool use16Bit;
+
+        /// <summary>
+        /// The png color type.
+        /// </summary>
+        private PngColorType? pngColorType;
+
+        /// <summary>
+        /// Gets or sets the Gamma value
+        /// </summary>
+        private float? gamma;
 
         /// <summary>
         /// The image width.
@@ -158,14 +157,12 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             this.memoryAllocator = memoryAllocator;
             this.pngBitDepth = options.BitDepth;
-            this.use16Bit = this.pngBitDepth.Equals(PngBitDepth.Bit16);
             this.pngColorType = options.ColorType;
             this.pngFilterMethod = options.FilterMethod;
             this.compressionLevel = options.CompressionLevel;
             this.gamma = options.Gamma;
             this.quantizer = options.Quantizer;
             this.threshold = options.Threshold;
-            this.writeGamma = options.WriteGamma;
         }
 
         /// <summary>
@@ -182,6 +179,16 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             this.width = image.Width;
             this.height = image.Height;
+
+            // Always take the encoder options over the metadata values.
+            PngMetaData pngMetaData = image.MetaData.GetOrAddFormatMetaData(PngFormat.Instance);
+            this.gamma = this.gamma ?? pngMetaData.Gamma;
+            this.writeGamma = this.gamma > 0;
+            this.pngColorType = this.pngColorType ?? pngMetaData.ColorType;
+
+            // TODO: We don't take full advantage of this information yet.
+            this.pngBitDepth = this.pngBitDepth ?? pngMetaData.BitDepth;
+            this.use16Bit = this.pngBitDepth.Equals(PngBitDepth.Bit16);
 
             stream.Write(PngConstants.HeaderBytes, 0, PngConstants.HeaderBytes.Length);
 
@@ -217,7 +224,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 width: image.Width,
                 height: image.Height,
                 bitDepth: this.bitDepth,
-                colorType: this.pngColorType,
+                colorType: this.pngColorType.Value,
                 compressionMethod: 0, // None
                 filterMethod: 0,
                 interlaceMethod: 0); // TODO: Can't write interlaced yet.
@@ -781,10 +788,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Writes the chunk end to the stream.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        private void WriteEndChunk(Stream stream)
-        {
-            this.WriteChunk(stream, PngChunkType.End, null);
-        }
+        private void WriteEndChunk(Stream stream) => this.WriteChunk(stream, PngChunkType.End, null);
 
         /// <summary>
         /// Writes a chunk to the stream.
@@ -792,10 +796,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
         /// <param name="type">The type of chunk to write.</param>
         /// <param name="data">The <see cref="T:byte[]"/> containing data.</param>
-        private void WriteChunk(Stream stream, PngChunkType type, byte[] data)
-        {
-            this.WriteChunk(stream, type, data, 0, data?.Length ?? 0);
-        }
+        private void WriteChunk(Stream stream, PngChunkType type, byte[] data) => this.WriteChunk(stream, type, data, 0, data?.Length ?? 0);
 
         /// <summary>
         /// Writes a chunk of a specified length to the stream at the given offset.

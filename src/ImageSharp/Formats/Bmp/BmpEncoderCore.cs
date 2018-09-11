@@ -21,9 +21,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private int padding;
 
-        private readonly BmpBitsPerPixel bitsPerPixel;
-
         private readonly MemoryAllocator memoryAllocator;
+
+        private BmpBitsPerPixel? bitsPerPixel;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BmpEncoderCore"/> class.
@@ -48,10 +48,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            // Cast to int will get the bytes per pixel
-            short bpp = (short)(8 * (int)this.bitsPerPixel);
+            BmpMetaData bmpMetaData = image.MetaData.GetOrAddFormatMetaData(BmpFormat.Instance);
+            this.bitsPerPixel = this.bitsPerPixel ?? bmpMetaData.BitsPerPixel;
+
+            short bpp = (short)this.bitsPerPixel;
             int bytesPerLine = 4 * (((image.Width * bpp) + 31) / 32);
-            this.padding = bytesPerLine - (image.Width * (int)this.bitsPerPixel);
+            this.padding = bytesPerLine - (int)(image.Width * (bpp / 8F));
 
             // Set Resolution.
             ImageMetaData meta = image.MetaData;
@@ -145,10 +147,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
         }
 
-        private IManagedByteBuffer AllocateRow(int width, int bytesPerPixel)
-        {
-            return this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, this.padding);
-        }
+        private IManagedByteBuffer AllocateRow(int width, int bytesPerPixel) => this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, this.padding);
 
         /// <summary>
         /// Writes the 32bit color palette to the stream.

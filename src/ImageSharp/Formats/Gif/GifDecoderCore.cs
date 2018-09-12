@@ -164,7 +164,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 this.globalColorTable?.Dispose();
             }
 
-            image?.MetaData.AddOrUpdateFormatMetaData(GifFormat.Instance, this.gifMetaData);
             return image;
         }
 
@@ -224,7 +223,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 this.globalColorTable?.Dispose();
             }
 
-            this.metaData.AddOrUpdateFormatMetaData(GifFormat.Instance, this.gifMetaData);
             return new ImageInfo(
                 new PixelTypeInfo(this.logicalScreenDescriptor.BitsPerPixel),
                 this.logicalScreenDescriptor.Width,
@@ -542,7 +540,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SetFrameMetaData(ImageFrameMetaData meta)
         {
-            var gifMeta = new GifFrameMetaData();
+            GifFrameMetaData gifMeta = meta.GetFormatMetaData(GifFormat.Instance);
             if (this.graphicsControlExtension.DelayTime > 0)
             {
                 gifMeta.FrameDelay = this.graphicsControlExtension.DelayTime;
@@ -561,7 +559,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
             }
 
             gifMeta.DisposalMethod = this.graphicsControlExtension.DisposalMethod;
-            meta.AddOrUpdateFormatMetaData(GifFormat.Instance, gifMeta);
         }
 
         /// <summary>
@@ -605,12 +602,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
             }
 
             this.metaData = meta;
-            this.gifMetaData = new GifMetaData
-            {
-                ColorTableMode = this.logicalScreenDescriptor.GlobalColorTableFlag
-                ? GifColorTableMode.Global
-                : GifColorTableMode.Local
-            };
+            this.gifMetaData = meta.GetFormatMetaData(GifFormat.Instance);
+            this.gifMetaData.ColorTableMode = this.logicalScreenDescriptor.GlobalColorTableFlag
+            ? GifColorTableMode.Global
+            : GifColorTableMode.Local;
 
             if (this.logicalScreenDescriptor.GlobalColorTableFlag)
             {

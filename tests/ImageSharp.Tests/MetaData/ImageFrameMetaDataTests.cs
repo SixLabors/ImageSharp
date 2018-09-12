@@ -19,18 +19,14 @@ namespace SixLabors.ImageSharp.Tests
             const int colorTableLength = 128;
             const GifDisposalMethod disposalMethod = GifDisposalMethod.RestoreToBackground;
 
-            var gifFrameMetaData = new GifFrameMetaData
-            {
-                FrameDelay = frameDelay,
-                ColorTableLength = colorTableLength,
-                DisposalMethod = disposalMethod
-            };
-
             var metaData = new ImageFrameMetaData();
-            metaData.AddOrUpdateFormatMetaData(GifFormat.Instance, gifFrameMetaData);
+            GifFrameMetaData gifFrameMetaData = metaData.GetFormatMetaData(GifFormat.Instance);
+            gifFrameMetaData.FrameDelay = frameDelay;
+            gifFrameMetaData.ColorTableLength = colorTableLength;
+            gifFrameMetaData.DisposalMethod = disposalMethod;
 
             var clone = new ImageFrameMetaData(metaData);
-            GifFrameMetaData cloneGifFrameMetaData = clone.GetOrAddFormatMetaData(GifFormat.Instance);
+            GifFrameMetaData cloneGifFrameMetaData = clone.GetFormatMetaData(GifFormat.Instance);
 
             Assert.Equal(frameDelay, cloneGifFrameMetaData.FrameDelay);
             Assert.Equal(colorTableLength, cloneGifFrameMetaData.ColorTableLength);

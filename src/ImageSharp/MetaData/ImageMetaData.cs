@@ -132,23 +132,6 @@ namespace SixLabors.ImageSharp.MetaData
         public IList<ImageProperty> Properties { get; } = new List<ImageProperty>();
 
         /// <summary>
-        /// Adds or updates the specified key and value to the <see cref="ImageMetaData"/>.
-        /// </summary>
-        /// <typeparam name="TFormatMetaData">The type of format metadata.</typeparam>
-        /// <param name="key">The key of the metadata to add.</param>
-        /// <param name="value">The value of the element to add.</param>
-        /// <exception cref="ArgumentNullException">key is null.</exception>
-        /// <exception cref="ArgumentNullException">value is null.</exception>
-        /// <exception cref="ArgumentException">An element with the same key already exists in the <see cref="ImageMetaData"/>.</exception>
-        public void AddOrUpdateFormatMetaData<TFormatMetaData>(IImageFormat<TFormatMetaData> key, TFormatMetaData value)
-            where TFormatMetaData : class
-        {
-            // Don't think this needs to be threadsafe.
-            Guard.NotNull(value, nameof(value));
-            this.formatMetaData[key] = value;
-        }
-
-        /// <summary>
         /// Gets the metadata value associated with the specified key.
         /// </summary>
         /// <typeparam name="TFormatMetaData">The type of metadata.</typeparam>
@@ -156,7 +139,7 @@ namespace SixLabors.ImageSharp.MetaData
         /// <returns>
         /// The <typeparamref name="TFormatMetaData"/>.
         /// </returns>
-        public TFormatMetaData GetOrAddFormatMetaData<TFormatMetaData>(IImageFormat<TFormatMetaData> key)
+        public TFormatMetaData GetFormatMetaData<TFormatMetaData>(IImageFormat<TFormatMetaData> key)
              where TFormatMetaData : class
         {
             if (this.formatMetaData.TryGetValue(key, out object meta))
@@ -165,7 +148,7 @@ namespace SixLabors.ImageSharp.MetaData
             }
 
             TFormatMetaData newMeta = key.CreateDefaultFormatMetaData();
-            this.AddOrUpdateFormatMetaData(key, newMeta);
+            this.formatMetaData[key] = newMeta;
             return newMeta;
         }
 

@@ -228,7 +228,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                                                : image;
 
                     float paletteToleranceHack = 80f / paletteSize;
-                    paletteToleranceHack = paletteToleranceHack * paletteToleranceHack;
+                    paletteToleranceHack *= paletteToleranceHack;
                     ImageComparer comparer = pngColorType == PngColorType.Palette
                                                  ? ImageComparer.Tolerant(ToleranceThresholdForPaletteEncoder * paletteToleranceHack)
                                                  : ImageComparer.Exact;
@@ -314,7 +314,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        PngMetaData meta = output.MetaData.GetOrAddFormatMetaData(PngFormat.Instance);
+                        PngMetaData meta = output.MetaData.GetFormatMetaData(PngFormat.Instance);
 
                         Assert.Equal(pngBitDepth, meta.BitDepth);
                     }

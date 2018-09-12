@@ -537,8 +537,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.metaData = meta;
 
             short bitsPerPixel = this.infoHeader.BitsPerPixel;
-            var bmpMetaData = new BmpMetaData();
-            this.metaData.AddOrUpdateFormatMetaData(BmpFormat.Instance, bmpMetaData);
+            var bmpMetaData = this.metaData.GetFormatMetaData(BmpFormat.Instance);
 
             // We can only encode at these bit rates so far.
             if (bitsPerPixel.Equals((short)BmpBitsPerPixel.Pixel24)

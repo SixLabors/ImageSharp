@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp
         /// <param name="bitDepth">The bit depth.</param>
         /// <returns>The <see cref="int"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetColorCountForBitDepth(int bitDepth) => (int)Math.Pow(2, bitDepth);
+        public static int GetColorCountForBitDepth(int bitDepth) => 1 << bitDepth;
 
         /// <summary>
         /// Implementation of 1D Gaussian G(x) function

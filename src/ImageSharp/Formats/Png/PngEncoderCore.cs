@@ -181,7 +181,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.height = image.Height;
 
             // Always take the encoder options over the metadata values.
-            PngMetaData pngMetaData = image.MetaData.GetOrAddFormatMetaData(PngFormat.Instance);
+            PngMetaData pngMetaData = image.MetaData.GetFormatMetaData(PngFormat.Instance);
             this.gamma = this.gamma ?? pngMetaData.Gamma;
             this.writeGamma = this.gamma > 0;
             this.pngColorType = this.pngColorType ?? pngMetaData.ColorType;

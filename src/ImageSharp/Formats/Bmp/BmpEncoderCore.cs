@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            BmpMetaData bmpMetaData = image.MetaData.GetOrAddFormatMetaData(BmpFormat.Instance);
+            BmpMetaData bmpMetaData = image.MetaData.GetFormatMetaData(BmpFormat.Instance);
             this.bitsPerPixel = this.bitsPerPixel ?? bmpMetaData.BitsPerPixel;
 
             short bpp = (short)this.bitsPerPixel;

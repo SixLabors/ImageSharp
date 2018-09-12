@@ -8,6 +8,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     /// </summary>
     public class JpegMetaData
     {
-        // TODO: Analyse what properties we would like to preserve.
+        /// <summary>
+        /// Gets or sets the encoded quality.
+        /// </summary>
+        public int Quality { get; set; } = 75;
     }
 }

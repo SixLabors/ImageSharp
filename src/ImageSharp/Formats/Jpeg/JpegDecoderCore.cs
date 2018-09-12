@@ -259,11 +259,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.InputStream.Read(this.markerBuffer, 0, 2);
             byte marker = this.markerBuffer[1];
             fileMarker = new JpegFileMarker(marker, (int)this.InputStream.Position - 2);
+            this.QuantizationTables = new Block8x8F[4];
 
             // Only assign what we need
             if (!metadataOnly)
             {
-                this.QuantizationTables = new Block8x8F[4];
                 this.dcHuffmanTables = new HuffmanTables();
                 this.acHuffmanTables = new HuffmanTables();
                 this.fastACTables = new FastACTables(this.configuration.MemoryAllocator);
@@ -314,15 +314,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             break;
 
                         case JpegConstants.Markers.DQT:
-                            if (metadataOnly)
-                            {
-                                this.InputStream.Skip(remaining);
-                            }
-                            else
-                            {
-                                this.ProcessDefineQuantizationTablesMarker(remaining);
-                            }
-
+                            this.ProcessDefineQuantizationTablesMarker(remaining);
                             break;
 
                         case JpegConstants.Markers.DRI:
@@ -708,6 +700,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             {
                 throw new ImageFormatException("DQT has wrong length");
             }
+
+            this.MetaData.GetFormatMetaData(JpegFormat.Instance).Quality = QualityEvaluator.EstimateQuality(this.QuantizationTables);
         }
 
         /// <summary>

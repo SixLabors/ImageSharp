@@ -11,8 +11,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <inheritdoc/>
         public void Configure(Configuration configuration)
         {
-            configuration.ImageFormatsManager.SetEncoder(ImageFormats.Png, new PngEncoder());
-            configuration.ImageFormatsManager.SetDecoder(ImageFormats.Png, new PngDecoder());
+            configuration.ImageFormatsManager.SetEncoder(PngFormat.Instance, new PngEncoder());
+            configuration.ImageFormatsManager.SetDecoder(PngFormat.Instance, new PngDecoder());
             configuration.ImageFormatsManager.AddImageFormatDetector(new PngImageFormatDetector());
         }
     }

@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <inheritdoc/>
         public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
         {
-            return this.IsSupportedFileFormat(header) ? ImageFormats.Jpeg : null;
+            return this.IsSupportedFileFormat(header) ? JpegFormat.Instance : null;
         }
 
         private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)

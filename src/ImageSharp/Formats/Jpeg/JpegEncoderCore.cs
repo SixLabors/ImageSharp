@@ -186,9 +186,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
 
             this.outputStream = stream;
+            ImageMetaData metaData = image.MetaData;
 
             // System.Drawing produces identical output for jpegs with a quality parameter of 0 and 1.
-            int qlty = (this.quality ?? image.MetaData.GetFormatMetaData(JpegFormat.Instance).Quality).Clamp(1, 100);
+            int qlty = (this.quality ?? metaData.GetFormatMetaData(JpegFormat.Instance).Quality).Clamp(1, 100);
             this.subsample = this.subsample ?? (qlty >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
 
             // Convert from a quality rating to a scaling factor.
@@ -210,10 +211,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int componentCount = 3;
 
             // Write the Start Of Image marker.
-            this.WriteApplicationHeader(image.MetaData);
+            this.WriteApplicationHeader(metaData);
 
             // Write Exif and ICC profiles
-            this.WriteProfiles(image);
+            this.WriteProfiles(metaData);
 
             // Write the quantization tables.
             this.WriteDefineQuantizationTables();
@@ -620,6 +621,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </exception>
         private void WriteExifProfile(ExifProfile exifProfile)
         {
+            if (exifProfile is null)
+            {
+                return;
+            }
+
             const int MaxBytesApp1 = 65533;
             const int MaxBytesWithExifId = 65527;
 
@@ -758,14 +764,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Writes the metadata profiles to the image.
         /// </summary>
-        /// <param name="image">The image.</param>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        private void WriteProfiles<TPixel>(Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
+        /// <param name="metaData">The image meta data.</param>
+        private void WriteProfiles(ImageMetaData metaData)
         {
-            image.MetaData.SyncProfiles();
-            this.WriteExifProfile(image.MetaData.ExifProfile);
-            this.WriteIccProfile(image.MetaData.IccProfile);
+            if (metaData is null)
+            {
+                return;
+            }
+
+            metaData.SyncProfiles();
+            this.WriteExifProfile(metaData.ExifProfile);
+            this.WriteIccProfile(metaData.IccProfile);
         }
 
         /// <summary>

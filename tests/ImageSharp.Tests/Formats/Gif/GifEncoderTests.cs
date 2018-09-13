@@ -55,10 +55,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         [MemberData(nameof(RatioFiles))]
         public void Encode_PreserveRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
         {
-            var options = new GifEncoder()
-            {
-                IgnoreMetadata = false
-            };
+            var options = new GifEncoder();
 
             var testFile = TestFile.Create(imagePath);
             using (Image<Rgba32> input = testFile.CreateImage())
@@ -82,10 +79,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         [Fact]
         public void Encode_IgnoreMetadataIsFalse_CommentsAreWritten()
         {
-            var options = new GifEncoder()
-            {
-                IgnoreMetadata = false
-            };
+            var options = new GifEncoder();
 
             var testFile = TestFile.Create(TestImages.Gif.Rings);
 
@@ -109,15 +103,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         [Fact]
         public void Encode_IgnoreMetadataIsTrue_CommentsAreNotWritten()
         {
-            var options = new GifEncoder()
-            {
-                IgnoreMetadata = true
-            };
+            var options = new GifEncoder();
 
             var testFile = TestFile.Create(TestImages.Gif.Rings);
 
             using (Image<Rgba32> input = testFile.CreateImage())
             {
+                input.MetaData.Properties.Clear();
                 using (var memStream = new MemoryStream())
                 {
                     input.SaveAsGif(memStream, options);

@@ -181,7 +181,8 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.height = image.Height;
 
             // Always take the encoder options over the metadata values.
-            PngMetaData pngMetaData = image.MetaData.GetFormatMetaData(PngFormat.Instance);
+            ImageMetaData metaData = image.MetaData;
+            PngMetaData pngMetaData = metaData.GetFormatMetaData(PngFormat.Instance);
             this.gamma = this.gamma ?? pngMetaData.Gamma;
             this.writeGamma = this.gamma > 0;
             this.pngColorType = this.pngColorType ?? pngMetaData.ColorType;
@@ -245,9 +246,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                 this.WritePaletteChunk(stream, header, quantized);
             }
 
-            this.WritePhysicalChunk(stream, image);
+            this.WritePhysicalChunk(stream, metaData);
             this.WriteGammaChunk(stream);
-            this.WriteExifChunk(stream, image);
+            this.WriteExifChunk(stream, metaData);
             this.WriteDataChunks(image.Frames.RootFrame, quantizedPixelsSpan, stream);
             this.WriteEndChunk(stream);
             stream.Flush();
@@ -611,11 +612,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Writes the physical dimension information to the stream.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <param name="image">The image.</param>
-        private void WritePhysicalChunk<TPixel>(Stream stream, Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
+        /// <param name="meta">The image meta data.</param>
+        private void WritePhysicalChunk(Stream stream, ImageMetaData meta)
         {
             // The pHYs chunk specifies the intended pixel size or aspect ratio for display of the image. It contains:
             // Pixels per unit, X axis: 4 bytes (unsigned integer)
@@ -627,7 +626,6 @@ namespace SixLabors.ImageSharp.Formats.Png
             //   1: unit is the meter
             //
             // When the unit specifier is 0, the pHYs chunk defines pixel aspect ratio only; the actual size of the pixels remains unspecified.
-            ImageMetaData meta = image.MetaData;
             Span<byte> hResolution = this.chunkDataBuffer.AsSpan(0, 4);
             Span<byte> vResolution = this.chunkDataBuffer.AsSpan(4, 4);
 
@@ -668,16 +666,14 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Writes the eXIf chunk to the stream, if any EXIF Profile values are present in the meta data.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <param name="image">The image.</param>
-        private void WriteExifChunk<TPixel>(Stream stream, Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
+        /// <param name="meta">The image meta data.</param>
+        private void WriteExifChunk(Stream stream, ImageMetaData meta)
         {
-            if (image.MetaData.ExifProfile?.Values.Count > 0)
+            if (meta.ExifProfile?.Values.Count > 0)
             {
-                image.MetaData.SyncProfiles();
-                this.WriteChunk(stream, PngChunkType.Exif, image.MetaData.ExifProfile.ToByteArray());
+                meta.SyncProfiles();
+                this.WriteChunk(stream, PngChunkType.Exif, meta.ExifProfile.ToByteArray());
             }
         }
 

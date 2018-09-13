@@ -15,11 +15,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
     public sealed class GifEncoder : IImageEncoder, IGifEncoderOptions
     {
         /// <summary>
-        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being encoded.
-        /// </summary>
-        public bool IgnoreMetadata { get; set; } = false;
-
-        /// <summary>
         /// Gets or sets the encoding that should be used when writing comments.
         /// </summary>
         public Encoding TextEncoding { get; set; } = GifConstants.DefaultEncoding;

@@ -36,6 +36,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public PaletteFrameQuantizer(PaletteQuantizer quantizer, TPixel[] colors)
             : base(quantizer, true)
         {
+            // TODO: Why is this value constrained? Gif has limitations but theoretically
+            // we might want to reduce the palette of an image to greater than that limitation.
             Guard.MustBeBetweenOrEqualTo(colors.Length, 1, 256, nameof(colors));
             this.palette = colors;
             this.paletteVector = new Vector4[this.palette.Length];

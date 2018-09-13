@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats.Gif
+namespace SixLabors.ImageSharp.MetaData
 {
     /// <summary>
     /// Enumerated frame process modes to apply to multi-frame images.

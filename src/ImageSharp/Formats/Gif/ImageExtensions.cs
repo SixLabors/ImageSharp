@@ -34,6 +34,6 @@ namespace SixLabors.ImageSharp
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         public static void SaveAsGif<TPixel>(this Image<TPixel> source, Stream stream, GifEncoder encoder)
             where TPixel : struct, IPixel<TPixel>
-            => source.Save(stream, encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(ImageFormats.Gif));
+            => source.Save(stream, encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(GifFormat.Instance));
     }
 }

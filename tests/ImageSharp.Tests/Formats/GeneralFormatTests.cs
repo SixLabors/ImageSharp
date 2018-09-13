@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests
                 using (Image<Rgba32> image = file.CreateImage())
                 {
                     string filename = path + "/" + file.FileNameWithoutExtension + ".txt";
-                    File.WriteAllText(filename, image.ToBase64String(ImageFormats.Png));
+                    File.WriteAllText(filename, image.ToBase64String(PngFormat.Instance));
                 }
             }
         }

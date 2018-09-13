@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -44,7 +43,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The color table mode: Global or local.
         /// </summary>
-        private readonly GifColorTableMode colorTableMode;
+        private GifColorTableMode? colorTableMode;
 
         /// <summary>
         /// A flag indicating whether to ingore the metadata when writing the image.
@@ -57,6 +56,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private int bitDepth;
 
         /// <summary>
+        /// Gif specific meta data.
+        /// </summary>
+        private GifMetaData gifMetaData;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
         /// </summary>
         /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
@@ -66,8 +70,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.memoryAllocator = memoryAllocator;
             this.textEncoding = options.TextEncoding ?? GifConstants.DefaultEncoding;
             this.quantizer = options.Quantizer;
-            this.colorTableMode = options.ColorTableMode;
             this.ignoreMetadata = options.IgnoreMetadata;
+            this.colorTableMode = options.ColorTableMode;
         }
 
         /// <summary>
@@ -82,6 +86,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
+            this.gifMetaData = image.MetaData.GetFormatMetaData(GifFormat.Instance);
+            this.colorTableMode = this.colorTableMode ?? this.gifMetaData.ColorTableMode;
+            bool useGlobalTable = this.colorTableMode.Equals(GifColorTableMode.Global);
+
             // Quantize the image returning a palette.
             QuantizedFrame<TPixel> quantized =
                 this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(image.Frames.RootFrame);
@@ -94,7 +102,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             // Write the LSD.
             int index = this.GetTransparentIndex(quantized);
-            bool useGlobalTable = this.colorTableMode.Equals(GifColorTableMode.Global);
             this.WriteLogicalScreenDescriptor(image, index, useGlobalTable, stream);
 
             if (useGlobalTable)
@@ -108,7 +115,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // Write application extension to allow additional frames.
             if (image.Frames.Count > 1)
             {
-                this.WriteApplicationExtension(stream, image.MetaData.RepeatCount);
+                this.WriteApplicationExtension(stream, this.gifMetaData.RepeatCount);
             }
 
             if (useGlobalTable)
@@ -136,8 +143,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
             for (int i = 0; i < image.Frames.Count; i++)
             {
                 ImageFrame<TPixel> frame = image.Frames[i];
-
-                this.WriteGraphicalControlExtension(frame.MetaData, transparencyIndex, stream);
+                GifFrameMetaData frameMetaData = frame.MetaData.GetFormatMetaData(GifFormat.Instance);
+                this.WriteGraphicalControlExtension(frameMetaData, transparencyIndex, stream);
                 this.WriteImageDescriptor(frame, false, stream);
 
                 if (i == 0)
@@ -146,7 +153,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
                 else
                 {
-                    using (QuantizedFrame<TPixel> paletteQuantized = palleteQuantizer.CreateFrameQuantizer(() => quantized.Palette).QuantizeFrame(frame))
+                    using (QuantizedFrame<TPixel> paletteQuantized
+                        = palleteQuantizer.CreateFrameQuantizer(() => quantized.Palette).QuantizeFrame(frame))
                     {
                         this.WriteImageData(paletteQuantized, stream);
                     }
@@ -157,20 +165,36 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void EncodeLocal<TPixel>(Image<TPixel> image, QuantizedFrame<TPixel> quantized, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
+            ImageFrame<TPixel> previousFrame = null;
+            GifFrameMetaData previousMeta = null;
             foreach (ImageFrame<TPixel> frame in image.Frames)
             {
+                GifFrameMetaData meta = frame.MetaData.GetFormatMetaData(GifFormat.Instance);
                 if (quantized is null)
                 {
-                    quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
+                    // Allow each frame to be encoded at whatever color depth the frame designates if set.
+                    if (previousFrame != null
+                        && previousMeta.ColorTableLength != meta.ColorTableLength
+                        && meta.ColorTableLength > 0)
+                    {
+                        quantized = this.quantizer.CreateFrameQuantizer<TPixel>(meta.ColorTableLength).QuantizeFrame(frame);
+                    }
+                    else
+                    {
+                        quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
+                    }
                 }
 
-                this.WriteGraphicalControlExtension(frame.MetaData, this.GetTransparentIndex(quantized), stream);
+                this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length).Clamp(1, 8);
+                this.WriteGraphicalControlExtension(meta, this.GetTransparentIndex(quantized), stream);
                 this.WriteImageDescriptor(frame, true, stream);
                 this.WriteColorTable(quantized, stream);
                 this.WriteImageData(quantized, stream);
 
                 quantized?.Dispose();
                 quantized = null; // So next frame can regenerate it
+                previousFrame = frame;
+                previousMeta = meta;
             }
         }
 
@@ -210,10 +234,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <param name="stream">The stream to write to.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteHeader(Stream stream)
-        {
-            stream.Write(GifConstants.MagicNumber, 0, GifConstants.MagicNumber.Length);
-        }
+        private void WriteHeader(Stream stream) => stream.Write(GifConstants.MagicNumber, 0, GifConstants.MagicNumber.Length);
 
         /// <summary>
         /// Writes the logical screen descriptor to the stream.
@@ -279,25 +300,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // Application Extension Header
             if (repeatCount != 1)
             {
-                this.buffer[0] = GifConstants.ExtensionIntroducer;
-                this.buffer[1] = GifConstants.ApplicationExtensionLabel;
-                this.buffer[2] = GifConstants.ApplicationBlockSize;
-
-                // Write NETSCAPE2.0
-                GifConstants.ApplicationIdentificationBytes.AsSpan().CopyTo(this.buffer.AsSpan(3, 11));
-
-                // Application Data ----
-                this.buffer[14] = 3; // Application block length
-                this.buffer[15] = 1; // Data sub-block index (always 1)
-
-                // 0 means loop indefinitely. Count is set as play n + 1 times.
-                repeatCount = (ushort)Math.Max(0, repeatCount - 1);
-
-                BinaryPrimitives.WriteUInt16LittleEndian(this.buffer.AsSpan(16, 2), repeatCount); // Repeat count for images.
-
-                this.buffer[18] = GifConstants.Terminator; // Terminator
-
-                stream.Write(this.buffer, 0, 19);
+                var loopingExtension = new GifNetscapeLoopingApplicationExtension(repeatCount);
+                this.WriteExtension(loopingExtension, stream);
             }
         }
 
@@ -337,7 +341,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="metaData">The metadata of the image or frame.</param>
         /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
         /// <param name="stream">The stream to write to.</param>
-        private void WriteGraphicalControlExtension(ImageFrameMetaData metaData, int transparencyIndex, Stream stream)
+        private void WriteGraphicalControlExtension(GifFrameMetaData metaData, int transparencyIndex, Stream stream)
         {
             byte packedValue = GifGraphicControlExtension.GetPackedValue(
                 disposalMethod: metaData.DisposalMethod,
@@ -382,7 +386,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 localColorTableFlag: hasColorTable,
                 interfaceFlag: false,
                 sortFlag: false,
-                localColorTableSize: (byte)this.bitDepth);
+                localColorTableSize: this.bitDepth - 1);
 
             var descriptor = new GifImageDescriptor(
                 left: 0,
@@ -407,7 +411,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             int pixelCount = image.Palette.Length;
 
-            int colorTableLength = (int)Math.Pow(2, this.bitDepth) * 3; // The maximium number of colors for the bit depth
+            // The maximium number of colors for the bit depth
+            int colorTableLength = ImageMaths.GetColorCountForBitDepth(this.bitDepth) * 3;
             Rgb24 rgb = default;
 
             using (IManagedByteBuffer colorTable = this.memoryAllocator.AllocateManagedByteBuffer(colorTableLength))

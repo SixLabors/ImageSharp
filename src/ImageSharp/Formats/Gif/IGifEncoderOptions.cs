@@ -29,6 +29,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Gets the color table mode: Global or local.
         /// </summary>
-        GifColorTableMode ColorTableMode { get; }
+        GifColorTableMode? ColorTableMode { get; }
     }
 }

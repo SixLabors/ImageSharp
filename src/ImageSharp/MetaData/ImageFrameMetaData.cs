@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Formats.Gif;
+using System;
+using System.Collections.Generic;
+using SixLabors.ImageSharp.Formats;
 
 namespace SixLabors.ImageSharp.MetaData
 {
@@ -10,6 +12,8 @@ namespace SixLabors.ImageSharp.MetaData
     /// </summary>
     public sealed class ImageFrameMetaData
     {
+        private readonly Dictionary<IImageFormat, object> formatMetaData = new Dictionary<IImageFormat, object>();
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrameMetaData"/> class.
         /// </summary>
@@ -28,32 +32,39 @@ namespace SixLabors.ImageSharp.MetaData
         {
             DebugGuard.NotNull(other, nameof(other));
 
-            this.FrameDelay = other.FrameDelay;
-            this.DisposalMethod = other.DisposalMethod;
+            foreach (KeyValuePair<IImageFormat, object> meta in other.formatMetaData)
+            {
+                this.formatMetaData.Add(meta.Key, meta.Value);
+            }
         }
-
-        /// <summary>
-        /// Gets or sets the frame delay for animated images.
-        /// If not 0, when utilized in Gif animation, this field specifies the number of hundredths (1/100) of a second to
-        /// wait before continuing with the processing of the Data Stream.
-        /// The clock starts ticking immediately after the graphic is rendered.
-        /// </summary>
-        public int FrameDelay { get; set; }
-
-        /// <summary>
-        /// Gets or sets the disposal method for animated images.
-        /// Primarily used in Gif animation, this field indicates the way in which the graphic is to
-        /// be treated after being displayed.
-        /// </summary>
-        public DisposalMethod DisposalMethod { get; set; }
 
         /// <summary>
         /// Clones this ImageFrameMetaData.
         /// </summary>
         /// <returns>The cloned instance.</returns>
-        public ImageFrameMetaData Clone()
+        public ImageFrameMetaData Clone() => new ImageFrameMetaData(this);
+
+        /// <summary>
+        /// Gets the metadata value associated with the specified key.
+        /// </summary>
+        /// <typeparam name="TFormatMetaData">The type of format metadata.</typeparam>
+        /// <typeparam name="TFormatFrameMetaData">The type of format frame metadata.</typeparam>
+        /// <param name="key">The key of the value to get.</param>
+        /// <returns>
+        /// The <typeparamref name="TFormatFrameMetaData"/>.
+        /// </returns>
+        public TFormatFrameMetaData GetFormatMetaData<TFormatMetaData, TFormatFrameMetaData>(IImageFormat<TFormatMetaData, TFormatFrameMetaData> key)
+            where TFormatMetaData : class
+            where TFormatFrameMetaData : class
         {
-            return new ImageFrameMetaData(this);
+            if (this.formatMetaData.TryGetValue(key, out object meta))
+            {
+                return (TFormatFrameMetaData)meta;
+            }
+
+            TFormatFrameMetaData newMeta = key.CreateDefaultFormatFrameMetaData();
+            this.formatMetaData[key] = newMeta;
+            return newMeta;
         }
     }
 }

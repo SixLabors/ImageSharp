@@ -179,5 +179,49 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 Assert.True(fileInfoGlobal.Length < fileInfoLocal.Length);
             }
         }
+
+        [Fact]
+        public void NonMutatingEncodePreservesPaletteCount()
+        {
+            using (var inStream = new MemoryStream(TestFile.Create(TestImages.Gif.Leo).Bytes))
+            using (var outStream = new MemoryStream())
+            {
+                inStream.Position = 0;
+
+                var image = Image.Load(inStream);
+                GifMetaData metaData = image.MetaData.GetFormatMetaData(GifFormat.Instance);
+                GifFrameMetaData frameMetaData = image.Frames.RootFrame.MetaData.GetFormatMetaData(GifFormat.Instance);
+                GifColorTableMode colorMode = metaData.ColorTableMode;
+                var encoder = new GifEncoder()
+                {
+                    ColorTableMode = colorMode,
+                    Quantizer = new OctreeQuantizer(frameMetaData.ColorTableLength)
+                };
+
+                image.Save(outStream, encoder);
+                outStream.Position = 0;
+
+                outStream.Position = 0;
+                var clone = Image.Load(outStream);
+
+                GifMetaData cloneMetaData = clone.MetaData.GetFormatMetaData<GifMetaData>(GifFormat.Instance);
+                Assert.Equal(metaData.ColorTableMode, cloneMetaData.ColorTableMode);
+
+                // Gifiddle and Cyotek GifInfo say this image has 64 colors.
+                Assert.Equal(64, frameMetaData.ColorTableLength);
+
+                for (int i = 0; i < image.Frames.Count; i++)
+                {
+                    GifFrameMetaData ifm = image.Frames[i].MetaData.GetFormatMetaData(GifFormat.Instance);
+                    GifFrameMetaData cifm = clone.Frames[i].MetaData.GetFormatMetaData(GifFormat.Instance);
+
+                    Assert.Equal(ifm.ColorTableLength, cifm.ColorTableLength);
+                    Assert.Equal(ifm.FrameDelay, cifm.FrameDelay);
+                }
+
+                image.Dispose();
+                clone.Dispose();
+            }
+        }
     }
 }

@@ -4,7 +4,6 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
-using System.Linq;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Png.Filters;
@@ -45,29 +44,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly Crc32 crc = new Crc32();
 
         /// <summary>
-        /// The png bit depth
-        /// </summary>
-        private readonly PngBitDepth pngBitDepth;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether to use 16 bit encoding for supported color types.
-        /// </summary>
-        private readonly bool use16Bit;
-
-        /// <summary>
-        /// The png color type.
-        /// </summary>
-        private readonly PngColorType pngColorType;
-
-        /// <summary>
         /// The png filter method.
         /// </summary>
         private readonly PngFilterMethod pngFilterMethod;
-
-        /// <summary>
-        /// The quantizer for reducing the color count.
-        /// </summary>
-        private readonly IQuantizer quantizer;
 
         /// <summary>
         /// Gets or sets the CompressionLevel value
@@ -75,19 +54,39 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly int compressionLevel;
 
         /// <summary>
-        /// Gets or sets the Gamma value
-        /// </summary>
-        private readonly float gamma;
-
-        /// <summary>
-        /// Gets or sets the Threshold value
+        /// Gets or sets the alpha threshold value
         /// </summary>
         private readonly byte threshold;
 
         /// <summary>
-        /// Gets or sets a value indicating whether to Write Gamma
+        /// The quantizer for reducing the color count.
         /// </summary>
-        private readonly bool writeGamma;
+        private IQuantizer quantizer;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to write the gamma chunk
+        /// </summary>
+        private bool writeGamma;
+
+        /// <summary>
+        /// The png bit depth
+        /// </summary>
+        private PngBitDepth? pngBitDepth;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to use 16 bit encoding for supported color types.
+        /// </summary>
+        private bool use16Bit;
+
+        /// <summary>
+        /// The png color type.
+        /// </summary>
+        private PngColorType? pngColorType;
+
+        /// <summary>
+        /// Gets or sets the Gamma value
+        /// </summary>
+        private float? gamma;
 
         /// <summary>
         /// The image width.
@@ -158,14 +157,12 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             this.memoryAllocator = memoryAllocator;
             this.pngBitDepth = options.BitDepth;
-            this.use16Bit = this.pngBitDepth.Equals(PngBitDepth.Bit16);
             this.pngColorType = options.ColorType;
             this.pngFilterMethod = options.FilterMethod;
             this.compressionLevel = options.CompressionLevel;
             this.gamma = options.Gamma;
             this.quantizer = options.Quantizer;
             this.threshold = options.Threshold;
-            this.writeGamma = options.WriteGamma;
         }
 
         /// <summary>
@@ -183,23 +180,41 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.width = image.Width;
             this.height = image.Height;
 
+            // Always take the encoder options over the metadata values.
+            PngMetaData pngMetaData = image.MetaData.GetFormatMetaData(PngFormat.Instance);
+            this.gamma = this.gamma ?? pngMetaData.Gamma;
+            this.writeGamma = this.gamma > 0;
+            this.pngColorType = this.pngColorType ?? pngMetaData.ColorType;
+            this.pngBitDepth = this.pngBitDepth ?? pngMetaData.BitDepth;
+            this.use16Bit = this.pngBitDepth.Equals(PngBitDepth.Bit16);
+
             stream.Write(PngConstants.HeaderBytes, 0, PngConstants.HeaderBytes.Length);
 
             QuantizedFrame<TPixel> quantized = null;
             ReadOnlySpan<byte> quantizedPixelsSpan = default;
             if (this.pngColorType == PngColorType.Palette)
             {
+                byte bits;
+
+                // Use the metadata to determine what quantization depth to use if no quantizer has been set.
+                if (this.quantizer == null)
+                {
+                    bits = (byte)Math.Min(8u, (short)this.pngBitDepth);
+                    int colorSize = ImageMaths.GetColorCountForBitDepth(bits);
+                    this.quantizer = new WuQuantizer(colorSize);
+                }
+
                 // Create quantized frame returning the palette and set the bit depth.
                 quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(image.Frames.RootFrame);
                 quantizedPixelsSpan = quantized.GetPixelSpan();
-                byte bits = (byte)ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length).Clamp(1, 8);
+                bits = (byte)ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length).Clamp(1, 8);
 
                 // Png only supports in four pixel depths: 1, 2, 4, and 8 bits when using the PLTE chunk
                 if (bits == 3)
                 {
                     bits = 4;
                 }
-                else if (bits >= 5 || bits <= 7)
+                else if (bits >= 5 && bits <= 7)
                 {
                     bits = 8;
                 }
@@ -217,7 +232,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 width: image.Width,
                 height: image.Height,
                 bitDepth: this.bitDepth,
-                colorType: this.pngColorType,
+                colorType: this.pngColorType.Value,
                 compressionMethod: 0, // None
                 filterMethod: 0,
                 interlaceMethod: 0); // TODO: Can't write interlaced yet.
@@ -549,7 +564,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             byte pixelCount = palette.Length.ToByte();
 
             // Get max colors for bit depth.
-            int colorTableLength = (int)Math.Pow(2, header.BitDepth) * 3;
+            int colorTableLength = ImageMaths.GetColorCountForBitDepth(header.BitDepth) * 3;
             Rgba32 rgba = default;
             bool anyAlpha = false;
 
@@ -693,7 +708,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void WriteDataChunks<TPixel>(ImageFrame<TPixel> pixels, ReadOnlySpan<byte> quantizedPixelsSpan, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            this.bytesPerScanline = this.width * this.bytesPerPixel;
+            this.bytesPerScanline = this.CalculateScanlineLength(this.width);
             int resultLength = this.bytesPerScanline + 1;
 
             this.previousScanline = this.memoryAllocator.AllocateManagedByteBuffer(this.bytesPerScanline, AllocationOptions.Clean);
@@ -781,10 +796,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Writes the chunk end to the stream.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        private void WriteEndChunk(Stream stream)
-        {
-            this.WriteChunk(stream, PngChunkType.End, null);
-        }
+        private void WriteEndChunk(Stream stream) => this.WriteChunk(stream, PngChunkType.End, null);
 
         /// <summary>
         /// Writes a chunk to the stream.
@@ -792,10 +804,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
         /// <param name="type">The type of chunk to write.</param>
         /// <param name="data">The <see cref="T:byte[]"/> containing data.</param>
-        private void WriteChunk(Stream stream, PngChunkType type, byte[] data)
-        {
-            this.WriteChunk(stream, type, data, 0, data?.Length ?? 0);
-        }
+        private void WriteChunk(Stream stream, PngChunkType type, byte[] data) => this.WriteChunk(stream, type, data, 0, data?.Length ?? 0);
 
         /// <summary>
         /// Writes a chunk of a specified length to the stream at the given offset.
@@ -826,6 +835,27 @@ namespace SixLabors.ImageSharp.Formats.Png
             BinaryPrimitives.WriteUInt32BigEndian(this.buffer, (uint)this.crc.Value);
 
             stream.Write(this.buffer, 0, 4); // write the crc
+        }
+
+        /// <summary>
+        /// Calculates the scanline length.
+        /// </summary>
+        /// <param name="width">The width of the row.</param>
+        /// <returns>
+        /// The <see cref="int"/> representing the length.
+        /// </returns>
+        private int CalculateScanlineLength(int width)
+        {
+            int mod = this.bitDepth == 16 ? 16 : 8;
+            int scanlineLength = width * this.bitDepth * this.bytesPerPixel;
+
+            int amount = scanlineLength % mod;
+            if (amount != 0)
+            {
+                scanlineLength += mod - amount;
+            }
+
+            return scanlineLength / mod;
         }
     }
 }

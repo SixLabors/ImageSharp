@@ -123,19 +123,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private readonly byte[] huffmanBuffer = new byte[179];
 
         /// <summary>
-        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// Gets or sets the subsampling method to use.
         /// </summary>
-        private readonly bool ignoreMetadata;
+        private JpegSubsample? subsample;
 
         /// <summary>
         /// The quality, that will be used to encode the image.
         /// </summary>
-        private readonly int quality;
-
-        /// <summary>
-        /// Gets or sets the subsampling method to use.
-        /// </summary>
-        private readonly JpegSubsample? subsample;
+        private readonly int? quality;
 
         /// <summary>
         /// The accumulated bits to write to the stream.
@@ -168,11 +163,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="options">The options</param>
         public JpegEncoderCore(IJpegEncoderOptions options)
         {
-            // System.Drawing produces identical output for jpegs with a quality parameter of 0 and 1.
-            this.quality = options.Quality.Clamp(1, 100);
-            this.subsample = options.Subsample ?? (this.quality >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
-
-            this.ignoreMetadata = options.IgnoreMetadata;
+            this.quality = options.Quality;
+            this.subsample = options.Subsample;
         }
 
         /// <summary>
@@ -195,15 +187,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             this.outputStream = stream;
 
+            // System.Drawing produces identical output for jpegs with a quality parameter of 0 and 1.
+            int qlty = (this.quality ?? image.MetaData.GetFormatMetaData(JpegFormat.Instance).Quality).Clamp(1, 100);
+            this.subsample = this.subsample ?? (qlty >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
+
             // Convert from a quality rating to a scaling factor.
             int scale;
-            if (this.quality < 50)
+            if (qlty < 50)
             {
-                scale = 5000 / this.quality;
+                scale = 5000 / qlty;
             }
             else
             {
-                scale = 200 - (this.quality * 2);
+                scale = 200 - (qlty * 2);
             }
 
             // Initialize the quantization tables.
@@ -767,11 +763,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private void WriteProfiles<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (this.ignoreMetadata)
-            {
-                return;
-            }
-
             image.MetaData.SyncProfiles();
             this.WriteExifProfile(image.MetaData.ExifProfile);
             this.WriteIccProfile(image.MetaData.IccProfile);

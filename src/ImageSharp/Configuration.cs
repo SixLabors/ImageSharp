@@ -29,6 +29,8 @@ namespace SixLabors.ImageSharp
 
         private int maxDegreeOfParallelism = Environment.ProcessorCount;
 
+        private int minimumPixelsPerTask = 2048;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Configuration" /> class.
         /// </summary>
@@ -59,6 +61,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets or sets the maximum number of concurrent tasks enabled in ImageSharp algorithms
         /// configured with this <see cref="Configuration"/> instance.
+        /// Initialized with <see cref="Environment.ProcessorCount"/> by default.
         /// </summary>
         public int MaxDegreeOfParallelism
         {
@@ -71,6 +74,24 @@ namespace SixLabors.ImageSharp
                 }
 
                 this.maxDegreeOfParallelism = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the minimum number of pixels being processed by a single task when parallelizing operations with TPL.
+        /// It's not worth to launch tasks processing pixels below this limit. Initialized with 2048 by default.
+        /// </summary>
+        public int MinimumPixelsProcessedPerTask
+        {
+            get => this.minimumPixelsPerTask;
+            set
+            {
+                if (value <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(this.MinimumPixelsProcessedPerTask));
+                }
+
+                this.minimumPixelsPerTask = value;
             }
         }
 

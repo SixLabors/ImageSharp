@@ -48,7 +48,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            BmpMetaData bmpMetaData = image.MetaData.GetFormatMetaData(BmpFormat.Instance);
+            ImageMetaData metaData = image.MetaData;
+            BmpMetaData bmpMetaData = metaData.GetFormatMetaData(BmpFormat.Instance);
             this.bitsPerPixel = this.bitsPerPixel ?? bmpMetaData.BitsPerPixel;
 
             short bpp = (short)this.bitsPerPixel;
@@ -56,31 +57,30 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.padding = bytesPerLine - (int)(image.Width * (bpp / 8F));
 
             // Set Resolution.
-            ImageMetaData meta = image.MetaData;
             int hResolution = 0;
             int vResolution = 0;
 
-            if (meta.ResolutionUnits != PixelResolutionUnit.AspectRatio)
+            if (metaData.ResolutionUnits != PixelResolutionUnit.AspectRatio)
             {
-                if (meta.HorizontalResolution > 0 && meta.VerticalResolution > 0)
+                if (metaData.HorizontalResolution > 0 && metaData.VerticalResolution > 0)
                 {
-                    switch (meta.ResolutionUnits)
+                    switch (metaData.ResolutionUnits)
                     {
                         case PixelResolutionUnit.PixelsPerInch:
 
-                            hResolution = (int)Math.Round(UnitConverter.InchToMeter(meta.HorizontalResolution));
-                            vResolution = (int)Math.Round(UnitConverter.InchToMeter(meta.VerticalResolution));
+                            hResolution = (int)Math.Round(UnitConverter.InchToMeter(metaData.HorizontalResolution));
+                            vResolution = (int)Math.Round(UnitConverter.InchToMeter(metaData.VerticalResolution));
                             break;
 
                         case PixelResolutionUnit.PixelsPerCentimeter:
 
-                            hResolution = (int)Math.Round(UnitConverter.CmToMeter(meta.HorizontalResolution));
-                            vResolution = (int)Math.Round(UnitConverter.CmToMeter(meta.VerticalResolution));
+                            hResolution = (int)Math.Round(UnitConverter.CmToMeter(metaData.HorizontalResolution));
+                            vResolution = (int)Math.Round(UnitConverter.CmToMeter(metaData.VerticalResolution));
                             break;
 
                         case PixelResolutionUnit.PixelsPerMeter:
-                            hResolution = (int)Math.Round(meta.HorizontalResolution);
-                            vResolution = (int)Math.Round(meta.VerticalResolution);
+                            hResolution = (int)Math.Round(metaData.HorizontalResolution);
+                            vResolution = (int)Math.Round(metaData.VerticalResolution);
 
                             break;
                     }

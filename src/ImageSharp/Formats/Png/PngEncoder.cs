@@ -52,12 +52,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         public byte Threshold { get; set; } = 255;
 
         /// <summary>
-        /// Gets or sets a value indicating whether this instance should write
-        /// gamma information to the stream. The default value is false.
-        /// </summary>
-        public bool WriteGamma { get; set; }
-
-        /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>

@@ -1,63 +1,12 @@
 ﻿using System;
 using System.Buffers;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.Memory;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
 {
-    internal readonly struct RowInterval
-    {
-        public RowInterval(int min, int max)
-        {
-            this.Min = min;
-            this.Max = max;
-        }
-
-        /// <summary>
-        /// Gets the INCLUSIVE minimum
-        /// </summary>
-        public int Min { get; }
-
-        /// <summary>
-        /// Gets the EXCLUSIVE maximum
-        /// </summary>
-        public int Max { get; }
-    }
-
-    internal static class ParallelHelper
-    {
-        public static void IterateRows(in Rectangle rectangle, Configuration configuration, Action<RowInterval> body)
-        {
-            int maxSteps = (int)Math.Ceiling(
-                (float)(rectangle.Width * rectangle.Height) / configuration.MinimumPixelsProcessedPerTask);
-
-            int numOfSteps = Math.Min(configuration.MaxDegreeOfParallelism, maxSteps);
-
-            int step = rectangle.Height / numOfSteps;
-
-            var parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = numOfSteps };
-
-            int bottom = rectangle.Bottom;
-
-            Parallel.For(
-                0,
-                numOfSteps,
-                parallelOptions,
-                i =>
-                    {
-                        int yMin = i * step;
-                        int yMax = Math.Min(yMin + step, bottom);
-
-                        var rowInterval = new RowInterval(yMin, yMax);
-                        body(rowInterval);
-                    });
-        }
-    }
-
     /// <summary>
     /// Utility methods for Parallel.For() execution. Use this instead of raw <see cref="Parallel"/> calls!
     /// </summary>

@@ -113,5 +113,14 @@ namespace SixLabors.ImageSharp.Memory
         /// <returns>The <see cref="BufferArea{T}"/></returns>
         public static BufferArea<T> GetArea<T>(this Buffer2D<T> buffer)
             where T : struct => new BufferArea<T>(buffer);
+
+        /// <summary>
+        /// Gets a span for all the pixels in <paramref name="buffer"/> defined by <paramref name="rows"/>
+        /// </summary>
+        public static Span<T> GetMultiRowSpan<T>(this Buffer2D<T> buffer, in RowInterval rows)
+            where T : struct
+        {
+            return buffer.Span.Slice(rows.Min * buffer.Width, rows.Height * buffer.Width);
+        }
     }
 }

@@ -1,10 +1,9 @@
 ﻿// Copyright(c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Memory;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.ParallelUtils
+namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
     /// Represents an interval of rows in a <see cref="Rectangle"/> and/or <see cref="Buffer2D{T}"/>
@@ -13,6 +12,8 @@ namespace SixLabors.ImageSharp.ParallelUtils
     {
         public RowInterval(int min, int max)
         {
+            DebugGuard.MustBeLessThan(min, max, nameof(min));
+
             this.Min = min;
             this.Max = max;
         }

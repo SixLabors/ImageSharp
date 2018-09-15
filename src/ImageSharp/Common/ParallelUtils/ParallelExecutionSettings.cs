@@ -3,6 +3,8 @@
 
 using System.Threading.Tasks;
 
+using SixLabors.Memory;
+
 namespace SixLabors.ImageSharp.ParallelUtils
 {
     /// <summary>
@@ -10,16 +12,19 @@ namespace SixLabors.ImageSharp.ParallelUtils
     /// </summary>
     internal struct ParallelExecutionSettings
     {
-        public ParallelExecutionSettings(int maxDegreeOfParallelism, int minimumPixelsProcessedPerTask)
+        public ParallelExecutionSettings(int maxDegreeOfParallelism, int minimumPixelsProcessedPerTask, MemoryAllocator memoryAllocator)
         {
             this.MaxDegreeOfParallelism = maxDegreeOfParallelism;
             this.MinimumPixelsProcessedPerTask = minimumPixelsProcessedPerTask;
+            this.MemoryAllocator = memoryAllocator;
         }
 
-        public ParallelExecutionSettings(int maxDegreeOfParallelism)
-            : this(maxDegreeOfParallelism, 2048)
+        public ParallelExecutionSettings(int maxDegreeOfParallelism, MemoryAllocator memoryAllocator)
+            : this(maxDegreeOfParallelism, 2048, memoryAllocator)
         {
         }
+
+        public MemoryAllocator MemoryAllocator { get; }
 
         /// <summary>
         /// Gets the value used for initializing <see cref="ParallelOptions.MaxDegreeOfParallelism"/> when using TPL.

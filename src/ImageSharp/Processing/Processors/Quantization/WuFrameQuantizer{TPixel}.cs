@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         where TPixel : struct, IPixel<TPixel>
     {
         // TODO: The WuFrameQuantizer<TPixel> code is rising several questions:
-        // - Do we really need to ALWAYS allocate the whole table of size TableLength? (~ 2471625 * sizeof(long) * 5 bytes )
+        // - Do we really need to ALWAYS allocate the whole table of size TableLength? (~ 2471625 * sizeof(long) * 5 bytes ) JS. I'm afraid so.
         // - Isn't an AOS ("array of structures") layout more efficient & more readable than SOA ("structure of arrays") for this particular use case?
         //   (T, R, G, B, A, M2) could be grouped together!
         // - It's a frequently used class, we need tests! (So we can optimize safely.) There are tests in the original!!! We should just adopt them!
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         private const int IndexBits = 5;
 
         /// <summary>
-        /// The index alpha bits.
+        /// The index alpha bits. Keep separate for now to allow easy adjustment.
         /// </summary>
         private const int IndexAlphaBits = 5;
 
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         private const int IndexAlphaCount = (1 << IndexAlphaBits) + 1;
 
         /// <summary>
-        /// The table length.
+        /// The table length. Now 1185921.
         /// </summary>
         private const int TableLength = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
 
@@ -179,18 +179,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             if (this.palette is null)
             {
                 this.palette = new TPixel[this.colors];
+                Span<long> vwtSpan = this.vwt.GetSpan();
+                Span<long> vmrSpan = this.vmr.GetSpan();
+                Span<long> vmgSpan = this.vmg.GetSpan();
+                Span<long> vmbSpan = this.vmb.GetSpan();
+                Span<long> vmaSpan = this.vma.GetSpan();
+
                 for (int k = 0; k < this.colors; k++)
                 {
                     this.Mark(ref this.colorCube[k], (byte)k);
 
-                    float weight = Volume(ref this.colorCube[k], this.vwt.GetSpan());
+                    float weight = Volume(ref this.colorCube[k], vwtSpan);
 
                     if (MathF.Abs(weight) > Constants.Epsilon)
                     {
-                        float r = Volume(ref this.colorCube[k], this.vmr.GetSpan());
-                        float g = Volume(ref this.colorCube[k], this.vmg.GetSpan());
-                        float b = Volume(ref this.colorCube[k], this.vmb.GetSpan());
-                        float a = Volume(ref this.colorCube[k], this.vma.GetSpan());
+                        float r = Volume(ref this.colorCube[k], vmrSpan);
+                        float g = Volume(ref this.colorCube[k], vmgSpan);
+                        float b = Volume(ref this.colorCube[k], vmbSpan);
+                        float a = Volume(ref this.colorCube[k], vmaSpan);
 
                         ref TPixel color = ref this.palette[k];
                         color.PackFromScaledVector4(new Vector4(r, g, b, a) / weight / 255F);
@@ -427,8 +433,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <param name="height">The height in pixels of the image.</param>
         private void Build3DHistogram(ImageFrame<TPixel> source, int width, int height)
         {
-            // Build up the 3-D color histogram
-            // Loop through each row
             Span<long> vwtSpan = this.vwt.GetSpan();
             Span<long> vmrSpan = this.vmr.GetSpan();
             Span<long> vmgSpan = this.vmg.GetSpan();
@@ -436,6 +440,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             Span<long> vmaSpan = this.vma.GetSpan();
             Span<float> m2Span = this.m2.GetSpan();
 
+            // Build up the 3-D color histogram
+            // Loop through each row
             for (int y = 0; y < height; y++)
             {
                 Span<TPixel> row = source.GetPixelRowSpan(y);
@@ -632,22 +638,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <returns>The <see cref="float"/>.</returns>
         private float Maximize(ref Box cube, int direction, int first, int last, out int cut, float wholeR, float wholeG, float wholeB, float wholeA, float wholeW)
         {
-            long baseR = Bottom(ref cube, direction, this.vmr.GetSpan());
-            long baseG = Bottom(ref cube, direction, this.vmg.GetSpan());
-            long baseB = Bottom(ref cube, direction, this.vmb.GetSpan());
-            long baseA = Bottom(ref cube, direction, this.vma.GetSpan());
-            long baseW = Bottom(ref cube, direction, this.vwt.GetSpan());
+            Span<long> vwtSpan = this.vwt.GetSpan();
+            Span<long> vmrSpan = this.vmr.GetSpan();
+            Span<long> vmgSpan = this.vmg.GetSpan();
+            Span<long> vmbSpan = this.vmb.GetSpan();
+            Span<long> vmaSpan = this.vma.GetSpan();
+
+            long baseR = Bottom(ref cube, direction, vmrSpan);
+            long baseG = Bottom(ref cube, direction, vmgSpan);
+            long baseB = Bottom(ref cube, direction, vmbSpan);
+            long baseA = Bottom(ref cube, direction, vmaSpan);
+            long baseW = Bottom(ref cube, direction, vwtSpan);
 
             float max = 0F;
             cut = -1;
 
             for (int i = first; i < last; i++)
             {
-                float halfR = baseR + Top(ref cube, direction, i, this.vmr.GetSpan());
-                float halfG = baseG + Top(ref cube, direction, i, this.vmg.GetSpan());
-                float halfB = baseB + Top(ref cube, direction, i, this.vmb.GetSpan());
-                float halfA = baseA + Top(ref cube, direction, i, this.vma.GetSpan());
-                float halfW = baseW + Top(ref cube, direction, i, this.vwt.GetSpan());
+                float halfR = baseR + Top(ref cube, direction, i, vmrSpan);
+                float halfG = baseG + Top(ref cube, direction, i, vmgSpan);
+                float halfB = baseB + Top(ref cube, direction, i, vmbSpan);
+                float halfA = baseA + Top(ref cube, direction, i, vmaSpan);
+                float halfW = baseW + Top(ref cube, direction, i, vwtSpan);
 
                 if (MathF.Abs(halfW) < Constants.Epsilon)
                 {

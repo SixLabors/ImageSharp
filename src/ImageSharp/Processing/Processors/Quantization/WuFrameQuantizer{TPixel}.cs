@@ -46,12 +46,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// The index bits.
         /// </summary>
-        private const int IndexBits = 6;
+        private const int IndexBits = 5;
 
         /// <summary>
         /// The index alpha bits.
         /// </summary>
-        private const int IndexAlphaBits = 3;
+        private const int IndexAlphaBits = 5;
 
         /// <summary>
         /// The index count.
@@ -201,57 +201,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             return this.palette;
         }
 
-        /// <summary>
-        /// Quantizes the pixel
-        /// </summary>
-        /// <param name="rgba">The rgba used to quantize the pixel input</param>
-        private void QuantizePixel(ref Rgba32 rgba)
-        {
-            // Add the color to a 3-D color histogram.
-            int r = rgba.R >> (8 - IndexBits);
-            int g = rgba.G >> (8 - IndexBits);
-            int b = rgba.B >> (8 - IndexBits);
-            int a = rgba.A >> (8 - IndexAlphaBits);
-
-            int index = GetPaletteIndex(r + 1, g + 1, b + 1, a + 1);
-
-            Span<long> vwtSpan = this.vwt.GetSpan();
-            Span<long> vmrSpan = this.vmr.GetSpan();
-            Span<long> vmgSpan = this.vmg.GetSpan();
-            Span<long> vmbSpan = this.vmb.GetSpan();
-            Span<long> vmaSpan = this.vma.GetSpan();
-            Span<float> m2Span = this.m2.GetSpan();
-
-            vwtSpan[index]++;
-            vmrSpan[index] += rgba.R;
-            vmgSpan[index] += rgba.G;
-            vmbSpan[index] += rgba.B;
-            vmaSpan[index] += rgba.A;
-
-            var vector = new Vector4(rgba.R, rgba.G, rgba.B, rgba.A);
-            m2Span[index] += Vector4.Dot(vector, vector);
-        }
-
         /// <inheritdoc/>
         protected override void FirstPass(ImageFrame<TPixel> source, int width, int height)
         {
-            // Build up the 3-D color histogram
-            // Loop through each row
-            for (int y = 0; y < height; y++)
-            {
-                Span<TPixel> row = source.GetPixelRowSpan(y);
-                ref TPixel scanBaseRef = ref MemoryMarshal.GetReference(row);
-
-                // And loop through each column
-                Rgba32 rgba = default;
-                for (int x = 0; x < width; x++)
-                {
-                    ref TPixel pixel = ref Unsafe.Add(ref scanBaseRef, x);
-                    pixel.ToRgba32(ref rgba);
-                    this.QuantizePixel(ref rgba);
-                }
-            }
-
+            this.Build3DHistogram(source, width, height);
             this.Get3DMoments(source.MemoryAllocator);
             this.BuildCube();
         }
@@ -463,6 +416,54 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(direction));
+            }
+        }
+
+        /// <summary>
+        /// Builds a 3-D color histogram of <c>counts, r/g/b, c^2</c>.
+        /// </summary>
+        /// <param name="source">The source data.</param>
+        /// <param name="width">The width in pixels of the image.</param>
+        /// <param name="height">The height in pixels of the image.</param>
+        private void Build3DHistogram(ImageFrame<TPixel> source, int width, int height)
+        {
+            // Build up the 3-D color histogram
+            // Loop through each row
+            Span<long> vwtSpan = this.vwt.GetSpan();
+            Span<long> vmrSpan = this.vmr.GetSpan();
+            Span<long> vmgSpan = this.vmg.GetSpan();
+            Span<long> vmbSpan = this.vmb.GetSpan();
+            Span<long> vmaSpan = this.vma.GetSpan();
+            Span<float> m2Span = this.m2.GetSpan();
+
+            for (int y = 0; y < height; y++)
+            {
+                Span<TPixel> row = source.GetPixelRowSpan(y);
+                ref TPixel scanBaseRef = ref MemoryMarshal.GetReference(row);
+
+                // And loop through each column
+                Rgba32 rgba = default;
+                for (int x = 0; x < width; x++)
+                {
+                    ref TPixel pixel = ref Unsafe.Add(ref scanBaseRef, x);
+                    pixel.ToRgba32(ref rgba);
+
+                    int r = rgba.R >> (8 - IndexBits);
+                    int g = rgba.G >> (8 - IndexBits);
+                    int b = rgba.B >> (8 - IndexBits);
+                    int a = rgba.A >> (8 - IndexAlphaBits);
+
+                    int index = GetPaletteIndex(r + 1, g + 1, b + 1, a + 1);
+
+                    vwtSpan[index]++;
+                    vmrSpan[index] += rgba.R;
+                    vmgSpan[index] += rgba.G;
+                    vmbSpan[index] += rgba.B;
+                    vmaSpan[index] += rgba.A;
+
+                    var vector = new Vector4(rgba.R, rgba.G, rgba.B, rgba.A);
+                    m2Span[index] += Vector4.Dot(vector, vector);
+                }
             }
         }
 

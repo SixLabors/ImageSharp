@@ -383,10 +383,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsv"/></returns>
-        public Hsv ToHsv(in Rgb color)
-        {
-            return HsvAndRgbConverter.Convert(color);
-        }
+        public Hsv ToHsv(in Rgb color) => HsvAndRgbConverter.Convert(color);
 
         /// <summary>
         /// Performs the bulk conversion from <see cref="Rgb"/> into <see cref="Hsv"/>

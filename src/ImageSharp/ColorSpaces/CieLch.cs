@@ -105,10 +105,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static bool operator ==(CieLch left, CieLch right)
-        {
-            return left.Equals(right);
-        }
+        public static bool operator ==(CieLch left, CieLch right) => left.Equals(right);
 
         /// <summary>
         /// Compares two <see cref="CieLch"/> objects for inequality
@@ -131,10 +128,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"CieLch [ L={this.L:#0.##}, C={this.C:#0.##}, H={this.H:#0.##}]";
-        }
+        public override string ToString() => $"CieLch [ L={this.L:#0.##}, C={this.C:#0.##}, H={this.H:#0.##}]";
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

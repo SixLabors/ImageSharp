@@ -152,10 +152,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieXyy"/></returns>
-        public CieXyy ToCieXyy(in CieXyz color)
-        {
-            return CieXyzAndCieXyyConverter.Convert(color);
-        }
+        public CieXyy ToCieXyy(in CieXyz color) => CieXyzAndCieXyyConverter.Convert(color);
 
         /// <summary>
         /// Performs the bulk conversion from <see cref="CieXyz"/> into <see cref="CieXyy"/>

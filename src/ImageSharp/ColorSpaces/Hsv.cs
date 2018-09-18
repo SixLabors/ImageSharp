@@ -2,11 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.ColorSpaces
 {
@@ -95,10 +92,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"Hsv [ H={this.H:#0.##}, S={this.S:#0.##}, V={this.V:#0.##} ]";
-        }
+        public override string ToString() => $"Hsv [ H={this.H:#0.##}, S={this.S:#0.##}, V={this.V:#0.##} ]";
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is Hsv other && this.Equals(other);

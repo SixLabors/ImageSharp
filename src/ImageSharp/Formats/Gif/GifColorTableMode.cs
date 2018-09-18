@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
-    /// Provides enumeration for the available Gif color table modes.
+    /// Provides enumeration for the available color table modes.
     /// </summary>
     public enum GifColorTableMode
     {

@@ -91,16 +91,10 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"CieXyy [ X={this.X:#0.##}, Y={this.Y:#0.##}, Yl={this.Yl:#0.##} ]";
-        }
+        public override string ToString() => $"CieXyy [ X={this.X:#0.##}, Y={this.Y:#0.##}, Yl={this.Yl:#0.##} ]";
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is CieXyy other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is CieXyy other && this.Equals(other);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

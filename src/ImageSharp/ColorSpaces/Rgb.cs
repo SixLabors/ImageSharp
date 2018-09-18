@@ -104,10 +104,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="color">The instance of <see cref="Rgba32"/> to convert.</param>
         /// <returns>An instance of <see cref="Rgb"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static implicit operator Rgb(Rgb24 color)
-        {
-            return new Rgb(color.R / 255F, color.G / 255F, color.B / 255F);
-        }
+        public static implicit operator Rgb(Rgb24 color) => new Rgb(color.R / 255F, color.G / 255F, color.B / 255F);
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Rgba32"/> to a
@@ -116,10 +113,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="color">The instance of <see cref="Rgba32"/> to convert.</param>
         /// <returns>An instance of <see cref="Rgb"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static implicit operator Rgb(Rgba32 color)
-        {
-            return new Rgb(color.R / 255F, color.G / 255F, color.B / 255F);
-        }
+        public static implicit operator Rgb(Rgba32 color) => new Rgb(color.R / 255F, color.G / 255F, color.B / 255F);
 
         /// <summary>
         /// Compares two <see cref="Rgb"/> objects for equality.
@@ -163,10 +157,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"Rgb [ R={this.R:#0.##}, G={this.G:#0.##}, B={this.B:#0.##} ]";
-        }
+        public override string ToString() => $"Rgb [ R={this.R:#0.##}, G={this.G:#0.##}, B={this.B:#0.##} ]";
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is Rgb other && this.Equals(other);

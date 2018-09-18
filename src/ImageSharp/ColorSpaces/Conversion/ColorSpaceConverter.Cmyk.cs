@@ -383,10 +383,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Cmyk"/></returns>
-        public Cmyk ToCmyk(in Rgb color)
-        {
-            return CmykAndRgbConverter.Convert(color);
-        }
+        public Cmyk ToCmyk(in Rgb color) => CmykAndRgbConverter.Convert(color);
 
         /// <summary>
         /// Performs the bulk conversion from <see cref="Rgb"/> into <see cref="Cmyk"/>

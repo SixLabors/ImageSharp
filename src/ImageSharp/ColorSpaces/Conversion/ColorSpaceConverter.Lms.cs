@@ -177,10 +177,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Lms"/></returns>
-        public Lms ToLms(in CieXyz color)
-        {
-            return this.cieXyzAndLmsConverter.Convert(color);
-        }
+        public Lms ToLms(in CieXyz color) => this.cieXyzAndLmsConverter.Convert(color);
 
         /// <summary>
         /// Performs the bulk conversion from <see cref="CieXyz"/> into <see cref="Lms"/>

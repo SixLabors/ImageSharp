@@ -130,10 +130,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"CieLuv [ L={this.L:#0.##}, U={this.U:#0.##}, V={this.V:#0.##} ]";
-        }
+        public override string ToString() => $"CieLuv [ L={this.L:#0.##}, U={this.U:#0.##}, V={this.V:#0.##} ]";
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is CieLuv other && this.Equals(other);

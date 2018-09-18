@@ -12,11 +12,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
     internal interface IGifEncoderOptions
     {
         /// <summary>
-        /// Gets a value indicating whether the metadata should be ignored when the image is being encoded.
-        /// </summary>
-        bool IgnoreMetadata { get; }
-
-        /// <summary>
         /// Gets the text encoding used to write comments.
         /// </summary>
         Encoding TextEncoding { get; }
@@ -29,6 +24,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Gets the color table mode: Global or local.
         /// </summary>
-        GifColorTableMode ColorTableMode { get; }
+        GifColorTableMode? ColorTableMode { get; }
     }
 }

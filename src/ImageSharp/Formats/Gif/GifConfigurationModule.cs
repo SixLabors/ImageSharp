@@ -9,12 +9,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
     public sealed class GifConfigurationModule : IConfigurationModule
     {
         /// <inheritdoc/>
-        public void Configure(Configuration config)
+        public void Configure(Configuration configuration)
         {
-            config.ImageFormatsManager.SetEncoder(ImageFormats.Gif, new GifEncoder());
-            config.ImageFormatsManager.SetDecoder(ImageFormats.Gif, new GifDecoder());
-
-            config.ImageFormatsManager.AddImageFormatDetector(new GifImageFormatDetector());
+            configuration.ImageFormatsManager.SetEncoder(GifFormat.Instance, new GifEncoder());
+            configuration.ImageFormatsManager.SetDecoder(GifFormat.Instance, new GifDecoder());
+            configuration.ImageFormatsManager.AddImageFormatDetector(new GifImageFormatDetector());
         }
     }
 }

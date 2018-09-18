@@ -28,7 +28,6 @@ namespace SixLabors.ImageSharp.Tests
             metaData.HorizontalResolution = 4;
             metaData.VerticalResolution = 2;
             metaData.Properties.Add(imageProperty);
-            metaData.RepeatCount = 1;
 
             ImageMetaData clone = metaData.Clone();
 
@@ -36,7 +35,6 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(4, clone.HorizontalResolution);
             Assert.Equal(2, clone.VerticalResolution);
             Assert.Equal(imageProperty, clone.Properties[0]);
-            Assert.Equal(1, clone.RepeatCount);
         }
 
         [Fact]

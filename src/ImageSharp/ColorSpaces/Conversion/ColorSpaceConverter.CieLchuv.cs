@@ -144,7 +144,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLchuv"/></returns>
-        public CieLchuv ToCieLchuv(Rgb color)
+        public CieLchuv ToCieLchuv(in Rgb color)
         {
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLchuv(xyzColor);

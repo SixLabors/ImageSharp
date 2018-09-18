@@ -84,12 +84,11 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(configuration, nameof(configuration));
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
-            Guard.NotNull(metaData, nameof(metaData));
 
             this.configuration = configuration;
             this.MemoryAllocator = configuration.MemoryAllocator;
             this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(width, height);
-            this.MetaData = metaData;
+            this.MetaData = metaData ?? new ImageFrameMetaData();
             this.Clear(configuration.GetParallelOptions(), backgroundColor);
         }
 
@@ -201,10 +200,7 @@ namespace SixLabors.ImageSharp
         /// <param name="y">The y-coordinate of the pixel. Must be greater than or equal to zero and less than the height of the image.</param>
         /// <returns>The <see typeparam="TPixel"/> at the specified position.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal ref TPixel GetPixelReference(int x, int y)
-        {
-            return ref this.PixelBuffer[x, y];
-        }
+        internal ref TPixel GetPixelReference(int x, int y) => ref this.PixelBuffer[x, y];
 
         /// <summary>
         /// Copies the pixels to a <see cref="Buffer2D{TPixel}"/> of the same size.
@@ -249,10 +245,7 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"ImageFrame<{typeof(TPixel).Name}>: {this.Width}x{this.Height}";
-        }
+        public override string ToString() => $"ImageFrame<{typeof(TPixel).Name}>: {this.Width}x{this.Height}";
 
         /// <summary>
         /// Returns a copy of the image frame in the given pixel format.
@@ -309,15 +302,9 @@ namespace SixLabors.ImageSharp
         /// Clones the current instance.
         /// </summary>
         /// <returns>The <see cref="ImageFrame{TPixel}"/></returns>
-        internal ImageFrame<TPixel> Clone()
-        {
-            return new ImageFrame<TPixel>(this.configuration, this);
-        }
+        internal ImageFrame<TPixel> Clone() => new ImageFrame<TPixel>(this.configuration, this);
 
         /// <inheritdoc/>
-        void IDisposable.Dispose()
-        {
-            this.Dispose();
-        }
+        void IDisposable.Dispose() => this.Dispose();
     }
 }

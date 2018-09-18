@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.MetaData.Profiles.Icc;
 
@@ -24,6 +26,7 @@ namespace SixLabors.ImageSharp.MetaData
         /// </summary>
         public const double DefaultVerticalResolution = 96;
 
+        private readonly Dictionary<IImageFormat, object> formatMetaData = new Dictionary<IImageFormat, object>();
         private double horizontalResolution;
         private double verticalResolution;
 
@@ -48,7 +51,11 @@ namespace SixLabors.ImageSharp.MetaData
             this.HorizontalResolution = other.HorizontalResolution;
             this.VerticalResolution = other.VerticalResolution;
             this.ResolutionUnits = other.ResolutionUnits;
-            this.RepeatCount = other.RepeatCount;
+
+            foreach (KeyValuePair<IImageFormat, object> meta in other.formatMetaData)
+            {
+                this.formatMetaData.Add(meta.Key, meta.Value);
+            }
 
             foreach (ImageProperty property in other.Properties)
             {
@@ -125,10 +132,31 @@ namespace SixLabors.ImageSharp.MetaData
         public IList<ImageProperty> Properties { get; } = new List<ImageProperty>();
 
         /// <summary>
-        /// Gets or sets the number of times any animation is repeated.
-        /// <remarks>0 means to repeat indefinitely.</remarks>
+        /// Gets the metadata value associated with the specified key.
         /// </summary>
-        public ushort RepeatCount { get; set; }
+        /// <typeparam name="TFormatMetaData">The type of metadata.</typeparam>
+        /// <param name="key">The key of the value to get.</param>
+        /// <returns>
+        /// The <typeparamref name="TFormatMetaData"/>.
+        /// </returns>
+        public TFormatMetaData GetFormatMetaData<TFormatMetaData>(IImageFormat<TFormatMetaData> key)
+             where TFormatMetaData : class
+        {
+            if (this.formatMetaData.TryGetValue(key, out object meta))
+            {
+                return (TFormatMetaData)meta;
+            }
+
+            TFormatMetaData newMeta = key.CreateDefaultFormatMetaData();
+            this.formatMetaData[key] = newMeta;
+            return newMeta;
+        }
+
+        /// <summary>
+        /// Clones this into a new instance
+        /// </summary>
+        /// <returns>The cloned metadata instance</returns>
+        public ImageMetaData Clone() => new ImageMetaData(this);
 
         /// <summary>
         /// Looks up a property with the provided name.
@@ -154,20 +182,8 @@ namespace SixLabors.ImageSharp.MetaData
         }
 
         /// <summary>
-        /// Clones this into a new instance
-        /// </summary>
-        /// <returns>The cloned metadata instance</returns>
-        public ImageMetaData Clone()
-        {
-            return new ImageMetaData(this);
-        }
-
-        /// <summary>
         /// Synchronizes the profiles with the current meta data.
         /// </summary>
-        internal void SyncProfiles()
-        {
-            this.ExifProfile?.Sync(this);
-        }
+        internal void SyncProfiles() => this.ExifProfile?.Sync(this);
     }
 }

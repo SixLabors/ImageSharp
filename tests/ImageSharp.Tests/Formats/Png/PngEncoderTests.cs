@@ -23,6 +23,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         // The images are an exact match. Maybe the submodule isn't updating?
         private const float ToleranceThresholdForPaletteEncoder = 1.3F / 100;
 
+        public static readonly TheoryData<string, PngBitDepth> PngBitDepthFiles =
+        new TheoryData<string, PngBitDepth>
+        {
+            { TestImages.Png.Rgb48Bpp, PngBitDepth.Bit16 },
+            { TestImages.Png.Bpp1, PngBitDepth.Bit1 }
+        };
+
         /// <summary>
         /// All types except Palette
         /// </summary>
@@ -221,7 +228,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                                                : image;
 
                     float paletteToleranceHack = 80f / paletteSize;
-                    paletteToleranceHack = paletteToleranceHack * paletteToleranceHack;
+                    paletteToleranceHack *= paletteToleranceHack;
                     ImageComparer comparer = pngColorType == PngColorType.Palette
                                                  ? ImageComparer.Tolerant(ToleranceThresholdForPaletteEncoder * paletteToleranceHack)
                                                  : ImageComparer.Exact;
@@ -286,6 +293,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                         Assert.Equal(xResolution, meta.HorizontalResolution);
                         Assert.Equal(yResolution, meta.VerticalResolution);
                         Assert.Equal(resolutionUnit, meta.ResolutionUnits);
+                    }
+                }
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(PngBitDepthFiles))]
+        public void Encode_PreserveBits(string imagePath, PngBitDepth pngBitDepth)
+        {
+            var options = new PngEncoder();
+
+            var testFile = TestFile.Create(imagePath);
+            using (Image<Rgba32> input = testFile.CreateImage())
+            {
+                using (var memStream = new MemoryStream())
+                {
+                    input.Save(memStream, options);
+
+                    memStream.Position = 0;
+                    using (var output = Image.Load<Rgba32>(memStream))
+                    {
+                        PngMetaData meta = output.MetaData.GetFormatMetaData(PngFormat.Instance);
+
+                        Assert.Equal(pngBitDepth, meta.BitDepth);
                     }
                 }
             }

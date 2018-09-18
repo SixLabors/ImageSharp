@@ -49,6 +49,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             { TestImages.Jpeg.Baseline.GammaDalaiLamaGray, 72, 72, PixelResolutionUnit.PixelsPerInch }
         };
 
+        public static readonly TheoryData<string, int> QualityFiles =
+        new TheoryData<string, int>
+        {
+            { TestImages.Jpeg.Baseline.Calliphora, 80},
+            { TestImages.Jpeg.Progressive.Fb, 75 }
+        };
+
         [Theory]
         [MemberData(nameof(MetaDataTestData))]
         public void MetaDataIsParsedCorrectly(
@@ -98,6 +105,36 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(xResolution, meta.HorizontalResolution);
                 Assert.Equal(yResolution, meta.VerticalResolution);
                 Assert.Equal(resolutionUnit, meta.ResolutionUnits);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(QualityFiles))]
+        public void Identify_VerifyQuality(string imagePath, int quality)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using (var stream = new MemoryStream(testFile.Bytes, false))
+            {
+                var decoder = new JpegDecoder();
+                IImageInfo image = decoder.Identify(Configuration.Default, stream);
+                JpegMetaData meta = image.MetaData.GetFormatMetaData(JpegFormat.Instance);
+                Assert.Equal(quality, meta.Quality);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(QualityFiles))]
+        public void Decode_VerifyQuality(string imagePath, int quality)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using (var stream = new MemoryStream(testFile.Bytes, false))
+            {
+                var decoder = new JpegDecoder();
+                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
+                {
+                    JpegMetaData meta = image.MetaData.GetFormatMetaData(JpegFormat.Instance);
+                    Assert.Equal(quality, meta.Quality);
+                }
             }
         }
 

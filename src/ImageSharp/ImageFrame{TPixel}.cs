@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp
             this.MemoryAllocator = configuration.MemoryAllocator;
             this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(source.PixelBuffer.Width, source.PixelBuffer.Height);
             source.PixelBuffer.GetSpan().CopyTo(this.PixelBuffer.GetSpan());
-            this.MetaData = source.MetaData.Clone();
+            this.MetaData = source.MetaData.DeepClone();
         }
 
         /// <summary>
@@ -260,7 +260,7 @@ namespace SixLabors.ImageSharp
                 return this.Clone() as ImageFrame<TPixel2>;
             }
 
-            var target = new ImageFrame<TPixel2>(this.configuration, this.Width, this.Height, this.MetaData.Clone());
+            var target = new ImageFrame<TPixel2>(this.configuration, this.Width, this.Height, this.MetaData.DeepClone());
 
             ParallelFor.WithTemporaryBuffer(
                 0,

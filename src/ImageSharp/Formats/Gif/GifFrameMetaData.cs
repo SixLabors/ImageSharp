@@ -6,8 +6,26 @@ namespace SixLabors.ImageSharp.Formats.Gif
     /// <summary>
     /// Provides Gif specific metadata information for the image frame.
     /// </summary>
-    public class GifFrameMetaData
+    public class GifFrameMetaData : IDeepCloneable
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GifFrameMetaData"/> class.
+        /// </summary>
+        public GifFrameMetaData()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GifFrameMetaData"/> class.
+        /// </summary>
+        /// <param name="other">The metadata to create an instance from.</param>
+        internal GifFrameMetaData(GifFrameMetaData other)
+        {
+            this.ColorTableLength = other.ColorTableLength;
+            this.FrameDelay = other.FrameDelay;
+            this.DisposalMethod = other.DisposalMethod;
+        }
+
         /// <summary>
         /// Gets or sets the length of the color table for paletted images.
         /// If not 0, then this field indicates the maximum number of colors to use when quantizing the
@@ -29,5 +47,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// be treated after being displayed.
         /// </summary>
         public GifDisposalMethod DisposalMethod { get; set; }
+
+        /// <inheritdoc/>
+        public IDeepCloneable DeepClone() => new GifFrameMetaData(this);
     }
 }

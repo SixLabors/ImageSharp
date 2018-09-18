@@ -243,7 +243,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             // Collect the indexed pixel data
             if (quantized != null)
             {
-                this.WritePaletteChunk(stream, header, quantized);
+                this.WritePaletteChunk(stream, quantized);
             }
 
             this.WritePhysicalChunk(stream, metaData);
@@ -555,30 +555,27 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <param name="header">The <see cref="PngHeader"/>.</param>
         /// <param name="quantized">The quantized frame.</param>
-        private void WritePaletteChunk<TPixel>(Stream stream, in PngHeader header, QuantizedFrame<TPixel> quantized)
+        private void WritePaletteChunk<TPixel>(Stream stream, QuantizedFrame<TPixel> quantized)
             where TPixel : struct, IPixel<TPixel>
         {
             // Grab the palette and write it to the stream.
             TPixel[] palette = quantized.Palette;
-            byte pixelCount = palette.Length.ToByte();
-
-            // Get max colors for bit depth.
-            int colorTableLength = ImageMaths.GetColorCountForBitDepth(header.BitDepth) * 3;
+            int paletteLength = Math.Min(palette.Length, 256);
+            int colorTableLength = paletteLength * 3;
             Rgba32 rgba = default;
             bool anyAlpha = false;
 
             using (IManagedByteBuffer colorTable = this.memoryAllocator.AllocateManagedByteBuffer(colorTableLength))
-            using (IManagedByteBuffer alphaTable = this.memoryAllocator.AllocateManagedByteBuffer(pixelCount))
+            using (IManagedByteBuffer alphaTable = this.memoryAllocator.AllocateManagedByteBuffer(paletteLength))
             {
                 Span<byte> colorTableSpan = colorTable.GetSpan();
                 Span<byte> alphaTableSpan = alphaTable.GetSpan();
                 Span<byte> quantizedSpan = quantized.GetPixelSpan();
 
-                for (byte i = 0; i < pixelCount; i++)
+                for (int i = 0; i < paletteLength; i++)
                 {
-                    if (quantizedSpan.IndexOf(i) > -1)
+                    if (quantizedSpan.IndexOf((byte)i) > -1)
                     {
                         int offset = i * 3;
                         palette[i].ToRgba32(ref rgba);
@@ -604,7 +601,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 // Write the transparency data
                 if (anyAlpha)
                 {
-                    this.WriteChunk(stream, PngChunkType.PaletteAlpha, alphaTable.Array, 0, pixelCount);
+                    this.WriteChunk(stream, PngChunkType.PaletteAlpha, alphaTable.Array, 0, paletteLength);
                 }
             }
         }

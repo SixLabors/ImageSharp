@@ -138,17 +138,6 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Converts an <see cref="int"/> to a <see cref="byte"/> first restricting the value between the
-        /// minimum and maximum allowable ranges.
-        /// </summary>
-        /// <param name="value">The <see cref="int"/> this method extends.</param>
-        /// <returns>The <see cref="byte"/></returns>
-        public static byte ToByte(this int value)
-        {
-            return (byte)value.Clamp(0, 255);
-        }
-
-        /// <summary>
         /// Converts an <see cref="float"/> to a <see cref="byte"/> first restricting the value between the
         /// minimum and maximum allowable ranges.
         /// </summary>

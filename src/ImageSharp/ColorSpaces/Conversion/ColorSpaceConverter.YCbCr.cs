@@ -383,10 +383,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="YCbCr"/></returns>
-        public YCbCr ToYCbCr(in Rgb color)
-        {
-            return YCbCrAndRgbConverter.Convert(color);
-        }
+        public YCbCr ToYCbCr(in Rgb color) => YCbCrAndRgbConverter.Convert(color);
 
         /// <summary>
         /// Performs the bulk conversion from <see cref="Rgb"/> into <see cref="YCbCr"/>

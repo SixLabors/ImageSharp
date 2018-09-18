@@ -49,10 +49,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static bool operator ==(CieXyChromaticityCoordinates left, CieXyChromaticityCoordinates right)
-        {
-            return left.Equals(right);
-        }
+        public static bool operator ==(CieXyChromaticityCoordinates left, CieXyChromaticityCoordinates right) => left.Equals(right);
 
         /// <summary>
         /// Compares two <see cref="CieXyChromaticityCoordinates"/> objects for inequality
@@ -63,20 +60,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static bool operator !=(CieXyChromaticityCoordinates left, CieXyChromaticityCoordinates right)
-        {
-            return !left.Equals(right);
-        }
+        public static bool operator !=(CieXyChromaticityCoordinates left, CieXyChromaticityCoordinates right) => !left.Equals(right);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
         public override int GetHashCode() => HashHelpers.Combine(this.X.GetHashCode(), this.Y.GetHashCode());
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"CieXyChromaticityCoordinates [ X={this.X:#0.##}, Y={this.Y:#0.##}]";
-        }
+        public override string ToString() => $"CieXyChromaticityCoordinates [ X={this.X:#0.##}, Y={this.Y:#0.##}]";
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is CieXyChromaticityCoordinates other && this.Equals(other);

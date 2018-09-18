@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -127,10 +126,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"HunterLab [ L={this.L:#0.##}, A={this.A:#0.##}, B={this.B:#0.##}]";
-        }
+        public override string ToString() => $"HunterLab [ L={this.L:#0.##}, A={this.A:#0.##}, B={this.B:#0.##}]";
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is HunterLab other && this.Equals(other);

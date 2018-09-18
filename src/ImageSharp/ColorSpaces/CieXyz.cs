@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -70,10 +69,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static bool operator ==(CieXyz left, CieXyz right)
-        {
-            return left.Equals(right);
-        }
+        public static bool operator ==(CieXyz left, CieXyz right) => left.Equals(right);
 
         /// <summary>
         /// Compares two <see cref="CieXyz"/> objects for inequality.
@@ -84,10 +80,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static bool operator !=(CieXyz left, CieXyz right)
-        {
-            return !left.Equals(right);
-        }
+        public static bool operator !=(CieXyz left, CieXyz right) => !left.Equals(right);
 
         /// <summary>
         /// Returns a new <see cref="Vector3"/> representing this instance.
@@ -105,10 +98,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"CieXyz [ X={this.X:#0.##}, Y={this.Y:#0.##}, Z={this.Z:#0.##} ]";
-        }
+        public override string ToString() => $"CieXyz [ X={this.X:#0.##}, Y={this.Y:#0.##}, Z={this.Z:#0.##} ]";
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is CieXyz other && this.Equals(other);

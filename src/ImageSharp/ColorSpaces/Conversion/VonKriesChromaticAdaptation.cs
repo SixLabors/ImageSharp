@@ -41,10 +41,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// Initializes a new instance of the <see cref="VonKriesChromaticAdaptation"/> class.
         /// </summary>
         /// <param name="converter">The color converter</param>
-        internal VonKriesChromaticAdaptation(CieXyzAndLmsConverter converter)
-        {
-            this.converter = converter;
-        }
+        internal VonKriesChromaticAdaptation(CieXyzAndLmsConverter converter) => this.converter = converter;
 
         /// <inheritdoc/>
         public CieXyz Transform(in CieXyz sourceColor, in CieXyz sourceWhitePoint, in CieXyz targetWhitePoint)

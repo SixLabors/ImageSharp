@@ -94,10 +94,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"Hsl [ H={this.H:#0.##}, S={this.S:#0.##}, L={this.L:#0.##} ]";
-        }
+        public override string ToString() => $"Hsl [ H={this.H:#0.##}, S={this.S:#0.##}, L={this.L:#0.##} ]";
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is Hsl other && this.Equals(other);

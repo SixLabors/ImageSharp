@@ -55,9 +55,20 @@ namespace SixLabors.ImageSharp.Tests
 
                 public bool Equals(Key other)
                 {
-                    if (other is null) return false;
-                    if (ReferenceEquals(this, other)) return true;
-                    if (!this.commonValues.Equals(other.commonValues)) return false;
+                    if (other is null)
+                    {
+                        return false;
+                    }
+
+                    if (ReferenceEquals(this, other))
+                    {
+                        return true;
+                    }
+
+                    if (!this.commonValues.Equals(other.commonValues))
+                    {
+                        return false;
+                    }
 
                     if (this.decoderParameters.Count != other.decoderParameters.Count)
                     {
@@ -66,8 +77,7 @@ namespace SixLabors.ImageSharp.Tests
 
                     foreach (KeyValuePair<string, object> kv in this.decoderParameters)
                     {
-                        object otherVal;
-                        if (!other.decoderParameters.TryGetValue(kv.Key, out otherVal))
+                        if (!other.decoderParameters.TryGetValue(kv.Key, out object otherVal))
                         {
                             return false;
                         }
@@ -81,26 +91,29 @@ namespace SixLabors.ImageSharp.Tests
 
                 public override bool Equals(object obj)
                 {
-                    if (obj is null) return false;
-                    if (ReferenceEquals(this, obj)) return true;
-                    if (obj.GetType() != this.GetType()) return false;
+                    if (obj is null)
+                    {
+                        return false;
+                    }
+
+                    if (ReferenceEquals(this, obj))
+                    {
+                        return true;
+                    }
+
+                    if (obj.GetType() != this.GetType())
+                    {
+                        return false;
+                    }
+
                     return this.Equals((Key)obj);
                 }
 
-                public override int GetHashCode()
-                {
-                    return this.commonValues.GetHashCode();
-                }
+                public override int GetHashCode() => this.commonValues.GetHashCode();
 
-                public static bool operator ==(Key left, Key right)
-                {
-                    return Equals(left, right);
-                }
+                public static bool operator ==(Key left, Key right) => Equals(left, right);
 
-                public static bool operator !=(Key left, Key right)
-                {
-                    return !Equals(left, right);
-                }
+                public static bool operator !=(Key left, Key right) => !Equals(left, right);
             }
 
             private static readonly ConcurrentDictionary<Key, Image<TPixel>> cache = new ConcurrentDictionary<Key, Image<TPixel>>();
@@ -111,10 +124,7 @@ namespace SixLabors.ImageSharp.Tests
             {
             }
 
-            public FileProvider(string filePath)
-            {
-                this.FilePath = filePath;
-            }
+            public FileProvider(string filePath) => this.FilePath = filePath;
 
             /// <summary>
             /// Gets the file path relative to the "~/tests/images" folder
@@ -135,12 +145,12 @@ namespace SixLabors.ImageSharp.Tests
 
                 if (!TestEnvironment.Is64BitProcess)
                 {
-                    return LoadImage(decoder);
+                    return this.LoadImage(decoder);
                 }
 
                 var key = new Key(this.PixelType, this.FilePath, decoder);
 
-                Image<TPixel> cachedImage = cache.GetOrAdd(key, fn => { return LoadImage(decoder); });
+                Image<TPixel> cachedImage = cache.GetOrAdd(key, _ => this.LoadImage(decoder));
 
                 return cachedImage.Clone();
             }

@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests
             });
             Assert.Throws<ArgumentNullException>(() =>
             {
-                this.DefaultFormatsManager.SetEncoder(ImageFormats.Bmp, null);
+                this.DefaultFormatsManager.SetEncoder(BmpFormat.Instance, null);
             });
             Assert.Throws<ArgumentNullException>(() =>
             {
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Tests
             });
             Assert.Throws<ArgumentNullException>(() =>
             {
-                this.DefaultFormatsManager.SetDecoder(ImageFormats.Bmp, null);
+                this.DefaultFormatsManager.SetDecoder(BmpFormat.Instance, null);
             });
             Assert.Throws<ArgumentNullException>(() =>
             {

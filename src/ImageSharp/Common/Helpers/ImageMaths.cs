@@ -55,6 +55,14 @@ namespace SixLabors.ImageSharp
         public static int GetBitsNeededForColorDepth(int colors) => Math.Max(1, (int)Math.Ceiling(Math.Log(colors, 2)));
 
         /// <summary>
+        /// Returns how many colors will be created by the specified number of bits.
+        /// </summary>
+        /// <param name="bitDepth">The bit depth.</param>
+        /// <returns>The <see cref="int"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetColorCountForBitDepth(int bitDepth) => 1 << bitDepth;
+
+        /// <summary>
         /// Implementation of 1D Gaussian G(x) function
         /// </summary>
         /// <param name="x">The x provided to G(x).</param>

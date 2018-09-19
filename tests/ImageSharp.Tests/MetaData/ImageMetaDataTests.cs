@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
+using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
@@ -38,18 +38,42 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Fact]
+        public void CloneIsDeep()
+        {
+            var metaData = new ImageMetaData();
+
+            var exifProfile = new ExifProfile();
+            var imageProperty = new ImageProperty("name", "value");
+
+            metaData.ExifProfile = exifProfile;
+            metaData.HorizontalResolution = 4;
+            metaData.VerticalResolution = 2;
+            metaData.Properties.Add(imageProperty);
+
+            ImageMetaData clone = metaData.DeepClone();
+            clone.HorizontalResolution = 2;
+            clone.VerticalResolution = 4;
+
+            Assert.False(metaData.ExifProfile.Equals(clone.ExifProfile));
+            Assert.False(metaData.HorizontalResolution.Equals(clone.HorizontalResolution));
+            Assert.False(metaData.VerticalResolution.Equals(clone.VerticalResolution));
+            Assert.False(metaData.Properties.Equals(clone.Properties));
+            Assert.False(metaData.GetFormatMetaData(GifFormat.Instance).Equals(clone.GetFormatMetaData(GifFormat.Instance)));
+        }
+
+        [Fact]
         public void HorizontalResolution()
         {
             var metaData = new ImageMetaData();
             Assert.Equal(96, metaData.HorizontalResolution);
 
-            metaData.HorizontalResolution=0;
+            metaData.HorizontalResolution = 0;
             Assert.Equal(96, metaData.HorizontalResolution);
 
-            metaData.HorizontalResolution=-1;
+            metaData.HorizontalResolution = -1;
             Assert.Equal(96, metaData.HorizontalResolution);
 
-            metaData.HorizontalResolution=1;
+            metaData.HorizontalResolution = 1;
             Assert.Equal(1, metaData.HorizontalResolution);
         }
 

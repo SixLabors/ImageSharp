@@ -190,7 +190,7 @@ namespace SixLabors.ImageSharp
         public Image<TPixel> Clone()
         {
             IEnumerable<ImageFrame<TPixel>> clonedFrames = this.frames.Select(x => x.Clone());
-            return new Image<TPixel>(this.configuration, this.MetaData.Clone(), clonedFrames);
+            return new Image<TPixel>(this.configuration, this.MetaData.DeepClone(), clonedFrames);
         }
 
         /// <inheritdoc/>
@@ -208,7 +208,7 @@ namespace SixLabors.ImageSharp
             where TPixel2 : struct, IPixel<TPixel2>
         {
             IEnumerable<ImageFrame<TPixel2>> clonedFrames = this.frames.Select(x => x.CloneAs<TPixel2>());
-            var target = new Image<TPixel2>(this.configuration, this.MetaData.Clone(), clonedFrames);
+            var target = new Image<TPixel2>(this.configuration, this.MetaData.DeepClone(), clonedFrames);
 
             return target;
         }

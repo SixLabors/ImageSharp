@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Initializes a new instance of the <see cref="GifFrameMetaData"/> class.
         /// </summary>
         /// <param name="other">The metadata to create an instance from.</param>
-        internal GifFrameMetaData(GifFrameMetaData other)
+        private GifFrameMetaData(GifFrameMetaData other)
         {
             this.ColorTableLength = other.ColorTableLength;
             this.FrameDelay = other.FrameDelay;

@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 GlobalColorTableLength = 2
             };
 
-            var clone = (GifMetaData)meta.Clone();
+            var clone = (GifMetaData)meta.DeepClone();
 
             clone.RepeatCount = 2;
             clone.ColorTableMode = GifColorTableMode.Local;

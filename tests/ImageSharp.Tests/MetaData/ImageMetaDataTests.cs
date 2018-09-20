@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests
             metaData.VerticalResolution = 2;
             metaData.Properties.Add(imageProperty);
 
-            ImageMetaData clone = metaData.Clone();
+            ImageMetaData clone = metaData.DeepClone();
 
             Assert.Equal(exifProfile.ToByteArray(), clone.ExifProfile.ToByteArray());
             Assert.Equal(4, clone.HorizontalResolution);
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests
             metaData.VerticalResolution = 2;
             metaData.Properties.Add(imageProperty);
 
-            ImageMetaData clone = metaData.Clone();
+            ImageMetaData clone = metaData.DeepClone();
             clone.HorizontalResolution = 2;
             clone.VerticalResolution = 4;
 

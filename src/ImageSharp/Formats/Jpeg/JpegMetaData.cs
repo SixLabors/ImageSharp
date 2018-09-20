@@ -27,6 +27,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public int Quality { get; set; } = 75;
 
         /// <inheritdoc/>
-        public IDeepCloneable Clone() => new JpegMetaData(this);
+        public IDeepCloneable DeepClone() => new JpegMetaData(this);
     }
 }

@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void CloneIsDeep()
         {
             var meta = new JpegMetaData() { Quality = 50 };
-            var clone = (JpegMetaData)meta.DeepClone();
+            var clone = (JpegMetaData)meta.Clone();
 
             clone.Quality = 99;
 

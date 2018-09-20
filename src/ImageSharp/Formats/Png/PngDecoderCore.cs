@@ -188,6 +188,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         private bool hasTrans;
 
         /// <summary>
+        /// The next chunk of data to return
+        /// </summary>
+        private PngChunk? nextChunk;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
@@ -223,66 +228,65 @@ namespace SixLabors.ImageSharp.Formats.Png
             Image<TPixel> image = null;
             try
             {
-                using (var deframeStream = new ZlibInflateStream(this.currentStream))
+                while (!this.isEndChunkReached && this.TryReadChunk(out PngChunk chunk))
                 {
-                    while (!this.isEndChunkReached && this.TryReadChunk(out PngChunk chunk))
+                    try
                     {
-                        try
+                        switch (chunk.Type)
                         {
-                            switch (chunk.Type)
-                            {
-                                case PngChunkType.Header:
-                                    this.ReadHeaderChunk(pngMetaData, chunk.Data.Array);
-                                    this.ValidateHeader();
-                                    break;
-                                case PngChunkType.Physical:
-                                    this.ReadPhysicalChunk(metaData, chunk.Data.GetSpan());
-                                    break;
-                                case PngChunkType.Gamma:
-                                    this.ReadGammaChunk(pngMetaData, chunk.Data.GetSpan());
-                                    break;
-                                case PngChunkType.Data:
-                                    if (image is null)
-                                    {
-                                        this.InitializeImage(metaData, out image);
-                                    }
+                            case PngChunkType.Header:
+                                this.ReadHeaderChunk(pngMetaData, chunk.Data.Array);
+                                this.ValidateHeader();
+                                break;
+                            case PngChunkType.Physical:
+                                this.ReadPhysicalChunk(metaData, chunk.Data.GetSpan());
+                                break;
+                            case PngChunkType.Gamma:
+                                this.ReadGammaChunk(pngMetaData, chunk.Data.GetSpan());
+                                break;
+                            case PngChunkType.Data:
+                                if (image is null)
+                                {
+                                    this.InitializeImage(metaData, out image);
+                                }
 
-                                    deframeStream.AllocateNewBytes(chunk.Length);
+                                using (var deframeStream = new ZlibInflateStream(this.currentStream, this.ReadNextDataChunk))
+                                {
+									deframeStream.AllocateNewBytes(chunk.Length);
                                     this.ReadScanlines(deframeStream.CompressedStream, image.Frames.RootFrame);
-                                    this.currentStream.Read(this.crcBuffer, 0, 4);
-                                    break;
-                                case PngChunkType.Palette:
-                                    byte[] pal = new byte[chunk.Length];
-                                    Buffer.BlockCopy(chunk.Data.Array, 0, pal, 0, chunk.Length);
-                                    this.palette = pal;
-                                    break;
-                                case PngChunkType.PaletteAlpha:
-                                    byte[] alpha = new byte[chunk.Length];
-                                    Buffer.BlockCopy(chunk.Data.Array, 0, alpha, 0, chunk.Length);
-                                    this.paletteAlpha = alpha;
-                                    this.AssignTransparentMarkers(alpha);
-                                    break;
-                                case PngChunkType.Text:
-                                    this.ReadTextChunk(metaData, chunk.Data.Array, chunk.Length);
-                                    break;
-                                case PngChunkType.Exif:
-                                    if (!this.ignoreMetadata)
-                                    {
-                                        byte[] exifData = new byte[chunk.Length];
-                                        Buffer.BlockCopy(chunk.Data.Array, 0, exifData, 0, chunk.Length);
-                                        metaData.ExifProfile = new ExifProfile(exifData);
-                                    }
+                                }
+                                break;
+                            case PngChunkType.Palette:
+                                byte[] pal = new byte[chunk.Length];
+                                Buffer.BlockCopy(chunk.Data.Array, 0, pal, 0, chunk.Length);
+                                this.palette = pal;
+                                break;
+                            case PngChunkType.PaletteAlpha:
+                                byte[] alpha = new byte[chunk.Length];
+                                Buffer.BlockCopy(chunk.Data.Array, 0, alpha, 0, chunk.Length);
+                                this.paletteAlpha = alpha;
+                                this.AssignTransparentMarkers(alpha);
+                                break;
+                            case PngChunkType.Text:
+                                this.ReadTextChunk(metaData, chunk.Data.Array, chunk.Length);
+                                break;
+                            case PngChunkType.Exif:
+                                if (!this.ignoreMetadata)
+                                {
+                                    byte[] exifData = new byte[chunk.Length];
+                                    Buffer.BlockCopy(chunk.Data.Array, 0, exifData, 0, chunk.Length);
+                                    metaData.ExifProfile = new ExifProfile(exifData);
+                                }
 
-                                    break;
-                                case PngChunkType.End:
-                                    this.isEndChunkReached = true;
-                                    break;
-                            }
+                                break;
+                            case PngChunkType.End:
+                                this.isEndChunkReached = true;
+                                break;
                         }
-                        finally
-                        {
-                            chunk.Data?.Dispose(); // Data is rented in ReadChunkData()
-                        }
+                    }
+                    finally
+                    {
+                        chunk.Data?.Dispose(); // Data is rented in ReadChunkData()
                     }
                 }
 
@@ -1367,6 +1371,25 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <summary>
+        /// Reads the next data chunk.
+        /// </summary>
+        /// <returns>Count of bytes in the next data chunk, or 0 if there are no more data chunks left.</returns>
+        private int ReadNextDataChunk()
+        {
+            this.currentStream.Read(this.crcBuffer, 0, 4);
+
+            this.TryReadChunk(out PngChunk chunk);
+
+            if (chunk.Type == PngChunkType.Data)
+            {
+                return chunk.Length;
+            }
+
+            this.nextChunk = chunk;
+            return 0;
+        }
+
+        /// <summary>
         /// Reads a chunk from the stream.
         /// </summary>
         /// <param name="chunk">The image format chunk.</param>
@@ -1375,6 +1398,12 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </returns>
         private bool TryReadChunk(out PngChunk chunk)
         {
+            if (this.nextChunk != null)
+            {
+                chunk = this.nextChunk.Value;
+                return true;
+            }
+
             int length = this.ReadChunkLength();
 
             if (length == -1)

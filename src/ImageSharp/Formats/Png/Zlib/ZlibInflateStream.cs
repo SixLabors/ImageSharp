@@ -43,11 +43,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         private bool isDisposed;
 
         /// <summary>
-        /// Whether the crc value has been read.
-        /// </summary>
-        private bool crcRead;
-
-        /// <summary>
         /// The current data remaining to be read
         /// </summary>
         private int currentDataRemaining;
@@ -119,17 +114,36 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         {
             if (this.currentDataRemaining == 0)
             {
-				this.currentDataRemaining = this.getData();
+                // last buffer was read in its entirety, let's make sure we don't actually have more
+                this.currentDataRemaining = this.getData();
 
-				if (this.currentDataRemaining == 0)
-				{
-					return 0;
-				}
+                if (this.currentDataRemaining == 0)
+                {
+                    return 0;
+                }
             }
 
             int bytesToRead = Math.Min(count, this.currentDataRemaining);
             this.currentDataRemaining -= bytesToRead;
-            return this.innerStream.Read(buffer, offset, bytesToRead);
+            int bytesRead = this.innerStream.Read(buffer, offset, bytesToRead);
+
+            // keep reading data until we've reached the end of the stream or filled the buffer
+            while (this.currentDataRemaining == 0 && bytesRead < count)
+            {
+                this.currentDataRemaining = this.getData();
+
+                if (this.currentDataRemaining == 0)
+                {
+                    return bytesRead;
+                }
+
+                offset += bytesRead;
+                bytesToRead = Math.Min(count - bytesRead, this.currentDataRemaining);
+                this.currentDataRemaining -= bytesToRead;
+                bytesRead += this.innerStream.Read(buffer, offset, bytesToRead);
+            }
+
+            return bytesRead;
         }
 
         /// <inheritdoc/>
@@ -165,14 +179,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 {
                     this.compressedStream.Dispose();
                     this.compressedStream = null;
-
-                    if (!this.crcRead)
-                    {
-                        // Consume the trailing 4 bytes
-                        this.innerStream.Read(ChecksumBuffer, 0, 4);
-                        this.currentDataRemaining -= 4;
-                        this.crcRead = true;
-                    }
                 }
             }
 

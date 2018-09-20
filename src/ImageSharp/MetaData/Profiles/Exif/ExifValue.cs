@@ -229,7 +229,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         }
 
         /// <inheritdoc/>
-        public ExifValue Clone() => new ExifValue(this);
+        public ExifValue DeepClone() => new ExifValue(this);
 
         /// <summary>
         /// Creates a new <see cref="ExifValue"/>

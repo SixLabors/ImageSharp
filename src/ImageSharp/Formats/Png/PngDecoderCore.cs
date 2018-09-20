@@ -252,9 +252,10 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                                 using (var deframeStream = new ZlibInflateStream(this.currentStream, this.ReadNextDataChunk))
                                 {
-									deframeStream.AllocateNewBytes(chunk.Length);
+                                    deframeStream.AllocateNewBytes(chunk.Length);
                                     this.ReadScanlines(deframeStream.CompressedStream, image.Frames.RootFrame);
                                 }
+
                                 break;
                             case PngChunkType.Palette:
                                 byte[] pal = new byte[chunk.Length];
@@ -1376,16 +1377,23 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <returns>Count of bytes in the next data chunk, or 0 if there are no more data chunks left.</returns>
         private int ReadNextDataChunk()
         {
-            this.currentStream.Read(this.crcBuffer, 0, 4);
-
-            this.TryReadChunk(out PngChunk chunk);
-
-            if (chunk.Type == PngChunkType.Data)
+            if (this.nextChunk != null)
             {
-                return chunk.Length;
+                return 0;
             }
 
-            this.nextChunk = chunk;
+            this.currentStream.Read(this.crcBuffer, 0, 4);
+
+            if (this.TryReadChunk(out PngChunk chunk))
+            {
+                if (chunk.Type == PngChunkType.Data)
+                {
+                    return chunk.Length;
+                }
+
+                this.nextChunk = chunk;
+            }
+
             return 0;
         }
 
@@ -1401,6 +1409,9 @@ namespace SixLabors.ImageSharp.Formats.Png
             if (this.nextChunk != null)
             {
                 chunk = this.nextChunk.Value;
+
+                this.nextChunk = null;
+
                 return true;
             }
 

@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <inheritdoc/>
-        public IccProfile Clone() => new IccProfile(this);
+        public IccProfile DeepClone() => new IccProfile(this);
 
 #if !NETSTANDARD1_1
 

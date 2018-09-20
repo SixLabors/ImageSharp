@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public BmpBitsPerPixel BitsPerPixel { get; set; } = BmpBitsPerPixel.Pixel24;
 
         /// <inheritdoc/>
-        public IDeepCloneable Clone() => new BmpMetaData(this);
+        public IDeepCloneable DeepClone() => new BmpMetaData(this);
 
         // TODO: Colors used once we support encoding palette bmps.
     }

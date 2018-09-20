@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 ColorTableLength = 2
             };
 
-            var clone = (GifFrameMetaData)meta.Clone();
+            var clone = (GifFrameMetaData)meta.DeepClone();
 
             clone.FrameDelay = 2;
             clone.DisposalMethod = GifDisposalMethod.RestoreToPrevious;

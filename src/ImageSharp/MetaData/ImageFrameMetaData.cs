@@ -33,12 +33,12 @@ namespace SixLabors.ImageSharp.MetaData
 
             foreach (KeyValuePair<IImageFormat, IDeepCloneable> meta in other.formatMetaData)
             {
-                this.formatMetaData.Add(meta.Key, meta.Value.DeepClone());
+                this.formatMetaData.Add(meta.Key, meta.Value.Clone());
             }
         }
 
         /// <inheritdoc/>
-        public ImageFrameMetaData DeepClone() => new ImageFrameMetaData(this);
+        public ImageFrameMetaData Clone() => new ImageFrameMetaData(this);
 
         /// <summary>
         /// Gets the metadata value associated with the specified key.

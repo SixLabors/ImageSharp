@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp
         /// Creates a new <typeparamref name="T"/> that is a deep copy of the current instance.
         /// </summary>
         /// <returns>The <typeparamref name="T"/>.</returns>
-        T DeepClone();
+        T Clone();
     }
 
     /// <summary>
@@ -26,6 +26,6 @@ namespace SixLabors.ImageSharp
         /// Creates a new object that is a deep copy of the current instance.
         /// </summary>
         /// <returns>The <see cref="IDeepCloneable"/>.</returns>
-        IDeepCloneable DeepClone();
+        IDeepCloneable Clone();
     }
 }

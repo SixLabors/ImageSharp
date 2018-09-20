@@ -67,16 +67,16 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ConstructorCopy()
         {
-            Assert.Throws<NullReferenceException>(() => ((ExifProfile)null).DeepClone());
+            Assert.Throws<NullReferenceException>(() => ((ExifProfile)null).Clone());
 
             ExifProfile profile = GetExifProfile();
 
-            ExifProfile clone = profile.DeepClone();
+            ExifProfile clone = profile.Clone();
             TestProfile(clone);
 
             profile.SetValue(ExifTag.ColorSpace, (ushort)2);
 
-            clone = profile.DeepClone();
+            clone = profile.Clone();
             TestProfile(clone);
         }
 

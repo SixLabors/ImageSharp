@@ -45,6 +45,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public int GlobalColorTableLength { get; set; }
 
         /// <inheritdoc/>
-        public IDeepCloneable DeepClone() => new GifMetaData(this);
+        public IDeepCloneable Clone() => new GifMetaData(this);
     }
 }

@@ -51,10 +51,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         {
             // We will always be creating the clone even for mutate because we may need to resize the canvas
             IEnumerable<ImageFrame<TPixel>> frames =
-                source.Frames.Select(x => new ImageFrame<TPixel>(source.GetConfiguration(), this.TargetDimensions, x.MetaData.DeepClone()));
+                source.Frames.Select(x => new ImageFrame<TPixel>(source.GetConfiguration(), this.TargetDimensions, x.MetaData.Clone()));
 
             // Use the overload to prevent an extra frame being added
-            return new Image<TPixel>(source.GetConfiguration(), source.MetaData.DeepClone(), frames);
+            return new Image<TPixel>(source.GetConfiguration(), source.MetaData.Clone(), frames);
         }
 
         /// <inheritdoc/>

@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp
         /// Creates a shallow copy of the <see cref="Configuration"/>
         /// </summary>
         /// <returns>A new configuration instance</returns>
-        public Configuration ShallowCopy()
+        public Configuration Clone()
         {
             return new Configuration
             {

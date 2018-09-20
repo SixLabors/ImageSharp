@@ -53,12 +53,19 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         private int currentDataRemaining;
 
         /// <summary>
+        /// Delegate to get more data once we've exhausted the current data remaining
+        /// </summary>
+        private Func<int> getData;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="ZlibInflateStream"/> class.
         /// </summary>
         /// <param name="innerStream">The inner raw stream</param>
-        public ZlibInflateStream(Stream innerStream)
+        /// <param name="getData">A delegate to get more data from the inner stream</param>
+        public ZlibInflateStream(Stream innerStream, Func<int> getData)
         {
             this.innerStream = innerStream;
+            this.getData = getData;
         }
 
         /// <inheritdoc/>
@@ -112,7 +119,12 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         {
             if (this.currentDataRemaining == 0)
             {
-                return 0;
+				this.currentDataRemaining = this.getData();
+
+				if (this.currentDataRemaining == 0)
+				{
+					return 0;
+				}
             }
 
             int bytesToRead = Math.Min(count, this.currentDataRemaining);

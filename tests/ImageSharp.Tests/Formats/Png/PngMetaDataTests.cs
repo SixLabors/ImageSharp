@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 ColorType = PngColorType.GrayscaleWithAlpha,
                 Gamma = 2
             };
-            var clone = (PngMetaData)meta.DeepClone();
+            var clone = (PngMetaData)meta.Clone();
 
             clone.BitDepth = PngBitDepth.Bit2;
             clone.ColorType = PngColorType.Palette;

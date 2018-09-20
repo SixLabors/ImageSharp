@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.MetaData
 
             foreach (KeyValuePair<IImageFormat, IDeepCloneable> meta in other.formatMetaData)
             {
-                this.formatMetaData.Add(meta.Key, meta.Value.DeepClone());
+                this.formatMetaData.Add(meta.Key, meta.Value.Clone());
             }
 
             foreach (ImageProperty property in other.Properties)
@@ -68,8 +68,8 @@ namespace SixLabors.ImageSharp.MetaData
                 this.Properties.Add(property);
             }
 
-            this.ExifProfile = other.ExifProfile?.DeepClone();
-            this.IccProfile = other.IccProfile?.DeepClone();
+            this.ExifProfile = other.ExifProfile?.Clone();
+            this.IccProfile = other.IccProfile?.Clone();
         }
 
         /// <summary>
@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.MetaData
         }
 
         /// <inheritdoc/>
-        public ImageMetaData DeepClone() => new ImageMetaData(this);
+        public ImageMetaData Clone() => new ImageMetaData(this);
 
         /// <summary>
         /// Looks up a property with the provided name.

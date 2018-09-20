@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests
         public void CloneIsDeep()
         {
             var metaData = new ImageFrameMetaData();
-            ImageFrameMetaData clone = metaData.DeepClone();
+            ImageFrameMetaData clone = metaData.Clone();
             Assert.False(metaData.GetFormatMetaData(GifFormat.Instance).Equals(clone.GetFormatMetaData(GifFormat.Instance)));
         }
     }

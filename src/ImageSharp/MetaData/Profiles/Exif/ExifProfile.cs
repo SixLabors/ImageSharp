@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
                 foreach (ExifValue value in other.Values)
                 {
-                    this.values.Add(value.DeepClone());
+                    this.values.Add(value.Clone());
                 }
             }
 
@@ -242,7 +242,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         }
 
         /// <inheritdoc/>
-        public ExifProfile DeepClone() => new ExifProfile(this);
+        public ExifProfile Clone() => new ExifProfile(this);
 
         /// <summary>
         /// Synchronizes the profiles with the specified meta data.

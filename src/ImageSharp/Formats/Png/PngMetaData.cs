@@ -43,6 +43,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         public float Gamma { get; set; }
 
         /// <inheritdoc/>
-        public IDeepCloneable DeepClone() => new PngMetaData(this);
+        public IDeepCloneable Clone() => new PngMetaData(this);
     }
 }

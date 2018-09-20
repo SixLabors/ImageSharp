@@ -49,6 +49,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public GifDisposalMethod DisposalMethod { get; set; }
 
         /// <inheritdoc/>
-        public IDeepCloneable DeepClone() => new GifFrameMetaData(this);
+        public IDeepCloneable Clone() => new GifFrameMetaData(this);
     }
 }

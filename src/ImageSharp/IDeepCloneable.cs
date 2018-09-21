@@ -7,8 +7,8 @@ namespace SixLabors.ImageSharp
     /// A generic interface for a deeply cloneable type.
     /// </summary>
     /// <typeparam name="T">The type of object to clone.</typeparam>
-    public interface IDeepCloneable<T>
-        where T : class, IDeepCloneable<T>
+    public interface IDeepCloneable<out T>
+        where T : class
     {
         /// <summary>
         /// Creates a new <typeparamref name="T"/> that is a deep copy of the current instance.

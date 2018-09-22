@@ -318,15 +318,16 @@ namespace SixLabors.ImageSharp
         /// <param name="value">The value to initialize the bitmap with.</param>
         internal void Clear(ParallelOptions parallelOptions, TPixel value)
         {
-            Parallel.For(
-                0,
-                this.Height,
-                parallelOptions,
-                y =>
-                {
-                    Span<TPixel> targetRow = this.GetPixelRowSpan(y);
-                    targetRow.Fill(value);
-                });
+            Span<TPixel> span = this.GetPixelSpan();
+
+            if (value.Equals(default))
+            {
+                span.Clear();
+            }
+            else
+            {
+                span.Fill(value);
+            }
         }
 
         /// <inheritdoc/>

@@ -86,7 +86,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             // TODO: can we simplify the rectangle calculation?
-
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;

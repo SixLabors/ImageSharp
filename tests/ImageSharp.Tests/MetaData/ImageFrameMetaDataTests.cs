@@ -32,5 +32,13 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(colorTableLength, cloneGifFrameMetaData.ColorTableLength);
             Assert.Equal(disposalMethod, cloneGifFrameMetaData.DisposalMethod);
         }
+
+        [Fact]
+        public void CloneIsDeep()
+        {
+            var metaData = new ImageFrameMetaData();
+            ImageFrameMetaData clone = metaData.DeepClone();
+            Assert.False(metaData.GetFormatMetaData(GifFormat.Instance).Equals(clone.GetFormatMetaData(GifFormat.Instance)));
+        }
     }
 }

@@ -12,7 +12,15 @@ namespace SixLabors.ImageSharp.ParallelUtils
     /// </summary>
     internal struct ParallelExecutionSettings
     {
-        public ParallelExecutionSettings(int maxDegreeOfParallelism, int minimumPixelsProcessedPerTask, MemoryAllocator memoryAllocator)
+        /// <summary>
+        /// Default value for <see cref="MinimumPixelsProcessedPerTask"/>.
+        /// </summary>
+        public const int DefaultMinimumPixelsProcessedPerTask = 2048;
+
+        public ParallelExecutionSettings(
+            int maxDegreeOfParallelism,
+            int minimumPixelsProcessedPerTask,
+            MemoryAllocator memoryAllocator)
         {
             this.MaxDegreeOfParallelism = maxDegreeOfParallelism;
             this.MinimumPixelsProcessedPerTask = minimumPixelsProcessedPerTask;
@@ -20,7 +28,7 @@ namespace SixLabors.ImageSharp.ParallelUtils
         }
 
         public ParallelExecutionSettings(int maxDegreeOfParallelism, MemoryAllocator memoryAllocator)
-            : this(maxDegreeOfParallelism, 2048, memoryAllocator)
+            : this(maxDegreeOfParallelism, DefaultMinimumPixelsProcessedPerTask, memoryAllocator)
         {
         }
 
@@ -37,5 +45,13 @@ namespace SixLabors.ImageSharp.ParallelUtils
         /// Initialized with 2048 by default, the optimum value is operation specific.
         /// </summary>
         public int MinimumPixelsProcessedPerTask { get; }
+
+        public ParallelExecutionSettings MultiplyMinimumPixelsPerTask(int multiplier)
+        {
+            return new ParallelExecutionSettings(
+                this.MaxDegreeOfParallelism,
+                this.MinimumPixelsProcessedPerTask * multiplier,
+                this.MemoryAllocator);
+        }
     }
 }

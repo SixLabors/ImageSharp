@@ -57,8 +57,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int height = source.Height;
             int halfHeight = (int)Math.Ceiling(source.Height * .5F);
 
+          
             using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
             {
+
+
                 ParallelFor.WithConfiguration(
                     0,
                     halfHeight,

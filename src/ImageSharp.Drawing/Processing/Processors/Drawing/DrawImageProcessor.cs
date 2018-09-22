@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -80,15 +81,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 
             MemoryAllocator memoryAllocator = this.Image.GetConfiguration().MemoryAllocator;
 
-            ParallelFor.WithConfiguration(
-                minY,
-                maxY,
+            var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
+
+            ParallelHelper.IterateRows(
+                workingRect,
                 configuration,
-                y =>
+                rows =>
                     {
-                        Span<TPixelDst> background = source.GetPixelRowSpan(y).Slice(minX, width);
-                        Span<TPixelSrc> foreground = targetImage.GetPixelRowSpan(y - locationY).Slice(targetX, width);
-                        blender.Blend<TPixelSrc>(memoryAllocator, background, background, foreground, this.Opacity);
+                        for (int y = rows.Min; y < rows.Max; y++)
+                        {
+                            Span<TPixelDst> background = source.GetPixelRowSpan(y).Slice(minX, width);
+                            Span<TPixelSrc> foreground =
+                                targetImage.GetPixelRowSpan(y - locationY).Slice(targetX, width);
+                            blender.Blend<TPixelSrc>(memoryAllocator, background, background, foreground, this.Opacity);
+                        }
                     });
         }
     }

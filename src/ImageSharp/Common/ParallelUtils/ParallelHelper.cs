@@ -13,7 +13,8 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.ParallelUtils
 {
     /// <summary>
-    /// Utility methods wrapping Parallel.For() execution optimized for image processing.
+    /// Utility methods for batched processing of pixel row intervals.
+    /// Parallel execution is optimized for image processing.
     /// Use this instead of direct <see cref="Parallel"/> calls!
     /// </summary>
     internal static class ParallelHelper

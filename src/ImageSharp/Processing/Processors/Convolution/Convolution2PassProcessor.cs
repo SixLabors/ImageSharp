@@ -85,7 +85,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
 
-#if true
             ParallelHelper.IterateRows(
                 workingRectangle,
                 configuration,
@@ -125,45 +124,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                             }
                         }
                     });
-#else
-            ParallelFor.WithConfiguration(
-                startY,
-                endY,
-                configuration,
-                y =>
-                {
-                    Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
-
-                    for (int x = startX; x < endX; x++)
-                    {
-                        Vector4 destination = default;
-
-                        // Apply each matrix multiplier to the color components for each pixel.
-                        for (int fy = 0; fy < kernelHeight; fy++)
-                        {
-                            int fyr = fy - radiusY;
-                            int offsetY = y + fyr;
-
-                            offsetY = offsetY.Clamp(0, maxY);
-                            Span<TPixel> row = sourcePixels.GetRowSpan(offsetY);
-
-                            for (int fx = 0; fx < kernelWidth; fx++)
-                            {
-                                int fxr = fx - radiusX;
-                                int offsetX = x + fxr;
-
-                                offsetX = offsetX.Clamp(0, maxX);
-
-                                Vector4 currentColor = row[offsetX].ToVector4().Premultiply();
-                                destination += kernel[fy, fx] * currentColor;
-                            }
-                        }
-
-                        ref TPixel pixel = ref targetRow[x];
-                        pixel.PackFromVector4(destination.UnPremultiply());
-                    }
-                });
-#endif
         }
     }
 }

@@ -13,11 +13,19 @@ using SixLabors.Memory;
 using SixLabors.Primitives;
 
 using Xunit;
+using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Helpers
 {
     public class ParallelHelperTests
     {
+        private readonly ITestOutputHelper Output;
+        
+        public ParallelHelperTests(ITestOutputHelper output)
+        {
+            this.Output = output;
+        }
+
         /// <summary>
         /// maxDegreeOfParallelism, minY, maxY, expectedStepLength, expectedLastStepLength
         /// </summary>
@@ -30,12 +38,13 @@ namespace SixLabors.ImageSharp.Tests.Helpers
                     { 2, 10, 19, 5, 4 },
                     { 4, 0, 200, 50, 50 },
                     { 4, 123, 323, 50, 50 },
-                    { 4, 0, 1201, 300, 301 },
+                    { 4, 0, 1201, 301, 298 },
+                    { 8, 10, 236, 29, 23 }
                 };
 
         [Theory]
         [MemberData(nameof(IterateRows_OverMinimumPixelsLimit_Data))]
-        public void IterateRows_OverMinimumPixelsLimit(
+        public void IterateRows_OverMinimumPixelsLimit_IntervalsAreCorrect(
             int maxDegreeOfParallelism,
             int minY,
             int maxY,
@@ -50,6 +59,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             var rectangle = new Rectangle(0, minY, 10, maxY - minY);
 
             int actualNumberOfSteps = 0;
+            
             ParallelHelper.IterateRows(
                 rectangle,
                 parallelSettings,
@@ -66,6 +76,40 @@ namespace SixLabors.ImageSharp.Tests.Helpers
                     });
 
             Assert.Equal(maxDegreeOfParallelism, actualNumberOfSteps);
+        }
+
+        [Theory]
+        [MemberData(nameof(IterateRows_OverMinimumPixelsLimit_Data))]
+        public void IterateRows_OverMinimumPixelsLimit_ShouldVisitAllRows(
+            int maxDegreeOfParallelism,
+            int minY,
+            int maxY,
+            int expectedStepLength,
+            int expectedLastStepLength)
+        {
+            var parallelSettings = new ParallelExecutionSettings(
+                maxDegreeOfParallelism,
+                1,
+                Configuration.Default.MemoryAllocator);
+
+            var rectangle = new Rectangle(0, minY, 10, maxY - minY);
+
+
+            int[] expectedData = Enumerable.Repeat(0, minY).Concat(Enumerable.Range(minY, maxY - minY)).ToArray();
+            int[] actualData = new int[maxY];
+
+            ParallelHelper.IterateRows(
+                rectangle,
+                parallelSettings,
+                rows =>
+                    {
+                        for (int y = rows.Min; y < rows.Max; y++)
+                        {
+                            actualData[y] = y;
+                        }
+                    });
+            
+            Assert.Equal(expectedData, actualData);
         }
 
         [Theory]
@@ -108,6 +152,40 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 
             int numberOfDifferentBuffers = bufferHashes.Distinct().Count();
             Assert.Equal(actualNumberOfSteps, numberOfDifferentBuffers);
+        }
+
+        [Theory]
+        [MemberData(nameof(IterateRows_OverMinimumPixelsLimit_Data))]
+        public void IterateRowsWithTempBuffer_OverMinimumPixelsLimit_ShouldVisitAllRows(
+            int maxDegreeOfParallelism,
+            int minY,
+            int maxY,
+            int expectedStepLength,
+            int expectedLastStepLength)
+        {
+            var parallelSettings = new ParallelExecutionSettings(
+                maxDegreeOfParallelism,
+                1,
+                Configuration.Default.MemoryAllocator);
+
+            var rectangle = new Rectangle(0, minY, 10, maxY - minY);
+
+            int[] expectedData = Enumerable.Repeat(0, minY).Concat(Enumerable.Range(minY, maxY - minY)).ToArray();
+            int[] actualData = new int[maxY];
+
+            ParallelHelper.IterateRowsWithTempBuffer(
+                rectangle,
+                parallelSettings,
+                (RowInterval rows, Memory<Vector4> buffer) =>
+                    {
+                        for (int y = rows.Min; y < rows.Max; y++)
+                        {
+                            actualData[y] = y;
+                        }
+                    });
+
+            Assert.Equal(expectedData, actualData);
+
         }
 
         public static TheoryData<int, int, int, int, int, int, int> IterateRows_WithEffectiveMinimumPixelsLimit_Data =
@@ -200,8 +278,11 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         public static readonly TheoryData<int, int, int, int, int, int, int> IterateRectangularBuffer_Data =
             new TheoryData<int, int, int, int, int, int, int>()
                 {
-                    { 8, 582, 453, 10, 10, 291, 226 }, // bounds in DetectEdgesTest.DetectEdges_InBox
+                    { 8, 582, 453, 10, 10, 291, 226 }, // boundary data from DetectEdgesTest.DetectEdges_InBox
                     { 2, 582, 453, 10, 10, 291, 226 },
+                    { 16, 582, 453, 10, 10, 291, 226 },
+                    { 16, 582, 453, 10, 10, 1, 226 },
+                    { 16, 1, 453, 0, 10, 1, 226 },
                 };
 
         [Theory]
@@ -217,33 +298,39 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         {
             MemoryAllocator memoryAllocator = Configuration.Default.MemoryAllocator;
 
-            using (Buffer2D<int> expected = memoryAllocator.Allocate2D<int>(bufferWidth, bufferHeight, AllocationOptions.Clean))
-            using (Buffer2D<int> actual = memoryAllocator.Allocate2D<int>(bufferWidth, bufferHeight, AllocationOptions.Clean))
+            using (Buffer2D<Point> expected = memoryAllocator.Allocate2D<Point>(bufferWidth, bufferHeight, AllocationOptions.Clean))
+            using (Buffer2D<Point> actual = memoryAllocator.Allocate2D<Point>(bufferWidth, bufferHeight, AllocationOptions.Clean))
             {
                 var rect = new Rectangle(rectX, rectY, rectWidth, rectHeight);
-
-                for (int y = rectY; y < rect.Bottom; y++)
+                
+                void FillRow(int y, Buffer2D<Point> buffer)
                 {
                     for (int x = rect.Left; x < rect.Right; x++)
                     {
-                        expected[x, y] = y * 10000 + x;
+                        buffer[x, y] = new Point(x, y);
                     }
                 }
 
+                // Fill Expected data:
+                for (int y = rectY; y < rect.Bottom; y++)
+                {
+                    FillRow(y, expected);
+                }
+
+                // Fill actual data using IterateRows:
                 var settings = new ParallelExecutionSettings(maxDegreeOfParallelism, memoryAllocator);
 
                 ParallelHelper.IterateRows(rect, settings,
                     rows =>
                         {
+                            this.Output.WriteLine(rows.ToString());
                             for (int y = rows.Min; y < rows.Max; y++)
                             {
-                                for (int x = rect.Left; x < rect.Right; x++)
-                                {
-                                    actual[x, y] = y * 10000 + x;
-                                }
+                                FillRow(y, actual);
                             }
                         });
 
+                // Assert:
                 TestImageExtensions.CompareBuffers(expected.Span, actual.Span);
             }
         }

@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Formats;
 
@@ -10,9 +9,9 @@ namespace SixLabors.ImageSharp.MetaData
     /// <summary>
     /// Encapsulates the metadata of an image frame.
     /// </summary>
-    public sealed class ImageFrameMetaData
+    public sealed class ImageFrameMetaData : IDeepCloneable<ImageFrameMetaData>
     {
-        private readonly Dictionary<IImageFormat, object> formatMetaData = new Dictionary<IImageFormat, object>();
+        private readonly Dictionary<IImageFormat, IDeepCloneable> formatMetaData = new Dictionary<IImageFormat, IDeepCloneable>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrameMetaData"/> class.
@@ -32,17 +31,14 @@ namespace SixLabors.ImageSharp.MetaData
         {
             DebugGuard.NotNull(other, nameof(other));
 
-            foreach (KeyValuePair<IImageFormat, object> meta in other.formatMetaData)
+            foreach (KeyValuePair<IImageFormat, IDeepCloneable> meta in other.formatMetaData)
             {
-                this.formatMetaData.Add(meta.Key, meta.Value);
+                this.formatMetaData.Add(meta.Key, meta.Value.DeepClone());
             }
         }
 
-        /// <summary>
-        /// Clones this ImageFrameMetaData.
-        /// </summary>
-        /// <returns>The cloned instance.</returns>
-        public ImageFrameMetaData Clone() => new ImageFrameMetaData(this);
+        /// <inheritdoc/>
+        public ImageFrameMetaData DeepClone() => new ImageFrameMetaData(this);
 
         /// <summary>
         /// Gets the metadata value associated with the specified key.
@@ -55,9 +51,9 @@ namespace SixLabors.ImageSharp.MetaData
         /// </returns>
         public TFormatFrameMetaData GetFormatMetaData<TFormatMetaData, TFormatFrameMetaData>(IImageFormat<TFormatMetaData, TFormatFrameMetaData> key)
             where TFormatMetaData : class
-            where TFormatFrameMetaData : class
+            where TFormatFrameMetaData : class, IDeepCloneable
         {
-            if (this.formatMetaData.TryGetValue(key, out object meta))
+            if (this.formatMetaData.TryGetValue(key, out IDeepCloneable meta))
             {
                 return (TFormatFrameMetaData)meta;
             }

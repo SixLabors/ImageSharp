@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.ParallelUtils
         /// <summary>
         /// Default value for <see cref="MinimumPixelsProcessedPerTask"/>.
         /// </summary>
-        public const int DefaultMinimumPixelsProcessedPerTask = 2048;
+        public const int DefaultMinimumPixelsProcessedPerTask = 4096;
 
         public ParallelExecutionSettings(
             int maxDegreeOfParallelism,

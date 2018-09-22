@@ -31,8 +31,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         public float ClipLimitPercentage { get; set; } = 0.035f;
 
         /// <summary>
-        /// Gets or sets the size of the grid for the adaptive histogram equalization. Defaults to 32.
+        /// Gets or sets the number of tiles the image is split into (horizontal and vertically) for the adaptive histogram equalization. Defaults to 8.
         /// </summary>
-        public int GridSize { get; set; } = 32;
+        public int Tiles { get; set; } = 8;
     }
 }

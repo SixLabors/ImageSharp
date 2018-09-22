@@ -26,19 +26,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// or 65536 for 16-bit grayscale images.</param>
         /// <param name="clipHistogram">Indicating whether to clip the histogram bins at a specific value.</param>
         /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels in the grid. Histogram bins which exceed this limit, will be capped at this value.</param>
-        /// <param name="gridSize">The grid size of the adaptive histogram equalization. Minimum value is 4.</param>
-        public AdaptiveHistEqualizationProcessor(int luminanceLevels, bool clipHistogram, float clipLimitPercentage, int gridSize)
+        /// <param name="tiles">The number of tiles the image is split into (horizontal and vertically).</param>
+        public AdaptiveHistEqualizationProcessor(int luminanceLevels, bool clipHistogram, float clipLimitPercentage, int tiles)
             : base(luminanceLevels, clipHistogram, clipLimitPercentage)
         {
-            Guard.MustBeGreaterThanOrEqualTo(gridSize, 4, nameof(gridSize));
+            Guard.MustBeGreaterThanOrEqualTo(tiles, 0, nameof(tiles));
 
-            this.GridSize = gridSize;
+            this.Tiles = tiles;
         }
 
         /// <summary>
-        /// Gets the size of the grid for the adaptive histogram equalization.
+        /// Gets the number of tiles the image is split into (horizontal and vertically) for the adaptive histogram equalization.
         /// </summary>
-        public int GridSize { get; }
+        private int Tiles { get; }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
@@ -47,11 +47,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int numberOfPixels = source.Width * source.Height;
             Span<TPixel> pixels = source.GetPixelSpan();
 
-            int numTilesX = 20;
-            int numTilesY = 20;
-
-            int tileWidth = Convert.ToInt32(Math.Ceiling(source.Width / (double)numTilesX));
-            int tileHeight = Convert.ToInt32(Math.Ceiling(source.Height / (double)numTilesY));
+            int tileWidth = Convert.ToInt32(Math.Ceiling(source.Width / (double)this.Tiles));
+            int tileHeight = Convert.ToInt32(Math.Ceiling(source.Height / (double)this.Tiles));
             int pixelsInTile = tileWidth * tileHeight;
             int halfTileWidth = tileWidth / 2;
             int halfTileHeight = tileHeight / 2;
@@ -63,7 +60,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 Span<int> cdf = cdfBuffer.GetSpan();
 
                 // The image is split up into tiles. For each tile the cumulative distribution function will be calculated.
-                CdfData[,] cdfData = this.CalculateLookupTables(source, histogram, cdf, numTilesX, numTilesY, tileWidth, tileHeight);
+                CdfData[,] cdfData = this.CalculateLookupTables(source, histogram, cdf, this.Tiles, this.Tiles, tileWidth, tileHeight);
 
                 int tileX = 0;
                 int tileY = 0;

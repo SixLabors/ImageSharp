@@ -44,11 +44,11 @@ namespace SixLabors.ImageSharp.Processing
                     break;
 
                 case HistogramEqualizationMethod.Adaptive:
-                    processor = new AdaptiveHistEqualizationProcessor<TPixel>(options.LuminanceLevels, options.ClipHistogram, options.ClipLimitPercentage, options.GridSize);
+                    processor = new AdaptiveHistEqualizationProcessor<TPixel>(options.LuminanceLevels, options.ClipHistogram, options.ClipLimitPercentage, options.Tiles);
                     break;
 
                 case HistogramEqualizationMethod.AdaptiveSlidingWindow:
-                    processor = new AdaptiveHistEqualizationSWProcessor<TPixel>(options.LuminanceLevels, options.ClipHistogram, options.ClipLimitPercentage, options.GridSize);
+                    processor = new AdaptiveHistEqualizationSWProcessor<TPixel>(options.LuminanceLevels, options.ClipHistogram, options.ClipLimitPercentage, options.Tiles);
                     break;
 
                 default:

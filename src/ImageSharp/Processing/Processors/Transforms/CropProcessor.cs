@@ -4,8 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -53,21 +53,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return;
             }
 
-            int minY = Math.Max(this.CropRectangle.Y, sourceRectangle.Y);
-            int maxY = Math.Min(this.CropRectangle.Bottom, sourceRectangle.Bottom);
-            int minX = Math.Max(this.CropRectangle.X, sourceRectangle.X);
-            int maxX = Math.Min(this.CropRectangle.Right, sourceRectangle.Right);
+            var rect = Rectangle.Intersect(this.CropRectangle, sourceRectangle);
 
-            ParallelFor.WithConfiguration(
-                minY,
-                maxY,
-                configuration,
-                y =>
-                {
-                    Span<TPixel> sourceRow = source.GetPixelRowSpan(y).Slice(minX);
-                    Span<TPixel> targetRow = destination.GetPixelRowSpan(y - minY);
-                    sourceRow.Slice(0, maxX - minX).CopyTo(targetRow);
-                });
+            // Copying is cheap, we should process more pixels per task:
+            ParallelExecutionSettings parallelSettings = configuration.GetParallelSettings().MultiplyMinimumPixelsPerTask(4);
+
+            ParallelHelper.IterateRows(
+                rect,
+                parallelSettings,
+                rows =>
+                    {
+                        for (int y = rows.Min; y < rows.Max; y++)
+                        {
+                            Span<TPixel> sourceRow = source.GetPixelRowSpan(y).Slice(rect.Left);
+                            Span<TPixel> targetRow = destination.GetPixelRowSpan(y - rect.Top);
+                            sourceRow.Slice(0, rect.Width).CopyTo(targetRow);
+                        }
+                    });
         }
     }
 }

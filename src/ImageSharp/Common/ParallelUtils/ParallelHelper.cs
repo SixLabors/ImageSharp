@@ -127,6 +127,15 @@ namespace SixLabors.ImageSharp.ParallelUtils
                     });
         }
 
+        public static void IterateRowsWithTempBuffer<T>(
+            Rectangle rectangle,
+            Configuration configuration,
+            Action<RowInterval, Memory<T>> body)
+            where T : struct
+        {
+            IterateRowsWithTempBuffer(rectangle, configuration.GetParallelSettings(), body);
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int DivideCeil(int dividend, int divisor)
         {

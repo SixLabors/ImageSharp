@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
     /// <summary>
     /// Represents an ICC profile
     /// </summary>
-    public sealed class IccProfile
+    public sealed class IccProfile : IDeepCloneable<IccProfile>
     {
         /// <summary>
         /// The byte array to read the ICC profile from
@@ -42,23 +42,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// Initializes a new instance of the <see cref="IccProfile"/> class.
         /// </summary>
         /// <param name="data">The raw ICC profile data</param>
-        public IccProfile(byte[] data)
-        {
-            this.data = data;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="IccProfile"/> class
-        /// by making a copy from another ICC profile.
-        /// </summary>
-        /// <param name="other">The other ICC profile, where the clone should be made from.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="other"/> is null.</exception>>
-        public IccProfile(IccProfile other)
-        {
-            Guard.NotNull(other, nameof(other));
-
-            this.data = other.ToByteArray();
-        }
+        public IccProfile(byte[] data) => this.data = data;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IccProfile"/> class.
@@ -72,6 +56,19 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
             this.header = header;
             this.entries = new List<IccTagDataEntry>(entries);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="IccProfile"/> class
+        /// by making a copy from another ICC profile.
+        /// </summary>
+        /// <param name="other">The other ICC profile, where the clone should be made from.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="other"/> is null.</exception>>
+        private IccProfile(IccProfile other)
+        {
+            Guard.NotNull(other, nameof(other));
+
+            this.data = other.ToByteArray();
         }
 
         /// <summary>
@@ -99,6 +96,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return this.entries;
             }
         }
+
+        /// <inheritdoc/>
+        public IccProfile DeepClone() => new IccProfile(this);
 
 #if !NETSTANDARD1_1
 

@@ -453,7 +453,10 @@ namespace SixLabors.ImageSharp.Tests
 
             for (int i = 0; i < expected.Length; i++)
             {
-                Assert.True(expected[i].Equals(actual[i]), $"Buffers differ at position {i}!");
+                T x = expected[i];
+                T a = actual[i];
+
+                Assert.True(x.Equals(a), $"Buffers differ at position {i}! Expected: {x} | Actual: {a}");
             }
         }
 

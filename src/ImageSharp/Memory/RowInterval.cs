@@ -32,5 +32,11 @@ namespace SixLabors.ImageSharp.Memory
         /// Gets the difference (<see cref="Max"/> - <see cref="Min"/>)
         /// </summary>
         public int Height => this.Max - this.Min;
+
+        /// <inheritdoc />
+        public override string ToString()
+        {
+            return $"RowInterval [{this.Min}->{this.Max}[";
+        }
     }
 }

@@ -44,6 +44,8 @@ namespace SixLabors.ImageSharp.ParallelUtils
             in ParallelExecutionSettings parallelSettings,
             Action<RowInterval> body)
         {
+            DebugGuard.MustBeGreaterThan(rectangle.Width, 0, nameof(rectangle));
+
             int maxSteps = DivideCeil(rectangle.Width * rectangle.Height, parallelSettings.MinimumPixelsProcessedPerTask);
 
             int numOfSteps = Math.Min(parallelSettings.MaxDegreeOfParallelism, maxSteps);
@@ -56,7 +58,7 @@ namespace SixLabors.ImageSharp.ParallelUtils
                 return;
             }
 
-            int verticalStep = DivideRound(rectangle.Height, numOfSteps);
+            int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
 
             var parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = numOfSteps };
 
@@ -102,7 +104,7 @@ namespace SixLabors.ImageSharp.ParallelUtils
                 return;
             }
 
-            int verticalStep = DivideRound(rectangle.Height, numOfSteps);
+            int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
 
             var parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = numOfSteps };
 

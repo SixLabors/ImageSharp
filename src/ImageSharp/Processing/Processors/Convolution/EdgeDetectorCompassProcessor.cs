@@ -138,7 +138,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         Buffer2D<TPixel> passPixels = pass.PixelBuffer;
                         Buffer2D<TPixel> targetPixels = source.PixelBuffer;
 
-#if true
                         ParallelHelper.IterateRows(
                             workingRect,
                             configuration,
@@ -170,34 +169,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                         }
                                     }
                                 });
-#else
-                        ParallelFor.WithConfiguration(
-                            minY,
-                            maxY,
-                            configuration,
-                            y =>
-                                {
-                                    int offsetY = y - shiftY;
-
-                                    ref TPixel passPixelsBase = ref MemoryMarshal.GetReference(passPixels.GetRowSpan(offsetY));
-                                    ref TPixel targetPixelsBase = ref MemoryMarshal.GetReference(targetPixels.GetRowSpan(offsetY));
-
-                                    for (int x = minX; x < maxX; x++)
-                                    {
-                                        int offsetX = x - shiftX;
-
-                                        // Grab the max components of the two pixels
-                                        ref TPixel currentPassPixel = ref Unsafe.Add(ref passPixelsBase, offsetX);
-                                        ref TPixel currentTargetPixel = ref Unsafe.Add(ref targetPixelsBase, offsetX);
-
-                                        var pixelValue = Vector4.Max(
-                                            currentPassPixel.ToVector4(),
-                                            currentTargetPixel.ToVector4());
-
-                                        currentTargetPixel.PackFromVector4(pixelValue);
-                                    }
-                                });
-#endif
                     }
                 }
             }

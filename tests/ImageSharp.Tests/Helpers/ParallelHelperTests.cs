@@ -9,6 +9,7 @@ using System.Threading;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 using Xunit;
@@ -194,6 +195,57 @@ namespace SixLabors.ImageSharp.Tests.Helpers
                     });
 
             Assert.Equal(expectedNumberOfSteps, actualNumberOfSteps);
+        }
+
+        public static readonly TheoryData<int, int, int, int, int, int, int> IterateRectangularBuffer_Data =
+            new TheoryData<int, int, int, int, int, int, int>()
+                {
+                    { 8, 582, 453, 10, 10, 291, 226 }, // bounds in DetectEdgesTest.DetectEdges_InBox
+                    { 2, 582, 453, 10, 10, 291, 226 },
+                };
+
+        [Theory]
+        [MemberData(nameof(IterateRectangularBuffer_Data))]
+        public void IterateRectangularBuffer(
+            int maxDegreeOfParallelism,
+            int bufferWidth,
+            int bufferHeight,
+            int rectX,
+            int rectY,
+            int rectWidth,
+            int rectHeight)
+        {
+            MemoryAllocator memoryAllocator = Configuration.Default.MemoryAllocator;
+
+            using (Buffer2D<int> expected = memoryAllocator.Allocate2D<int>(bufferWidth, bufferHeight, AllocationOptions.Clean))
+            using (Buffer2D<int> actual = memoryAllocator.Allocate2D<int>(bufferWidth, bufferHeight, AllocationOptions.Clean))
+            {
+                var rect = new Rectangle(rectX, rectY, rectWidth, rectHeight);
+
+                for (int y = rectY; y < rect.Bottom; y++)
+                {
+                    for (int x = rect.Left; x < rect.Right; x++)
+                    {
+                        expected[x, y] = y * 10000 + x;
+                    }
+                }
+
+                var settings = new ParallelExecutionSettings(maxDegreeOfParallelism, memoryAllocator);
+
+                ParallelHelper.IterateRows(rect, settings,
+                    rows =>
+                        {
+                            for (int y = rows.Min; y < rows.Max; y++)
+                            {
+                                for (int x = rect.Left; x < rect.Right; x++)
+                                {
+                                    actual[x, y] = y * 10000 + x;
+                                }
+                            }
+                        });
+
+                TestImageExtensions.CompareBuffers(expected.Span, actual.Span);
+            }
         }
     }
 }

@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void Configuration_Width_Height()
             {
-                Configuration configuration = Configuration.Default.ShallowCopy();
+                Configuration configuration = Configuration.Default.Clone();
 
                 using (var image = new Image<Rgba32>(configuration, 11, 23))
                 {
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void Configuration_Width_Height_BackroundColor()
             {
-                Configuration configuration = Configuration.Default.ShallowCopy();
+                Configuration configuration = Configuration.Default.Clone();
                 Rgba32 color = Rgba32.Aquamarine;
 
                 using (var image = new Image<Rgba32>(configuration, 11, 23, color))

@@ -55,7 +55,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                 var workingRect = Rectangle.FromLTRB(startX, startY, endX, endY);
 
-#if true
                 ParallelHelper.IterateRows(
                     workingRect,
                     configuration,
@@ -103,52 +102,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                 }
                             }
                         });
-#else
-                ParallelFor.WithConfiguration(
-                 startY,
-                 endY,
-                 configuration,
-                 y =>
-                 {
-                     Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
-                     Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
-
-                     for (int x = startX; x < endX; x++)
-                     {
-                         float red = 0;
-                         float green = 0;
-                         float blue = 0;
-
-                         // Apply each matrix multiplier to the color components for each pixel.
-                         for (int fy = 0; fy < kernelLength; fy++)
-                         {
-                             int fyr = fy - radius;
-                             int offsetY = y + fyr;
-
-                             offsetY = offsetY.Clamp(0, maxY);
-                             Span<TPixel> sourceOffsetRow = source.GetPixelRowSpan(offsetY);
-
-                             for (int fx = 0; fx < kernelLength; fx++)
-                             {
-                                 int fxr = fx - radius;
-                                 int offsetX = x + fxr;
-
-                                 offsetX = offsetX.Clamp(0, maxX);
-
-                                 Vector4 currentColor = sourceOffsetRow[offsetX].ToVector4().Premultiply();
-                                 currentColor *= this.KernelXY[fy, fx];
-
-                                 red += currentColor.X;
-                                 green += currentColor.Y;
-                                 blue += currentColor.Z;
-                             }
-                         }
-
-                         ref TPixel pixel = ref targetRow[x];
-                         pixel.PackFromVector4(new Vector4(red, green, blue, sourceRow[x].ToVector4().W).UnPremultiply());
-                     }
-                 });
-#endif
 
                 Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
             }

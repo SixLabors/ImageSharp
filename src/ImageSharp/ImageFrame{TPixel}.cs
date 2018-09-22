@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -262,20 +263,24 @@ namespace SixLabors.ImageSharp
 
             var target = new ImageFrame<TPixel2>(this.configuration, this.Width, this.Height, this.MetaData.Clone());
 
-            ParallelFor.WithTemporaryBuffer(
-                0,
-                this.Height,
+            ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
+                this.Bounds(),
                 this.configuration,
-                this.Width,
-                (int y, IMemoryOwner<Vector4> tempRowBuffer) =>
-                {
-                    Span<TPixel> sourceRow = this.GetPixelRowSpan(y);
-                    Span<TPixel2> targetRow = target.GetPixelRowSpan(y);
-                    Span<Vector4> tempRowSpan = tempRowBuffer.GetSpan();
+                (rows, tempRowBuffer) =>
+                    {
+                        for (int y = rows.Min; y < rows.Max; y++)
+                        {
+                            Span<TPixel> sourceRow = this.GetPixelRowSpan(y);
+                            Span<TPixel2> targetRow = target.GetPixelRowSpan(y);
+                            Span<Vector4> tempRowSpan = tempRowBuffer.Span;
 
-                    PixelOperations<TPixel>.Instance.ToScaledVector4(sourceRow, tempRowSpan, sourceRow.Length);
-                    PixelOperations<TPixel2>.Instance.PackFromScaledVector4(tempRowSpan, targetRow, targetRow.Length);
-                });
+                            PixelOperations<TPixel>.Instance.ToScaledVector4(sourceRow, tempRowSpan, sourceRow.Length);
+                            PixelOperations<TPixel2>.Instance.PackFromScaledVector4(
+                                tempRowSpan,
+                                targetRow,
+                                targetRow.Length);
+                        }
+                    });
 
             return target;
         }

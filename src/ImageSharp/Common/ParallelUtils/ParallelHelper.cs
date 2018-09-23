@@ -127,6 +127,10 @@ namespace SixLabors.ImageSharp.ParallelUtils
                     });
         }
 
+        /// <summary>
+        /// Iterate through the rows of a rectangle in optimized batches defined by <see cref="RowInterval"/>-s
+        /// instantiating a temporary buffer for each <paramref name="body"/> invocation.
+        /// </summary>
         public static void IterateRowsWithTempBuffer<T>(
             Rectangle rectangle,
             Configuration configuration,
@@ -142,12 +146,6 @@ namespace SixLabors.ImageSharp.ParallelUtils
             // TODO: Is there a more efficient way to calculate this?
             int result = dividend / divisor;
             return dividend % divisor == 0 ? result : result + 1;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int DivideRound(int dividend, int divisor)
-        {
-            return (dividend + (divisor / 2)) / divisor;
         }
     }
 }

@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.MetaData;
 using Xunit;
@@ -16,14 +15,30 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ConstructorImageFrameMetaData()
         {
-            ImageFrameMetaData metaData = new ImageFrameMetaData();
-            metaData.FrameDelay = 42;
-            metaData.DisposalMethod = DisposalMethod.RestoreToBackground;
+            const int frameDelay = 42;
+            const int colorTableLength = 128;
+            const GifDisposalMethod disposalMethod = GifDisposalMethod.RestoreToBackground;
 
-            ImageFrameMetaData clone = new ImageFrameMetaData(metaData);
+            var metaData = new ImageFrameMetaData();
+            GifFrameMetaData gifFrameMetaData = metaData.GetFormatMetaData(GifFormat.Instance);
+            gifFrameMetaData.FrameDelay = frameDelay;
+            gifFrameMetaData.ColorTableLength = colorTableLength;
+            gifFrameMetaData.DisposalMethod = disposalMethod;
 
-            Assert.Equal(42, clone.FrameDelay);
-            Assert.Equal(DisposalMethod.RestoreToBackground, clone.DisposalMethod);
+            var clone = new ImageFrameMetaData(metaData);
+            GifFrameMetaData cloneGifFrameMetaData = clone.GetFormatMetaData(GifFormat.Instance);
+
+            Assert.Equal(frameDelay, cloneGifFrameMetaData.FrameDelay);
+            Assert.Equal(colorTableLength, cloneGifFrameMetaData.ColorTableLength);
+            Assert.Equal(disposalMethod, cloneGifFrameMetaData.DisposalMethod);
+        }
+
+        [Fact]
+        public void CloneIsDeep()
+        {
+            var metaData = new ImageFrameMetaData();
+            ImageFrameMetaData clone = metaData.DeepClone();
+            Assert.False(metaData.GetFormatMetaData(GifFormat.Instance).Equals(clone.GetFormatMetaData(GifFormat.Instance)));
         }
     }
 }

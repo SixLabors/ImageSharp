@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             Buffer2D<TPixel> targetPixels,
             Buffer2D<TPixel> sourcePixels,
             Rectangle sourceRectangle,
-            DenseMatrix<float> kernel,
+            DenseMatrix<float> kernel, // TODO: Can't use 'in' as pass by ref to lambda expression.
             Configuration configuration)
         {
             int kernelHeight = kernel.Rows;

@@ -152,6 +152,9 @@ namespace SixLabors.ImageSharp.Tests
                 public const string BadRstProgressive518 = "Jpg/issues/Issue518-Bad-RST-Progressive.jpg";
                 public const string InvalidCast520 = "Jpg/issues/Issue520-InvalidCast.jpg";
                 public const string DhtHasWrongLength624 = "Jpg/issues/Issue624-DhtHasWrongLength-Progressive-N.jpg";
+                public const string ExifDecodeOutOfRange694 = "Jpg/issues/Issue694-Decode-Exif-OutOfRange.jpg";
+                public const string InvalidEOI695 = "Jpg/issues/Issue695-Invalid-EOI.jpg";
+                public const string ExifResizeOutOfRange696 = "Jpg/issues/Issue696-Resize-Exif-OutOfRange.jpg";
             }
 
             public static readonly string[] All = Baseline.All.Concat(Progressive.All).ToArray();
@@ -175,6 +178,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Bit8Inverted = "Bmp/test8-inverted.bmp";
             public const string Bit16 = "Bmp/test16.bmp";
             public const string Bit16Inverted = "Bmp/test16-inverted.bmp";
+            public const string Bit32Rgb = "Bmp/rgb32.bmp";
 
             public static readonly string[] All
             = {
@@ -201,6 +205,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Cheers = "Gif/cheers.gif";
             public const string Trans = "Gif/trans.gif";
             public const string Kumin = "Gif/kumin.gif";
+            public const string Leo = "Gif/leo.gif";
             public const string Ratio4x1 = "Gif/base_4x1.gif";
             public const string Ratio1x4 = "Gif/base_1x4.gif";
 
@@ -211,7 +216,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string BadDescriptorWidth = "Gif/issues/issue403_baddescriptorwidth.gif";
             }
 
-            public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin, Ratio4x1, Ratio1x4 };
+            public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin, Leo, Ratio4x1, Ratio1x4 };
         }
     }
 }

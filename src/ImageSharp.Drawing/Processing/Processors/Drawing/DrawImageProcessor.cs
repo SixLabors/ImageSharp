@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
     /// Combines two images together by blending the pixels.
     /// </summary>
     /// <typeparam name="TPixelDst">The pixel format of destination image.</typeparam>
-    /// <typeparam name="TPixelSrc">The pixel format os source image.</typeparam>
+    /// <typeparam name="TPixelSrc">The pixel format of source image.</typeparam>
     internal class DrawImageProcessor<TPixelDst, TPixelSrc> : ImageProcessor<TPixelDst>
         where TPixelDst : struct, IPixel<TPixelDst>
         where TPixelSrc : struct, IPixel<TPixelSrc>

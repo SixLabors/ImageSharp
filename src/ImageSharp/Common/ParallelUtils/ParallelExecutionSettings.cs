@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.ParallelUtils
     /// <summary>
     /// Defines execution settings for methods in <see cref="ParallelHelper"/>.
     /// </summary>
-    internal struct ParallelExecutionSettings
+    internal readonly struct ParallelExecutionSettings
     {
         /// <summary>
         /// Default value for <see cref="MinimumPixelsProcessedPerTask"/>.
@@ -51,7 +51,8 @@ namespace SixLabors.ImageSharp.ParallelUtils
         /// <summary>
         /// Gets the minimum number of pixels being processed by a single task when parallelizing operations with TPL.
         /// Launching tasks for pixel regions below this limit is not worth the overhead.
-        /// Initialized with 2048 by default, the optimum value is operation specific.
+        /// Initialized with <see cref="DefaultMinimumPixelsProcessedPerTask"/> by default,
+        /// the optimum value is operation specific. (The cheaper the operation, the larger the value is.)
         /// </summary>
         public int MinimumPixelsProcessedPerTask { get; }
 

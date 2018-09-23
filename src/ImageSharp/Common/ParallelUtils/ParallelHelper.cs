@@ -141,11 +141,6 @@ namespace SixLabors.ImageSharp.ParallelUtils
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int DivideCeil(int dividend, int divisor)
-        {
-            // TODO: Is there a more efficient way to calculate this?
-            int result = dividend / divisor;
-            return dividend % divisor == 0 ? result : result + 1;
-        }
+        private static int DivideCeil(int dividend, int divisor) => 1 + ((dividend - 1) / divisor);
     }
 }

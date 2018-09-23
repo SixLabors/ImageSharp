@@ -10,6 +10,9 @@ namespace SixLabors.ImageSharp.Memory
     /// </summary>
     internal readonly struct RowInterval
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RowInterval"/> struct.
+        /// </summary>
         public RowInterval(int min, int max)
         {
             DebugGuard.MustBeLessThan(min, max, nameof(min));

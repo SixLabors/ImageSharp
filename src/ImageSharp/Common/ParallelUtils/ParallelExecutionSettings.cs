@@ -17,6 +17,9 @@ namespace SixLabors.ImageSharp.ParallelUtils
         /// </summary>
         public const int DefaultMinimumPixelsProcessedPerTask = 4096;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ParallelExecutionSettings"/> struct.
+        /// </summary>
         public ParallelExecutionSettings(
             int maxDegreeOfParallelism,
             int minimumPixelsProcessedPerTask,
@@ -27,11 +30,17 @@ namespace SixLabors.ImageSharp.ParallelUtils
             this.MemoryAllocator = memoryAllocator;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ParallelExecutionSettings"/> struct.
+        /// </summary>
         public ParallelExecutionSettings(int maxDegreeOfParallelism, MemoryAllocator memoryAllocator)
             : this(maxDegreeOfParallelism, DefaultMinimumPixelsProcessedPerTask, memoryAllocator)
         {
         }
 
+        /// <summary>
+        /// Gets the MemoryAllocator
+        /// </summary>
         public MemoryAllocator MemoryAllocator { get; }
 
         /// <summary>
@@ -46,6 +55,10 @@ namespace SixLabors.ImageSharp.ParallelUtils
         /// </summary>
         public int MinimumPixelsProcessedPerTask { get; }
 
+        /// <summary>
+        /// Creates a new instance of <see cref="ParallelExecutionSettings"/>
+        /// having <see cref="MinimumPixelsProcessedPerTask"/> multiplied by <paramref name="multiplier"/>
+        /// </summary>
         public ParallelExecutionSettings MultiplyMinimumPixelsPerTask(int multiplier)
         {
             return new ParallelExecutionSettings(

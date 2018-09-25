@@ -93,6 +93,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly bool ignoreMetadata;
 
         /// <summary>
+        /// Used the manage memory allocations.
+        /// </summary>
+        private readonly MemoryAllocator memoryAllocator;
+
+        /// <summary>
         /// The stream to decode from.
         /// </summary>
         private Stream currentStream;
@@ -200,11 +205,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         public PngDecoderCore(Configuration configuration, IPngDecoderOptions options)
         {
             this.configuration = configuration ?? Configuration.Default;
+            this.memoryAllocator = this.configuration.MemoryAllocator;
             this.textEncoding = options.TextEncoding ?? PngConstants.DefaultEncoding;
             this.ignoreMetadata = options.IgnoreMetadata;
         }
-
-        private MemoryAllocator MemoryAllocator => this.configuration.MemoryAllocator;
 
         /// <summary>
         /// Decodes the stream to the image.
@@ -391,12 +395,12 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return false;
             }
 
-            buffer = this.MemoryAllocator.AllocateManagedByteBuffer(bytesPerScanline * 8 / bits, AllocationOptions.Clean);
+            buffer = this.memoryAllocator.AllocateManagedByteBuffer(bytesPerScanline * 8 / bits, AllocationOptions.Clean);
             byte[] result = buffer.Array;
             int mask = 0xFF >> (8 - bits);
             int resultOffset = 0;
 
-            for (int i = 0; i < bytesPerScanline - 1; i++)
+            for (int i = 0; i < bytesPerScanline; i++)
             {
                 byte b = source[i];
                 for (int shift = 0; shift < 8; shift += bits)
@@ -470,7 +474,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 this.bytesPerSample = this.header.BitDepth / 8;
             }
 
-            this.previousScanline = this.MemoryAllocator.AllocateManagedByteBuffer(this.bytesPerScanline, AllocationOptions.Clean);
+            this.previousScanline = this.memoryAllocator.AllocateManagedByteBuffer(this.bytesPerScanline, AllocationOptions.Clean);
             this.scanline = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(this.bytesPerScanline, AllocationOptions.Clean);
         }
 
@@ -612,7 +616,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         throw new ImageFormatException("Unknown filter type.");
                 }
 
-                this.ProcessDefilteredScanline(this.scanline.Array, image);
+                this.ProcessDefilteredScanline(scanlineSpan, image);
 
                 this.SwapBuffers();
                 this.currentRow++;
@@ -725,7 +729,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             ReadOnlySpan<byte> trimmed = defilteredScanline.Slice(1, defilteredScanline.Length - 1);
 
             // Convert 1, 2, and 4 bit pixel data into the 8 bit equivalent.
-            ReadOnlySpan<byte> scanlineSpan = this.TryScaleUpTo8BitArray(trimmed, this.bytesPerScanline, this.header.BitDepth, out IManagedByteBuffer buffer)
+            ReadOnlySpan<byte> scanlineSpan = this.TryScaleUpTo8BitArray(trimmed, this.bytesPerScanline - 1, this.header.BitDepth, out IManagedByteBuffer buffer)
             ? buffer.GetSpan()
             : trimmed;
 

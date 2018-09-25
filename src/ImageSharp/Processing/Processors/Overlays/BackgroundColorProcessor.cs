@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -67,6 +68,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 
             int width = maxX - minX;
 
+            var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
+
             using (IMemoryOwner<TPixel> colors = source.MemoryAllocator.Allocate<TPixel>(width))
             using (IMemoryOwner<float> amount = source.MemoryAllocator.Allocate<float>(width))
             {
@@ -74,25 +77,30 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
                 Span<TPixel> colorSpan = colors.GetSpan();
                 Span<float> amountSpan = amount.GetSpan();
 
-                // TODO: Use Span.Fill?
-                for (int i = 0; i < width; i++)
-                {
-                    colorSpan[i] = this.Color;
-                    amountSpan[i] = this.GraphicsOptions.BlendPercentage;
-                }
+                colorSpan.Fill(this.Color);
+                amountSpan.Fill(this.GraphicsOptions.BlendPercentage);
 
                 PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.GraphicsOptions);
-                ParallelFor.WithConfiguration(
-                    minY,
-                    maxY,
-                    configuration,
-                    y =>
-                    {
-                        Span<TPixel> destination = source.GetPixelRowSpan(y - startY).Slice(minX - startX, width);
 
-                        // This switched color & destination in the 2nd and 3rd places because we are applying the target color under the current one
-                        blender.Blend(source.MemoryAllocator, destination, colors.GetSpan(), destination, amount.GetSpan());
-                    });
+                ParallelHelper.IterateRows(
+                    workingRect,
+                    configuration,
+                    rows =>
+                        {
+                            for (int y = rows.Min; y < rows.Max; y++)
+                            {
+                                Span<TPixel> destination =
+                                    source.GetPixelRowSpan(y - startY).Slice(minX - startX, width);
+
+                                // This switched color & destination in the 2nd and 3rd places because we are applying the target color under the current one
+                                blender.Blend(
+                                    source.MemoryAllocator,
+                                    destination,
+                                    colors.GetSpan(),
+                                    destination,
+                                    amount.GetSpan());
+                            }
+                        });
             }
         }
     }

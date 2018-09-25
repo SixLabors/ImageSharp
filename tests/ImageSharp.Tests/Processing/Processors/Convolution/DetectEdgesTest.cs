@@ -10,8 +10,6 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {
-    using SixLabors.ImageSharp.Advanced;
-
     public class DetectEdgesTest : FileTestBase
     {
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0456F);

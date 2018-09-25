@@ -21,6 +21,9 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// </summary>
     internal sealed class PngEncoderCore : IDisposable
     {
+        /// <summary>
+        /// Used the manage memory allocations.
+        /// </summary>
         private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
@@ -158,7 +161,9 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.memoryAllocator = memoryAllocator;
             this.pngBitDepth = options.BitDepth;
             this.pngColorType = options.ColorType;
-            this.pngFilterMethod = options.FilterMethod;
+
+            // Palette compresses better with none and spec recommends it.
+            this.pngFilterMethod = options.ColorType.Equals(PngColorType.Palette) ? PngFilterMethod.None : options.FilterMethod;
             this.compressionLevel = options.CompressionLevel;
             this.gamma = options.Gamma;
             this.quantizer = options.Quantizer;
@@ -192,10 +197,9 @@ namespace SixLabors.ImageSharp.Formats.Png
             stream.Write(PngConstants.HeaderBytes, 0, PngConstants.HeaderBytes.Length);
 
             QuantizedFrame<TPixel> quantized = null;
-            ReadOnlySpan<byte> quantizedPixelsSpan = default;
             if (this.pngColorType == PngColorType.Palette)
             {
-                byte bits;
+                byte bits = (byte)Math.Min(8u, (short)this.pngBitDepth);
 
                 // Use the metadata to determine what quantization depth to use if no quantizer has been set.
                 if (this.quantizer == null)
@@ -207,10 +211,10 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 // Create quantized frame returning the palette and set the bit depth.
                 quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(image.Frames.RootFrame);
-                quantizedPixelsSpan = quantized.GetPixelSpan();
-                bits = (byte)ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length).Clamp(1, 8);
+                byte quantizedBits = (byte)ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length).Clamp(1, 8);
 
                 // Png only supports in four pixel depths: 1, 2, 4, and 8 bits when using the PLTE chunk
+                bits = Math.Max(bits, quantizedBits);
                 if (bits == 3)
                 {
                     bits = 4;
@@ -249,7 +253,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.WritePhysicalChunk(stream, metaData);
             this.WriteGammaChunk(stream);
             this.WriteExifChunk(stream, metaData);
-            this.WriteDataChunks(image.Frames.RootFrame, quantizedPixelsSpan, stream);
+            this.WriteDataChunks(image.Frames.RootFrame, quantized, stream);
             this.WriteEndChunk(stream);
             stream.Flush();
 
@@ -402,10 +406,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="rowSpan">The row span.</param>
-        /// <param name="quantizedPixelsSpan">The span of quantized pixels. Can be null.</param>
+        /// <param name="quantized">The quantized pixels. Can be null.</param>
         /// <param name="row">The row.</param>
         /// <returns>The <see cref="IManagedByteBuffer"/></returns>
-        private IManagedByteBuffer EncodePixelRow<TPixel>(ReadOnlySpan<TPixel> rowSpan, ReadOnlySpan<byte> quantizedPixelsSpan, int row)
+        private IManagedByteBuffer EncodePixelRow<TPixel>(ReadOnlySpan<TPixel> rowSpan, QuantizedFrame<TPixel> quantized, int row)
             where TPixel : struct, IPixel<TPixel>
         {
             switch (this.pngColorType)
@@ -413,7 +417,14 @@ namespace SixLabors.ImageSharp.Formats.Png
                 case PngColorType.Palette:
 
                     int stride = this.rawScanline.Length();
-                    quantizedPixelsSpan.Slice(row * stride, stride).CopyTo(this.rawScanline.GetSpan());
+                    if (this.bitDepth < 8)
+                    {
+                        this.ScaleDownFrom8BitArray(quantized.GetRowSpan(row), this.rawScanline.GetSpan(), this.bitDepth);
+                    }
+                    else
+                    {
+                        quantized.GetPixelSpan().Slice(row * stride, stride).CopyTo(this.rawScanline.GetSpan());
+                    }
 
                     break;
                 case PngColorType.Grayscale:
@@ -696,9 +707,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The image.</param>
-        /// <param name="quantizedPixelsSpan">The span of quantized pixel data. Can be null.</param>
+        /// <param name="quantized">The quantized pixel data. Can be null.</param>
         /// <param name="stream">The stream.</param>
-        private void WriteDataChunks<TPixel>(ImageFrame<TPixel> pixels, ReadOnlySpan<byte> quantizedPixelsSpan, Stream stream)
+        private void WriteDataChunks<TPixel>(ImageFrame<TPixel> pixels, QuantizedFrame<TPixel> quantized, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
             this.bytesPerScanline = this.CalculateScanlineLength(this.width);
@@ -750,7 +761,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 {
                     for (int y = 0; y < this.height; y++)
                     {
-                        IManagedByteBuffer r = this.EncodePixelRow((ReadOnlySpan<TPixel>)pixels.GetPixelRowSpan(y), quantizedPixelsSpan, y);
+                        IManagedByteBuffer r = this.EncodePixelRow((ReadOnlySpan<TPixel>)pixels.GetPixelRowSpan(y), quantized, y);
                         deflateStream.Write(r.Array, 0, resultLength);
 
                         IManagedByteBuffer temp = this.rawScanline;
@@ -828,6 +839,42 @@ namespace SixLabors.ImageSharp.Formats.Png
             BinaryPrimitives.WriteUInt32BigEndian(this.buffer, (uint)this.crc.Value);
 
             stream.Write(this.buffer, 0, 4); // write the crc
+        }
+
+        private void ScaleDownFrom8BitArray(ReadOnlySpan<byte> source, Span<byte> result, int bits)
+        {
+            if (bits >= 8)
+            {
+                return;
+            }
+
+            byte mask = (byte)(0xFF >> (8 - bits));
+            byte shift0 = (byte)(8 - bits);
+            int shift = 8 - bits;
+            int v = 0;
+
+            for (int i = 0, j = 0; j < source.Length; j++)
+            {
+                int value = source[j] & mask;
+                v |= value << shift;
+
+                if (shift == 0)
+                {
+                    shift = shift0;
+                    result[i] = (byte)v;
+                    i++;
+                    v = 0;
+                }
+                else
+                {
+                    shift -= bits;
+                }
+            }
+
+            if (shift != shift0)
+            {
+                result[0] = (byte)v;
+            }
         }
 
         /// <summary>

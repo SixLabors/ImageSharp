@@ -59,6 +59,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <returns>The <see cref="Span{T}"/></returns>
         public Span<byte> GetPixelSpan() => this.pixels.GetSpan();
 
+        /// <summary>
+        /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory
+        /// at row <paramref name="rowIndex"/> beginning from the the first pixel on that row.
+        /// </summary>
+        /// <param name="rowIndex">The row.</param>
+        /// <returns>The <see cref="Span{T}"/></returns>
+        public Span<byte> GetRowSpan(int rowIndex) => this.GetPixelSpan().Slice(rowIndex * this.Width, this.Width);
+
         /// <inheritdoc/>
         public void Dispose()
         {

@@ -3,7 +3,9 @@
 
 using System;
 using System.Buffers.Binary;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
@@ -23,6 +25,18 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// </summary>
     internal sealed class PngEncoderCore : IDisposable
     {
+        /// <summary>
+        /// The dictionary of available color types.
+        /// </summary>
+        private static readonly Dictionary<PngColorType, byte[]> ColorTypes = new Dictionary<PngColorType, byte[]>()
+        {
+            [PngColorType.Grayscale] = new byte[] { 1, 2, 4, 8, 16 },
+            [PngColorType.Rgb] = new byte[] { 8, 16 },
+            [PngColorType.Palette] = new byte[] { 1, 2, 4, 8 },
+            [PngColorType.GrayscaleWithAlpha] = new byte[] { 8, 16 },
+            [PngColorType.RgbWithAlpha] = new byte[] { 8, 16 }
+        };
+
         /// <summary>
         /// Used the manage memory allocations.
         /// </summary>
@@ -198,19 +212,27 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.pngBitDepth = this.pngBitDepth ?? pngMetaData.BitDepth;
             this.use16Bit = this.pngBitDepth.Equals(PngBitDepth.Bit16);
 
+            // Ensure we are not allowing impossible combinations.
+            if (!ColorTypes.ContainsKey(this.pngColorType.Value))
+            {
+                throw new NotSupportedException("Color type is not supported or not valid.");
+            }
+
             stream.Write(PngConstants.HeaderBytes, 0, PngConstants.HeaderBytes.Length);
 
             QuantizedFrame<TPixel> quantized = null;
             if (this.pngColorType == PngColorType.Palette)
             {
-                byte bits = (byte)Math.Min(8u, (short)this.pngBitDepth);
+                byte bits = (byte)this.pngBitDepth;
+                if (!ColorTypes[this.pngColorType.Value].Contains(bits))
+                {
+                    throw new NotSupportedException("Bit depth is not supported or not valid.");
+                }
 
                 // Use the metadata to determine what quantization depth to use if no quantizer has been set.
                 if (this.quantizer == null)
                 {
-                    bits = (byte)Math.Min(8u, (short)this.pngBitDepth);
-                    int colorSize = ImageMaths.GetColorCountForBitDepth(bits);
-                    this.quantizer = new WuQuantizer(colorSize);
+                    this.quantizer = new WuQuantizer(ImageMaths.GetColorCountForBitDepth(bits));
                 }
 
                 // Create quantized frame returning the palette and set the bit depth.
@@ -234,8 +256,11 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else
             {
-                // TODO: Get the correct bit depth for grayscale images.
-                this.bitDepth = (byte)(this.use16Bit ? 16 : 8);
+                this.bitDepth = (byte)this.pngBitDepth;
+                if (!ColorTypes[this.pngColorType.Value].Contains(this.bitDepth))
+                {
+                    throw new NotSupportedException("Bit depth is not supported or not valid.");
+                }
             }
 
             this.bytesPerPixel = this.CalculateBytesPerPixel();
@@ -295,9 +320,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             if (this.pngColorType.Equals(PngColorType.Grayscale))
             {
-                // TODO: Realistically we should support 1, 2, 4, 8, and 16 bit grayscale images.
-                // we currently do the other types via palette. Maybe RC as I don't understand how the data is packed yet
-                // for 1, 2, and 4 bit grayscale images.
+                // TODO: Research and add support for grayscale plus tRNS
                 if (this.use16Bit)
                 {
                     // 16 bit grayscale
@@ -311,12 +334,32 @@ namespace SixLabors.ImageSharp.Formats.Png
                 }
                 else
                 {
-                    // 8 bit grayscale
-                    Rgb24 rgb = default;
-                    for (int x = 0; x < rowSpan.Length; x++)
+                    if (this.bitDepth == 8)
                     {
-                        rowSpan[x].ToRgb24(ref rgb);
-                        rawScanlineSpan[x] = (byte)((RX * rgb.R) + (GX * rgb.G) + (BX * rgb.B));
+                        // 8 bit grayscale
+                        Rgb24 rgb = default;
+                        for (int x = 0; x < rowSpan.Length; x++)
+                        {
+                            rowSpan[x].ToRgb24(ref rgb);
+                            rawScanlineSpan[x] = (byte)((RX * rgb.R) + (GX * rgb.G) + (BX * rgb.B));
+                        }
+                    }
+                    else
+                    {
+                        // 1, 2, and 4 bit grayscale
+                        using (IManagedByteBuffer temp = this.memoryAllocator.AllocateManagedByteBuffer(rowSpan.Length, AllocationOptions.Clean))
+                        {
+                            int scaleFactor = 255 / (ImageMaths.GetColorCountForBitDepth(this.bitDepth) - 1);
+                            Span<byte> tempSpan = temp.GetSpan();
+                            Rgb24 rgb = default;
+                            for (int x = 0; x < rowSpan.Length; x++)
+                            {
+                                rowSpan[x].ToRgb24(ref rgb);
+                                float luminance = ((RX * rgb.R) + (GX * rgb.G) + (BX * rgb.B)) / scaleFactor;
+                                tempSpan[x] = (byte)luminance;
+                                this.ScaleDownFrom8BitArray(tempSpan, rawScanlineSpan, this.bitDepth);
+                            }
+                        }
                     }
                 }
             }

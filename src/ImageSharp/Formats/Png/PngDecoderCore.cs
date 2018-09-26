@@ -396,18 +396,18 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             buffer = this.memoryAllocator.AllocateManagedByteBuffer(bytesPerScanline * 8 / bits, AllocationOptions.Clean);
-            byte[] result = buffer.Array;
+            ref byte sourceRef = ref MemoryMarshal.GetReference(source);
+            ref byte resultRef = ref buffer.Array[0];
             int mask = 0xFF >> (8 - bits);
             int resultOffset = 0;
 
             for (int i = 0; i < bytesPerScanline; i++)
             {
-                byte b = source[i];
+                byte b = Unsafe.Add(ref sourceRef, i);
                 for (int shift = 0; shift < 8; shift += bits)
                 {
                     int colorIndex = (b >> (8 - bits - shift)) & mask;
-                    result[resultOffset] = (byte)colorIndex;
-
+                    Unsafe.Add(ref resultRef, resultOffset) = (byte)colorIndex;
                     resultOffset++;
                 }
             }

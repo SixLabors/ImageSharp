@@ -3,7 +3,7 @@
 
 using System;
 using System.Buffers;
-
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
@@ -57,6 +57,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Gets the pixels of this <see cref="QuantizedFrame{TPixel}"/>.
         /// </summary>
         /// <returns>The <see cref="Span{T}"/></returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Span<byte> GetPixelSpan() => this.pixels.GetSpan();
 
         /// <summary>
@@ -65,6 +66,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         /// <param name="rowIndex">The row.</param>
         /// <returns>The <see cref="Span{T}"/></returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Span<byte> GetRowSpan(int rowIndex) => this.GetPixelSpan().Slice(rowIndex * this.Width, this.Width);
 
         /// <inheritdoc/>

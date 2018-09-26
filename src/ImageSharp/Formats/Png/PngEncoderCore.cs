@@ -4,6 +4,8 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Png.Filters;
@@ -162,8 +164,10 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.pngBitDepth = options.BitDepth;
             this.pngColorType = options.ColorType;
 
-            // Palette compresses better with none and spec recommends it.
-            this.pngFilterMethod = options.ColorType.Equals(PngColorType.Palette) ? PngFilterMethod.None : options.FilterMethod;
+            // Specification recommends default filter method None for paletted images and Paeth for others.
+            this.pngFilterMethod = options.FilterMethod ?? (options.ColorType.Equals(PngColorType.Palette)
+                ? PngFilterMethod.None
+                : PngFilterMethod.Paeth);
             this.compressionLevel = options.CompressionLevel;
             this.gamma = options.Gamma;
             this.quantizer = options.Quantizer;
@@ -212,9 +216,11 @@ namespace SixLabors.ImageSharp.Formats.Png
                 // Create quantized frame returning the palette and set the bit depth.
                 quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(image.Frames.RootFrame);
                 byte quantizedBits = (byte)ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length).Clamp(1, 8);
+                bits = Math.Max(bits, quantizedBits);
 
                 // Png only supports in four pixel depths: 1, 2, 4, and 8 bits when using the PLTE chunk
-                bits = Math.Max(bits, quantizedBits);
+                // We check again for the bit depth as the bit depth of the color palette from a given quantizer might not
+                // be within the acceptable range.
                 if (bits == 3)
                 {
                     bits = 4;
@@ -228,6 +234,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else
             {
+                // TODO: Get the correct bit depth for grayscale images.
                 this.bitDepth = (byte)(this.use16Bit ? 16 : 8);
             }
 
@@ -416,13 +423,13 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 case PngColorType.Palette:
 
-                    int stride = this.rawScanline.Length();
                     if (this.bitDepth < 8)
                     {
                         this.ScaleDownFrom8BitArray(quantized.GetRowSpan(row), this.rawScanline.GetSpan(), this.bitDepth);
                     }
                     else
                     {
+                        int stride = this.rawScanline.Length();
                         quantized.GetPixelSpan().Slice(row * stride, stride).CopyTo(this.rawScanline.GetSpan());
                     }
 
@@ -841,12 +848,16 @@ namespace SixLabors.ImageSharp.Formats.Png
             stream.Write(this.buffer, 0, 4); // write the crc
         }
 
+        /// <summary>
+        /// Packs the given 8 bit array into and array of <paramref name="bits"/> depths.
+        /// </summary>
+        /// <param name="source">The source span in 8 bits.</param>
+        /// <param name="result">The resultant span in <paramref name="bits"/>.</param>
+        /// <param name="bits">The bit depth.</param>
         private void ScaleDownFrom8BitArray(ReadOnlySpan<byte> source, Span<byte> result, int bits)
         {
-            if (bits >= 8)
-            {
-                return;
-            }
+            ref byte sourceRef = ref MemoryMarshal.GetReference(source);
+            ref byte resultRef = ref MemoryMarshal.GetReference(result);
 
             byte mask = (byte)(0xFF >> (8 - bits));
             byte shift0 = (byte)(8 - bits);
@@ -856,13 +867,13 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             for (int i = 0; i < source.Length; i++)
             {
-                int value = source[i] & mask;
+                int value = Unsafe.Add(ref sourceRef, i) & mask;
                 v |= value << shift;
 
                 if (shift == 0)
                 {
                     shift = shift0;
-                    result[resultOffset] = (byte)v;
+                    Unsafe.Add(ref resultRef, resultOffset) = (byte)v;
                     resultOffset++;
                     v = 0;
                 }
@@ -874,7 +885,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             if (shift != shift0)
             {
-                result[resultOffset] = (byte)v;
+                Unsafe.Add(ref resultRef, resultOffset) = (byte)v;
             }
         }
 

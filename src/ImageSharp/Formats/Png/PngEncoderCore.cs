@@ -852,17 +852,18 @@ namespace SixLabors.ImageSharp.Formats.Png
             byte shift0 = (byte)(8 - bits);
             int shift = 8 - bits;
             int v = 0;
+            int resultOffset = 0;
 
-            for (int i = 0, j = 0; j < source.Length; j++)
+            for (int i = 0; i < source.Length; i++)
             {
-                int value = source[j] & mask;
+                int value = source[i] & mask;
                 v |= value << shift;
 
                 if (shift == 0)
                 {
                     shift = shift0;
-                    result[i] = (byte)v;
-                    i++;
+                    result[resultOffset] = (byte)v;
+                    resultOffset++;
                     v = 0;
                 }
                 else
@@ -873,7 +874,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             if (shift != shift0)
             {
-                result[0] = (byte)v;
+                result[resultOffset] = (byte)v;
             }
         }
 

@@ -316,7 +316,10 @@ namespace SixLabors.ImageSharp.Formats.Png
             const float RX = .2126F;
             const float GX = .7152F;
             const float BX = .0722F;
+
+            ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
             Span<byte> rawScanlineSpan = this.rawScanline.GetSpan();
+            ref byte rawScanlineSpanRef = ref MemoryMarshal.GetReference(rawScanlineSpan);
 
             if (this.pngColorType.Equals(PngColorType.Grayscale))
             {
@@ -327,7 +330,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     Rgb48 rgb = default;
                     for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 2)
                     {
-                        rowSpan[x].ToRgb48(ref rgb);
+                        Unsafe.Add(ref rowSpanRef, x).ToRgb48(ref rgb);
                         ushort luminance = (ushort)((RX * rgb.R) + (GX * rgb.G) + (BX * rgb.B));
                         BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), luminance);
                     }
@@ -340,8 +343,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                         Rgb24 rgb = default;
                         for (int x = 0; x < rowSpan.Length; x++)
                         {
-                            rowSpan[x].ToRgb24(ref rgb);
-                            rawScanlineSpan[x] = (byte)((RX * rgb.R) + (GX * rgb.G) + (BX * rgb.B));
+                            Unsafe.Add(ref rowSpanRef, x).ToRgb24(ref rgb);
+                            Unsafe.Add(ref rawScanlineSpanRef, x) = (byte)((RX * rgb.R) + (GX * rgb.G) + (BX * rgb.B));
                         }
                     }
                     else
@@ -351,12 +354,14 @@ namespace SixLabors.ImageSharp.Formats.Png
                         {
                             int scaleFactor = 255 / (ImageMaths.GetColorCountForBitDepth(this.bitDepth) - 1);
                             Span<byte> tempSpan = temp.GetSpan();
+                            ref byte tempSpanRef = ref MemoryMarshal.GetReference(tempSpan);
+
                             Rgb24 rgb = default;
                             for (int x = 0; x < rowSpan.Length; x++)
                             {
-                                rowSpan[x].ToRgb24(ref rgb);
+                                Unsafe.Add(ref rowSpanRef, x).ToRgb24(ref rgb);
                                 float luminance = ((RX * rgb.R) + (GX * rgb.G) + (BX * rgb.B)) / scaleFactor;
-                                tempSpan[x] = (byte)luminance;
+                                Unsafe.Add(ref tempSpanRef, x) = (byte)luminance;
                                 this.ScaleDownFrom8BitArray(tempSpan, rawScanlineSpan, this.bitDepth);
                             }
                         }
@@ -371,7 +376,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     Rgba64 rgba = default;
                     for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 4)
                     {
-                        rowSpan[x].ToRgba64(ref rgba);
+                        Unsafe.Add(ref rowSpanRef, x).ToRgba64(ref rgba);
                         ushort luminance = (ushort)((RX * rgba.R) + (GX * rgba.G) + (BX * rgba.B));
                         BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), luminance);
                         BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 2, 2), rgba.A);
@@ -383,9 +388,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                     Rgba32 rgba = default;
                     for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 2)
                     {
-                        rowSpan[x].ToRgba32(ref rgba);
-                        rawScanlineSpan[o] = (byte)((RX * rgba.R) + (GX * rgba.G) + (BX * rgba.B));
-                        rawScanlineSpan[o + 1] = rgba.A;
+                        Unsafe.Add(ref rowSpanRef, x).ToRgba32(ref rgba);
+                        Unsafe.Add(ref rawScanlineSpanRef, o) = (byte)((RX * rgba.R) + (GX * rgba.G) + (BX * rgba.B));
+                        Unsafe.Add(ref rawScanlineSpanRef, o + 1) = rgba.A;
                     }
                 }
             }
@@ -421,9 +426,10 @@ namespace SixLabors.ImageSharp.Formats.Png
                     {
                         // 16 bit Rgba
                         Rgba64 rgba = default;
+                        ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
                         for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 8)
                         {
-                            rowSpan[x].ToRgba64(ref rgba);
+                            Unsafe.Add(ref rowSpanRef, x).ToRgba64(ref rgba);
                             BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), rgba.R);
                             BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 2, 2), rgba.G);
                             BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 4, 2), rgba.B);
@@ -437,9 +443,10 @@ namespace SixLabors.ImageSharp.Formats.Png
                     {
                         // 16 bit Rgb
                         Rgb48 rgb = default;
+                        ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
                         for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 6)
                         {
-                            rowSpan[x].ToRgb48(ref rgb);
+                            Unsafe.Add(ref rowSpanRef, x).ToRgb48(ref rgb);
                             BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), rgb.R);
                             BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 2, 2), rgb.G);
                             BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 4, 2), rgb.B);
@@ -630,8 +637,8 @@ namespace SixLabors.ImageSharp.Formats.Png
             using (IManagedByteBuffer colorTable = this.memoryAllocator.AllocateManagedByteBuffer(colorTableLength))
             using (IManagedByteBuffer alphaTable = this.memoryAllocator.AllocateManagedByteBuffer(paletteLength))
             {
-                Span<byte> colorTableSpan = colorTable.GetSpan();
-                Span<byte> alphaTableSpan = alphaTable.GetSpan();
+                ref byte colorTableRef = ref MemoryMarshal.GetReference(colorTable.GetSpan());
+                ref byte alphaTableRef = ref MemoryMarshal.GetReference(alphaTable.GetSpan());
                 Span<byte> quantizedSpan = quantized.GetPixelSpan();
 
                 for (int i = 0; i < paletteLength; i++)
@@ -643,9 +650,9 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                         byte alpha = rgba.A;
 
-                        colorTableSpan[offset] = rgba.R;
-                        colorTableSpan[offset + 1] = rgba.G;
-                        colorTableSpan[offset + 2] = rgba.B;
+                        Unsafe.Add(ref colorTableRef, offset) = rgba.R;
+                        Unsafe.Add(ref colorTableRef, offset + 1) = rgba.G;
+                        Unsafe.Add(ref colorTableRef, offset + 2) = rgba.B;
 
                         if (alpha > this.threshold)
                         {
@@ -653,7 +660,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         }
 
                         anyAlpha = anyAlpha || alpha < byte.MaxValue;
-                        alphaTableSpan[i] = alpha;
+                        Unsafe.Add(ref alphaTableRef, i) = alpha;
                     }
                 }
 

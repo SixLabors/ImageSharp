@@ -722,7 +722,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void ProcessDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, ImageFrame<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel pixel = default;
             Span<TPixel> rowSpan = pixels.GetPixelRowSpan(this.currentRow);
 
             // Trim the first marker byte from the buffer
@@ -733,241 +732,64 @@ namespace SixLabors.ImageSharp.Formats.Png
             ? buffer.GetSpan()
             : trimmed;
 
-            ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
-            ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
-
             switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:
 
-                    int factor = 255 / (ImageMaths.GetColorCountForBitDepth(this.header.BitDepth) - 1);
-
-                    if (!this.hasTrans)
-                    {
-                        if (this.header.BitDepth == 16)
-                        {
-                            Rgb48 rgb48 = default;
-                            for (int x = 0, o = 0; x < this.header.Width; x++, o += 2)
-                            {
-                                ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                                rgb48.R = luminance;
-                                rgb48.G = luminance;
-                                rgb48.B = luminance;
-
-                                pixel.PackFromRgb48(rgb48);
-                                Unsafe.Add(ref rowSpanRef, x) = pixel;
-                            }
-                        }
-                        else
-                        {
-                            // TODO: We should really be using Rgb24 here but IPixel does not have a PackFromRgb24 method.
-                            var rgba32 = new Rgba32(0, 0, 0, byte.MaxValue);
-                            for (int x = 0; x < this.header.Width; x++)
-                            {
-                                byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, x) * factor);
-                                rgba32.R = luminance;
-                                rgba32.G = luminance;
-                                rgba32.B = luminance;
-
-                                pixel.PackFromRgba32(rgba32);
-                                Unsafe.Add(ref rowSpanRef, x) = pixel;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (this.header.BitDepth == 16)
-                        {
-                            Rgba64 rgba64 = default;
-                            for (int x = 0, o = 0; x < this.header.Width; x++, o += 2)
-                            {
-                                ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                                rgba64.R = luminance;
-                                rgba64.G = luminance;
-                                rgba64.B = luminance;
-                                rgba64.A = luminance.Equals(this.luminance16Trans) ? ushort.MinValue : ushort.MaxValue;
-
-                                pixel.PackFromRgba64(rgba64);
-                                Unsafe.Add(ref rowSpanRef, x) = pixel;
-                            }
-                        }
-                        else
-                        {
-                            Rgba32 rgba32 = default;
-                            for (int x = 0; x < this.header.Width; x++)
-                            {
-                                byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, x) * factor);
-                                rgba32.R = luminance;
-                                rgba32.G = luminance;
-                                rgba32.B = luminance;
-                                rgba32.A = luminance.Equals(this.luminanceTrans) ? byte.MinValue : byte.MaxValue;
-
-                                pixel.PackFromRgba32(rgba32);
-                                Unsafe.Add(ref rowSpanRef, x) = pixel;
-                            }
-                        }
-                    }
+                    PngScanlineProcessor.ProcessGrayscaleScanline(
+                        this.header,
+                        scanlineSpan,
+                        rowSpan,
+                        this.hasTrans,
+                        this.luminance16Trans,
+                        this.luminanceTrans);
 
                     break;
 
                 case PngColorType.GrayscaleWithAlpha:
 
-                    if (this.header.BitDepth == 16)
-                    {
-                        Rgba64 rgba64 = default;
-                        for (int x = 0, o = 0; x < this.header.Width; x++, o += 4)
-                        {
-                            ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                            ushort alpha = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
-                            rgba64.R = luminance;
-                            rgba64.G = luminance;
-                            rgba64.B = luminance;
-                            rgba64.A = alpha;
-
-                            pixel.PackFromRgba64(rgba64);
-                            Unsafe.Add(ref rowSpanRef, x) = pixel;
-                        }
-                    }
-                    else
-                    {
-                        Rgba32 rgba32 = default;
-                        int bps = this.bytesPerSample;
-                        for (int x = 0; x < this.header.Width; x++)
-                        {
-                            int offset = x * this.bytesPerPixel;
-                            byte luminance = Unsafe.Add(ref scanlineSpanRef, offset);
-                            byte alpha = Unsafe.Add(ref scanlineSpanRef, offset + bps);
-
-                            rgba32.R = luminance;
-                            rgba32.G = luminance;
-                            rgba32.B = luminance;
-                            rgba32.A = alpha;
-
-                            pixel.PackFromRgba32(rgba32);
-                            Unsafe.Add(ref rowSpanRef, x) = pixel;
-                        }
-                    }
+                    PngScanlineProcessor.ProcessGrayscaleWithAlphaScanline(
+                        this.header,
+                        scanlineSpan,
+                        rowSpan,
+                        this.bytesPerPixel,
+                        this.bytesPerSample);
 
                     break;
 
                 case PngColorType.Palette:
 
-                    ReadOnlySpan<Rgb24> palettePixels = MemoryMarshal.Cast<byte, Rgb24>(this.palette);
-                    ref Rgb24 palettePixelsRef = ref MemoryMarshal.GetReference(palettePixels);
-
-                    if (this.paletteAlpha?.Length > 0)
-                    {
-                        // If the alpha palette is not null and has one or more entries, this means, that the image contains an alpha
-                        // channel and we should try to read it.
-                        Rgba32 rgba = default;
-                        ref byte paletteAlphaRef = ref this.paletteAlpha[0];
-
-                        for (int x = 0; x < this.header.Width; x++)
-                        {
-                            int index = Unsafe.Add(ref scanlineSpanRef, x);
-                            rgba.Rgb = Unsafe.Add(ref palettePixelsRef, index);
-                            rgba.A = this.paletteAlpha.Length > index ? Unsafe.Add(ref paletteAlphaRef, index) : byte.MaxValue;
-
-                            pixel.PackFromRgba32(rgba);
-                            Unsafe.Add(ref rowSpanRef, x) = pixel;
-                        }
-                    }
-                    else
-                    {
-                        // TODO: We should have PackFromRgb24.
-                        var rgba = new Rgba32(0, 0, 0, byte.MaxValue);
-                        for (int x = 0; x < this.header.Width; x++)
-                        {
-                            int index = Unsafe.Add(ref scanlineSpanRef, x);
-                            rgba.Rgb = Unsafe.Add(ref palettePixelsRef, index);
-
-                            pixel.PackFromRgba32(rgba);
-                            Unsafe.Add(ref rowSpanRef, x) = pixel;
-                        }
-                    }
+                    PngScanlineProcessor.ProcessPaletteScanline(
+                        this.header,
+                        scanlineSpan,
+                        rowSpan,
+                        this.palette,
+                        this.paletteAlpha);
 
                     break;
 
                 case PngColorType.Rgb:
 
-                    if (!this.hasTrans)
-                    {
-                        if (this.header.BitDepth == 16)
-                        {
-                            Rgb48 rgb48 = default;
-                            for (int x = 0, o = 0; x < this.header.Width; x++, o += 6)
-                            {
-                                rgb48.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                                rgb48.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
-                                rgb48.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 4, 2));
-
-                                pixel.PackFromRgb48(rgb48);
-                                Unsafe.Add(ref rowSpanRef, x) = pixel;
-                            }
-                        }
-                        else
-                        {
-                            PixelOperations<TPixel>.Instance.PackFromRgb24Bytes(scanlineSpan, rowSpan, this.header.Width);
-                        }
-                    }
-                    else
-                    {
-                        if (this.header.BitDepth == 16)
-                        {
-                            Rgb48 rgb48 = default;
-                            Rgba64 rgba64 = default;
-                            for (int x = 0, o = 0; x < this.header.Width; x++, o += 6)
-                            {
-                                rgb48.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                                rgb48.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
-                                rgb48.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 4, 2));
-
-                                rgba64.Rgb = rgb48;
-                                rgba64.A = rgb48.Equals(this.rgb48Trans) ? ushort.MinValue : ushort.MaxValue;
-
-                                pixel.PackFromRgba64(rgba64);
-                                Unsafe.Add(ref rowSpanRef, x) = pixel;
-                            }
-                        }
-                        else
-                        {
-                            ReadOnlySpan<Rgb24> rgb24Span = MemoryMarshal.Cast<byte, Rgb24>(scanlineSpan);
-                            ref Rgb24 rgb24SpanRef = ref MemoryMarshal.GetReference(rgb24Span);
-                            for (int x = 0; x < this.header.Width; x++)
-                            {
-                                ref readonly Rgb24 rgb24 = ref Unsafe.Add(ref rgb24SpanRef, x);
-                                Rgba32 rgba32 = default;
-                                rgba32.Rgb = rgb24;
-                                rgba32.A = rgb24.Equals(this.rgb24Trans) ? byte.MinValue : byte.MaxValue;
-
-                                pixel.PackFromRgba32(rgba32);
-                                Unsafe.Add(ref rowSpanRef, x) = pixel;
-                            }
-                        }
-                    }
+                    PngScanlineProcessor.ProcessRgbScanline(
+                        this.header,
+                        scanlineSpan,
+                        rowSpan,
+                        this.bytesPerPixel,
+                        this.bytesPerSample,
+                        this.hasTrans,
+                        this.rgb48Trans,
+                        this.rgb24Trans);
 
                     break;
 
                 case PngColorType.RgbWithAlpha:
 
-                    if (this.header.BitDepth == 16)
-                    {
-                        Rgba64 rgba64 = default;
-                        for (int x = 0, o = 0; x < this.header.Width; x++, o += 8)
-                        {
-                            rgba64.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                            rgba64.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
-                            rgba64.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 4, 2));
-                            rgba64.A = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 6, 2));
-
-                            pixel.PackFromRgba64(rgba64);
-                            Unsafe.Add(ref rowSpanRef, x) = pixel;
-                        }
-                    }
-                    else
-                    {
-                        PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(scanlineSpan, rowSpan, this.header.Width);
-                    }
+                    PngScanlineProcessor.ProcessRgbaScanline(
+                        this.header,
+                        scanlineSpan,
+                        rowSpan,
+                        this.bytesPerPixel,
+                        this.bytesPerSample);
 
                     break;
             }
@@ -986,8 +808,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void ProcessInterlacedDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, Span<TPixel> rowSpan, int pixelOffset = 0, int increment = 1)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel pixel = default;
-
             // Trim the first marker byte from the buffer
             ReadOnlySpan<byte> trimmed = defilteredScanline.Slice(1, defilteredScanline.Length - 1);
 
@@ -996,255 +816,74 @@ namespace SixLabors.ImageSharp.Formats.Png
             ? buffer.GetSpan()
             : trimmed;
 
-            ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
-            ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
-
             switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:
 
-                    int factor = 255 / (ImageMaths.GetColorCountForBitDepth(this.header.BitDepth) - 1);
-
-                    if (!this.hasTrans)
-                    {
-                        if (this.header.BitDepth == 16)
-                        {
-                            Rgb48 rgb48 = default;
-                            for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 2)
-                            {
-                                ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                                rgb48.R = luminance;
-                                rgb48.G = luminance;
-                                rgb48.B = luminance;
-
-                                pixel.PackFromRgb48(rgb48);
-                                Unsafe.Add(ref rowSpanRef, x) = pixel;
-                            }
-                        }
-                        else
-                        {
-                            // TODO: We should really be using Rgb24 here but IPixel does not have a PackFromRgb24 method.
-                            var rgba32 = new Rgba32(0, 0, 0, byte.MaxValue);
-                            for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o++)
-                            {
-                                byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, o) * factor);
-                                rgba32.R = luminance;
-                                rgba32.G = luminance;
-                                rgba32.B = luminance;
-
-                                pixel.PackFromRgba32(rgba32);
-                                Unsafe.Add(ref rowSpanRef, x) = pixel;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (this.header.BitDepth == 16)
-                        {
-                            Rgba64 rgba64 = default;
-                            for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 2)
-                            {
-                                ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                                rgba64.R = luminance;
-                                rgba64.G = luminance;
-                                rgba64.B = luminance;
-                                rgba64.A = luminance.Equals(this.luminance16Trans) ? ushort.MinValue : ushort.MaxValue;
-
-                                pixel.PackFromRgba64(rgba64);
-                                Unsafe.Add(ref rowSpanRef, x) = pixel;
-                            }
-                        }
-                        else
-                        {
-                            Rgba32 rgba32 = default;
-                            for (int x = pixelOffset; x < this.header.Width; x += increment)
-                            {
-                                byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, x) * factor);
-                                rgba32.R = luminance;
-                                rgba32.G = luminance;
-                                rgba32.B = luminance;
-                                rgba32.A = luminance.Equals(this.luminanceTrans) ? byte.MinValue : byte.MaxValue;
-
-                                pixel.PackFromRgba32(rgba32);
-                                Unsafe.Add(ref rowSpanRef, x) = pixel;
-                            }
-                        }
-                    }
+                    PngScanlineProcessor.ProcessInterlacedGrayscaleScanline(
+                        this.header,
+                        scanlineSpan,
+                        rowSpan,
+                        pixelOffset,
+                        increment,
+                        this.hasTrans,
+                        this.luminance16Trans,
+                        this.luminanceTrans);
 
                     break;
 
                 case PngColorType.GrayscaleWithAlpha:
 
-                    if (this.header.BitDepth == 16)
-                    {
-                        Rgba64 rgba64 = default;
-                        for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 4)
-                        {
-                            ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                            ushort alpha = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
-                            rgba64.R = luminance;
-                            rgba64.G = luminance;
-                            rgba64.B = luminance;
-                            rgba64.A = alpha;
-
-                            pixel.PackFromRgba64(rgba64);
-                            Unsafe.Add(ref rowSpanRef, x) = pixel;
-                        }
-                    }
-                    else
-                    {
-                        Rgba32 rgba32 = default;
-                        for (int x = pixelOffset; x < this.header.Width; x += increment)
-                        {
-                            int offset = x * this.bytesPerPixel;
-                            byte luminance = Unsafe.Add(ref scanlineSpanRef, offset);
-                            byte alpha = Unsafe.Add(ref scanlineSpanRef, offset + this.bytesPerSample);
-                            rgba32.R = luminance;
-                            rgba32.G = luminance;
-                            rgba32.B = luminance;
-                            rgba32.A = alpha;
-
-                            pixel.PackFromRgba32(rgba32);
-                            Unsafe.Add(ref rowSpanRef, x) = pixel;
-                        }
-                    }
+                    PngScanlineProcessor.ProcessInterlacedGrayscaleWithAlphaScanline(
+                        this.header,
+                        scanlineSpan,
+                        rowSpan,
+                        pixelOffset,
+                        increment,
+                        this.bytesPerPixel,
+                        this.bytesPerSample);
 
                     break;
 
                 case PngColorType.Palette:
 
-                    Span<Rgb24> palettePixels = MemoryMarshal.Cast<byte, Rgb24>(this.palette);
-                    ref Rgb24 palettePixelsRef = ref MemoryMarshal.GetReference(palettePixels);
-
-                    if (this.paletteAlpha?.Length > 0)
-                    {
-                        // If the alpha palette is not null and has one or more entries, this means, that the image contains an alpha
-                        // channel and we should try to read it.
-                        Rgba32 rgba = default;
-                        ref byte paletteAlphaRef = ref this.paletteAlpha[0];
-                        for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o++)
-                        {
-                            int index = Unsafe.Add(ref scanlineSpanRef, o);
-                            rgba.A = this.paletteAlpha.Length > index ? Unsafe.Add(ref paletteAlphaRef, index) : byte.MaxValue;
-                            rgba.Rgb = Unsafe.Add(ref palettePixelsRef, index);
-
-                            pixel.PackFromRgba32(rgba);
-                            Unsafe.Add(ref rowSpanRef, x) = pixel;
-                        }
-                    }
-                    else
-                    {
-                        var rgba = new Rgba32(0, 0, 0, byte.MaxValue);
-                        for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o++)
-                        {
-                            int index = Unsafe.Add(ref scanlineSpanRef, o);
-                            rgba.Rgb = Unsafe.Add(ref palettePixelsRef, index);
-
-                            pixel.PackFromRgba32(rgba);
-                            Unsafe.Add(ref rowSpanRef, x) = pixel;
-                        }
-                    }
+                    PngScanlineProcessor.ProcessInterlacedPaletteScanline(
+                        this.header,
+                        scanlineSpan,
+                        rowSpan,
+                        pixelOffset,
+                        increment,
+                        this.palette,
+                        this.paletteAlpha);
 
                     break;
 
                 case PngColorType.Rgb:
 
-                    if (this.header.BitDepth == 16)
-                    {
-                        if (this.hasTrans)
-                        {
-                            Rgb48 rgb48 = default;
-                            Rgba64 rgba64 = default;
-                            for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 6)
-                            {
-                                rgb48.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                                rgb48.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
-                                rgb48.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 4, 2));
-
-                                rgba64.Rgb = rgb48;
-                                rgba64.A = rgb48.Equals(this.rgb48Trans) ? ushort.MinValue : ushort.MaxValue;
-
-                                pixel.PackFromRgba64(rgba64);
-                                Unsafe.Add(ref rowSpanRef, x) = pixel;
-                            }
-                        }
-                        else
-                        {
-                            Rgb48 rgb48 = default;
-                            for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 6)
-                            {
-                                rgb48.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                                rgb48.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
-                                rgb48.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 4, 2));
-
-                                pixel.PackFromRgb48(rgb48);
-                                Unsafe.Add(ref rowSpanRef, x) = pixel;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (this.hasTrans)
-                        {
-                            Rgba32 rgba = default;
-                            for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += this.bytesPerPixel)
-                            {
-                                rgba.R = Unsafe.Add(ref scanlineSpanRef, o);
-                                rgba.G = Unsafe.Add(ref scanlineSpanRef, o + this.bytesPerSample);
-                                rgba.B = Unsafe.Add(ref scanlineSpanRef, o + (2 * this.bytesPerSample));
-                                rgba.A = this.rgb24Trans.Equals(rgba.Rgb) ? byte.MinValue : byte.MaxValue;
-
-                                pixel.PackFromRgba32(rgba);
-                                Unsafe.Add(ref rowSpanRef, x) = pixel;
-                            }
-                        }
-                        else
-                        {
-                            var rgba = new Rgba32(0, 0, 0, byte.MaxValue);
-                            for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += this.bytesPerPixel)
-                            {
-                                rgba.R = Unsafe.Add(ref scanlineSpanRef, o);
-                                rgba.G = Unsafe.Add(ref scanlineSpanRef, o + this.bytesPerSample);
-                                rgba.B = Unsafe.Add(ref scanlineSpanRef, o + (2 * this.bytesPerSample));
-
-                                pixel.PackFromRgba32(rgba);
-                                Unsafe.Add(ref rowSpanRef, x) = pixel;
-                            }
-                        }
-                    }
+                    PngScanlineProcessor.ProcessInterlacedRgbScanline(
+                        this.header,
+                        scanlineSpan,
+                        rowSpan,
+                        pixelOffset,
+                        increment,
+                        this.bytesPerPixel,
+                        this.bytesPerSample,
+                        this.hasTrans,
+                        this.rgb48Trans,
+                        this.rgb24Trans);
 
                     break;
 
                 case PngColorType.RgbWithAlpha:
 
-                    if (this.header.BitDepth == 16)
-                    {
-                        Rgba64 rgba64 = default;
-                        for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 8)
-                        {
-                            rgba64.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                            rgba64.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
-                            rgba64.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 4, 2));
-                            rgba64.A = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 6, 2));
-
-                            pixel.PackFromRgba64(rgba64);
-                            Unsafe.Add(ref rowSpanRef, x) = pixel;
-                        }
-                    }
-                    else
-                    {
-                        Rgba32 rgba = default;
-                        for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += this.bytesPerPixel)
-                        {
-                            rgba.R = Unsafe.Add(ref scanlineSpanRef, o);
-                            rgba.G = Unsafe.Add(ref scanlineSpanRef, o + this.bytesPerSample);
-                            rgba.B = Unsafe.Add(ref scanlineSpanRef, o + (2 * this.bytesPerSample));
-                            rgba.A = Unsafe.Add(ref scanlineSpanRef, o + (3 * this.bytesPerSample));
-
-                            pixel.PackFromRgba32(rgba);
-                            Unsafe.Add(ref rowSpanRef, x) = pixel;
-                        }
-                    }
+                    PngScanlineProcessor.ProcessInterlacedRgbaScanline(
+                        this.header,
+                        scanlineSpan,
+                        rowSpan,
+                        pixelOffset,
+                        increment,
+                        this.bytesPerPixel,
+                        this.bytesPerSample);
 
                     break;
             }

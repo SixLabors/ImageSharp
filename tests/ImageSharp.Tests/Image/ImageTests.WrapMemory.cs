@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void WrapMemory_CreatedImageIsCorrect()
             {
-                Configuration cfg = Configuration.Default.ShallowCopy();
+                Configuration cfg = Configuration.Default.Clone();
                 var metaData = new ImageMetaData();
 
                 var array = new Rgba32[25];

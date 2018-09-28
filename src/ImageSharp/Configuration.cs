@@ -59,6 +59,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets or sets the maximum number of concurrent tasks enabled in ImageSharp algorithms
         /// configured with this <see cref="Configuration"/> instance.
+        /// Initialized with <see cref="Environment.ProcessorCount"/> by default.
         /// </summary>
         public int MaxDegreeOfParallelism
         {
@@ -125,7 +126,7 @@ namespace SixLabors.ImageSharp
         /// Creates a shallow copy of the <see cref="Configuration"/>
         /// </summary>
         /// <returns>A new configuration instance</returns>
-        public Configuration ShallowCopy()
+        public Configuration Clone()
         {
             return new Configuration
             {

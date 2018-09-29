@@ -38,26 +38,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         };
 
         /// <summary>
-        /// The amount to increment when processing each column per scanline for each interlaced pass
-        /// </summary>
-        private static readonly int[] Adam7ColumnIncrement = { 8, 8, 4, 4, 2, 2, 1 };
-
-        /// <summary>
-        /// The index to start at when processing each column per scanline for each interlaced pass
-        /// </summary>
-        private static readonly int[] Adam7FirstColumn = { 0, 4, 0, 2, 0, 1, 0 };
-
-        /// <summary>
-        /// The index to start at when processing each row per scanline for each interlaced pass
-        /// </summary>
-        private static readonly int[] Adam7FirstRow = { 0, 0, 4, 0, 2, 0, 1 };
-
-        /// <summary>
-        /// The amount to increment when processing each row per scanline for each interlaced pass
-        /// </summary>
-        private static readonly int[] Adam7RowIncrement = { 8, 8, 8, 4, 4, 2, 2 };
-
-        /// <summary>
         /// Reusable buffer for reading chunk types.
         /// </summary>
         private readonly byte[] chunkTypeBuffer = new byte[4];
@@ -150,7 +130,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// The index of the current scanline being processed
         /// </summary>
-        private int currentRow = Adam7FirstRow[0];
+        private int currentRow = Adam7.FirstRow[0];
 
         /// <summary>
         /// The current pass for an interlaced PNG
@@ -635,7 +615,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             while (true)
             {
-                int numColumns = this.ComputeColumnsAdam7(this.pass);
+                int numColumns = Adam7.ComputeColumns(this.header.Width, this.pass);
 
                 if (numColumns == 0)
                 {
@@ -691,11 +671,11 @@ namespace SixLabors.ImageSharp.Formats.Png
                     }
 
                     Span<TPixel> rowSpan = image.GetPixelRowSpan(this.currentRow);
-                    this.ProcessInterlacedDefilteredScanline(this.scanline.GetSpan(), rowSpan, Adam7FirstColumn[this.pass], Adam7ColumnIncrement[this.pass]);
+                    this.ProcessInterlacedDefilteredScanline(this.scanline.GetSpan(), rowSpan, Adam7.FirstColumn[this.pass], Adam7.ColumnIncrement[this.pass]);
 
                     this.SwapBuffers();
 
-                    this.currentRow += Adam7RowIncrement[this.pass];
+                    this.currentRow += Adam7.RowIncrement[this.pass];
                 }
 
                 this.pass++;
@@ -703,7 +683,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 if (this.pass < 7)
                 {
-                    this.currentRow = Adam7FirstRow[this.pass];
+                    this.currentRow = Adam7.FirstRow[this.pass];
                 }
                 else
                 {
@@ -1196,28 +1176,6 @@ namespace SixLabors.ImageSharp.Formats.Png
             result = default;
 
             return false;
-        }
-
-        /// <summary>
-        /// Returns the correct number of columns for each interlaced pass.
-        /// </summary>
-        /// <param name="passIndex">Th current pass index</param>
-        /// <returns>The <see cref="int"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int ComputeColumnsAdam7(int passIndex)
-        {
-            int width = this.header.Width;
-            switch (passIndex)
-            {
-                case 0: return (width + 7) / 8;
-                case 1: return (width + 3) / 8;
-                case 2: return (width + 3) / 4;
-                case 3: return (width + 1) / 4;
-                case 4: return (width + 1) / 2;
-                case 5: return width / 2;
-                case 6: return width;
-                default: throw new ArgumentException($"Not a valid pass index: {passIndex}");
-            }
         }
 
         private void SwapBuffers()

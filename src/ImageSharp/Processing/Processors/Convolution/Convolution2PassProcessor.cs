@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Threading.Tasks;
 
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing.Processors;
@@ -82,43 +83,47 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             int maxY = endY - 1;
             int maxX = endX - 1;
 
-            ParallelFor.WithConfiguration(
-                startY,
-                endY,
+            var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
+
+            ParallelHelper.IterateRows(
+                workingRectangle,
                 configuration,
-                y =>
-                {
-                    Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
-
-                    for (int x = startX; x < endX; x++)
+                rows =>
                     {
-                        Vector4 destination = default;
-
-                        // Apply each matrix multiplier to the color components for each pixel.
-                        for (int fy = 0; fy < kernelHeight; fy++)
+                        for (int y = rows.Min; y < rows.Max; y++)
                         {
-                            int fyr = fy - radiusY;
-                            int offsetY = y + fyr;
+                            Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
 
-                            offsetY = offsetY.Clamp(0, maxY);
-                            Span<TPixel> row = sourcePixels.GetRowSpan(offsetY);
-
-                            for (int fx = 0; fx < kernelWidth; fx++)
+                            for (int x = startX; x < endX; x++)
                             {
-                                int fxr = fx - radiusX;
-                                int offsetX = x + fxr;
+                                Vector4 destination = default;
 
-                                offsetX = offsetX.Clamp(0, maxX);
+                                // Apply each matrix multiplier to the color components for each pixel.
+                                for (int fy = 0; fy < kernelHeight; fy++)
+                                {
+                                    int fyr = fy - radiusY;
+                                    int offsetY = y + fyr;
 
-                                Vector4 currentColor = row[offsetX].ToVector4().Premultiply();
-                                destination += kernel[fy, fx] * currentColor;
+                                    offsetY = offsetY.Clamp(0, maxY);
+                                    Span<TPixel> row = sourcePixels.GetRowSpan(offsetY);
+
+                                    for (int fx = 0; fx < kernelWidth; fx++)
+                                    {
+                                        int fxr = fx - radiusX;
+                                        int offsetX = x + fxr;
+
+                                        offsetX = offsetX.Clamp(0, maxX);
+
+                                        Vector4 currentColor = row[offsetX].ToVector4().Premultiply();
+                                        destination += kernel[fy, fx] * currentColor;
+                                    }
+                                }
+
+                                ref TPixel pixel = ref targetRow[x];
+                                pixel.PackFromVector4(destination.UnPremultiply());
                             }
                         }
-
-                        ref TPixel pixel = ref targetRow[x];
-                        pixel.PackFromVector4(destination.UnPremultiply());
-                    }
-                });
+                    });
         }
     }
 }

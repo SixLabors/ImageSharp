@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            //? What does this do?
+            // What does this do?
             // int startY = sourceRectangle.Y;
             // int endY = sourceRectangle.Bottom;
             // int startX = sourceRectangle.X;
@@ -28,12 +28,17 @@ namespace SixLabors.ImageSharp.Processing.Processors
             // int minY = Math.Max(0, startY);
             // int maxY = Math.Min(source.Height, endY);
 
+            /*
+                The implementation here does not account for Rectangles
+                or regions of the image. Needs to be implemented
+             */
+
             // Algorithm variables
             ulong sum, count;
             ushort s = (ushort)Math.Truncate(source.Width / 16.0);
             UInt64[,] intImage = new UInt64[source.Height, source.Width];
 
-            Rgb24 rgb = default;
+            Rgb24 rgb = default(Rgb24);
 
             for (ushort i = 0; i < source.Height; i++)
             {
@@ -41,21 +46,25 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
                 sum = 0;
 
-                for (ushort j = 0; j < span.Length; j++)
+                for (int j = 0; j < span.Length; j++)
                 {
                     span[j].ToRgb24(ref rgb);
 
                     sum += (uint)(rgb.R + rgb.G + rgb.B);
 
                     if (i != 0)
+                    {
                         intImage[i, j] = intImage[i - 1, j] + sum;
+                    }
                     else
+                    {
                         intImage[i, j] = sum;
+                    }
                 }
             }
 
             ushort x1, x2, y1, y2;
-            for (ushort i = 0; i < source.Height; i++)
+            for (int i = 0; i < source.Height; i++)
             {
                 Span<TPixel> span = source.GetPixelRowSpan(i);
 

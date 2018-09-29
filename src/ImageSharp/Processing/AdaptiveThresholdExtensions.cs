@@ -4,6 +4,9 @@ using SixLabors.ImageSharp.Processing.Processors;
 
 namespace SixLabors.ImageSharp.Processing
 {
+    /// <summary>
+    /// Provides Extension method for Adaptive Threshold Processor
+    /// </summary>
     public static class AdaptiveThresholdExtensions
     {
         /// <summary>

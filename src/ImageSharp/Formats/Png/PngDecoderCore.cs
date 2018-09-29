@@ -1148,14 +1148,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </exception>
         private PngChunkType ReadChunkType()
         {
-            int numBytes = this.currentStream.Read(this.chunkTypeBuffer, 0, 4);
-
-            if (numBytes >= 1 && numBytes <= 3)
-            {
-                throw new ImageFormatException("Image stream is not valid!");
-            }
-
-            return (PngChunkType)BinaryPrimitives.ReadUInt32BigEndian(this.chunkTypeBuffer.AsSpan());
+            return this.currentStream.Read(this.chunkTypeBuffer, 0, 4) == 4
+                ? (PngChunkType)BinaryPrimitives.ReadUInt32BigEndian(this.chunkTypeBuffer.AsSpan())
+                : throw new ImageFormatException("Invalid PNG data.");
         }
 
         /// <summary>

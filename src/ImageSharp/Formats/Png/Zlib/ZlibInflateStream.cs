@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <summary>
         /// Delegate to get more data once we've exhausted the current data remaining
         /// </summary>
-        private Func<int> getData;
+        private readonly Func<int> getData;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ZlibInflateStream"/> class.

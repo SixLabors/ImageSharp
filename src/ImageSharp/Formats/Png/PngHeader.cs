@@ -11,6 +11,8 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// </summary>
     internal readonly struct PngHeader
     {
+        public const int Size = 13;
+
         public PngHeader(
             int width,
             int height,
@@ -77,6 +79,22 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Two values are currently defined: 0 (no interlace) or 1 (Adam7 interlace).
         /// </summary>
         public PngInterlaceMode InterlaceMethod { get; }
+
+        /// <summary>
+        /// Writes the header to the given buffer.
+        /// </summary>
+        /// <param name="buffer">The buffer to write to.</param>
+        public void WriteTo(Span<byte> buffer)
+        {
+            BinaryPrimitives.WriteInt32BigEndian(buffer.Slice(0, 4), this.Width);
+            BinaryPrimitives.WriteInt32BigEndian(buffer.Slice(4, 4), this.Height);
+
+            buffer[8] = this.BitDepth;
+            buffer[9] = (byte)this.ColorType;
+            buffer[10] = this.CompressionMethod;
+            buffer[11] = this.FilterMethod;
+            buffer[12] = (byte)this.InterlaceMethod;
+        }
 
         /// <summary>
         /// Parses the PngHeader from the given data buffer.

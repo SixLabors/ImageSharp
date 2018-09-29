@@ -1054,9 +1054,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return true;
             }
 
-            int length = this.ReadChunkLength();
-
-            if (length == -1)
+            if (!this.TryReadChunkLength(out int length))
             {
                 chunk = default;
 
@@ -1070,9 +1068,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 // That lets us read one byte at a time until we reach a known chunk.
                 this.currentStream.Position -= 3;
 
-                length = this.ReadChunkLength();
-
-                if (length == -1)
+                if (!this.TryReadChunkLength(out length))
                 {
                     chunk = default;
 
@@ -1188,16 +1184,18 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <exception cref="ImageFormatException">
         /// Thrown if the input stream is not valid.
         /// </exception>
-        private int ReadChunkLength()
+        private bool TryReadChunkLength(out int result)
         {
-            int numBytes = this.currentStream.Read(this.chunkLengthBuffer, 0, 4);
-
-            if (numBytes < 4)
+            if (this.currentStream.Read(this.chunkLengthBuffer, 0, 4) == 4)
             {
-                return -1;
+                result = BinaryPrimitives.ReadInt32BigEndian(this.chunkLengthBuffer);
+
+                return true;
             }
 
-            return BinaryPrimitives.ReadInt32BigEndian(this.chunkLengthBuffer);
+            result = default;
+
+            return false;
         }
 
         /// <summary>

@@ -1,6 +1,9 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Buffers.Binary;
+
 namespace SixLabors.ImageSharp.Formats.Png
 {
     /// <summary>
@@ -8,6 +11,8 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// </summary>
     internal readonly struct PngHeader
     {
+        public const int Size = 13;
+
         public PngHeader(
             int width,
             int height,
@@ -74,5 +79,38 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Two values are currently defined: 0 (no interlace) or 1 (Adam7 interlace).
         /// </summary>
         public PngInterlaceMode InterlaceMethod { get; }
+
+        /// <summary>
+        /// Writes the header to the given buffer.
+        /// </summary>
+        /// <param name="buffer">The buffer to write to.</param>
+        public void WriteTo(Span<byte> buffer)
+        {
+            BinaryPrimitives.WriteInt32BigEndian(buffer.Slice(0, 4), this.Width);
+            BinaryPrimitives.WriteInt32BigEndian(buffer.Slice(4, 4), this.Height);
+
+            buffer[8] = this.BitDepth;
+            buffer[9] = (byte)this.ColorType;
+            buffer[10] = this.CompressionMethod;
+            buffer[11] = this.FilterMethod;
+            buffer[12] = (byte)this.InterlaceMethod;
+        }
+
+        /// <summary>
+        /// Parses the PngHeader from the given data buffer.
+        /// </summary>
+        /// <param name="data">The data to parse.</param>
+        /// <returns>The parsed PngHeader.</returns>
+        public static PngHeader Parse(ReadOnlySpan<byte> data)
+        {
+            return new PngHeader(
+              width: BinaryPrimitives.ReadInt32BigEndian(data.Slice(0, 4)),
+              height: BinaryPrimitives.ReadInt32BigEndian(data.Slice(4, 4)),
+              bitDepth: data[8],
+              colorType: (PngColorType)data[9],
+              compressionMethod: data[10],
+              filterMethod: data[11],
+              interlaceMethod: (PngInterlaceMode)data[12]);
+        }
     }
 }

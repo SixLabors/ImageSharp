@@ -179,6 +179,32 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
+        [WithTestPatternImages(100, 10, DefaultPixelType)]
+        public void ResizeWidthCannotKeepAspectKeepsOnePixel<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(x => x.Resize(5, 0));
+                Assert.Equal(5, image.Width);
+                Assert.Equal(1, image.Height);
+            }
+        }
+
+        [Theory]
+        [WithTestPatternImages(10, 100, DefaultPixelType)]
+        public void ResizeHeightCannotKeepAspectKeepsOnePixel<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(x => x.Resize(0, 5));
+                Assert.Equal(1, image.Width);
+                Assert.Equal(5, image.Height);
+            }
+        }
+
+        [Theory]
         [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
         public void ResizeWithCropWidthMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
@@ -324,7 +350,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [InlineData(2, 0)]
         public static void BicubicWindowOscillatesCorrectly(float x, float expected)
         {
-            var sampler = KnownResamplers.Bicubic;
+            IResampler sampler = KnownResamplers.Bicubic;
             float result = sampler.GetValue(x);
 
             Assert.Equal(result, expected);
@@ -338,7 +364,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [InlineData(2, 0)]
         public static void TriangleWindowOscillatesCorrectly(float x, float expected)
         {
-            var sampler = KnownResamplers.Triangle;
+            IResampler sampler = KnownResamplers.Triangle;
             float result = sampler.GetValue(x);
 
             Assert.Equal(result, expected);
@@ -352,7 +378,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [InlineData(2, 0)]
         public static void Lanczos3WindowOscillatesCorrectly(float x, float expected)
         {
-            var sampler = KnownResamplers.Lanczos3;
+            IResampler sampler = KnownResamplers.Lanczos3;
             float result = sampler.GetValue(x);
 
             Assert.Equal(result, expected);
@@ -366,7 +392,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [InlineData(4, 0)]
         public static void Lanczos5WindowOscillatesCorrectly(float x, float expected)
         {
-            var sampler = KnownResamplers.Lanczos5;
+            IResampler sampler = KnownResamplers.Lanczos5;
             float result = sampler.GetValue(x);
 
             Assert.Equal(result, expected);

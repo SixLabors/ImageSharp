@@ -1016,7 +1016,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             if (this.crc.Value != chunk.Crc)
             {
-                string chunkTypeName = Encoding.UTF8.GetString(chunkType.ToArray(), 0, 4);
+                string chunkTypeName = Encoding.UTF8.GetString(chunkType);
 
                 throw new ImageFormatException($"CRC Error. PNG {chunkTypeName} chunk is corrupt!");
             }

@@ -198,7 +198,6 @@ namespace SixLabors.ImageSharp.Formats.Png
                         {
                             case PngChunkType.Header:
                                 this.ReadHeaderChunk(pngMetaData, chunk.Data.Array);
-                                this.ValidateHeader();
                                 break;
                             case PngChunkType.Physical:
                                 this.ReadPhysicalChunk(metaData, chunk.Data.GetSpan());
@@ -287,7 +286,6 @@ namespace SixLabors.ImageSharp.Formats.Png
                         {
                             case PngChunkType.Header:
                                 this.ReadHeaderChunk(pngMetaData, chunk.Data.Array);
-                                this.ValidateHeader();
                                 break;
                             case PngChunkType.Physical:
                                 this.ReadPhysicalChunk(metaData, chunk.Data.GetSpan());
@@ -886,37 +884,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             this.header = PngHeader.Parse(data);
 
+            this.header.Validate();
+
             pngMetaData.BitDepth = (PngBitDepth)this.header.BitDepth;
             pngMetaData.ColorType = this.header.ColorType;
-        }
-
-        /// <summary>
-        /// Validates the png header.
-        /// </summary>
-        /// <exception cref="NotSupportedException">
-        /// Thrown if the image does pass validation.
-        /// </exception>
-        private void ValidateHeader()
-        {
-            if (!PngConstants.ColorTypes.ContainsKey(this.header.ColorType))
-            {
-                throw new NotSupportedException("Color type is not supported or not valid.");
-            }
-
-            if (!PngConstants.ColorTypes[this.header.ColorType].Contains(this.header.BitDepth))
-            {
-                throw new NotSupportedException("Bit depth is not supported or not valid.");
-            }
-
-            if (this.header.FilterMethod != 0)
-            {
-                throw new NotSupportedException("The png specification only defines 0 as filter method.");
-            }
-
-            if (this.header.InterlaceMethod != PngInterlaceMode.None && this.header.InterlaceMethod != PngInterlaceMode.Adam7)
-            {
-                throw new NotSupportedException("The png specification only defines 'None' and 'Adam7' as interlaced methods.");
-            }
 
             this.pngColorType = this.header.ColorType;
         }

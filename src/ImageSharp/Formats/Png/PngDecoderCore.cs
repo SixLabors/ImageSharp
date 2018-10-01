@@ -38,19 +38,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         };
 
         /// <summary>
-        /// Reusable buffer for reading chunk types.
+        /// Reusable buffer.
         /// </summary>
-        private readonly byte[] chunkTypeBuffer = new byte[4];
-
-        /// <summary>
-        /// Reusable buffer for reading chunk lengths.
-        /// </summary>
-        private readonly byte[] chunkLengthBuffer = new byte[4];
-
-        /// <summary>
-        /// Reusable buffer for reading crc values.
-        /// </summary>
-        private readonly byte[] crcBuffer = new byte[4];
+        private readonly byte[] buffer = new byte[4];
 
         /// <summary>
         /// Reusable crc for validating chunks.
@@ -1001,7 +991,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return 0;
             }
 
-            this.currentStream.Read(this.crcBuffer, 0, 4);
+            this.currentStream.Read(this.buffer, 0, 4);
 
             if (this.TryReadChunk(out PngChunk chunk))
             {
@@ -1086,13 +1076,17 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="chunk">The <see cref="PngChunk"/>.</param>
         private void ValidateChunk(in PngChunk chunk)
         {
+            Span<byte> chunkType = stackalloc byte[4];
+
+            BinaryPrimitives.WriteUInt32BigEndian(chunkType, (uint)chunk.Type);
+
             this.crc.Reset();
-            this.crc.Update(this.chunkTypeBuffer);
+            this.crc.Update(chunkType);
             this.crc.Update(chunk.Data.GetSpan());
 
             if (this.crc.Value != chunk.Crc)
             {
-                string chunkTypeName = Encoding.UTF8.GetString(this.chunkTypeBuffer, 0, 4);
+                string chunkTypeName = Encoding.UTF8.GetString(chunkType.ToArray(), 0, 4);
 
                 throw new ImageFormatException($"CRC Error. PNG {chunkTypeName} chunk is corrupt!");
             }
@@ -1106,14 +1100,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </exception>
         private uint ReadChunkCrc()
         {
-            int numBytes = this.currentStream.Read(this.crcBuffer, 0, 4);
-
-            if (numBytes >= 1 && numBytes <= 3)
-            {
-                throw new ImageFormatException("Image stream is not valid!");
-            }
-
-            return BinaryPrimitives.ReadUInt32BigEndian(this.crcBuffer);
+            return this.currentStream.Read(this.buffer, 0, 4) == 4
+                ? BinaryPrimitives.ReadUInt32BigEndian(this.buffer)
+                : throw new ImageFormatException("Image stream is not valid!");
         }
 
         /// <summary>
@@ -1148,22 +1137,22 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </exception>
         private PngChunkType ReadChunkType()
         {
-            return this.currentStream.Read(this.chunkTypeBuffer, 0, 4) == 4
-                ? (PngChunkType)BinaryPrimitives.ReadUInt32BigEndian(this.chunkTypeBuffer.AsSpan())
+            return this.currentStream.Read(this.buffer, 0, 4) == 4
+                ? (PngChunkType)BinaryPrimitives.ReadUInt32BigEndian(this.buffer)
                 : throw new ImageFormatException("Invalid PNG data.");
         }
 
         /// <summary>
-        /// Calculates the length of the given chunk.
+        /// Attempts to read the length of the next chunk.
         /// </summary>
-        /// <exception cref="ImageFormatException">
-        /// Thrown if the input stream is not valid.
-        /// </exception>
+        /// <returns>
+        /// Whether the the length was read.
+        /// </returns>
         private bool TryReadChunkLength(out int result)
         {
-            if (this.currentStream.Read(this.chunkLengthBuffer, 0, 4) == 4)
+            if (this.currentStream.Read(this.buffer, 0, 4) == 4)
             {
-                result = BinaryPrimitives.ReadInt32BigEndian(this.chunkLengthBuffer);
+                result = BinaryPrimitives.ReadInt32BigEndian(this.buffer);
 
                 return true;
             }

@@ -563,22 +563,18 @@ namespace SixLabors.ImageSharp.Formats.Png
                         break;
 
                     case FilterType.Sub:
-
                         SubFilter.Decode(scanlineSpan, this.bytesPerPixel);
                         break;
 
                     case FilterType.Up:
-
                         UpFilter.Decode(scanlineSpan, this.previousScanline.GetSpan());
                         break;
 
                     case FilterType.Average:
-
                         AverageFilter.Decode(scanlineSpan, this.previousScanline.GetSpan(), this.bytesPerPixel);
                         break;
 
                     case FilterType.Paeth:
-
                         PaethFilter.Decode(scanlineSpan, this.previousScanline.GetSpan(), this.bytesPerPixel);
                         break;
 
@@ -637,22 +633,18 @@ namespace SixLabors.ImageSharp.Formats.Png
                             break;
 
                         case FilterType.Sub:
-
                             SubFilter.Decode(scanSpan, this.bytesPerPixel);
                             break;
 
                         case FilterType.Up:
-
                             UpFilter.Decode(scanSpan, prevSpan);
                             break;
 
                         case FilterType.Average:
-
                             AverageFilter.Decode(scanSpan, prevSpan, this.bytesPerPixel);
                             break;
 
                         case FilterType.Paeth:
-
                             PaethFilter.Decode(scanSpan, prevSpan, this.bytesPerPixel);
                             break;
 
@@ -705,7 +697,6 @@ namespace SixLabors.ImageSharp.Formats.Png
             switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:
-
                     PngScanlineProcessor.ProcessGrayscaleScanline(
                         this.header,
                         scanlineSpan,
@@ -717,7 +708,6 @@ namespace SixLabors.ImageSharp.Formats.Png
                     break;
 
                 case PngColorType.GrayscaleWithAlpha:
-
                     PngScanlineProcessor.ProcessGrayscaleWithAlphaScanline(
                         this.header,
                         scanlineSpan,
@@ -728,7 +718,6 @@ namespace SixLabors.ImageSharp.Formats.Png
                     break;
 
                 case PngColorType.Palette:
-
                     PngScanlineProcessor.ProcessPaletteScanline(
                         this.header,
                         scanlineSpan,
@@ -739,7 +728,6 @@ namespace SixLabors.ImageSharp.Formats.Png
                     break;
 
                 case PngColorType.Rgb:
-
                     PngScanlineProcessor.ProcessRgbScanline(
                         this.header,
                         scanlineSpan,
@@ -753,7 +741,6 @@ namespace SixLabors.ImageSharp.Formats.Png
                     break;
 
                 case PngColorType.RgbWithAlpha:
-
                     PngScanlineProcessor.ProcessRgbaScanline(
                         this.header,
                         scanlineSpan,
@@ -789,7 +776,6 @@ namespace SixLabors.ImageSharp.Formats.Png
             switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:
-
                     PngScanlineProcessor.ProcessInterlacedGrayscaleScanline(
                         this.header,
                         scanlineSpan,
@@ -803,7 +789,6 @@ namespace SixLabors.ImageSharp.Formats.Png
                     break;
 
                 case PngColorType.GrayscaleWithAlpha:
-
                     PngScanlineProcessor.ProcessInterlacedGrayscaleWithAlphaScanline(
                         this.header,
                         scanlineSpan,
@@ -816,7 +801,6 @@ namespace SixLabors.ImageSharp.Formats.Png
                     break;
 
                 case PngColorType.Palette:
-
                     PngScanlineProcessor.ProcessInterlacedPaletteScanline(
                         this.header,
                         scanlineSpan,
@@ -829,7 +813,6 @@ namespace SixLabors.ImageSharp.Formats.Png
                     break;
 
                 case PngColorType.Rgb:
-
                     PngScanlineProcessor.ProcessInterlacedRgbScanline(
                         this.header,
                         scanlineSpan,
@@ -845,7 +828,6 @@ namespace SixLabors.ImageSharp.Formats.Png
                     break;
 
                 case PngColorType.RgbWithAlpha:
-
                     PngScanlineProcessor.ProcessInterlacedRgbaScanline(
                         this.header,
                         scanlineSpan,

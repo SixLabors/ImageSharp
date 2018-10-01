@@ -3,9 +3,7 @@
 
 using System;
 using System.Buffers.Binary;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -230,7 +228,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 this.AssignTransparentMarkers(alpha);
                                 break;
                             case PngChunkType.Text:
-                                this.ReadTextChunk(metaData, chunk.Data.Array, chunk.Length);
+                                this.ReadTextChunk(metaData, chunk.Data.Array.AsSpan(0, chunk.Length));
                                 break;
                             case PngChunkType.Exif:
                                 if (!this.ignoreMetadata)
@@ -297,7 +295,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 this.SkipChunkDataAndCrc(chunk);
                                 break;
                             case PngChunkType.Text:
-                                this.ReadTextChunk(metaData, chunk.Data.Array, chunk.Length);
+                                this.ReadTextChunk(metaData, chunk.Data.Array.AsSpan(0, chunk.Length));
                                 break;
                             case PngChunkType.End:
                                 this.isEndChunkReached = true;
@@ -896,28 +894,18 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Reads a text chunk containing image properties from the data.
         /// </summary>
         /// <param name="metadata">The metadata to decode to.</param>
-        /// <param name="data">The <see cref="T:byte[]"/> containing  data.</param>
-        /// <param name="length">The maximum length to read.</param>
-        private void ReadTextChunk(ImageMetaData metadata, byte[] data, int length)
+        /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
+        private void ReadTextChunk(ImageMetaData metadata, ReadOnlySpan<byte> data)
         {
             if (this.ignoreMetadata)
             {
                 return;
             }
 
-            int zeroIndex = 0;
+            int zeroIndex = data.IndexOf((byte)0);
 
-            for (int i = 0; i < length; i++)
-            {
-                if (data[i] == 0)
-                {
-                    zeroIndex = i;
-                    break;
-                }
-            }
-
-            string name = this.textEncoding.GetString(data, 0, zeroIndex);
-            string value = this.textEncoding.GetString(data, zeroIndex + 1, length - zeroIndex - 1);
+            string name = this.textEncoding.GetString(data.Slice(0, zeroIndex));
+            string value = this.textEncoding.GetString(data.Slice(zeroIndex + 1));
 
             metadata.Properties.Add(new ImageProperty(name, value));
         }

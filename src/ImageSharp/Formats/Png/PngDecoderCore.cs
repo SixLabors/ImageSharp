@@ -26,18 +26,6 @@ namespace SixLabors.ImageSharp.Formats.Png
     internal sealed class PngDecoderCore
     {
         /// <summary>
-        /// The dictionary of available color types.
-        /// </summary>
-        private static readonly Dictionary<PngColorType, byte[]> ColorTypes = new Dictionary<PngColorType, byte[]>()
-        {
-            [PngColorType.Grayscale] = new byte[] { 1, 2, 4, 8, 16 },
-            [PngColorType.Rgb] = new byte[] { 8, 16 },
-            [PngColorType.Palette] = new byte[] { 1, 2, 4, 8 },
-            [PngColorType.GrayscaleWithAlpha] = new byte[] { 8, 16 },
-            [PngColorType.RgbWithAlpha] = new byte[] { 8, 16 }
-        };
-
-        /// <summary>
         /// Reusable buffer.
         /// </summary>
         private readonly byte[] buffer = new byte[4];
@@ -858,6 +846,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         ushort rc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(0, 2));
                         ushort gc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(2, 2));
                         ushort bc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(4, 2));
+
                         this.rgb48Trans = new Rgb48(rc, gc, bc);
                         this.hasTrans = true;
                         return;
@@ -909,12 +898,12 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </exception>
         private void ValidateHeader()
         {
-            if (!ColorTypes.ContainsKey(this.header.ColorType))
+            if (!PngConstants.ColorTypes.ContainsKey(this.header.ColorType))
             {
                 throw new NotSupportedException("Color type is not supported or not valid.");
             }
 
-            if (!ColorTypes[this.header.ColorType].Contains(this.header.BitDepth))
+            if (!PngConstants.ColorTypes[this.header.ColorType].Contains(this.header.BitDepth))
             {
                 throw new NotSupportedException("Bit depth is not supported or not valid.");
             }

@@ -81,6 +81,35 @@ namespace SixLabors.ImageSharp.Formats.Png
         public PngInterlaceMode InterlaceMethod { get; }
 
         /// <summary>
+        /// Validates the png header.
+        /// </summary>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the image does pass validation.
+        /// </exception>
+        public void Validate()
+        {
+            if (!PngConstants.ColorTypes.ContainsKey(this.ColorType))
+            {
+                throw new NotSupportedException("Color type is not supported or not valid.");
+            }
+
+            if (PngConstants.ColorTypes[this.ColorType].AsSpan().IndexOf(this.BitDepth) == -1)
+            {
+                throw new NotSupportedException("Bit depth is not supported or not valid.");
+            }
+
+            if (this.FilterMethod != 0)
+            {
+                throw new NotSupportedException("The png specification only defines 0 as filter method.");
+            }
+
+            if (this.InterlaceMethod != PngInterlaceMode.None && this.InterlaceMethod != PngInterlaceMode.Adam7)
+            {
+                throw new NotSupportedException("The png specification only defines 'None' and 'Adam7' as interlaced methods.");
+            }
+        }
+
+        /// <summary>
         /// Writes the header to the given buffer.
         /// </summary>
         /// <param name="buffer">The buffer to write to.</param>

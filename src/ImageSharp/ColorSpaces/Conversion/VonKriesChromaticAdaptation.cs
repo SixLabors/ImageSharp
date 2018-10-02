@@ -1,7 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
@@ -44,21 +47,51 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         internal VonKriesChromaticAdaptation(CieXyzAndLmsConverter converter) => this.converter = converter;
 
         /// <inheritdoc/>
-        public CieXyz Transform(in CieXyz sourceColor, in CieXyz sourceWhitePoint, in CieXyz targetWhitePoint)
+        public CieXyz Transform(in CieXyz source, in CieXyz sourceWhitePoint, in CieXyz destinationWhitePoint)
         {
-            if (sourceWhitePoint.Equals(targetWhitePoint))
+            if (sourceWhitePoint.Equals(destinationWhitePoint))
             {
-                return sourceColor;
+                return source;
             }
 
-            Lms sourceColorLms = this.converter.Convert(sourceColor);
+            Lms sourceColorLms = this.converter.Convert(source);
             Lms sourceWhitePointLms = this.converter.Convert(sourceWhitePoint);
-            Lms targetWhitePointLms = this.converter.Convert(targetWhitePoint);
+            Lms targetWhitePointLms = this.converter.Convert(destinationWhitePoint);
 
             Vector3 vector = targetWhitePointLms.ToVector3() / sourceWhitePointLms.ToVector3();
             var targetColorLms = new Lms(Vector3.Multiply(vector, sourceColorLms.ToVector3()));
 
             return this.converter.Convert(targetColorLms);
+        }
+
+        /// <inheritdoc/>
+        public void Transform(Span<CieXyz> source, Span<CieXyz> destination, CieXyz sourceWhitePoint, in CieXyz destinationWhitePoint, int count)
+        {
+            Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
+
+            if (sourceWhitePoint.Equals(destinationWhitePoint))
+            {
+                source.CopyTo(destination.Slice(0, count));
+                return;
+            }
+
+            ref CieXyz sourceRef = ref MemoryMarshal.GetReference(source);
+            ref CieXyz destRef = ref MemoryMarshal.GetReference(destination);
+
+            for (int i = 0; i < count; i++)
+            {
+                ref CieXyz sp = ref Unsafe.Add(ref sourceRef, i);
+                ref CieXyz dp = ref Unsafe.Add(ref destRef, i);
+
+                Lms sourceColorLms = this.converter.Convert(sp);
+                Lms sourceWhitePointLms = this.converter.Convert(sourceWhitePoint);
+                Lms targetWhitePointLms = this.converter.Convert(destinationWhitePoint);
+
+                Vector3 vector = targetWhitePointLms.ToVector3() / sourceWhitePointLms.ToVector3();
+                var targetColorLms = new Lms(Vector3.Multiply(vector, sourceColorLms.ToVector3()));
+
+                dp = this.converter.Convert(targetColorLms);
+            }
         }
     }
 }

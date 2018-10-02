@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="b">The blue component ranging between 0 and 1.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public LinearRgb(float r, float g, float b)
-            : this(new Vector3(r, g, b))
+            : this(r, g, b, DefaultWorkingSpace)
         {
         }
 

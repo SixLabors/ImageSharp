@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"Lms [ L={this.L:#0.##}, M={this.M:#0.##}, S={this.S:#0.##} ]";
+        public override string ToString() => $"Lms({this.L:#0.##}, {this.M:#0.##}, {this.S:#0.##})";
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is Lms other && this.Equals(other);

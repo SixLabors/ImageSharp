@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"Cmyk [ C={this.C:#0.##}, M={this.M:#0.##}, Y={this.Y:#0.##}, K={this.K:#0.##}]";
+        public override string ToString() => $"Cmyk({this.C:#0.##}, {this.M:#0.##}, {this.Y:#0.##}, {this.K:#0.##})";
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is Cmyk other && this.Equals(other);

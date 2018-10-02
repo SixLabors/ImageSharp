@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Gets or sets the filter method.
         /// </summary>
-        public PngFilterMethod FilterMethod { get; set; } = PngFilterMethod.Paeth;
+        public PngFilterMethod? FilterMethod { get; set; }
 
         /// <summary>
         /// Gets or sets the compression level 1-9.

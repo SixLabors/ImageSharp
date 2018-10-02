@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public override int GetHashCode() => HashHelpers.Combine(this.X.GetHashCode(), this.Y.GetHashCode());
 
         /// <inheritdoc/>
-        public override string ToString() => $"CieXyChromaticityCoordinates [ X={this.X:#0.##}, Y={this.Y:#0.##}]";
+        public override string ToString() => $"CieXyChromaticityCoordinates({this.X:#0.##}, {this.Y:#0.##})";
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is CieXyChromaticityCoordinates other && this.Equals(other);

@@ -157,7 +157,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"Rgb [ R={this.R:#0.##}, G={this.G:#0.##}, B={this.B:#0.##} ]";
+        public override string ToString() => $"Rgb({this.R:#0.##}, {this.G:#0.##}, {this.B:#0.##})";
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is Rgb other && this.Equals(other);

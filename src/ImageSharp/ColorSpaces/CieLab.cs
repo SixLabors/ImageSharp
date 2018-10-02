@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -12,7 +11,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// Represents a CIE L*a*b* 1976 color.
     /// <see href="https://en.wikipedia.org/wiki/Lab_color_space"/>
     /// </summary>
-    internal readonly struct CieLab : IColorVector, IEquatable<CieLab>, IAlmostEquatable<CieLab, float>
+    internal readonly struct CieLab : IEquatable<CieLab>, IAlmostEquatable<CieLab, float>
     {
         /// <summary>
         /// D50 standard illuminant.
@@ -156,12 +155,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return this.Equals(default)
-                ? "CieLab [Empty]"
-                : $"CieLab [ L={this.L:#0.##}, A={this.A:#0.##}, B={this.B:#0.##}]";
-        }
+        public override string ToString() => $"CieLab({this.L:#0.##},{this.A:#0.##},{this.B:#0.##})";
 
         /// <inheritdoc/>
         public override bool Equals(object obj)

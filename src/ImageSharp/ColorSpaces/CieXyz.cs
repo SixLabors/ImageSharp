@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -12,7 +11,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// Represents an CIE XYZ 1931 color
     /// <see href="https://en.wikipedia.org/wiki/CIE_1931_color_space#Definition_of_the_CIE_XYZ_color_space"/>
     /// </summary>
-    internal readonly struct CieXyz : IColorVector, IEquatable<CieXyz>, IAlmostEquatable<CieXyz, float>
+    internal readonly struct CieXyz : IEquatable<CieXyz>, IAlmostEquatable<CieXyz, float>
     {
         /// <summary>
         /// The backing vector for SIMD support.
@@ -113,18 +112,10 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode()
-        {
-            return this.backingVector.GetHashCode();
-        }
+        public override int GetHashCode() => this.backingVector.GetHashCode();
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return this.Equals(default)
-                ? "CieXyz [ Empty ]"
-                : $"CieXyz [ X={this.X:#0.##}, Y={this.Y:#0.##}, Z={this.Z:#0.##} ]";
-        }
+        public override string ToString() => $"CieXyz({this.X:#0.##},{this.Y:#0.##},{this.Z:#0.##})";
 
         /// <inheritdoc/>
         public override bool Equals(object obj)

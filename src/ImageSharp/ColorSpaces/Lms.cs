@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -13,7 +12,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// named after their responsivity (sensitivity) at long, medium and short wavelengths.
     /// <see href="https://en.wikipedia.org/wiki/LMS_color_space"/>
     /// </summary>
-    internal readonly struct Lms : IColorVector, IEquatable<Lms>, IAlmostEquatable<Lms, float>
+    internal readonly struct Lms : IEquatable<Lms>, IAlmostEquatable<Lms, float>
     {
         /// <summary>
         /// The backing vector for SIMD support.
@@ -114,18 +113,10 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return this.backingVector.GetHashCode();
-        }
+        public override int GetHashCode() => this.backingVector.GetHashCode();
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return this.Equals(default)
-                ? "Lms [ Empty ]"
-                : $"Lms [ L={this.L:#0.##}, M={this.M:#0.##}, S={this.S:#0.##} ]";
-        }
+        public override string ToString() => $"Lms({this.L:#0.##},{this.M:#0.##},{this.S:#0.##})";
 
         /// <inheritdoc/>
         public override bool Equals(object obj)

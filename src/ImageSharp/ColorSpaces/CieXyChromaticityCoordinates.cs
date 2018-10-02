@@ -2,22 +2,21 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel;
-using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 // ReSharper disable CompareOfFloatsByEqualityOperator
 namespace SixLabors.ImageSharp.ColorSpaces
 {
     /// <summary>
-    /// Represents the coordinates of CIEXY chromaticity space
+    /// Represents the coordinates of CIEXY chromaticity space.
     /// </summary>
-    internal readonly struct CieXyChromaticityCoordinates : IEquatable<CieXyChromaticityCoordinates>, IAlmostEquatable<CieXyChromaticityCoordinates, float>
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct CieXyChromaticityCoordinates
+        : IEquatable<CieXyChromaticityCoordinates>, IAlmostEquatable<CieXyChromaticityCoordinates, float>
     {
-        /// <summary>
-        /// The backing vector for SIMD support.
-        /// </summary>
-        private readonly Vector2 backingVector;
+        // NOTE: We don't implement a backing vector on this class to avoid runtime bugs.
+        // SEE: https://github.com/dotnet/coreclr/issues/16443
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CieXyChromaticityCoordinates"/> struct.
@@ -26,18 +25,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="y">Chromaticity coordinate y (usually from 0 to 1)</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyChromaticityCoordinates(float x, float y)
-            : this(new Vector2(x, y))
         {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CieXyChromaticityCoordinates"/> struct.
-        /// </summary>
-        /// <param name="vector">The vector containing the XY Chromaticity coordinates</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieXyChromaticityCoordinates(Vector2 vector)
-        {
-            this.backingVector = vector;
+            this.X = x;
+            this.Y = y;
         }
 
         /// <summary>
@@ -46,23 +36,15 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <remarks>
         /// Ranges usually from 0 to 1.
         /// </remarks>
-        public float X
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.X;
-        }
+        public float X { get; }
 
         /// <summary>
-        /// Gets the chromaticity Y-coordinate
+        /// Gets the chromaticity Y-coordinate.
         /// </summary>
         /// <remarks>
         /// Ranges usually from 0 to 1.
         /// </remarks>
-        public float Y
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Y;
-        }
+        public float Y { get; }
 
         /// <summary>
         /// Compares two <see cref="CieXyChromaticityCoordinates"/> objects for equality.
@@ -102,18 +84,10 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode()
-        {
-            return this.backingVector.GetHashCode();
-        }
+        public override int GetHashCode() => HashHelpers.Combine(this.X.GetHashCode(), this.Y.GetHashCode());
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return this.Equals(default)
-                ? "CieXyChromaticityCoordinates [Empty]"
-                : $"CieXyChromaticityCoordinates [ X={this.X:#0.##}, Y={this.Y:#0.##}]";
-        }
+        public override string ToString() => $"CieXyChromaticityCoordinates({this.X},{this.Y})";
 
         /// <inheritdoc/>
         public override bool Equals(object obj)
@@ -125,7 +99,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(CieXyChromaticityCoordinates other)
         {
-            // The memberwise comparison here is a workaround for https://github.com/dotnet/coreclr/issues/16443
             return this.X == other.X && this.Y == other.Y;
         }
 
@@ -133,10 +106,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(CieXyChromaticityCoordinates other, float precision)
         {
-            var result = Vector2.Abs(this.backingVector - other.backingVector);
-
-            return result.X <= precision
-                && result.Y <= precision;
+            return MathF.Abs(this.X) <= precision
+                && Math.Abs(this.Y) <= precision;
         }
     }
 }

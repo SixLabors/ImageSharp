@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -11,7 +10,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// <summary>
     /// Represents a Hsl (hue, saturation, lightness) color.
     /// </summary>
-    internal readonly struct Hsl : IColorVector, IEquatable<Hsl>, IAlmostEquatable<Hsl, float>
+    internal readonly struct Hsl : IEquatable<Hsl>, IAlmostEquatable<Hsl, float>
     {
         /// <summary>
         /// Max range used for clamping.
@@ -116,18 +115,10 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode()
-        {
-            return this.backingVector.GetHashCode();
-        }
+        public override int GetHashCode() => this.backingVector.GetHashCode();
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return this.Equals(default)
-                ? "Hsl [ Empty ]"
-                : $"Hsl [ H={this.H:#0.##}, S={this.S:#0.##}, L={this.L:#0.##} ]";
-        }
+        public override string ToString() => $"Hsl({this.H:#0.##},{this.S:#0.##},{this.L:#0.##})";
 
         /// <inheritdoc/>
         public override bool Equals(object obj)

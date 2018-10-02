@@ -5,7 +5,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
 {
     /// <summary>
     /// The well known standard illuminants.
-    /// Standard illuminants provide a basis for comparing images or colors recorded under different lighting
+    /// Standard illuminants provide a basis for comparing images or colors recorded under different lighting.
     /// </summary>
     /// <remarks>
     /// Coefficients taken from:

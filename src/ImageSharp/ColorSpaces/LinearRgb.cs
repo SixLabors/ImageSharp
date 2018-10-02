@@ -13,6 +13,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// </summary>
     public readonly struct LinearRgb : IEquatable<LinearRgb>
     {
+        private static readonly Vector3 Min = Vector3.Zero;
+        private static readonly Vector3 Max = Vector3.One;
+
         /// <summary>
         /// The default LinearRgb working space.
         /// </summary>
@@ -85,7 +88,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public LinearRgb(Vector3 vector, RgbWorkingSpace workingSpace)
         {
             // Clamp to 0-1 range.
-            vector = Vector3.Clamp(vector, Vector3.Zero, Vector3.One);
+            vector = Vector3.Clamp(vector, Min, Max);
             this.R = vector.X;
             this.G = vector.Y;
             this.B = vector.Z;

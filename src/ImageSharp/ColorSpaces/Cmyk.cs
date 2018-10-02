@@ -12,6 +12,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// </summary>
     public readonly struct Cmyk : IEquatable<Cmyk>
     {
+        private static readonly Vector4 Min = Vector4.Zero;
+        private static readonly Vector4 Max = Vector4.One;
+
         /// <summary>
         /// Gets the cyan color component.
         /// <remarks>A value ranging between 0 and 1.</remarks>
@@ -56,7 +59,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(InliningOptions.ShortMethod)]
         public Cmyk(Vector4 vector)
         {
-            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One);
+            vector = Vector4.Clamp(vector, Min, Max);
             this.C = vector.X;
             this.M = vector.Y;
             this.Y = vector.Z;

@@ -9,10 +9,13 @@ namespace SixLabors.ImageSharp.ColorSpaces
 {
     /// <summary>
     /// Represents the CIE L*C*h°, cylindrical form of the CIE L*u*v* 1976 color.
-    /// <see href="https://en.wikipedia.org/wiki/Lab_color_space#Cylindrical_representation:_CieLchuv_or_CIEHLC"/>
+    /// <see href="https://en.wikipedia.org/wiki/CIELAB_color_space#Cylindrical_representation:_CIELCh_or_CIEHLC"/>
     /// </summary>
     public readonly struct CieLchuv : IEquatable<CieLchuv>
     {
+        private static readonly Vector3 Min = Vector3.Zero;
+        private static readonly Vector3 Max = new Vector3(100, 200, 360);
+
         /// <summary>
         /// D50 standard illuminant.
         /// Used when reference white is not specified explicitly.
@@ -27,7 +30,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <summary>
         /// Gets the a chroma component.
-        /// <remarks>A value ranging from 0 to 100.</remarks>
+        /// <remarks>A value ranging from 0 to 200.</remarks>
         /// </summary>
         public readonly float C;
 
@@ -64,11 +67,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public CieLchuv(float l, float c, float h, CieXyz whitePoint)
+           : this(new Vector3(l, c, h), whitePoint)
         {
-            this.L = l;
-            this.C = c;
-            this.H = h;
-            this.WhitePoint = whitePoint;
         }
 
         /// <summary>
@@ -91,6 +91,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public CieLchuv(Vector3 vector, CieXyz whitePoint)
             : this()
         {
+            vector = Vector3.Clamp(vector, Min, Max);
             this.L = vector.X;
             this.C = vector.Y;
             this.H = vector.Z;

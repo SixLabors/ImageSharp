@@ -40,10 +40,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="s">S represents the responsivity at short wavelengths.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public Lms(float l, float m, float s)
+            : this(new Vector3(l, m, s))
         {
-            this.L = l;
-            this.M = m;
-            this.S = s;
         }
 
         /// <summary>

@@ -12,10 +12,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// </summary>
     public readonly struct Hsl : IEquatable<Hsl>
     {
-        /// <summary>
-        /// Max range used for clamping.
-        /// </summary>
-        private static readonly Vector3 VectorMax = new Vector3(360, 1, 1);
+        private static readonly Vector3 Min = Vector3.Zero;
+        private static readonly Vector3 Max = new Vector3(360, 1, 1);
 
         /// <summary>
         /// Gets the hue component.
@@ -54,7 +52,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(InliningOptions.ShortMethod)]
         public Hsl(Vector3 vector)
         {
-            vector = Vector3.Clamp(vector, Vector3.Zero, VectorMax);
+            vector = Vector3.Clamp(vector, Min, Max);
             this.H = vector.X;
             this.S = vector.Y;
             this.L = vector.Z;

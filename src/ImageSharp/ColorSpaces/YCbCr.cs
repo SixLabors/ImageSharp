@@ -14,10 +14,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// </summary>
     public readonly struct YCbCr : IEquatable<YCbCr>
     {
-        /// <summary>
-        /// Vector which is used in clamping to the max value.
-        /// </summary>
-        private static readonly Vector3 VectorMax = new Vector3(255F);
+        private static readonly Vector3 Min = Vector3.Zero;
+        private static readonly Vector3 Max = new Vector3(255);
 
         /// <summary>
         /// Gets the Y luminance component.
@@ -56,7 +54,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(InliningOptions.ShortMethod)]
         public YCbCr(Vector3 vector)
         {
-            vector = Vector3.Clamp(vector, Vector3.Zero, VectorMax);
+            vector = Vector3.Clamp(vector, Min, Max);
             this.Y = vector.X;
             this.Cb = vector.Y;
             this.Cr = vector.Z;

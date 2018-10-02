@@ -41,10 +41,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public CieXyz(float x, float y, float z)
             : this(new Vector3(x, y, z))
         {
-            // Not clamping as documentation about this space seems to indicate "usual" ranges
-            this.X = x;
-            this.Y = y;
-            this.Z = z;
         }
 
         /// <summary>

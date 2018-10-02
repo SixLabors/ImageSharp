@@ -21,19 +21,19 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <summary>
         /// Gets the lightness dimension.
-        /// <remarks>A value ranging between 0 (black), 100 (diffuse white) or higher (specular white).</remarks>
+        /// <remarks>A value usually ranging between 0 (black), 100 (diffuse white) or higher (specular white).</remarks>
         /// </summary>
         public readonly float L;
 
         /// <summary>
         /// Gets the a color component.
-        /// <remarks>A value ranging from -100 to 100. Negative is green, positive magenta.</remarks>
+        /// <remarks>A value usually ranging from -100 to 100. Negative is green, positive magenta.</remarks>
         /// </summary>
         public readonly float A;
 
         /// <summary>
         /// Gets the b color component.
-        /// <remarks>A value ranging from -100 to 100. Negative is blue, positive is yellow</remarks>
+        /// <remarks>A value usually ranging from -100 to 100. Negative is blue, positive is yellow</remarks>
         /// </summary>
         public readonly float B;
 
@@ -64,11 +64,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public CieLab(float l, float a, float b, CieXyz whitePoint)
+            : this(new Vector3(l, a, b), whitePoint)
         {
-            this.L = l;
-            this.A = a;
-            this.B = b;
-            this.WhitePoint = whitePoint;
         }
 
         /// <summary>
@@ -91,6 +88,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public CieLab(Vector3 vector, CieXyz whitePoint)
             : this()
         {
+            // Not clamping as documentation about this space seems to indicate "usual" ranges
             this.L = vector.X;
             this.A = vector.Y;
             this.B = vector.Z;

@@ -14,6 +14,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// </summary>
     public readonly struct Rgb : IEquatable<Rgb>
     {
+        private static readonly Vector3 Min = Vector3.Zero;
+        private static readonly Vector3 Max = Vector3.One;
+
         /// <summary>
         /// The default rgb working space
         /// </summary>
@@ -63,12 +66,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="workingSpace">The rgb working space.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public Rgb(float r, float g, float b, RgbWorkingSpace workingSpace)
+            : this(new Vector3(r, g, b), workingSpace)
         {
-            // Clamp to 0-1 range.
-            this.R = r.Clamp(0, 1F);
-            this.G = g.Clamp(0, 1F);
-            this.B = b.Clamp(0, 1F);
-            this.WorkingSpace = workingSpace;
         }
 
         /// <summary>
@@ -89,8 +88,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(InliningOptions.ShortMethod)]
         public Rgb(Vector3 vector, RgbWorkingSpace workingSpace)
         {
-            // Clamp to 0-1 range.
-            vector = Vector3.Clamp(vector, Vector3.Zero, Vector3.One);
+            vector = Vector3.Clamp(vector, Min, Max);
             this.R = vector.X;
             this.G = vector.Y;
             this.B = vector.Z;

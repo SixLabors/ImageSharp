@@ -13,6 +13,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// </summary>
     public readonly struct CieLch : IEquatable<CieLch>
     {
+        private static readonly Vector3 Min = Vector3.Zero;
+        private static readonly Vector3 Max = new Vector3(100, 200, 360);
+
         /// <summary>
         /// D50 standard illuminant.
         /// Used when reference white is not specified explicitly.
@@ -27,7 +30,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <summary>
         /// Gets the a chroma component.
-        /// <remarks>A value ranging from 0 to 100.</remarks>
+        /// <remarks>A value ranging from 0 to 200.</remarks>
         /// </summary>
         public readonly float C;
 
@@ -64,11 +67,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public CieLch(float l, float c, float h, CieXyz whitePoint)
+            : this(new Vector3(l, c, h), whitePoint)
         {
-            this.L = l;
-            this.C = c;
-            this.H = h;
-            this.WhitePoint = whitePoint;
         }
 
         /// <summary>
@@ -90,6 +90,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(InliningOptions.ShortMethod)]
         public CieLch(Vector3 vector, CieXyz whitePoint)
         {
+            vector = Vector3.Clamp(vector, Min, Max);
             this.L = vector.X;
             this.C = vector.Y;
             this.H = vector.Z;

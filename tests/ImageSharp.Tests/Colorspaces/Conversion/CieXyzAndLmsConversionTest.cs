@@ -70,11 +70,22 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
             var converter = new ColorSpaceConverter();
             var expected = new Lms(l, m, s);
 
+            Span<CieXyz> inputSpan = new CieXyz[5];
+            inputSpan.Fill(input);
+
+            Span<Lms> actualSpan = new Lms[5];
+
             // Act
             var actual = converter.ToLms(input);
+            converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert
             Assert.Equal(expected, actual, ColorSpaceComparer);
+
+            for (int i = 0; i < actualSpan.Length; i++)
+            {
+                Assert.Equal(expected, actualSpan[i], ColorSpaceComparer);
+            }
         }
     }
 }

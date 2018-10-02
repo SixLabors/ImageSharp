@@ -15,6 +15,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// </summary>
     public readonly struct CieLuv : IEquatable<CieLuv>
     {
+        private static readonly Vector3 Min = new Vector3(0, -100, -100);
+        private static readonly Vector3 Max = new Vector3(100, 100, 100);
+
         /// <summary>
         /// D65 standard illuminant.
         /// Used when reference white is not specified explicitly.
@@ -66,11 +69,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public CieLuv(float l, float u, float v, CieXyz whitePoint)
+            : this(new Vector3(l, u, v), whitePoint)
         {
-            this.L = l;
-            this.U = u;
-            this.V = v;
-            this.WhitePoint = whitePoint;
         }
 
         /// <summary>
@@ -92,6 +92,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(InliningOptions.ShortMethod)]
         public CieLuv(Vector3 vector, CieXyz whitePoint)
         {
+            vector = Vector3.Clamp(vector, Min, Max);
             this.L = vector.X;
             this.U = vector.Y;
             this.V = vector.Z;

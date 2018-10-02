@@ -15,8 +15,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     {
         private static readonly RgbToLinearRgbConverter RgbToLinearRgbConverter = new RgbToLinearRgbConverter();
 
-        private CieXyzToLinearRgbConverter cieXyzToLinearRgbConverter;
-
         /// <summary>
         /// Converts a <see cref="CieLab"/> into a <see cref="LinearRgb"/>
         /// </summary>
@@ -185,13 +183,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         public LinearRgb ToLinearRgb(in CieXyz color)
         {
             // Adaptation
-            CieXyz adapted = this.targetRgbWorkingSpace.WhitePoint.Equals(this.whitePoint) || !this.performChromaticAdaptation
-                ? color
-                : this.chromaticAdaptation.Transform(color, this.whitePoint, this.targetRgbWorkingSpace.WhitePoint);
+            CieXyz adapted = this.Adapt(color, this.whitePoint, this.targetRgbWorkingSpace.WhitePoint);
 
             // Conversion
-            CieXyzToLinearRgbConverter xyzConverter = this.GetCieXyxToLinearRgbConverter(this.targetRgbWorkingSpace);
-            return xyzConverter.Convert(adapted);
+            return this.cieXyzToLinearRgbConverter.Convert(adapted);
         }
 
         /// <summary>
@@ -437,21 +432,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
                 ref LinearRgb dp = ref Unsafe.Add(ref destRef, i);
                 dp = this.ToLinearRgb(sp);
             }
-        }
-
-        /// <summary>
-        /// Gets the correct converter for the given rgb working space.
-        /// </summary>
-        /// <param name="workingSpace">The target working space</param>
-        /// <returns>The <see cref="CieXyzToLinearRgbConverter"/></returns>
-        private CieXyzToLinearRgbConverter GetCieXyxToLinearRgbConverter(RgbWorkingSpace workingSpace)
-        {
-            if (this.cieXyzToLinearRgbConverter != null && this.cieXyzToLinearRgbConverter.TargetWorkingSpace.Equals(workingSpace))
-            {
-                return this.cieXyzToLinearRgbConverter;
-            }
-
-            return this.cieXyzToLinearRgbConverter = new CieXyzToLinearRgbConverter(workingSpace);
         }
     }
 }

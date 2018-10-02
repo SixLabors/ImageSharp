@@ -88,24 +88,25 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </exception>
         public void Validate()
         {
-            if (!PngConstants.ColorTypes.ContainsKey(this.ColorType))
+            if (!PngConstants.ColorTypes.TryGetValue(this.ColorType, out byte[] supportedBitDepths))
             {
-                throw new NotSupportedException("Color type is not supported or not valid.");
+                throw new NotSupportedException($"Invalid or unsupported color type. Was '{this.ColorType}'.");
             }
 
-            if (PngConstants.ColorTypes[this.ColorType].AsSpan().IndexOf(this.BitDepth) == -1)
+            if (supportedBitDepths.AsSpan().IndexOf(this.BitDepth) == -1)
             {
-                throw new NotSupportedException("Bit depth is not supported or not valid.");
+                throw new NotSupportedException($"Invalid or unsupported bit depth. Was '{this.BitDepth}'.");
             }
 
             if (this.FilterMethod != 0)
             {
-                throw new NotSupportedException("The png specification only defines 0 as filter method.");
+                throw new NotSupportedException($"Invalid filter method. Expected 0. Was '{this.FilterMethod}'.");
             }
 
+            // The png specification only defines 'None' and 'Adam7' as interlaced methods.
             if (this.InterlaceMethod != PngInterlaceMode.None && this.InterlaceMethod != PngInterlaceMode.Adam7)
             {
-                throw new NotSupportedException("The png specification only defines 'None' and 'Adam7' as interlaced methods.");
+                throw new NotSupportedException($"Invalid interlace method. Expected 'None' or 'Adam7'. Was '{this.InterlaceMethod}'.");
             }
         }
 

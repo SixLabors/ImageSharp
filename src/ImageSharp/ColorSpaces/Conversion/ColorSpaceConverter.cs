@@ -12,18 +12,19 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     public partial class ColorSpaceConverter
     {
         // Options.
+        private Matrix4x4 lmsAdaptationMatrix;
         private CieXyz whitePoint;
         private CieXyz targetLuvWhitePoint;
         private CieXyz targetLabWhitePoint;
         private CieXyz targetHunterLabWhitePoint;
-        private RgbWorkingSpace targetRgbWorkingSpace;
-        private IChromaticAdaptation chromaticAdaptation;
-        private bool performChromaticAdaptation;
-        private bool performLabChromaticAdaptation;
-        private Matrix4x4 lmsAdaptationMatrix;
-
-        private CieXyzAndLmsConverter cieXyzAndLmsConverter;
-        private CieXyzToCieLabConverter cieXyzToCieLabConverter;
+        private readonly RgbWorkingSpace targetRgbWorkingSpace;
+        private readonly IChromaticAdaptation chromaticAdaptation;
+        private readonly bool performChromaticAdaptation;
+        private readonly CieXyzAndLmsConverter cieXyzAndLmsConverter;
+        private readonly CieXyzToCieLabConverter cieXyzToCieLabConverter;
+        private readonly CieXyzToCieLuvConverter cieXyzToCieLuvConverter;
+        private readonly CieXyzToHunterLabConverter cieXyzToHunterLabConverter;
+        private readonly CieXyzToLinearRgbConverter cieXyzToLinearRgbConverter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ColorSpaceConverter"/> class.
@@ -47,11 +48,13 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             this.targetRgbWorkingSpace = options.TargetRgbWorkingSpace;
             this.chromaticAdaptation = options.ChromaticAdaptation;
             this.performChromaticAdaptation = this.chromaticAdaptation != null;
-            this.performLabChromaticAdaptation = !this.whitePoint.Equals(this.targetLabWhitePoint) && this.performChromaticAdaptation;
             this.lmsAdaptationMatrix = options.LmsAdaptationMatrix;
 
             this.cieXyzAndLmsConverter = new CieXyzAndLmsConverter(this.lmsAdaptationMatrix);
             this.cieXyzToCieLabConverter = new CieXyzToCieLabConverter(this.targetLabWhitePoint);
+            this.cieXyzToCieLuvConverter = new CieXyzToCieLuvConverter(this.targetLuvWhitePoint);
+            this.cieXyzToHunterLabConverter = new CieXyzToHunterLabConverter(this.targetHunterLabWhitePoint);
+            this.cieXyzToLinearRgbConverter = new CieXyzToLinearRgbConverter(this.targetRgbWorkingSpace);
         }
     }
 }

@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         public CieLchuv ToCieLchuv(in CieLuv color)
         {
             // Adaptation
-            CieLuv adapted = this.performChromaticAdaptation ? this.Adapt(color) : color;
+            CieLuv adapted = this.Adapt(color);
 
             // Conversion
             return CieLuvToCieLchuvConverter.Convert(adapted);

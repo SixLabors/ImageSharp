@@ -9,7 +9,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.Memory;
@@ -674,9 +673,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="meta">The image meta data.</param>
         private void WritePhysicalChunk(Stream stream, ImageMetaData meta)
         {
-            PngPhysicalChunkData.FromMetadata(meta).WriteTo(this.chunkDataBuffer);
+            PhysicalChunkData.FromMetadata(meta).WriteTo(this.chunkDataBuffer);
 
-            this.WriteChunk(stream, PngChunkType.Physical, this.chunkDataBuffer, 0, PngPhysicalChunkData.Size);
+            this.WriteChunk(stream, PngChunkType.Physical, this.chunkDataBuffer, 0, PhysicalChunkData.Size);
         }
 
         /// <summary>

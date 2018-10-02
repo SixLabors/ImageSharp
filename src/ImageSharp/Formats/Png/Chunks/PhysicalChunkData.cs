@@ -3,16 +3,16 @@ using System.Buffers.Binary;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.MetaData;
 
-namespace SixLabors.ImageSharp.Formats.Png
+namespace SixLabors.ImageSharp.Formats.Png.Chunks
 {
     /// <summary>
     /// The pHYs chunk specifies the intended pixel size or aspect ratio for display of the image.
     /// </summary>
-    internal readonly struct PngPhysicalChunkData
+    internal readonly struct PhysicalChunkData
     {
         public const int Size = 9;
 
-        public PngPhysicalChunkData(uint x, uint y, byte unitSpecifier)
+        public PhysicalChunkData(uint x, uint y, byte unitSpecifier)
         {
             this.XAxisPixelsPerUnit = x;
             this.YAxisPixelsPerUnit = y;
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="meta">The metadata.</param>
         /// <returns>The constructed PngPhysicalChunkData instance.</returns>
-        public static PngPhysicalChunkData FromMetadata(ImageMetaData meta)
+        public static PhysicalChunkData FromMetadata(ImageMetaData meta)
         {
             byte unitSpecifier = 0;
             uint x;

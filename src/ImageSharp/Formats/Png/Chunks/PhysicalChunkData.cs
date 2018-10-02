@@ -38,6 +38,20 @@ namespace SixLabors.ImageSharp.Formats.Png.Chunks
         public byte UnitSpecifier { get; }
 
         /// <summary>
+        /// Parses the PhysicalChunkData from the given buffer.
+        /// </summary>
+        /// <param name="data">The data buffer.</param>
+        /// <returns>The parsed PhysicalChunkData.</returns>
+        public static PhysicalChunkData Parse(ReadOnlySpan<byte> data)
+        {
+            uint hResolution = BinaryPrimitives.ReadUInt32BigEndian(data.Slice(0, 4));
+            uint vResolution = BinaryPrimitives.ReadUInt32BigEndian(data.Slice(4, 4));
+            byte unit = data[8];
+
+            return new PhysicalChunkData(hResolution, vResolution, unit);
+        }
+
+        /// <summary>
         /// Constructs the PngPhysicalChunkData from the provided metadata.
         /// If the resolution units are not in meters, they are automatically convereted.
         /// </summary>
@@ -76,7 +90,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Chunks
                     break;
             }
 
-            return new PngPhysicalChunkData(x, y, unitSpecifier);
+            return new PhysicalChunkData(x, y, unitSpecifier);
         }
 
         /// <summary>

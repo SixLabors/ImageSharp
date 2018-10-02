@@ -89,11 +89,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             // Conversion (perserving white point)
             CieLuv unadapted = CieLchuvToCieLuvConverter.Convert(color);
 
-            if (!this.performChromaticAdaptation)
-            {
-                return unadapted;
-            }
-
             // Adaptation
             return this.Adapt(unadapted);
         }
@@ -159,13 +154,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         public CieLuv ToCieLuv(in CieXyz color)
         {
             // Adaptation
-            CieXyz adapted = !this.whitePoint.Equals(this.targetLabWhitePoint) && this.performChromaticAdaptation
-                ? this.chromaticAdaptation.Transform(color, this.whitePoint, this.targetLabWhitePoint)
-                : color;
+            CieXyz adapted = this.Adapt(color, this.whitePoint, this.targetLabWhitePoint);
 
             // Conversion
-            var converter = new CieXyzToCieLuvConverter(this.targetLuvWhitePoint);
-            return converter.Convert(adapted);
+            return this.cieXyzToCieLuvConverter.Convert(adapted);
         }
 
         /// <summary>

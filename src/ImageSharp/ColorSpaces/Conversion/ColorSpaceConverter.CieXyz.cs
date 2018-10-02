@@ -32,11 +32,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             CieXyz unadapted = CieLabToCieXyzConverter.Convert(color);
 
             // Adaptation
-            CieXyz adapted = color.WhitePoint.Equals(this.whitePoint) || !this.performChromaticAdaptation
-                ? unadapted
-                : this.Adapt(unadapted, color.WhitePoint);
-
-            return adapted;
+            return this.Adapt(unadapted, color.WhitePoint);
         }
 
         /// <summary>
@@ -141,11 +137,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             CieXyz unadapted = CieLuvToCieXyzConverter.Convert(color);
 
             // Adaptation
-            CieXyz adapted = color.WhitePoint.Equals(this.whitePoint) || !this.performChromaticAdaptation
-                              ? unadapted
-                              : this.Adapt(unadapted, color.WhitePoint);
-
-            return adapted;
+            return this.Adapt(unadapted, color.WhitePoint);
         }
 
         /// <summary>
@@ -314,11 +306,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             CieXyz unadapted = HunterLabToCieXyzConverter.Convert(color);
 
             // Adaptation
-            CieXyz adapted = color.WhitePoint.Equals(this.whitePoint) || !this.performChromaticAdaptation
-                                 ? unadapted
-                                 : this.Adapt(unadapted, color.WhitePoint);
-
-            return adapted;
+            return this.Adapt(unadapted, color.WhitePoint);
         }
 
         /// <summary>
@@ -354,9 +342,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             CieXyz unadapted = converter.Convert(color);
 
             // Adaptation
-            return color.WorkingSpace.WhitePoint.Equals(this.whitePoint) || !this.performChromaticAdaptation
-                       ? unadapted
-                       : this.Adapt(unadapted, color.WorkingSpace.WhitePoint);
+            return this.Adapt(unadapted, color.WorkingSpace.WhitePoint);
         }
 
         /// <summary>

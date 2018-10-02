@@ -4,7 +4,6 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
@@ -181,12 +180,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         public HunterLab ToHunterLab(in CieXyz color)
         {
             // Adaptation
-            CieXyz adapted = !this.whitePoint.Equals(this.targetHunterLabWhitePoint) && this.performChromaticAdaptation
-                ? this.chromaticAdaptation.Transform(color, this.whitePoint, this.targetHunterLabWhitePoint)
-                : color;
+            CieXyz adapted = this.Adapt(color, this.whitePoint, this.targetHunterLabWhitePoint);
 
             // Conversion
-            return new CieXyzToHunterLabConverter(this.targetHunterLabWhitePoint).Convert(adapted);
+            return this.cieXyzToHunterLabConverter.Convert(adapted);
         }
 
         /// <summary>

@@ -127,25 +127,14 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
         private unsafe string ConvertToString(ReadOnlySpan<byte> buffer)
         {
-            Span<byte> nullChar = stackalloc byte[1] { 0 };
-
-            int nullCharIndex = buffer.IndexOf(nullChar);
+            int nullCharIndex = buffer.IndexOf((byte)0);
 
             if (nullCharIndex > -1)
             {
                 buffer = buffer.Slice(0, nullCharIndex);
             }
 
-#if NETSTANDARD1_1
-            return Encoding.UTF8.GetString(buffer.ToArray(), 0, buffer.Length);
-#elif NETCOREAPP2_1
             return Encoding.UTF8.GetString(buffer);
-#else
-            fixed (byte* pointer = &MemoryMarshal.GetReference(buffer))
-            {
-                return Encoding.UTF8.GetString(pointer, buffer.Length);
-            }
-#endif
         }
 
         /// <summary>

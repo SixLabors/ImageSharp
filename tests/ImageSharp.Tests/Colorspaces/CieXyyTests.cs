@@ -30,10 +30,15 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         {
             var x = default(CieXyy);
             var y = new CieXyy(Vector3.One);
+
+            Assert.True(default(CieXyy) == default(CieXyy));
+            Assert.False(default(CieXyy) != default(CieXyy));
             Assert.Equal(default(CieXyy), default(CieXyy));
             Assert.Equal(new CieXyy(1, 0, 1), new CieXyy(1, 0, 1));
             Assert.Equal(new CieXyy(Vector3.One), new CieXyy(Vector3.One));
             Assert.False(x.Equals(y));
+            Assert.False(x.Equals((object)y));
+            Assert.False(x.GetHashCode().Equals(y.GetHashCode()));
         }
     }
 }

@@ -38,6 +38,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             Assert.Equal(new Rgb(1, 0, 1), new Rgb(1, 0, 1));
             Assert.Equal(new Rgb(Vector3.One), new Rgb(Vector3.One));
             Assert.False(x.Equals(y));
+            Assert.False(x.Equals((object)y));
+            Assert.False(x.GetHashCode().Equals(y.GetHashCode()));
         }
 
         [Fact]

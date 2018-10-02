@@ -12,11 +12,12 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     public partial class ColorSpaceConverter
     {
         // Options.
-        private Matrix4x4 lmsAdaptationMatrix;
-        private CieXyz whitePoint;
-        private CieXyz targetLuvWhitePoint;
-        private CieXyz targetLabWhitePoint;
-        private CieXyz targetHunterLabWhitePoint;
+        private static readonly ColorSpaceConverterOptions DefaultOptions = new ColorSpaceConverterOptions();
+        private readonly Matrix4x4 lmsAdaptationMatrix;
+        private readonly CieXyz whitePoint;
+        private readonly CieXyz targetLuvWhitePoint;
+        private readonly CieXyz targetLabWhitePoint;
+        private readonly CieXyz targetHunterLabWhitePoint;
         private readonly RgbWorkingSpace targetRgbWorkingSpace;
         private readonly IChromaticAdaptation chromaticAdaptation;
         private readonly bool performChromaticAdaptation;
@@ -30,7 +31,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// Initializes a new instance of the <see cref="ColorSpaceConverter"/> class.
         /// </summary>
         public ColorSpaceConverter()
-          : this(new ColorSpaceConverterOptions())
+          : this(DefaultOptions)
         {
         }
 

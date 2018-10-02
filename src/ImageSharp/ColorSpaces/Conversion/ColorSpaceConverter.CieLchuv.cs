@@ -159,9 +159,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLchuv"/></returns>
         public CieLchuv ToCieLchuv(in CieXyz color)
         {
-            var labColor = this.ToCieLab(color);
+            var luvColor = this.ToCieLuv(color);
 
-            return this.ToCieLchuv(labColor);
+            return this.ToCieLchuv(luvColor);
         }
 
         /// <summary>

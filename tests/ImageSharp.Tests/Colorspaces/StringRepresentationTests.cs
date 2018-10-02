@@ -42,6 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             { new Hsl(one), "Hsl(1, 1, 1)" },
             { new Hsv(one), "Hsv(1, 1, 1)" },
             { new YCbCr(one), "YCbCr(1, 1, 1)" },
+            { new CieXyChromaticityCoordinates(1, 1), "CieXyChromaticityCoordinates(1, 1)"},
 
             { new CieLab(random), "CieLab(42.4, 94.5, 83.4)" },
             { new CieLch(random), "CieLch(42.4, 94.5, 83.4)" },

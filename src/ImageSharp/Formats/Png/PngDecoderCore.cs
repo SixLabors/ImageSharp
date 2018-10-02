@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.Memory;
@@ -376,26 +377,14 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="data">The data containing physical data.</param>
         private void ReadPhysicalChunk(ImageMetaData metadata, ReadOnlySpan<byte> data)
         {
-            // The pHYs chunk specifies the intended pixel size or aspect ratio for display of the image. It contains:
-            // Pixels per unit, X axis: 4 bytes (unsigned integer)
-            // Pixels per unit, Y axis: 4 bytes (unsigned integer)
-            // Unit specifier:          1 byte
-            //
-            // The following values are legal for the unit specifier:
-            //   0: unit is unknown
-            //   1: unit is the meter
-            //
-            // When the unit specifier is 0, the pHYs chunk defines pixel aspect ratio only; the actual size of the pixels remains unspecified.
-            int hResolution = BinaryPrimitives.ReadInt32BigEndian(data.Slice(0, 4));
-            int vResolution = BinaryPrimitives.ReadInt32BigEndian(data.Slice(4, 4));
-            byte unit = data[8];
+            var physicalChunk = PhysicalChunkData.Parse(data);
 
-            metadata.ResolutionUnits = unit == byte.MinValue
+            metadata.ResolutionUnits = physicalChunk.UnitSpecifier == byte.MinValue
                 ? PixelResolutionUnit.AspectRatio
                 : PixelResolutionUnit.PixelsPerMeter;
 
-            metadata.HorizontalResolution = hResolution;
-            metadata.VerticalResolution = vResolution;
+            metadata.HorizontalResolution = physicalChunk.XAxisPixelsPerUnit;
+            metadata.VerticalResolution = physicalChunk.YAxisPixelsPerUnit;
         }
 
         /// <summary>

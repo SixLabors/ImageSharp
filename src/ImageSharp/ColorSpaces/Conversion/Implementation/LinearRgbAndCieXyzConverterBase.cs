@@ -18,7 +18,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         public static Matrix4x4 GetRgbToCieXyzMatrix(RgbWorkingSpace workingSpace)
         {
             DebugGuard.NotNull(workingSpace, nameof(workingSpace));
-
             RgbPrimariesChromaticityCoordinates chromaticity = workingSpace.ChromaticityCoordinates;
 
             float xr = chromaticity.R.X;

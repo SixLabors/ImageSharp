@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// </summary>
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieLch Convert(in CieLab input)
         {
             // Conversion algorithm described here:
@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
             float hDegrees = MathFExtensions.RadianToDegree(hRadians);
 
             // Wrap the angle round at 360.
-            hDegrees = hDegrees % 360;
+            hDegrees %= 360;
 
             // Make sure it's not negative.
             while (hDegrees < 0)

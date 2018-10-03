@@ -14,7 +14,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// <summary>
         /// Initializes a new instance of the <see cref="CieXyzToCieLuvConverter"/> class.
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyzToCieLuvConverter()
             : this(CieLuv.DefaultWhitePoint)
         {
@@ -24,11 +23,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// Initializes a new instance of the <see cref="CieXyzToCieLuvConverter"/> class.
         /// </summary>
         /// <param name="luvWhitePoint">The target reference luv white point</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieXyzToCieLuvConverter(CieXyz luvWhitePoint)
-        {
-            this.LuvWhitePoint = luvWhitePoint;
-        }
+        public CieXyzToCieLuvConverter(CieXyz luvWhitePoint) => this.LuvWhitePoint = luvWhitePoint;
 
         /// <summary>
         /// Gets the target reference whitepoint. When not set, <see cref="CieLuv.DefaultWhitePoint"/> is used.
@@ -40,7 +35,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// </summary>
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieLuv Convert(in CieXyz input)
         {
             // Conversion algorithm described here: http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_Luv.html
@@ -80,19 +74,15 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// <returns>The <see cref="float"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float ComputeUp(in CieXyz input)
-        {
-            return (4 * input.X) / (input.X + (15 * input.Y) + (3 * input.Z));
-        }
+            => (4 * input.X) / (input.X + (15 * input.Y) + (3 * input.Z));
 
         /// <summary>
         /// Calculates the red-green chromacity based on the given whitepoint.
         /// </summary>
         /// <param name="input">The whitepoint</param>
         /// <returns>The <see cref="float"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static float ComputeVp(in CieXyz input)
-        {
-            return (9 * input.Y) / (input.X + (15 * input.Y) + (3 * input.Z));
-        }
+           => (9 * input.Y) / (input.X + (15 * input.Y) + (3 * input.Z));
     }
 }

@@ -158,7 +158,6 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         [Theory]
-        [InlineData(0, 0, 0, 0, 0, 0)]
         [InlineData(22, 33, 1, 22, 33, 0.9999999)]
         public void Adapt_CieLch_D65_To_D50_XyzScaling(float l1, float c1, float h1, float l2, float c2, float h2)
         {

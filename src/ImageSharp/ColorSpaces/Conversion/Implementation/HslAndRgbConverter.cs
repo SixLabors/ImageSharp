@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// </summary>
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Rgb Convert(in Hsl input)
         {
             float rangedH = input.H / 360F;
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// </summary>
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Hsl Convert(in Rgb input)
         {
             float r = input.R;
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// <returns>
         /// The <see cref="float"/>.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static float GetColorComponent(float first, float second, float third)
         {
             third = MoveIntoRange(third);
@@ -142,16 +142,16 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// <returns>
         /// The <see cref="float"/>.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static float MoveIntoRange(float value)
         {
             if (value < 0F)
             {
-                value += 1F;
+                value++;
             }
             else if (value > 1F)
             {
-                value -= 1F;
+                value--;
             }
 
             return value;

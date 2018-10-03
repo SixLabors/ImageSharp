@@ -3,7 +3,6 @@
 
 using System.Numerics;
 
-// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {
     /// <summary>

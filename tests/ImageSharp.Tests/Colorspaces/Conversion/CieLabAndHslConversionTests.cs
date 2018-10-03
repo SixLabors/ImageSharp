@@ -9,30 +9,26 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 {
     /// <summary>
-    /// Tests <see cref="CieLab"/>-<see cref="CieLchuv"/> conversions.
+    /// Tests <see cref="CieLab"/>-<see cref="Hsl"/> conversions.
     /// </summary>
-    /// <remarks>
-    /// Test data generated using:
-    /// <see href="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
-    /// </remarks>
-    public class CieLabAndCieLchuvConversionTests
+    public class CieLabAndHslConversionTests
     {
         private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0002F);
         private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();
 
         /// <summary>
-        /// Tests conversion from <see cref="CieLchuv"/> to <see cref="CieLab"/>.
+        /// Tests conversion from <see cref="Hsl"/> to <see cref="CieLab"/>.
         /// </summary>
         [Theory]
         [InlineData(0, 0, 0, 0, 0, 0)]
-        [InlineData(30.66194, 200, 352.7564, 31.95653, 116.8745, 2.388602)]
-        public void Convert_Lchuv_to_Lab(float l, float c, float h, float l2, float a, float b)
+        [InlineData(336.9393, 1, 0.5, 55.063, 82.54868, 23.16508)]
+        public void Convert_Hsl_to_CieLab(float h, float s, float ll, float l, float a, float b)
         {
             // Arrange
-            var input = new CieLchuv(l, c, h);
-            var expected = new CieLab(l2, a, b);
+            var input = new Hsl(h, s, ll);
+            var expected = new CieLab(l, a, b);
 
-            Span<CieLchuv> inputSpan = new CieLchuv[5];
+            Span<Hsl> inputSpan = new Hsl[5];
             inputSpan.Fill(input);
 
             Span<CieLab> actualSpan = new CieLab[5];
@@ -51,24 +47,24 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         /// <summary>
-        /// Tests conversion from <see cref="CieLab"/> to <see cref="CieLchuv"/>.
+        /// Tests conversion from <see cref="CieLab"/> to <see cref="Hsl"/>.
         /// </summary>
         [Theory]
         [InlineData(0, 0, 0, 0, 0, 0)]
-        [InlineData(36.0555, 303.6901, 10.01514, 30.66194, 200, 352.7564)]
-        public void Convert_Lab_to_Lchuv(float l, float a, float b, float l2, float c, float h)
+        [InlineData(36.0555, 303.6901, 10.01514, 336.9393, 1, 0.5)]
+        public void Convert_CieLab_to_Hsl(float l, float a, float b, float h, float s, float ll)
         {
             // Arrange
             var input = new CieLab(l, a, b);
-            var expected = new CieLchuv(l2, c, h);
+            var expected = new Hsl(h, s, ll);
 
             Span<CieLab> inputSpan = new CieLab[5];
             inputSpan.Fill(input);
 
-            Span<CieLchuv> actualSpan = new CieLchuv[5];
+            Span<Hsl> actualSpan = new Hsl[5];
 
             // Act
-            var actual = Converter.ToCieLchuv(input);
+            var actual = Converter.ToHsl(input);
             Converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert

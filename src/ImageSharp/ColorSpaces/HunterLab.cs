@@ -13,9 +13,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// </summary>
     public readonly struct HunterLab : IEquatable<HunterLab>
     {
-        private static readonly Vector3 Min = new Vector3(0, -100, -100);
-        private static readonly Vector3 Max = new Vector3(100, 100, 100);
-
         /// <summary>
         /// D50 standard illuminant.
         /// Used when reference white is not specified explicitly.
@@ -24,19 +21,19 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <summary>
         /// Gets the lightness dimension.
-        /// <remarks>A value ranging between 0 (black), 100 (diffuse white) or higher (specular white).</remarks>
+        /// <remarks>A value usually ranging between 0 (black), 100 (diffuse white) or higher (specular white).</remarks>
         /// </summary>
         public readonly float L;
 
         /// <summary>
         /// Gets the a color component.
-        /// <remarks>A value ranging from -100 to 100. Negative is green, positive magenta.</remarks>
+        /// <remarks>A value usually ranging from -100 to 100. Negative is green, positive magenta.</remarks>
         /// </summary>
         public readonly float A;
 
         /// <summary>
         /// Gets the b color component.
-        /// <remarks>A value ranging from -100 to 100. Negative is blue, positive is yellow</remarks>
+        /// <remarks>A value usually ranging from -100 to 100. Negative is blue, positive is yellow</remarks>
         /// </summary>
         public readonly float B;
 
@@ -90,7 +87,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(InliningOptions.ShortMethod)]
         public HunterLab(Vector3 vector, CieXyz whitePoint)
         {
-            vector = Vector3.Clamp(vector, Min, Max);
+            // Not clamping as documentation about this space only indicates "usual" ranges
             this.L = vector.X;
             this.A = vector.Y;
             this.B = vector.Z;

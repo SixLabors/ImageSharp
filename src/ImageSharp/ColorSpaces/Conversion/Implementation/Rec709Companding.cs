@@ -15,17 +15,13 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     public sealed class Rec709Companding : ICompanding
     {
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public float Expand(float channel)
-        {
-            return channel < 0.081F ? channel / 4.5F : MathF.Pow((channel + 0.099F) / 1.099F, 2.222222F);
-        }
+            => channel < 0.081F ? channel / 4.5F : MathF.Pow((channel + 0.099F) / 1.099F, 2.222222F);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public float Compress(float channel)
-        {
-            return channel < 0.018F ? 4500F * channel : (1.099F * channel) - 0.099F;
-        }
+            => channel < 0.018F ? 4500F * channel : (1.099F * channel) - 0.099F;
     }
 }

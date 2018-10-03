@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// </summary>
         /// <param name="whitePoint">The whitepoint</param>
         /// <returns>The <see cref="float"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static float ComputeKa(CieXyz whitePoint)
         {
             if (whitePoint.Equals(Illuminants.C))
@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// </summary>
         /// <param name="whitePoint">The whitepoint</param>
         /// <returns>The <see cref="float"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static float ComputeKb(CieXyz whitePoint)
         {
             if (whitePoint == Illuminants.C)

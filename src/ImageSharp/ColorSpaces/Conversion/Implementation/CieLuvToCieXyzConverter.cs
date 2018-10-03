@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
@@ -16,7 +15,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// </summary>
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyz Convert(in CieLuv input)
         {
             // Conversion algorithm described here: http://www.brucelindbloom.com/index.html?Eqn_Luv_to_XYZ.html
@@ -31,7 +29,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 
             float a = ((52 * l / (u + (13 * l * u0))) - 1) / 3;
             float b = -5 * y;
-            float c = -0.3333333F;
+            const float c = -0.3333333F;
             float d = y * ((39 * l / (v + (13 * l * v0))) - 5);
 
             float x = (d - b) / (a - c);
@@ -60,21 +58,17 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// </summary>
         /// <param name="input">The whitepoint</param>
         /// <returns>The <see cref="float"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static float ComputeU0(in CieXyz input)
-        {
-            return (4 * input.X) / (input.X + (15 * input.Y) + (3 * input.Z));
-        }
+            => (4 * input.X) / (input.X + (15 * input.Y) + (3 * input.Z));
 
         /// <summary>
         /// Calculates the red-green chromacity based on the given whitepoint.
         /// </summary>
         /// <param name="input">The whitepoint</param>
         /// <returns>The <see cref="float"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static float ComputeV0(in CieXyz input)
-        {
-            return (9 * input.Y) / (input.X + (15 * input.Y) + (3 * input.Z));
-        }
+            => (9 * input.Y) / (input.X + (15 * input.Y) + (3 * input.Z));
     }
 }

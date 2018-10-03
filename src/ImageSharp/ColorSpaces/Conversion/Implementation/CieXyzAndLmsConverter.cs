@@ -23,7 +23,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// <summary>
         /// Initializes a new instance of the <see cref="CieXyzAndLmsConverter"/> class.
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyzAndLmsConverter()
             : this(DefaultTransformationMatrix)
         {
@@ -36,7 +35,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// Definition of the cone response domain (see <see cref="LmsAdaptationMatrix"/>),
         /// if not set <see cref="DefaultTransformationMatrix"/> will be used.
         /// </param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyzAndLmsConverter(Matrix4x4 transformationMatrix)
         {
             this.transformationMatrix = transformationMatrix;
@@ -48,7 +46,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// </summary>
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Lms Convert(in CieXyz input)
         {
             var vector = Vector3.Transform(input.ToVector3(), this.transformationMatrix);
@@ -61,7 +59,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// </summary>
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieXyz Convert(in Lms input)
         {
             var vector = Vector3.Transform(input.ToVector3(), this.inverseTransformationMatrix);

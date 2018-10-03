@@ -14,7 +14,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// <summary>
         /// Initializes a new instance of the <see cref="CieXyzToHunterLabConverter"/> class.
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyzToHunterLabConverter()
             : this(HunterLab.DefaultWhitePoint)
         {
@@ -24,11 +23,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// Initializes a new instance of the <see cref="CieXyzToHunterLabConverter"/> class.
         /// </summary>
         /// <param name="labWhitePoint">The hunter Lab white point.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieXyzToHunterLabConverter(CieXyz labWhitePoint)
-        {
-            this.HunterLabWhitePoint = labWhitePoint;
-        }
+        public CieXyzToHunterLabConverter(CieXyz labWhitePoint) => this.HunterLabWhitePoint = labWhitePoint;
 
         /// <summary>
         /// Gets the target reference white. When not set, <see cref="HunterLab.DefaultWhitePoint"/> is used.
@@ -40,7 +35,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// </summary>
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public HunterLab Convert(in CieXyz input)
         {
             // Conversion algorithm described here: http://en.wikipedia.org/wiki/Lab_color_space#Hunter_Lab

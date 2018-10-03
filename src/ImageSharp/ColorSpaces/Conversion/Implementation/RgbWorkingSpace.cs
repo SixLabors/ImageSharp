@@ -84,8 +84,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         {
             int hash = this.WhitePoint.GetHashCode();
             hash = HashHelpers.Combine(hash, this.ChromaticityCoordinates.GetHashCode());
-            hash = HashHelpers.Combine(hash, this.Companding?.GetHashCode() ?? 0);
-            return hash;
+            return HashHelpers.Combine(hash, this.Companding?.GetHashCode() ?? 0);
         }
     }
 }

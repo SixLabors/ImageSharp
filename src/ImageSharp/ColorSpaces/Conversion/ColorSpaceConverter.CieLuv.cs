@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         public CieLuv ToCieLuv(in CieXyz color)
         {
             // Adaptation
-            CieXyz adapted = this.Adapt(color, this.whitePoint, this.targetLabWhitePoint);
+            CieXyz adapted = this.Adapt(color, this.whitePoint, this.targetLuvWhitePoint);
 
             // Conversion
             return this.cieXyzToCieLuvConverter.Convert(adapted);

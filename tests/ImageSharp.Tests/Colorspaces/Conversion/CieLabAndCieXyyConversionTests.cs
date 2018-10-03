@@ -9,30 +9,26 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 {
     /// <summary>
-    /// Tests <see cref="CieLab"/>-<see cref="CieLchuv"/> conversions.
+    /// Tests <see cref="CieLab"/>-<see cref="CieXyy"/> conversions.
     /// </summary>
-    /// <remarks>
-    /// Test data generated using:
-    /// <see href="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
-    /// </remarks>
-    public class CieLabAndCieLchuvConversionTests
+    public class CieLabAndCieXyyConversionTests
     {
         private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0002F);
         private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();
 
         /// <summary>
-        /// Tests conversion from <see cref="CieLchuv"/> to <see cref="CieLab"/>.
+        /// Tests conversion from <see cref="CieXyy"/> to <see cref="CieLab"/>.
         /// </summary>
         [Theory]
         [InlineData(0, 0, 0, 0, 0, 0)]
-        [InlineData(30.66194, 200, 352.7564, 31.95653, 116.8745, 2.388602)]
-        public void Convert_Lchuv_to_Lab(float l, float c, float h, float l2, float a, float b)
+        [InlineData(0.8644734, 0.06098868, 0.06509002, 36.05552, 275.6228, 10.01517)]
+        public void Convert_CieXyy_to_CieLab(float x, float y, float yl, float l, float a, float b)
         {
             // Arrange
-            var input = new CieLchuv(l, c, h);
-            var expected = new CieLab(l2, a, b);
+            var input = new CieXyy(x, y, yl);
+            var expected = new CieLab(l, a, b);
 
-            Span<CieLchuv> inputSpan = new CieLchuv[5];
+            Span<CieXyy> inputSpan = new CieXyy[5];
             inputSpan.Fill(input);
 
             Span<CieLab> actualSpan = new CieLab[5];
@@ -51,24 +47,24 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         /// <summary>
-        /// Tests conversion from <see cref="CieLab"/> to <see cref="CieLchuv"/>.
+        /// Tests conversion from <see cref="CieLab"/> to <see cref="CieXyy"/>.
         /// </summary>
         [Theory]
         [InlineData(0, 0, 0, 0, 0, 0)]
-        [InlineData(36.0555, 303.6901, 10.01514, 30.66194, 200, 352.7564)]
-        public void Convert_Lab_to_Lchuv(float l, float a, float b, float l2, float c, float h)
+        [InlineData(36.0555, 303.6901, 10.01514, 0.8644734, 0.06098868, 0.06509002)]
+        public void Convert_CieLab_to_CieXyy(float l, float a, float b, float x, float y, float yl)
         {
             // Arrange
             var input = new CieLab(l, a, b);
-            var expected = new CieLchuv(l2, c, h);
+            var expected = new CieXyy(x, y, yl);
 
             Span<CieLab> inputSpan = new CieLab[5];
             inputSpan.Fill(input);
 
-            Span<CieLchuv> actualSpan = new CieLchuv[5];
+            Span<CieXyy> actualSpan = new CieXyy[5];
 
             // Act
-            var actual = Converter.ToCieLchuv(input);
+            var actual = Converter.ToCieXyy(input);
             Converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert

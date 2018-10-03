@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public CieLab(Vector3 vector, CieXyz whitePoint)
             : this()
         {
-            // Not clamping as documentation about this space seems to indicate "usual" ranges
+            // Not clamping as documentation about this space only indicates "usual" ranges
             this.L = vector.X;
             this.A = vector.Y;
             this.B = vector.Z;

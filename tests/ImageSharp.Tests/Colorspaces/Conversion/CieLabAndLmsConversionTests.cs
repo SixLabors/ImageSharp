@@ -9,30 +9,26 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 {
     /// <summary>
-    /// Tests <see cref="CieLab"/>-<see cref="CieLchuv"/> conversions.
+    /// Tests <see cref="CieLab"/>-<see cref="Lms"/> conversions.
     /// </summary>
-    /// <remarks>
-    /// Test data generated using:
-    /// <see href="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
-    /// </remarks>
-    public class CieLabAndCieLchuvConversionTests
+    public class CieLabAndLmsConversionTests
     {
         private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0002F);
         private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();
 
         /// <summary>
-        /// Tests conversion from <see cref="CieLchuv"/> to <see cref="CieLab"/>.
+        /// Tests conversion from <see cref="Lms"/> to <see cref="CieLab"/>.
         /// </summary>
         [Theory]
         [InlineData(0, 0, 0, 0, 0, 0)]
-        [InlineData(30.66194, 200, 352.7564, 31.95653, 116.8745, 2.388602)]
-        public void Convert_Lchuv_to_Lab(float l, float c, float h, float l2, float a, float b)
+        [InlineData(0.8303261, -0.5776886, 0.1133359, 36.05553, 275.6228, 10.01518)]
+        public void Convert_Lms_to_CieLab(float l2, float m, float s, float l, float a, float b)
         {
             // Arrange
-            var input = new CieLchuv(l, c, h);
-            var expected = new CieLab(l2, a, b);
+            var input = new Lms(l2, m, s);
+            var expected = new CieLab(l, a, b);
 
-            Span<CieLchuv> inputSpan = new CieLchuv[5];
+            Span<Lms> inputSpan = new Lms[5];
             inputSpan.Fill(input);
 
             Span<CieLab> actualSpan = new CieLab[5];
@@ -51,24 +47,24 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         /// <summary>
-        /// Tests conversion from <see cref="CieLab"/> to <see cref="CieLchuv"/>.
+        /// Tests conversion from <see cref="CieLab"/> to <see cref="Lms"/>.
         /// </summary>
         [Theory]
         [InlineData(0, 0, 0, 0, 0, 0)]
-        [InlineData(36.0555, 303.6901, 10.01514, 30.66194, 200, 352.7564)]
-        public void Convert_Lab_to_Lchuv(float l, float a, float b, float l2, float c, float h)
+        [InlineData(36.0555, 303.6901, 10.01514, 0.8303261, -0.5776886, 0.1133359)]
+        public void Convert_CieLab_to_Lms(float l, float a, float b, float l2, float m, float s)
         {
             // Arrange
             var input = new CieLab(l, a, b);
-            var expected = new CieLchuv(l2, c, h);
+            var expected = new Lms(l2, m, s);
 
             Span<CieLab> inputSpan = new CieLab[5];
             inputSpan.Fill(input);
 
-            Span<CieLchuv> actualSpan = new CieLchuv[5];
+            Span<Lms> actualSpan = new Lms[5];
 
             // Act
-            var actual = Converter.ToCieLchuv(input);
+            var actual = Converter.ToLms(input);
             Converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert

@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
     /// Test data generated using:
     /// <see href="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
     /// </remarks>
-    public class CieLuvAndCieLchuvuvConversionTests
+    public class CieLuvAndCieLchuvConversionTests
     {
         private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0001F);
         private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();

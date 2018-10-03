@@ -9,30 +9,26 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 {
     /// <summary>
-    /// Tests <see cref="CieLab"/>-<see cref="CieLchuv"/> conversions.
+    /// Tests <see cref="CieLab"/>-<see cref="LinearRgb"/> conversions.
     /// </summary>
-    /// <remarks>
-    /// Test data generated using:
-    /// <see href="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
-    /// </remarks>
-    public class CieLabAndCieLchuvConversionTests
+    public class CieLabAndLinearRgbConversionTests
     {
         private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0002F);
         private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();
 
         /// <summary>
-        /// Tests conversion from <see cref="CieLchuv"/> to <see cref="CieLab"/>.
+        /// Tests conversion from <see cref="LinearRgb"/> to <see cref="CieLab"/>.
         /// </summary>
         [Theory]
         [InlineData(0, 0, 0, 0, 0, 0)]
-        [InlineData(30.66194, 200, 352.7564, 31.95653, 116.8745, 2.388602)]
-        public void Convert_Lchuv_to_Lab(float l, float c, float h, float l2, float a, float b)
+        [InlineData(1, 0, 0.1221596, 55.063, 82.54871, 23.16505)]
+        public void Convert_LinearRgb_to_CieLab(float r, float g, float b2, float l, float a, float b)
         {
             // Arrange
-            var input = new CieLchuv(l, c, h);
-            var expected = new CieLab(l2, a, b);
+            var input = new LinearRgb(r, g, b2);
+            var expected = new CieLab(l, a, b);
 
-            Span<CieLchuv> inputSpan = new CieLchuv[5];
+            Span<LinearRgb> inputSpan = new LinearRgb[5];
             inputSpan.Fill(input);
 
             Span<CieLab> actualSpan = new CieLab[5];
@@ -51,24 +47,24 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         /// <summary>
-        /// Tests conversion from <see cref="CieLab"/> to <see cref="CieLchuv"/>.
+        /// Tests conversion from <see cref="CieLab"/> to <see cref="LinearRgb"/>.
         /// </summary>
         [Theory]
         [InlineData(0, 0, 0, 0, 0, 0)]
-        [InlineData(36.0555, 303.6901, 10.01514, 30.66194, 200, 352.7564)]
-        public void Convert_Lab_to_Lchuv(float l, float a, float b, float l2, float c, float h)
+        [InlineData(36.0555, 303.6901, 10.01514, 1, 0, 0.1221596)]
+        public void Convert_CieLab_to_LinearRgb(float l, float a, float b, float r, float g, float b2)
         {
             // Arrange
             var input = new CieLab(l, a, b);
-            var expected = new CieLchuv(l2, c, h);
+            var expected = new LinearRgb(r, g, b2);
 
             Span<CieLab> inputSpan = new CieLab[5];
             inputSpan.Fill(input);
 
-            Span<CieLchuv> actualSpan = new CieLchuv[5];
+            Span<LinearRgb> actualSpan = new LinearRgb[5];
 
             // Act
-            var actual = Converter.ToCieLchuv(input);
+            var actual = Converter.ToLinearRgb(input);
             Converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert

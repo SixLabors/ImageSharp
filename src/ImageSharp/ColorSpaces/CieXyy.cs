@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(InliningOptions.ShortMethod)]
         public CieXyy(float x, float y, float yl)
         {
-            // Not clamping as documentation about this space seems to indicate "usual" ranges
+            // Not clamping as documentation about this space only indicates "usual" ranges
             this.X = x;
             this.Y = y;
             this.Yl = yl;
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public CieXyy(Vector3 vector)
             : this()
         {
-            // Not clamping as documentation about this space seems to indicate "usual" ranges
+            // Not clamping as documentation about this space only indicates "usual" ranges
             this.X = vector.X;
             this.Y = vector.Y;
             this.Yl = vector.Z;

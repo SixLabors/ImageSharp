@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {
@@ -40,6 +41,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// </summary>
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieXyz Convert(in LinearRgb input)
         {
             DebugGuard.IsTrue(input.WorkingSpace.Equals(this.SourceWorkingSpace), nameof(input.WorkingSpace), "Input and source working spaces must be equal.");

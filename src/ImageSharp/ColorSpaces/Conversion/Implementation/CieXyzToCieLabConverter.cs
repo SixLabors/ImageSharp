@@ -14,7 +14,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// <summary>
         /// Initializes a new instance of the <see cref="CieXyzToCieLabConverter"/> class.
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyzToCieLabConverter()
             : this(CieLab.DefaultWhitePoint)
         {
@@ -24,11 +23,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// Initializes a new instance of the <see cref="CieXyzToCieLabConverter"/> class.
         /// </summary>
         /// <param name="labWhitePoint">The target reference lab white point</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieXyzToCieLabConverter(CieXyz labWhitePoint)
-        {
-            this.LabWhitePoint = labWhitePoint;
-        }
+        public CieXyzToCieLabConverter(CieXyz labWhitePoint) => this.LabWhitePoint = labWhitePoint;
 
         /// <summary>
         /// Gets the target reference whitepoint. When not set, <see cref="CieLab.DefaultWhitePoint"/> is used.
@@ -40,7 +35,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// </summary>
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieLab Convert(in CieXyz input)
         {
             // Conversion algorithm described here: http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_Lab.html

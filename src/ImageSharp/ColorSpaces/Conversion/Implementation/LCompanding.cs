@@ -17,14 +17,12 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     public sealed class LCompanding : ICompanding
     {
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public float Expand(float channel)
-        {
-            return channel <= 0.08 ? 100 * channel / CieConstants.Kappa : ImageMaths.Pow3((channel + 0.16F) / 1.16F);
-        }
+            => channel <= 0.08 ? 100 * channel / CieConstants.Kappa : ImageMaths.Pow3((channel + 0.16F) / 1.16F);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public float Compress(float channel)
         {
             return channel <= CieConstants.Epsilon

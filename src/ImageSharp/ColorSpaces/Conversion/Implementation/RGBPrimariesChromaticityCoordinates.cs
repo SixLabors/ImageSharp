@@ -92,8 +92,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
             {
                 int hashCode = this.R.GetHashCode();
                 hashCode = (hashCode * 397) ^ this.G.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.B.GetHashCode();
-                return hashCode;
+                return (hashCode * 397) ^ this.B.GetHashCode();
             }
         }
     }

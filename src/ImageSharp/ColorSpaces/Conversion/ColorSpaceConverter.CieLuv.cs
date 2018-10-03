@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
         /// <param name="count">The number of colors to convert.</param>
-        public void Convert(Span<CieLab> source, Span<CieLuv> destination, int count)
+        public void Convert(ReadOnlySpan<CieLab> source, Span<CieLuv> destination, int count)
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
         /// <param name="count">The number of colors to convert.</param>
-        public void Convert(Span<CieLch> source, Span<CieLuv> destination, int count)
+        public void Convert(ReadOnlySpan<CieLch> source, Span<CieLuv> destination, int count)
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
         /// <param name="count">The number of colors to convert.</param>
-        public void Convert(Span<CieLchuv> source, Span<CieLuv> destination, int count)
+        public void Convert(ReadOnlySpan<CieLchuv> source, Span<CieLuv> destination, int count)
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
         /// <param name="count">The number of colors to convert.</param>
-        public void Convert(Span<CieXyy> source, Span<CieLuv> destination, int count)
+        public void Convert(ReadOnlySpan<CieXyy> source, Span<CieLuv> destination, int count)
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
@@ -166,7 +166,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
         /// <param name="count">The number of colors to convert.</param>
-        public void Convert(Span<CieXyz> source, Span<CieLuv> destination, int count)
+        public void Convert(ReadOnlySpan<CieXyz> source, Span<CieLuv> destination, int count)
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
@@ -198,7 +198,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
         /// <param name="count">The number of colors to convert.</param>
-        public void Convert(Span<Cmyk> source, Span<CieLuv> destination, int count)
+        public void Convert(ReadOnlySpan<Cmyk> source, Span<CieLuv> destination, int count)
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
@@ -230,7 +230,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
         /// <param name="count">The number of colors to convert.</param>
-        public void Convert(Span<Hsl> source, Span<CieLuv> destination, int count)
+        public void Convert(ReadOnlySpan<Hsl> source, Span<CieLuv> destination, int count)
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
@@ -262,7 +262,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
         /// <param name="count">The number of colors to convert.</param>
-        public void Convert(Span<Hsv> source, Span<CieLuv> destination, int count)
+        public void Convert(ReadOnlySpan<Hsv> source, Span<CieLuv> destination, int count)
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
@@ -294,7 +294,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
         /// <param name="count">The number of colors to convert.</param>
-        public void Convert(Span<HunterLab> source, Span<CieLuv> destination, int count)
+        public void Convert(ReadOnlySpan<HunterLab> source, Span<CieLuv> destination, int count)
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
@@ -326,7 +326,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
         /// <param name="count">The number of colors to convert.</param>
-        public void Convert(Span<Lms> source, Span<CieLuv> destination, int count)
+        public void Convert(ReadOnlySpan<Lms> source, Span<CieLuv> destination, int count)
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
@@ -358,7 +358,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
         /// <param name="count">The number of colors to convert.</param>
-        public void Convert(Span<LinearRgb> source, Span<CieLuv> destination, int count)
+        public void Convert(ReadOnlySpan<LinearRgb> source, Span<CieLuv> destination, int count)
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
@@ -390,7 +390,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
         /// <param name="count">The number of colors to convert.</param>
-        public void Convert(Span<Rgb> source, Span<CieLuv> destination, int count)
+        public void Convert(ReadOnlySpan<Rgb> source, Span<CieLuv> destination, int count)
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
@@ -422,7 +422,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
         /// <param name="count">The number of colors to convert.</param>
-        public void Convert(Span<YCbCr> source, Span<CieLuv> destination, int count)
+        public void Convert(ReadOnlySpan<YCbCr> source, Span<CieLuv> destination, int count)
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 

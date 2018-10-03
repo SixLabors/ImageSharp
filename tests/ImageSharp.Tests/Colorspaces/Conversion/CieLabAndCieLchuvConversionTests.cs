@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
     /// </remarks>
     public class CieLabAndCieLchuvConversionTests
     {
-        private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0001F);
+        private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0002F);
         private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();
 
         /// <summary>
@@ -68,7 +68,6 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         [InlineData(9.953703, -35.1176033, 16.8696461, 9.953705, 25.3788586, 141.070892)]
         [InlineData(9.805839, 55.69225, -36.6074753, 9.80584049, 35.3214073, 314.4875)]
         [InlineData(8.86916, -34.4068336, -42.2136269, 8.869162, 32.1432457, 227.960419)]
-
         public void Convert_Lab_to_Lchuv(float l, float a, float b, float l2, float c, float h)
         {
             // Arrange

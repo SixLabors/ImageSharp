@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// </summary>
     public readonly struct CieLchuv : IEquatable<CieLchuv>
     {
-        private static readonly Vector3 Min = Vector3.Zero;
+        private static readonly Vector3 Min = new Vector3(0, -200, 0);
         private static readonly Vector3 Max = new Vector3(100, 200, 360);
 
         /// <summary>

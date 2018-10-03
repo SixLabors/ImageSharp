@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
     /// Test data generated using:
     /// <see href="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
     /// </remarks>
-    public class CieLuvAndCieLchuvConversionTests
+    public class CieLchuvAndCieLuvConversionTests
     {
         private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0001F);
         private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         [InlineData(10, 36.0555, 123.6901, 10, -20, 30)]
         [InlineData(10, 36.0555, 303.6901, 10, 20, -30)]
         [InlineData(10, 36.0555, 236.3099, 10, -20, -30)]
-        public void Convert_Lchuv_to_Luv(float l, float c, float h, float l2, float u, float v)
+        public void Convert_CieLchuv_to_CieLuv(float l, float c, float h, float l2, float u, float v)
         {
             // Arrange
             var input = new CieLchuv(l, c, h);
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         [InlineData(10, 20, -30, 10, 36.0555, 303.6901)]
         [InlineData(10, -20, -30, 10, 36.0555, 236.3099)]
         [InlineData(37.3511, 24.1720, 16.0684, 37.3511, 29.0255, 33.6141)]
-        public void Convert_Luv_to_LCHuv(float l, float u, float v, float l2, float c, float h)
+        public void Convert_CieLuv_to_CieLchuv(float l, float u, float v, float l2, float c, float h)
         {
             // Arrange
             var input = new CieLuv(l, u, v);

@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(InliningOptions.ShortMethod)]
         public Lms(Vector3 vector)
         {
-            // Not clamping as documentation about this space seems to indicate "usual" ranges
+            // Not clamping as documentation about this space only indicates "usual" ranges
             this.L = vector.X;
             this.M = vector.Y;
             this.S = vector.Z;

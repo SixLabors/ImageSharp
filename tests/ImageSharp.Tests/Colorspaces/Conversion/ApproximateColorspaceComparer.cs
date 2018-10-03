@@ -12,6 +12,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
     /// </summary>
     internal readonly struct ApproximateColorSpaceComparer :
         IEqualityComparer<Rgb>,
+        IEqualityComparer<LinearRgb>,
         IEqualityComparer<CieLab>,
         IEqualityComparer<CieLch>,
         IEqualityComparer<CieLchuv>,
@@ -34,10 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         /// Initializes a new instance of the <see cref="ApproximateColorSpaceComparer"/> class.
         /// </summary>
         /// <param name="epsilon">The comparison error difference epsilon to use.</param>
-        public ApproximateColorSpaceComparer(float epsilon = 1F)
-        {
-            this.Epsilon = epsilon;
-        }
+        public ApproximateColorSpaceComparer(float epsilon = 1F) => this.Epsilon = epsilon;
 
         /// <inheritdoc/>
         public bool Equals(Rgb x, Rgb y)
@@ -48,10 +46,18 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         /// <inheritdoc/>
-        public int GetHashCode(Rgb obj)
+        public int GetHashCode(Rgb obj) => obj.GetHashCode();
+
+        /// <inheritdoc/>
+        public bool Equals(LinearRgb x, LinearRgb y)
         {
-            return obj.GetHashCode();
+            return this.Equals(x.R, y.R)
+             && this.Equals(x.G, y.G)
+             && this.Equals(x.B, y.B);
         }
+
+        /// <inheritdoc/>
+        public int GetHashCode(LinearRgb obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
         public bool Equals(CieLab x, CieLab y)
@@ -62,10 +68,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         /// <inheritdoc/>
-        public int GetHashCode(CieLab obj)
-        {
-            return obj.GetHashCode();
-        }
+        public int GetHashCode(CieLab obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
         public bool Equals(CieLch x, CieLch y)
@@ -76,10 +79,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         /// <inheritdoc/>
-        public int GetHashCode(CieLch obj)
-        {
-            return obj.GetHashCode();
-        }
+        public int GetHashCode(CieLch obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
         public bool Equals(CieLchuv x, CieLchuv y)
@@ -90,10 +90,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         /// <inheritdoc/>
-        public int GetHashCode(CieLchuv obj)
-        {
-            return obj.GetHashCode();
-        }
+        public int GetHashCode(CieLchuv obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
         public bool Equals(CieLuv x, CieLuv y)
@@ -104,10 +101,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         /// <inheritdoc/>
-        public int GetHashCode(CieLuv obj)
-        {
-            return obj.GetHashCode();
-        }
+        public int GetHashCode(CieLuv obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
         public bool Equals(CieXyz x, CieXyz y)
@@ -118,10 +112,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         /// <inheritdoc/>
-        public int GetHashCode(CieXyz obj)
-        {
-            return obj.GetHashCode();
-        }
+        public int GetHashCode(CieXyz obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
         public bool Equals(CieXyy x, CieXyy y)
@@ -132,10 +123,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         /// <inheritdoc/>
-        public int GetHashCode(CieXyy obj)
-        {
-            return obj.GetHashCode();
-        }
+        public int GetHashCode(CieXyy obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
         public bool Equals(Cmyk x, Cmyk y)
@@ -147,10 +135,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         /// <inheritdoc/>
-        public int GetHashCode(Cmyk obj)
-        {
-            return obj.GetHashCode();
-        }
+        public int GetHashCode(Cmyk obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
         public bool Equals(HunterLab x, HunterLab y)
@@ -161,10 +146,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         /// <inheritdoc/>
-        public int GetHashCode(HunterLab obj)
-        {
-            return obj.GetHashCode();
-        }
+        public int GetHashCode(HunterLab obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
         public bool Equals(Hsl x, Hsl y)
@@ -175,10 +157,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         /// <inheritdoc/>
-        public int GetHashCode(Hsl obj)
-        {
-            return obj.GetHashCode();
-        }
+        public int GetHashCode(Hsl obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
         public bool Equals(Hsv x, Hsv y)
@@ -189,10 +168,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         /// <inheritdoc/>
-        public int GetHashCode(Hsv obj)
-        {
-            return obj.GetHashCode();
-        }
+        public int GetHashCode(Hsv obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
         public bool Equals(Lms x, Lms y)
@@ -203,10 +179,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         /// <inheritdoc/>
-        public int GetHashCode(Lms obj)
-        {
-            return obj.GetHashCode();
-        }
+        public int GetHashCode(Lms obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
         public bool Equals(YCbCr x, YCbCr y)
@@ -217,34 +190,19 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         /// <inheritdoc/>
-        public int GetHashCode(YCbCr obj)
-        {
-            return obj.GetHashCode();
-        }
+        public int GetHashCode(YCbCr obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
-        public bool Equals(CieXyChromaticityCoordinates x, CieXyChromaticityCoordinates y)
-        {
-            return this.Equals(x.X, y.X) && this.Equals(x.Y, y.Y);
-        }
+        public bool Equals(CieXyChromaticityCoordinates x, CieXyChromaticityCoordinates y) => this.Equals(x.X, y.X) && this.Equals(x.Y, y.Y);
 
         /// <inheritdoc/>
-        public int GetHashCode(CieXyChromaticityCoordinates obj)
-        {
-            return obj.GetHashCode();
-        }
+        public int GetHashCode(CieXyChromaticityCoordinates obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
-        public bool Equals(RgbPrimariesChromaticityCoordinates x, RgbPrimariesChromaticityCoordinates y)
-        {
-            return this.Equals(x.R, y.R) && this.Equals(x.G, y.G) && this.Equals(x.B, y.B);
-        }
+        public bool Equals(RgbPrimariesChromaticityCoordinates x, RgbPrimariesChromaticityCoordinates y) => this.Equals(x.R, y.R) && this.Equals(x.G, y.G) && this.Equals(x.B, y.B);
 
         /// <inheritdoc/>
-        public int GetHashCode(RgbPrimariesChromaticityCoordinates obj)
-        {
-            return obj.GetHashCode();
-        }
+        public int GetHashCode(RgbPrimariesChromaticityCoordinates obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
         public bool Equals(RgbWorkingSpace x, RgbWorkingSpace y)
@@ -260,10 +218,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         /// <inheritdoc/>
-        public int GetHashCode(RgbWorkingSpace obj)
-        {
-            return obj.GetHashCode();
-        }
+        public int GetHashCode(RgbWorkingSpace obj) => obj.GetHashCode();
 
         private bool Equals(float x, float y)
         {

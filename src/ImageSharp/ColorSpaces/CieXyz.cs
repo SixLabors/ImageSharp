@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public CieXyz(Vector3 vector)
             : this()
         {
-            // Not clamping as documentation about this space seems to indicate "usual" ranges
+            // Not clamping as documentation about this space only indicates "usual" ranges
             this.X = vector.X;
             this.Y = vector.Y;
             this.Z = vector.Z;

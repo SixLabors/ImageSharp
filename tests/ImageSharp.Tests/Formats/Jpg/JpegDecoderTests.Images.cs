@@ -25,7 +25,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Issues.MultiHuffmanBaseline394,
                 TestImages.Jpeg.Issues.ExifDecodeOutOfRange694,
                 TestImages.Jpeg.Issues.InvalidEOI695,
-                TestImages.Jpeg.Issues.ExifResizeOutOfRange696
+                TestImages.Jpeg.Issues.ExifResizeOutOfRange696,
+                TestImages.Jpeg.Issues.InvalidAPP0721
             };
 
         public static string[] ProgressiveTestJpegs =
@@ -54,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Issues.MissingFF00ProgressiveBedroom159
             };
 
-        private static readonly Dictionary<string, float> CustomToleranceValues = 
+        private static readonly Dictionary<string, float> CustomToleranceValues =
             new Dictionary<string, float>
             {
                 // Baseline:

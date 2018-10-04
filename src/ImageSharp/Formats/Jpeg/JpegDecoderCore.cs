@@ -510,7 +510,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessApplicationHeaderMarker(int remaining)
         {
-            if (remaining < 5)
+            // We can only decode JFif identifiers.
+            if (remaining < JFifMarker.Length)
             {
                 // Skip the application header length
                 this.InputStream.Skip(remaining);

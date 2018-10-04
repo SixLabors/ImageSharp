@@ -64,8 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         byte l = count[i];
                         for (short j = 0; j < l; j++)
                         {
-                            sizesRef[x] = i;
-                            x++;
+                            sizesRef[x++] = i;
                         }
                     }
 

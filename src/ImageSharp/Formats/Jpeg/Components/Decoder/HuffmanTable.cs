@@ -20,27 +20,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Gets the max code array
         /// </summary>
-        public FixedUInt32Buffer18 MaxCode;
+        public fixed uint MaxCode[18];
 
         /// <summary>
         /// Gets the value offset array
         /// </summary>
-        public FixedInt32Buffer18 ValOffset;
+        public fixed int ValOffset[18];
 
         /// <summary>
         /// Gets the huffman value array
         /// </summary>
-        public FixedByteBuffer256 Values;
+        public fixed byte Values[256];
 
         /// <summary>
         /// Gets the lookahead array
         /// </summary>
-        public FixedByteBuffer512 Lookahead;
+        public fixed byte Lookahead[512];
 
         /// <summary>
         /// Gets the sizes array
         /// </summary>
-        public FixedInt16Buffer257 Sizes;
+        public fixed short Sizes[257];
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HuffmanTable"/> struct.
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 ref byte codeLengthsRef = ref MemoryMarshal.GetReference(codeLengths);
 
                 // Figure C.1: make table of Huffman code length for each symbol
-                ref short sizesRef = ref this.Sizes.Data[0];
+                ref short sizesRef = ref this.Sizes[0];
                 short x = 0;
 
                 for (short i = 1; i < 17; i++)
@@ -73,8 +73,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 // Figure C.2: generate the codes themselves
                 int si = 0;
-                ref int valOffsetRef = ref this.ValOffset.Data[0];
-                ref uint maxcodeRef = ref this.MaxCode.Data[0];
+                ref int valOffsetRef = ref this.ValOffset[0];
+                ref uint maxcodeRef = ref this.MaxCode[0];
 
                 uint code = 0;
                 int k;
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     }
 
                     // Figure F.15: generate decoding tables for bit-sequential decoding.
-                    // Compute largest code + 1 for this size. preshifted as we need later.
+                    // Compute largest code + 1 for this size. preshifted as we needit later.
                     Unsafe.Add(ref maxcodeRef, k) = code << (16 - k);
                     code <<= 1;
                 }
@@ -100,8 +100,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 // Generate non-spec lookup tables to speed up decoding.
                 const int FastBits = ScanDecoder.FastBits;
-                ref byte fastRef = ref this.Lookahead.Data[0];
-                new Span<byte>(Unsafe.AsPointer(ref fastRef), 1 << FastBits).Fill(0xFF); // Flag for non-accelerated
+                ref byte fastRef = ref this.Lookahead[0];
+                Unsafe.InitBlockUnaligned(ref fastRef, 0xFF, 1 << FastBits); // Flag for non-accelerated
 
                 for (int i = 0; i < si; i++)
                 {
@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
             }
 
-            values.CopyTo(new Span<byte>(Unsafe.AsPointer(ref this.Values.Data[0]), 256));
+            values.CopyTo(new Span<byte>(Unsafe.AsPointer(ref this.Values[0]), 256));
         }
     }
 }

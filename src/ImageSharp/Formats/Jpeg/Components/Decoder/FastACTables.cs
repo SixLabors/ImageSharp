@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// </summary>
         /// <param name="index">The table index.</param>
         /// <param name="acHuffmanTables">The collection of AC Huffman tables.</param>
-        public void BuildACTableLut(int index, HuffmanTables acHuffmanTables)
+        public unsafe void BuildACTableLut(int index, HuffmanTables acHuffmanTables)
         {
             const int FastBits = ScanDecoder.FastBits;
             Span<short> fastAC = this.tables.GetRowSpan(index);

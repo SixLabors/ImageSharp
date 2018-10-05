@@ -1,6 +1,8 @@
 ﻿using System;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors
@@ -9,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
     /// Performs Bradley Adaptive Threshold filter against an image
     /// </summary>
     /// <typeparam name="TPixel">The pixel format of the image</typeparam>
-    internal class AdaptiveThresholdProcessor<TPixel> : IImageProcessor<TPixel>
+    internal class AdaptiveThresholdProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -41,72 +43,81 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </summary>
         public TPixel Lower { get; set; }
 
-        public unsafe void Apply(Image<TPixel> source, Rectangle sourceRectangle)
+        /// <inheritdoc/>
+        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            ushort xStart = (ushort)Math.Max(0, sourceRectangle.X);
-            ushort yStart = (ushort)Math.Max(0, sourceRectangle.Y);
-            ushort xEnd = (ushort)Math.Min(xStart + sourceRectangle.Width, source.Width);
-            ushort yEnd = (ushort)Math.Min(yStart + sourceRectangle.Height, source.Height);
+            var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+            ushort startY = (ushort)interest.Y;
+            ushort endY = (ushort)interest.Bottom;
+            ushort startX = (ushort)interest.X;
+            ushort endX = (ushort)interest.Right;
 
-            // Algorithm variables
-            uint sum, count;
-            ushort s = (ushort)Math.Truncate((xEnd / 16f) - 1);
-            uint[,] intImage = new uint[yEnd, xEnd];
+            ushort width = (ushort)(endX - startX);
+            ushort height = (ushort)(endY - startY);
+
+            // Algorithm variables //
+            ulong sum;
+            uint count;
+
+            // Tweaked to support upto 4k wide pixels
+            ushort s = (ushort)Math.Truncate((width / 16f) - 1);
 
             // Trying to figure out how to do this
-            // Using (Buffer2D<ulong> intImg = source.GetConfiguration().MemoryAllocator.Allocate2D<ulong>)
-            Rgb24 rgb = default;
-
-            for (ushort i = yStart; i < yEnd; i++)
+            using (Buffer2D<ulong> intImage = configuration.MemoryAllocator.Allocate2D<ulong>(width, height, AllocationOptions.Clean))
             {
-                Span<TPixel> span = source.GetPixelRowSpan(i);
+                Rgb24 rgb = default;
 
-                sum = 0;
-
-                for (ushort j = xStart; j < xEnd; j++)
+                for (ushort i = startY; i < endY; i++)
                 {
-                    span[j].ToRgb24(ref rgb);
+                    Span<TPixel> span = source.GetPixelRowSpan(i);
 
-                    sum += (uint)(rgb.R + rgb.G + rgb.B);
+                    sum = 0;
 
-                    if (i != 0)
+                    for (ushort j = startX; j < endX; j++)
                     {
-                        intImage[i, j] = intImage[i - 1, j] + sum;
-                    }
-                    else
-                    {
-                        intImage[i, j] = sum;
+                        span[j].ToRgb24(ref rgb);
+
+                        sum += (uint)(rgb.R + rgb.G + rgb.B);
+
+                        if (i != 0)
+                        {
+                            intImage[i, j] = intImage[i - 1, j] + sum;
+                        }
+                        else
+                        {
+                            intImage[i, j] = sum;
+                        }
                     }
                 }
-            }
 
-            // How can I parallelize this?
-            ushort x1, x2, y1, y2;
+                // How can I parallelize this?
+                ushort x1, x2, y1, y2;
 
-            for (ushort i = yStart; i < yEnd; i++)
-            {
-                Span<TPixel> span = source.GetPixelRowSpan(i);
-
-                for (ushort j = xStart; j < xEnd; j++)
+                for (ushort i = startY; i < endY; i++)
                 {
-                    x1 = (ushort)Math.Max(i - s + 1, 0);
-                    x2 = (ushort)Math.Min(i + s + 1, yEnd - 1);
-                    y1 = (ushort)Math.Max(j - s + 1, 0);
-                    y2 = (ushort)Math.Min(j + s + 1, xEnd - 1);
+                    Span<TPixel> span = source.GetPixelRowSpan(i);
 
-                    count = (ushort)((x2 - x1) * (y2 - y1));
-
-                    sum = intImage[x2, y2] - intImage[x1, y2] - intImage[x2, y1] + intImage[x1, y1];
-
-                    span[j].ToRgb24(ref rgb);
-
-                    if ((rgb.R + rgb.G + rgb.B) * count < sum * (1.0 - 0.15))
+                    for (ushort j = startX; j < endX; j++)
                     {
-                        span[j] = this.Lower;
-                    }
-                    else
-                    {
-                        span[j] = this.Upper;
+                        x1 = (ushort)Math.Max(i - s + 1, 0);
+                        x2 = (ushort)Math.Min(i + s + 1, endY - 1);
+                        y1 = (ushort)Math.Max(j - s + 1, 0);
+                        y2 = (ushort)Math.Min(j + s + 1, endX - 1);
+
+                        count = (uint)((x2 - x1) * (y2 - y1));
+
+                        sum = intImage[x2, y2] - intImage[x1, y2] - intImage[x2, y1] + intImage[x1, y1];
+
+                        span[j].ToRgb24(ref rgb);
+
+                        if ((rgb.R + rgb.G + rgb.B) * count < sum * (1.0 - 0.15))
+                        {
+                            span[j] = this.Lower;
+                        }
+                        else
+                        {
+                            span[j] = this.Upper;
+                        }
                     }
                 }
             }

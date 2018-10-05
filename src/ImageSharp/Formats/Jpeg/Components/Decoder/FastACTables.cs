@@ -46,19 +46,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             const int FastBits = ScanDecoder.FastBits;
             Span<short> fastAC = this.tables.GetRowSpan(index);
-            ref HuffmanTable huffman = ref acHuffmanTables[index];
+            ref HuffmanTable huffmanTable = ref acHuffmanTables[index];
 
             int i;
             for (i = 0; i < (1 << FastBits); i++)
             {
-                byte fast = huffman.Lookahead[i];
+                byte fast = huffmanTable.Lookahead[i];
                 fastAC[i] = 0;
                 if (fast < byte.MaxValue)
                 {
-                    int rs = huffman.Values[fast];
+                    int rs = huffmanTable.Values[fast];
                     int run = (rs >> 4) & 15;
                     int magbits = rs & 15;
-                    int len = huffman.Sizes[fast];
+                    int len = huffmanTable.Sizes[fast];
 
                     if (magbits != 0 && len + magbits <= FastBits)
                     {

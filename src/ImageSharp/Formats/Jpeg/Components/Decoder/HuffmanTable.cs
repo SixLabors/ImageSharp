@@ -46,87 +46,79 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// Initializes a new instance of the <see cref="HuffmanTable"/> struct.
         /// </summary>
         /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
-        /// <param name="count">The code lengths</param>
+        /// <param name="codeLengths">The code lengths</param>
         /// <param name="values">The huffman values</param>
-        public HuffmanTable(MemoryAllocator memoryAllocator, ReadOnlySpan<byte> count, ReadOnlySpan<byte> values)
+        public HuffmanTable(MemoryAllocator memoryAllocator, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
         {
             const int Length = 257;
             using (IMemoryOwner<short> huffcode = memoryAllocator.Allocate<short>(Length))
             {
                 ref short huffcodeRef = ref MemoryMarshal.GetReference(huffcode.GetSpan());
+                ref byte codeLengthsRef = ref MemoryMarshal.GetReference(codeLengths);
 
                 // Figure C.1: make table of Huffman code length for each symbol
-                fixed (short* sizesRef = this.Sizes.Data)
+                ref short sizesRef = ref this.Sizes.Data[0];
+                short x = 0;
+
+                for (short i = 1; i < 17; i++)
                 {
-                    short x = 0;
-                    for (short i = 1; i < 17; i++)
+                    byte length = Unsafe.Add(ref codeLengthsRef, i);
+                    for (short j = 0; j < length; j++)
                     {
-                        byte l = count[i];
-                        for (short j = 0; j < l; j++)
+                        Unsafe.Add(ref sizesRef, x++) = i;
+                    }
+                }
+
+                Unsafe.Add(ref sizesRef, x) = 0;
+
+                // Figure C.2: generate the codes themselves
+                int si = 0;
+                ref int valOffsetRef = ref this.ValOffset.Data[0];
+                ref uint maxcodeRef = ref this.MaxCode.Data[0];
+
+                uint code = 0;
+                int k;
+                for (k = 1; k < 17; k++)
+                {
+                    // Compute delta to add to code to compute symbol id.
+                    Unsafe.Add(ref valOffsetRef, k) = (int)(si - code);
+                    if (Unsafe.Add(ref sizesRef, si) == k)
+                    {
+                        while (Unsafe.Add(ref sizesRef, si) == k)
                         {
-                            sizesRef[x++] = i;
+                            Unsafe.Add(ref huffcodeRef, si++) = (short)code++;
                         }
                     }
 
-                    sizesRef[x] = 0;
+                    // Figure F.15: generate decoding tables for bit-sequential decoding.
+                    // Compute largest code + 1 for this size. preshifted as we need later.
+                    Unsafe.Add(ref maxcodeRef, k) = code << (16 - k);
+                    code <<= 1;
+                }
 
-                    // Figure C.2: generate the codes themselves
-                    int k = 0;
-                    fixed (int* valOffsetRef = this.ValOffset.Data)
-                    fixed (uint* maxcodeRef = this.MaxCode.Data)
+                Unsafe.Add(ref maxcodeRef, k) = 0xFFFFFFFF;
+
+                // Generate non-spec lookup tables to speed up decoding.
+                const int FastBits = ScanDecoder.FastBits;
+                ref byte fastRef = ref this.Lookahead.Data[0];
+                new Span<byte>(Unsafe.AsPointer(ref fastRef), 1 << FastBits).Fill(0xFF); // Flag for non-accelerated
+
+                for (int i = 0; i < si; i++)
+                {
+                    int size = Unsafe.Add(ref sizesRef, i);
+                    if (size <= FastBits)
                     {
-                        uint code = 0;
-                        int j;
-                        for (j = 1; j < 17; j++)
+                        int c = Unsafe.Add(ref huffcodeRef, i) << (FastBits - size);
+                        int m = 1 << (FastBits - size);
+                        for (int l = 0; l < m; l++)
                         {
-                            // Compute delta to add to code to compute symbol id.
-                            valOffsetRef[j] = (int)(k - code);
-                            if (sizesRef[k] == j)
-                            {
-                                while (sizesRef[k] == j)
-                                {
-                                    Unsafe.Add(ref huffcodeRef, k++) = (short)code++;
-                                }
-                            }
-
-                            // Figure F.15: generate decoding tables for bit-sequential decoding.
-                            // Compute largest code + 1 for this size. preshifted as need later.
-                            maxcodeRef[j] = code << (16 - j);
-                            code <<= 1;
-                        }
-
-                        maxcodeRef[j] = 0xFFFFFFFF;
-                    }
-
-                    // Generate non-spec lookup tables to speed up decoding.
-                    fixed (byte* lookaheadRef = this.Lookahead.Data)
-                    {
-                        const int FastBits = ScanDecoder.FastBits;
-                        var fast = new Span<byte>(lookaheadRef, 1 << FastBits);
-                        fast.Fill(0xFF); // Flag for non-accelerated
-
-                        for (int i = 0; i < k; i++)
-                        {
-                            int s = sizesRef[i];
-                            if (s <= ScanDecoder.FastBits)
-                            {
-                                int c = Unsafe.Add(ref huffcodeRef, i) << (FastBits - s);
-                                int m = 1 << (FastBits - s);
-                                for (int j = 0; j < m; j++)
-                                {
-                                    fast[c + j] = (byte)i;
-                                }
-                            }
+                            Unsafe.Add(ref fastRef, c + l) = (byte)i;
                         }
                     }
                 }
             }
 
-            fixed (byte* huffValRef = this.Values.Data)
-            {
-                var huffValSpan = new Span<byte>(huffValRef, 256);
-                values.CopyTo(huffValSpan);
-            }
+            values.CopyTo(new Span<byte>(Unsafe.AsPointer(ref this.Values.Data[0]), 256));
         }
     }
 }

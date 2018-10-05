@@ -800,7 +800,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private int DecodeHuffman(ref HuffmanTable table)
+        private unsafe int DecodeHuffman(ref HuffmanTable table)
         {
             this.CheckBits();
 
@@ -825,7 +825,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         [MethodImpl(InliningOptions.ColdPath)]
-        private int DecodeHuffmanSlow(ref HuffmanTable table)
+        private unsafe int DecodeHuffmanSlow(ref HuffmanTable table)
         {
             // Naive test is to shift the code_buffer down so k bits are
             // valid, then test against MaxCode. To speed this up, we've

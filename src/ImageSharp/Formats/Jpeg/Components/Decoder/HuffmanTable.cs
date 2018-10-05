@@ -118,8 +118,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
             }
 
-            // Ok to use pointer here as struct is declared in method stack space so are essentially pinned.
-            values.CopyTo(new Span<byte>(Unsafe.AsPointer(ref this.Values[0]), 256));
+            Unsafe.CopyBlockUnaligned(ref this.Values[0], ref MemoryMarshal.GetReference(values), 256);
         }
     }
 }

@@ -57,6 +57,30 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
+        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType, 1)]
+        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType, 4)]
+        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType, 8)]
+        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType, -1)]
+        public void Resize_WorksWithAllParallelismLevels<TPixel>(TestImageProvider<TPixel> provider, int maxDegreeOfParallelism)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            if (maxDegreeOfParallelism >= 0)
+            {
+                provider.Configuration.MaxDegreeOfParallelism = maxDegreeOfParallelism;
+            }
+
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                SizeF newSize = image.Size() * 0.5f;
+                image.Mutate(x => x.Resize((Size)newSize, false));
+                FormattableString details = $"MDP{maxDegreeOfParallelism}";
+
+                image.DebugSave(provider, details);
+                //image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.005f), provider, details);
+            }
+        }
+
+        [Theory]
         [WithTestPatternImages(100, 100, DefaultPixelType)]
         public void Resize_Compand<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>

@@ -24,6 +24,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             ref Rgba64 sourceRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
+            // For conversion methods writing only to RGB channels, we need to keep the alpha channel opaque!
             var temp = NamedColors<Rgba64>.Black;
 
             for (int i = 0; i < count; i++)
@@ -95,6 +96,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             ref Rgb48 sourceRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
+            // For conversion methods writing only to RGB channels, we need to keep the alpha channel opaque!
             var temp = NamedColors<Rgb48>.Black;
 
             for (int i = 0; i < count; i++)
@@ -166,6 +168,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             ref Rgba32 sourceRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
+            // For conversion methods writing only to RGB channels, we need to keep the alpha channel opaque!
             var temp = NamedColors<Rgba32>.Black;
 
             for (int i = 0; i < count; i++)
@@ -237,6 +240,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             ref Bgra32 sourceRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
+            // For conversion methods writing only to RGB channels, we need to keep the alpha channel opaque!
             var temp = NamedColors<Bgra32>.Black;
 
             for (int i = 0; i < count; i++)
@@ -308,6 +312,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             ref Rgb24 sourceRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
+            // For conversion methods writing only to RGB channels, we need to keep the alpha channel opaque!
             var temp = NamedColors<Rgba32>.Black;
 
             for (int i = 0; i < count; i++)
@@ -379,6 +384,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             ref Bgr24 sourceRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
+            // For conversion methods writing only to RGB channels, we need to keep the alpha channel opaque!
             var temp = NamedColors<Rgba32>.Black;
 
             for (int i = 0; i < count; i++)
@@ -450,6 +456,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             ref Argb32 sourceRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
+            // For conversion methods writing only to RGB channels, we need to keep the alpha channel opaque!
             var temp = NamedColors<Argb32>.Black;
 
             for (int i = 0; i < count; i++)

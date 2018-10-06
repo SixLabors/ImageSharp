@@ -14,8 +14,7 @@
     void GeneratePackFromMethods(string pixelType, string tempPixelType, string assignToTempCode)
     {		
 		#>
-
-		/// <summary>
+        /// <summary>
         /// Converts 'count' elements in 'source` span of <see cref="<#=pixelType#>"/> data to a span of <typeparamref name="TPixel"/>-s.
         /// </summary>
         /// <param name="source">The source <see cref="Span{T}"/> of <see cref="<#=pixelType#>"/> data.</param>
@@ -23,7 +22,7 @@
         /// <param name="count">The number of pixels to convert.</param>
         internal virtual void PackFrom<#=pixelType#>(ReadOnlySpan<<#=pixelType#>> source, Span<TPixel> destPixels, int count)
         {
-			GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
             
             ref <#=pixelType#> sourceRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
@@ -38,8 +37,8 @@
                 dp.PackFrom<#=tempPixelType#>(temp);
             }
         }
-		
-		/// <summary>
+
+        /// <summary>
         /// A helper for <see cref="PackFrom<#=pixelType#>(ReadOnlySpan{<#=pixelType#>}, Span{TPixel}, int)"/> that expects a byte span.
         /// The layout of the data in 'sourceBytes' must be compatible with <see cref="<#=pixelType#>"/> layout.
         /// </summary>
@@ -51,14 +50,13 @@
         {
             this.PackFrom<#=pixelType#>(MemoryMarshal.Cast<byte, <#=pixelType#>>(sourceBytes), destPixels, count);
         }
-		<#
+<#
     }
 
     void GenerateToDestFormatMethods(string pixelType)
     {
         #>
-
-		/// <summary>
+        /// <summary>
         /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="<#=pixelType#>"/>-s.
         /// Bulk version of <see cref="IPixel.To<#=pixelType#>(ref <#=pixelType#>)"/>.
         /// </summary>
@@ -80,19 +78,19 @@
             }
         }
 
-		/// <summary>
+        /// <summary>
         /// A helper for <see cref="To<#=pixelType#>(ReadOnlySpan{TPixel}, Span{<#=pixelType#>}, int)"/> that expects a byte span as destination.
         /// The layout of the data in 'destBytes' must be compatible with <see cref="<#=pixelType#>"/> layout.
         /// </summary>
         /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
         /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void To<#=pixelType#>Bytes(ReadOnlySpan<TPixel> sourceColors, Span<byte> destBytes, int count)
         {
             this.To<#=pixelType#>(sourceColors, MemoryMarshal.Cast<byte, <#=pixelType#>>(destBytes), count);
         }
-		<#
+<#
     }
 
 #>
@@ -107,8 +105,8 @@ namespace SixLabors.ImageSharp.PixelFormats
     using System.Runtime.InteropServices;
 
     public partial class PixelOperations<TPixel>
-    {
-		<#
+    {<#
+
     GeneratePackFromMethods("Rgba64", "Rgba64", "temp = Unsafe.Add(ref sourceRef, i);");
     GenerateToDestFormatMethods("Rgba64");
 
@@ -129,8 +127,5 @@ namespace SixLabors.ImageSharp.PixelFormats
 
     GeneratePackFromMethods("Argb32", "Argb32", "temp = Unsafe.Add(ref sourceRef, i);");
     GenerateToDestFormatMethods("Argb32");
-		#>
-
-	}
-
+		#>    }
 }

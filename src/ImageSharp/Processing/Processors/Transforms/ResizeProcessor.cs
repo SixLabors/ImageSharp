@@ -27,8 +27,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         where TPixel : struct, IPixel<TPixel>
     {
         // The following fields are not immutable but are optionally created on demand.
-        private WeightsBuffer horizontalWeights;
-        private WeightsBuffer verticalWeights;
+        private KernelMap horizontalKernelMap;
+        private KernelMap verticalKernelMap;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ResizeProcessor{TPixel}"/> class.
@@ -142,75 +142,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         public bool Compand { get; }
 
-        /// <summary>
-        /// Computes the weights to apply at each pixel when resizing.
-        /// </summary>
-        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations</param>
-        /// <param name="destinationSize">The destination size</param>
-        /// <param name="sourceSize">The source size</param>
-        /// <returns>The <see cref="WeightsBuffer"/></returns>
-        // TODO: Made internal to simplify experimenting with weights data. Make it private when finished figuring out how to optimize all the stuff!
-        internal WeightsBuffer PrecomputeWeights(MemoryAllocator memoryAllocator, int destinationSize, int sourceSize)
-        {
-            float ratio = (float)sourceSize / destinationSize;
-            float scale = ratio;
-
-            if (scale < 1F)
-            {
-                scale = 1F;
-            }
-
-            IResampler sampler = this.Sampler;
-            float radius = MathF.Ceiling(scale * sampler.Radius);
-            var result = new WeightsBuffer(memoryAllocator, destinationSize, radius);
-
-            for (int i = 0; i < destinationSize; i++)
-            {
-                float center = ((i + .5F) * ratio) - .5F;
-
-                // Keep inside bounds.
-                int left = (int)MathF.Ceiling(center - radius);
-                if (left < 0)
-                {
-                    left = 0;
-                }
-
-                int right = (int)MathF.Floor(center + radius);
-                if (right > sourceSize - 1)
-                {
-                    right = sourceSize - 1;
-                }
-
-                float sum = 0;
-
-                WeightsWindow ws = result.GetWeightsWindow(i, left, right);
-                result.Weights[i] = ws;
-
-                ref float weightsBaseRef = ref ws.GetStartReference();
-
-                for (int j = left; j <= right; j++)
-                {
-                    float weight = sampler.GetValue((j - center) / scale);
-                    sum += weight;
-
-                    // weights[j - left] = weight:
-                    Unsafe.Add(ref weightsBaseRef, j - left) = weight;
-                }
-
-                // Normalize, best to do it here rather than in the pixel loop later on.
-                if (sum > 0)
-                {
-                    for (int w = 0; w < ws.Length; w++)
-                    {
-                        // weights[w] = weights[w] / sum:
-                        ref float wRef = ref Unsafe.Add(ref weightsBaseRef, w);
-                        wRef /= sum;
-                    }
-                }
-            }
-
-            return result;
-        }
 
         /// <inheritdoc/>
         protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
@@ -229,15 +160,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 // Since all image frame dimensions have to be the same we can calculate this for all frames.
                 MemoryAllocator memoryAllocator = source.GetMemoryAllocator();
-                this.horizontalWeights = this.PrecomputeWeights(
-                    memoryAllocator,
+                this.horizontalKernelMap = KernelMap.Calculate(
+                    this.Sampler,
                     this.ResizeRectangle.Width,
-                    sourceRectangle.Width);
+                    sourceRectangle.Width,
+                    memoryAllocator);
 
-                this.verticalWeights = this.PrecomputeWeights(
-                    memoryAllocator,
+                this.verticalKernelMap = KernelMap.Calculate(
+                    this.Sampler,
                     this.ResizeRectangle.Height,
-                    sourceRectangle.Height);
+                    sourceRectangle.Height,
+                    memoryAllocator);
             }
         }
 
@@ -326,18 +259,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                 {
                                     for (int x = minX; x < maxX; x++)
                                     {
-                                        WeightsWindow window = this.horizontalWeights.Weights[x - startX];
+                                        ResizeKernel window = this.horizontalKernelMap.Kernels[x - startX];
                                         Unsafe.Add(ref firstPassRow, x) =
-                                            window.ComputeExpandedWeightedRowSum(tempRowSpan, sourceX);
+                                            window.ConvolvePremultipliedExpandedRows(tempRowSpan, sourceX);
                                     }
                                 }
                                 else
                                 {
                                     for (int x = minX; x < maxX; x++)
                                     {
-                                        WeightsWindow window = this.horizontalWeights.Weights[x - startX];
+                                        ResizeKernel window = this.horizontalKernelMap.Kernels[x - startX];
                                         Unsafe.Add(ref firstPassRow, x) =
-                                            window.ComputeWeightedRowSum(tempRowSpan, sourceX);
+                                            window.ConvolvePremultipliedRows(tempRowSpan, sourceX);
                                     }
                                 }
                             }
@@ -354,7 +287,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                             for (int y = rows.Min; y < rows.Max; y++)
                             {
                                 // Ensure offsets are normalized for cropping and padding.
-                                WeightsWindow window = this.verticalWeights.Weights[y - startY];
+                                ResizeKernel window = this.verticalKernelMap.Kernels[y - startY];
                                 ref TPixel targetRow = ref MemoryMarshal.GetReference(destination.GetPixelRowSpan(y));
 
                                 if (this.Compand)
@@ -362,7 +295,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                     for (int x = 0; x < width; x++)
                                     {
                                         // Destination color components
-                                        Vector4 destinationVector = window.ComputeWeightedColumnSum(
+                                        Vector4 destinationVector = window.ConvolveColumnsAndUnPremultiply(
                                             firstPassPixels,
                                             x,
                                             sourceY);
@@ -377,7 +310,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                     for (int x = 0; x < width; x++)
                                     {
                                         // Destination color components
-                                        Vector4 destinationVector = window.ComputeWeightedColumnSum(
+                                        Vector4 destinationVector = window.ConvolveColumnsAndUnPremultiply(
                                             firstPassPixels,
                                             x,
                                             sourceY);
@@ -396,10 +329,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             base.AfterImageApply(source, destination, sourceRectangle);
 
             // TODO: An exception in the processing chain can leave these buffers undisposed. We should consider making image processors IDisposable!
-            this.horizontalWeights?.Dispose();
-            this.horizontalWeights = null;
-            this.verticalWeights?.Dispose();
-            this.verticalWeights = null;
+            this.horizontalKernelMap?.Dispose();
+            this.horizontalKernelMap = null;
+            this.verticalKernelMap?.Dispose();
+            this.verticalKernelMap = null;
         }
     }
 }

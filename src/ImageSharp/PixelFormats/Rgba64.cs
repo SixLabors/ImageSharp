@@ -275,6 +275,35 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromGray8(Gray8 source)
+        {
+            ushort x = (ushort)(source.PackedValue * 255);
+            this.R = x;
+            this.G = x;
+            this.B = x;
+            this.A = ushort.MaxValue;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToGray8(ref Gray8 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromGray16(Gray16 source)
+        {
+            this.R = source.PackedValue;
+            this.G = source.PackedValue;
+            this.B = source.PackedValue;
+            this.A = ushort.MaxValue;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToGray16(ref Gray16 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+
+        /// <inheritdoc />
         public override bool Equals(object obj)
         {
             return obj is Rgba64 rgba64 && this.Equals(rgba64);

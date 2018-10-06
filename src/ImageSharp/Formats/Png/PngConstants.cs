@@ -41,5 +41,17 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// The header bytes as a big endian coded ulong.
         /// </summary>
         public const ulong HeaderValue = 0x89504E470D0A1A0AUL;
+
+        /// <summary>
+        /// The dictionary of available color types.
+        /// </summary>
+        public static readonly Dictionary<PngColorType, byte[]> ColorTypes = new Dictionary<PngColorType, byte[]>()
+        {
+            [PngColorType.Grayscale] = new byte[] { 1, 2, 4, 8, 16 },
+            [PngColorType.Rgb] = new byte[] { 8, 16 },
+            [PngColorType.Palette] = new byte[] { 1, 2, 4, 8 },
+            [PngColorType.GrayscaleWithAlpha] = new byte[] { 8, 16 },
+            [PngColorType.RgbWithAlpha] = new byte[] { 8, 16 }
+        };
     }
 }

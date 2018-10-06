@@ -510,7 +510,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessApplicationHeaderMarker(int remaining)
         {
-            if (remaining < 5)
+            // We can only decode JFif identifiers.
+            if (remaining < JFifMarker.Length)
             {
                 // Skip the application header length
                 this.InputStream.Skip(remaining);
@@ -746,11 +747,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             if (!metadataOnly)
             {
                 // No need to pool this. They max out at 4
-                this.Frame.ComponentIds = new byte[this.Frame.ComponentCount];
-                this.Frame.Components = new JpegComponent[this.Frame.ComponentCount];
+                this.Frame.ComponentIds = new byte[this.ComponentCount];
+                this.Frame.ComponentOrder = new byte[this.ComponentCount];
+                this.Frame.Components = new JpegComponent[this.ComponentCount];
                 this.ColorSpace = this.DeduceJpegColorSpace();
 
-                for (int i = 0; i < this.Frame.ComponentCount; i++)
+                for (int i = 0; i < this.ComponentCount; i++)
                 {
                     byte hv = this.temp[index + 1];
                     int h = hv >> 4;
@@ -822,10 +824,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                                 codeLengths.GetSpan(),
                                 huffmanValues.GetSpan());
 
-                            if (huffmanTableSpec >> 4 != 0)
+                            if (tableType != 0)
                             {
                                 // Build a table that decodes both magnitude and value of small ACs in one go.
-                                this.fastACTables.BuildACTableLut(huffmanTableSpec & 15, this.acHuffmanTables);
+                                this.fastACTables.BuildACTableLut(tableIndex, this.acHuffmanTables);
                             }
                         }
                     }
@@ -866,6 +868,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     if (selector == id)
                     {
                         componentIndex = j;
+                        break;
                     }
                 }
 
@@ -878,6 +881,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 int tableSpec = this.InputStream.ReadByte();
                 component.DCHuffmanTableId = tableSpec >> 4;
                 component.ACHuffmanTableId = tableSpec & 15;
+                this.Frame.ComponentOrder[i] = (byte)componentIndex;
             }
 
             this.InputStream.Read(this.temp, 0, 3);
@@ -892,7 +896,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.dcHuffmanTables,
                 this.acHuffmanTables,
                 this.fastACTables,
-                componentIndex,
                 selectorsCount,
                 this.resetInterval,
                 spectralStart,

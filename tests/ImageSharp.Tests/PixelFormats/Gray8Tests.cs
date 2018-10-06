@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // arrange
             Rgb24 actual = default;
             Gray8 gray = default;
-            var expected = new Rgb24(0, 0, 0);
+            var expected = new Rgb24(128, 128, 128);
             Vector4 scaled = new Gray8(128).ToScaledVector4();
 
             // act
@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // arrange
             Rgba32 actual = default;
             Gray8 gray = default;
-            var expected = new Rgba32(0, 0, 0, 128);
+            var expected = new Rgba32(128, 128, 128, 255);
             Vector4 scaled = new Gray8(128).ToScaledVector4();
 
             // act

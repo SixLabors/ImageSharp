@@ -162,7 +162,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             IResampler sampler = this.Sampler;
             float radius = MathF.Ceiling(scale * sampler.Radius);
-            var result = new WeightsBuffer(memoryAllocator, sourceSize, destinationSize);
+            var result = new WeightsBuffer(memoryAllocator, destinationSize, radius);
 
             for (int i = 0; i < destinationSize; i++)
             {

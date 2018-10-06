@@ -195,9 +195,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void PackFromRgba64(Rgba64 source) =>
             this.PackFromScaledVector4(source.ToScaledVector4());
 
+        /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromGray8(Gray8 source) => this.PackedValue = source.PackedValue;
 
+        /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromGray16(Gray16 source) => this.PackedValue = (byte)(source.PackedValue / 255);
 

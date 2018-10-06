@@ -54,6 +54,21 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             Assert.Equal(expected, source, new ApproximateFloatComparer(1e-6f));
         }
 
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(30)]
+        public void UnPremultiply_VectorSpan(int length)
+        {
+            var rnd = new Random(42);
+            Vector4[] source = rnd.GenerateRandomVectorArray(length, 0, 1);
+            Vector4[] expected = source.Select(v => v.UnPremultiply()).ToArray();
+
+            ImageMaths.UnPremultiply(source);
+
+            Assert.Equal(expected, source, new ApproximateFloatComparer(1e-6f));
+        }
+
         // TODO: We need to test all ImageMaths methods!
     }
 }

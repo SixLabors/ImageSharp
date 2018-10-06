@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="sourceX">The source row position.</param>
         /// <returns>The weighted sum</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector4 ConvolvePremultipliedRows(Span<Vector4> rowSpan, int sourceX)
+        public Vector4 ConvolveRows(Span<Vector4> rowSpan, int sourceX)
         {
             ref float horizontalValues = ref this.GetStartReference();
             int left = this.Left;
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 float weight = Unsafe.Add(ref horizontalValues, i);
                 Vector4 v = Unsafe.Add(ref vecPtr, i);
-                result += v.Premultiply() * weight;
+                result += v * weight;
             }
 
             return result;
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="sourceX">The source row position.</param>
         /// <returns>The weighted sum</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector4 ConvolvePremultipliedExpandedRows(Span<Vector4> rowSpan, int sourceX)
+        public Vector4 ConvolveExpandRows(Span<Vector4> rowSpan, int sourceX)
         {
             ref float horizontalValues = ref this.GetStartReference();
             int left = this.Left;
@@ -118,10 +118,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 float weight = Unsafe.Add(ref horizontalValues, i);
                 Vector4 v = Unsafe.Add(ref vecPtr, i);
-                result += v.Premultiply().Expand() * weight;
+                result += v.Expand() * weight;
             }
 
-            return result.UnPremultiply();
+            return result;
         }
 
         /// <summary>

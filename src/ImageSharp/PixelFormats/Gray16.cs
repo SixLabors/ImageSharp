@@ -287,7 +287,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <summary>
         /// Packs the <see cref="ushort" /> into a byte.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>The <see cref="byte" />.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private byte PackedAsByte()
         {

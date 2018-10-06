@@ -35,6 +35,6 @@ namespace SixLabors.ImageSharp.Processing
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Crop<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle cropRectangle)
             where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new CropProcessor<TPixel>(cropRectangle));
+            => source.ApplyProcessor(new CropProcessor<TPixel>(cropRectangle, source.GetCurrentSize()));
     }
 }

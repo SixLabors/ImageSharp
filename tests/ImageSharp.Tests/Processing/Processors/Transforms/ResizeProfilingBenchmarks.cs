@@ -10,6 +10,8 @@ using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 using SixLabors.Primitives;
+
+using Xunit;
 using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
@@ -38,11 +40,19 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                     });
         }
 
-        // [Fact]
-        public void PrintWeightsData()
+        [Theory]
+        [InlineData(500, 200, nameof(KnownResamplers.Bicubic))]
+        [InlineData(50, 40, nameof(KnownResamplers.Bicubic))]
+        [InlineData(40, 30, nameof(KnownResamplers.Bicubic))]
+        [InlineData(500, 200, nameof(KnownResamplers.Lanczos8))]
+        [InlineData(100, 80, nameof(KnownResamplers.Lanczos8))]
+        [InlineData(100, 10, nameof(KnownResamplers.Lanczos8))]
+        [InlineData(10, 100, nameof(KnownResamplers.Lanczos8))]
+        public void PrintWeightsData(int srcSize, int destSize, string resamplerName)
         {
-            var size = new Size(500, 500);
-            var proc = new ResizeProcessor<Rgba32>(KnownResamplers.Bicubic, 200, 200, size);
+            var size = new Size(srcSize, srcSize);
+            var resampler = (IResampler) typeof(KnownResamplers).GetProperty(resamplerName).GetValue(null);
+            var proc = new ResizeProcessor<Rgba32>(resampler, destSize, destSize, size);
 
             WeightsBuffer weights = proc.PrecomputeWeights(Configuration.Default.MemoryAllocator, proc.Width, size.Width);
 
@@ -54,16 +64,19 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 for (int i = 0; i < window.Length; i++)
                 {
                     float value = span[i];
-                    bld.Append(value);
+                    bld.Append($"{value,7:F4}");
                     bld.Append("| ");
                 }
 
                 bld.AppendLine();
             }
 
-            File.WriteAllText("BicubicWeights.MD", bld.ToString());
+            string outDir = TestEnvironment.CreateOutputDirectory("." + nameof(this.PrintWeightsData));
+            string fileName = $@"{outDir}\{resamplerName}_{srcSize}_{destSize}.MD";
 
-            // this.Output.WriteLine(bld.ToString());
+            File.WriteAllText(fileName, bld.ToString());
+
+            this.Output.WriteLine(bld.ToString());
         }
     }
 }

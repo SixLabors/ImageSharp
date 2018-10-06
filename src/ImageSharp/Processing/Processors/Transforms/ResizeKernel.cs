@@ -13,9 +13,9 @@ using SixLabors.Memory;
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
     /// <summary>
-    /// Points to a collection of of weights allocated in <see cref="WeightsBuffer"/>.
+    /// Points to a collection of of weights allocated in <see cref="KernelMap"/>.
     /// </summary>
-    internal struct WeightsWindow
+    internal struct ResizeKernel
     {
         /// <summary>
         /// The local left index position
@@ -38,14 +38,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private readonly Memory<float> buffer;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="WeightsWindow"/> struct.
+        /// Initializes a new instance of the <see cref="ResizeKernel"/> struct.
         /// </summary>
         /// <param name="index">The destination index in the buffer</param>
         /// <param name="left">The local left index</param>
         /// <param name="buffer">The span</param>
         /// <param name="length">The length of the window</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal WeightsWindow(int index, int left, Buffer2D<float> buffer, int length)
+        internal ResizeKernel(int index, int left, Buffer2D<float> buffer, int length)
         {
             this.flatStartIndex = index * buffer.Width;
             this.Left = left;
@@ -65,20 +65,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         }
 
         /// <summary>
-        /// Gets the span representing the portion of the <see cref="WeightsBuffer"/> that this window covers
+        /// Gets the span representing the portion of the <see cref="KernelMap"/> that this window covers
         /// </summary>
         /// <returns>The <see cref="Span{T}"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<float> GetWindowSpan() => this.buffer.Span.Slice(this.flatStartIndex, this.Length);
+        public Span<float> GetSpan() => this.buffer.Span.Slice(this.flatStartIndex, this.Length);
 
         /// <summary>
-        /// Computes the sum of vectors in 'rowSpan' weighted by weight values, pointed by this <see cref="WeightsWindow"/> instance.
+        /// Computes the sum of vectors in 'rowSpan' weighted by weight values, pointed by this <see cref="ResizeKernel"/> instance.
         /// </summary>
         /// <param name="rowSpan">The input span of vectors</param>
         /// <param name="sourceX">The source row position.</param>
         /// <returns>The weighted sum</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector4 ComputeWeightedRowSum(Span<Vector4> rowSpan, int sourceX)
+        public Vector4 ConvolvePremultipliedRows(Span<Vector4> rowSpan, int sourceX)
         {
             ref float horizontalValues = ref this.GetStartReference();
             int left = this.Left;
@@ -98,14 +98,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         }
 
         /// <summary>
-        /// Computes the sum of vectors in 'rowSpan' weighted by weight values, pointed by this <see cref="WeightsWindow"/> instance.
+        /// Computes the sum of vectors in 'rowSpan' weighted by weight values, pointed by this <see cref="ResizeKernel"/> instance.
         /// Applies <see cref="Vector4Extensions.Expand(float)"/> to all input vectors.
         /// </summary>
         /// <param name="rowSpan">The input span of vectors</param>
         /// <param name="sourceX">The source row position.</param>
         /// <returns>The weighted sum</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector4 ComputeExpandedWeightedRowSum(Span<Vector4> rowSpan, int sourceX)
+        public Vector4 ConvolvePremultipliedExpandedRows(Span<Vector4> rowSpan, int sourceX)
         {
             ref float horizontalValues = ref this.GetStartReference();
             int left = this.Left;
@@ -126,14 +126,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         /// <summary>
         /// Computes the sum of vectors in 'firstPassPixels' at a row pointed by 'x',
-        /// weighted by weight values, pointed by this <see cref="WeightsWindow"/> instance.
+        /// weighted by weight values, pointed by this <see cref="ResizeKernel"/> instance.
         /// </summary>
         /// <param name="firstPassPixels">The buffer of input vectors in row first order</param>
         /// <param name="x">The row position</param>
         /// <param name="sourceY">The source column position.</param>
         /// <returns>The weighted sum</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector4 ComputeWeightedColumnSum(Buffer2D<Vector4> firstPassPixels, int x, int sourceY)
+        public Vector4 ConvolveColumnsAndUnPremultiply(Buffer2D<Vector4> firstPassPixels, int x, int sourceY)
         {
             ref float verticalValues = ref this.GetStartReference();
             int left = this.Left;

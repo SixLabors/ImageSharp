@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void CloneCallsImageOperationsProvider_Func_WithDuplicateImage()
         {
-            var returned = this.image.Clone(x => x.ApplyProcessor(this.processor));
+            Image<Rgba32> returned = this.image.Clone(x => x.ApplyProcessor(this.processor));
 
             Assert.True(this.provider.HasCreated(returned));
             Assert.Contains(this.processor, this.provider.AppliedOperations(returned).Select(x => x.Processor));
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void CloneCallsImageOperationsProvider_ListOfProcessors_WithDuplicateImage()
         {
-            var returned = this.image.Clone(this.processor);
+            Image<Rgba32> returned = this.image.Clone(this.processor);
 
             Assert.True(this.provider.HasCreated(returned));
             Assert.Contains(this.processor, this.provider.AppliedOperations(returned).Select(x => x.Processor));
@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void CloneCallsImageOperationsProvider_Func_NotOnOrigional()
         {
-            var returned = this.image.Clone(x => x.ApplyProcessor(this.processor));
+            Image<Rgba32> returned = this.image.Clone(x => x.ApplyProcessor(this.processor));
             Assert.False(this.provider.HasCreated(this.image));
             Assert.DoesNotContain(this.processor, this.provider.AppliedOperations(this.image).Select(x => x.Processor));
         }
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void CloneCallsImageOperationsProvider_ListOfProcessors_NotOnOrigional()
         {
-            var returned = this.image.Clone(this.processor);
+            Image<Rgba32> returned = this.image.Clone(this.processor);
             Assert.False(this.provider.HasCreated(this.image));
             Assert.DoesNotContain(this.processor, this.provider.AppliedOperations(this.image).Select(x => x.Processor));
         }
@@ -95,9 +95,6 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Contains(this.processor, operations.Applied.Select(x => x.Processor));
         }
 
-        public void Dispose()
-        {
-            this.image.Dispose();
-        }
+        public void Dispose() => this.image.Dispose();
     }
 }

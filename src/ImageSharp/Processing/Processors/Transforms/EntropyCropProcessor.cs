@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);
             }
 
-            new CropProcessor<TPixel>(rectangle).Apply(source, sourceRectangle);
+            new CropProcessor<TPixel>(rectangle, source.Size()).Apply(source, sourceRectangle);
         }
 
         /// <inheritdoc/>

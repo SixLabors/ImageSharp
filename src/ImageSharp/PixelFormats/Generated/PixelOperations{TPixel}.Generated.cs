@@ -522,5 +522,77 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             this.ToArgb32(sourceColors, MemoryMarshal.Cast<byte, Argb32>(destBytes), count);
         }
+
+        /// <summary>
+        /// Converts 'count' elements in 'source` span of <see cref="Gray8"/> data to a span of <typeparamref name="TPixel"/>-s.
+        /// </summary>
+        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Gray8"/> data.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        internal virtual void PackFromGray8(ReadOnlySpan<Gray8> source, Span<TPixel> destPixels, int count)
+        {
+            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+            
+            ref Gray8 sourceRef = ref MemoryMarshal.GetReference(source);
+            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
+
+            // For conversion methods writing only to RGB channels, we need to keep the alpha channel opaque!
+            var temp = NamedColors<Gray8>.Black;
+
+            for (int i = 0; i < count; i++)
+            {
+                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
+                temp = Unsafe.Add(ref sourceRef, i);
+                dp.PackFromGray8(temp);
+            }
+        }
+
+        /// <summary>
+        /// A helper for <see cref="PackFromGray8(ReadOnlySpan{Gray8}, Span{TPixel}, int)"/> that expects a byte span.
+        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Gray8"/> layout.
+        /// </summary>
+        /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void PackFromGray8Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
+        {
+            this.PackFromGray8(MemoryMarshal.Cast<byte, Gray8>(sourceBytes), destPixels, count);
+        }
+
+        /// <summary>
+        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Gray8"/>-s.
+        /// Bulk version of <see cref="IPixel.ToGray8(ref Gray8)"/>.
+        /// </summary>
+        /// <param name="sourcePixels">The span of source pixels</param>
+        /// <param name="dest">The destination span of <see cref="Gray8"/> data.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        internal virtual void ToGray8(ReadOnlySpan<TPixel> sourcePixels, Span<Gray8> dest, int count)
+        {
+            GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
+
+            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
+            ref Gray8 destBaseRef = ref MemoryMarshal.GetReference(dest);
+
+            for (int i = 0; i < count; i++)
+            {
+                ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref Gray8 dp = ref Unsafe.Add(ref destBaseRef, i);
+                sp.ToGray8(ref dp);
+            }
+        }
+
+        /// <summary>
+        /// A helper for <see cref="ToGray8(ReadOnlySpan{TPixel}, Span{Gray8}, int)"/> that expects a byte span as destination.
+        /// The layout of the data in 'destBytes' must be compatible with <see cref="Gray8"/> layout.
+        /// </summary>
+        /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
+        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void ToGray8Bytes(ReadOnlySpan<TPixel> sourceColors, Span<byte> destBytes, int count)
+        {
+            this.ToGray8(sourceColors, MemoryMarshal.Cast<byte, Gray8>(destBytes), count);
+        }
     }
 }

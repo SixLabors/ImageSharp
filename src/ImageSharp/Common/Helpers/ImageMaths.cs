@@ -298,5 +298,24 @@ namespace SixLabors.ImageSharp
                 v *= s;
             }
         }
+
+        /// <summary>
+        /// Revers <see cref="Premultiply"/>
+        /// </summary>
+        /// <seealso cref="Vector4Extensions.UnPremultiply"/>
+        /// <param name="vectors">The span of vectors</param>
+        public static void UnPremultiply(Span<Vector4> vectors)
+        {
+            // TODO: This method can be AVX2 optimized using Vector<float>
+            ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
+
+            for (int i = 0; i < vectors.Length; i++)
+            {
+                ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
+                var s = new Vector4(1 / v.W);
+                s.W = 1;
+                v *= s;
+            }
+        }
     }
 }

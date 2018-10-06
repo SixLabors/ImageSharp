@@ -257,9 +257,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static byte Pack(float r, float g, float b)
         {
-            float sum = r + g + b;
             float val = (r * Rx) + (g * Gx) + (b * Bx);
-            return (byte)Math.Round(val * 255 / sum);  // TODO: if this is correct, Rx, Gx, Bx consts could be scaled by 255 directly!
+            return (byte)Math.Round(val * 255);
         }
     }
 }

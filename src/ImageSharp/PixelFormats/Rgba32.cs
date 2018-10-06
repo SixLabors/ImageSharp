@@ -336,6 +336,41 @@ namespace SixLabors.ImageSharp.PixelFormats
             dest.A = this.A;
         }
 
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromGray8(Gray8 source)
+        {
+            this.R = source.PackedValue;
+            this.G = source.PackedValue;
+            this.B = source.PackedValue;
+            this.A = 0;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToGray8(ref Gray8 dest)
+        {
+            dest.PackFromRgba32(this);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromGray16(Gray16 source)
+        {
+            var val = (byte)(((source.PackedValue * 255) + 32895) >> 16);
+            this.R = val;
+            this.G = val;
+            this.B = val;
+            this.A = 0;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToGray16(ref Gray16 dest)
+        {
+            dest.PackFromRgba32(this);
+        }
+
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromScaledVector4(Vector4 vector)

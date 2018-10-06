@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
@@ -32,6 +33,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             CropProcessor<Rgba32> processor = this.Verify<CropProcessor<Rgba32>>();
 
             Assert.Equal(cropRectangle, processor.CropRectangle);
+        }
+
+        [Fact]
+        public void CropRectangleWithInvalidBoundsThrowsException()
+        {
+            var cropRectangle = Rectangle.Inflate(this.SourceBounds(), 5, 5);
+            Assert.Throws<ArgumentException>(() => this.operations.Crop(cropRectangle));
         }
     }
 }

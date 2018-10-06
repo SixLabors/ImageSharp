@@ -142,7 +142,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         public bool Compand { get; }
 
-
         /// <inheritdoc/>
         protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
         {
@@ -254,6 +253,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                 Span<Vector4> tempRowSpan = tempRowBuffer.Span;
 
                                 PixelOperations<TPixel>.Instance.ToVector4(sourceRow, tempRowSpan, sourceRow.Length);
+                                ImageMaths.Premultiply(tempRowSpan);
 
                                 if (this.Compand)
                                 {
@@ -261,7 +261,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                     {
                                         ResizeKernel window = this.horizontalKernelMap.Kernels[x - startX];
                                         Unsafe.Add(ref firstPassRow, x) =
-                                            window.ConvolvePremultipliedExpandedRows(tempRowSpan, sourceX);
+                                            window.ConvolveExpandRows(tempRowSpan, sourceX).UnPremultiply();
                                     }
                                 }
                                 else
@@ -270,7 +270,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                     {
                                         ResizeKernel window = this.horizontalKernelMap.Kernels[x - startX];
                                         Unsafe.Add(ref firstPassRow, x) =
-                                            window.ConvolvePremultipliedRows(tempRowSpan, sourceX);
+                                            window.ConvolveRows(tempRowSpan, sourceX);
                                     }
                                 }
                             }

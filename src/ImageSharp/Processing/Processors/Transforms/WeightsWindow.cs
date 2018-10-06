@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// The buffer containing the weights values.
         /// </summary>
-        private readonly MemorySource<float> buffer;
+        private readonly Memory<float> buffer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WeightsWindow"/> struct.
@@ -47,9 +47,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal WeightsWindow(int index, int left, Buffer2D<float> buffer, int length)
         {
-            this.flatStartIndex = (index * buffer.Width) + left;
+            this.flatStartIndex = index * buffer.Width;
             this.Left = left;
-            this.buffer = buffer.MemorySource;
+            this.buffer = buffer.MemorySource.Memory;
             this.Length = length;
         }
 
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref float GetStartReference()
         {
-            Span<float> span = this.buffer.GetSpan();
+            Span<float> span = this.buffer.Span;
             return ref span[this.flatStartIndex];
         }
 
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         /// <returns>The <see cref="Span{T}"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<float> GetWindowSpan() => this.buffer.GetSpan().Slice(this.flatStartIndex, this.Length);
+        public Span<float> GetWindowSpan() => this.buffer.Span.Slice(this.flatStartIndex, this.Length);
 
         /// <summary>
         /// Computes the sum of vectors in 'rowSpan' weighted by weight values, pointed by this <see cref="WeightsWindow"/> instance.

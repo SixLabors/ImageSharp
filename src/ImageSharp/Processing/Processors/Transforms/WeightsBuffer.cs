@@ -19,11 +19,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// Initializes a new instance of the <see cref="WeightsBuffer"/> class.
         /// </summary>
         /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for allocations.</param>
-        /// <param name="sourceSize">The size of the source window</param>
         /// <param name="destinationSize">The size of the destination window</param>
-        public WeightsBuffer(MemoryAllocator memoryAllocator, int sourceSize, int destinationSize)
+        /// <param name="kernelRadius">The radius of the kernel</param>
+        public WeightsBuffer(MemoryAllocator memoryAllocator, int destinationSize, float kernelRadius)
         {
-            this.dataBuffer = memoryAllocator.Allocate2D<float>(sourceSize, destinationSize, AllocationOptions.Clean);
+            int width = (int)Math.Ceiling(kernelRadius * 2);
+            this.dataBuffer = memoryAllocator.Allocate2D<float>(width, destinationSize, AllocationOptions.Clean);
             this.Weights = new WeightsWindow[destinationSize];
         }
 

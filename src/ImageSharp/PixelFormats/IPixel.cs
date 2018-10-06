@@ -126,5 +126,29 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <param name="dest">The destination pixel to write to</param>
         void ToBgra32(ref Bgra32 dest);
+
+        /// <summary>
+        /// Packs the Pixel from an <see cref="Gray8"/> value.
+        /// </summary>
+        /// <param name="source">The <see cref="Gray8"/> value.</param>
+        void PackFromGray8(Gray8 source);
+
+        /// <summary>
+        /// Converts the pixel to <see cref="Gray8"/> format.
+        /// </summary>
+        /// <param name="dest">The destination pixel to write to.</param>
+        void ToGray8(ref Gray8 dest);
+
+        /// <summary>
+        /// Packs the Pixel from an <see cref="Gray16"/> value.
+        /// </summary>
+        /// <param name="source">The <see cref="Gray16"/> value.</param>
+        void PackFromGray16(Gray16 source);
+
+        /// <summary>
+        /// Converts the pixel tgo <see cref="Gray16"/> value.
+        /// </summary>
+        /// <param name="dest">The destination pixel to write to.</param>
+        void ToGray16(ref Gray16 dest);
     }
 }

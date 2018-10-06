@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// Initializes a new instance of the <see cref="Gray16"/> struct.
         /// </summary>
         /// <param name="gray">The gray component</param>
-        public Gray16(byte gray)
+        public Gray16(ushort gray)
         {
             this.PackedValue = gray;
         }
@@ -185,6 +185,34 @@ namespace SixLabors.ImageSharp.PixelFormats
             dest.A = 255;
         }
 
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromGray8(Gray8 source)
+        {
+            this.PackedValue = (ushort)(source.PackedValue * 255);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToGray8(ref Gray8 dest)
+        {
+            dest.PackedValue = (byte)(((this.PackedValue * 255) + 32895) >> 16);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromGray16(Gray16 source)
+        {
+            this.PackedValue = source.PackedValue;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToGray16(ref Gray16 dest)
+        {
+            dest.PackedValue = this.PackedValue;
+        }
+
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromRgb48(Rgb48 source) =>
@@ -252,9 +280,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ushort Pack(float r, float g, float b)
         {
-            float sum = r + g + b;
             float val = (r * Rx) + (g * Gx) + (b * Bx);
-            return (ushort)Math.Round(val * 65535f / sum);  // TODO: if this is correct, Rx, Gx, Bx consts could be scaled by 65535f directly!
+            return (ushort)Math.Round(val * 65535f);
         }
 
         /// <summary>

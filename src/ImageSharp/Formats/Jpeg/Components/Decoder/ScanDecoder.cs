@@ -34,9 +34,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         // The restart interval.
         private readonly int restartInterval;
 
-        // The current component index.
-        private readonly int componentIndex;
-
         // The number of interleaved components.
         private readonly int componentsLength;
 
@@ -87,7 +84,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="dcHuffmanTables">The DC Huffman tables.</param>
         /// <param name="acHuffmanTables">The AC Huffman tables.</param>
         /// <param name="fastACTables">The fast AC decoding tables.</param>
-        /// <param name="componentIndex">The component index within the array.</param>
         /// <param name="componentsLength">The length of the components. Different to the array length.</param>
         /// <param name="restartInterval">The reset interval.</param>
         /// <param name="spectralStart">The spectral selection start.</param>
@@ -100,7 +96,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             HuffmanTables dcHuffmanTables,
             HuffmanTables acHuffmanTables,
             FastACTables fastACTables,
-            int componentIndex,
             int componentsLength,
             int restartInterval,
             int spectralStart,
@@ -117,7 +112,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.components = frame.Components;
             this.marker = JpegConstants.Markers.XFF;
             this.markerPosition = 0;
-            this.componentIndex = componentIndex;
             this.componentsLength = componentsLength;
             this.restartInterval = restartInterval;
             this.spectralStart = spectralStart;
@@ -176,7 +170,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     // Scan an interleaved mcu... process components in order
                     for (int k = 0; k < this.componentsLength; k++)
                     {
-                        JpegComponent component = this.components[k];
+                        int order = this.frame.ComponentOrder[k];
+                        JpegComponent component = this.components[order];
 
                         ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
                         ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
@@ -223,14 +218,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         /// <summary>
-        /// Non-interleaved data, we just need to process one block at a ti
-        /// in trivial scanline order
-        /// number of blocks to do just depends on how many actual "pixels"
-        /// component has, independent of interleaved MCU blocking and such
+        /// Non-interleaved data, we just need to process one block at a time in trivial scanline order
+        /// number of blocks to do just depends on how many actual "pixels" each component has,
+        /// independent of interleaved MCU blocking and such.
         /// </summary>
         private void ParseBaselineDataNonInterleaved()
         {
-            JpegComponent component = this.components[this.componentIndex];
+            JpegComponent component = this.components[this.frame.ComponentOrder[0]];
 
             int w = component.WidthInBlocks;
             int h = component.HeightInBlocks;
@@ -295,7 +289,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     // Scan an interleaved mcu... process components in order
                     for (int k = 0; k < this.componentsLength; k++)
                     {
-                        JpegComponent component = this.components[k];
+                        int order = this.frame.ComponentOrder[k];
+                        JpegComponent component = this.components[order];
                         ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
                         int h = component.HorizontalSamplingFactor;
                         int v = component.VerticalSamplingFactor;
@@ -344,7 +339,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// </summary>
         private void ParseProgressiveDataNonInterleaved()
         {
-            JpegComponent component = this.components[this.componentIndex];
+            JpegComponent component = this.components[this.frame.ComponentOrder[0]];
 
             int w = component.WidthInBlocks;
             int h = component.HeightInBlocks;
@@ -729,8 +724,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
 
             uint k = LRot(this.codeBuffer, n);
-            this.codeBuffer = k & ~Bmask[n];
-            k &= Bmask[n];
+            uint mask = Bmask[n];
+            this.codeBuffer = k & ~mask;
+            k &= mask;
             this.codeBits -= n;
             return (int)k;
         }
@@ -804,7 +800,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private int DecodeHuffman(ref HuffmanTable table)
+        private unsafe int DecodeHuffman(ref HuffmanTable table)
         {
             this.CheckBits();
 
@@ -829,7 +825,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         [MethodImpl(InliningOptions.ColdPath)]
-        private int DecodeHuffmanSlow(ref HuffmanTable table)
+        private unsafe int DecodeHuffmanSlow(ref HuffmanTable table)
         {
             // Naive test is to shift the code_buffer down so k bits are
             // valid, then test against MaxCode. To speed this up, we've
@@ -839,7 +835,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             // that way we don't need to shift inside the loop.
             uint temp = this.codeBuffer >> 16;
             int k;
-            for (k = FastBits + 1; ; k++)
+            for (k = FastBits + 1; ; ++k)
             {
                 if (temp < table.MaxCode[k])
                 {

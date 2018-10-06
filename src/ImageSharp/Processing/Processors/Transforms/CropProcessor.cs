@@ -22,8 +22,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// Initializes a new instance of the <see cref="CropProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="cropRectangle">The target cropped rectangle.</param>
-        public CropProcessor(Rectangle cropRectangle)
+        /// <param name="sourceSize">The source image size.</param>
+        public CropProcessor(Rectangle cropRectangle, Size sourceSize)
         {
+            // Check bounds here and throw if we are passed a rectangle exceeding our source bounds.
+            Guard.IsTrue(new Rectangle(Point.Empty, sourceSize).Contains(cropRectangle), nameof(cropRectangle), "Crop rectangle should be smaller than the source bounds.");
             this.CropRectangle = cropRectangle;
         }
 
@@ -53,7 +56,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return;
             }
 
-            var rect = Rectangle.Intersect(this.CropRectangle, sourceRectangle);
+            Rectangle rect = this.CropRectangle;
 
             // Copying is cheap, we should process more pixels per task:
             ParallelExecutionSettings parallelSettings = configuration.GetParallelSettings().MultiplyMinimumPixelsPerTask(4);

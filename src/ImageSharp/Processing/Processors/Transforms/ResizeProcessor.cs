@@ -45,7 +45,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             // Ensure size is populated across both dimensions.
             // These dimensions are used to calculate the final dimensions determined by the mode algorithm.
-            EnsureSizeBothDimensions(sourceSize.Width, sourceSize.Height, ref targetWidth, ref targetHeight, out _, out _);
+            // If only one of the incoming dimensions is 0, it will be modified here to maintain aspect ratio.
+            // If it is not possible to keep aspect ratio, make sure at least the minimum is is kept.
+            const int min = 1;
+            if (targetWidth == 0 && targetHeight > 0)
+            {
+                targetWidth = (int)MathF.Max(min, MathF.Round(sourceSize.Width * targetHeight / (float)sourceSize.Height));
+            }
+
+            if (targetHeight == 0 && targetWidth > 0)
+            {
+                targetHeight = (int)MathF.Max(min, MathF.Round(sourceSize.Height * targetWidth / (float)sourceSize.Width));
+            }
+
+            Guard.MustBeGreaterThan(targetWidth, 0, nameof(targetWidth));
+            Guard.MustBeGreaterThan(targetHeight, 0, nameof(targetHeight));
 
             (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(sourceSize, options, targetWidth, targetHeight);
 
@@ -84,14 +98,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Guard.NotNull(sampler, nameof(sampler));
 
             // Ensure size is populated across both dimensions.
-            EnsureSizeBothDimensions(sourceSize.Width, sourceSize.Height, ref width, ref height, out bool changedWidth, out bool changedHeight);
-            if (changedWidth)
+            // If only one of the incoming dimensions is 0, it will be modified here to maintain aspect ratio.
+            // If it is not possible to keep aspect ratio, make sure at least the minimum is is kept.
+            const int min = 1;
+            if (width == 0 && height > 0)
             {
+                width = (int)MathF.Max(min, MathF.Round(sourceSize.Width * height / (float)sourceSize.Height));
                 resizeRectangle.Width = width;
             }
 
-            if (changedHeight)
+            if (height == 0 && width > 0)
             {
+                height = (int)MathF.Max(min, MathF.Round(sourceSize.Height * width / (float)sourceSize.Width));
                 resizeRectangle.Height = height;
             }
 
@@ -129,43 +147,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// Gets a value indicating whether to compress or expand individual pixel color values on processing.
         /// </summary>
         public bool Compand { get; }
-
-        /// <summary>
-        /// Makes sure both target dimensions are >= 1.
-        /// If only one of the incoming dimensions is 0, it will be modified here to maintain aspect ratio.
-        /// If it is not possible to keep aspect ratio, make sure at least 1 pixel is kept.
-        /// </summary>
-        private static void EnsureSizeBothDimensions(
-            int sourceWidth,
-            int sourceHeight,
-            ref int targetWidth,
-            ref int targetHeight,
-            out bool changedTargetWidth,
-            out bool changedTargetHeight)
-        {
-            if (targetWidth == 0 && targetHeight > 0)
-            {
-                targetWidth = Math.Max(1, (int)MathF.Round(sourceWidth * targetHeight / (float)sourceHeight));
-                changedTargetWidth = true;
-            }
-            else
-            {
-                changedTargetWidth = false;
-            }
-
-            if (targetHeight == 0 && targetWidth > 0)
-            {
-                targetHeight = Math.Max(1, (int)MathF.Round(sourceHeight * targetWidth / (float)sourceWidth));
-                changedTargetHeight = true;
-            }
-            else
-            {
-                changedTargetHeight = false;
-            }
-
-            Guard.MustBeGreaterThan(targetWidth, 0, nameof(targetWidth));
-            Guard.MustBeGreaterThan(targetHeight, 0, nameof(targetHeight));
-        }
 
         /// <summary>
         /// Computes the weights to apply at each pixel when resizing.

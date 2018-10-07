@@ -9,32 +9,32 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 {
     /// <summary>
-    /// Tests <see cref="Cmyk"/>-<see cref="YCbCr"/> conversions.
+    /// Tests <see cref="Cmyk"/>-<see cref="CieXyz"/> conversions.
     /// </summary>
-    public class CmykAndYCbCrConversionTests
+    public class CmykAndCieXyzConversionTests
     {
         private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0002F);
         private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();
 
         /// <summary>
-        /// Tests conversion from <see cref="Cmyk"/> to <see cref="YCbCr"/>.
+        /// Tests conversion from <see cref="Cmyk"/> to <see cref="CieXyz"/>.
         /// </summary>
         [Theory]
-        [InlineData(0, 0, 0, 0, 255, 128, 128)]
-        [InlineData(0.360555, 0.1036901, 0.818514, 0.274615, 136.5134, 69.90555, 114.9948)]
-        public void Convert_Cmyk_to_YCbCr(float c, float m, float y, float k, float y2, float cb, float cr)
+        [InlineData(0, 0, 0, 0, 0.9504699, 1, 1.08883)]
+        [InlineData(0.360555, 0.1036901, 0.818514, 0.274615, 0.2139058, 0.3118104, 0.0637231)]
+        public void Convert_Cmyk_to_CieXyz(float c, float m, float y, float k, float x, float y2, float z)
         {
             // Arrange
             var input = new Cmyk(c, m, y, k);
-            var expected = new YCbCr(y2, cb, cr);
+            var expected = new CieXyz(x, y2, z);
 
             Span<Cmyk> inputSpan = new Cmyk[5];
             inputSpan.Fill(input);
 
-            Span<YCbCr> actualSpan = new YCbCr[5];
+            Span<CieXyz> actualSpan = new CieXyz[5];
 
             // Act
-            var actual = Converter.ToYCbCr(input);
+            var actual = Converter.ToCieXyz(input);
             Converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert
@@ -47,18 +47,18 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         /// <summary>
-        /// Tests conversion from <see cref="YCbCr"/> to <see cref="Cmyk"/>.
+        /// Tests conversion from <see cref="CieXyz"/> to <see cref="Cmyk"/>.
         /// </summary>
         [Theory]
-        [InlineData(255, 128, 128, 0, 0, 0, 5.960464E-08)]
-        [InlineData(136.5134, 69.90555, 114.9948, 0.2891567, 0, 0.7951807, 0.3490196)]
-        public void Convert_YCbCr_to_Cmyk(float y2, float cb, float cr, float c, float m, float y, float k)
+        [InlineData(0.9504699, 1, 1.08883, 1.192093E-07, 0, 0, 5.960464E-08)]
+        [InlineData(0.2139058, 0.3118104, 0.0637231, 0.2865805, 0, 0.7975187, 0.3498302)]
+        public void Convert_CieXyz_to_Cmyk(float x, float y2, float z, float c, float m, float y, float k)
         {
             // Arrange
-            var input = new YCbCr(y2, cb, cr);
+            var input = new CieXyz(x, y2, z);
             var expected = new Cmyk(c, m, y, k);
 
-            Span<YCbCr> inputSpan = new YCbCr[5];
+            Span<CieXyz> inputSpan = new CieXyz[5];
             inputSpan.Fill(input);
 
             Span<Cmyk> actualSpan = new Cmyk[5];

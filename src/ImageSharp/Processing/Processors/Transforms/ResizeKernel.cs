@@ -96,32 +96,5 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             return result;
         }
-
-        /// <summary>
-        /// Computes the sum of vectors in 'rowSpan' weighted by weight values, pointed by this <see cref="ResizeKernel"/> instance.
-        /// Applies <see cref="Vector4Extensions.Expand(float)"/> to all input vectors.
-        /// </summary>
-        /// <param name="rowSpan">The input span of vectors</param>
-        /// <param name="sourceX">The source row position.</param>
-        /// <returns>The weighted sum</returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ConvolveExpand(Span<Vector4> rowSpan, int sourceX)
-        {
-            ref float horizontalValues = ref this.GetStartReference();
-            int left = this.Left;
-            ref Vector4 vecPtr = ref Unsafe.Add(ref MemoryMarshal.GetReference(rowSpan), left + sourceX);
-
-            // Destination color components
-            Vector4 result = Vector4.Zero;
-
-            for (int i = 0; i < this.Length; i++)
-            {
-                float weight = Unsafe.Add(ref horizontalValues, i);
-                Vector4 v = Unsafe.Add(ref vecPtr, i);
-                result += v.Expand() * weight;
-            }
-
-            return result;
-        }
     }
 }

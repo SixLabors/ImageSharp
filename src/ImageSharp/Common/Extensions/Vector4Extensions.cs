@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="source">The <see cref="Vector4"/> to premultiply</param>
         /// <returns>The <see cref="Vector4"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static Vector4 Premultiply(this Vector4 source)
         {
             float w = source.W;
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="source">The <see cref="Vector4"/> to premultiply</param>
         /// <returns>The <see cref="Vector4"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static Vector4 UnPremultiply(this Vector4 source)
         {
             float w = source.W;
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="linear">The <see cref="Vector4"/> whose signal to compress.</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static Vector4 Compress(this Vector4 linear)
         {
             // TODO: Is there a faster way to do this?
@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="gamma">The <see cref="Rgba32"/> whose signal to expand.</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static Vector4 Expand(this Vector4 gamma)
         {
             // TODO: Is there a faster way to do this?
@@ -150,7 +150,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="float"/>.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static float Compress(float signal)
         {
             if (signal <= 0.0031308F)
@@ -170,7 +170,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="float"/>.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static float Expand(float signal)
         {
             if (signal <= 0.04045F)

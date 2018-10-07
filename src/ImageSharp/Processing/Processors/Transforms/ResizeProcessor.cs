@@ -263,7 +263,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                         ResizeKernel window = this.horizontalKernelMap.Kernels[x - startX];
 
                                         Unsafe.Add(ref firstPassBaseRef, x * sourceHeight) =
-                                            window.ConvolveExpand(tempRowSpan, sourceX).UnPremultiply();
+                                            window.ConvolveExpand(tempRowSpan, sourceX);
                                     }
                                 }
                                 else

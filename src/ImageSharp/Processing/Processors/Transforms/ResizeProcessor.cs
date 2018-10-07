@@ -39,25 +39,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Guard.NotNull(options, nameof(options));
             Guard.NotNull(options.Sampler, nameof(options.Sampler));
 
-            int tempWidth = options.Size.Width;
-            int tempHeight = options.Size.Height;
+            int targetWidth = options.Size.Width;
+            int targetHeight = options.Size.Height;
 
             // Ensure size is populated across both dimensions.
             // These dimensions are used to calculate the final dimensions determined by the mode algorithm.
-            if (tempWidth == 0 && tempHeight > 0)
+            // If only one of the incoming dimensions is 0, it will be modified here to maintain aspect ratio.
+            // If it is not possible to keep aspect ratio, make sure at least the minimum is is kept.
+            const int min = 1;
+            if (targetWidth == 0 && targetHeight > 0)
             {
-                tempWidth = (int)MathF.Round(sourceSize.Width * tempHeight / (float)sourceSize.Height);
+                targetWidth = (int)MathF.Max(min, MathF.Round(sourceSize.Width * targetHeight / (float)sourceSize.Height));
             }
 
-            if (tempHeight == 0 && tempWidth > 0)
+            if (targetHeight == 0 && targetWidth > 0)
             {
-                tempHeight = (int)MathF.Round(sourceSize.Height * tempWidth / (float)sourceSize.Width);
+                targetHeight = (int)MathF.Max(min, MathF.Round(sourceSize.Height * targetWidth / (float)sourceSize.Width));
             }
 
-            Guard.MustBeGreaterThan(tempWidth, 0, nameof(tempWidth));
-            Guard.MustBeGreaterThan(tempHeight, 0, nameof(tempHeight));
+            Guard.MustBeGreaterThan(targetWidth, 0, nameof(targetWidth));
+            Guard.MustBeGreaterThan(targetHeight, 0, nameof(targetHeight));
 
-            (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(sourceSize, options, tempWidth, tempHeight);
+            (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(sourceSize, options, targetWidth, targetHeight);
 
             this.Sampler = options.Sampler;
             this.Width = size.Width;
@@ -94,15 +97,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Guard.NotNull(sampler, nameof(sampler));
 
             // Ensure size is populated across both dimensions.
+            // If only one of the incoming dimensions is 0, it will be modified here to maintain aspect ratio.
+            // If it is not possible to keep aspect ratio, make sure at least the minimum is is kept.
+            const int min = 1;
             if (width == 0 && height > 0)
             {
-                width = (int)MathF.Round(sourceSize.Width * height / (float)sourceSize.Height);
+                width = (int)MathF.Max(min, MathF.Round(sourceSize.Width * height / (float)sourceSize.Height));
                 resizeRectangle.Width = width;
             }
 
             if (height == 0 && width > 0)
             {
-                height = (int)MathF.Round(sourceSize.Height * width / (float)sourceSize.Width);
+                height = (int)MathF.Max(min, MathF.Round(sourceSize.Height * width / (float)sourceSize.Width));
                 resizeRectangle.Height = height;
             }
 

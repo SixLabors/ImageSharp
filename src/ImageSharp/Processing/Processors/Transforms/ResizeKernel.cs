@@ -28,11 +28,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public int Length;
 
         /// <summary>
-        /// The index in the destination buffer
-        /// </summary>
-        private readonly int flatStartIndex;
-
-        /// <summary>
         /// The buffer containing the weights values.
         /// </summary>
         private readonly Memory<float> buffer;
@@ -47,9 +42,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         [MethodImpl(InliningOptions.ShortMethod)]
         internal ResizeKernel(int index, int left, Buffer2D<float> buffer, int length)
         {
-            this.flatStartIndex = index * buffer.Width;
+            int flatStartIndex = index * buffer.Width;
             this.Left = left;
-            this.buffer = buffer.MemorySource.Memory;
+            this.buffer = buffer.MemorySource.Memory.Slice(flatStartIndex, length);
             this.Length = length;
         }
 
@@ -61,7 +56,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public ref float GetStartReference()
         {
             Span<float> span = this.buffer.Span;
-            return ref span[this.flatStartIndex];
+            return ref span[0];
         }
 
         /// <summary>
@@ -69,7 +64,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         /// <returns>The <see cref="Span{T}"/></returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Span<float> GetSpan() => this.buffer.Span.Slice(this.flatStartIndex, this.Length);
+        public Span<float> GetSpan() => this.buffer.Span;
 
         /// <summary>
         /// Computes the sum of vectors in 'rowSpan' weighted by weight values, pointed by this <see cref="ResizeKernel"/> instance.

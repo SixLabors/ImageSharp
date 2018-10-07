@@ -9,32 +9,32 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 {
     /// <summary>
-    /// Tests <see cref="Cmyk"/>-<see cref="YCbCr"/> conversions.
+    /// Tests <see cref="Cmyk"/>-<see cref="HunterLab"/> conversions.
     /// </summary>
-    public class CmykAndYCbCrConversionTests
+    public class CmykAndHunterLabConversionTests
     {
         private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0002F);
         private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();
 
         /// <summary>
-        /// Tests conversion from <see cref="Cmyk"/> to <see cref="YCbCr"/>.
+        /// Tests conversion from <see cref="Cmyk"/> to <see cref="HunterLab"/>.
         /// </summary>
         [Theory]
-        [InlineData(0, 0, 0, 0, 255, 128, 128)]
-        [InlineData(0.360555, 0.1036901, 0.818514, 0.274615, 136.5134, 69.90555, 114.9948)]
-        public void Convert_Cmyk_to_YCbCr(float c, float m, float y, float k, float y2, float cb, float cr)
+        [InlineData(0, 0, 0, 0, 99.99999, 0, -1.66893E-05)]
+        [InlineData(0.360555, 0.1036901, 0.818514, 0.274615, 55.66742, -27.21679, 31.73834)]
+        public void Convert_Cmyk_to_HunterLab(float c, float m, float y, float k, float l, float a, float b)
         {
             // Arrange
             var input = new Cmyk(c, m, y, k);
-            var expected = new YCbCr(y2, cb, cr);
+            var expected = new HunterLab(l, a, b);
 
             Span<Cmyk> inputSpan = new Cmyk[5];
             inputSpan.Fill(input);
 
-            Span<YCbCr> actualSpan = new YCbCr[5];
+            Span<HunterLab> actualSpan = new HunterLab[5];
 
             // Act
-            var actual = Converter.ToYCbCr(input);
+            var actual = Converter.ToHunterLab(input);
             Converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert
@@ -47,18 +47,18 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         /// <summary>
-        /// Tests conversion from <see cref="YCbCr"/> to <see cref="Cmyk"/>.
+        /// Tests conversion from <see cref="HunterLab"/> to <see cref="Cmyk"/>.
         /// </summary>
         [Theory]
-        [InlineData(255, 128, 128, 0, 0, 0, 5.960464E-08)]
-        [InlineData(136.5134, 69.90555, 114.9948, 0.2891567, 0, 0.7951807, 0.3490196)]
-        public void Convert_YCbCr_to_Cmyk(float y2, float cb, float cr, float c, float m, float y, float k)
+        [InlineData(99.99999, 0, -1.66893E-05, 1.192093E-07, 1.192093E-07, 0, 5.960464E-08)]
+        [InlineData(55.66742, -27.21679, 31.73834, 0.2865806, 0, 0.7975186, 0.3498301)]
+        public void Convert_HunterLab_to_Cmyk(float l, float a, float b, float c, float m, float y, float k)
         {
             // Arrange
-            var input = new YCbCr(y2, cb, cr);
+            var input = new HunterLab(l, a, b);
             var expected = new Cmyk(c, m, y, k);
 
-            Span<YCbCr> inputSpan = new YCbCr[5];
+            Span<HunterLab> inputSpan = new HunterLab[5];
             inputSpan.Fill(input);
 
             Span<Cmyk> actualSpan = new Cmyk[5];

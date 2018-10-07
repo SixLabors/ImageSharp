@@ -22,18 +22,13 @@ namespace SixLabors.ImageSharp.Benchmarks
 
         private Bitmap sourceBitmap;
 
-        public const int SourceSize = 2000;
+        public const int SourceSize = 3032;
 
         public const int DestSize = 400;
-
-        [Params(1, 4, 8)]
-        public int MaxDegreeOfParallelism { get; set; }
 
         [GlobalSetup]
         public void Setup()
         {
-            this.Configuration.MaxDegreeOfParallelism = this.MaxDegreeOfParallelism;
-
             this.sourceImage = new Image<Rgba32>(this.Configuration, SourceSize, SourceSize);
             this.sourceBitmap = new Bitmap(SourceSize, SourceSize);
         }
@@ -62,9 +57,19 @@ namespace SixLabors.ImageSharp.Benchmarks
             }
         }
 
-        [Benchmark]
-        public int ImageSharp()
+        [Benchmark(Description = "ImageSharp, MaxDegreeOfParallelism = 1")]
+        public int ImageSharp_P1() => this.RunImageSharpResize(1);
+
+        [Benchmark(Description = "ImageSharp, MaxDegreeOfParallelism = 4")]
+        public int ImageSharp_P4() => this.RunImageSharpResize(4);
+
+        [Benchmark(Description = "ImageSharp, MaxDegreeOfParallelism = 8")]
+        public int ImageSharp_P8() => this.RunImageSharpResize(8);
+
+        protected int RunImageSharpResize(int maxDegreeOfParallelism)
         {
+            this.Configuration.MaxDegreeOfParallelism = maxDegreeOfParallelism;
+
             using (Image<Rgba32> clone = this.sourceImage.Clone(this.ExecuteResizeOperation))
             {
                 return clone.Width;

@@ -44,6 +44,42 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Bulk variant of <see cref="Premultiply(System.Numerics.Vector4)"/>
+        /// </summary>
+        /// <param name="vectors">The span of vectors</param>
+        public static void Premultiply(Span<Vector4> vectors)
+        {
+            // TODO: This method can be AVX2 optimized using Vector<float>
+            ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
+
+            for (int i = 0; i < vectors.Length; i++)
+            {
+                ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
+                var s = new Vector4(v.W);
+                s.W = 1;
+                v *= s;
+            }
+        }
+
+        /// <summary>
+        /// Bulk variant of <see cref="UnPremultiply(System.Numerics.Vector4)"/>
+        /// </summary>
+        /// <param name="vectors">The span of vectors</param>
+        public static void UnPremultiply(Span<Vector4> vectors)
+        {
+            // TODO: This method can be AVX2 optimized using Vector<float>
+            ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
+
+            for (int i = 0; i < vectors.Length; i++)
+            {
+                ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
+                var s = new Vector4(1 / v.W);
+                s.W = 1;
+                v *= s;
+            }
+        }
+
+        /// <summary>
         /// Compresses a linear color signal to its sRGB equivalent.
         /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
         /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
@@ -69,6 +105,40 @@ namespace SixLabors.ImageSharp
         {
             // TODO: Is there a faster way to do this?
             return new Vector4(Expand(gamma.X), Expand(gamma.Y), Expand(gamma.Z), gamma.W);
+        }
+
+        /// <summary>
+        /// Bulk variant of <see cref="Compress(System.Numerics.Vector4)"/>
+        /// </summary>
+        /// <param name="vectors">The span of vectors</param>
+        public static void Compress(Span<Vector4> vectors)
+        {
+            ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
+
+            for (int i = 0; i < vectors.Length; i++)
+            {
+                ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
+                v.X = Compress(v.X);
+                v.Y = Compress(v.Y);
+                v.Z = Compress(v.Z);
+            }
+        }
+
+        /// <summary>
+        /// Bulk variant of <see cref="Expand(System.Numerics.Vector4)"/>
+        /// </summary>
+        /// <param name="vectors">The span of vectors</param>
+        public static void Expand(Span<Vector4> vectors)
+        {
+            ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
+
+            for (int i = 0; i < vectors.Length; i++)
+            {
+                ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
+                v.X = Expand(v.X);
+                v.Y = Expand(v.Y);
+                v.Z = Expand(v.Z);
+            }
         }
 
         /// <summary>

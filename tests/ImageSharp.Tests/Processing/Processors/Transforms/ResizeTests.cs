@@ -145,6 +145,18 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
+        [WithFile(TestImages.Png.Kaboom, DefaultPixelType)]
+        public void Resize_Compand_DoesNotBleedAlphaPixels<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2, true));
+                image.DebugSave(provider);
+            }
+        }
+
+        [Theory]
         [WithFile(TestImages.Gif.Giphy, DefaultPixelType)]
         public void Resize_IsAppliedToAllFrames<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>

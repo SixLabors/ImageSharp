@@ -278,44 +278,5 @@ namespace SixLabors.ImageSharp
 
             return GetBoundingRectangle(topLeft, bottomRight);
         }
-
-        /// <summary>
-        /// Pre-multiply all vectors.
-        /// "x", "y", "z" components of a vector by its "w" component leaving the "w" component intact.
-        /// </summary>
-        /// <seealso cref="Vector4Extensions.Premultiply"/>
-        /// <param name="vectors">The span of vectors</param>
-        public static void Premultiply(Span<Vector4> vectors)
-        {
-            // TODO: This method can be AVX2 optimized using Vector<float>
-            ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
-
-            for (int i = 0; i < vectors.Length; i++)
-            {
-                ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
-                var s = new Vector4(v.W);
-                s.W = 1;
-                v *= s;
-            }
-        }
-
-        /// <summary>
-        /// Revers <see cref="Premultiply"/>
-        /// </summary>
-        /// <seealso cref="Vector4Extensions.UnPremultiply"/>
-        /// <param name="vectors">The span of vectors</param>
-        public static void UnPremultiply(Span<Vector4> vectors)
-        {
-            // TODO: This method can be AVX2 optimized using Vector<float>
-            ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
-
-            for (int i = 0; i < vectors.Length; i++)
-            {
-                ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
-                var s = new Vector4(1 / v.W);
-                s.W = 1;
-                v *= s;
-            }
-        }
     }
 }

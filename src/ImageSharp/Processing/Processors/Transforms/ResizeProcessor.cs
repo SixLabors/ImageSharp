@@ -229,11 +229,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return;
             }
 
+            int sourceHeight = source.Height;
+
             // Interpolate the image using the calculated weights.
             // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
-            using (Buffer2D<Vector4> firstPassPixelsTransposed = source.MemoryAllocator.Allocate2D<Vector4>(source.Height, width))
+            using (Buffer2D<Vector4> firstPassPixelsTransposed = source.MemoryAllocator.Allocate2D<Vector4>(sourceHeight, width))
             {
                 firstPassPixelsTransposed.MemorySource.Clear();
 
@@ -250,14 +252,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                 Span<Vector4> tempRowSpan = tempRowBuffer.Span;
 
                                 PixelOperations<TPixel>.Instance.ToVector4(sourceRow, tempRowSpan, sourceRow.Length);
-                                ImageMaths.Premultiply(tempRowSpan);
+                                Vector4Extensions.Premultiply(tempRowSpan);
+
+                                ref Vector4 firstPassBaseRef = ref firstPassPixelsTransposed.Span[y];
 
                                 if (this.Compand)
                                 {
                                     for (int x = minX; x < maxX; x++)
                                     {
                                         ResizeKernel window = this.horizontalKernelMap.Kernels[x - startX];
-                                        firstPassPixelsTransposed[y, x] = window.ConvolveExpand(tempRowSpan, sourceX).UnPremultiply();
+
+                                        Unsafe.Add(ref firstPassBaseRef, x * sourceHeight) =
+                                            window.ConvolveExpand(tempRowSpan, sourceX).UnPremultiply();
                                     }
                                 }
                                 else
@@ -265,7 +271,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                     for (int x = minX; x < maxX; x++)
                                     {
                                         ResizeKernel window = this.horizontalKernelMap.Kernels[x - startX];
-                                        firstPassPixelsTransposed[y, x] =
+                                        Unsafe.Add(ref firstPassBaseRef, x * sourceHeight) =
                                             window.Convolve(tempRowSpan, sourceX);
                                     }
                                 }

@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             this.Output = output;
         }
         
-        [Theory]
+        [Theory(Skip = "TODO: Add asserionts")]
         [InlineData(500, 200, nameof(KnownResamplers.Bicubic))]
         [InlineData(50, 40, nameof(KnownResamplers.Bicubic))]
         [InlineData(40, 30, nameof(KnownResamplers.Bicubic))]

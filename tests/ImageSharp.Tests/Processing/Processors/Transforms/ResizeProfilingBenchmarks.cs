@@ -12,10 +12,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
     public class ResizeProfilingBenchmarks : MeasureFixture
     {
         public const string SkipText =
-#if true
+#if false
             null;
 #else
-            "Benchmark, enable manually"!
+            "Benchmark, enable manually!";
 #endif
 
         private readonly Configuration configuration = Configuration.CreateDefaultInstance();

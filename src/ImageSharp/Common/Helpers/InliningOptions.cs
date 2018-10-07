@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 // Uncomment this for verbose profiler results:
-#define PROFILING
+// #define PROFILING
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp

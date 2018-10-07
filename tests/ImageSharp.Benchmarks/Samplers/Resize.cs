@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Benchmarks
 
         public const int DestSize = 400;
 
-        [Params(1/*, 4, 8*/)]
+        [Params(1, 4, 8)]
         public int MaxDegreeOfParallelism { get; set; }
 
         [GlobalSetup]
@@ -67,7 +67,6 @@ namespace SixLabors.ImageSharp.Benchmarks
         {
             using (Image<Rgba32> clone = this.sourceImage.Clone(this.ExecuteResizeOperation))
             {
-                //Console.WriteLine($"{this.sourceImage.Width} -> {clone.Width} ?");
                 return clone.Width;
             }
         }
@@ -79,7 +78,6 @@ namespace SixLabors.ImageSharp.Benchmarks
     {
         protected override void ExecuteResizeOperation(IImageProcessingContext<Rgba32> ctx)
         {
-            //Console.WriteLine("wtf?");
             ctx.Resize(DestSize, DestSize, KnownResamplers.Bicubic);
         }
     }

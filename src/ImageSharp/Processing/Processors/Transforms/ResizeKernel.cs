@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="left">The local left index</param>
         /// <param name="buffer">The span</param>
         /// <param name="length">The length of the window</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         internal ResizeKernel(int index, int left, Buffer2D<float> buffer, int length)
         {
             this.flatStartIndex = index * buffer.Width;
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// Gets a reference to the first item of the window.
         /// </summary>
         /// <returns>The reference to the first item of the window</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public ref float GetStartReference()
         {
             Span<float> span = this.buffer.Span;
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// Gets the span representing the portion of the <see cref="KernelMap"/> that this window covers
         /// </summary>
         /// <returns>The <see cref="Span{T}"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Span<float> GetSpan() => this.buffer.Span.Slice(this.flatStartIndex, this.Length);
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="rowSpan">The input span of vectors</param>
         /// <param name="sourceX">The source row position.</param>
         /// <returns>The weighted sum</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Vector4 Convolve(Span<Vector4> rowSpan, int sourceX)
         {
             ref float horizontalValues = ref this.GetStartReference();
@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="rowSpan">The input span of vectors</param>
         /// <param name="sourceX">The source row position.</param>
         /// <returns>The weighted sum</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Vector4 ConvolveExpand(Span<Vector4> rowSpan, int sourceX)
         {
             ref float horizontalValues = ref this.GetStartReference();

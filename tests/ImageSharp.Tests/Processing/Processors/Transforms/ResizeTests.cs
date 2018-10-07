@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 FormattableString details = $"{name}-{ratio.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
 
                 image.DebugSave(provider, details);
-                image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.005f), provider, details);
+                image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.02f), provider, details);
             }
         }
 

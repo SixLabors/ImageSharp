@@ -2,13 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
+
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
@@ -258,22 +257,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                                 if (this.Compand)
                                 {
-                                    for (int x = minX; x < maxX; x++)
-                                    {
-                                        ResizeKernel window = this.horizontalKernelMap.Kernels[x - startX];
-
-                                        Unsafe.Add(ref firstPassBaseRef, x * sourceHeight) =
-                                            window.ConvolveExpand(tempRowSpan, sourceX);
-                                    }
+                                    Vector4Extensions.Expand(tempRowSpan);
                                 }
-                                else
+
+                                for (int x = minX; x < maxX; x++)
                                 {
-                                    for (int x = minX; x < maxX; x++)
-                                    {
-                                        ResizeKernel window = this.horizontalKernelMap.Kernels[x - startX];
-                                        Unsafe.Add(ref firstPassBaseRef, x * sourceHeight) =
-                                            window.Convolve(tempRowSpan, sourceX);
-                                    }
+                                    ResizeKernel window = this.horizontalKernelMap.Kernels[x - startX];
+                                    Unsafe.Add(ref firstPassBaseRef, x * sourceHeight) =
+                                        window.Convolve(tempRowSpan, sourceX);
                                 }
                             }
                         });
@@ -281,43 +272,37 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 var processRowsRect = Rectangle.FromLTRB(0, minY, width, maxY);
 
                 // Now process the rows.
-                ParallelHelper.IterateRows(
+                ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
                     processRowsRect,
                     configuration,
-                    rows =>
+                    (rows, tempRowBuffer) =>
                         {
+                            Span<Vector4> tempRowSpan = tempRowBuffer.Span;
+
                             for (int y = rows.Min; y < rows.Max; y++)
                             {
                                 // Ensure offsets are normalized for cropping and padding.
                                 ResizeKernel window = this.verticalKernelMap.Kernels[y - startY];
-                                ref TPixel targetRow = ref MemoryMarshal.GetReference(destination.GetPixelRowSpan(y));
+
+                                ref Vector4 tempRowBase = ref MemoryMarshal.GetReference(tempRowSpan);
+
+                                for (int x = 0; x < width; x++)
+                                {
+                                    Span<Vector4> firstPassColumn = firstPassPixelsTransposed.GetRowSpan(x);
+
+                                    // Destination color components
+                                    Unsafe.Add(ref tempRowBase, x) = window.Convolve(firstPassColumn, sourceY);
+                                }
+
+                                Vector4Extensions.UnPremultiply(tempRowSpan);
 
                                 if (this.Compand)
                                 {
-                                    for (int x = 0; x < width; x++)
-                                    {
-                                        Span<Vector4> firstPassColumn = firstPassPixelsTransposed.GetRowSpan(x);
-
-                                        // Destination color components
-                                        Vector4 destinationVector = window.Convolve(firstPassColumn, sourceY);
-                                        destinationVector = destinationVector.UnPremultiply().Compress();
-
-                                        ref TPixel pixel = ref Unsafe.Add(ref targetRow, x);
-                                        pixel.PackFromVector4(destinationVector);
-                                    }
+                                    Vector4Extensions.Compress(tempRowSpan);
                                 }
-                                else
-                                {
-                                    for (int x = 0; x < width; x++)
-                                    {
-                                        Span<Vector4> firstPassColumn = firstPassPixelsTransposed.GetRowSpan(x);
 
-                                        // Destination color components
-                                        Vector4 destinationVector = window.Convolve(firstPassColumn, sourceY).UnPremultiply();
-                                        ref TPixel pixel = ref Unsafe.Add(ref targetRow, x);
-                                        pixel.PackFromVector4(destinationVector);
-                                    }
-                                }
+                                Span<TPixel> targetRowSpan = destination.GetPixelRowSpan(y);
+                                PixelOperations<TPixel>.Instance.PackFromVector4(tempRowSpan, targetRowSpan, tempRowSpan.Length);
                             }
                         });
             }

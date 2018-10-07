@@ -233,10 +233,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
-            // TODO: Using a transposed variant of 'firstPassPixels' could eliminate the need for the WeightsWindow.ComputeWeightedColumnSum() method, and improve speed!
-            using (Buffer2D<Vector4> firstPassPixels = source.MemoryAllocator.Allocate2D<Vector4>(width, source.Height))
+            using (Buffer2D<Vector4> firstPassPixelsTransposed = source.MemoryAllocator.Allocate2D<Vector4>(source.Height, width))
             {
-                firstPassPixels.MemorySource.Clear();
+                firstPassPixelsTransposed.MemorySource.Clear();
 
                 var processColsRect = new Rectangle(0, 0, source.Width, sourceRectangle.Bottom);
 
@@ -247,8 +246,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                         {
                             for (int y = rows.Min; y < rows.Max; y++)
                             {
-                                ref Vector4 firstPassRow =
-                                    ref MemoryMarshal.GetReference(firstPassPixels.GetRowSpan(y));
                                 Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
                                 Span<Vector4> tempRowSpan = tempRowBuffer.Span;
 
@@ -260,8 +257,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                     for (int x = minX; x < maxX; x++)
                                     {
                                         ResizeKernel window = this.horizontalKernelMap.Kernels[x - startX];
-                                        Unsafe.Add(ref firstPassRow, x) =
-                                            window.ConvolveExpandRows(tempRowSpan, sourceX).UnPremultiply();
+                                        firstPassPixelsTransposed[y, x] = window.ConvolveExpand(tempRowSpan, sourceX).UnPremultiply();
                                     }
                                 }
                                 else
@@ -269,8 +265,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                     for (int x = minX; x < maxX; x++)
                                     {
                                         ResizeKernel window = this.horizontalKernelMap.Kernels[x - startX];
-                                        Unsafe.Add(ref firstPassRow, x) =
-                                            window.ConvolveRows(tempRowSpan, sourceX);
+                                        firstPassPixelsTransposed[y, x] =
+                                            window.Convolve(tempRowSpan, sourceX);
                                     }
                                 }
                             }
@@ -294,12 +290,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                 {
                                     for (int x = 0; x < width; x++)
                                     {
+                                        Span<Vector4> firstPassColumn = firstPassPixelsTransposed.GetRowSpan(x);
+
                                         // Destination color components
-                                        Vector4 destinationVector = window.ConvolveColumnsAndUnPremultiply(
-                                            firstPassPixels,
-                                            x,
-                                            sourceY);
-                                        destinationVector = destinationVector.Compress();
+                                        Vector4 destinationVector = window.Convolve(firstPassColumn, sourceY);
+                                        destinationVector = destinationVector.UnPremultiply().Compress();
 
                                         ref TPixel pixel = ref Unsafe.Add(ref targetRow, x);
                                         pixel.PackFromVector4(destinationVector);
@@ -309,12 +304,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                 {
                                     for (int x = 0; x < width; x++)
                                     {
-                                        // Destination color components
-                                        Vector4 destinationVector = window.ConvolveColumnsAndUnPremultiply(
-                                            firstPassPixels,
-                                            x,
-                                            sourceY);
+                                        Span<Vector4> firstPassColumn = firstPassPixelsTransposed.GetRowSpan(x);
 
+                                        // Destination color components
+                                        Vector4 destinationVector = window.Convolve(firstPassColumn, sourceY).UnPremultiply();
                                         ref TPixel pixel = ref Unsafe.Add(ref targetRow, x);
                                         pixel.PackFromVector4(destinationVector);
                                     }

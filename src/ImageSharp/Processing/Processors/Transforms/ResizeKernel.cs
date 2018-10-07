@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="sourceX">The source row position.</param>
         /// <returns>The weighted sum</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector4 ConvolveRows(Span<Vector4> rowSpan, int sourceX)
+        public Vector4 Convolve(Span<Vector4> rowSpan, int sourceX)
         {
             ref float horizontalValues = ref this.GetStartReference();
             int left = this.Left;
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="sourceX">The source row position.</param>
         /// <returns>The weighted sum</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector4 ConvolveExpandRows(Span<Vector4> rowSpan, int sourceX)
+        public Vector4 ConvolveExpand(Span<Vector4> rowSpan, int sourceX)
         {
             ref float horizontalValues = ref this.GetStartReference();
             int left = this.Left;
@@ -122,33 +122,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
 
             return result;
-        }
-
-        /// <summary>
-        /// Computes the sum of vectors in 'firstPassPixels' at a row pointed by 'x',
-        /// weighted by weight values, pointed by this <see cref="ResizeKernel"/> instance.
-        /// </summary>
-        /// <param name="firstPassPixels">The buffer of input vectors in row first order</param>
-        /// <param name="x">The row position</param>
-        /// <param name="sourceY">The source column position.</param>
-        /// <returns>The weighted sum</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector4 ConvolveColumnsAndUnPremultiply(Buffer2D<Vector4> firstPassPixels, int x, int sourceY)
-        {
-            ref float verticalValues = ref this.GetStartReference();
-            int left = this.Left;
-
-            // Destination color components
-            Vector4 result = Vector4.Zero;
-
-            for (int i = 0; i < this.Length; i++)
-            {
-                float yw = Unsafe.Add(ref verticalValues, i);
-                int index = left + i + sourceY;
-                result += firstPassPixels[x, index] * yw;
-            }
-
-            return result.UnPremultiply();
         }
     }
 }

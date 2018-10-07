@@ -1,7 +1,5 @@
-﻿// <copyright file="Resize.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
 using System;
 using System.Drawing;
@@ -9,90 +7,88 @@ using System.Drawing.Drawing2D;
 
 using BenchmarkDotNet.Attributes;
 
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
-using CoreSize = SixLabors.Primitives.Size;
-
 namespace SixLabors.ImageSharp.Benchmarks
 {
-    using System.Threading.Tasks;
-
-    using SixLabors.ImageSharp.Formats.Jpeg;
-
     [Config(typeof(Config.ShortClr))]
-    public class Resize : BenchmarkBase
+    public abstract class ResizeBenchmarkBase
     {
-        private readonly Configuration configuration = new Configuration(new JpegConfigurationModule());
+        protected readonly Configuration Configuration = new Configuration(new JpegConfigurationModule());
 
-        [Params(false, true)]
-        public bool EnableParallelExecution { get; set; }
+        private Image<Rgba32> sourceImage;
+
+        private Bitmap sourceBitmap;
+
+        public const int SourceSize = 2000;
+
+        public const int DestSize = 400;
+
+        [Params(1/*, 4, 8*/)]
+        public int MaxDegreeOfParallelism { get; set; }
 
         [GlobalSetup]
         public void Setup()
         {
-            this.configuration.MaxDegreeOfParallelism =
-                this.EnableParallelExecution ? Environment.ProcessorCount : 1;
+            this.Configuration.MaxDegreeOfParallelism = this.MaxDegreeOfParallelism;
+
+            this.sourceImage = new Image<Rgba32>(this.Configuration, SourceSize, SourceSize);
+            this.sourceBitmap = new Bitmap(SourceSize, SourceSize);
         }
 
-        [Benchmark(Baseline = true, Description = "System.Drawing Resize")]
-        public Size ResizeSystemDrawing()
+        [GlobalCleanup]
+        public void Cleanup()
         {
-            using (Bitmap source = new Bitmap(2000, 2000))
+            this.sourceImage.Dispose();
+            this.sourceBitmap.Dispose();
+        }
+
+        [Benchmark(Baseline = true)]
+        public int SystemDrawing()
+        {
+            using (var destination = new Bitmap(DestSize, DestSize))
             {
-                using (Bitmap destination = new Bitmap(400, 400))
+                using (var graphics = Graphics.FromImage(destination))
                 {
-                    using (Graphics graphics = Graphics.FromImage(destination))
-                    {
-                        graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                        graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                        graphics.CompositingQuality = CompositingQuality.HighQuality;
-                        graphics.DrawImage(source, 0, 0, 400, 400);
-                    }
-
-                    return destination.Size;
+                    graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                    graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                    graphics.CompositingQuality = CompositingQuality.HighQuality;
+                    graphics.DrawImage(this.sourceBitmap, 0, 0, DestSize, DestSize);
                 }
+
+                return destination.Width;
             }
         }
 
-        [Benchmark(Description = "ImageSharp Resize")]
-        public CoreSize ResizeCore()
+        [Benchmark]
+        public int ImageSharp()
         {
-            using (var image = new Image<Rgba32>(this.configuration, 2000, 2000))
+            using (Image<Rgba32> clone = this.sourceImage.Clone(this.ExecuteResizeOperation))
             {
-                image.Mutate(x => x.Resize(400, 400));
-                return new CoreSize(image.Width, image.Height);
+                //Console.WriteLine($"{this.sourceImage.Width} -> {clone.Width} ?");
+                return clone.Width;
             }
         }
 
-        //[Benchmark(Description = "ImageSharp Vector Resize")]
-        //public CoreSize ResizeCoreVector()
-        //{
-        //    using (Image<RgbaVector> image = new Image<RgbaVector>(2000, 2000))
-        //    {
-        //        image.Resize(400, 400);
-        //        return new CoreSize(image.Width, image.Height);
-        //    }
-        //}
+        protected abstract void ExecuteResizeOperation(IImageProcessingContext<Rgba32> ctx);
+    }
+    
+    public class Resize_Bicubic : ResizeBenchmarkBase
+    {
+        protected override void ExecuteResizeOperation(IImageProcessingContext<Rgba32> ctx)
+        {
+            //Console.WriteLine("wtf?");
+            ctx.Resize(DestSize, DestSize, KnownResamplers.Bicubic);
+        }
+    }
 
-        //[Benchmark(Description = "ImageSharp Compand Resize")]
-        //public CoreSize ResizeCoreCompand()
-        //{
-        //    using (Image<Rgba32> image = new Image<Rgba32>(2000, 2000))
-        //    {
-        //        image.Resize(400, 400, true);
-        //        return new CoreSize(image.Width, image.Height);
-        //    }
-        //}
-
-        //[Benchmark(Description = "ImageSharp Vector Compand Resize")]
-        //public CoreSize ResizeCoreVectorCompand()
-        //{
-        //    using (Image<RgbaVector> image = new Image<RgbaVector>(2000, 2000))
-        //    {
-        //        image.Resize(400, 400, true);
-        //        return new CoreSize(image.Width, image.Height);
-        //    }
-        //}
+    public class Resize_BicubicCompand : ResizeBenchmarkBase
+    {
+        protected override void ExecuteResizeOperation(IImageProcessingContext<Rgba32> ctx)
+        {
+            ctx.Resize(DestSize, DestSize, KnownResamplers.Bicubic, true);
+        }
     }
 }

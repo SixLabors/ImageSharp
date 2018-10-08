@@ -15,7 +15,12 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// </summary>
     internal class PlanarColorBuffer4F : IDisposable
     {
-        private IMemoryOwner<float> data;
+        private IMemoryOwner<float> buffer;
+
+        private Memory<float> x;
+        private Memory<float> y;
+        private Memory<float> z;
+        private Memory<float> w;
 
         public PlanarColorBuffer4F(int length, MemoryAllocator allocator, AllocationOptions allocationOptions)
         {
@@ -23,31 +28,38 @@ namespace SixLabors.ImageSharp.PixelFormats
             DebugGuard.NotNull(allocator, nameof(allocator));
 
             this.Length = length;
-            this.data = allocator.Allocate<float>(4 * length, allocationOptions);
-            this.Memory = this.data.Memory;
+            this.buffer = allocator.Allocate<float>(4 * length, allocationOptions);
+            Memory<float> memory = this.buffer.Memory;
 
-            this.X = this.Memory.Slice(0, length);
-            this.Y = this.Memory.Slice(length, length);
-            this.Z = this.Memory.Slice(2 * length, length);
-            this.W = this.Memory.Slice(3 * length, length);
+            this.x = memory.Slice(0, length);
+            this.y = memory.Slice(length, length);
+            this.z = memory.Slice(2 * length, length);
+            this.w = memory.Slice(3 * length, length);
         }
 
         public int Length { get; }
 
-        public Memory<float> Memory { get; }
+        public Span<float> Data => this.buffer.Memory.Span;
 
-        public Memory<float> X { get; }
+        public Span<float> X => this.x.Span;
 
-        public Memory<float> Y { get; }
+        public Span<float> Y => this.y.Span;
 
-        public Memory<float> Z { get; }
+        public Span<float> Z => this.z.Span;
 
-        public Memory<float> W { get; }
+        public Span<float> W => this.w.Span;
 
         public void Dispose()
         {
-            this.data?.Dispose();
-            this.data = null;
+            this.buffer?.Dispose();
+            this.buffer = null;
+
+            // Trigger invalid behavior by clearing all contents,
+            // rather than doing IsDisposed? checks in all property getters:
+            this.x = default;
+            this.y = default;
+            this.z = default;
+            this.w = default;
         }
     }
 }

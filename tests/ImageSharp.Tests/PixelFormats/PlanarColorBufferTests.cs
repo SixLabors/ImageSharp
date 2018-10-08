@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 
@@ -25,16 +27,16 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
             using (var buffer = new PlanarColorBuffer4F(length, this.allocator, AllocationOptions.None))
             {
-                Assert.Equal(4 * length, buffer.Memory.Length);
+                Assert.Equal(4 * length, buffer.Data.Length);
 
-                buffer.X.Span.Fill(2.0f);
-                buffer.Y.Span.Fill(3.0f);
-                buffer.Z.Span.Fill(5.0f);
-                buffer.W.Span.Fill(7.0f);
+                buffer.X.Fill(2.0f);
+                buffer.Y.Fill(3.0f);
+                buffer.Z.Fill(5.0f);
+                buffer.W.Fill(7.0f);
 
                 int sum = 0;
 
-                foreach (float val in buffer.Memory.Span)
+                foreach (float val in buffer.Data)
                 {
                     sum += (int)val;
                 }
@@ -49,12 +51,12 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
             using (var buffer1 = new PlanarColorBuffer4F(10000, this.allocator, AllocationOptions.None))
             {
-                buffer1.Memory.Span[0] = 666f;
+                buffer1.Data[0] = 666f;
             }
 
             using (var buffer2 = new PlanarColorBuffer4F(10000, this.allocator, AllocationOptions.None))
             {
-                Assert.Equal(666f, buffer2.Memory.Span[0]);
+                Assert.Equal(666f, buffer2.Data[0]);
             }
         }
     }

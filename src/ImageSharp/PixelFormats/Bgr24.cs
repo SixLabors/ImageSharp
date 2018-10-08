@@ -224,5 +224,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgba64(ref Rgba64 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+
+        /// <inheritdoc />
+        public override string ToString()
+        {
+            return $"({this.B},{this.G},{this.R})";
+        }
     }
 }

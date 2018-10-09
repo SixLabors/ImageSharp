@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp
         /// <param name="b">The blue component.</param>
         /// <returns>The <see cref="byte"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static byte GetBT709LuminanceBytes(byte r, byte g, byte b) => (byte)((r * .2126F) + (g * .7152F) + (b * .0722F));
+        public static byte Get8BitBT709Luminance(byte r, byte g, byte b) => (byte)((r * .2126F) + (g * .7152F) + (b * .0722F));
 
         /// <summary>
         /// Gets the luminance from the rgb components using the formula as specified by ITU-R Recommendation BT.709.
@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp
         /// <param name="b">The blue component.</param>
         /// <returns>The <see cref="ushort"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static ushort GetBT709Luminance(ushort r, ushort g, ushort b) => (ushort)((r * .2126F) + (g * .7152F) + (b * .0722F));
+        public static ushort Get16BitBT709Luminance(ushort r, ushort g, ushort b) => (ushort)((r * .2126F) + (g * .7152F) + (b * .0722F));
 
         /// <summary>
         /// Scales a value from a 16 bit <see cref="ushort"/> to it's 8 bit <see cref="byte"/> equivalent.

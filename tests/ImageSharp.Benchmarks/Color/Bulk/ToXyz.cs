@@ -4,10 +4,7 @@
 // ReSharper disable InconsistentNaming
 
 using System.Buffers;
-using System;
-
 using BenchmarkDotNet.Attributes;
-
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -38,35 +35,10 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         }
 
         [Benchmark(Baseline = true)]
-        public void PerElement()
-        {
-            Span<TPixel> s = this.source.GetSpan();
-            Span<byte> d = this.destination.GetSpan();
-
-            var rgb = default(Rgb24);
-
-            for (int i = 0; i < this.Count; i++)
-            {
-                TPixel c = s[i];
-                int i3 = i * 3;
-                c.ToRgb24(ref rgb);
-                d[i3] = rgb.R;
-                d[i3 + 1] = rgb.G;
-                d[i3 + 2] = rgb.B;
-            }
-        }
+        public void CommonBulk() => new PixelOperations<TPixel>().ToRgb24Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
 
         [Benchmark]
-        public void CommonBulk()
-        {
-            new PixelOperations<TPixel>().ToRgb24Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
-        }
-
-        [Benchmark]
-        public void OptimizedBulk()
-        {
-            PixelOperations<TPixel>.Instance.ToRgb24Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
-        }
+        public void OptimizedBulk() => PixelOperations<TPixel>.Instance.ToRgb24Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
     }
 
     public class ToXyz_Rgba32 : ToXyz<Rgba32>

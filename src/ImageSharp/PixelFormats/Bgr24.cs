@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Bgr24(byte r, byte g, byte b)
         {
             this.R = r;
@@ -49,71 +49,41 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.B = b;
         }
 
+        /// <summary>
+        /// Compares two <see cref="Bgr24"/> objects for equality.
+        /// </summary>
+        /// <param name="left">The <see cref="Bgr24"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Bgr24"/> on the right side of the operand.</param>
+        /// <returns>
+        /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static bool operator ==(Bgr24 left, Bgr24 right) => left.Equals(right);
+
+        /// <summary>
+        /// Compares two <see cref="Bgr24"/> objects for equality.
+        /// </summary>
+        /// <param name="left">The <see cref="Bgr24"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Bgr24"/> on the right side of the operand.</param>
+        /// <returns>
+        /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static bool operator !=(Bgr24 left, Bgr24 right) => !left.Equals(right);
+
         /// <inheritdoc/>
         public PixelOperations<Bgr24> CreatePixelOperations() => new PixelOperations<Bgr24>();
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(Bgr24 other)
-        {
-            return this.R == other.R && this.G == other.G && this.B == other.B;
-        }
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromScaledVector4(Vector4 vector) => this.PackFromVector4(vector);
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is Bgr24 other && this.Equals(other);
-        }
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode()
-        {
-            int hash = HashHelpers.Combine(this.R.GetHashCode(), this.G.GetHashCode());
-            return HashHelpers.Combine(hash, this.B.GetHashCode());
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromRgba32(Rgba32 source)
-        {
-            this = source.Bgr;
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromArgb32(Argb32 source)
-        {
-            this.R = source.R;
-            this.G = source.G;
-            this.B = source.B;
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromBgra32(Bgra32 source)
-        {
-            this.R = source.R;
-            this.G = source.G;
-            this.B = source.B;
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromScaledVector4(Vector4 vector)
-        {
-            this.PackFromVector4(vector);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector4 ToScaledVector4()
-        {
-            return this.ToVector4();
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromVector4(Vector4 vector)
         {
             Rgba32 rgba = default;
@@ -122,58 +92,29 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector4 ToVector4()
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public Vector4 ToVector4() => new Rgba32(this.R, this.G, this.B, byte.MaxValue).ToVector4();
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromArgb32(Argb32 source)
         {
-            return new Rgba32(this.R, this.G, this.B, 255).ToVector4();
+            this.R = source.R;
+            this.G = source.G;
+            this.B = source.B;
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToRgb24(ref Rgb24 dest)
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromBgra32(Bgra32 source)
         {
-            dest.R = this.R;
-            dest.G = this.G;
-            dest.B = this.B;
+            this.R = source.R;
+            this.G = source.G;
+            this.B = source.B;
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToRgba32(ref Rgba32 dest)
-        {
-            dest.R = this.R;
-            dest.G = this.G;
-            dest.B = this.B;
-            dest.A = byte.MaxValue;
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToArgb32(ref Argb32 dest)
-        {
-            dest.R = this.R;
-            dest.G = this.G;
-            dest.B = this.B;
-            dest.A = byte.MaxValue;
-        }
-
-        /// <inheritdoc/>
-        public void ToBgr24(ref Bgr24 dest)
-        {
-            dest = this;
-        }
-
-        /// <inheritdoc/>
-        public void ToBgra32(ref Bgra32 dest)
-        {
-            dest.R = this.R;
-            dest.G = this.G;
-            dest.B = this.B;
-            dest.A = byte.MaxValue;
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromGray8(Gray8 source)
         {
             this.R = source.PackedValue;
@@ -182,53 +123,57 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToGray8(ref Gray8 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromGray16(Gray16 source)
         {
-            var val = (byte)(((source.PackedValue * 255) + 32895) >> 16);
-            this.R = val;
-            this.G = val;
-            this.B = val;
+            byte rgb = ImageMaths.DownScaleFrom16BitTo8Bit(source.PackedValue);
+            this.R = rgb;
+            this.G = rgb;
+            this.B = rgb;
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToGray16(ref Gray16 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromRgb48(Rgb48 source)
-        {
-            this.R = (byte)(((source.R * 255) + 32895) >> 16);
-            this.G = (byte)(((source.G * 255) + 32895) >> 16);
-            this.B = (byte)(((source.B * 255) + 32895) >> 16);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToRgb48(ref Rgb48 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromRgba64(Rgba64 source)
-        {
-            this.R = (byte)(((source.R * 255) + 32895) >> 16);
-            this.G = (byte)(((source.G * 255) + 32895) >> 16);
-            this.B = (byte)(((source.B * 255) + 32895) >> 16);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToRgba64(ref Rgba64 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromRgba32(Rgba32 source) => this = source.Bgr;
 
         /// <inheritdoc />
-        public override string ToString()
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public Rgba32 ToRgba32() => new Rgba32(this.R, this.G, this.B, byte.MaxValue);
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromRgb48(Rgb48 source)
         {
-            return $"({this.B},{this.G},{this.R})";
+            this.R = ImageMaths.DownScaleFrom16BitTo8Bit(source.R);
+            this.G = ImageMaths.DownScaleFrom16BitTo8Bit(source.G);
+            this.B = ImageMaths.DownScaleFrom16BitTo8Bit(source.B);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromRgba64(Rgba64 source)
+        {
+            this.R = ImageMaths.DownScaleFrom16BitTo8Bit(source.R);
+            this.G = ImageMaths.DownScaleFrom16BitTo8Bit(source.G);
+            this.B = ImageMaths.DownScaleFrom16BitTo8Bit(source.B);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public bool Equals(Bgr24 other) => this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B);
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj) => obj is Bgr24 other && this.Equals(other);
+
+        /// <inheritdoc />
+        public override string ToString() => $"Bgra({this.B}, {this.G}, {this.R})";
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public override int GetHashCode()
+        {
+            int hash = HashHelpers.Combine(this.R.GetHashCode(), this.G.GetHashCode());
+            return HashHelpers.Combine(hash, this.B.GetHashCode());
         }
     }
 }

@@ -14,6 +14,7 @@
     void GeneratePackFromMethods(string pixelType, string tempPixelType, string assignToTempCode)
     {		
 		#>
+
         /// <summary>
         /// Converts 'count' elements in 'source` span of <see cref="<#=pixelType#>"/> data to a span of <typeparamref name="TPixel"/>-s.
         /// </summary>
@@ -58,7 +59,6 @@
         #>
         /// <summary>
         /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="<#=pixelType#>"/>-s.
-        /// Bulk version of <see cref="IPixel.To<#=pixelType#>(ref <#=pixelType#>)"/>.
         /// </summary>
         /// <param name="sourcePixels">The span of source pixels</param>
         /// <param name="dest">The destination span of <see cref="<#=pixelType#>"/> data.</param>
@@ -74,7 +74,7 @@
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref <#=pixelType#> dp = ref Unsafe.Add(ref destBaseRef, i);
-                sp.To<#=pixelType#>(ref dp);
+                dp.PackFromScaledVector4(sp.ToScaledVector4());
             }
         }
 
@@ -130,5 +130,9 @@ namespace SixLabors.ImageSharp.PixelFormats
 
     GeneratePackFromMethods("Gray8", "Gray8", "temp = Unsafe.Add(ref sourceRef, i);");
     GenerateToDestFormatMethods("Gray8");
+
+    GeneratePackFromMethods("Gray16", "Gray16", "temp = Unsafe.Add(ref sourceRef, i);");
+    GenerateToDestFormatMethods("Gray16");
+
 #>    }
 }

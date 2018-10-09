@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 {
                     ref Rgb24 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Rgba32 dp = ref Unsafe.Add(ref destRef, i);
-                    Unsafe.As<Rgba32, Rgb24>(ref dp) = sp; dp.A = 255;
+                    Unsafe.As<Rgba32, Rgb24>(ref dp) = sp; dp.A = byte.MaxValue;
                 }
             }
 		
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 {
                     ref Bgr24 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Rgba32 dp = ref Unsafe.Add(ref destRef, i);
-                    dp.Bgr = sp; dp.A = 255;
+                    dp.Bgr = sp; dp.A = byte.MaxValue;
                 }
             }
 		
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 {
                     ref Bgra32 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Rgba32 dp = ref Unsafe.Add(ref destRef, i);
-                    dp = sp.ToRgba32();
+                    dp.R = sp.R; dp.G = sp.G; dp.B = sp.B; dp.A = sp.A;
                 }
             }
 		
@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 {
                     ref Rgba32 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Bgra32 dp = ref Unsafe.Add(ref destRef, i);
-                    dp = sp.ToBgra32();
+                    dp.PackFromRgba32(sp);
                 }
             }
 		
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 {
                     ref Argb32 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Rgba32 dp = ref Unsafe.Add(ref destRef, i);
-                    dp = sp.ToRgba32();
+                    dp.R = sp.R; dp.G = sp.G; dp.B = sp.B; dp.A = sp.A;
                 }
             }
 		
@@ -140,7 +140,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 {
                     ref Rgba32 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Argb32 dp = ref Unsafe.Add(ref destRef, i);
-                    dp = sp.ToArgb32();
+                    dp.PackFromRgba32(sp);
                 }
             }
 		

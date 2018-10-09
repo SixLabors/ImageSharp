@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator ==(Alpha8 left, Alpha8 right) => left.Equals(right);
 
         /// <summary>
@@ -47,111 +47,59 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator !=(Alpha8 left, Alpha8 right) => !left.Equals(right);
 
         /// <inheritdoc />
         public PixelOperations<Alpha8> CreatePixelOperations() => new PixelOperations<Alpha8>();
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromScaledVector4(Vector4 vector) => this.PackFromVector4(vector);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromVector4(Vector4 vector) => this.PackedValue = Pack(vector.W);
 
         /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Vector4 ToVector4() => new Vector4(0, 0, 0, this.PackedValue / 255F);
 
-        /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromRgba32(Rgba32 source) => this.PackedValue = source.A;
-
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromArgb32(Argb32 source) => this.PackedValue = source.A;
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromBgra32(Bgra32 source) => this.PackedValue = source.A;
 
-        /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToRgb24(ref Rgb24 dest) => dest = default;
-
-        /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToRgba32(ref Rgba32 dest)
-        {
-            dest.Rgb = default;
-            dest.A = this.PackedValue;
-        }
-
-        /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToArgb32(ref Argb32 dest)
-        {
-            dest.R = 0;
-            dest.G = 0;
-            dest.B = 0;
-            dest.A = this.PackedValue;
-        }
-
-        /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToBgr24(ref Bgr24 dest) => dest = default;
-
-        /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToBgra32(ref Bgra32 dest)
-        {
-            dest.R = 0;
-            dest.G = 0;
-            dest.B = 0;
-            dest.A = this.PackedValue;
-        }
-
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromRgb48(Rgb48 source) => this.PackedValue = byte.MaxValue;
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToRgb48(ref Rgb48 dest) => dest = default;
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromGray8(Gray8 source) => this.PackedValue = byte.MaxValue;
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToGray8(ref Gray8 dest) => dest = default;
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromGray16(Gray16 source) => this.PackedValue = byte.MaxValue;
 
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToGray16(ref Gray16 dest) => dest = default;
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromRgba32(Rgba32 source) => this.PackedValue = source.A;
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public Rgba32 ToRgba32() => new Rgba32(0, 0, 0, this.PackedValue);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromRgb48(Rgb48 source) => this.PackedValue = byte.MaxValue;
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromRgba64(Rgba64 source) => this.PackFromScaledVector4(source.ToScaledVector4());
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToRgba64(ref Rgba64 dest)
-        {
-            dest.Rgb = default;
-            dest.A = ImageMaths.UpscaleFrom8BitTo16Bit(this.PackedValue);
-        }
 
         /// <summary>
         /// Compares an object with the packed vector.
@@ -165,17 +113,17 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <param name="other">The Alpha8 packed vector to compare.</param>
         /// <returns>True if the packed vectors are equal.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(Alpha8 other) => this.PackedValue.Equals(other.PackedValue);
 
         /// <summary>
         /// Gets a string representation of the packed vector.
         /// </summary>
         /// <returns>A string representation of the packed vector.</returns>
-        public override string ToString() => (this.PackedValue / 255F).ToString();
+        public override string ToString() => $"Alpha8({this.PackedValue})";
 
         /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public override int GetHashCode() => this.PackedValue.GetHashCode();
 
         /// <summary>
@@ -183,7 +131,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <param name="alpha">The float containing the value to pack.</param>
         /// <returns>The <see cref="byte"/> containing the packed values.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static byte Pack(float alpha) => (byte)Math.Round(alpha.Clamp(0, 1) * 255F);
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static byte Pack(float alpha) => (byte)Math.Round(alpha.Clamp(0, 1F) * 255F);
     }
 }

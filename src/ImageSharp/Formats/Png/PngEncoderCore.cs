@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
@@ -312,11 +313,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void CollectGrayscaleBytes<TPixel>(ReadOnlySpan<TPixel> rowSpan)
             where TPixel : struct, IPixel<TPixel>
         {
-            // Use ITU-R recommendation 709 to match libpng.
-            const float RX = .2126F;
-            const float GX = .7152F;
-            const float BX = .0722F;
-
             ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
             Span<byte> rawScanlineSpan = this.rawScanline.GetSpan();
             ref byte rawScanlineSpanRef = ref MemoryMarshal.GetReference(rawScanlineSpan);
@@ -327,12 +323,18 @@ namespace SixLabors.ImageSharp.Formats.Png
                 if (this.use16Bit)
                 {
                     // 16 bit grayscale
-                    Rgb48 rgb = default;
-                    for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 2)
+                    using (IMemoryOwner<Gray16> luminanceBuffer = this.memoryAllocator.Allocate<Gray16>(rowSpan.Length))
                     {
-                        Unsafe.Add(ref rowSpanRef, x).ToRgb48(ref rgb);
-                        ushort luminance = (ushort)((RX * rgb.R) + (GX * rgb.G) + (BX * rgb.B));
-                        BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), luminance);
+                        Span<Gray16> luminanceSpan = luminanceBuffer.GetSpan();
+                        ref Gray16 luminanceRef = ref MemoryMarshal.GetReference(luminanceSpan);
+                        PixelOperations<TPixel>.Instance.ToGray16(rowSpan, luminanceSpan, rowSpan.Length);
+
+                        // Can't map directly to byte array as it's big endian.
+                        for (int x = 0, o = 0; x < luminanceSpan.Length; x++, o += 2)
+                        {
+                            Gray16 luminance = Unsafe.Add(ref luminanceRef, x);
+                            BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), luminance.PackedValue);
+                        }
                     }
                 }
                 else
@@ -340,12 +342,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     if (this.bitDepth == 8)
                     {
                         // 8 bit grayscale
-                        Rgb24 rgb = default;
-                        for (int x = 0; x < rowSpan.Length; x++)
-                        {
-                            Unsafe.Add(ref rowSpanRef, x).ToRgb24(ref rgb);
-                            Unsafe.Add(ref rawScanlineSpanRef, x) = (byte)((RX * rgb.R) + (GX * rgb.G) + (BX * rgb.B));
-                        }
+                        PixelOperations<TPixel>.Instance.ToGray8Bytes(rowSpan, rawScanlineSpan, rowSpan.Length);
                     }
                     else
                     {
@@ -356,14 +353,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                             Span<byte> tempSpan = temp.GetSpan();
                             ref byte tempSpanRef = ref MemoryMarshal.GetReference(tempSpan);
 
-                            Rgb24 rgb = default;
-                            for (int x = 0; x < rowSpan.Length; x++)
-                            {
-                                Unsafe.Add(ref rowSpanRef, x).ToRgb24(ref rgb);
-                                float luminance = ((RX * rgb.R) + (GX * rgb.G) + (BX * rgb.B)) / scaleFactor;
-                                Unsafe.Add(ref tempSpanRef, x) = (byte)luminance;
-                                this.ScaleDownFrom8BitArray(tempSpan, rawScanlineSpan, this.bitDepth);
-                            }
+                            // We need to first create an array of luminance bytes then scale them down to the correct bit depth.
+                            PixelOperations<TPixel>.Instance.ToGray8Bytes(rowSpan, tempSpan, rowSpan.Length);
+                            this.ScaleDownFrom8BitArray(tempSpan, rawScanlineSpan, this.bitDepth, scaleFactor);
                         }
                     }
                 }
@@ -373,23 +365,31 @@ namespace SixLabors.ImageSharp.Formats.Png
                 if (this.use16Bit)
                 {
                     // 16 bit grayscale + alpha
-                    Rgba64 rgba = default;
-                    for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 4)
+                    // TODO: Should we consider in the future a GrayAlpha32 type.
+                    using (IMemoryOwner<Rgba64> rgbaBuffer = this.memoryAllocator.Allocate<Rgba64>(rowSpan.Length))
                     {
-                        Unsafe.Add(ref rowSpanRef, x).ToRgba64(ref rgba);
-                        ushort luminance = (ushort)((RX * rgba.R) + (GX * rgba.G) + (BX * rgba.B));
-                        BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), luminance);
-                        BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 2, 2), rgba.A);
+                        Span<Rgba64> rgbaSpan = rgbaBuffer.GetSpan();
+                        ref Rgba64 rgbaRef = ref MemoryMarshal.GetReference(rgbaSpan);
+                        PixelOperations<TPixel>.Instance.ToRgba64(rowSpan, rgbaSpan, rowSpan.Length);
+
+                        // Can't map directly to byte array as it's big endian.
+                        for (int x = 0, o = 0; x < rgbaSpan.Length; x++, o += 4)
+                        {
+                            Rgba64 rgba = Unsafe.Add(ref rgbaRef, x);
+                            ushort luminance = ImageMaths.Get16BitBT709Luminance(rgba.R, rgba.G, rgba.B);
+                            BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), luminance);
+                            BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 2, 2), rgba.A);
+                        }
                     }
                 }
                 else
                 {
                     // 8 bit grayscale + alpha
-                    Rgba32 rgba = default;
+                    // TODO: Should we consider in the future a GrayAlpha16 type.
                     for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 2)
                     {
-                        Unsafe.Add(ref rowSpanRef, x).ToRgba32(ref rgba);
-                        Unsafe.Add(ref rawScanlineSpanRef, o) = (byte)((RX * rgba.R) + (GX * rgba.G) + (BX * rgba.B));
+                        var rgba = Unsafe.Add(ref rowSpanRef, x).ToRgba32();
+                        Unsafe.Add(ref rawScanlineSpanRef, o) = ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
                         Unsafe.Add(ref rawScanlineSpanRef, o + 1) = rgba.A;
                     }
                 }
@@ -425,15 +425,21 @@ namespace SixLabors.ImageSharp.Formats.Png
                 case 8:
                     {
                         // 16 bit Rgba
-                        Rgba64 rgba = default;
-                        ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
-                        for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 8)
+                        using (IMemoryOwner<Rgba64> rgbaBuffer = this.memoryAllocator.Allocate<Rgba64>(rowSpan.Length))
                         {
-                            Unsafe.Add(ref rowSpanRef, x).ToRgba64(ref rgba);
-                            BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), rgba.R);
-                            BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 2, 2), rgba.G);
-                            BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 4, 2), rgba.B);
-                            BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 6, 2), rgba.A);
+                            Span<Rgba64> rgbaSpan = rgbaBuffer.GetSpan();
+                            ref Rgba64 rgbaRef = ref MemoryMarshal.GetReference(rgbaSpan);
+                            PixelOperations<TPixel>.Instance.ToRgba64(rowSpan, rgbaSpan, rowSpan.Length);
+
+                            // Can't map directly to byte array as it's big endian.
+                            for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 8)
+                            {
+                                Rgba64 rgba = Unsafe.Add(ref rgbaRef, x);
+                                BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), rgba.R);
+                                BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 2, 2), rgba.G);
+                                BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 4, 2), rgba.B);
+                                BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 6, 2), rgba.A);
+                            }
                         }
 
                         break;
@@ -442,14 +448,20 @@ namespace SixLabors.ImageSharp.Formats.Png
                 default:
                     {
                         // 16 bit Rgb
-                        Rgb48 rgb = default;
-                        ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
-                        for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 6)
+                        using (IMemoryOwner<Rgb48> rgbBuffer = this.memoryAllocator.Allocate<Rgb48>(rowSpan.Length))
                         {
-                            Unsafe.Add(ref rowSpanRef, x).ToRgb48(ref rgb);
-                            BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), rgb.R);
-                            BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 2, 2), rgb.G);
-                            BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 4, 2), rgb.B);
+                            Span<Rgb48> rgbSpan = rgbBuffer.GetSpan();
+                            ref Rgb48 rgbRef = ref MemoryMarshal.GetReference(rgbSpan);
+                            PixelOperations<TPixel>.Instance.ToRgb48(rowSpan, rgbSpan, rowSpan.Length);
+
+                            // Can't map directly to byte array as it's big endian.
+                            for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 6)
+                            {
+                                Rgb48 rgb = Unsafe.Add(ref rgbRef, x);
+                                BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), rgb.R);
+                                BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 2, 2), rgb.G);
+                                BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 4, 2), rgb.B);
+                            }
                         }
 
                         break;
@@ -624,7 +636,6 @@ namespace SixLabors.ImageSharp.Formats.Png
             TPixel[] palette = quantized.Palette;
             int paletteLength = Math.Min(palette.Length, 256);
             int colorTableLength = paletteLength * 3;
-            Rgba32 rgba = default;
             bool anyAlpha = false;
 
             using (IManagedByteBuffer colorTable = this.memoryAllocator.AllocateManagedByteBuffer(colorTableLength))
@@ -639,7 +650,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     if (quantizedSpan.IndexOf((byte)i) > -1)
                     {
                         int offset = i * 3;
-                        palette[i].ToRgba32(ref rgba);
+                        var rgba = palette[i].ToRgba32();
 
                         byte alpha = rgba.A;
 
@@ -851,7 +862,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="source">The source span in 8 bits.</param>
         /// <param name="result">The resultant span in <paramref name="bits"/>.</param>
         /// <param name="bits">The bit depth.</param>
-        private void ScaleDownFrom8BitArray(ReadOnlySpan<byte> source, Span<byte> result, int bits)
+        /// <param name="scale">The scaling factor.</param>
+        private void ScaleDownFrom8BitArray(ReadOnlySpan<byte> source, Span<byte> result, int bits, float scale = 1)
         {
             ref byte sourceRef = ref MemoryMarshal.GetReference(source);
             ref byte resultRef = ref MemoryMarshal.GetReference(result);
@@ -864,7 +876,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             for (int i = 0; i < source.Length; i++)
             {
-                int value = Unsafe.Add(ref sourceRef, i) & mask;
+                int value = ((int)MathF.Round(Unsafe.Add(ref sourceRef, i) / scale)) & mask;
                 v |= value << shift;
 
                 if (shift == 0)

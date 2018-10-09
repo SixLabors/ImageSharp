@@ -71,17 +71,17 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal partial class PixelOperations
         {
 			<#
-    GeneratePackFromMethod("Rgb24", "Unsafe.As<Rgba32, Rgb24>(ref dp) = sp; dp.A = 255;");
+    GeneratePackFromMethod("Rgb24", "Unsafe.As<Rgba32, Rgb24>(ref dp) = sp; dp.A = byte.MaxValue;");
     GenerateConvertToMethod("Rgb24", "dp = Unsafe.As<Rgba32, Rgb24>(ref sp);");
 
-    GeneratePackFromMethod("Bgr24", "dp.Bgr = sp; dp.A = 255;");
+    GeneratePackFromMethod("Bgr24", "dp.Bgr = sp; dp.A = byte.MaxValue;");
     GenerateConvertToMethod("Bgr24", "dp = sp.Bgr;");
     
-    GeneratePackFromMethod("Bgra32", "dp = sp.ToRgba32();");
-    GenerateConvertToMethod("Bgra32", "dp = sp.ToBgra32();");
+    GeneratePackFromMethod("Bgra32", "dp.R = sp.R; dp.G = sp.G; dp.B = sp.B; dp.A = sp.A;");
+    GenerateConvertToMethod("Bgra32", "dp.PackFromRgba32(sp);");
 
-    GeneratePackFromMethod("Argb32", "dp = sp.ToRgba32();");
-    GenerateConvertToMethod("Argb32", "dp = sp.ToArgb32();");
+    GeneratePackFromMethod("Argb32", "dp.R = sp.R; dp.G = sp.G; dp.B = sp.B; dp.A = sp.A;");
+    GenerateConvertToMethod("Argb32", "dp.PackFromRgba32(sp);");
 			#>
 
 		}

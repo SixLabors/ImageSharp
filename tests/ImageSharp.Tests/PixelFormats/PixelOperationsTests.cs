@@ -26,10 +26,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
 
             [Fact]
-            public void IsSpecialImplementation()
-            {
-                Assert.IsType<ImageSharp.PixelFormats.Rgba32.PixelOperations>(PixelOperations<ImageSharp.PixelFormats.Rgba32>.Instance);
-            }
+            public void IsSpecialImplementation() => Assert.IsType<ImageSharp.PixelFormats.Rgba32.PixelOperations>(PixelOperations<ImageSharp.PixelFormats.Rgba32>.Instance);
 
             [Fact]
             public void ToVector4SimdAligned()
@@ -85,10 +82,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [Theory]
         [WithBlankImages(1, 1, PixelTypes.All)]
         public void GetGlobalInstance<TPixel>(TestImageProvider<TPixel> dummy)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            Assert.NotNull(PixelOperations<TPixel>.Instance);
-        }
+            where TPixel : struct, IPixel<TPixel> => Assert.NotNull(PixelOperations<TPixel>.Instance);
 
         [Fact]
         public void IsOpaqueColor()
@@ -98,7 +92,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Assert.False(new GraphicsOptions(true, 0.5f).IsOpaqueColorWithoutBlending(ImageSharp.PixelFormats.Rgba32.Red));
             Assert.False(new GraphicsOptions(true).IsOpaqueColorWithoutBlending(ImageSharp.PixelFormats.Rgba32.Transparent));
             Assert.False(new GraphicsOptions(true, PixelColorBlendingMode.Lighten, 1).IsOpaqueColorWithoutBlending(ImageSharp.PixelFormats.Rgba32.Red));
-            Assert.False(new GraphicsOptions(true, PixelColorBlendingMode.Normal,PixelAlphaCompositionMode.DestOver, 1).IsOpaqueColorWithoutBlending(ImageSharp.PixelFormats.Rgba32.Red));
+            Assert.False(new GraphicsOptions(true, PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.DestOver, 1).IsOpaqueColorWithoutBlending(ImageSharp.PixelFormats.Rgba32.Red));
         }
     }
 
@@ -246,7 +240,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             for (int i = 0; i < count; i++)
             {
                 int i3 = i * 3;
-                source[i].ToRgb24(ref rgb);
+                rgb.PackFromScaledVector4(source[i].ToScaledVector4());
                 expected[i3] = rgb.R;
                 expected[i3 + 1] = rgb.G;
                 expected[i3 + 2] = rgb.B;
@@ -291,7 +285,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             for (int i = 0; i < count; i++)
             {
                 int i4 = i * 4;
-                source[i].ToRgba32(ref rgba);
+                rgba.PackFromScaledVector4(source[i].ToScaledVector4());
                 expected[i4] = rgba.R;
                 expected[i4 + 1] = rgba.G;
                 expected[i4 + 2] = rgba.B;
@@ -339,7 +333,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             for (int i = 0; i < count; i++)
             {
                 int i6 = i * 6;
-                source[i].ToRgb48(ref rgb);
+                rgb.PackFromScaledVector4(source[i].ToScaledVector4());
                 Rgba64Bytes rgb48Bytes = Unsafe.As<Rgb48, Rgba64Bytes>(ref rgb);
                 expected[i6] = rgb48Bytes[0];
                 expected[i6 + 1] = rgb48Bytes[1];
@@ -388,7 +382,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             for (int i = 0; i < count; i++)
             {
                 int i8 = i * 8;
-                source[i].ToRgba64(ref rgba);
+                rgba.PackFromScaledVector4(source[i].ToScaledVector4());
                 Rgba64Bytes rgba64Bytes = Unsafe.As<Rgba64, Rgba64Bytes>(ref rgba);
                 expected[i8] = rgba64Bytes[0];
                 expected[i8 + 1] = rgba64Bytes[1];
@@ -439,7 +433,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             for (int i = 0; i < count; i++)
             {
                 int i3 = i * 3;
-                source[i].ToBgr24(ref bgr);
+                bgr.PackFromScaledVector4(source[i].ToScaledVector4());
                 expected[i3] = bgr.B;
                 expected[i3 + 1] = bgr.G;
                 expected[i3 + 2] = bgr.R;
@@ -475,7 +469,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
-        public void ToZyxwBytes(int count)
+        public void ToBgra32Bytes(int count)
         {
             TPixel[] source = CreatePixelTestData(count);
             byte[] expected = new byte[count * 4];
@@ -484,7 +478,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             for (int i = 0; i < count; i++)
             {
                 int i4 = i * 4;
-                source[i].ToBgra32(ref bgra);
+                bgra.PackFromScaledVector4(source[i].ToScaledVector4());
                 expected[i4] = bgra.B;
                 expected[i4 + 1] = bgra.G;
                 expected[i4 + 2] = bgra.R;
@@ -530,7 +524,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             for (int i = 0; i < count; i++)
             {
                 int i4 = i * 4;
-                source[i].ToArgb32(ref argb);
+                argb.PackFromScaledVector4(source[i].ToScaledVector4());
+
                 expected[i4] = argb.A;
                 expected[i4 + 1] = argb.R;
                 expected[i4 + 2] = argb.G;
@@ -559,10 +554,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 this.ActualDestBuffer = Configuration.Default.MemoryAllocator.Allocate<TDest>(expectedDest.Length);
             }
 
-            public void Dispose()
-            {
-                this.ActualDestBuffer.Dispose();
-            }
+            public void Dispose() => this.ActualDestBuffer.Dispose();
 
             private const float Tolerance = 0.0001f;
 

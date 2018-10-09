@@ -71,159 +71,159 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Assert.Equal(Vector4.One, new Bgra4444(Vector4.One * 1234.0f).ToVector4());
         }
 
-        [Fact]
-        public void Bgra4444_ToRgb24()
-        {
-            // arrange
-            var bgra = new Bgra4444(0.1f, -0.3f, 0.5f, -0.7f);
-            var actual = default(Rgb24);
-            var expected = new Rgb24(34, 0, 136);
+        //[Fact]
+        //public void Bgra4444_ToRgb24()
+        //{
+        //    // arrange
+        //    var bgra = new Bgra4444(0.1f, -0.3f, 0.5f, -0.7f);
+        //    var actual = default(Rgb24);
+        //    var expected = new Rgb24(34, 0, 136);
 
-            // act
-            bgra.ToRgb24(ref actual);
+        //    // act
+        //    bgra.ToRgb24(ref actual);
 
-            // assert
-            Assert.Equal(expected, actual);
-        }
+        //    // assert
+        //    Assert.Equal(expected, actual);
+        //}
 
-        [Fact]
-        public void Bgra4444_ToRgba32()
-        {
-            // arrange
-            var bgra = new Bgra4444(0.1f, -0.3f, 0.5f, -0.7f);
-            var actual = default(Rgba32);
-            var expected = new Rgba32(34, 0, 136, 0);
+        //[Fact]
+        //public void Bgra4444_ToRgba32()
+        //{
+        //    // arrange
+        //    var bgra = new Bgra4444(0.1f, -0.3f, 0.5f, -0.7f);
+        //    var actual = default(Rgba32);
+        //    var expected = new Rgba32(34, 0, 136, 0);
 
-            // act
-            bgra.ToRgba32(ref actual);
+        //    // act
+        //    bgra.ToRgba32(ref actual);
 
-            // assert
-            Assert.Equal(expected, actual);
-        }
+        //    // assert
+        //    Assert.Equal(expected, actual);
+        //}
 
-        [Fact]
-        public void Bgra4444_ToBgr24()
-        {
-            // arrange
-            var bgra = new Bgra4444(0.1f, -0.3f, 0.5f, -0.7f);
-            var actual = default(Bgr24);
-            var expected = new Bgr24(34, 0, 136);
+        //[Fact]
+        //public void Bgra4444_ToBgr24()
+        //{
+        //    // arrange
+        //    var bgra = new Bgra4444(0.1f, -0.3f, 0.5f, -0.7f);
+        //    var actual = default(Bgr24);
+        //    var expected = new Bgr24(34, 0, 136);
 
-            // act
-            bgra.ToBgr24(ref actual);
+        //    // act
+        //    bgra.ToBgr24(ref actual);
 
-            // assert
-            Assert.Equal(expected, actual);
-        }
+        //    // assert
+        //    Assert.Equal(expected, actual);
+        //}
 
-        [Fact]
-        public void Bgra4444_ToBgra32()
-        {
-            // arrange
-            var bgra = new Bgra4444(0.1f, -0.3f, 0.5f, -0.7f);
-            var actual = default(Bgra32);
-            var expected = new Bgra32(34, 0, 136, 0);
+        //[Fact]
+        //public void Bgra4444_ToBgra32()
+        //{
+        //    // arrange
+        //    var bgra = new Bgra4444(0.1f, -0.3f, 0.5f, -0.7f);
+        //    var actual = default(Bgra32);
+        //    var expected = new Bgra32(34, 0, 136, 0);
 
-            // act
-            bgra.ToBgra32(ref actual);
+        //    // act
+        //    bgra.ToBgra32(ref actual);
 
-            // assert
-            Assert.Equal(expected, actual);
-        }
+        //    // assert
+        //    Assert.Equal(expected, actual);
+        //}
 
-        [Fact]
-        public void Bgra4444_ToArgb32()
-        {
-            // arrange
-            var bgra = new Bgra4444(0.1f, -0.3f, 0.5f, -0.7f);
-            var actual = default(Argb32);
-            var expected = new Argb32(34, 0, 136, 0);
+        //[Fact]
+        //public void Bgra4444_ToArgb32()
+        //{
+        //    // arrange
+        //    var bgra = new Bgra4444(0.1f, -0.3f, 0.5f, -0.7f);
+        //    var actual = default(Argb32);
+        //    var expected = new Argb32(34, 0, 136, 0);
 
-            // act
-            bgra.ToArgb32(ref actual);
+        //    // act
+        //    bgra.ToArgb32(ref actual);
 
-            // assert
-            Assert.Equal(expected, actual);
-        }
+        //    // assert
+        //    Assert.Equal(expected, actual);
+        //}
 
-        [Fact]
-        public void Bgra4444_PackFromRgba32_ToRgba32()
-        {
-            // arrange
-            var bgra = default(Bgra4444);
-            var actual = default(Rgba32);
-            var expected = new Rgba32(34, 0, 136, 0);
+        //[Fact]
+        //public void Bgra4444_PackFromRgba32_ToRgba32()
+        //{
+        //    // arrange
+        //    var bgra = default(Bgra4444);
+        //    var actual = default(Rgba32);
+        //    var expected = new Rgba32(34, 0, 136, 0);
 
-            // act
-            bgra.PackFromRgba32(expected);
-            bgra.ToRgba32(ref actual);
+        //    // act
+        //    bgra.PackFromRgba32(expected);
+        //    bgra.ToRgba32(ref actual);
 
-            // assert
-            Assert.Equal(expected, actual);
-        }
+        //    // assert
+        //    Assert.Equal(expected, actual);
+        //}
 
-        [Fact]
-        public void Bgra4444_PackFromBgra32_ToBgra32()
-        {
-            // arrange
-            var bgra = default(Bgra4444);
-            var actual = default(Bgra32);
-            var expected = new Bgra32(34, 0, 136, 0);
+        //[Fact]
+        //public void Bgra4444_PackFromBgra32_ToBgra32()
+        //{
+        //    // arrange
+        //    var bgra = default(Bgra4444);
+        //    var actual = default(Bgra32);
+        //    var expected = new Bgra32(34, 0, 136, 0);
 
-            // act
-            bgra.PackFromBgra32(expected);
-            bgra.ToBgra32(ref actual);
+        //    // act
+        //    bgra.PackFromBgra32(expected);
+        //    bgra.ToBgra32(ref actual);
 
-            // assert
-            Assert.Equal(expected, actual);
-        }
+        //    // assert
+        //    Assert.Equal(expected, actual);
+        //}
 
-        [Fact]
-        public void Bgra4444_PackFromArgb32_ToArgb32()
-        {
-            // arrange
-            var bgra = default(Bgra4444);
-            var actual = default(Argb32);
-            var expected = new Argb32(34, 0, 136, 0);
+        //[Fact]
+        //public void Bgra4444_PackFromArgb32_ToArgb32()
+        //{
+        //    // arrange
+        //    var bgra = default(Bgra4444);
+        //    var actual = default(Argb32);
+        //    var expected = new Argb32(34, 0, 136, 0);
 
-            // act
-            bgra.PackFromArgb32(expected);
-            bgra.ToArgb32(ref actual);
+        //    // act
+        //    bgra.PackFromArgb32(expected);
+        //    bgra.ToArgb32(ref actual);
 
-            // assert
-            Assert.Equal(expected, actual);
-        }
+        //    // assert
+        //    Assert.Equal(expected, actual);
+        //}
 
-        [Fact]
-        public void Bgra4444_PackFromRgb48_ToRgb48()
-        {
-            // arrange
-            var input = default(Bgra4444);
-            var actual = default(Rgb48);
-            var expected = new Rgb48(65535, 0, 65535);
+        //[Fact]
+        //public void Bgra4444_PackFromRgb48_ToRgb48()
+        //{
+        //    // arrange
+        //    var input = default(Bgra4444);
+        //    var actual = default(Rgb48);
+        //    var expected = new Rgb48(65535, 0, 65535);
 
-            // act
-            input.PackFromRgb48(expected);
-            input.ToRgb48(ref actual);
+        //    // act
+        //    input.PackFromRgb48(expected);
+        //    input.ToRgb48(ref actual);
 
-            // assert
-            Assert.Equal(expected, actual);
-        }
+        //    // assert
+        //    Assert.Equal(expected, actual);
+        //}
 
-        [Fact]
-        public void Bgra4444_PackFromRgba64_ToRgba64()
-        {
-            // arrange
-            var input = default(Bgra4444);
-            var actual = default(Rgba64);
-            var expected = new Rgba64(65535, 0, 65535, 0);
+        //[Fact]
+        //public void Bgra4444_PackFromRgba64_ToRgba64()
+        //{
+        //    // arrange
+        //    var input = default(Bgra4444);
+        //    var actual = default(Rgba64);
+        //    var expected = new Rgba64(65535, 0, 65535, 0);
 
-            // act
-            input.PackFromRgba64(expected);
-            input.ToRgba64(ref actual);
+        //    // act
+        //    input.PackFromRgba64(expected);
+        //    input.ToRgba64(ref actual);
 
-            // assert
-            Assert.Equal(expected, actual);
-        }
+        //    // assert
+        //    Assert.Equal(expected, actual);
+        //}
     }
 }

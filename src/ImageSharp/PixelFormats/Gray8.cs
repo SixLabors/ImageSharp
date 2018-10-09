@@ -15,21 +15,6 @@ namespace SixLabors.ImageSharp.PixelFormats
     public struct Gray8 : IPixel<Gray8>, IPackedVector<byte>
     {
         /// <summary>
-        /// RX as in ITU-R recommendation 709 to match libpng
-        /// </summary>
-        private const float Rx = .2126F;
-
-        /// <summary>
-        /// GX as in ITU-R recommendation 709 to match libpng
-        /// </summary>
-        private const float Gx = .7152F;
-
-        /// <summary>
-        /// BX as in ITU-R recommendation 709 to match libpng
-        /// </summary>
-        private const float Bx = .0722F;
-
-        /// <summary>
         /// The maximum byte value.
         /// </summary>
         private static readonly Vector4 MaxBytes = new Vector4(255F);
@@ -42,8 +27,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <summary>
         /// Initializes a new instance of the <see cref="Gray8"/> struct.
         /// </summary>
-        /// <param name="gray">The gray component</param>
-        public Gray8(byte gray) => this.PackedValue = gray;
+        /// <param name="luminance">The luminance component.</param>
+        public Gray8(byte luminance) => this.PackedValue = luminance;
 
         /// <inheritdoc />
         public byte PackedValue { get; set; }
@@ -57,7 +42,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static bool operator ==(Gray8 left, Gray8 right) => left.PackedValue.Equals(right.PackedValue);
+        public static bool operator ==(Gray8 left, Gray8 right) => left.Equals(right);
 
         /// <summary>
         /// Compares two <see cref="Gray8"/> objects for equality.
@@ -68,7 +53,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static bool operator !=(Gray8 left, Gray8 right) => !left.PackedValue.Equals(right.PackedValue);
+        public static bool operator !=(Gray8 left, Gray8 right) => !left.Equals(right);
 
         /// <inheritdoc />
         public PixelOperations<Gray8> CreatePixelOperations() => new PixelOperations<Gray8>();
@@ -88,9 +73,8 @@ namespace SixLabors.ImageSharp.PixelFormats
             vector *= MaxBytes;
             vector += Half;
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
-            float luminance = (vector.X * Rx) + (vector.Y * Gx) + (vector.Z * Bx);
 
-            this.PackedValue = (byte)luminance;
+            this.PackedValue = ImageMaths.Get8BitBT709Luminance((byte)vector.X, (byte)vector.Y, (byte)vector.Z);
         }
 
         /// <inheritdoc />
@@ -101,91 +85,13 @@ namespace SixLabors.ImageSharp.PixelFormats
             return new Vector4(rgb, rgb, rgb, 1F);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgba32(Rgba32 source) => this.PackedValue = ImageMaths.GetBT709LuminanceBytes(source.R, source.G, source.B);
+        public void PackFromArgb32(Argb32 source) => this.PackedValue = ImageMaths.Get8BitBT709Luminance(source.R, source.G, source.B);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromArgb32(Argb32 source) => this.PackedValue = ImageMaths.GetBT709LuminanceBytes(source.R, source.G, source.B);
-
-        /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromBgra32(Bgra32 source) => this.PackedValue = ImageMaths.GetBT709LuminanceBytes(source.R, source.G, source.B);
-
-        /// <inheritdoc />
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToRgb24(ref Rgb24 dest)
-        {
-            dest.R = this.PackedValue;
-            dest.G = this.PackedValue;
-            dest.B = this.PackedValue;
-        }
-
-        /// <inheritdoc />
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToRgba32(ref Rgba32 dest)
-        {
-            dest.R = this.PackedValue;
-            dest.G = this.PackedValue;
-            dest.B = this.PackedValue;
-            dest.A = byte.MaxValue;
-        }
-
-        /// <inheritdoc />
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToArgb32(ref Argb32 dest)
-        {
-            dest.R = this.PackedValue;
-            dest.G = this.PackedValue;
-            dest.B = this.PackedValue;
-            dest.A = byte.MaxValue;
-        }
-
-        /// <inheritdoc />
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToBgr24(ref Bgr24 dest)
-        {
-            dest.R = this.PackedValue;
-            dest.G = this.PackedValue;
-            dest.B = this.PackedValue;
-        }
-
-        /// <inheritdoc />
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToBgra32(ref Bgra32 dest)
-        {
-            dest.R = this.PackedValue;
-            dest.G = this.PackedValue;
-            dest.B = this.PackedValue;
-            dest.A = byte.MaxValue;
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgb48(Rgb48 source)
-            => this.PackedValue = ImageMaths.GetBT709LuminanceBytes(
-                ImageMaths.DownScaleFrom16BitTo8Bit(source.R),
-                ImageMaths.DownScaleFrom16BitTo8Bit(source.G),
-                ImageMaths.DownScaleFrom16BitTo8Bit(source.B));
-
-        /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToRgb48(ref Rgb48 dest)
-        {
-            ushort luminance = ImageMaths.UpscaleFrom8BitTo16Bit(this.PackedValue);
-            dest.R = luminance;
-            dest.G = luminance;
-            dest.B = luminance;
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgba64(Rgba64 source)
-            => this.PackedValue = ImageMaths.GetBT709LuminanceBytes(
-                ImageMaths.DownScaleFrom16BitTo8Bit(source.R),
-                ImageMaths.DownScaleFrom16BitTo8Bit(source.G),
-                ImageMaths.DownScaleFrom16BitTo8Bit(source.B));
+        public void PackFromBgra32(Bgra32 source) => this.PackedValue = ImageMaths.Get8BitBT709Luminance(source.R, source.G, source.B);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -195,44 +101,38 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromGray16(Gray16 source) => this.PackedValue = ImageMaths.DownScaleFrom16BitTo8Bit(source.PackedValue);
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToRgba64(ref Rgba64 dest)
-        {
-            ushort luminance = ImageMaths.UpscaleFrom8BitTo16Bit(this.PackedValue);
-            dest.R = luminance;
-            dest.G = luminance;
-            dest.B = luminance;
-            dest.A = ushort.MaxValue;
-        }
+        public void PackFromRgba32(Rgba32 source) => this.PackedValue = ImageMaths.Get8BitBT709Luminance(source.R, source.G, source.B);
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public Rgba32 ToRgba32() => new Rgba32(this.PackedValue, this.PackedValue, this.PackedValue, byte.MaxValue);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToGray8(ref Gray8 dest) => dest.PackedValue = this.PackedValue;
+        public void PackFromRgb48(Rgb48 source)
+            => this.PackedValue = ImageMaths.Get8BitBT709Luminance(
+                ImageMaths.DownScaleFrom16BitTo8Bit(source.R),
+                ImageMaths.DownScaleFrom16BitTo8Bit(source.G),
+                ImageMaths.DownScaleFrom16BitTo8Bit(source.B));
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToGray16(ref Gray16 dest) => dest.PackedValue = ImageMaths.UpscaleFrom8BitTo16Bit(this.PackedValue);
+        public void PackFromRgba64(Rgba64 source)
+            => this.PackedValue = ImageMaths.Get8BitBT709Luminance(
+                ImageMaths.DownScaleFrom16BitTo8Bit(source.R),
+                ImageMaths.DownScaleFrom16BitTo8Bit(source.G),
+                ImageMaths.DownScaleFrom16BitTo8Bit(source.B));
 
-        /// <summary>
-        /// Compares an object with the packed vector.
-        /// </summary>
-        /// <param name="obj">The object to compare.</param>
-        /// <returns>True if the object is equal to the packed vector.</returns>
+        /// <inheritdoc />
         public override bool Equals(object obj) => obj is Gray8 other && this.Equals(other);
 
-        /// <summary>
-        /// Compares another <see cref="Gray8" /> packed vector with the packed vector.
-        /// </summary>
-        /// <param name="other">The Gray8 packed vector to compare.</param>
-        /// <returns>True if the packed vectors are equal.</returns>
+        /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(Gray8 other) => this.PackedValue.Equals(other.PackedValue);
 
-        /// <summary>
-        /// Gets a string representation of the packed vector.
-        /// </summary>
-        /// <returns>A string representation of the packed vector.</returns>
+        /// <inheritdoc />
         public override string ToString() => $"Gray8({this.PackedValue}";
 
         /// <inheritdoc />

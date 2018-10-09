@@ -101,9 +101,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             var fileHeader = new BmpFileHeader(
                 type: 19778, // BM
-                offset: 54,
+                fileSize: 54 + infoHeader.ImageSize,
                 reserved: 0,
-                fileSize: 54 + infoHeader.ImageSize);
+                offset: 54);
 
 #if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[40];

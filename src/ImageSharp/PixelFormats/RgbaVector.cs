@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.PixelFormats
 {
@@ -18,166 +18,59 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
+    [StructLayout(LayoutKind.Sequential)]
     public partial struct RgbaVector : IPixel<RgbaVector>
     {
         /// <summary>
-        /// The maximum byte value.
-        /// </summary>
-        private static readonly Vector4 MaxBytes = new Vector4(255);
-
-        /// <summary>
-        /// The half vector value.
-        /// </summary>
-        private static readonly Vector4 Half = new Vector4(0.5F);
-
-        /// <summary>
-        /// The backing vector for SIMD support.
-        /// </summary>
-        private Vector4 backingVector;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RgbaVector"/> struct.
-        /// </summary>
-        /// <param name="r">The red component.</param>
-        /// <param name="g">The green component.</param>
-        /// <param name="b">The blue component.</param>
-        /// <param name="a">The alpha component.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public RgbaVector(byte r, byte g, byte b, byte a = 255)
-            : this()
-        {
-            this.backingVector = new Vector4(r, g, b, a) / MaxBytes;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RgbaVector"/> struct.
-        /// </summary>
-        /// <param name="r">The red component.</param>
-        /// <param name="g">The green component.</param>
-        /// <param name="b">The blue component.</param>
-        /// <param name="a">The alpha component.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public RgbaVector(float r, float g, float b, float a = 1)
-            : this()
-        {
-            this.backingVector = new Vector4(r, g, b, a);
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RgbaVector"/> struct.
-        /// </summary>
-        /// <param name="vector">
-        /// The vector containing the components for the packed vector.
-        /// </param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public RgbaVector(Vector3 vector)
-            : this()
-        {
-            this.backingVector = new Vector4(vector, 1);
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RgbaVector"/> struct.
-        /// </summary>
-        /// <param name="vector">
-        /// The vector containing the components for the packed vector.
-        /// </param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public RgbaVector(Vector4 vector)
-            : this()
-        {
-            this.backingVector = vector;
-        }
-
-        /// <summary>
         /// Gets or sets the red component.
         /// </summary>
-        public float R
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return this.backingVector.X;
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set
-            {
-                this.backingVector.X = value;
-            }
-        }
+        public float R;
 
         /// <summary>
         /// Gets or sets the green component.
         /// </summary>
-        public float G
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return this.backingVector.Y;
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set
-            {
-                this.backingVector.Y = value;
-            }
-        }
+        public float G;
 
         /// <summary>
         /// Gets or sets the blue component.
         /// </summary>
-        public float B
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return this.backingVector.Z;
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set
-            {
-                this.backingVector.Z = value;
-            }
-        }
+        public float B;
 
         /// <summary>
         /// Gets or sets the alpha component.
         /// </summary>
-        public float A
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return this.backingVector.W;
-            }
+        public float A;
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set
-            {
-                this.backingVector.W = value;
-            }
+        private const float MaxBytes = byte.MaxValue;
+        private static readonly Vector4 Max = new Vector4(MaxBytes);
+        private static readonly Vector4 Half = new Vector4(0.5F);
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RgbaVector"/> struct.
+        /// </summary>
+        /// <param name="r">The red component.</param>
+        /// <param name="g">The green component.</param>
+        /// <param name="b">The blue component.</param>
+        /// <param name="a">The alpha component.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public RgbaVector(float r, float g, float b, float a = 1)
+        {
+            this.R = r;
+            this.G = g;
+            this.B = b;
+            this.A = a;
         }
 
         /// <summary>
         /// Compares two <see cref="RgbaVector"/> objects for equality.
         /// </summary>
-        /// <param name="left">
-        /// The <see cref="RgbaVector"/> on the left side of the operand.
-        /// </param>
-        /// <param name="right">
-        /// The <see cref="RgbaVector"/> on the right side of the operand.
-        /// </param>
+        /// <param name="left">The <see cref="RgbaVector"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="RgbaVector"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator ==(RgbaVector left, RgbaVector right)
-        {
-            return left.backingVector == right.backingVector;
-        }
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static bool operator ==(RgbaVector left, RgbaVector right) => left.Equals(right);
 
         /// <summary>
         /// Compares two <see cref="RgbaVector"/> objects for equality.
@@ -187,11 +80,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(RgbaVector left, RgbaVector right)
-        {
-            return left.backingVector != right.backingVector;
-        }
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static bool operator !=(RgbaVector left, RgbaVector right) => !left.Equals(right);
 
         /// <summary>
         /// Creates a new instance of the <see cref="RgbaVector"/> struct.
@@ -203,34 +93,65 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>
         /// The <see cref="RgbaVector"/>.
         /// </returns>
-        public static RgbaVector FromHex(string hex)
-        {
-            return ColorBuilder<RgbaVector>.FromHex(hex);
-        }
+        public static RgbaVector FromHex(string hex) => ColorBuilder<RgbaVector>.FromHex(hex);
 
         /// <inheritdoc />
-        public PixelOperations<RgbaVector> CreatePixelOperations() => new RgbaVector.PixelOperations();
+        public PixelOperations<RgbaVector> CreatePixelOperations() => new PixelOperations<RgbaVector>();
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromRgba32(Rgba32 source)
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromScaledVector4(Vector4 vector) => this.PackFromVector4(vector);
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public Vector4 ToScaledVector4() => this.ToVector4();
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromVector4(Vector4 vector)
         {
-            this.backingVector = source.ToVector4();
+            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One);
+            this.R = vector.X;
+            this.G = vector.Y;
+            this.B = vector.Z;
+            this.A = vector.W;
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromArgb32(Argb32 source)
-        {
-            this.backingVector = source.ToVector4();
-        }
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromBgra32(Bgra32 source)
-        {
-            this.backingVector = source.ToVector4();
-        }
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromArgb32(Argb32 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromBgra32(Bgra32 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromGray8(Gray8 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromGray16(Gray16 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromRgba32(Rgba32 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public Rgba32 ToRgba32() => new Rgba32(this.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromRgb48(Rgb48 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromRgba64(Rgba64 source) => this.PackFromScaledVector4(source.ToScaledVector4());
 
         /// <summary>
         /// Converts the value of this instance to a hexadecimal string.
@@ -239,154 +160,36 @@ namespace SixLabors.ImageSharp.PixelFormats
         public string ToHex()
         {
             // Hex is RRGGBBAA
-            Vector4 vector = this.backingVector * MaxBytes;
+            Vector4 vector = this.ToVector4() * Max;
             vector += Half;
             uint hexOrder = (uint)((byte)vector.W | (byte)vector.Z << 8 | (byte)vector.Y << 16 | (byte)vector.X << 24);
             return hexOrder.ToString("X8");
         }
 
-        /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToRgb24(ref Rgb24 dest)
-        {
-            Vector4 vector = this.ToByteScaledVector4();
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
-            dest.B = (byte)MathF.Round(vector.Z);
-        }
-
-        /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToRgba32(ref Rgba32 dest)
-        {
-            Vector4 vector = this.ToByteScaledVector4();
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
-            dest.B = (byte)MathF.Round(vector.Z);
-            dest.A = (byte)MathF.Round(vector.W);
-        }
-
-        /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToArgb32(ref Argb32 dest)
-        {
-            Vector4 vector = this.ToByteScaledVector4();
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
-            dest.B = (byte)MathF.Round(vector.Z);
-            dest.A = (byte)MathF.Round(vector.W);
-        }
-
-        /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToBgr24(ref Bgr24 dest)
-        {
-            Vector4 vector = this.ToByteScaledVector4();
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
-            dest.B = (byte)MathF.Round(vector.Z);
-        }
-
-        /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToBgra32(ref Bgra32 dest)
-        {
-            Vector4 vector = this.ToByteScaledVector4();
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
-            dest.B = (byte)MathF.Round(vector.Z);
-            dest.A = (byte)MathF.Round(vector.W);
-        }
-
-        /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromGray8(Gray8 source) => this.PackFromScaledVector4(source.ToScaledVector4());
-
-        /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToGray8(ref Gray8 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
-
-        /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromGray16(Gray16 source) => this.PackFromScaledVector4(source.ToScaledVector4());
-
-        /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToGray16(ref Gray16 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+        /// <inheritdoc/>
+        public override bool Equals(object obj) => obj is RgbaVector other && this.Equals(other);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromRgb48(Rgb48 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public bool Equals(RgbaVector other) =>
+            this.R.Equals(other.R)
+            && this.G.Equals(other.G)
+            && this.B.Equals(other.B)
+            && this.A.Equals(other.A);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToRgb48(ref Rgb48 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromRgba64(Rgba64 source) => this.PackFromScaledVector4(source.ToScaledVector4());
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToRgba64(ref Rgba64 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromScaledVector4(Vector4 vector)
-        {
-            this.PackFromVector4(vector);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector4 ToScaledVector4()
-        {
-            return this.ToVector4();
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromVector4(Vector4 vector)
-        {
-            this.backingVector = vector;
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector4 ToVector4()
-        {
-            return this.backingVector;
-        }
-
-        /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is RgbaVector other && this.Equals(other);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(RgbaVector other)
-        {
-            return this.backingVector == other.backingVector;
-        }
-
-        /// <summary>
-        /// Gets a string representation of the packed vector.
-        /// </summary>
-        /// <returns>A string representation of the packed vector.</returns>
         public override string ToString()
         {
-            return this.ToVector4().ToString();
+            var vector = this.ToVector4();
+            return $"RgbaVector({this.R:#0.##}, {this.G:#0.##}, {this.B:#0.##}, {this.A:#0.##})";
         }
 
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return this.backingVector.GetHashCode();
+            int hash = HashHelpers.Combine(this.R.GetHashCode(), this.G.GetHashCode());
+            hash = HashHelpers.Combine(hash, this.B.GetHashCode());
+            return HashHelpers.Combine(hash, this.A.GetHashCode());
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Vector4 ToByteScaledVector4() => Vector4.Clamp(this.backingVector, Vector4.Zero, Vector4.One) * MaxBytes;
     }
 }

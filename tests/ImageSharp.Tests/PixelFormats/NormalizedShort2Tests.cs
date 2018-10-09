@@ -70,128 +70,128 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Assert.Equal(expected, actual);
         }
 
-        [Fact]
-        public void NormalizedShort2_PackFromRgba32_ToRgb24()
-        {
-            // arrange
-            var actual = default(Rgb24);
-            var short2 = new NormalizedShort2();
-            var rgba = new Rgba32(141, 90, 0, 0);
-            var expected = new Rgb24(141, 90, 0);
+        //[Fact]
+        //public void NormalizedShort2_PackFromRgba32_ToRgb24()
+        //{
+        //    // arrange
+        //    var actual = default(Rgb24);
+        //    var short2 = new NormalizedShort2();
+        //    var rgba = new Rgba32(141, 90, 0, 0);
+        //    var expected = new Rgb24(141, 90, 0);
 
-            // act
-            short2.PackFromRgba32(rgba);
-            short2.ToRgb24(ref actual);
+        //    // act
+        //    short2.PackFromRgba32(rgba);
+        //    short2.ToRgb24(ref actual);
 
-            // assert
-            Assert.Equal(expected, actual);
-        }
+        //    // assert
+        //    Assert.Equal(expected, actual);
+        //}
 
-        [Fact]
-        public void NormalizedShort2_ToRgb24()
-        {
-            // arrange
-            var short2 = new NormalizedShort2(0.1f, -0.3f);
-            var actual = default(Rgb24);
-            var expected = new Rgb24(141, 90, 0);
+        //[Fact]
+        //public void NormalizedShort2_ToRgb24()
+        //{
+        //    // arrange
+        //    var short2 = new NormalizedShort2(0.1f, -0.3f);
+        //    var actual = default(Rgb24);
+        //    var expected = new Rgb24(141, 90, 0);
 
-            // act
-            short2.ToRgb24(ref actual);
+        //    // act
+        //    short2.ToRgb24(ref actual);
 
-            // assert
-            Assert.Equal(expected, actual);
-        }
+        //    // assert
+        //    Assert.Equal(expected, actual);
+        //}
 
-        [Fact]
-        public void NormalizedShort2_ToRgba32()
-        {
-            // arrange
-            var short2 = new NormalizedShort2(0.1f, -0.3f);
-            var actual = default(Rgba32);
-            var expected = new Rgba32(141, 90, 0, 255);
+        //[Fact]
+        //public void NormalizedShort2_ToRgba32()
+        //{
+        //    // arrange
+        //    var short2 = new NormalizedShort2(0.1f, -0.3f);
+        //    var actual = default(Rgba32);
+        //    var expected = new Rgba32(141, 90, 0, 255);
 
-            // act
-            short2.ToRgba32(ref actual);
+        //    // act
+        //    short2.ToRgba32(ref actual);
 
-            // assert
-            Assert.Equal(expected, actual);
-        }
+        //    // assert
+        //    Assert.Equal(expected, actual);
+        //}
 
-        [Fact]
-        public void NormalizedShort2_ToBgr24()
-        {
-            // arrange
-            var short2 = new NormalizedShort2(0.1f, -0.3f);
-            var actual = default(Bgr24);
-            var expected = new Bgr24(141, 90, 0);
+        //[Fact]
+        //public void NormalizedShort2_ToBgr24()
+        //{
+        //    // arrange
+        //    var short2 = new NormalizedShort2(0.1f, -0.3f);
+        //    var actual = default(Bgr24);
+        //    var expected = new Bgr24(141, 90, 0);
 
-            // act
-            short2.ToBgr24(ref actual);
+        //    // act
+        //    short2.ToBgr24(ref actual);
 
-            // assert
-            Assert.Equal(expected, actual);
-        }
+        //    // assert
+        //    Assert.Equal(expected, actual);
+        //}
 
-        [Fact]
-        public void NormalizedShort2_ToBgra32()
-        {
-            // arrange
-            var short2 = new NormalizedShort2(0.1f, -0.3f);
-            var actual = default(Bgra32);
-            var expected = new Bgra32(141, 90, 0, 255);
+        //[Fact]
+        //public void NormalizedShort2_ToBgra32()
+        //{
+        //    // arrange
+        //    var short2 = new NormalizedShort2(0.1f, -0.3f);
+        //    var actual = default(Bgra32);
+        //    var expected = new Bgra32(141, 90, 0, 255);
 
-            // act
-            short2.ToBgra32(ref actual);
+        //    // act
+        //    short2.ToBgra32(ref actual);
 
-            // assert
-            Assert.Equal(expected, actual);
-        }
+        //    // assert
+        //    Assert.Equal(expected, actual);
+        //}
 
-        [Fact]
-        public void NormalizedShort2_ToArgb32()
-        {
-            // arrange
-            var short2 = new NormalizedShort2(0.1f, -0.3f);
-            var actual = default(Argb32);
-            var expected = new Argb32(141, 90, 0, 255);
+        //[Fact]
+        //public void NormalizedShort2_ToArgb32()
+        //{
+        //    // arrange
+        //    var short2 = new NormalizedShort2(0.1f, -0.3f);
+        //    var actual = default(Argb32);
+        //    var expected = new Argb32(141, 90, 0, 255);
 
-            // act
-            short2.ToArgb32(ref actual);
+        //    // act
+        //    short2.ToArgb32(ref actual);
 
-            // assert
-            Assert.Equal(expected, actual);
-        }
+        //    // assert
+        //    Assert.Equal(expected, actual);
+        //}
 
-        [Fact]
-        public void NormalizedShort2_PackFromRgb48_ToRgb48()
-        {
-            // arrange
-            var input = default(NormalizedShort2);
-            var actual = default(Rgb48);
-            var expected = new Rgb48(65535, 65535, 0);
+        //[Fact]
+        //public void NormalizedShort2_PackFromRgb48_ToRgb48()
+        //{
+        //    // arrange
+        //    var input = default(NormalizedShort2);
+        //    var actual = default(Rgb48);
+        //    var expected = new Rgb48(65535, 65535, 0);
 
-            // act
-            input.PackFromRgb48(expected);
-            input.ToRgb48(ref actual);
+        //    // act
+        //    input.PackFromRgb48(expected);
+        //    input.ToRgb48(ref actual);
 
-            // assert
-            Assert.Equal(expected, actual);
-        }
+        //    // assert
+        //    Assert.Equal(expected, actual);
+        //}
 
-        [Fact]
-        public void NormalizedShort2_PackFromRgba64_ToRgba64()
-        {
-            // arrange
-            var input = default(NormalizedShort2);
-            var actual = default(Rgba64);
-            var expected = new Rgba64(65535, 65535, 0, 65535);
+        //[Fact]
+        //public void NormalizedShort2_PackFromRgba64_ToRgba64()
+        //{
+        //    // arrange
+        //    var input = default(NormalizedShort2);
+        //    var actual = default(Rgba64);
+        //    var expected = new Rgba64(65535, 65535, 0, 65535);
 
-            // act
-            input.PackFromRgba64(expected);
-            input.ToRgba64(ref actual);
+        //    // act
+        //    input.PackFromRgba64(expected);
+        //    input.ToRgba64(ref actual);
 
-            // assert
-            Assert.Equal(expected, actual);
-        }
+        //    // assert
+        //    Assert.Equal(expected, actual);
+        //}
     }
 }

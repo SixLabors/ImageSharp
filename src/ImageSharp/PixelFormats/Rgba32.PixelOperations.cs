@@ -5,7 +5,6 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.PixelFormats
 {
@@ -146,16 +145,10 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void ToScaledVector4(ReadOnlySpan<Rgba32> sourceColors, Span<Vector4> destinationVectors, int count)
-            {
-                this.ToVector4(sourceColors, destinationVectors, count);
-            }
+            internal override void ToScaledVector4(ReadOnlySpan<Rgba32> sourceColors, Span<Vector4> destinationVectors, int count) => this.ToVector4(sourceColors, destinationVectors, count);
 
             /// <inheritdoc />
-            internal override void PackFromScaledVector4(ReadOnlySpan<Vector4> sourceVectors, Span<Rgba32> destinationColors, int count)
-            {
-                this.PackFromVector4(sourceVectors, destinationColors, count);
-            }
+            internal override void PackFromScaledVector4(ReadOnlySpan<Vector4> sourceVectors, Span<Rgba32> destinationColors, int count) => this.PackFromVector4(sourceVectors, destinationColors, count);
 
             /// <inheritdoc />
             internal override void PackFromRgba32(ReadOnlySpan<Rgba32> source, Span<Rgba32> destPixels, int count)
@@ -187,13 +180,13 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 private uint a;
 
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                [MethodImpl(InliningOptions.ShortMethod)]
                 public void Load(uint p)
                 {
                     this.r = p;
-                    this.g = p >> GreenShift;
-                    this.b = p >> BlueShift;
-                    this.a = p >> AlphaShift;
+                    this.g = p >> 8;
+                    this.b = p >> 16;
+                    this.a = p >> 24;
                 }
             }
         }

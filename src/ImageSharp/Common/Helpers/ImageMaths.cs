@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -13,6 +14,31 @@ namespace SixLabors.ImageSharp
     /// </summary>
     internal static class ImageMaths
     {
+        /// <summary>
+        /// Determine the Greatest CommonDivisor (GCD) of two numbers.
+        /// </summary>
+        public static int GreatestCommonDivisor(int a, int b)
+        {
+            while (b != 0)
+            {
+                int temp = b;
+                b = a % b;
+                a = temp;
+            }
+
+            return a;
+        }
+
+        /// <summary>
+        /// Determine the Least Common Multiple (LCM) of two numbers.
+        /// TODO: This method might be useful for building a more compact <see cref="Processing.Processors.Transforms.KernelMap"/>
+        /// </summary>
+        public static int LeastCommonMultiple(int a, int b)
+        {
+            // https://en.wikipedia.org/wiki/Least_common_multiple#Reduction_by_the_greatest_common_divisor
+            return (a / GreatestCommonDivisor(a, b)) * b;
+        }
+
         /// <summary>
         /// Returns the absolute value of a 32-bit signed integer. Uses bit shifting to speed up the operation.
         /// </summary>

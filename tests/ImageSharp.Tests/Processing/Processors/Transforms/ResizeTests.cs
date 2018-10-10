@@ -11,14 +11,15 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
 
 using Xunit;
+
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
     public class ResizeTests : FileTestBase
     {
         public static readonly string[] CommonTestImages = { TestImages.Png.CalliphoraPartial };
 
-        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.069F);
-
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.07F);
+        
         public static readonly TheoryData<string, IResampler> AllReSamplers =
             new TheoryData<string, IResampler>
             {
@@ -52,8 +53,28 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 FormattableString details = $"{name}-{ratio.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
 
                 image.DebugSave(provider, details);
-                image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.005f), provider, details);
+                image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.02f), provider, details);
             }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType, 1)]
+        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType, 4)]
+        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType, 8)]
+        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType, -1)]
+        public void Resize_WorksWithAllParallelismLevels<TPixel>(TestImageProvider<TPixel> provider, int maxDegreeOfParallelism)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            provider.Configuration.MaxDegreeOfParallelism =
+                maxDegreeOfParallelism > 0 ? maxDegreeOfParallelism : Environment.ProcessorCount;
+
+            FormattableString details = $"MDP{maxDegreeOfParallelism}";
+
+            provider.RunValidatingProcessorTest(
+                x => x.Resize(x.GetCurrentSize() / 2),
+                details,
+                appendPixelTypeToFileName: false,
+                appendSourceFileOrDescription: false);
         }
 
         [Theory]
@@ -75,15 +96,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void Resize_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2, true));
-
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
-            }
+            provider.RunValidatingProcessorTest(x => x.Resize(x.GetCurrentSize() / 2), comparer: ValidatorComparer);
         }
-
 
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
@@ -105,20 +119,21 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             }
         }
 
-
         [Theory]
-        [WithFile(TestImages.Png.Kaboom, DefaultPixelType)]
-        public void Resize_DoesNotBleedAlphaPixels<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFile(TestImages.Png.Kaboom, DefaultPixelType, false)]
+        [WithFile(TestImages.Png.Kaboom, DefaultPixelType, true)]
+        public void Resize_DoesNotBleedAlphaPixels<TPixel>(TestImageProvider<TPixel> provider, bool compand)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
-            }
-        }
+            string details = compand ? "Compand" : "";
 
+            provider.RunValidatingProcessorTest(
+                x => x.Resize(x.GetCurrentSize() / 2, compand),
+                details,
+                appendPixelTypeToFileName: false,
+                appendSourceFileOrDescription: false);
+        }
+        
         [Theory]
         [WithFile(TestImages.Gif.Giphy, DefaultPixelType)]
         public void Resize_IsAppliedToAllFrames<TPixel>(TestImageProvider<TPixel> provider)

@@ -283,10 +283,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 {
                     // it's diagonal, so for any (a, a) on the gradient line, for all (a-x, b+x) - +/- depending on the diagonal direction - must be the same color)
                     TPixel colorOnDiagonal = image[i, i];
+                    
+                    // TODO: This is incorrect. from -0 to < 0 ??
                     int orthoCount = 0;
                     for (int offset = -orthoCount; offset < orthoCount; offset++)
                     {
-                        Assert.Equal(colorOnDiagonal, image[i + horizontalSign * offset, i + verticalSign * offset]);
+                        Assert.Equal(colorOnDiagonal, image[i + (horizontalSign * offset), i + (verticalSign * offset)]);
                     }
                 }
 
@@ -302,8 +304,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Theory]
         [WithBlankImages(500, 500, PixelTypes.Rgba32, 0, 0, 499, 499, new[] { 0f, .2f, .5f, .9f }, new[] { 0, 0, 1, 1 })]
         [WithBlankImages(500, 500, PixelTypes.Rgba32, 0, 499, 499, 0, new[] { 0f, 0.2f, 0.5f, 0.9f }, new[] { 0, 1, 2, 3 })]
-        [WithBlankImages(500, 500, PixelTypes.Rgba32, 499, 499, 0, 0, new[] { 0f, 0.7f, 0.8f, 0.9f}, new[] { 0, 1, 2, 0 })]
-        [WithBlankImages(500, 500, PixelTypes.Rgba32, 0, 0, 499, 499, new[] { 0f, .5f, 1f}, new[]{0, 1, 3})]
+        [WithBlankImages(500, 500, PixelTypes.Rgba32, 499, 499, 0, 0, new[] { 0f, 0.7f, 0.8f, 0.9f }, new[] { 0, 1, 2, 0 })]
+        [WithBlankImages(500, 500, PixelTypes.Rgba32, 0, 0, 499, 499, new[] { 0f, .5f, 1f }, new[] { 0, 1, 3 })]
         public void ArbitraryGradients<TPixel>(
             TestImageProvider<TPixel> provider,
             int startX, int startY,
@@ -312,35 +314,36 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             int[] stopColorCodes)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel[] colors = {
-                                 NamedColors<TPixel>.Navy, NamedColors<TPixel>.LightGreen, NamedColors<TPixel>.Yellow,
-                                 NamedColors<TPixel>.Red
-                             };
+            TPixel[] colors =
+            {
+                NamedColors<TPixel>.Navy, NamedColors<TPixel>.LightGreen, NamedColors<TPixel>.Yellow,
+                NamedColors<TPixel>.Red
+            };
 
             var coloringVariant = new StringBuilder();
-            ColorStop<TPixel>[] colorStops = new ColorStop<TPixel>[stopPositions.Length];
+            var colorStops = new ColorStop<TPixel>[stopPositions.Length];
             for (int i = 0; i < stopPositions.Length; i++)
             {
                 TPixel color = colors[stopColorCodes[i % colors.Length]];
                 float position = stopPositions[i];
 
                 colorStops[i] = new ColorStop<TPixel>(position, color);
-                coloringVariant.AppendFormat(CultureInfo.InvariantCulture, "{0}@{1};", color, position);
+                coloringVariant.AppendFormat(CultureInfo.InvariantCulture, "{0}@{1};", color.ToRgba32().ToHex(), position);
             }
 
             FormattableString variant = $"({startX},{startY})_TO_({endX},{endY})__[{coloringVariant}]";
 
             provider.VerifyOperation(
                 image =>
-                    {
-                        var unicolorLinearGradientBrush = new LinearGradientBrush<TPixel>(
-                            new SixLabors.Primitives.Point(startX, startY),
-                            new SixLabors.Primitives.Point(endX, endY),
-                            GradientRepetitionMode.None,
-                            colorStops);
+                {
+                    var unicolorLinearGradientBrush = new LinearGradientBrush<TPixel>(
+                        new SixLabors.Primitives.Point(startX, startY),
+                        new SixLabors.Primitives.Point(endX, endY),
+                        GradientRepetitionMode.None,
+                        colorStops);
 
-                        image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
-                    },
+                    image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
+                },
                 variant,
                 false,
                 false);

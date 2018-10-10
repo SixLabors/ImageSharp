@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {
     /// <summary>
     /// Represents the chromaticity coordinates of RGB primaries.
-    /// One of the specifiers of <see cref="RgbWorkingSpace"/>.
+    /// One of the specifiers of <see cref="RgbWorkingSpaceBase"/>.
     /// </summary>
     public readonly struct RgbPrimariesChromaticityCoordinates : IEquatable<RgbPrimariesChromaticityCoordinates>
     {

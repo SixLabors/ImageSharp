@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Collections.Generic;
 using System.Numerics;
 
@@ -20,11 +19,9 @@ namespace SixLabors.ImageSharp.Tests
         /// Initializes a new instance of the <see cref="ApproximateFloatComparer"/> class.
         /// </summary>
         /// <param name="epsilon">The comparison error difference epsilon to use.</param>
-        public ApproximateFloatComparer(float epsilon = 1f)
-        {
-            this.Epsilon = epsilon;
-        }
+        public ApproximateFloatComparer(float epsilon = 1f) => this.Epsilon = epsilon;
 
+        /// <inheritdoc/>
         public bool Equals(float x, float y)
         {
             float d = x - y;
@@ -32,19 +29,13 @@ namespace SixLabors.ImageSharp.Tests
             return d >= -this.Epsilon && d <= this.Epsilon;
         }
 
-        public int GetHashCode(float obj)
-        {
-            return obj.GetHashCode();
-        }
+        /// <inheritdoc/>
+        public int GetHashCode(float obj) => obj.GetHashCode();
 
-        public bool Equals(Vector4 x, Vector4 y)
-        {
-            return this.Equals(x.X, y.X) && this.Equals(x.Y, y.Y) && this.Equals(x.Z, y.Z) && this.Equals(x.W, y.W);
-        }
+        /// <inheritdoc/>
+        public bool Equals(Vector4 x, Vector4 y) => this.Equals(x.X, y.X) && this.Equals(x.Y, y.Y) && this.Equals(x.Z, y.Z) && this.Equals(x.W, y.W);
 
-        public int GetHashCode(Vector4 obj)
-        {
-            return obj.GetHashCode();
-        }
+        /// <inheritdoc/>
+        public int GetHashCode(Vector4 obj) => obj.GetHashCode();
     }
 }

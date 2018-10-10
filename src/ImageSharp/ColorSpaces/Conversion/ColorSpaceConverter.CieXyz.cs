@@ -470,7 +470,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="workingSpace">The source working space</param>
         /// <returns>The <see cref="LinearRgbToCieXyzConverter"/></returns>
-        private LinearRgbToCieXyzConverter GetLinearRgbToCieXyzConverter(RgbWorkingSpace workingSpace)
+        private LinearRgbToCieXyzConverter GetLinearRgbToCieXyzConverter(RgbWorkingSpaceBase workingSpace)
         {
             if (this.linearRgbToCieXyzConverter?.SourceWorkingSpace.Equals(workingSpace) == true)
             {

@@ -14,7 +14,7 @@
 
         private static readonly RGBColor RGBColor = new RGBColor(0.206162, 0.260277, 0.746717, RGBWorkingSpaces.WideGamutRGB);
 
-        private static readonly ColorSpaceConverter ColorSpaceConverter = new ColorSpaceConverter { TargetRgbWorkingSpace = RgbWorkingSpaces.SRgb };
+        private static readonly ColorSpaceConverter ColorSpaceConverter = new ColorSpaceConverter(new ColorSpaceConverterOptions { TargetRgbWorkingSpace = RgbWorkingSpaces.SRgb });
 
         private static readonly ColourfulConverter ColourfulConverter = new ColourfulConverter { TargetRGBWorkingSpace = RGBWorkingSpaces.sRGB };
 

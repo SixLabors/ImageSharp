@@ -5,7 +5,7 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
@@ -55,8 +55,10 @@ namespace SixLabors.ImageSharp
             for (int i = 0; i < vectors.Length; i++)
             {
                 ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
-                var s = new Vector4(v.W);
-                s.W = 1;
+                var s = new Vector4(v.W)
+                {
+                    W = 1
+                };
                 v *= s;
             }
         }
@@ -73,8 +75,10 @@ namespace SixLabors.ImageSharp
             for (int i = 0; i < vectors.Length; i++)
             {
                 ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
-                var s = new Vector4(1 / v.W);
-                s.W = 1;
+                var s = new Vector4(1 / v.W)
+                {
+                    W = 1
+                };
                 v *= s;
             }
         }
@@ -90,7 +94,11 @@ namespace SixLabors.ImageSharp
         public static Vector4 Compress(this Vector4 linear)
         {
             // TODO: Is there a faster way to do this?
-            return new Vector4(Compress(linear.X), Compress(linear.Y), Compress(linear.Z), linear.W);
+            return new Vector4(
+                SRgbCompanding.Compress(linear.X),
+                SRgbCompanding.Compress(linear.Y),
+                SRgbCompanding.Compress(linear.Z),
+                linear.W);
         }
 
         /// <summary>
@@ -104,7 +112,11 @@ namespace SixLabors.ImageSharp
         public static Vector4 Expand(this Vector4 gamma)
         {
             // TODO: Is there a faster way to do this?
-            return new Vector4(Expand(gamma.X), Expand(gamma.Y), Expand(gamma.Z), gamma.W);
+            return new Vector4(
+                SRgbCompanding.Expand(gamma.X),
+                SRgbCompanding.Expand(gamma.Y),
+                SRgbCompanding.Expand(gamma.Z),
+                gamma.W);
         }
 
         /// <summary>
@@ -118,9 +130,9 @@ namespace SixLabors.ImageSharp
             for (int i = 0; i < vectors.Length; i++)
             {
                 ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
-                v.X = Compress(v.X);
-                v.Y = Compress(v.Y);
-                v.Z = Compress(v.Z);
+                v.X = SRgbCompanding.Compress(v.X);
+                v.Y = SRgbCompanding.Compress(v.Y);
+                v.Z = SRgbCompanding.Compress(v.Z);
             }
         }
 
@@ -135,50 +147,10 @@ namespace SixLabors.ImageSharp
             for (int i = 0; i < vectors.Length; i++)
             {
                 ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
-                v.X = Expand(v.X);
-                v.Y = Expand(v.Y);
-                v.Z = Expand(v.Z);
+                v.X = SRgbCompanding.Expand(v.X);
+                v.Y = SRgbCompanding.Expand(v.Y);
+                v.Z = SRgbCompanding.Expand(v.Z);
             }
-        }
-
-        /// <summary>
-        /// Gets the compressed sRGB value from an linear signal.
-        /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
-        /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
-        /// </summary>
-        /// <param name="signal">The signal value to compress.</param>
-        /// <returns>
-        /// The <see cref="float"/>.
-        /// </returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static float Compress(float signal)
-        {
-            if (signal <= 0.0031308F)
-            {
-                return signal * 12.92F;
-            }
-
-            return (1.055F * MathF.Pow(signal, 0.41666666F)) - 0.055F;
-        }
-
-        /// <summary>
-        /// Gets the expanded linear value from an sRGB signal.
-        /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
-        /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
-        /// </summary>
-        /// <param name="signal">The signal value to expand.</param>
-        /// <returns>
-        /// The <see cref="float"/>.
-        /// </returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static float Expand(float signal)
-        {
-            if (signal <= 0.04045F)
-            {
-                return signal / 12.92F;
-            }
-
-            return MathF.Pow((signal + 0.055F) / 1.055F, 2.4F);
         }
     }
 }

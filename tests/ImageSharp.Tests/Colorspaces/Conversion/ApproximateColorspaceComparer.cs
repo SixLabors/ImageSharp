@@ -27,7 +27,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         IEqualityComparer<YCbCr>,
         IEqualityComparer<CieXyChromaticityCoordinates>,
         IEqualityComparer<RgbPrimariesChromaticityCoordinates>,
-        IEqualityComparer<RgbWorkingSpace>
+        IEqualityComparer<GammaWorkingSpace>,
+        IEqualityComparer<RgbWorkingSpaceBase>
     {
         private readonly float Epsilon;
 
@@ -205,20 +206,30 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         public int GetHashCode(RgbPrimariesChromaticityCoordinates obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
-        public bool Equals(RgbWorkingSpace x, RgbWorkingSpace y)
+        public bool Equals(GammaWorkingSpace x, GammaWorkingSpace y)
         {
-            if (x is RgbWorkingSpace g1 && y is RgbWorkingSpace g2)
+            if (x is GammaWorkingSpace g1 && y is GammaWorkingSpace g2)
             {
-                return this.Equals(g1.WhitePoint, g2.WhitePoint)
+                return this.Equals(g1.Gamma, g2.Gamma)
+                    && this.Equals(g1.WhitePoint, g2.WhitePoint)
                     && this.Equals(g1.ChromaticityCoordinates, g2.ChromaticityCoordinates);
             }
 
+            return false;
+        }
+
+        /// <inheritdoc/>
+        public int GetHashCode(GammaWorkingSpace obj) => obj.GetHashCode();
+
+        /// <inheritdoc/>
+        public bool Equals(RgbWorkingSpaceBase x, RgbWorkingSpaceBase y)
+        {
             return this.Equals(x.WhitePoint, y.WhitePoint)
                 && this.Equals(x.ChromaticityCoordinates, y.ChromaticityCoordinates);
         }
 
         /// <inheritdoc/>
-        public int GetHashCode(RgbWorkingSpace obj) => obj.GetHashCode();
+        public int GetHashCode(RgbWorkingSpaceBase obj) => obj.GetHashCode();
 
         private bool Equals(float x, float y)
         {

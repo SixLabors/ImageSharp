@@ -1,151 +1,130 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
     /// <content>
     /// Performs chromatic adaptation on the various color spaces.
     /// </content>
-    internal partial class ColorSpaceConverter
+    public partial class ColorSpaceConverter
     {
         /// <summary>
         /// Performs chromatic adaptation of given <see cref="CieXyz"/> color.
-        /// Target white point is <see cref="WhitePoint"/>.
+        /// Target white point is <see cref="ColorSpaceConverterOptions.WhitePoint"/>.
         /// </summary>
         /// <param name="color">The color to adapt</param>
-        /// <param name="sourceWhitePoint">The white point to adapt for</param>
+        /// <param name="sourceWhitePoint">The source white point.</param>
         /// <returns>The adapted color</returns>
-        public CieXyz Adapt(in CieXyz color, in CieXyz sourceWhitePoint)
+        public CieXyz Adapt(in CieXyz color, in CieXyz sourceWhitePoint) => this.Adapt(color, sourceWhitePoint, this.whitePoint);
+
+        /// <summary>
+        /// Performs chromatic adaptation of given <see cref="CieXyz"/> color.
+        /// Target white point is <see cref="ColorSpaceConverterOptions.WhitePoint"/>.
+        /// </summary>
+        /// <param name="color">The color to adapt</param>
+        /// <param name="sourceWhitePoint">The source white point.</param>
+        /// <param name="targetWhitePoint">The target white point.</param>
+        /// <returns>The adapted color</returns>
+        public CieXyz Adapt(in CieXyz color, in CieXyz sourceWhitePoint, in CieXyz targetWhitePoint)
         {
-            if (!this.IsChromaticAdaptationPerformed)
+            if (!this.performChromaticAdaptation || sourceWhitePoint.Equals(targetWhitePoint))
             {
-                throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
+                return color;
             }
 
-            return this.ChromaticAdaptation.Transform(color, sourceWhitePoint, this.WhitePoint);
+            return this.chromaticAdaptation.Transform(color, sourceWhitePoint, targetWhitePoint);
         }
 
         /// <summary>
-        /// Adapts <see cref="CieLab"/> color from the source white point to white point set in <see cref="TargetLabWhitePoint"/>.
+        /// Adapts <see cref="CieLab"/> color from the source white point to white point set in <see cref="ColorSpaceConverterOptions.TargetLabWhitePoint"/>.
         /// </summary>
         /// <param name="color">The color to adapt</param>
         /// <returns>The adapted color</returns>
         public CieLab Adapt(in CieLab color)
         {
-            if (!this.IsChromaticAdaptationPerformed)
-            {
-                throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
-            }
-
-            if (color.WhitePoint.Equals(this.TargetLabWhitePoint))
+            if (!this.performChromaticAdaptation || color.WhitePoint.Equals(this.targetLabWhitePoint))
             {
                 return color;
             }
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToCieLab(xyzColor);
         }
 
         /// <summary>
-        /// Adapts <see cref="CieLch"/> color from the source white point to white point set in <see cref="TargetLabWhitePoint"/>.
+        /// Adapts <see cref="CieLch"/> color from the source white point to white point set in <see cref="ColorSpaceConverterOptions.TargetLabWhitePoint"/>.
         /// </summary>
         /// <param name="color">The color to adapt</param>
         /// <returns>The adapted color</returns>
         public CieLch Adapt(in CieLch color)
         {
-            if (!this.IsChromaticAdaptationPerformed)
-            {
-                throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
-            }
-
-            if (color.WhitePoint.Equals(this.TargetLabWhitePoint))
+            if (!this.performChromaticAdaptation || color.WhitePoint.Equals(this.targetLabWhitePoint))
             {
                 return color;
             }
 
-            CieLab labColor = this.ToCieLab(color);
+            var labColor = this.ToCieLab(color);
             return this.ToCieLch(labColor);
         }
 
         /// <summary>
-        /// Adapts <see cref="CieLchuv"/> color from the source white point to white point set in <see cref="TargetLabWhitePoint"/>.
+        /// Adapts <see cref="CieLchuv"/> color from the source white point to white point set in <see cref="ColorSpaceConverterOptions.TargetLabWhitePoint"/>.
         /// </summary>
         /// <param name="color">The color to adapt</param>
         /// <returns>The adapted color</returns>
         public CieLchuv Adapt(in CieLchuv color)
         {
-            if (!this.IsChromaticAdaptationPerformed)
-            {
-                throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
-            }
-
-            if (color.WhitePoint.Equals(this.TargetLabWhitePoint))
+            if (!this.performChromaticAdaptation || color.WhitePoint.Equals(this.targetLabWhitePoint))
             {
                 return color;
             }
 
-            CieLuv luvColor = this.ToCieLuv(color);
+            var luvColor = this.ToCieLuv(color);
             return this.ToCieLchuv(luvColor);
         }
 
         /// <summary>
-        /// Adapts <see cref="CieLuv"/> color from the source white point to white point set in <see cref="TargetLuvWhitePoint"/>.
+        /// Adapts <see cref="CieLuv"/> color from the source white point to white point set in <see cref="ColorSpaceConverterOptions.TargetLuvWhitePoint"/>.
         /// </summary>
         /// <param name="color">The color to adapt</param>
         /// <returns>The adapted color</returns>
         public CieLuv Adapt(in CieLuv color)
         {
-            if (!this.IsChromaticAdaptationPerformed)
-            {
-                throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
-            }
-
-            if (color.WhitePoint.Equals(this.TargetLuvWhitePoint))
+            if (!this.performChromaticAdaptation || color.WhitePoint.Equals(this.targetLuvWhitePoint))
             {
                 return color;
             }
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
         }
 
         /// <summary>
-        /// Adapts <see cref="HunterLab"/> color from the source white point to white point set in <see cref="TargetHunterLabWhitePoint"/>.
+        /// Adapts <see cref="HunterLab"/> color from the source white point to white point set in <see cref="ColorSpaceConverterOptions.TargetHunterLabWhitePoint"/>.
         /// </summary>
         /// <param name="color">The color to adapt</param>
         /// <returns>The adapted color</returns>
         public HunterLab Adapt(in HunterLab color)
         {
-            if (!this.IsChromaticAdaptationPerformed)
-            {
-                throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
-            }
-
-            if (color.WhitePoint.Equals(this.TargetHunterLabWhitePoint))
+            if (!this.performChromaticAdaptation || color.WhitePoint.Equals(this.targetHunterLabWhitePoint))
             {
                 return color;
             }
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
 
         /// <summary>
-        /// Adapts a <see cref="LinearRgb"/> color from the source working space to working space set in <see cref="TargetRgbWorkingSpace"/>.
+        /// Adapts a <see cref="LinearRgb"/> color from the source working space to working space set in <see cref="ColorSpaceConverterOptions.TargetRgbWorkingSpace"/>.
         /// </summary>
         /// <param name="color">The color to adapt</param>
         /// <returns>The adapted color</returns>
         public LinearRgb Adapt(in LinearRgb color)
         {
-            if (!this.IsChromaticAdaptationPerformed)
-            {
-                throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
-            }
-
-            if (color.WorkingSpace.Equals(this.TargetRgbWorkingSpace))
+            if (!this.performChromaticAdaptation || color.WorkingSpace.Equals(this.targetRgbWorkingSpace))
             {
                 return color;
             }
@@ -155,21 +134,25 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             CieXyz unadapted = converterToXYZ.Convert(color);
 
             // Adaptation
-            CieXyz adapted = this.ChromaticAdaptation.Transform(unadapted, color.WorkingSpace.WhitePoint, this.TargetRgbWorkingSpace.WhitePoint);
+            CieXyz adapted = this.chromaticAdaptation.Transform(unadapted, color.WorkingSpace.WhitePoint, this.targetRgbWorkingSpace.WhitePoint);
 
             // Conversion back to RGB
-            CieXyzToLinearRgbConverter converterToRGB = this.GetCieXyxToLinearRgbConverter(this.TargetRgbWorkingSpace);
-            return converterToRGB.Convert(adapted);
+            return this.cieXyzToLinearRgbConverter.Convert(adapted);
         }
 
         /// <summary>
-        /// Adapts an <see cref="Rgb"/> color from the source working space to working space set in <see cref="TargetRgbWorkingSpace"/>.
+        /// Adapts an <see cref="Rgb"/> color from the source working space to working space set in <see cref="ColorSpaceConverterOptions.TargetRgbWorkingSpace"/>.
         /// </summary>
         /// <param name="color">The color to adapt</param>
         /// <returns>The adapted color</returns>
         public Rgb Adapt(in Rgb color)
         {
-            LinearRgb linearInput = this.ToLinearRgb(color);
+            if (!this.performChromaticAdaptation)
+            {
+                return color;
+            }
+
+            var linearInput = this.ToLinearRgb(color);
             LinearRgb linearOutput = this.Adapt(linearInput);
             return this.ToRgb(linearOutput);
         }

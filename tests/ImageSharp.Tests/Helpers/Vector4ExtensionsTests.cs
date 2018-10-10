@@ -70,7 +70,5 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 
             Assert.Equal(expected, source, new ApproximateFloatComparer(1e-6f));
         }
-
-
     }
 }

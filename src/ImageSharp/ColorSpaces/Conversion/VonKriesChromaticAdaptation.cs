@@ -1,8 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Numerics;
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.LmsColorSapce;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
@@ -13,7 +16,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     /// Transformation described here:
     /// http://www.brucelindbloom.com/index.html?Eqn_ChromAdapt.html
     /// </remarks>
-    internal class VonKriesChromaticAdaptation : IChromaticAdaptation
+    public class VonKriesChromaticAdaptation : IChromaticAdaptation
     {
         private readonly CieXyzAndLmsConverter converter;
 
@@ -41,27 +44,54 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// Initializes a new instance of the <see cref="VonKriesChromaticAdaptation"/> class.
         /// </summary>
         /// <param name="converter">The color converter</param>
-        public VonKriesChromaticAdaptation(CieXyzAndLmsConverter converter)
+        internal VonKriesChromaticAdaptation(CieXyzAndLmsConverter converter) => this.converter = converter;
+
+        /// <inheritdoc/>
+        public CieXyz Transform(in CieXyz source, in CieXyz sourceWhitePoint, in CieXyz destinationWhitePoint)
         {
-            this.converter = converter;
+            if (sourceWhitePoint.Equals(destinationWhitePoint))
+            {
+                return source;
+            }
+
+            Lms sourceColorLms = this.converter.Convert(source);
+            Lms sourceWhitePointLms = this.converter.Convert(sourceWhitePoint);
+            Lms targetWhitePointLms = this.converter.Convert(destinationWhitePoint);
+
+            Vector3 vector = targetWhitePointLms.ToVector3() / sourceWhitePointLms.ToVector3();
+            var targetColorLms = new Lms(Vector3.Multiply(vector, sourceColorLms.ToVector3()));
+
+            return this.converter.Convert(targetColorLms);
         }
 
         /// <inheritdoc/>
-        public CieXyz Transform(in CieXyz sourceColor, in CieXyz sourceWhitePoint, in CieXyz targetWhitePoint)
+        public void Transform(Span<CieXyz> source, Span<CieXyz> destination, CieXyz sourceWhitePoint, in CieXyz destinationWhitePoint, int count)
         {
-            if (sourceWhitePoint.Equals(targetWhitePoint))
+            Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
+
+            if (sourceWhitePoint.Equals(destinationWhitePoint))
             {
-                return sourceColor;
+                source.CopyTo(destination.Slice(0, count));
+                return;
             }
 
-            Lms sourceColorLms = this.converter.Convert(sourceColor);
-            Lms sourceWhitePointLms = this.converter.Convert(sourceWhitePoint);
-            Lms targetWhitePointLms = this.converter.Convert(targetWhitePoint);
+            ref CieXyz sourceRef = ref MemoryMarshal.GetReference(source);
+            ref CieXyz destRef = ref MemoryMarshal.GetReference(destination);
 
-            var vector = new Vector3(targetWhitePointLms.L / sourceWhitePointLms.L, targetWhitePointLms.M / sourceWhitePointLms.M, targetWhitePointLms.S / sourceWhitePointLms.S);
-            var targetColorLms = new Lms(Vector3.Multiply(vector, sourceColorLms.Vector));
+            for (int i = 0; i < count; i++)
+            {
+                ref CieXyz sp = ref Unsafe.Add(ref sourceRef, i);
+                ref CieXyz dp = ref Unsafe.Add(ref destRef, i);
 
-            return this.converter.Convert(targetColorLms);
+                Lms sourceColorLms = this.converter.Convert(sp);
+                Lms sourceWhitePointLms = this.converter.Convert(sourceWhitePoint);
+                Lms targetWhitePointLms = this.converter.Convert(destinationWhitePoint);
+
+                Vector3 vector = targetWhitePointLms.ToVector3() / sourceWhitePointLms.ToVector3();
+                var targetColorLms = new Lms(Vector3.Multiply(vector, sourceColorLms.ToVector3()));
+
+                dp = this.converter.Convert(targetColorLms);
+            }
         }
     }
 }

@@ -18,38 +18,51 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         [Fact]
         public void Rec2020CompandingIsCorrect()
         {
-            CompandingIsCorrectImpl(new Rec2020Companding(), .667F, .4484759F, .3937096F);
+            const float input = .667F;
+            float e = Rec2020Companding.Expand(input);
+            float c = Rec2020Companding.Compress(e);
+            CompandingIsCorrectImpl(e, c, .4484759F, .3937096F);
         }
 
         [Fact]
         public void Rec709CompandingIsCorrect()
         {
-            CompandingIsCorrectImpl(new Rec709Companding(), .667F, .4483577F, .3937451F);
+            const float input = .667F;
+            float e = Rec709Companding.Expand(input);
+            float c = Rec709Companding.Compress(e);
+            CompandingIsCorrectImpl(e, c, .4483577F, .3937451F);
         }
 
         [Fact]
         public void SRgbCompandingIsCorrect()
         {
-            CompandingIsCorrectImpl(new SRgbCompanding(), .667F, .40242353F, .667F);
+            const float input = .667F;
+            float e = SRgbCompanding.Expand(input);
+            float c = SRgbCompanding.Compress(e);
+            CompandingIsCorrectImpl(e, c, .40242353F, .667F);
         }
 
         [Fact]
         public void GammaCompandingIsCorrect()
         {
-            CompandingIsCorrectImpl(new GammaCompanding(2.2F), .667F, .41027668F, .667F);
+            const float gamma = 2.2F;
+            const float input = .667F;
+            float e = GammaCompanding.Expand(input, gamma);
+            float c = GammaCompanding.Compress(e, gamma);
+            CompandingIsCorrectImpl(e, c, .41027668F, .667F);
         }
 
         [Fact]
         public void LCompandingIsCorrect()
         {
-            CompandingIsCorrectImpl(new LCompanding(), .667F, .36236193F, .58908917F);
+            const float input = .667F;
+            float e = LCompanding.Expand(input);
+            float c = LCompanding.Compress(e);
+            CompandingIsCorrectImpl(e, c, .36236193F, .58908917F);
         }
 
-        private static void CompandingIsCorrectImpl(ICompanding companding, float input, float expanded, float compressed)
+        private static void CompandingIsCorrectImpl(float e, float c, float expanded, float compressed)
         {
-            float e = companding.Expand(input);
-            float c = companding.Compress(e);
-
             Assert.Equal(expanded, e, FloatComparer);
             Assert.Equal(compressed, c, FloatComparer);
         }

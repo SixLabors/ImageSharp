@@ -35,6 +35,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         [FieldOffset(2)]
         public byte B;
 
+        private static readonly Vector4 MaxBytes = new Vector4(byte.MaxValue);
+        private static readonly Vector4 Half = new Vector4(0.5F);
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgb24"/> struct.
         /// </summary>
@@ -47,6 +50,22 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.R = r;
             this.G = g;
             this.B = b;
+        }
+
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="ColorSpaces.Rgb"/> to a
+        /// <see cref="Rgb24"/>.
+        /// </summary>
+        /// <param name="color">The instance of <see cref="ColorSpaces.Rgb"/> to convert.</param>
+        /// <returns>An instance of <see cref="Rgb24"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static implicit operator Rgb24(ColorSpaces.Rgb color)
+        {
+            var vector = new Vector4(color.ToVector3(), 1F);
+
+            Rgb24 rgb = default;
+            rgb.PackFromScaledVector4(vector);
+            return rgb;
         }
 
         /// <summary>
@@ -84,12 +103,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromVector4(Vector4 vector)
-        {
-            Rgba32 rgba = default;
-            rgba.PackFromVector4(vector);
-            this.PackFromRgba32(rgba);
-        }
+        public void PackFromVector4(Vector4 vector) => this.Pack(ref vector);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -175,5 +189,21 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         public override string ToString() => $"Rgb24({this.R}, {this.G}, {this.B})";
+
+        /// <summary>
+        /// Packs a <see cref="Vector4"/> into a color.
+        /// </summary>
+        /// <param name="vector">The vector containing the values to pack.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private void Pack(ref Vector4 vector)
+        {
+            vector *= MaxBytes;
+            vector += Half;
+            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
+
+            this.R = (byte)vector.X;
+            this.G = (byte)vector.Y;
+            this.B = (byte)vector.Z;
+        }
     }
 }

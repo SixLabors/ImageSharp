@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// Descriptions taken from:
     /// http://en.wikipedia.org/wiki/Standard_illuminant
     /// </remarks>
-    internal static class Illuminants
+    public static class Illuminants
     {
         /// <summary>
         /// Incandescent / Tungsten

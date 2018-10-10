@@ -41,34 +41,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         public byte A;
 
-        /// <summary>
-        /// The shift count for the red component
-        /// </summary>
-        private const int RedShift = 0;
-
-        /// <summary>
-        /// The shift count for the green component
-        /// </summary>
-        private const int GreenShift = 8;
-
-        /// <summary>
-        /// The shift count for the blue component
-        /// </summary>
-        private const int BlueShift = 16;
-
-        /// <summary>
-        /// The shift count for the alpha component
-        /// </summary>
-        private const int AlphaShift = 24;
-
-        /// <summary>
-        /// The maximum byte value.
-        /// </summary>
-        private static readonly Vector4 MaxBytes = new Vector4(255);
-
-        /// <summary>
-        /// The half vector value.
-        /// </summary>
+        private static readonly Vector4 MaxBytes = new Vector4(byte.MaxValue);
         private static readonly Vector4 Half = new Vector4(0.5F);
 
         /// <summary>
@@ -192,6 +165,22 @@ namespace SixLabors.ImageSharp.PixelFormats
 
             [MethodImpl(InliningOptions.ShortMethod)]
             set => this.Rgba = value;
+        }
+
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="ColorSpaces.Rgb"/> to a
+        /// <see cref="Rgba32"/>.
+        /// </summary>
+        /// <param name="color">The instance of <see cref="ColorSpaces.Rgb"/> to convert.</param>
+        /// <returns>An instance of <see cref="Rgba32"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static implicit operator Rgba32(ColorSpaces.Rgb color)
+        {
+            var vector = new Vector4(color.ToVector3(), 1F);
+
+            Rgba32 rgba = default;
+            rgba.PackFromScaledVector4(vector);
+            return rgba;
         }
 
         /// <summary>

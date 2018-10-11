@@ -7,7 +7,6 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
@@ -216,18 +215,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                         for (int xx = 0, i = minX; i <= maxX; i++, xx++)
                                         {
                                             float xWeight = Unsafe.Add(ref xSpanRef, xx);
-                                            var vector = source[i, j].ToVector4();
 
                                             // Values are first premultiplied to prevent darkening of edge pixels
-                                            Vector4 multiplied = vector.Premultiply();
-                                            sum += multiplied * xWeight * yWeight;
+                                            sum += Vector4Utils.Premultiply(source[i, j].ToVector4()) * xWeight * yWeight;
                                         }
                                     }
 
                                     ref TPixel dest = ref Unsafe.Add(ref destRowRef, x);
 
                                     // Reverse the premultiplication
-                                    dest.PackFromVector4(sum.UnPremultiply());
+                                    dest.PackFromVector4(Vector4Utils.UnPremultiply(sum));
                                 }
                             }
                         });
@@ -242,9 +239,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <returns>
         /// The <see cref="Matrix4x4"/>.
         /// </returns>
-        protected virtual Matrix4x4 GetProcessingMatrix(Rectangle sourceRectangle, Rectangle destinationRectangle)
-        {
-            return this.TransformMatrix;
-        }
+        protected virtual Matrix4x4 GetProcessingMatrix(Rectangle sourceRectangle, Rectangle destinationRectangle) => this.TransformMatrix;
     }
 }

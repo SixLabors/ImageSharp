@@ -3,14 +3,11 @@
 
 using System;
 using System.Numerics;
-using System.Threading.Tasks;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
-using SixLabors.ImageSharp.Processing.Processors;
-using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
@@ -114,13 +111,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                                         offsetX = offsetX.Clamp(0, maxX);
 
-                                        Vector4 currentColor = row[offsetX].ToVector4().Premultiply();
+                                        Vector4 currentColor = Vector4Utils.Premultiply(row[offsetX].ToVector4());
                                         destination += kernel[fy, fx] * currentColor;
                                     }
                                 }
 
                                 ref TPixel pixel = ref targetRow[x];
-                                pixel.PackFromVector4(destination.UnPremultiply());
+                                pixel.PackFromVector4(Vector4Utils.UnPremultiply(destination));
                             }
                         }
                     });

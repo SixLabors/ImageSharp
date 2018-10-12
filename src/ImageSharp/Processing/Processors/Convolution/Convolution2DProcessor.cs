@@ -25,6 +25,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <param name="kernelY">The vertical gradient operator.</param>
         public Convolution2DProcessor(DenseMatrix<float> kernelX, DenseMatrix<float> kernelY)
         {
+            Guard.IsTrue(kernelX.Size.Equals(kernelY.Size), $"{nameof(kernelX)} {nameof(kernelY)}", "Kernel sizes must be the same.");
             this.KernelX = kernelX;
             this.KernelY = kernelY;
         }

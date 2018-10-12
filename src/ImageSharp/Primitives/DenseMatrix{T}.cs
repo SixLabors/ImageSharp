@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Primitives
 {
@@ -32,6 +33,11 @@ namespace SixLabors.ImageSharp.Primitives
         public readonly int Rows;
 
         /// <summary>
+        /// Gets the size of the dense matrix.
+        /// </summary>
+        public readonly Size Size;
+
+        /// <summary>
         /// Gets the number of items in the array.
         /// </summary>
         public readonly int Count;
@@ -57,6 +63,7 @@ namespace SixLabors.ImageSharp.Primitives
 
             this.Rows = rows;
             this.Columns = columns;
+            this.Size = new Size(columns, rows);
             this.Count = columns * rows;
             this.Data = new T[this.Columns * this.Rows];
         }
@@ -76,6 +83,7 @@ namespace SixLabors.ImageSharp.Primitives
 
             this.Rows = rows;
             this.Columns = columns;
+            this.Size = new Size(columns, rows);
             this.Count = this.Columns * this.Rows;
             this.Data = new T[this.Columns * this.Rows];
 

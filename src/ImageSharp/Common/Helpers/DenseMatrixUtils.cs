@@ -42,6 +42,7 @@ namespace SixLabors.ImageSharp
             int matrixWidth = matrix.Columns;
             int radiusY = matrixHeight >> 1;
             int radiusX = matrixWidth >> 1;
+            int sourceOffsetColumnBase = column + offsetColumn;
 
             for (int y = 0; y < matrixHeight; y++)
             {
@@ -50,11 +51,11 @@ namespace SixLabors.ImageSharp
 
                 for (int x = 0; x < matrixWidth; x++)
                 {
-                    int offsetX = (column + offsetColumn + x - radiusX).Clamp(offsetColumn, maxColumn);
+                    int offsetX = (sourceOffsetColumnBase + x - radiusX).Clamp(offsetColumn, maxColumn);
                     var currentColor = sourceRowSpan[offsetX].ToVector4();
                     Vector4Utils.Premultiply(ref currentColor);
-                    currentColor *= matrix[y, x];
-                    vector += currentColor;
+
+                    vector += matrix[y, x] * currentColor;
                 }
             }
 
@@ -91,33 +92,25 @@ namespace SixLabors.ImageSharp
         {
             Vector4 vectorY = default;
             Vector4 vectorX = default;
-            int matrixYHeight = matrixY.Rows;
-            int matrixYWidth = matrixY.Columns;
-            int matrixXHeight = matrixX.Rows;
-            int matrixXWidth = matrixX.Columns;
-            int radiusY = matrixYHeight >> 1;
-            int radiusX = matrixXWidth >> 1;
+            int matrixHeight = matrixY.Rows;
+            int matrixWidth = matrixY.Columns;
+            int radiusY = matrixHeight >> 1;
+            int radiusX = matrixWidth >> 1;
+            int sourceOffsetColumnBase = column + offsetColumn;
 
-            for (int y = 0; y < matrixYHeight; y++)
+            for (int y = 0; y < matrixHeight; y++)
             {
                 int offsetY = (row + y - radiusY).Clamp(0, maxRow);
                 Span<TPixel> sourceRowSpan = sourcePixels.GetRowSpan(offsetY);
 
-                for (int x = 0; x < matrixXWidth; x++)
+                for (int x = 0; x < matrixWidth; x++)
                 {
-                    int offsetX = (column + offsetColumn + x - radiusX).Clamp(offsetColumn, maxColumn);
+                    int offsetX = (sourceOffsetColumnBase + x - radiusX).Clamp(offsetColumn, maxColumn);
                     var currentColor = sourceRowSpan[offsetX].ToVector4();
                     Vector4Utils.Premultiply(ref currentColor);
 
-                    if (y < matrixXHeight)
-                    {
-                        vectorX += matrixX[y, x] * currentColor;
-                    }
-
-                    if (x < matrixYWidth)
-                    {
-                        vectorY += matrixY[y, x] * currentColor;
-                    }
+                    vectorX += matrixX[y, x] * currentColor;
+                    vectorY += matrixY[y, x] * currentColor;
                 }
             }
 

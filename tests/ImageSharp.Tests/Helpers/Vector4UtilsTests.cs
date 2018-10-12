@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         {
             var rnd = new Random(42);
             Vector4[] source = rnd.GenerateRandomVectorArray(length, 0, 1);
-            Vector4[] expected = source.Select(v => Vector4Utils.Premultiply(v)).ToArray();
+            Vector4[] expected = source.Select(v => { Vector4Utils.Premultiply(ref v); return v; }).ToArray();
 
             Vector4Utils.Premultiply(source);
 
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         {
             var rnd = new Random(42);
             Vector4[] source = rnd.GenerateRandomVectorArray(length, 0, 1);
-            Vector4[] expected = source.Select(v => Vector4Utils.UnPremultiply(v)).ToArray();
+            Vector4[] expected = source.Select(v => { Vector4Utils.UnPremultiply(ref v); return v; }).ToArray();
 
             Vector4Utils.UnPremultiply(source);
 

@@ -182,13 +182,13 @@ namespace SixLabors.ImageSharp.Primitives
         }
 
         /// <inheritdoc/>
-        public bool Equals(DenseMatrix<T> other) =>
-            this.Columns == other.Columns &&
-            this.Rows == other.Rows &&
-            this.Span.SequenceEqual(other.Span);
+        public override bool Equals(object obj) => obj is DenseMatrix<T> other && this.Equals(other);
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => obj is DenseMatrix<T> other && this.Equals(other);
+        public bool Equals(DenseMatrix<T> other) =>
+            this.Columns == other.Columns
+            && this.Rows == other.Rows
+            && this.Span.SequenceEqual(other.Span);
 
         /// <inheritdoc/>
         public override int GetHashCode() => this.Data.GetHashCode();

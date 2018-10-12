@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.ColorSpaces.Companding;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
@@ -257,13 +258,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                 Span<Vector4> tempRowSpan = tempRowBuffer.Span;
 
                                 PixelOperations<TPixel>.Instance.ToVector4(sourceRow, tempRowSpan, sourceRow.Length);
-                                Vector4Extensions.Premultiply(tempRowSpan);
+                                Vector4Utils.Premultiply(tempRowSpan);
 
                                 ref Vector4 firstPassBaseRef = ref firstPassPixelsTransposed.Span[y];
 
                                 if (this.Compand)
                                 {
-                                    Vector4Extensions.Expand(tempRowSpan);
+                                    SRgbCompanding.Expand(tempRowSpan);
                                 }
 
                                 for (int x = minX; x < maxX; x++)
@@ -300,11 +301,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                     Unsafe.Add(ref tempRowBase, x) = window.Convolve(firstPassColumn, sourceY);
                                 }
 
-                                Vector4Extensions.UnPremultiply(tempRowSpan);
+                                Vector4Utils.UnPremultiply(tempRowSpan);
 
                                 if (this.Compand)
                                 {
-                                    Vector4Extensions.Compress(tempRowSpan);
+                                    SRgbCompanding.Compress(tempRowSpan);
                                 }
 
                                 Span<TPixel> targetRowSpan = destination.GetPixelRowSpan(y);

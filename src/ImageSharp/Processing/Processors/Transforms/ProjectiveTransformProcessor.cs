@@ -217,14 +217,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                             float xWeight = Unsafe.Add(ref xSpanRef, xx);
 
                                             // Values are first premultiplied to prevent darkening of edge pixels
-                                            sum += Vector4Utils.Premultiply(source[i, j].ToVector4()) * xWeight * yWeight;
+                                            var current = source[i, j].ToVector4();
+                                            Vector4Utils.Premultiply(ref current);
+                                            sum += current * xWeight * yWeight;
                                         }
                                     }
 
                                     ref TPixel dest = ref Unsafe.Add(ref destRowRef, x);
 
                                     // Reverse the premultiplication
-                                    dest.PackFromVector4(Vector4Utils.UnPremultiply(sum));
+                                    Vector4Utils.UnPremultiply(ref sum);
+                                    dest.PackFromVector4(sum);
                                 }
                             }
                         });

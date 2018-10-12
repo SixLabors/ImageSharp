@@ -3,8 +3,6 @@
 
 using System;
 using System.Numerics;
-
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
@@ -47,89 +45,43 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             Rectangle sourceRectangle,
             Configuration configuration)
         {
-            int kernelYHeight = this.KernelY.Rows;
-            int kernelYWidth = this.KernelY.Columns;
-            int kernelXHeight = this.KernelX.Rows;
-            int kernelXWidth = this.KernelX.Columns;
-            int radiusY = kernelYHeight >> 1;
-            int radiusX = kernelXWidth >> 1;
+            DenseMatrix<float> matrixY = this.KernelY;
+            DenseMatrix<float> matrixX = this.KernelX;
 
-            int startY = sourceRectangle.Y;
-            int endY = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
+            var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+            int startY = interest.Y;
+            int endY = interest.Bottom;
+            int startX = interest.X;
+            int endX = interest.Right;
             int maxY = endY - 1;
             int maxX = endX - 1;
 
-            using (Buffer2D<TPixel> targetPixels =
-                configuration.MemoryAllocator.Allocate2D<TPixel>(source.Width, source.Height))
+            using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Width, source.Height))
             {
                 source.CopyTo(targetPixels);
 
                 var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
+                int width = workingRectangle.Width;
 
-                ParallelHelper.IterateRows(
+                ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
                     workingRectangle,
                     configuration,
-                    rows =>
+                    (rows, vectorBuffer) =>
                         {
+                            Span<Vector4> vectorSpan = vectorBuffer.Span;
+                            int length = vectorSpan.Length;
+
                             for (int y = rows.Min; y < rows.Max; y++)
                             {
-                                Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
-                                Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
+                                Span<TPixel> targetRowSpan = targetPixels.GetRowSpan(y).Slice(startX);
+                                PixelOperations<TPixel>.Instance.ToVector4(targetRowSpan, vectorSpan, length);
 
-                                for (int x = startX; x < endX; x++)
+                                for (int x = 0; x < width; x++)
                                 {
-                                    float rX = 0;
-                                    float gX = 0;
-                                    float bX = 0;
-                                    float rY = 0;
-                                    float gY = 0;
-                                    float bY = 0;
-
-                                    // Apply each matrix multiplier to the color components for each pixel.
-                                    for (int fy = 0; fy < kernelYHeight; fy++)
-                                    {
-                                        int fyr = fy - radiusY;
-                                        int offsetY = y + fyr;
-
-                                        offsetY = offsetY.Clamp(0, maxY);
-                                        Span<TPixel> sourceOffsetRow = source.GetPixelRowSpan(offsetY);
-
-                                        for (int fx = 0; fx < kernelXWidth; fx++)
-                                        {
-                                            int fxr = fx - radiusX;
-                                            int offsetX = x + fxr;
-
-                                            offsetX = offsetX.Clamp(0, maxX);
-                                            Vector4 currentColor = Vector4Utils.Premultiply(sourceOffsetRow[offsetX].ToVector4());
-
-                                            if (fy < kernelXHeight)
-                                            {
-                                                Vector4 kx = this.KernelX[fy, fx] * currentColor;
-                                                rX += kx.X;
-                                                gX += kx.Y;
-                                                bX += kx.Z;
-                                            }
-
-                                            if (fx < kernelYWidth)
-                                            {
-                                                Vector4 ky = this.KernelY[fy, fx] * currentColor;
-                                                rY += ky.X;
-                                                gY += ky.Y;
-                                                bY += ky.Z;
-                                            }
-                                        }
-                                    }
-
-                                    float red = MathF.Sqrt((rX * rX) + (rY * rY));
-                                    float green = MathF.Sqrt((gX * gX) + (gY * gY));
-                                    float blue = MathF.Sqrt((bX * bX) + (bY * bY));
-
-                                    ref TPixel pixel = ref targetRow[x];
-                                    pixel.PackFromVector4(
-                                      Vector4Utils.UnPremultiply(new Vector4(red, green, blue, sourceRow[x].ToVector4().W)));
+                                    DenseMatrixUtils.Convolve2D(in matrixY, in matrixX, source.PixelBuffer, vectorSpan, y, x, maxY, maxX, startX);
                                 }
+
+                                PixelOperations<TPixel>.Instance.PackFromVector4(vectorSpan, targetRowSpan, length);
                             }
                         });
 

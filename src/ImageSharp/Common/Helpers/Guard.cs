@@ -242,5 +242,49 @@ namespace SixLabors.ImageSharp
                 throw new ArgumentException($"Span-s must be at least of length {minLength}!", parameterName);
             }
         }
+
+        /// <summary>
+        /// Verifies that the given 'source' and 'dest' spans are at least of 'minLength' size.
+        /// Throwing an <see cref="ArgumentException"/> if the condition is not met.
+        /// </summary>
+        /// <typeparam name="TSource">The source element type</typeparam>
+        /// <typeparam name="TDest">The destination element type</typeparam>
+        /// <param name="source">The source span</param>
+        /// <param name="sourceParamName">The source parameter name</param>
+        /// <param name="dest">The destination span</param>
+        /// <param name="destParamName">The destination parameter name</param>
+        /// <param name="minLength">The minimum length</param>
+        public static void SpansMustBeSizedAtLeast<TSource, TDest>(
+            Span<TSource> source,
+            string sourceParamName,
+            Span<TDest> dest,
+            string destParamName,
+            int minLength)
+        {
+            MustBeSizedAtLeast(source, minLength, sourceParamName);
+            MustBeSizedAtLeast(dest, minLength, destParamName);
+        }
+
+        /// <summary>
+        /// Verifies that the given 'source' and 'dest' spans are at least of 'minLength' size.
+        /// Throwing an <see cref="ArgumentException"/> if the condition is not met.
+        /// </summary>
+        /// <typeparam name="TSource">The source element type</typeparam>
+        /// <typeparam name="TDest">The destination element type</typeparam>
+        /// <param name="source">The source span</param>
+        /// <param name="sourceParamName">The source parameter name</param>
+        /// <param name="dest">The destination span</param>
+        /// <param name="destParamName">The destination parameter name</param>
+        /// <param name="minLength">The minimum length</param>
+        public static void SpansMustBeSizedAtLeast<TSource, TDest>(
+            ReadOnlySpan<TSource> source,
+            string sourceParamName,
+            Span<TDest> dest,
+            string destParamName,
+            int minLength)
+        {
+            MustBeSizedAtLeast(source, minLength, sourceParamName);
+            MustBeSizedAtLeast(dest, minLength, destParamName);
+        }
     }
 }

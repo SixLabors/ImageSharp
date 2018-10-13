@@ -3,6 +3,7 @@
 
 using System;
 using SixLabors.ImageSharp.Primitives;
+using SixLabors.Primitives;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Primitives
@@ -59,6 +60,7 @@ namespace SixLabors.ImageSharp.Tests.Primitives
             Assert.True(dense.Rows == FloydSteinbergMatrix.GetLength(0));
             Assert.Equal(3, dense.Columns);
             Assert.Equal(2, dense.Rows);
+            Assert.Equal(new Size(3, 2), dense.Size);
         }
 
         [Fact]

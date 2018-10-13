@@ -319,13 +319,14 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             var coloringVariant = new StringBuilder();
             ColorStop<TPixel>[] colorStops = new ColorStop<TPixel>[stopPositions.Length];
+            Rgba32 rgba = default;
             for (int i = 0; i < stopPositions.Length; i++)
             {
                 TPixel color = colors[stopColorCodes[i % colors.Length]];
                 float position = stopPositions[i];
-
+                color.ToRgba32(ref rgba);
                 colorStops[i] = new ColorStop<TPixel>(position, color);
-                coloringVariant.AppendFormat(CultureInfo.InvariantCulture, "{0}@{1};", color, position);
+                coloringVariant.AppendFormat(CultureInfo.InvariantCulture, "{0}@{1};", rgba.ToHex(), position);
             }
 
             FormattableString variant = $"({startX},{startY})_TO_({endX},{endY})__[{coloringVariant}]";

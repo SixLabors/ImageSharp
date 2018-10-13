@@ -111,10 +111,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="a">The alpha component.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgba32(float r, float g, float b, float a = 1)
-            : this()
-        {
-            this.Pack(r, g, b, a);
-        }
+            : this() => this.Pack(r, g, b, a);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgba32"/> struct.
@@ -124,10 +121,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgba32(Vector3 vector)
-            : this()
-        {
-            this.Pack(ref vector);
-        }
+            : this() => this.Pack(ref vector);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgba32"/> struct.
@@ -137,10 +131,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgba32(Vector4 vector)
-            : this()
-        {
-            this = PackNew(ref vector);
-        }
+            : this() => this = PackNew(ref vector);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgba32"/> struct.
@@ -150,10 +141,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgba32(uint packed)
-            : this()
-        {
-            this.Rgba = packed;
-        }
+            : this() => this.Rgba = packed;
 
         /// <summary>
         /// Gets or sets the packed representation of the Rgba32 struct.
@@ -207,22 +195,30 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="ColorSpaces.Rgb"/> to a
+        /// <see cref="Rgba32"/>.
+        /// </summary>
+        /// <param name="color">The instance of <see cref="ColorSpaces.Rgb"/> to convert.</param>
+        /// <returns>An instance of <see cref="Rgba32"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator Rgba32(ColorSpaces.Rgb color)
+        {
+            var vector = new Vector4(color.ToVector3(), 1);
+            Rgba32 rgba = default;
+            rgba.PackFromScaledVector4(vector);
+            return rgba;
+        }
+
+        /// <summary>
         /// Compares two <see cref="Rgba32"/> objects for equality.
         /// </summary>
-        /// <param name="left">
-        /// The <see cref="Rgba32"/> on the left side of the operand.
-        /// </param>
-        /// <param name="right">
-        /// The <see cref="Rgba32"/> on the right side of the operand.
-        /// </param>
+        /// <param name="left">The <see cref="Rgba32"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Rgba32"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator ==(Rgba32 left, Rgba32 right)
-        {
-            return left.Rgba == right.Rgba;
-        }
+        public static bool operator ==(Rgba32 left, Rgba32 right) => left.Rgba == right.Rgba;
 
         /// <summary>
         /// Compares two <see cref="Rgba32"/> objects for equality.
@@ -233,10 +229,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(Rgba32 left, Rgba32 right)
-        {
-            return left.Rgba != right.Rgba;
-        }
+        public static bool operator !=(Rgba32 left, Rgba32 right) => left.Rgba != right.Rgba;
 
         /// <summary>
         /// Creates a new instance of the <see cref="Rgba32"/> struct.
@@ -248,20 +241,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>
         /// The <see cref="Rgba32"/>.
         /// </returns>
-        public static Rgba32 FromHex(string hex)
-        {
-            return ColorBuilder<Rgba32>.FromHex(hex);
-        }
+        public static Rgba32 FromHex(string hex) => ColorBuilder<Rgba32>.FromHex(hex);
 
         /// <inheritdoc />
         public PixelOperations<Rgba32> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromRgba32(Rgba32 source)
-        {
-            this = source;
-        }
+        public void PackFromRgba32(Rgba32 source) => this = source;
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -295,17 +282,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToRgb24(ref Rgb24 dest)
-        {
-            dest = Unsafe.As<Rgba32, Rgb24>(ref this);
-        }
+        public void ToRgb24(ref Rgb24 dest) => dest = Unsafe.As<Rgba32, Rgb24>(ref this);
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToRgba32(ref Rgba32 dest)
-        {
-            dest = this;
-        }
+        public void ToRgba32(ref Rgba32 dest) => dest = this;
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -338,31 +319,19 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromScaledVector4(Vector4 vector)
-        {
-            this.PackFromVector4(vector);
-        }
+        public void PackFromScaledVector4(Vector4 vector) => this.PackFromVector4(vector);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector4 ToScaledVector4()
-        {
-            return this.ToVector4();
-        }
+        public Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromVector4(Vector4 vector)
-        {
-            this.Pack(ref vector);
-        }
+        public void PackFromVector4(Vector4 vector) => this.Pack(ref vector);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector4 ToVector4()
-        {
-            return new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
-        }
+        public Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
 
         /// <summary>
         /// Gets the value of this struct as <see cref="Bgra32"/>.
@@ -417,23 +386,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void ToRgba64(ref Rgba64 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is Rgba32 rgba32 && this.Equals(rgba32);
-        }
+        public override bool Equals(object obj) => obj is Rgba32 rgba32 && this.Equals(rgba32);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(Rgba32 other)
-        {
-            return this.Rgba == other.Rgba;
-        }
+        public bool Equals(Rgba32 other) => this.Rgba == other.Rgba;
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"({this.R},{this.G},{this.B},{this.A})";
-        }
+        public override string ToString() => $"({this.R},{this.G},{this.B},{this.A})";
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -444,10 +404,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>A <see cref="Vector4"/> of values in [0, 255] </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Vector4 ToByteScaledVector4()
-        {
-            return new Vector4(this.R, this.G, this.B, this.A);
-        }
+        internal Vector4 ToByteScaledVector4() => new Vector4(this.R, this.G, this.B, this.A);
 
         /// <summary>
         /// Packs a <see cref="Vector4"/> into a color returning a new instance as a result.

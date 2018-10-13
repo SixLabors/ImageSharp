@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -12,7 +11,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// Represents an Hunter LAB color.
     /// <see href="https://en.wikipedia.org/wiki/Lab_color_space"/>
     /// </summary>
-    internal readonly struct HunterLab : IColorVector, IEquatable<HunterLab>, IAlmostEquatable<HunterLab, float>
+    public readonly struct HunterLab : IEquatable<HunterLab>
     {
         /// <summary>
         /// D50 standard illuminant.
@@ -21,9 +20,27 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public static readonly CieXyz DefaultWhitePoint = Illuminants.C;
 
         /// <summary>
-        /// The backing vector for SIMD support.
+        /// Gets the lightness dimension.
+        /// <remarks>A value usually ranging between 0 (black), 100 (diffuse white) or higher (specular white).</remarks>
         /// </summary>
-        private readonly Vector3 backingVector;
+        public readonly float L;
+
+        /// <summary>
+        /// Gets the a color component.
+        /// <remarks>A value usually ranging from -100 to 100. Negative is green, positive magenta.</remarks>
+        /// </summary>
+        public readonly float A;
+
+        /// <summary>
+        /// Gets the b color component.
+        /// <remarks>A value usually ranging from -100 to 100. Negative is blue, positive is yellow</remarks>
+        /// </summary>
+        public readonly float B;
+
+        /// <summary>
+        /// Gets the reference white point of this color
+        /// </summary>
+        public readonly CieXyz WhitePoint;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HunterLab"/> struct.
@@ -32,7 +49,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="a">The a (green - magenta) component.</param>
         /// <param name="b">The b (blue - yellow) component.</param>
         /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public HunterLab(float l, float a, float b)
             : this(new Vector3(l, a, b), DefaultWhitePoint)
         {
@@ -45,7 +62,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="a">The a (green - magenta) component.</param>
         /// <param name="b">The b (blue - yellow) component.</param>
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public HunterLab(float l, float a, float b, CieXyz whitePoint)
             : this(new Vector3(l, a, b), whitePoint)
         {
@@ -56,7 +73,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         /// <param name="vector">The vector representing the l, a, b components.</param>
         /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public HunterLab(Vector3 vector)
             : this(vector, DefaultWhitePoint)
         {
@@ -67,126 +84,61 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         /// <param name="vector">The vector representing the l a b components.</param>
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public HunterLab(Vector3 vector, CieXyz whitePoint)
-            : this()
         {
-            this.backingVector = vector;
+            // Not clamping as documentation about this space only indicates "usual" ranges
+            this.L = vector.X;
+            this.A = vector.Y;
+            this.B = vector.Z;
             this.WhitePoint = whitePoint;
         }
 
         /// <summary>
-        /// Gets the reference white point of this color
-        /// </summary>
-        public CieXyz WhitePoint { get; }
-
-        /// <summary>
-        /// Gets the lightness dimension.
-        /// <remarks>A value ranging between 0 (black), 100 (diffuse white) or higher (specular white).</remarks>
-        /// </summary>
-        public float L
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.X;
-        }
-
-        /// <summary>
-        /// Gets the a color component.
-        /// <remarks>A value ranging from -100 to 100. Negative is green, positive magenta.</remarks>
-        /// </summary>
-        public float A
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Y;
-        }
-
-        /// <summary>
-        /// Gets the b color component.
-        /// <remarks>A value ranging from -100 to 100. Negative is blue, positive is yellow</remarks>
-        /// </summary>
-        public float B
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Z;
-        }
-
-        /// <inheritdoc />
-        public Vector3 Vector => this.backingVector;
-
-        /// <summary>
         /// Compares two <see cref="HunterLab"/> objects for equality.
         /// </summary>
-        /// <param name="left">
-        /// The <see cref="HunterLab"/> on the left side of the operand.
-        /// </param>
-        /// <param name="right">
-        /// The <see cref="HunterLab"/> on the right side of the operand.
-        /// </param>
+        /// <param name="left">The <see cref="HunterLab"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="HunterLab"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator ==(HunterLab left, HunterLab right)
-        {
-            return left.Equals(right);
-        }
+        public static bool operator ==(HunterLab left, HunterLab right) => left.Equals(right);
 
         /// <summary>
         /// Compares two <see cref="HunterLab"/> objects for inequality
         /// </summary>
-        /// <param name="left">
-        /// The <see cref="HunterLab"/> on the left side of the operand.
-        /// </param>
-        /// <param name="right">
-        /// The <see cref="HunterLab"/> on the right side of the operand.
-        /// </param>
+        /// <param name="left">The <see cref="HunterLab"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="HunterLab"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(HunterLab left, HunterLab right)
-        {
-            return !left.Equals(right);
-        }
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static bool operator !=(HunterLab left, HunterLab right) => !left.Equals(right);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public override int GetHashCode()
         {
-            return HashHelpers.Combine(this.WhitePoint.GetHashCode(), this.backingVector.GetHashCode());
+            int hash = this.L.GetHashCode();
+            hash = HashHelpers.Combine(hash, this.A.GetHashCode());
+            hash = HashHelpers.Combine(hash, this.B.GetHashCode());
+            return HashHelpers.Combine(hash, this.WhitePoint.GetHashCode());
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return this.Equals(default)
-                ? "HunterLab [Empty]"
-                : $"HunterLab [ L={this.L:#0.##}, A={this.A:#0.##}, B={this.B:#0.##}]";
-        }
+        public override string ToString() => $"HunterLab({this.L:#0.##}, {this.A:#0.##}, {this.B:#0.##})";
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is HunterLab other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is HunterLab other && this.Equals(other);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(HunterLab other)
         {
-            return this.backingVector.Equals(other.backingVector)
+            return this.L.Equals(other.L)
+                && this.A.Equals(other.A)
+                && this.B.Equals(other.B)
                 && this.WhitePoint.Equals(other.WhitePoint);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool AlmostEquals(HunterLab other, float precision)
-        {
-            var result = Vector3.Abs(this.backingVector - other.backingVector);
-
-            return this.WhitePoint.Equals(other.WhitePoint)
-                   && result.X <= precision
-                   && result.Y <= precision
-                   && result.Z <= precision;
         }
     }
 }

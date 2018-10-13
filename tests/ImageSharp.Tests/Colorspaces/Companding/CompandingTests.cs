@@ -1,10 +1,13 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
+using System;
+using System.Linq;
+using System.Numerics;
+using SixLabors.ImageSharp.ColorSpaces.Companding;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
+namespace SixLabors.ImageSharp.Tests.Colorspaces.Companding
 {
     /// <summary>
     /// Tests various companding algorithms. Numbers are hand calculated from formulas online.
@@ -16,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         private static readonly ApproximateFloatComparer FloatComparer = new ApproximateFloatComparer(.00001F);
 
         [Fact]
-        public void Rec2020CompandingIsCorrect()
+        public void Rec2020Companding_IsCorrect()
         {
             const float input = .667F;
             float e = Rec2020Companding.Expand(input);
@@ -25,7 +28,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         [Fact]
-        public void Rec709CompandingIsCorrect()
+        public void Rec709Companding_IsCorrect()
         {
             const float input = .667F;
             float e = Rec709Companding.Expand(input);
@@ -34,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         [Fact]
-        public void SRgbCompandingIsCorrect()
+        public void SRgbCompanding_IsCorrect()
         {
             const float input = .667F;
             float e = SRgbCompanding.Expand(input);
@@ -42,8 +45,38 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
             CompandingIsCorrectImpl(e, c, .40242353F, .667F);
         }
 
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(30)]
+        public void SRgbCompanding_Expand_VectorSpan(int length)
+        {
+            var rnd = new Random(42);
+            Vector4[] source = rnd.GenerateRandomVectorArray(length, 0, 1);
+            Vector4[] expected = source.Select(v => SRgbCompanding.Expand(v)).ToArray();
+
+            SRgbCompanding.Expand(source);
+
+            Assert.Equal(expected, source, new ApproximateFloatComparer(1e-6f));
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(30)]
+        public void SRgbCompanding_Compress_VectorSpan(int length)
+        {
+            var rnd = new Random(42);
+            Vector4[] source = rnd.GenerateRandomVectorArray(length, 0, 1);
+            Vector4[] expected = source.Select(v => SRgbCompanding.Compress(v)).ToArray();
+
+            SRgbCompanding.Compress(source);
+
+            Assert.Equal(expected, source, new ApproximateFloatComparer(1e-6f));
+        }
+
         [Fact]
-        public void GammaCompandingIsCorrect()
+        public void GammaCompanding_IsCorrect()
         {
             const float gamma = 2.2F;
             const float input = .667F;
@@ -53,7 +86,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         }
 
         [Fact]
-        public void LCompandingIsCorrect()
+        public void LCompanding_IsCorrect()
         {
             const float input = .667F;
             float e = LCompanding.Expand(input);

@@ -4,7 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
+namespace SixLabors.ImageSharp.ColorSpaces.Companding
 {
     /// <summary>
     /// Implements the Rec. 709 companding function.

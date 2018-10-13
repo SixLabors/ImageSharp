@@ -283,7 +283,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 {
                     // it's diagonal, so for any (a, a) on the gradient line, for all (a-x, b+x) - +/- depending on the diagonal direction - must be the same color)
                     TPixel colorOnDiagonal = image[i, i];
-                    
+
                     // TODO: This is incorrect. from -0 to < 0 ??
                     int orthoCount = 0;
                     for (int offset = -orthoCount; offset < orthoCount; offset++)
@@ -322,11 +322,11 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             var coloringVariant = new StringBuilder();
             var colorStops = new ColorStop<TPixel>[stopPositions.Length];
+
             for (int i = 0; i < stopPositions.Length; i++)
             {
                 TPixel color = colors[stopColorCodes[i % colors.Length]];
                 float position = stopPositions[i];
-
                 colorStops[i] = new ColorStop<TPixel>(position, color);
                 coloringVariant.AppendFormat(CultureInfo.InvariantCulture, "{0}@{1};", color.ToRgba32().ToHex(), position);
             }

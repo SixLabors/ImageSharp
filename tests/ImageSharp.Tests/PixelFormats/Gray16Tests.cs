@@ -15,197 +15,115 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [InlineData(32767)]
         [InlineData(42)]
         public void Gray16_PackedValue_EqualsInput(ushort input)
+            => Assert.Equal(input, new Gray16(input).PackedValue);
+
+        [Fact]
+        public void Gray16_PackFromScaledVector4()
         {
-            Assert.Equal(input, new Gray16(input).PackedValue);
+            // Arrange
+            Gray16 gray = default;
+            const ushort expected = 32767;
+            Vector4 scaled = new Gray16(expected).ToScaledVector4();
+
+            // Act
+            gray.PackFromScaledVector4(scaled);
+            ushort actual = gray.PackedValue;
+
+            // Assert
+            Assert.Equal(expected, actual);
         }
 
-        //[Theory]
-        //[InlineData(0)]
-        //[InlineData(65535)]
-        //[InlineData(32767)]
-        //public void Gray16_ToVector4(ushort input)
-        //{
-        //    // arrange
-        //    var gray = new Gray16(input);
+        [Theory]
+        [InlineData(0)]
+        [InlineData(65535)]
+        [InlineData(32767)]
+        public void Gray16_ToScaledVector4(ushort input)
+        {
+            // Arrange
+            var gray = new Gray16(input);
 
-        //    // act
-        //    var actual = gray.ToVector4();
+            // Act
+            Vector4 actual = gray.ToScaledVector4();
 
-        //    // assert
-        //    Assert.Equal(input, actual.X);
-        //    Assert.Equal(input, actual.Y);
-        //    Assert.Equal(input, actual.Z);
-        //    Assert.Equal(1, actual.W);
-        //}
+            // Assert
+            float vectorInput = input / 65535F;
+            Assert.Equal(vectorInput, actual.X);
+            Assert.Equal(vectorInput, actual.Y);
+            Assert.Equal(vectorInput, actual.Z);
+            Assert.Equal(1F, actual.W);
+        }
 
-        //[Theory]
-        //[InlineData(0)]
-        //[InlineData(65535)]
-        //[InlineData(32767)]
-        //public void Gray16_ToScaledVector4(ushort input)
-        //{
-        //    // arrange
-        //    var gray = new Gray16(input);
+        [Fact]
+        public void Gray16_PackFromVector4()
+        {
+            // Arrange
+            Gray16 gray = default;
+            const ushort expected = 32767;
+            var vector = new Gray16(expected).ToVector4();
 
-        //    // act
-        //    var actual = gray.ToScaledVector4();
+            // Act
+            gray.PackFromVector4(vector);
+            ushort actual = gray.PackedValue;
 
-        //    // assert
-        //    float scaledInput = input / 65535f;
-        //    Assert.Equal(scaledInput, actual.X);
-        //    Assert.Equal(scaledInput, actual.Y);
-        //    Assert.Equal(scaledInput, actual.Z);
-        //    Assert.Equal(1, actual.W);
-        //}
+            // Assert
+            Assert.Equal(expected, actual);
+        }
 
-        //[Fact]
-        //public void Gray16_PackFromScaledVector4()
-        //{
-        //    // arrange
-        //    Gray16 gray = default;
-        //    int expected = 32767;
-        //    Vector4 scaled = new Gray16((ushort)expected).ToScaledVector4();
+        [Theory]
+        [InlineData(0)]
+        [InlineData(65535)]
+        [InlineData(32767)]
+        public void Gray16_ToVector4(ushort input)
+        {
+            // Arrange
+            var gray = new Gray16(input);
 
-        //    // act
-        //    gray.PackFromScaledVector4(scaled);
-        //    ushort actual = gray.PackedValue;
+            // Act
+            var actual = gray.ToVector4();
 
-        //    // assert
-        //    Assert.Equal(expected, actual);
-        //}
+            // Assert
+            float vectorInput = input / 65535F;
+            Assert.Equal(vectorInput, actual.X);
+            Assert.Equal(vectorInput, actual.Y);
+            Assert.Equal(vectorInput, actual.Z);
+            Assert.Equal(1F, actual.W);
+        }
 
-        //[Fact]
-        //public void Gray16_PackFromScaledVector4_ToRgb24()
-        //{
-        //    // arrange
-        //    Rgb24 actual = default;
-        //    Gray16 gray = default;
-        //    var expected = new Rgb24(128, 128, 128);
-        //    Vector4 scaled = new Gray16(32768).ToScaledVector4();
+        [Fact]
+        public void Gray16_PackFromRgba32()
+        {
+            // Arrange
+            Gray16 gray = default;
+            const byte rgb = 128;
+            ushort scaledRgb = ImageMaths.UpscaleFrom8BitTo16Bit(rgb);
+            ushort expected = ImageMaths.Get16BitBT709Luminance(scaledRgb, scaledRgb, scaledRgb);
 
-        //    // act
-        //    gray.PackFromScaledVector4(scaled);
-        //    gray.ToRgb24(ref actual);
+            // Act
+            gray.PackFromRgba32(new Rgba32(rgb, rgb, rgb));
+            ushort actual = gray.PackedValue;
 
-        //    // assert
-        //    Assert.Equal(expected, actual);
-        //}
+            // Assert
+            Assert.Equal(expected, actual);
+        }
 
-        //[Fact]
-        //public void Gray16_PackFromScaledVector4_ToRgba32()
-        //{
-        //    // arrange
-        //    Rgba32 actual = default;
-        //    Gray16 gray = default;
-        //    var expected = new Rgba32(128, 128, 128, 255);
-        //    Vector4 scaled = new Gray16(32768).ToScaledVector4();
+        [Theory]
+        [InlineData(0)]
+        [InlineData(65535)]
+        [InlineData(8100)]
+        public void Gray16_ToRgba32(ushort input)
+        {
+            // Arrange
+            ushort expected = ImageMaths.DownScaleFrom16BitTo8Bit(input);
+            var gray = new Gray16(input);
 
-        //    // act
-        //    gray.PackFromScaledVector4(scaled);
-        //    gray.ToRgba32(ref actual);
+            // Act
+            var actual = gray.ToRgba32();
 
-        //    // assert
-        //    Assert.Equal(expected, actual);
-        //}
-
-        //[Fact]
-        //public void Gray16_PackFromScaledVector4_ToBgr24()
-        //{
-        //    // arrange
-        //    Bgr24 actual = default;
-        //    Gray16 gray = default;
-        //    var expected = new Bgr24(128, 128, 128);
-        //    Vector4 scaled = new Gray16(32768).ToScaledVector4();
-
-        //    // act
-        //    gray.PackFromScaledVector4(scaled);
-        //    gray.ToBgr24(ref actual);
-
-        //    // assert
-        //    Assert.Equal(expected, actual);
-        //}
-
-        //[Fact]
-        //public void Gray16_PackFromScaledVector4_ToBgra32()
-        //{
-        //    // arrange
-        //    Bgra32 actual = default;
-        //    Gray16 gray = default;
-        //    var expected = new Bgra32(128,128,128);
-        //    Vector4 scaled = new Gray16(32768).ToScaledVector4();
-
-        //    // act
-        //    gray.PackFromScaledVector4(scaled);
-        //    gray.ToBgra32(ref actual);
-
-        //    // assert
-        //    Assert.Equal(expected, actual);
-        //}
-
-        //[Fact]
-        //public void Gray16_PackFromScaledVector4_ToArgb32()
-        //{
-        //    // arrange
-        //    Gray16 gray = default;
-        //    Argb32 actual = default;
-        //    var expected = new Argb32(128, 128, 128);
-        //    Vector4 scaled = new Gray16(32768).ToScaledVector4();
-
-        //    // act
-        //    gray.PackFromScaledVector4(scaled);
-        //    gray.ToArgb32(ref actual);
-
-        //    // assert
-        //    Assert.Equal(expected, actual);
-        //}
-
-        //[Fact]
-        //public void Gray16_PackFromScaledVector4_ToRgba64()
-        //{
-        //    // arrange
-        //    Gray16 gray = default;
-        //    Rgba64 actual = default;
-        //    var expected = new Rgba64(65535, 65535, 65535, 65535);
-        //    Vector4 scaled = new Gray16(65535).ToScaledVector4();
-
-        //    // act
-        //    gray.PackFromScaledVector4(scaled);
-        //    gray.ToRgba64(ref actual);
-
-        //    // assert
-        //    Assert.Equal(expected, actual);
-        //}
-
-        //[Fact]
-        //public void Gray16_PackFromRgb48_ToRgb48()
-        //{
-        //    // arrange
-        //    var gray = default(Gray16);
-        //    var actual = default(Rgb48);
-        //    var expected = new Rgb48(0, 0, 0);
-
-        //    // act
-        //    gray.PackFromRgb48(expected);
-        //    gray.ToRgb48(ref actual);
-
-        //    // assert
-        //    Assert.Equal(expected, actual);
-        //}
-
-        //[Fact]
-        //public void Gray16_PackFromRgba64_ToRgba64()
-        //{
-        //    // arrange
-        //    var gray = default(Gray16);
-        //    var actual = default(Rgba64);
-        //    var expected = new Rgba64(0, 0, 0, 65535);
-
-        //    // act
-        //    gray.PackFromRgba64(expected);
-        //    gray.ToRgba64(ref actual);
-
-        //    // assert
-        //    Assert.Equal(expected, actual);
-        //}
+            // Assert
+            Assert.Equal(expected, actual.R);
+            Assert.Equal(expected, actual.G);
+            Assert.Equal(expected, actual.B);
+            Assert.Equal(byte.MaxValue, actual.A);
+        }
     }
 }

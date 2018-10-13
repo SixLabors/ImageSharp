@@ -2,14 +2,14 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
+
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.ColorSpaces.Companding;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
@@ -27,8 +27,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         where TPixel : struct, IPixel<TPixel>
     {
         // The following fields are not immutable but are optionally created on demand.
-        private WeightsBuffer horizontalWeights;
-        private WeightsBuffer verticalWeights;
+        private KernelMap horizontalKernelMap;
+        private KernelMap verticalKernelMap;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ResizeProcessor{TPixel}"/> class.
@@ -148,76 +148,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         public bool Compand { get; }
 
-        /// <summary>
-        /// Computes the weights to apply at each pixel when resizing.
-        /// </summary>
-        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations</param>
-        /// <param name="destinationSize">The destination size</param>
-        /// <param name="sourceSize">The source size</param>
-        /// <returns>The <see cref="WeightsBuffer"/></returns>
-        // TODO: Made internal to simplify experimenting with weights data. Make it private when finished figuring out how to optimize all the stuff!
-        internal WeightsBuffer PrecomputeWeights(MemoryAllocator memoryAllocator, int destinationSize, int sourceSize)
-        {
-            float ratio = (float)sourceSize / destinationSize;
-            float scale = ratio;
-
-            if (scale < 1F)
-            {
-                scale = 1F;
-            }
-
-            IResampler sampler = this.Sampler;
-            float radius = MathF.Ceiling(scale * sampler.Radius);
-            var result = new WeightsBuffer(memoryAllocator, sourceSize, destinationSize);
-
-            for (int i = 0; i < destinationSize; i++)
-            {
-                float center = ((i + .5F) * ratio) - .5F;
-
-                // Keep inside bounds.
-                int left = (int)MathF.Ceiling(center - radius);
-                if (left < 0)
-                {
-                    left = 0;
-                }
-
-                int right = (int)MathF.Floor(center + radius);
-                if (right > sourceSize - 1)
-                {
-                    right = sourceSize - 1;
-                }
-
-                float sum = 0;
-
-                WeightsWindow ws = result.GetWeightsWindow(i, left, right);
-                result.Weights[i] = ws;
-
-                ref float weightsBaseRef = ref ws.GetStartReference();
-
-                for (int j = left; j <= right; j++)
-                {
-                    float weight = sampler.GetValue((j - center) / scale);
-                    sum += weight;
-
-                    // weights[j - left] = weight:
-                    Unsafe.Add(ref weightsBaseRef, j - left) = weight;
-                }
-
-                // Normalize, best to do it here rather than in the pixel loop later on.
-                if (sum > 0)
-                {
-                    for (int w = 0; w < ws.Length; w++)
-                    {
-                        // weights[w] = weights[w] / sum:
-                        ref float wRef = ref Unsafe.Add(ref weightsBaseRef, w);
-                        wRef /= sum;
-                    }
-                }
-            }
-
-            return result;
-        }
-
         /// <inheritdoc/>
         protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
         {
@@ -235,15 +165,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 // Since all image frame dimensions have to be the same we can calculate this for all frames.
                 MemoryAllocator memoryAllocator = source.GetMemoryAllocator();
-                this.horizontalWeights = this.PrecomputeWeights(
-                    memoryAllocator,
+                this.horizontalKernelMap = KernelMap.Calculate(
+                    this.Sampler,
                     this.ResizeRectangle.Width,
-                    sourceRectangle.Width);
+                    sourceRectangle.Width,
+                    memoryAllocator);
 
-                this.verticalWeights = this.PrecomputeWeights(
-                    memoryAllocator,
+                this.verticalKernelMap = KernelMap.Calculate(
+                    this.Sampler,
                     this.ResizeRectangle.Height,
-                    sourceRectangle.Height);
+                    sourceRectangle.Height,
+                    memoryAllocator);
             }
         }
 
@@ -303,14 +235,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return;
             }
 
+            int sourceHeight = source.Height;
+
             // Interpolate the image using the calculated weights.
             // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
-            // TODO: Using a transposed variant of 'firstPassPixels' could eliminate the need for the WeightsWindow.ComputeWeightedColumnSum() method, and improve speed!
-            using (Buffer2D<Vector4> firstPassPixels = source.MemoryAllocator.Allocate2D<Vector4>(width, source.Height))
+            using (Buffer2D<Vector4> firstPassPixelsTransposed = source.MemoryAllocator.Allocate2D<Vector4>(sourceHeight, width))
             {
-                firstPassPixels.MemorySource.Clear();
+                firstPassPixelsTransposed.MemorySource.Clear();
 
                 var processColsRect = new Rectangle(0, 0, source.Width, sourceRectangle.Bottom);
 
@@ -321,30 +254,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                         {
                             for (int y = rows.Min; y < rows.Max; y++)
                             {
-                                ref Vector4 firstPassRow =
-                                    ref MemoryMarshal.GetReference(firstPassPixels.GetRowSpan(y));
                                 Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
                                 Span<Vector4> tempRowSpan = tempRowBuffer.Span;
 
                                 PixelOperations<TPixel>.Instance.ToVector4(sourceRow, tempRowSpan, sourceRow.Length);
+                                Vector4Utils.Premultiply(tempRowSpan);
+
+                                ref Vector4 firstPassBaseRef = ref firstPassPixelsTransposed.Span[y];
 
                                 if (this.Compand)
                                 {
-                                    for (int x = minX; x < maxX; x++)
-                                    {
-                                        WeightsWindow window = this.horizontalWeights.Weights[x - startX];
-                                        Unsafe.Add(ref firstPassRow, x) =
-                                            window.ComputeExpandedWeightedRowSum(tempRowSpan, sourceX);
-                                    }
+                                    SRgbCompanding.Expand(tempRowSpan);
                                 }
-                                else
+
+                                for (int x = minX; x < maxX; x++)
                                 {
-                                    for (int x = minX; x < maxX; x++)
-                                    {
-                                        WeightsWindow window = this.horizontalWeights.Weights[x - startX];
-                                        Unsafe.Add(ref firstPassRow, x) =
-                                            window.ComputeWeightedRowSum(tempRowSpan, sourceX);
-                                    }
+                                    ResizeKernel window = this.horizontalKernelMap.Kernels[x - startX];
+                                    Unsafe.Add(ref firstPassBaseRef, x * sourceHeight) =
+                                        window.Convolve(tempRowSpan, sourceX);
                                 }
                             }
                         });
@@ -352,46 +279,37 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 var processRowsRect = Rectangle.FromLTRB(0, minY, width, maxY);
 
                 // Now process the rows.
-                ParallelHelper.IterateRows(
+                ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
                     processRowsRect,
                     configuration,
-                    rows =>
+                    (rows, tempRowBuffer) =>
                         {
+                            Span<Vector4> tempRowSpan = tempRowBuffer.Span;
+
                             for (int y = rows.Min; y < rows.Max; y++)
                             {
                                 // Ensure offsets are normalized for cropping and padding.
-                                WeightsWindow window = this.verticalWeights.Weights[y - startY];
-                                ref TPixel targetRow = ref MemoryMarshal.GetReference(destination.GetPixelRowSpan(y));
+                                ResizeKernel window = this.verticalKernelMap.Kernels[y - startY];
+
+                                ref Vector4 tempRowBase = ref MemoryMarshal.GetReference(tempRowSpan);
+
+                                for (int x = 0; x < width; x++)
+                                {
+                                    Span<Vector4> firstPassColumn = firstPassPixelsTransposed.GetRowSpan(x);
+
+                                    // Destination color components
+                                    Unsafe.Add(ref tempRowBase, x) = window.Convolve(firstPassColumn, sourceY);
+                                }
+
+                                Vector4Utils.UnPremultiply(tempRowSpan);
 
                                 if (this.Compand)
                                 {
-                                    for (int x = 0; x < width; x++)
-                                    {
-                                        // Destination color components
-                                        Vector4 destinationVector = window.ComputeWeightedColumnSum(
-                                            firstPassPixels,
-                                            x,
-                                            sourceY);
-                                        destinationVector = destinationVector.Compress();
-
-                                        ref TPixel pixel = ref Unsafe.Add(ref targetRow, x);
-                                        pixel.PackFromVector4(destinationVector);
-                                    }
+                                    SRgbCompanding.Compress(tempRowSpan);
                                 }
-                                else
-                                {
-                                    for (int x = 0; x < width; x++)
-                                    {
-                                        // Destination color components
-                                        Vector4 destinationVector = window.ComputeWeightedColumnSum(
-                                            firstPassPixels,
-                                            x,
-                                            sourceY);
 
-                                        ref TPixel pixel = ref Unsafe.Add(ref targetRow, x);
-                                        pixel.PackFromVector4(destinationVector);
-                                    }
-                                }
+                                Span<TPixel> targetRowSpan = destination.GetPixelRowSpan(y);
+                                PixelOperations<TPixel>.Instance.PackFromVector4(tempRowSpan, targetRowSpan, tempRowSpan.Length);
                             }
                         });
             }
@@ -402,10 +320,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             base.AfterImageApply(source, destination, sourceRectangle);
 
             // TODO: An exception in the processing chain can leave these buffers undisposed. We should consider making image processors IDisposable!
-            this.horizontalWeights?.Dispose();
-            this.horizontalWeights = null;
-            this.verticalWeights?.Dispose();
-            this.verticalWeights = null;
+            this.horizontalKernelMap?.Dispose();
+            this.horizontalKernelMap = null;
+            this.verticalKernelMap?.Dispose();
+            this.verticalKernelMap = null;
         }
     }
 }

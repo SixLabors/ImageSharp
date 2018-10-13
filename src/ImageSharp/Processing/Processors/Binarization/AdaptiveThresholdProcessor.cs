@@ -1,6 +1,11 @@
-﻿using System;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -46,80 +51,98 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
-            ushort startY = (ushort)interest.Y;
-            ushort endY = (ushort)interest.Bottom;
-            ushort startX = (ushort)interest.X;
-            ushort endX = (ushort)interest.Right;
+            var intersect = Rectangle.Intersect(sourceRectangle, source.Bounds());
+            ushort startY = (ushort)intersect.Y;
+            ushort endY = (ushort)intersect.Bottom;
+            ushort startX = (ushort)intersect.X;
+            ushort endX = (ushort)intersect.Right;
 
             ushort width = (ushort)(endX - startX);
             ushort height = (ushort)(endY - startY);
 
-            // Algorithm variables //
-            ulong sum;
-            uint count;
+            // Tweaked to support upto 4k wide pixels and not more. 4096 / 16 is 256 thus the '-1'
+            byte s = (byte)Math.Truncate((width / 16f) - 1);
 
-            // Tweaked to support upto 4k wide pixels
-            ushort s = (ushort)Math.Truncate((width / 16f) - 1);
-
-            // Trying to figure out how to do this
+            // Using pooled 2d buffer for integer image table
             using (Buffer2D<ulong> intImage = configuration.MemoryAllocator.Allocate2D<ulong>(width, height, AllocationOptions.Clean))
             {
-                Rgb24 rgb = default;
+                var workingnRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
 
-                for (ushort i = startY; i < endY; i++)
-                {
-                    Span<TPixel> span = source.GetPixelRowSpan(i);
-
-                    sum = 0;
-
-                    for (ushort j = startX; j < endX; j++)
+                ParallelHelper.IterateRows(
+                    workingnRectangle,
+                    configuration,
+                    rows =>
                     {
-                        span[j].ToRgb24(ref rgb);
+                        ulong sum;
 
-                        sum += (uint)(rgb.R + rgb.G + rgb.B);
+                        Rgb24 rgb = default;
 
-                        if (i != 0)
+                        for (int i = rows.Min; i < rows.Max; i++)
                         {
-                            intImage[i, j] = intImage[i - 1, j] + sum;
-                        }
-                        else
-                        {
-                            intImage[i, j] = sum;
+                            var row = source.GetPixelRowSpan(i);
+
+                            sum = 0;
+
+                            for (int j = startX; j < endX; j++)
+                            {
+                                row[j].ToRgb24(ref rgb);
+                                sum += (ulong)(rgb.B + rgb.G + rgb.B);
+
+                                if (i != 0)
+                                {
+                                    intImage[i, j] = intImage[i - 1, j] + sum;
+                                }
+                                else
+                                {
+                                    intImage[i, j] = sum;
+                                }
+                            }
                         }
                     }
-                }
+                );
 
-                // How can I parallelize this?
-                ushort x1, x2, y1, y2;
-
-                for (ushort i = startY; i < endY; i++)
-                {
-                    Span<TPixel> span = source.GetPixelRowSpan(i);
-
-                    for (ushort j = startX; j < endX; j++)
+                ParallelHelper.IterateRows(
+                    workingnRectangle,
+                    configuration,
+                    rows =>
                     {
-                        x1 = (ushort)Math.Max(i - s + 1, 0);
-                        x2 = (ushort)Math.Min(i + s + 1, endY - 1);
-                        y1 = (ushort)Math.Max(j - s + 1, 0);
-                        y2 = (ushort)Math.Min(j + s + 1, endX - 1);
+                        ushort x1, x2, y1, y2;
 
-                        count = (uint)((x2 - x1) * (y2 - y1));
+                        uint count;
 
-                        sum = intImage[x2, y2] - intImage[x1, y2] - intImage[x2, y1] + intImage[x1, y1];
+                        long sum;
 
-                        span[j].ToRgb24(ref rgb);
-
-                        if ((rgb.R + rgb.G + rgb.B) * count < sum * (1.0 - 0.15))
+                        for (int i = rows.Min; i < rows.Max; i++)
                         {
-                            span[j] = this.Lower;
-                        }
-                        else
-                        {
-                            span[j] = this.Upper;
+                            var row = source.GetPixelRowSpan(i);
+
+                            Rgb24 rgb = default;
+
+                            for (int j = startX; j < endX; j++)
+                            {
+                                x1 = (ushort)Math.Max(i - s + 1, 0);
+                                x2 = (ushort)Math.Min(i + s + 1, endY - 1);
+                                y1 = (ushort)Math.Max(j - s + 1, 0);
+                                y2 = (ushort)Math.Min(j + s + 1, endX - 1);
+
+                                count = (uint)((x2 - x1) * (y2 - y1));
+
+                                sum = (long)(intImage[x2, y2] - intImage[x1, y2] - intImage[x2, y1] + intImage[x1, y1]);
+
+                                row[j].ToRgb24(ref rgb);
+
+                                if ((rgb.R + rgb.G + rgb.B) * count < sum * (1.0 - 0.15))
+                                {
+                                    row[j] = this.Lower;
+                                }
+                                else
+                                {
+                                    row[j] = this.Upper;
+                                }
+                            }
                         }
                     }
-                }
+                );
             }
         }
     }

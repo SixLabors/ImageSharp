@@ -6,8 +6,13 @@
 using System.Buffers;
 using System;
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Attributes.Jobs;
+using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Environments;
+using BenchmarkDotNet.Jobs;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -17,11 +22,13 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
     public abstract class ToVector4<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private IMemoryOwner<TPixel> source;
+        protected IMemoryOwner<TPixel> source;
 
-        private IMemoryOwner<Vector4> destination;
+        protected IMemoryOwner<Vector4> destination;
 
-        [Params(64, 300, 1024)]
+        [Params(
+            //64, 
+            1024)]
         public int Count { get; set; }
 
         [GlobalSetup]
@@ -38,7 +45,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             this.destination.Dispose();
         }
 
-        [Benchmark(Baseline = true)]
+        [Benchmark]
         public void PerElement()
         {
             Span<TPixel> s = this.source.GetSpan();
@@ -51,7 +58,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             }
         }
 
-        [Benchmark]
+        [Benchmark(Baseline = true)]
         public void CommonBulk()
         {
             new PixelOperations<TPixel>().ToVector4(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
@@ -64,7 +71,21 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         }
     }
 
+    [CoreJob]
+    //[ClrJob]
     public class ToVector4_Rgba32 : ToVector4<Rgba32>
     {
+        class Config : ManualConfig
+        {
+        }
+
+        [Benchmark]
+        public void BulkConvertByteToNormalizedFloat()
+        {
+            Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
+            Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
+
+            SimdUtils.BulkConvertByteToNormalizedFloat(sBytes, dFloats);
+        }
     }
 }

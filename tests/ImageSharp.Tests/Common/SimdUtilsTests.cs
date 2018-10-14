@@ -187,6 +187,46 @@ namespace SixLabors.ImageSharp.Tests.Common
         }
 
         [Theory]
+        [InlineData(1, 0)]
+        [InlineData(2, 32)]
+        [InlineData(3, 128)]
+        public void BulkConvertByteToNormalizedFloat(int seed, int count)
+        {
+            if (this.SkipOnNonAvx2())
+            {
+                return;
+            }
+
+            byte[] source = new Random(seed).GenerateRandomByteArray(count);
+            float[] result = new float[count];
+            float[] expected = source.Select(b => (float)b / 255f).ToArray();
+
+            SimdUtils.BulkConvertByteToNormalizedFloat(source, result);
+
+            Assert.Equal(expected, result, new ApproximateFloatComparer(1e-5f));
+        }
+
+        [Theory]
+        [InlineData(1, 0)]
+        [InlineData(2, 32)]
+        [InlineData(3, 128)]
+        public void BulkConvertByteToNormalizedFloatWithExtendedIntrinsics(int seed, int count)
+        {
+            if (!Vector.IsHardwareAccelerated)
+            {
+                return;
+            }
+
+            byte[] source = new Random(seed).GenerateRandomByteArray(count);
+            float[] result = new float[count];
+            float[] expected = source.Select(b => (float)b / 255f).ToArray();
+
+            SimdUtils.BulkConvertByteToNormalizedFloatWithExtendedIntrinsics(source, result);
+
+            Assert.Equal(expected, result, new ApproximateFloatComparer(1e-5f));
+        }
+
+        [Theory]
         [InlineData(0)]
         [InlineData(7)]
         [InlineData(42)]

@@ -46,6 +46,13 @@ namespace SixLabors.ImageSharp.Tests
             return values;
         }
 
+        public static byte[] GenerateRandomByteArray(this Random rnd, int length)
+        {
+            byte[] values = new byte[length];
+            rnd.NextBytes(values);
+            return values;
+        }
+
         private static float GetRandomFloat(Random rnd, float minVal, float maxVal)
         {
             return (float)rnd.NextDouble() * (maxVal - minVal) + minVal;

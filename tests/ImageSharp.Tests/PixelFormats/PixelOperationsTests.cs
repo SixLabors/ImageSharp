@@ -49,54 +49,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 );
             }
 
-            [Fact]
-            public void BulkConvertByteToNormalizedFloat()
-            {
-                if (!Vector.IsHardwareAccelerated)
-                {
-                    return;
-                }
-
-                ImageSharp.PixelFormats.Rgba32[] source = CreatePixelTestData(64);
-                Vector4[] expected = CreateExpectedVector4Data(source);
-
-                TestOperation(
-                    source,
-                    expected,
-                    (s, d) =>
-                        {
-                            ReadOnlySpan<byte> sBytes = MemoryMarshal.Cast<ImageSharp.PixelFormats.Rgba32, byte>(s);
-                            Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(d.Memory.Span);
-
-                            SimdUtils.BulkConvertByteToNormalizedFloat(sBytes, dFloats);
-                        }
-                    );
-            }
-
-            [Fact]
-            public void BulkConvertByteToNormalizedFloatFast()
-            {
-                if (!Vector.IsHardwareAccelerated)
-                {
-                    return;
-                }
-
-                ImageSharp.PixelFormats.Rgba32[] source = CreatePixelTestData(128);
-                Vector4[] expected = CreateExpectedVector4Data(source);
-
-                TestOperation(
-                    source,
-                    expected,
-                    (s, d) =>
-                        {
-                            ReadOnlySpan<byte> sBytes = MemoryMarshal.Cast<ImageSharp.PixelFormats.Rgba32, byte>(s);
-                            Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(d.Memory.Span);
-
-                            SimdUtils.BulkConvertByteToNormalizedFloatFast(sBytes, dFloats);
-                        }
-                );
-            }
-
 
             // [Fact] // Profiling benchmark - enable manually!
 #pragma warning disable xUnit1013 // Public method should be marked as test

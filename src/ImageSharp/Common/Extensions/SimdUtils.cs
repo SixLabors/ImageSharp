@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp
         ///     <cref>https://github.com/dotnet/coreclr/pull/10662</cref>
         /// </see>
         /// </summary>
-        internal static void BulkConvertByteToNormalizedFloatFast(ReadOnlySpan<byte> source, Span<float> dest)
+        internal static void BulkConvertByteToNormalizedFloatWithExtendedIntrinsics(ReadOnlySpan<byte> source, Span<float> dest)
         {
             Guard.IsTrue(
                 source.Length % Vector<byte>.Count == 0,

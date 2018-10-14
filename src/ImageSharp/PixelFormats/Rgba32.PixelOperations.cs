@@ -57,14 +57,14 @@ namespace SixLabors.ImageSharp.PixelFormats
                 int unpackedRawCount = count * 4;
 
                 ref uint sourceBase = ref Unsafe.As<Rgba32, uint>(ref MemoryMarshal.GetReference(sourceColors));
-                ref UnpackedRGBA destBaseAsUnpacked = ref Unsafe.As<Vector4, UnpackedRGBA>(ref MemoryMarshal.GetReference(destVectors));
-                ref Vector<uint> destBaseAsUInt = ref Unsafe.As<UnpackedRGBA, Vector<uint>>(ref destBaseAsUnpacked);
-                ref Vector<float> destBaseAsFloat = ref Unsafe.As<UnpackedRGBA, Vector<float>>(ref destBaseAsUnpacked);
+                ref WideRgba destBaseAsWide = ref Unsafe.As<Vector4, WideRgba>(ref MemoryMarshal.GetReference(destVectors));
+                ref Vector<uint> destBaseAsUInt = ref Unsafe.As<WideRgba, Vector<uint>>(ref destBaseAsWide);
+                ref Vector<float> destBaseAsFloat = ref Unsafe.As<WideRgba, Vector<float>>(ref destBaseAsWide);
 
                 for (int i = 0; i < count; i++)
                 {
                     uint sVal = Unsafe.Add(ref sourceBase, i);
-                    ref UnpackedRGBA dst = ref Unsafe.Add(ref destBaseAsUnpacked, i);
+                    ref WideRgba dst = ref Unsafe.Add(ref destBaseAsWide, i);
 
                     // This call is the bottleneck now:
                     dst.Load(sVal);
@@ -174,10 +174,10 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <summary>
-            /// Value type to store <see cref="Rgba32"/>-s unpacked into multiple <see cref="uint"/>-s.
+            /// Value type to store <see cref="Rgba32"/>-s widened into multiple <see cref="uint"/>-s.
             /// </summary>
             [StructLayout(LayoutKind.Sequential)]
-            private struct UnpackedRGBA
+            private struct WideRgba
             {
                 private uint r;
 

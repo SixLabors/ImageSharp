@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
         [Params(
             //64, 
-            1024)]
+            2048)]
         public int Count { get; set; }
 
         [GlobalSetup]
@@ -72,14 +72,14 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
     }
 
     [CoreJob]
-    //[ClrJob]
+    [ClrJob]
     public class ToVector4_Rgba32 : ToVector4<Rgba32>
     {
         class Config : ManualConfig
         {
         }
 
-        [Benchmark]
+        //[Benchmark]
         public void BulkConvertByteToNormalizedFloat()
         {
             Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
@@ -87,5 +87,15 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
             SimdUtils.BulkConvertByteToNormalizedFloat(sBytes, dFloats);
         }
+
+        [Benchmark]
+        public void BulkConvertByteToNormalizedFloatFast()
+        {
+            Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
+            Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
+
+            SimdUtils.BulkConvertByteToNormalizedFloatFast(sBytes, dFloats);
+        }
+
     }
 }

@@ -105,13 +105,50 @@ namespace SixLabors.ImageSharp
             }
         }
 
+        /// <summary>
+        /// Fast <see cref="byte"/> -> <see cref="float"/> conversion for RyuJIT runtimes having dotnet/coreclr#10662 merged.
+        /// <see>
+        ///     <cref>https://github.com/dotnet/coreclr/pull/10662</cref>
+        /// </see>
+        /// </summary>
+        internal static void BulkConvertByteToNormalizedFloatFast(ReadOnlySpan<byte> source, Span<float> dest)
+        {
+            Guard.IsTrue(
+                source.Length % Vector<byte>.Count == 0,
+                nameof(source),
+                "dest.Length should be divisable by Vector<byte>.Count!");
+
+            int n = source.Length / Vector<byte>.Count;
+
+            ref Vector<byte> sourceBase = ref Unsafe.As<byte, Vector<byte>>(ref MemoryMarshal.GetReference(source));
+            ref Vector<float> destBase = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(dest));
+
+            var scale = new Vector<float>(1f / 255f);
+
+            for (int i = 0; i < n; i++)
+            {
+                Vector<byte> b = Unsafe.Add(ref sourceBase, i);
+
+                Vector.Widen(b, out Vector<ushort> s0, out Vector<ushort> s1);
+                Vector.Widen(s0, out Vector<uint> w0, out Vector<uint> w1);
+                Vector.Widen(s1, out Vector<uint> w2, out Vector<uint> w3);
+
+                Vector<float> f0 = Vector.ConvertToSingle(w0) * scale;
+                Vector<float> f1 = Vector.ConvertToSingle(w1) * scale;
+                Vector<float> f2 = Vector.ConvertToSingle(w2) * scale;
+                Vector<float> f3 = Vector.ConvertToSingle(w3) * scale;
+
+                ref Vector<float> d = ref Unsafe.Add(ref destBase, i * 4);
+                d = f0;
+                Unsafe.Add(ref d, 1) = f1;
+                Unsafe.Add(ref d, 2) = f2;
+                Unsafe.Add(ref d, 3) = f3;
+            }
+        }
+
         internal static void BulkConvertByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
         {
-            if (!Vector.IsHardwareAccelerated)
-            {
-                throw new InvalidOperationException(
-                    "Rgba32.PixelOperations.ToVector4SimdAligned() should not be called when Vector.IsHardwareAccelerated == false!");
-            }
+            GuardAvx2(nameof(BulkConvertByteToNormalizedFloat));
 
             DebugGuard.IsTrue((dest.Length % Vector<float>.Count) == 0, nameof(source), "dest.Length should be divisable by Vector<float>.Count!");
 

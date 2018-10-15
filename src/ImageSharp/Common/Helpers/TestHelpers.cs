@@ -13,9 +13,7 @@ namespace SixLabors.ImageSharp.Common.Helpers
         /// Only intended to be used in tests!
         /// </summary>
         internal const string ImageSharpBuiltAgainst =
-#if NETSTANDARD1_1
-            "netstandard1.1";
-#elif NETCOREAPP2_1
+#if NETCOREAPP2_1
             "netcoreapp2.1";
 #else
             "netstandard2.0";

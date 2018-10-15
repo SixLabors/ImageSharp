@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp2.0;net461</TargetFrameworks>
+    <TargetFrameworks>netcoreapp2.1;net461</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <RootNamespace>SixLabors.ImageSharp.Benchmarks</RootNamespace>
     <AssemblyName>ImageSharp.Benchmarks</AssemblyName>
-    <LangVersion>7.2</LangVersion>
+    <LangVersion>7.3</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)'=='net461'">
     <RuntimeIdentifier>win7-x64</RuntimeIdentifier>

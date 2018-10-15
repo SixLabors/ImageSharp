@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// </para>
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    public struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
+    public partial struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
     {
         /// <summary>
         /// Gets or sets the blue component.
@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Bgra32 left, Bgra32 right) => !left.Equals(right);
 
         /// <inheritdoc/>
-        public PixelOperations<Bgra32> CreatePixelOperations() => new PixelOperations<Bgra32>();
+        public PixelOperations<Bgra32> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -151,7 +151,17 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromBgra32(Bgra32 source) => this.PackedValue = source.PackedValue;
+        public void PackFromBgr24(Bgr24 source)
+        {
+            this.R = source.R;
+            this.G = source.G;
+            this.B = source.B;
+            this.A = byte.MaxValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromBgra32(Bgra32 source) => this = source;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -182,6 +192,16 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.G = source.G;
             this.B = source.B;
             this.A = source.A;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromRgb24(Rgb24 source)
+        {
+            this.R = source.R;
+            this.G = source.G;
+            this.B = source.B;
+            this.A = byte.MaxValue;
         }
 
         /// <inheritdoc />
@@ -219,13 +239,6 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         public override string ToString() => $"Bgra32({this.B}, {this.G}, {this.R}, {this.A})";
-
-        /// <summary>
-        /// Gets the <see cref="Vector4"/> representation without normalizing to [0, 1]
-        /// </summary>
-        /// <returns>A <see cref="Vector4"/> of values in [0, 255] </returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        internal Vector4 ToByteScaledVector4() => new Vector4(this.R, this.G, this.B, this.A);
 
         /// <summary>
         /// Packs a <see cref="Vector4"/> into a color.

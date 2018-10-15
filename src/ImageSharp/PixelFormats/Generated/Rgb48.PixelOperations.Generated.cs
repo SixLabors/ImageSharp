@@ -11,16 +11,16 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// <content>
     /// Provides optimized overrides for bulk operations.
     /// </content>
-    public partial struct Rgba32
+    public partial struct Rgb48
     {
 
-        /// <content>
+        /// <summary>
         /// Provides optimized overrides for bulk operations.
-        /// </content>
-        internal partial class PixelOperations
+        /// </summary>
+        internal class PixelOperations : PixelOperations<Rgb48>
         {
             /// <inheritdoc />
-            internal override void PackFromRgba32(ReadOnlySpan<Rgba32> source, Span<Rgba32> destPixels, int count)
+            internal override void PackFromRgb48(ReadOnlySpan<Rgb48> source, Span<Rgb48> destPixels, int count)
             {
                 GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
 
@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void ToRgba32(ReadOnlySpan<Rgba32> sourcePixels, Span<Rgba32> destPixels, int count)
+            internal override void ToRgb48(ReadOnlySpan<Rgb48> sourcePixels, Span<Rgb48> destPixels, int count)
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
 
@@ -37,138 +37,138 @@ namespace SixLabors.ImageSharp.PixelFormats
 
 			
 			/// <inheritdoc />
-            internal override void ToArgb32(ReadOnlySpan<Rgba32> sourcePixels, Span<Argb32> destPixels, int count)
+            internal override void ToArgb32(ReadOnlySpan<Rgb48> sourcePixels, Span<Argb32> destPixels, int count)
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
 
-                ref Rgba32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+                ref Rgb48 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref Argb32 destRef = ref MemoryMarshal.GetReference(destPixels);
 
                 for (int i = 0; i < count; i++)
                 {
-                    ref Rgba32 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Argb32 dp = ref Unsafe.Add(ref destRef, i);
 
-                    dp.PackFromRgba32(sp);
+                    dp.PackFromRgb48(sp);
                 }
             }
 		
 			/// <inheritdoc />
-            internal override void ToBgr24(ReadOnlySpan<Rgba32> sourcePixels, Span<Bgr24> destPixels, int count)
+            internal override void ToBgr24(ReadOnlySpan<Rgb48> sourcePixels, Span<Bgr24> destPixels, int count)
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
 
-                ref Rgba32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+                ref Rgb48 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref Bgr24 destRef = ref MemoryMarshal.GetReference(destPixels);
 
                 for (int i = 0; i < count; i++)
                 {
-                    ref Rgba32 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Bgr24 dp = ref Unsafe.Add(ref destRef, i);
 
-                    dp.PackFromRgba32(sp);
+                    dp.PackFromRgb48(sp);
                 }
             }
 		
 			/// <inheritdoc />
-            internal override void ToBgra32(ReadOnlySpan<Rgba32> sourcePixels, Span<Bgra32> destPixels, int count)
+            internal override void ToBgra32(ReadOnlySpan<Rgb48> sourcePixels, Span<Bgra32> destPixels, int count)
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
 
-                ref Rgba32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+                ref Rgb48 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref Bgra32 destRef = ref MemoryMarshal.GetReference(destPixels);
 
                 for (int i = 0; i < count; i++)
                 {
-                    ref Rgba32 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Bgra32 dp = ref Unsafe.Add(ref destRef, i);
 
-                    dp.PackFromRgba32(sp);
+                    dp.PackFromRgb48(sp);
                 }
             }
 		
 			/// <inheritdoc />
-            internal override void ToGray8(ReadOnlySpan<Rgba32> sourcePixels, Span<Gray8> destPixels, int count)
+            internal override void ToGray8(ReadOnlySpan<Rgb48> sourcePixels, Span<Gray8> destPixels, int count)
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
 
-                ref Rgba32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+                ref Rgb48 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref Gray8 destRef = ref MemoryMarshal.GetReference(destPixels);
 
                 for (int i = 0; i < count; i++)
                 {
-                    ref Rgba32 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Gray8 dp = ref Unsafe.Add(ref destRef, i);
 
-                    dp.PackFromRgba32(sp);
+                    dp.PackFromRgb48(sp);
                 }
             }
 		
 			/// <inheritdoc />
-            internal override void ToGray16(ReadOnlySpan<Rgba32> sourcePixels, Span<Gray16> destPixels, int count)
+            internal override void ToGray16(ReadOnlySpan<Rgb48> sourcePixels, Span<Gray16> destPixels, int count)
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
 
-                ref Rgba32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+                ref Rgb48 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref Gray16 destRef = ref MemoryMarshal.GetReference(destPixels);
 
                 for (int i = 0; i < count; i++)
                 {
-                    ref Rgba32 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Gray16 dp = ref Unsafe.Add(ref destRef, i);
 
-                    dp.PackFromRgba32(sp);
+                    dp.PackFromRgb48(sp);
                 }
             }
 		
 			/// <inheritdoc />
-            internal override void ToRgb24(ReadOnlySpan<Rgba32> sourcePixels, Span<Rgb24> destPixels, int count)
+            internal override void ToRgb24(ReadOnlySpan<Rgb48> sourcePixels, Span<Rgb24> destPixels, int count)
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
 
-                ref Rgba32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+                ref Rgb48 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref Rgb24 destRef = ref MemoryMarshal.GetReference(destPixels);
 
                 for (int i = 0; i < count; i++)
                 {
-                    ref Rgba32 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Rgb24 dp = ref Unsafe.Add(ref destRef, i);
 
-                    dp.PackFromRgba32(sp);
+                    dp.PackFromRgb48(sp);
                 }
             }
 		
 			/// <inheritdoc />
-            internal override void ToRgb48(ReadOnlySpan<Rgba32> sourcePixels, Span<Rgb48> destPixels, int count)
+            internal override void ToRgba32(ReadOnlySpan<Rgb48> sourcePixels, Span<Rgba32> destPixels, int count)
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
 
-                ref Rgba32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
-                ref Rgb48 destRef = ref MemoryMarshal.GetReference(destPixels);
+                ref Rgb48 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+                ref Rgba32 destRef = ref MemoryMarshal.GetReference(destPixels);
 
                 for (int i = 0; i < count; i++)
                 {
-                    ref Rgba32 sp = ref Unsafe.Add(ref sourceRef, i);
-                    ref Rgb48 dp = ref Unsafe.Add(ref destRef, i);
+                    ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Rgba32 dp = ref Unsafe.Add(ref destRef, i);
 
-                    dp.PackFromRgba32(sp);
+                    dp.PackFromRgb48(sp);
                 }
             }
 		
 			/// <inheritdoc />
-            internal override void ToRgba64(ReadOnlySpan<Rgba32> sourcePixels, Span<Rgba64> destPixels, int count)
+            internal override void ToRgba64(ReadOnlySpan<Rgb48> sourcePixels, Span<Rgba64> destPixels, int count)
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
 
-                ref Rgba32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+                ref Rgb48 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref Rgba64 destRef = ref MemoryMarshal.GetReference(destPixels);
 
                 for (int i = 0; i < count; i++)
                 {
-                    ref Rgba32 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Rgba64 dp = ref Unsafe.Add(ref destRef, i);
 
-                    dp.PackFromRgba32(sp);
+                    dp.PackFromRgb48(sp);
                 }
             }
 		

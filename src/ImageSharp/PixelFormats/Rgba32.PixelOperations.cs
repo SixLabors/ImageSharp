@@ -86,33 +86,10 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void ToVector4(ReadOnlySpan<Rgba32> sourceColors, Span<Vector4> destinationVectors, int count)
-            {
-                Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
-                Guard.MustBeSizedAtLeast(destinationVectors, count, nameof(destinationVectors));
+            internal override void PackFromScaledVector4(ReadOnlySpan<Vector4> sourceVectors, Span<Rgba32> destinationColors, int count) => this.PackFromVector4(sourceVectors, destinationColors, count);
 
-                if (count < 256 || !Vector.IsHardwareAccelerated)
-                {
-                    // Doesn't worth to bother with SIMD:
-                    base.ToVector4(sourceColors, destinationVectors, count);
-                    return;
-                }
-
-                int remainder = count % Vector<uint>.Count;
-                int alignedCount = count - remainder;
-
-                if (alignedCount > 0)
-                {
-                    ToVector4SimdAligned(sourceColors, destinationVectors, alignedCount);
-                }
-
-                if (remainder > 0)
-                {
-                    sourceColors = sourceColors.Slice(alignedCount);
-                    destinationVectors = destinationVectors.Slice(alignedCount);
-                    base.ToVector4(sourceColors, destinationVectors, remainder);
-                }
-            }
+            /// <inheritdoc />
+            internal override void ToScaledVector4(ReadOnlySpan<Rgba32> sourceColors, Span<Vector4> destinationVectors, int count) => this.ToVector4(sourceColors, destinationVectors, count);
 
             /// <inheritdoc />
             internal override void PackFromVector4(ReadOnlySpan<Vector4> sourceVectors, Span<Rgba32> destinationColors, int count)
@@ -145,25 +122,32 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void ToScaledVector4(ReadOnlySpan<Rgba32> sourceColors, Span<Vector4> destinationVectors, int count) => this.ToVector4(sourceColors, destinationVectors, count);
-
-            /// <inheritdoc />
-            internal override void PackFromScaledVector4(ReadOnlySpan<Vector4> sourceVectors, Span<Rgba32> destinationColors, int count) => this.PackFromVector4(sourceVectors, destinationColors, count);
-
-            /// <inheritdoc />
-            internal override void PackFromRgba32(ReadOnlySpan<Rgba32> source, Span<Rgba32> destPixels, int count)
+            internal override void ToVector4(ReadOnlySpan<Rgba32> sourceColors, Span<Vector4> destinationVectors, int count)
             {
-                GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+                Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
+                Guard.MustBeSizedAtLeast(destinationVectors, count, nameof(destinationVectors));
 
-                source.Slice(0, count).CopyTo(destPixels);
-            }
+                if (count < 256 || !Vector.IsHardwareAccelerated)
+                {
+                    // Doesn't worth to bother with SIMD:
+                    base.ToVector4(sourceColors, destinationVectors, count);
+                    return;
+                }
 
-            /// <inheritdoc />
-            internal override void ToRgba32(ReadOnlySpan<Rgba32> sourcePixels, Span<Rgba32> dest, int count)
-            {
-                GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
+                int remainder = count % Vector<uint>.Count;
+                int alignedCount = count - remainder;
 
-                sourcePixels.Slice(0, count).CopyTo(dest);
+                if (alignedCount > 0)
+                {
+                    ToVector4SimdAligned(sourceColors, destinationVectors, alignedCount);
+                }
+
+                if (remainder > 0)
+                {
+                    sourceColors = sourceColors.Slice(alignedCount);
+                    destinationVectors = destinationVectors.Slice(alignedCount);
+                    base.ToVector4(sourceColors, destinationVectors, remainder);
+                }
             }
 
             /// <summary>

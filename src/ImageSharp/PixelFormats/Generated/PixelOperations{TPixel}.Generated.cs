@@ -11,426 +11,6 @@ namespace SixLabors.ImageSharp.PixelFormats
     public partial class PixelOperations<TPixel>
     {
         /// <summary>
-        /// Converts 'count' elements in 'source` span of <see cref="Rgba64"/> data to a span of <typeparamref name="TPixel"/>-s.
-        /// </summary>
-        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Rgba64"/> data.</param>
-        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromRgba64(ReadOnlySpan<Rgba64> source, Span<TPixel> destPixels, int count)
-        {
-            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
-            
-            ref Rgba64 sourceRef = ref MemoryMarshal.GetReference(source);
-            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
-
-            // For conversion methods writing only to RGB channels, we need to keep the alpha channel opaque!
-            var temp = NamedColors<Rgba64>.Black;
-
-            for (int i = 0; i < count; i++)
-            {
-                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                temp = Unsafe.Add(ref sourceRef, i);
-                dp.PackFromRgba64(temp);
-            }
-        }
-
-        /// <summary>
-        /// A helper for <see cref="PackFromRgba64(ReadOnlySpan{Rgba64}, Span{TPixel}, int)"/> that expects a byte span.
-        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Rgba64"/> layout.
-        /// </summary>
-        /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
-        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void PackFromRgba64Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
-        {
-            this.PackFromRgba64(MemoryMarshal.Cast<byte, Rgba64>(sourceBytes), destPixels, count);
-        }
-        /// <summary>
-        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Rgba64"/>-s.
-        /// </summary>
-        /// <param name="sourcePixels">The span of source pixels</param>
-        /// <param name="dest">The destination span of <see cref="Rgba64"/> data.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToRgba64(ReadOnlySpan<TPixel> sourcePixels, Span<Rgba64> dest, int count)
-        {
-            GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
-
-            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-            ref Rgba64 destBaseRef = ref MemoryMarshal.GetReference(dest);
-
-            for (int i = 0; i < count; i++)
-            {
-                ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-                ref Rgba64 dp = ref Unsafe.Add(ref destBaseRef, i);
-                dp.PackFromScaledVector4(sp.ToScaledVector4());
-            }
-        }
-
-        /// <summary>
-        /// A helper for <see cref="ToRgba64(ReadOnlySpan{TPixel}, Span{Rgba64}, int)"/> that expects a byte span as destination.
-        /// The layout of the data in 'destBytes' must be compatible with <see cref="Rgba64"/> layout.
-        /// </summary>
-        /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void ToRgba64Bytes(ReadOnlySpan<TPixel> sourceColors, Span<byte> destBytes, int count)
-        {
-            this.ToRgba64(sourceColors, MemoryMarshal.Cast<byte, Rgba64>(destBytes), count);
-        }
-
-        /// <summary>
-        /// Converts 'count' elements in 'source` span of <see cref="Rgb48"/> data to a span of <typeparamref name="TPixel"/>-s.
-        /// </summary>
-        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Rgb48"/> data.</param>
-        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromRgb48(ReadOnlySpan<Rgb48> source, Span<TPixel> destPixels, int count)
-        {
-            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
-            
-            ref Rgb48 sourceRef = ref MemoryMarshal.GetReference(source);
-            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
-
-            // For conversion methods writing only to RGB channels, we need to keep the alpha channel opaque!
-            var temp = NamedColors<Rgb48>.Black;
-
-            for (int i = 0; i < count; i++)
-            {
-                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                temp = Unsafe.Add(ref sourceRef, i);
-                dp.PackFromRgb48(temp);
-            }
-        }
-
-        /// <summary>
-        /// A helper for <see cref="PackFromRgb48(ReadOnlySpan{Rgb48}, Span{TPixel}, int)"/> that expects a byte span.
-        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Rgb48"/> layout.
-        /// </summary>
-        /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
-        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void PackFromRgb48Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
-        {
-            this.PackFromRgb48(MemoryMarshal.Cast<byte, Rgb48>(sourceBytes), destPixels, count);
-        }
-        /// <summary>
-        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Rgb48"/>-s.
-        /// </summary>
-        /// <param name="sourcePixels">The span of source pixels</param>
-        /// <param name="dest">The destination span of <see cref="Rgb48"/> data.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToRgb48(ReadOnlySpan<TPixel> sourcePixels, Span<Rgb48> dest, int count)
-        {
-            GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
-
-            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-            ref Rgb48 destBaseRef = ref MemoryMarshal.GetReference(dest);
-
-            for (int i = 0; i < count; i++)
-            {
-                ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-                ref Rgb48 dp = ref Unsafe.Add(ref destBaseRef, i);
-                dp.PackFromScaledVector4(sp.ToScaledVector4());
-            }
-        }
-
-        /// <summary>
-        /// A helper for <see cref="ToRgb48(ReadOnlySpan{TPixel}, Span{Rgb48}, int)"/> that expects a byte span as destination.
-        /// The layout of the data in 'destBytes' must be compatible with <see cref="Rgb48"/> layout.
-        /// </summary>
-        /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void ToRgb48Bytes(ReadOnlySpan<TPixel> sourceColors, Span<byte> destBytes, int count)
-        {
-            this.ToRgb48(sourceColors, MemoryMarshal.Cast<byte, Rgb48>(destBytes), count);
-        }
-
-        /// <summary>
-        /// Converts 'count' elements in 'source` span of <see cref="Rgba32"/> data to a span of <typeparamref name="TPixel"/>-s.
-        /// </summary>
-        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Rgba32"/> data.</param>
-        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromRgba32(ReadOnlySpan<Rgba32> source, Span<TPixel> destPixels, int count)
-        {
-            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
-            
-            ref Rgba32 sourceRef = ref MemoryMarshal.GetReference(source);
-            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
-
-            // For conversion methods writing only to RGB channels, we need to keep the alpha channel opaque!
-            var temp = NamedColors<Rgba32>.Black;
-
-            for (int i = 0; i < count; i++)
-            {
-                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                temp = Unsafe.Add(ref sourceRef, i);
-                dp.PackFromRgba32(temp);
-            }
-        }
-
-        /// <summary>
-        /// A helper for <see cref="PackFromRgba32(ReadOnlySpan{Rgba32}, Span{TPixel}, int)"/> that expects a byte span.
-        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Rgba32"/> layout.
-        /// </summary>
-        /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
-        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void PackFromRgba32Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
-        {
-            this.PackFromRgba32(MemoryMarshal.Cast<byte, Rgba32>(sourceBytes), destPixels, count);
-        }
-        /// <summary>
-        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Rgba32"/>-s.
-        /// </summary>
-        /// <param name="sourcePixels">The span of source pixels</param>
-        /// <param name="dest">The destination span of <see cref="Rgba32"/> data.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToRgba32(ReadOnlySpan<TPixel> sourcePixels, Span<Rgba32> dest, int count)
-        {
-            GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
-
-            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-            ref Rgba32 destBaseRef = ref MemoryMarshal.GetReference(dest);
-
-            for (int i = 0; i < count; i++)
-            {
-                ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-                ref Rgba32 dp = ref Unsafe.Add(ref destBaseRef, i);
-                dp.PackFromScaledVector4(sp.ToScaledVector4());
-            }
-        }
-
-        /// <summary>
-        /// A helper for <see cref="ToRgba32(ReadOnlySpan{TPixel}, Span{Rgba32}, int)"/> that expects a byte span as destination.
-        /// The layout of the data in 'destBytes' must be compatible with <see cref="Rgba32"/> layout.
-        /// </summary>
-        /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void ToRgba32Bytes(ReadOnlySpan<TPixel> sourceColors, Span<byte> destBytes, int count)
-        {
-            this.ToRgba32(sourceColors, MemoryMarshal.Cast<byte, Rgba32>(destBytes), count);
-        }
-
-        /// <summary>
-        /// Converts 'count' elements in 'source` span of <see cref="Bgra32"/> data to a span of <typeparamref name="TPixel"/>-s.
-        /// </summary>
-        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Bgra32"/> data.</param>
-        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromBgra32(ReadOnlySpan<Bgra32> source, Span<TPixel> destPixels, int count)
-        {
-            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
-            
-            ref Bgra32 sourceRef = ref MemoryMarshal.GetReference(source);
-            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
-
-            // For conversion methods writing only to RGB channels, we need to keep the alpha channel opaque!
-            var temp = NamedColors<Bgra32>.Black;
-
-            for (int i = 0; i < count; i++)
-            {
-                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                temp = Unsafe.Add(ref sourceRef, i);
-                dp.PackFromBgra32(temp);
-            }
-        }
-
-        /// <summary>
-        /// A helper for <see cref="PackFromBgra32(ReadOnlySpan{Bgra32}, Span{TPixel}, int)"/> that expects a byte span.
-        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Bgra32"/> layout.
-        /// </summary>
-        /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
-        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void PackFromBgra32Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
-        {
-            this.PackFromBgra32(MemoryMarshal.Cast<byte, Bgra32>(sourceBytes), destPixels, count);
-        }
-        /// <summary>
-        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Bgra32"/>-s.
-        /// </summary>
-        /// <param name="sourcePixels">The span of source pixels</param>
-        /// <param name="dest">The destination span of <see cref="Bgra32"/> data.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToBgra32(ReadOnlySpan<TPixel> sourcePixels, Span<Bgra32> dest, int count)
-        {
-            GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
-
-            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-            ref Bgra32 destBaseRef = ref MemoryMarshal.GetReference(dest);
-
-            for (int i = 0; i < count; i++)
-            {
-                ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-                ref Bgra32 dp = ref Unsafe.Add(ref destBaseRef, i);
-                dp.PackFromScaledVector4(sp.ToScaledVector4());
-            }
-        }
-
-        /// <summary>
-        /// A helper for <see cref="ToBgra32(ReadOnlySpan{TPixel}, Span{Bgra32}, int)"/> that expects a byte span as destination.
-        /// The layout of the data in 'destBytes' must be compatible with <see cref="Bgra32"/> layout.
-        /// </summary>
-        /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void ToBgra32Bytes(ReadOnlySpan<TPixel> sourceColors, Span<byte> destBytes, int count)
-        {
-            this.ToBgra32(sourceColors, MemoryMarshal.Cast<byte, Bgra32>(destBytes), count);
-        }
-
-        /// <summary>
-        /// Converts 'count' elements in 'source` span of <see cref="Rgb24"/> data to a span of <typeparamref name="TPixel"/>-s.
-        /// </summary>
-        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Rgb24"/> data.</param>
-        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromRgb24(ReadOnlySpan<Rgb24> source, Span<TPixel> destPixels, int count)
-        {
-            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
-            
-            ref Rgb24 sourceRef = ref MemoryMarshal.GetReference(source);
-            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
-
-            // For conversion methods writing only to RGB channels, we need to keep the alpha channel opaque!
-            var temp = NamedColors<Rgba32>.Black;
-
-            for (int i = 0; i < count; i++)
-            {
-                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                temp.Rgb = Unsafe.Add(ref sourceRef, i);
-                dp.PackFromRgba32(temp);
-            }
-        }
-
-        /// <summary>
-        /// A helper for <see cref="PackFromRgb24(ReadOnlySpan{Rgb24}, Span{TPixel}, int)"/> that expects a byte span.
-        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Rgb24"/> layout.
-        /// </summary>
-        /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
-        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void PackFromRgb24Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
-        {
-            this.PackFromRgb24(MemoryMarshal.Cast<byte, Rgb24>(sourceBytes), destPixels, count);
-        }
-        /// <summary>
-        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Rgb24"/>-s.
-        /// </summary>
-        /// <param name="sourcePixels">The span of source pixels</param>
-        /// <param name="dest">The destination span of <see cref="Rgb24"/> data.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToRgb24(ReadOnlySpan<TPixel> sourcePixels, Span<Rgb24> dest, int count)
-        {
-            GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
-
-            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-            ref Rgb24 destBaseRef = ref MemoryMarshal.GetReference(dest);
-
-            for (int i = 0; i < count; i++)
-            {
-                ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-                ref Rgb24 dp = ref Unsafe.Add(ref destBaseRef, i);
-                dp.PackFromScaledVector4(sp.ToScaledVector4());
-            }
-        }
-
-        /// <summary>
-        /// A helper for <see cref="ToRgb24(ReadOnlySpan{TPixel}, Span{Rgb24}, int)"/> that expects a byte span as destination.
-        /// The layout of the data in 'destBytes' must be compatible with <see cref="Rgb24"/> layout.
-        /// </summary>
-        /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void ToRgb24Bytes(ReadOnlySpan<TPixel> sourceColors, Span<byte> destBytes, int count)
-        {
-            this.ToRgb24(sourceColors, MemoryMarshal.Cast<byte, Rgb24>(destBytes), count);
-        }
-
-        /// <summary>
-        /// Converts 'count' elements in 'source` span of <see cref="Bgr24"/> data to a span of <typeparamref name="TPixel"/>-s.
-        /// </summary>
-        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Bgr24"/> data.</param>
-        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromBgr24(ReadOnlySpan<Bgr24> source, Span<TPixel> destPixels, int count)
-        {
-            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
-            
-            ref Bgr24 sourceRef = ref MemoryMarshal.GetReference(source);
-            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
-
-            // For conversion methods writing only to RGB channels, we need to keep the alpha channel opaque!
-            var temp = NamedColors<Rgba32>.Black;
-
-            for (int i = 0; i < count; i++)
-            {
-                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                temp.Bgr = Unsafe.Add(ref sourceRef, i);
-                dp.PackFromRgba32(temp);
-            }
-        }
-
-        /// <summary>
-        /// A helper for <see cref="PackFromBgr24(ReadOnlySpan{Bgr24}, Span{TPixel}, int)"/> that expects a byte span.
-        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Bgr24"/> layout.
-        /// </summary>
-        /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
-        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void PackFromBgr24Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
-        {
-            this.PackFromBgr24(MemoryMarshal.Cast<byte, Bgr24>(sourceBytes), destPixels, count);
-        }
-        /// <summary>
-        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Bgr24"/>-s.
-        /// </summary>
-        /// <param name="sourcePixels">The span of source pixels</param>
-        /// <param name="dest">The destination span of <see cref="Bgr24"/> data.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToBgr24(ReadOnlySpan<TPixel> sourcePixels, Span<Bgr24> dest, int count)
-        {
-            GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
-
-            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-            ref Bgr24 destBaseRef = ref MemoryMarshal.GetReference(dest);
-
-            for (int i = 0; i < count; i++)
-            {
-                ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-                ref Bgr24 dp = ref Unsafe.Add(ref destBaseRef, i);
-                dp.PackFromScaledVector4(sp.ToScaledVector4());
-            }
-        }
-
-        /// <summary>
-        /// A helper for <see cref="ToBgr24(ReadOnlySpan{TPixel}, Span{Bgr24}, int)"/> that expects a byte span as destination.
-        /// The layout of the data in 'destBytes' must be compatible with <see cref="Bgr24"/> layout.
-        /// </summary>
-        /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void ToBgr24Bytes(ReadOnlySpan<TPixel> sourceColors, Span<byte> destBytes, int count)
-        {
-            this.ToBgr24(sourceColors, MemoryMarshal.Cast<byte, Bgr24>(destBytes), count);
-        }
-
-        /// <summary>
         /// Converts 'count' elements in 'source` span of <see cref="Argb32"/> data to a span of <typeparamref name="TPixel"/>-s.
         /// </summary>
         /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Argb32"/> data.</param>
@@ -440,17 +20,15 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
             
-            ref Argb32 sourceRef = ref MemoryMarshal.GetReference(source);
-            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
-
-            // For conversion methods writing only to RGB channels, we need to keep the alpha channel opaque!
-            var temp = NamedColors<Argb32>.Black;
+            ref Argb32 sourceBaseRef = ref MemoryMarshal.GetReference(source);
+            ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
             for (int i = 0; i < count; i++)
             {
-                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                temp = Unsafe.Add(ref sourceRef, i);
-                dp.PackFromArgb32(temp);
+                ref Argb32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+
+                dp.PackFromArgb32(sp);
             }
         }
 
@@ -466,23 +44,25 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             this.PackFromArgb32(MemoryMarshal.Cast<byte, Argb32>(sourceBytes), destPixels, count);
         }
+
         /// <summary>
         /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Argb32"/>-s.
         /// </summary>
         /// <param name="sourcePixels">The span of source pixels</param>
-        /// <param name="dest">The destination span of <see cref="Argb32"/> data.</param>
+        /// <param name="destPixels">The destination span of <see cref="Argb32"/> data.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToArgb32(ReadOnlySpan<TPixel> sourcePixels, Span<Argb32> dest, int count)
+        internal virtual void ToArgb32(ReadOnlySpan<TPixel> sourcePixels, Span<Argb32> destPixels, int count)
         {
-            GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
+            GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
 
             ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-            ref Argb32 destBaseRef = ref MemoryMarshal.GetReference(dest);
+            ref Argb32 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
             for (int i = 0; i < count; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref Argb32 dp = ref Unsafe.Add(ref destBaseRef, i);
+
                 dp.PackFromScaledVector4(sp.ToScaledVector4());
             }
         }
@@ -491,13 +71,153 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// A helper for <see cref="ToArgb32(ReadOnlySpan{TPixel}, Span{Argb32}, int)"/> that expects a byte span as destination.
         /// The layout of the data in 'destBytes' must be compatible with <see cref="Argb32"/> layout.
         /// </summary>
-        /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
+        /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
         /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void ToArgb32Bytes(ReadOnlySpan<TPixel> sourceColors, Span<byte> destBytes, int count)
+        internal void ToArgb32Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToArgb32(sourceColors, MemoryMarshal.Cast<byte, Argb32>(destBytes), count);
+            this.ToArgb32(sourcePixels, MemoryMarshal.Cast<byte, Argb32>(destBytes), count);
+        }
+
+        /// <summary>
+        /// Converts 'count' elements in 'source` span of <see cref="Bgr24"/> data to a span of <typeparamref name="TPixel"/>-s.
+        /// </summary>
+        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Bgr24"/> data.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        internal virtual void PackFromBgr24(ReadOnlySpan<Bgr24> source, Span<TPixel> destPixels, int count)
+        {
+            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+            
+            ref Bgr24 sourceBaseRef = ref MemoryMarshal.GetReference(source);
+            ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
+
+            for (int i = 0; i < count; i++)
+            {
+                ref Bgr24 sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+
+                dp.PackFromBgr24(sp);
+            }
+        }
+
+        /// <summary>
+        /// A helper for <see cref="PackFromBgr24(ReadOnlySpan{Bgr24}, Span{TPixel}, int)"/> that expects a byte span.
+        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Bgr24"/> layout.
+        /// </summary>
+        /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void PackFromBgr24Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
+        {
+            this.PackFromBgr24(MemoryMarshal.Cast<byte, Bgr24>(sourceBytes), destPixels, count);
+        }
+
+        /// <summary>
+        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Bgr24"/>-s.
+        /// </summary>
+        /// <param name="sourcePixels">The span of source pixels</param>
+        /// <param name="destPixels">The destination span of <see cref="Bgr24"/> data.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        internal virtual void ToBgr24(ReadOnlySpan<TPixel> sourcePixels, Span<Bgr24> destPixels, int count)
+        {
+            GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+
+            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
+            ref Bgr24 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
+
+            for (int i = 0; i < count; i++)
+            {
+                ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref Bgr24 dp = ref Unsafe.Add(ref destBaseRef, i);
+
+                dp.PackFromScaledVector4(sp.ToScaledVector4());
+            }
+        }
+
+        /// <summary>
+        /// A helper for <see cref="ToBgr24(ReadOnlySpan{TPixel}, Span{Bgr24}, int)"/> that expects a byte span as destination.
+        /// The layout of the data in 'destBytes' must be compatible with <see cref="Bgr24"/> layout.
+        /// </summary>
+        /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
+        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void ToBgr24Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+        {
+            this.ToBgr24(sourcePixels, MemoryMarshal.Cast<byte, Bgr24>(destBytes), count);
+        }
+
+        /// <summary>
+        /// Converts 'count' elements in 'source` span of <see cref="Bgra32"/> data to a span of <typeparamref name="TPixel"/>-s.
+        /// </summary>
+        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Bgra32"/> data.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        internal virtual void PackFromBgra32(ReadOnlySpan<Bgra32> source, Span<TPixel> destPixels, int count)
+        {
+            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+            
+            ref Bgra32 sourceBaseRef = ref MemoryMarshal.GetReference(source);
+            ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
+
+            for (int i = 0; i < count; i++)
+            {
+                ref Bgra32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+
+                dp.PackFromBgra32(sp);
+            }
+        }
+
+        /// <summary>
+        /// A helper for <see cref="PackFromBgra32(ReadOnlySpan{Bgra32}, Span{TPixel}, int)"/> that expects a byte span.
+        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Bgra32"/> layout.
+        /// </summary>
+        /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void PackFromBgra32Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
+        {
+            this.PackFromBgra32(MemoryMarshal.Cast<byte, Bgra32>(sourceBytes), destPixels, count);
+        }
+
+        /// <summary>
+        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Bgra32"/>-s.
+        /// </summary>
+        /// <param name="sourcePixels">The span of source pixels</param>
+        /// <param name="destPixels">The destination span of <see cref="Bgra32"/> data.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        internal virtual void ToBgra32(ReadOnlySpan<TPixel> sourcePixels, Span<Bgra32> destPixels, int count)
+        {
+            GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+
+            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
+            ref Bgra32 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
+
+            for (int i = 0; i < count; i++)
+            {
+                ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref Bgra32 dp = ref Unsafe.Add(ref destBaseRef, i);
+
+                dp.PackFromScaledVector4(sp.ToScaledVector4());
+            }
+        }
+
+        /// <summary>
+        /// A helper for <see cref="ToBgra32(ReadOnlySpan{TPixel}, Span{Bgra32}, int)"/> that expects a byte span as destination.
+        /// The layout of the data in 'destBytes' must be compatible with <see cref="Bgra32"/> layout.
+        /// </summary>
+        /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
+        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void ToBgra32Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+        {
+            this.ToBgra32(sourcePixels, MemoryMarshal.Cast<byte, Bgra32>(destBytes), count);
         }
 
         /// <summary>
@@ -510,17 +230,15 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
             
-            ref Gray8 sourceRef = ref MemoryMarshal.GetReference(source);
-            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
-
-            // For conversion methods writing only to RGB channels, we need to keep the alpha channel opaque!
-            var temp = NamedColors<Gray8>.Black;
+            ref Gray8 sourceBaseRef = ref MemoryMarshal.GetReference(source);
+            ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
             for (int i = 0; i < count; i++)
             {
-                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                temp = Unsafe.Add(ref sourceRef, i);
-                dp.PackFromGray8(temp);
+                ref Gray8 sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+
+                dp.PackFromGray8(sp);
             }
         }
 
@@ -536,23 +254,25 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             this.PackFromGray8(MemoryMarshal.Cast<byte, Gray8>(sourceBytes), destPixels, count);
         }
+
         /// <summary>
         /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Gray8"/>-s.
         /// </summary>
         /// <param name="sourcePixels">The span of source pixels</param>
-        /// <param name="dest">The destination span of <see cref="Gray8"/> data.</param>
+        /// <param name="destPixels">The destination span of <see cref="Gray8"/> data.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToGray8(ReadOnlySpan<TPixel> sourcePixels, Span<Gray8> dest, int count)
+        internal virtual void ToGray8(ReadOnlySpan<TPixel> sourcePixels, Span<Gray8> destPixels, int count)
         {
-            GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
+            GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
 
             ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-            ref Gray8 destBaseRef = ref MemoryMarshal.GetReference(dest);
+            ref Gray8 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
             for (int i = 0; i < count; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref Gray8 dp = ref Unsafe.Add(ref destBaseRef, i);
+
                 dp.PackFromScaledVector4(sp.ToScaledVector4());
             }
         }
@@ -561,13 +281,13 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// A helper for <see cref="ToGray8(ReadOnlySpan{TPixel}, Span{Gray8}, int)"/> that expects a byte span as destination.
         /// The layout of the data in 'destBytes' must be compatible with <see cref="Gray8"/> layout.
         /// </summary>
-        /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
+        /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
         /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void ToGray8Bytes(ReadOnlySpan<TPixel> sourceColors, Span<byte> destBytes, int count)
+        internal void ToGray8Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToGray8(sourceColors, MemoryMarshal.Cast<byte, Gray8>(destBytes), count);
+            this.ToGray8(sourcePixels, MemoryMarshal.Cast<byte, Gray8>(destBytes), count);
         }
 
         /// <summary>
@@ -580,17 +300,15 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
             
-            ref Gray16 sourceRef = ref MemoryMarshal.GetReference(source);
-            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
-
-            // For conversion methods writing only to RGB channels, we need to keep the alpha channel opaque!
-            var temp = NamedColors<Gray16>.Black;
+            ref Gray16 sourceBaseRef = ref MemoryMarshal.GetReference(source);
+            ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
             for (int i = 0; i < count; i++)
             {
-                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                temp = Unsafe.Add(ref sourceRef, i);
-                dp.PackFromGray16(temp);
+                ref Gray16 sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+
+                dp.PackFromGray16(sp);
             }
         }
 
@@ -606,23 +324,25 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             this.PackFromGray16(MemoryMarshal.Cast<byte, Gray16>(sourceBytes), destPixels, count);
         }
+
         /// <summary>
         /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Gray16"/>-s.
         /// </summary>
         /// <param name="sourcePixels">The span of source pixels</param>
-        /// <param name="dest">The destination span of <see cref="Gray16"/> data.</param>
+        /// <param name="destPixels">The destination span of <see cref="Gray16"/> data.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToGray16(ReadOnlySpan<TPixel> sourcePixels, Span<Gray16> dest, int count)
+        internal virtual void ToGray16(ReadOnlySpan<TPixel> sourcePixels, Span<Gray16> destPixels, int count)
         {
-            GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
+            GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
 
             ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-            ref Gray16 destBaseRef = ref MemoryMarshal.GetReference(dest);
+            ref Gray16 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
             for (int i = 0; i < count; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref Gray16 dp = ref Unsafe.Add(ref destBaseRef, i);
+
                 dp.PackFromScaledVector4(sp.ToScaledVector4());
             }
         }
@@ -631,13 +351,293 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// A helper for <see cref="ToGray16(ReadOnlySpan{TPixel}, Span{Gray16}, int)"/> that expects a byte span as destination.
         /// The layout of the data in 'destBytes' must be compatible with <see cref="Gray16"/> layout.
         /// </summary>
-        /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
+        /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
         /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void ToGray16Bytes(ReadOnlySpan<TPixel> sourceColors, Span<byte> destBytes, int count)
+        internal void ToGray16Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToGray16(sourceColors, MemoryMarshal.Cast<byte, Gray16>(destBytes), count);
+            this.ToGray16(sourcePixels, MemoryMarshal.Cast<byte, Gray16>(destBytes), count);
+        }
+
+        /// <summary>
+        /// Converts 'count' elements in 'source` span of <see cref="Rgb24"/> data to a span of <typeparamref name="TPixel"/>-s.
+        /// </summary>
+        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Rgb24"/> data.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        internal virtual void PackFromRgb24(ReadOnlySpan<Rgb24> source, Span<TPixel> destPixels, int count)
+        {
+            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+            
+            ref Rgb24 sourceBaseRef = ref MemoryMarshal.GetReference(source);
+            ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
+
+            for (int i = 0; i < count; i++)
+            {
+                ref Rgb24 sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+
+                dp.PackFromRgb24(sp);
+            }
+        }
+
+        /// <summary>
+        /// A helper for <see cref="PackFromRgb24(ReadOnlySpan{Rgb24}, Span{TPixel}, int)"/> that expects a byte span.
+        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Rgb24"/> layout.
+        /// </summary>
+        /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void PackFromRgb24Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
+        {
+            this.PackFromRgb24(MemoryMarshal.Cast<byte, Rgb24>(sourceBytes), destPixels, count);
+        }
+
+        /// <summary>
+        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Rgb24"/>-s.
+        /// </summary>
+        /// <param name="sourcePixels">The span of source pixels</param>
+        /// <param name="destPixels">The destination span of <see cref="Rgb24"/> data.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        internal virtual void ToRgb24(ReadOnlySpan<TPixel> sourcePixels, Span<Rgb24> destPixels, int count)
+        {
+            GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+
+            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
+            ref Rgb24 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
+
+            for (int i = 0; i < count; i++)
+            {
+                ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref Rgb24 dp = ref Unsafe.Add(ref destBaseRef, i);
+
+                dp.PackFromScaledVector4(sp.ToScaledVector4());
+            }
+        }
+
+        /// <summary>
+        /// A helper for <see cref="ToRgb24(ReadOnlySpan{TPixel}, Span{Rgb24}, int)"/> that expects a byte span as destination.
+        /// The layout of the data in 'destBytes' must be compatible with <see cref="Rgb24"/> layout.
+        /// </summary>
+        /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
+        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void ToRgb24Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+        {
+            this.ToRgb24(sourcePixels, MemoryMarshal.Cast<byte, Rgb24>(destBytes), count);
+        }
+
+        /// <summary>
+        /// Converts 'count' elements in 'source` span of <see cref="Rgba32"/> data to a span of <typeparamref name="TPixel"/>-s.
+        /// </summary>
+        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Rgba32"/> data.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        internal virtual void PackFromRgba32(ReadOnlySpan<Rgba32> source, Span<TPixel> destPixels, int count)
+        {
+            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+            
+            ref Rgba32 sourceBaseRef = ref MemoryMarshal.GetReference(source);
+            ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
+
+            for (int i = 0; i < count; i++)
+            {
+                ref Rgba32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+
+                dp.PackFromRgba32(sp);
+            }
+        }
+
+        /// <summary>
+        /// A helper for <see cref="PackFromRgba32(ReadOnlySpan{Rgba32}, Span{TPixel}, int)"/> that expects a byte span.
+        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Rgba32"/> layout.
+        /// </summary>
+        /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void PackFromRgba32Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
+        {
+            this.PackFromRgba32(MemoryMarshal.Cast<byte, Rgba32>(sourceBytes), destPixels, count);
+        }
+
+        /// <summary>
+        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Rgba32"/>-s.
+        /// </summary>
+        /// <param name="sourcePixels">The span of source pixels</param>
+        /// <param name="destPixels">The destination span of <see cref="Rgba32"/> data.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        internal virtual void ToRgba32(ReadOnlySpan<TPixel> sourcePixels, Span<Rgba32> destPixels, int count)
+        {
+            GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+
+            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
+            ref Rgba32 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
+
+            for (int i = 0; i < count; i++)
+            {
+                ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref Rgba32 dp = ref Unsafe.Add(ref destBaseRef, i);
+
+                dp.PackFromScaledVector4(sp.ToScaledVector4());
+            }
+        }
+
+        /// <summary>
+        /// A helper for <see cref="ToRgba32(ReadOnlySpan{TPixel}, Span{Rgba32}, int)"/> that expects a byte span as destination.
+        /// The layout of the data in 'destBytes' must be compatible with <see cref="Rgba32"/> layout.
+        /// </summary>
+        /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
+        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void ToRgba32Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+        {
+            this.ToRgba32(sourcePixels, MemoryMarshal.Cast<byte, Rgba32>(destBytes), count);
+        }
+
+        /// <summary>
+        /// Converts 'count' elements in 'source` span of <see cref="Rgb48"/> data to a span of <typeparamref name="TPixel"/>-s.
+        /// </summary>
+        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Rgb48"/> data.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        internal virtual void PackFromRgb48(ReadOnlySpan<Rgb48> source, Span<TPixel> destPixels, int count)
+        {
+            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+            
+            ref Rgb48 sourceBaseRef = ref MemoryMarshal.GetReference(source);
+            ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
+
+            for (int i = 0; i < count; i++)
+            {
+                ref Rgb48 sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+
+                dp.PackFromRgb48(sp);
+            }
+        }
+
+        /// <summary>
+        /// A helper for <see cref="PackFromRgb48(ReadOnlySpan{Rgb48}, Span{TPixel}, int)"/> that expects a byte span.
+        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Rgb48"/> layout.
+        /// </summary>
+        /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void PackFromRgb48Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
+        {
+            this.PackFromRgb48(MemoryMarshal.Cast<byte, Rgb48>(sourceBytes), destPixels, count);
+        }
+
+        /// <summary>
+        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Rgb48"/>-s.
+        /// </summary>
+        /// <param name="sourcePixels">The span of source pixels</param>
+        /// <param name="destPixels">The destination span of <see cref="Rgb48"/> data.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        internal virtual void ToRgb48(ReadOnlySpan<TPixel> sourcePixels, Span<Rgb48> destPixels, int count)
+        {
+            GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+
+            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
+            ref Rgb48 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
+
+            for (int i = 0; i < count; i++)
+            {
+                ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref Rgb48 dp = ref Unsafe.Add(ref destBaseRef, i);
+
+                dp.PackFromScaledVector4(sp.ToScaledVector4());
+            }
+        }
+
+        /// <summary>
+        /// A helper for <see cref="ToRgb48(ReadOnlySpan{TPixel}, Span{Rgb48}, int)"/> that expects a byte span as destination.
+        /// The layout of the data in 'destBytes' must be compatible with <see cref="Rgb48"/> layout.
+        /// </summary>
+        /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
+        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void ToRgb48Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+        {
+            this.ToRgb48(sourcePixels, MemoryMarshal.Cast<byte, Rgb48>(destBytes), count);
+        }
+
+        /// <summary>
+        /// Converts 'count' elements in 'source` span of <see cref="Rgba64"/> data to a span of <typeparamref name="TPixel"/>-s.
+        /// </summary>
+        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Rgba64"/> data.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        internal virtual void PackFromRgba64(ReadOnlySpan<Rgba64> source, Span<TPixel> destPixels, int count)
+        {
+            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+            
+            ref Rgba64 sourceBaseRef = ref MemoryMarshal.GetReference(source);
+            ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
+
+            for (int i = 0; i < count; i++)
+            {
+                ref Rgba64 sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+
+                dp.PackFromRgba64(sp);
+            }
+        }
+
+        /// <summary>
+        /// A helper for <see cref="PackFromRgba64(ReadOnlySpan{Rgba64}, Span{TPixel}, int)"/> that expects a byte span.
+        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Rgba64"/> layout.
+        /// </summary>
+        /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void PackFromRgba64Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
+        {
+            this.PackFromRgba64(MemoryMarshal.Cast<byte, Rgba64>(sourceBytes), destPixels, count);
+        }
+
+        /// <summary>
+        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Rgba64"/>-s.
+        /// </summary>
+        /// <param name="sourcePixels">The span of source pixels</param>
+        /// <param name="destPixels">The destination span of <see cref="Rgba64"/> data.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        internal virtual void ToRgba64(ReadOnlySpan<TPixel> sourcePixels, Span<Rgba64> destPixels, int count)
+        {
+            GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+
+            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
+            ref Rgba64 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
+
+            for (int i = 0; i < count; i++)
+            {
+                ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref Rgba64 dp = ref Unsafe.Add(ref destBaseRef, i);
+
+                dp.PackFromScaledVector4(sp.ToScaledVector4());
+            }
+        }
+
+        /// <summary>
+        /// A helper for <see cref="ToRgba64(ReadOnlySpan{TPixel}, Span{Rgba64}, int)"/> that expects a byte span as destination.
+        /// The layout of the data in 'destBytes' must be compatible with <see cref="Rgba64"/> layout.
+        /// </summary>
+        /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
+        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void ToRgba64Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+        {
+            this.ToRgba64(sourcePixels, MemoryMarshal.Cast<byte, Rgba64>(destBytes), count);
         }
     }
 }

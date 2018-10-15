@@ -23,7 +23,9 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
         private IMemoryOwner<TPixel> destination;
 
-        [Params(16, 128, 512)]
+        [Params(
+            //64,
+            2048)]
         public int Count { get; set; }
 
         [GlobalSetup]

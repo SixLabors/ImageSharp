@@ -3,7 +3,6 @@
 
 using System;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.Memory;
 
@@ -19,99 +18,37 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         internal partial class PixelOperations : PixelOperations<Rgba32>
         {
-            /// <summary>
-            /// SIMD optimized bulk implementation of <see cref="IPixel.PackFromVector4(Vector4)"/>
-            /// that works only with `count` divisible by <see cref="Vector{UInt32}.Count"/>.
-            /// </summary>
-            /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
-            /// <param name="destVectors">The <see cref="Span{T}"/> to the dstination vectors.</param>
-            /// <param name="count">The number of pixels to convert.</param>
-            /// <remarks>
-            /// Implementation adapted from:
-            /// <see>
-            ///     <cref>http://stackoverflow.com/a/5362789</cref>
-            /// </see>
-            /// TODO: We can replace this implementation in the future using new Vector API-s:
-            /// <see>
-            ///     <cref>https://github.com/dotnet/corefx/issues/15957</cref>
-            /// </see>
-            /// </remarks>
-            internal static void ToVector4SimdAligned(ReadOnlySpan<Rgba32> sourceColors, Span<Vector4> destVectors, int count)
-            {
-                if (!Vector.IsHardwareAccelerated)
-                {
-                    throw new InvalidOperationException(
-                        "Rgba32.PixelOperations.ToVector4SimdAligned() should not be called when Vector.IsHardwareAccelerated == false!");
-                }
-
-                DebugGuard.IsTrue(
-                    count % Vector<uint>.Count == 0,
-                    nameof(count),
-                    "Argument 'count' should divisible by Vector<uint>.Count!");
-
-                var bVec = new Vector<float>(256.0f / 255.0f);
-                var magicFloat = new Vector<float>(32768.0f);
-                var magicInt = new Vector<uint>(1191182336); // reinterpreded value of 32768.0f
-                var mask = new Vector<uint>(255);
-
-                int unpackedRawCount = count * 4;
-
-                ref uint sourceBase = ref Unsafe.As<Rgba32, uint>(ref MemoryMarshal.GetReference(sourceColors));
-                ref WideRgba destBaseAsWide = ref Unsafe.As<Vector4, WideRgba>(ref MemoryMarshal.GetReference(destVectors));
-                ref Vector<uint> destBaseAsUInt = ref Unsafe.As<WideRgba, Vector<uint>>(ref destBaseAsWide);
-                ref Vector<float> destBaseAsFloat = ref Unsafe.As<WideRgba, Vector<float>>(ref destBaseAsWide);
-
-                for (int i = 0; i < count; i++)
-                {
-                    uint sVal = Unsafe.Add(ref sourceBase, i);
-                    ref WideRgba dst = ref Unsafe.Add(ref destBaseAsWide, i);
-
-                    // This call is the bottleneck now:
-                    dst.Load(sVal);
-                }
-
-                int numOfVectors = unpackedRawCount / Vector<uint>.Count;
-
-                for (int i = 0; i < numOfVectors; i++)
-                {
-                    Vector<uint> vi = Unsafe.Add(ref destBaseAsUInt, i);
-
-                    vi &= mask;
-                    vi |= magicInt;
-
-                    var vf = Vector.AsVectorSingle(vi);
-                    vf = (vf - magicFloat) * bVec;
-
-                    Unsafe.Add(ref destBaseAsFloat, i) = vf;
-                }
-            }
-
             /// <inheritdoc />
             internal override void ToVector4(ReadOnlySpan<Rgba32> sourceColors, Span<Vector4> destinationVectors, int count)
             {
                 Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
                 Guard.MustBeSizedAtLeast(destinationVectors, count, nameof(destinationVectors));
 
-                if (count < 256 || !Vector.IsHardwareAccelerated)
+                if (count < 128 || !SimdUtils.IsAvx2CompatibleArchitecture)
                 {
                     // Doesn't worth to bother with SIMD:
                     base.ToVector4(sourceColors, destinationVectors, count);
                     return;
                 }
 
-                int remainder = count % Vector<uint>.Count;
+                int remainder = count % 2;
                 int alignedCount = count - remainder;
 
                 if (alignedCount > 0)
                 {
-                    ToVector4SimdAligned(sourceColors, destinationVectors, alignedCount);
+                    ReadOnlySpan<byte> rawSrc = MemoryMarshal.Cast<Rgba32, byte>(sourceColors);
+                    Span<float> rawDest = MemoryMarshal.Cast<Vector4, float>(destinationVectors.Slice(0, alignedCount));
+
+                    SimdUtils.BulkConvertByteToNormalizedFloat(
+                        rawSrc,
+                        rawDest);
                 }
 
                 if (remainder > 0)
                 {
-                    sourceColors = sourceColors.Slice(alignedCount);
-                    destinationVectors = destinationVectors.Slice(alignedCount);
-                    base.ToVector4(sourceColors, destinationVectors, remainder);
+                    // actually: remainder == 1
+                    int lastIdx = count - 1;
+                    destinationVectors[lastIdx] = sourceColors[lastIdx].ToVector4();
                 }
             }
 
@@ -120,7 +57,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             {
                 GuardSpans(sourceVectors, nameof(sourceVectors), destinationColors, nameof(destinationColors), count);
 
-                if (!SimdUtils.IsAvx2CompatibleArchitecture)
+                if (count < 128 || !SimdUtils.IsAvx2CompatibleArchitecture)
                 {
                     base.PackFromVector4(sourceVectors, destinationColors, count);
                     return;
@@ -131,10 +68,10 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 if (alignedCount > 0)
                 {
-                    ReadOnlySpan<float> flatSrc = MemoryMarshal.Cast<Vector4, float>(sourceVectors.Slice(0, alignedCount));
-                    Span<byte> flatDest = MemoryMarshal.Cast<Rgba32, byte>(destinationColors);
+                    ReadOnlySpan<float> rawSrc = MemoryMarshal.Cast<Vector4, float>(sourceVectors.Slice(0, alignedCount));
+                    Span<byte> rawDest = MemoryMarshal.Cast<Rgba32, byte>(destinationColors);
 
-                    SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(flatSrc, flatDest);
+                    SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(rawSrc, rawDest);
                 }
 
                 if (remainder > 0)
@@ -171,30 +108,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                 GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
                 sourcePixels.Slice(0, count).CopyTo(dest);
-            }
-
-            /// <summary>
-            /// Value type to store <see cref="Rgba32"/>-s widened into multiple <see cref="uint"/>-s.
-            /// </summary>
-            [StructLayout(LayoutKind.Sequential)]
-            private struct WideRgba
-            {
-                private uint r;
-
-                private uint g;
-
-                private uint b;
-
-                private uint a;
-
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                public void Load(uint p)
-                {
-                    this.r = p;
-                    this.g = p >> GreenShift;
-                    this.b = p >> BlueShift;
-                    this.a = p >> AlphaShift;
-                }
             }
         }
     }

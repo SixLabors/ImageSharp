@@ -22,7 +22,7 @@ Designed to democratize image processing, ImageSharp brings you an incredibly po
 
 Compared to `System.Drawing` we have been able to develop something much more flexible, easier to code against, and much, much less prone to memory leaks. Gone are system-wide process-locks; ImageSharp images are thread-safe and fully supported in web environments.
 
-Built against .Net Standard 1.1 ImageSharp can be used in device, cloud, and embedded/IoT scenarios. 
+Built against .Net Standard 1.3 ImageSharp can be used in device, cloud, and embedded/IoT scenarios. 
 
 ### Documentation
 For all SixLabors projects, including ImageSharp:
@@ -81,24 +81,6 @@ using (Image<Rgba32> image = Image.Load("foo.jpg"))
          .Resize(image.Width / 2, image.Height / 2)
          .Grayscale());
     image.Save("bar.jpg"); // Automatic encoder selected based on extension.
-}
-```
-On netstandard 1.1 - 1.2
-
-```csharp
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing;
-
-// Image.Load(Stream stream) is a shortcut for our default type.
-// Other pixel formats use Image.Load<TPixel>(Stream stream))
-using (FileStream stream = File.OpenRead("foo.jpg"))
-using (FileStream output = File.OpenWrite("bar.jpg"))
-using (Image<Rgba32> image = Image.Load(stream))
-{
-    image.Mutate(x => x
-         .Resize(image.Width / 2, image.Height / 2)
-         .Grayscale());
-    image.Save(output);
 }
 ```
 

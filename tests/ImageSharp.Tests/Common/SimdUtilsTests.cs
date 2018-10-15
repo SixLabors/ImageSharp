@@ -227,6 +227,24 @@ namespace SixLabors.ImageSharp.Tests.Common
         }
 
         [Theory]
+        [InlineData(1, 0)]
+        [InlineData(2, 32)]
+        [InlineData(3, 128)]
+        public void ExtendedIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows(int seed, int count)
+        {
+            float[] orig = new Random(seed).GenerateRandomRoundedFloatArray(count, -50, 444);
+            float[] normalized = orig.Select(f => f / 255f).ToArray();
+
+            byte[] dest = new byte[count];
+
+            SimdUtils.ExtendedIntrinsics.BulkConvertNormalizedFloatToByteClampOverflows(normalized, dest);
+
+            byte[] expected = orig.Select(f => (byte)Clamp255(f)).ToArray();
+
+            Assert.Equal(expected, dest);
+        }
+
+        [Theory]
         [InlineData(0)]
         [InlineData(7)]
         [InlineData(42)]

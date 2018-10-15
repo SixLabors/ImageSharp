@@ -66,6 +66,10 @@ namespace SixLabors.ImageSharp
             /// <summary>
             /// A variant of <see cref="SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows"/>, which is faster on new .NET runtime.
             /// </summary>
+            /// <remarks>
+            /// It does NOT worth yet to utilize this method (2018 Oct).
+            /// See benchmark results for the "PackFromVector4_Rgba32" benchmark!
+            /// </remarks>
             // ReSharper disable once MemberHidesStaticFromOuterClass
             internal static void BulkConvertNormalizedFloatToByteClampOverflows(ReadOnlySpan<float> source, Span<byte> dest)
             {
@@ -107,7 +111,6 @@ namespace SixLabors.ImageSharp
 
                     Unsafe.Add(ref destBase, i) = b;
                 }
-
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -20,14 +20,10 @@ namespace SixLabors.ImageSharp
         /// <returns>The string.</returns>
         public static string GetString(this Encoding encoding, ReadOnlySpan<byte> buffer)
         {
-#if NETSTANDARD1_1
-            return encoding.GetString(buffer.ToArray());
-#else
             fixed (byte* bytes = buffer)
             {
                 return encoding.GetString(bytes, buffer.Length);
             }
-#endif
         }
     }
 }

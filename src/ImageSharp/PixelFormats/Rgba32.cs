@@ -133,7 +133,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         public Rgb24 Rgb
         {
-            [MethodImpl(InliningOptions.ShortMethod)]
+            // If this is changed to ShortMethod then several jpeg encoding tests fail
+            // on 32 bit Net 4.6.2 and NET 4.7.1
+            [MethodImpl(InliningOptions.ColdPath)]
             get => Unsafe.As<Rgba32, Rgb24>(ref this);
 
             [MethodImpl(InliningOptions.ShortMethod)]

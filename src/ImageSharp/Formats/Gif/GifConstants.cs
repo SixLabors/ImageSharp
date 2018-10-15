@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Gets the default encoding to use when reading comments.
         /// </summary>
-        public static readonly Encoding DefaultEncoding = Encoding.GetEncoding("ASCII");
+        public static readonly Encoding DefaultEncoding = Encoding.ASCII;
 
         /// <summary>
         /// The list of mimetypes that equate to a gif.

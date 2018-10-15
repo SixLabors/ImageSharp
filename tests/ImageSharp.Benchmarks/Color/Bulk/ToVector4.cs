@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         {
         }
 
-        //[Benchmark]
+        [Benchmark]
         public void BulkConvertByteToNormalizedFloat()
         {
             Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
@@ -89,12 +89,12 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         }
 
         [Benchmark]
-        public void BulkConvertByteToNormalizedFloatFast()
+        public void ExtendedIntrinsics_BulkConvertByteToNormalizedFloat()
         {
             Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
             Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
 
-            SimdUtils.BulkConvertByteToNormalizedFloatWithExtendedIntrinsics(sBytes, dFloats);
+            SimdUtils.ExtendedIntrinsics.BulkConvertByteToNormalizedFloat(sBytes, dFloats);
         }
 
     }

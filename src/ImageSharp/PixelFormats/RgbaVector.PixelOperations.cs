@@ -18,11 +18,23 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal class PixelOperations : PixelOperations<RgbaVector>
         {
             /// <inheritdoc />
-            internal override unsafe void ToVector4(ReadOnlySpan<RgbaVector> sourceColors, Span<Vector4> destVectors, int count)
+            internal override void PackFromScaledVector4(ReadOnlySpan<Vector4> sourceVectors, Span<RgbaVector> destinationColors, int count)
             {
-                GuardSpans(sourceColors, nameof(sourceColors), destVectors, nameof(destVectors), count);
+                GuardSpans(sourceVectors, nameof(sourceVectors), destinationColors, nameof(destinationColors), count);
 
-                MemoryMarshal.Cast<RgbaVector, Vector4>(sourceColors).Slice(0, count).CopyTo(destVectors);
+                MemoryMarshal.Cast<Vector4, RgbaVector>(sourceVectors).Slice(0, count).CopyTo(destinationColors);
+            }
+
+            /// <inheritdoc />
+            internal override void ToScaledVector4(ReadOnlySpan<RgbaVector> sourceColors, Span<Vector4> destinationVectors, int count)
+                => this.ToVector4(sourceColors, destinationVectors, count);
+
+            /// <inheritdoc />
+            internal override void ToVector4(ReadOnlySpan<RgbaVector> sourceColors, Span<Vector4> destinationVectors, int count)
+            {
+                GuardSpans(sourceColors, nameof(sourceColors), destinationVectors, nameof(destinationVectors), count);
+
+                MemoryMarshal.Cast<RgbaVector, Vector4>(sourceColors).Slice(0, count).CopyTo(destinationVectors);
             }
         }
     }

@@ -12,17 +12,11 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Ranges from [0, 0, 0, 1] to [1, 1, 1, 1] in vector form.
     /// </para>
     /// </summary>
-    public struct Gray8 : IPixel<Gray8>, IPackedVector<byte>
+    public partial struct Gray8 : IPixel<Gray8>, IPackedVector<byte>
     {
-        /// <summary>
-        /// The maximum byte value.
-        /// </summary>
         private static readonly Vector4 MaxBytes = new Vector4(255F);
-
-        /// <summary>
-        /// The half vector value.
-        /// </summary>
         private static readonly Vector4 Half = new Vector4(0.5F);
+        private const float Average = 1 / 3F;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Gray8"/> struct.
@@ -56,7 +50,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Gray8 left, Gray8 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public PixelOperations<Gray8> CreatePixelOperations() => new PixelOperations<Gray8>();
+        public PixelOperations<Gray8> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -72,9 +66,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             vector *= MaxBytes;
             vector += Half;
-            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
-
-            this.PackedValue = ImageMaths.Get8BitBT709Luminance((byte)vector.X, (byte)vector.Y, (byte)vector.Z);
+            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes) * Average;
+            this.PackedValue = (byte)(vector.X + vector.Y + vector.Z);
         }
 
         /// <inheritdoc />
@@ -91,6 +84,10 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromBgr24(Bgr24 source) => this.PackedValue = ImageMaths.Get8BitBT709Luminance(source.R, source.G, source.B);
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromBgra32(Bgra32 source) => this.PackedValue = ImageMaths.Get8BitBT709Luminance(source.R, source.G, source.B);
 
         /// <inheritdoc/>
@@ -100,6 +97,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromGray16(Gray16 source) => this.PackedValue = ImageMaths.DownScaleFrom16BitTo8Bit(source.PackedValue);
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromRgb24(Rgb24 source) => this.PackedValue = ImageMaths.Get8BitBT709Luminance(source.R, source.G, source.B);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -138,5 +139,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
         public override int GetHashCode() => this.PackedValue.GetHashCode();
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal void ConvertFromRgbaScaledVector4(Vector4 vector)
+        {
+            vector *= MaxBytes;
+            vector += Half;
+            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
+            this.PackedValue = ImageMaths.Get8BitBT709Luminance((byte)vector.X, (byte)vector.Y, (byte)vector.Z);
+        }
     }
 }

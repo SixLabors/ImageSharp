@@ -248,6 +248,14 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromBgr24(Bgr24 source)
+        {
+            this.Bgr = source;
+            this.A = byte.MaxValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromBgra32(Bgra32 source)
         {
             this.R = source.R;
@@ -274,6 +282,14 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.R = rgb;
             this.G = rgb;
             this.B = rgb;
+            this.A = byte.MaxValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromRgb24(Rgb24 source)
+        {
+            this.Rgb = source;
             this.A = byte.MaxValue;
         }
 

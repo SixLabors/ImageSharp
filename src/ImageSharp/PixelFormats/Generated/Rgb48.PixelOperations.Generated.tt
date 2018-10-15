@@ -14,19 +14,19 @@
         #>
 
 			/// <inheritdoc />
-            internal override void To<#=pixelType#>(ReadOnlySpan<Rgba32> sourcePixels, Span<<#=pixelType#>> destPixels, int count)
+            internal override void To<#=pixelType#>(ReadOnlySpan<Rgb48> sourcePixels, Span<<#=pixelType#>> destPixels, int count)
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
 
-                ref Rgba32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+                ref Rgb48 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref <#=pixelType#> destRef = ref MemoryMarshal.GetReference(destPixels);
 
                 for (int i = 0; i < count; i++)
                 {
-                    ref Rgba32 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref <#=pixelType#> dp = ref Unsafe.Add(ref destRef, i);
 
-                    dp.PackFromRgba32(sp);
+                    dp.PackFromRgb48(sp);
                 }
             }
 		<#
@@ -45,16 +45,16 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// <content>
     /// Provides optimized overrides for bulk operations.
     /// </content>
-    public partial struct Rgba32
+    public partial struct Rgb48
     {
 
-        /// <content>
+        /// <summary>
         /// Provides optimized overrides for bulk operations.
-        /// </content>
-        internal partial class PixelOperations
+        /// </summary>
+        internal class PixelOperations : PixelOperations<Rgb48>
         {
             /// <inheritdoc />
-            internal override void PackFromRgba32(ReadOnlySpan<Rgba32> source, Span<Rgba32> destPixels, int count)
+            internal override void PackFromRgb48(ReadOnlySpan<Rgb48> source, Span<Rgb48> destPixels, int count)
             {
                 GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
 
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void ToRgba32(ReadOnlySpan<Rgba32> sourcePixels, Span<Rgba32> destPixels, int count)
+            internal override void ToRgb48(ReadOnlySpan<Rgb48> sourcePixels, Span<Rgb48> destPixels, int count)
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
 
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     GenerateConvertToMethod("Gray8");
     GenerateConvertToMethod("Gray16");
     GenerateConvertToMethod("Rgb24");
-    GenerateConvertToMethod("Rgb48");
+    GenerateConvertToMethod("Rgba32");
     GenerateConvertToMethod("Rgba64");
 			#>
 

@@ -15,16 +15,6 @@ namespace SixLabors.ImageSharp.PixelFormats
     public struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
     {
         /// <summary>
-        /// The maximum byte value.
-        /// </summary>
-        private static readonly Vector4 MaxBytes = new Vector4(255);
-
-        /// <summary>
-        /// The half vector value.
-        /// </summary>
-        private static readonly Vector4 Half = new Vector4(0.5F);
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="HalfSingle"/> struct.
         /// </summary>
         /// <param name="single">The single component.</param>
@@ -91,6 +81,10 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromBgr24(Bgr24 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromBgra32(Bgra32 source) => this.PackFromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc/>
@@ -100,6 +94,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromGray16(Gray16 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromRgb24(Rgb24 source) => this.PackFromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -137,14 +135,5 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
         public override int GetHashCode() => this.PackedValue.GetHashCode();
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private Vector4 ToByteScaledVector4()
-        {
-            var vector = this.ToVector4();
-            vector *= MaxBytes;
-            vector += Half;
-            return Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
-        }
     }
 }

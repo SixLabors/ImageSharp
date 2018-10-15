@@ -14,20 +14,12 @@ namespace SixLabors.ImageSharp.Tests
 
         public static readonly byte[] Header_Random_Id_Array =
         {
-#if !NETSTANDARD1_1
-                0x84, 0xA8, 0xD4, 0x60, 0xC7, 0x16, 0xB6, 0xF3, 0x9B, 0x0E, 0x4C, 0x3D, 0xAB, 0x95, 0xF8, 0x38,
-#else
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-#endif
+            0x84, 0xA8, 0xD4, 0x60, 0xC7, 0x16, 0xB6, 0xF3, 0x9B, 0x0E, 0x4C, 0x3D, 0xAB, 0x95, 0xF8, 0x38,
         };
 
         public static readonly byte[] Profile_Random_Id_Array =
         {
-#if !NETSTANDARD1_1
-                0x91, 0x7D, 0x6D, 0xE6, 0x84, 0xC9, 0x58, 0xD1, 0x3B, 0xB0, 0xF5, 0xBB, 0xAD, 0xD1, 0x13, 0x4F,
-#else
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-#endif
+            0x91, 0x7D, 0x6D, 0xE6, 0x84, 0xC9, 0x58, 0xD1, 0x3B, 0xB0, 0xF5, 0xBB, 0xAD, 0xD1, 0x13, 0x4F,
         };
 
         public static readonly IccProfileHeader Header_Random_Write = CreateHeaderRandomValue(
@@ -35,13 +27,7 @@ namespace SixLabors.ImageSharp.Tests
             new IccProfileId(1, 2, 3, 4),   // should be overwritten
             "ijkl");    // should be overwritten to "acsp"
 
-        public static readonly IccProfileHeader Header_Random_Read = CreateHeaderRandomValue(132,
-#if !NETSTANDARD1_1
-            Header_Random_Id_Value,
-#else
-            IccProfileId.Zero,
-#endif
-            "acsp");
+        public static readonly IccProfileHeader Header_Random_Read = CreateHeaderRandomValue(132, Header_Random_Id_Value, "acsp");
 
         public static readonly byte[] Header_Random_Array = CreateHeaderRandomArray(132, 0, Header_Random_Id_Array);
 
@@ -120,11 +106,7 @@ namespace SixLabors.ImageSharp.Tests
         );
 
         public static readonly IccProfile Profile_Random_Val = new IccProfile(CreateHeaderRandomValue(168,
-#if !NETSTANDARD1_1
             Profile_Random_Id_Value,
-#else
-            IccProfileId.Zero,
-#endif
             "acsp"),
             new IccTagDataEntry[]
             {

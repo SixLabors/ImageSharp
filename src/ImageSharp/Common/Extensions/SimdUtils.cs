@@ -14,12 +14,12 @@ namespace SixLabors.ImageSharp
     /// <summary>
     /// Various extension and utility methods for <see cref="Vector4"/> and <see cref="Vector{T}"/> utilizing SIMD capabilities
     /// </summary>
-    internal static class SimdUtils
+    internal static partial class SimdUtils
     {
         /// <summary>
         /// Gets a value indicating whether the code is being executed on AVX2 CPU where both float and integer registers are of size 256 byte.
         /// </summary>
-        public static bool IsAvx2CompatibleArchitecture => Vector<float>.Count == 8 && Vector<int>.Count == 8;
+        public static bool IsAvx2CompatibleArchitecture { get; } = Vector.IsHardwareAccelerated && Vector<float>.Count == 8 && Vector<int>.Count == 8;
 
         internal static void GuardAvx2(string operation)
         {
@@ -61,7 +61,8 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Convert 'source.Length' <see cref="float"/> values normalized into [0..1] from 'source' into 'dest' buffer of <see cref="byte"/> values.
-        /// The values gonna be scaled up into [0-255] and rounded.
+        /// The values are scaled up into [0-255] and rounded.
+        /// The implementation is SIMD optimized and works only with `source.Length` divisible by <see cref="Vector{UInt32}.Count"/>.
         /// Based on:
         /// <see>
         ///     <cref>http://lolengine.net/blog/2011/3/20/understanding-fast-float-integer-conversions</cref>
@@ -106,46 +107,13 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Fast <see cref="byte"/> -> <see cref="float"/> conversion for RyuJIT runtimes having dotnet/coreclr#10662 merged.
+        /// Converts `dest.Length` bytes to <see cref="byte"/>-s to <see cref="float"/>-s normalized into [0..1]
+        /// The implementation is SIMD optimized and works only with `dest.Length` divisible by <see cref="Vector{UInt32}.Count"/>.
+        /// Implementation adapted from:
         /// <see>
-        ///     <cref>https://github.com/dotnet/coreclr/pull/10662</cref>
+        ///     <cref>http://stackoverflow.com/a/5362789</cref>
         /// </see>
         /// </summary>
-        internal static void BulkConvertByteToNormalizedFloatWithExtendedIntrinsics(ReadOnlySpan<byte> source, Span<float> dest)
-        {
-            Guard.IsTrue(
-                source.Length % Vector<byte>.Count == 0,
-                nameof(source),
-                "dest.Length should be divisable by Vector<byte>.Count!");
-
-            int n = source.Length / Vector<byte>.Count;
-
-            ref Vector<byte> sourceBase = ref Unsafe.As<byte, Vector<byte>>(ref MemoryMarshal.GetReference(source));
-            ref Vector<float> destBase = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(dest));
-
-            var scale = new Vector<float>(1f / 255f);
-
-            for (int i = 0; i < n; i++)
-            {
-                Vector<byte> b = Unsafe.Add(ref sourceBase, i);
-
-                Vector.Widen(b, out Vector<ushort> s0, out Vector<ushort> s1);
-                Vector.Widen(s0, out Vector<uint> w0, out Vector<uint> w1);
-                Vector.Widen(s1, out Vector<uint> w2, out Vector<uint> w3);
-
-                Vector<float> f0 = Vector.ConvertToSingle(w0) * scale;
-                Vector<float> f1 = Vector.ConvertToSingle(w1) * scale;
-                Vector<float> f2 = Vector.ConvertToSingle(w2) * scale;
-                Vector<float> f3 = Vector.ConvertToSingle(w3) * scale;
-
-                ref Vector<float> d = ref Unsafe.Add(ref destBase, i * 4);
-                d = f0;
-                Unsafe.Add(ref d, 1) = f1;
-                Unsafe.Add(ref d, 2) = f2;
-                Unsafe.Add(ref d, 3) = f3;
-            }
-        }
-
         internal static void BulkConvertByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
         {
             GuardAvx2(nameof(BulkConvertByteToNormalizedFloat));
@@ -188,7 +156,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         internal static void BulkConvertNormalizedFloatToByteClampOverflows(ReadOnlySpan<float> source, Span<byte> dest)
         {
-            GuardAvx2(nameof(BulkConvertNormalizedFloatToByte));
+            GuardAvx2(nameof(BulkConvertNormalizedFloatToByteClampOverflows));
 
             DebugGuard.IsTrue((source.Length % Vector<float>.Count) == 0, nameof(source), "source.Length should be divisable by Vector<float>.Count!");
 

@@ -17,13 +17,17 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
     {
         public class Rgba32 : PixelOperationsTests<ImageSharp.PixelFormats.Rgba32>
         {
+            public const string SkipProfilingBenchmarks =
+#if true
+                "Profiling benchmark - enable manually!";
+#else
+                null;
+#endif
+
             public Rgba32(ITestOutputHelper output)
                 : base(output)
             {
             }
-
-            // For 4.6 test runner MemberData does not work without redeclaring the public field in the derived test class:
-            public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
 
             [Fact]
             public void IsSpecialImplementation()
@@ -31,29 +35,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 Assert.IsType<ImageSharp.PixelFormats.Rgba32.PixelOperations>(PixelOperations<ImageSharp.PixelFormats.Rgba32>.Instance);
             }
 
-            [Fact]
-            public void ToVector4SimdAligned()
-            {
-                if (!Vector.IsHardwareAccelerated)
-                {
-                    return;
-                }
-
-                ImageSharp.PixelFormats.Rgba32[] source = CreatePixelTestData(64);
-                Vector4[] expected = CreateExpectedVector4Data(source);
-
-                TestOperation(
-                    source,
-                    expected,
-                    (s, d) => ImageSharp.PixelFormats.Rgba32.PixelOperations.ToVector4SimdAligned(s, d.GetSpan(), 64)
-                );
-            }
-
-
-            // [Fact] // Profiling benchmark - enable manually!
-#pragma warning disable xUnit1013 // Public method should be marked as test
+            [Fact(Skip = SkipProfilingBenchmarks)]
             public void Benchmark_ToVector4()
-#pragma warning restore xUnit1013 // Public method should be marked as test
             {
                 int times = 200000;
                 int count = 1024;
@@ -73,13 +56,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
         public class Argb32 : PixelOperationsTests<ImageSharp.PixelFormats.Argb32>
         {
-            // For 4.6 test runner MemberData does not work without redeclaring the public field in the derived test class:
             public Argb32(ITestOutputHelper output)
                 : base(output)
             {
             }
-
-            public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
         }
 
         [Theory]
@@ -110,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
         }
 
-        public static TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
+        public static TheoryData<int> ArraySizesData => new TheoryData<int> { 0, 1, 2, 7, 16, 1111 };
 
         private static PixelOperations<TPixel> Operations => PixelOperations<TPixel>.Instance;
 

@@ -22,7 +22,7 @@ Designed to democratize image processing, ImageSharp brings you an incredibly po
 
 Compared to `System.Drawing` we have been able to develop something much more flexible, easier to code against, and much, much less prone to memory leaks. Gone are system-wide process-locks; ImageSharp images are thread-safe and fully supported in web environments.
 
-Built against .Net Standard 1.3 ImageSharp can be used in device, cloud, and embedded/IoT scenarios. 
+Built against .NET Standard 1.3 ImageSharp can be used in device, cloud, and embedded/IoT scenarios. 
 
 ### Documentation
 For all SixLabors projects, including ImageSharp:
@@ -115,7 +115,7 @@ If you prefer, you can compile ImageSharp yourself (please do and help!)
 Alternatively, you can work from command line and/or with a lightweight editor on **both Linux/Unix and Windows**:
 
 - [Visual Studio Code](https://code.visualstudio.com/) with [C# Extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode.csharp)
-- [.Net Core](https://www.microsoft.com/net/core#linuxubuntu)
+- [.NET Core](https://www.microsoft.com/net/core#linuxubuntu)
 
 To clone ImageSharp locally click the "Clone in Windows" button above or run the following git commands.
 

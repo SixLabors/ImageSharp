@@ -11,8 +11,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
     /// </summary>
     internal sealed partial class IccDataReader
     {
-        private static readonly Encoding AsciiEncoding = Encoding.ASCII;
-
         /// <summary>
         /// The data that is read
         /// </summary>

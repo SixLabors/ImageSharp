@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
     /// </summary>
     internal sealed class IccDataTagDataEntry : IccTagDataEntry, IEquatable<IccDataTagDataEntry>
     {
-        private static readonly Encoding AsciiEncoding = Encoding.GetEncoding("ASCII");
+        private static readonly Encoding AsciiEncoding = Encoding.ASCII;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IccDataTagDataEntry"/> class.

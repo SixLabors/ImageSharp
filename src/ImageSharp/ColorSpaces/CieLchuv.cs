@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using static SixLabors.ImageSharp.Common.Helpers.FloatToStringUtil;
 
 namespace SixLabors.ImageSharp.ColorSpaces
 {
@@ -128,7 +129,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"CieLchuv({this.L:#0.##}, {this.C:#0.##}, {this.H:#0.##})";
+        public override string ToString() => $"CieLchuv({FloatToString(this.L, this.C, this.H)})";
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is CieLchuv other && this.Equals(other);

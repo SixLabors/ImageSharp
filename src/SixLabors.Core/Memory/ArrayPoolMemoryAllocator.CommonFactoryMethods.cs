@@ -42,17 +42,9 @@ namespace SixLabors.Memory
                 DefaultNormalPoolBucketCount);
         }
 
-        /// <summary>
-        /// For environments with limited memory capabilities. Only small images are pooled, which can result in reduced througput.
-        /// </summary>
-        /// <returns>The memory manager</returns>
-        public static ArrayPoolMemoryAllocator CreateWithModeratePooling()
-        {
-            return new ArrayPoolMemoryAllocator(1024 * 1024, 32 * 1024, 16, 24);
-        }
 
         /// <summary>
-        /// Only pool small buffers like image rows.
+        /// For environments with very limited memory capabilities, only small buffers like image rows are pooled.
         /// </summary>
         /// <returns>The memory manager</returns>
         public static ArrayPoolMemoryAllocator CreateWithMinimalPooling()
@@ -61,7 +53,17 @@ namespace SixLabors.Memory
         }
 
         /// <summary>
-        /// RAM is not an issue for me, gimme maximum througput!
+        /// For environments with limited memory capabilities, only small array requests are pooled, which can result in reduced throughput.
+        /// </summary>
+        /// <returns>The memory manager</returns>
+        public static ArrayPoolMemoryAllocator CreateWithModeratePooling()
+        {
+            return new ArrayPoolMemoryAllocator(1024 * 1024, 32 * 1024, 16, 24);
+        }
+
+
+        /// <summary>
+        /// For environments where memory capabilities are not an issue, the maximum amount of array requests are pooled which results in optimal throughput.
         /// </summary>
         /// <returns>The memory manager</returns>
         public static ArrayPoolMemoryAllocator CreateWithAggressivePooling()

@@ -13,9 +13,10 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Ranges from [0, 0, 0, 1] to [1, 1, 1, 1] in vector form.
     /// </para>
     /// </summary>
-    public struct Gray16 : IPixel<Gray16>, IPackedVector<ushort>
+    public partial struct Gray16 : IPixel<Gray16>, IPackedVector<ushort>
     {
         private const float Max = ushort.MaxValue;
+        private const float Average = 1 / 3F;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Gray16"/> struct.
@@ -49,7 +50,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Gray16 left, Gray16 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public PixelOperations<Gray16> CreatePixelOperations() => new PixelOperations<Gray16>();
+        public PixelOperations<Gray16> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -63,11 +64,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromVector4(Vector4 vector)
         {
-            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * Max;
-            this.PackedValue = ImageMaths.Get16BitBT709Luminance(
-                (ushort)MathF.Round(vector.X),
-                (ushort)MathF.Round(vector.Y),
-                (ushort)MathF.Round(vector.Z));
+            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * Max * Average;
+            this.PackedValue = (ushort)MathF.Round(vector.X + vector.Y + vector.Z);
         }
 
         /// <inheritdoc />
@@ -81,6 +79,16 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromArgb32(Argb32 source)
+        {
+            this.PackedValue = ImageMaths.Get16BitBT709Luminance(
+                ImageMaths.UpscaleFrom8BitTo16Bit(source.R),
+                ImageMaths.UpscaleFrom8BitTo16Bit(source.G),
+                ImageMaths.UpscaleFrom8BitTo16Bit(source.B));
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromBgr24(Bgr24 source)
         {
             this.PackedValue = ImageMaths.Get16BitBT709Luminance(
                 ImageMaths.UpscaleFrom8BitTo16Bit(source.R),
@@ -108,6 +116,16 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromRgb24(Rgb24 source)
+        {
+            this.PackedValue = ImageMaths.Get16BitBT709Luminance(
+                ImageMaths.UpscaleFrom8BitTo16Bit(source.R),
+                ImageMaths.UpscaleFrom8BitTo16Bit(source.G),
+                ImageMaths.UpscaleFrom8BitTo16Bit(source.B));
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromRgba32(Rgba32 source)
         {
             this.PackedValue = ImageMaths.Get16BitBT709Luminance(
@@ -130,7 +148,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgba64(Rgba64 source) => ImageMaths.Get16BitBT709Luminance(source.R, source.G, source.B);
+        public void PackFromRgba64(Rgba64 source) => this.PackedValue = ImageMaths.Get16BitBT709Luminance(source.R, source.G, source.B);
 
         /// <inheritdoc />
         public override bool Equals(object obj) => obj is Gray16 other && this.Equals(other);
@@ -145,5 +163,15 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
         public override int GetHashCode() => this.PackedValue.GetHashCode();
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal void ConvertFromRgbaScaledVector4(Vector4 vector)
+        {
+            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * Max;
+            this.PackedValue = ImageMaths.Get16BitBT709Luminance(
+                (ushort)MathF.Round(vector.X),
+                (ushort)MathF.Round(vector.Y),
+                (ushort)MathF.Round(vector.Z));
+        }
     }
 }

@@ -106,6 +106,60 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
+        /// Performs a bulk conversion of a collection of one pixel format into another.
+        /// </summary>
+        /// <typeparam name="TPixel2">The pixel format.</typeparam>
+        /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
+        /// <param name="destinationColors">The <see cref="Span{T}"/> to the destination colors.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        internal virtual void To<TPixel2>(ReadOnlySpan<TPixel> sourceColors, Span<TPixel2> destinationColors, int count)
+            where TPixel2 : struct, IPixel<TPixel2>
+        {
+            GuardSpans(sourceColors, nameof(sourceColors), destinationColors, nameof(destinationColors), count);
+
+            ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourceColors);
+
+            // Gray8 and Gray16 are special implementations of IPixel in that they do not conform to the
+            // standard RGBA colorspace format and must be converted from RGBA using the special ITU BT709 alogrithm.
+            // One of the requirements of PackFromScaledVector4/ToScaledVector4 is that it unaware of this and
+            // packs/unpacks the pixel without and conversion so we employ custom methods do do this.
+            if (typeof(TPixel2).Equals(typeof(Gray16)))
+            {
+                ref Gray16 gray16Ref = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<TPixel2, Gray16>(destinationColors));
+                for (int i = 0; i < count; i++)
+                {
+                    ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Gray16 dp = ref Unsafe.Add(ref gray16Ref, i);
+                    dp.ConvertFromRgbaScaledVector4(sp.ToScaledVector4());
+                }
+
+                return;
+            }
+
+            if (typeof(TPixel2).Equals(typeof(Gray8)))
+            {
+                ref Gray8 gray8Ref = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<TPixel2, Gray8>(destinationColors));
+                for (int i = 0; i < count; i++)
+                {
+                    ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Gray8 dp = ref Unsafe.Add(ref gray8Ref, i);
+                    dp.ConvertFromRgbaScaledVector4(sp.ToScaledVector4());
+                }
+
+                return;
+            }
+
+            // Normal converson
+            ref TPixel2 destRef = ref MemoryMarshal.GetReference(destinationColors);
+            for (int i = 0; i < count; i++)
+            {
+                ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
+                ref TPixel2 dp = ref Unsafe.Add(ref destRef, i);
+                dp.PackFromScaledVector4(sp.ToScaledVector4());
+            }
+        }
+
+        /// <summary>
         /// Verifies that the given 'source' and 'destination' spans are at least of 'minLength' size.
         /// Throwing an <see cref="ArgumentException"/> if the condition is not met.
         /// </summary>

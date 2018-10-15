@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// </para>
     /// </summary>
     [StructLayout(LayoutKind.Explicit)]
-    public struct Bgr24 : IPixel<Bgr24>
+    public partial struct Bgr24 : IPixel<Bgr24>
     {
         /// <summary>
         /// The blue component.
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Bgr24 left, Bgr24 right) => !left.Equals(right);
 
         /// <inheritdoc/>
-        public PixelOperations<Bgr24> CreatePixelOperations() => new PixelOperations<Bgr24>();
+        public PixelOperations<Bgr24> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -106,6 +106,10 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromBgr24(Bgr24 source) => this = source;
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromBgra32(Bgra32 source)
         {
             this.R = source.R;
@@ -130,6 +134,15 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.R = rgb;
             this.G = rgb;
             this.B = rgb;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromRgb24(Rgb24 source)
+        {
+            this.R = source.R;
+            this.G = source.G;
+            this.B = source.B;
         }
 
         /// <inheritdoc/>

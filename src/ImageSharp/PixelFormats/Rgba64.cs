@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// </para>
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    public struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
+    public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     {
         private const float Max = ushort.MaxValue;
 
@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Rgba64 left, Rgba64 right) => left.PackedValue != right.PackedValue;
 
         /// <inheritdoc />
-        public PixelOperations<Rgba64> CreatePixelOperations() => new PixelOperations<Rgba64>();
+        public PixelOperations<Rgba64> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -136,6 +136,16 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromBgr24(Bgr24 source)
+        {
+            this.R = ImageMaths.UpscaleFrom8BitTo16Bit(source.R);
+            this.G = ImageMaths.UpscaleFrom8BitTo16Bit(source.G);
+            this.B = ImageMaths.UpscaleFrom8BitTo16Bit(source.B);
+            this.A = ushort.MaxValue;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromBgra32(Bgra32 source)
         {
             this.R = ImageMaths.UpscaleFrom8BitTo16Bit(source.R);
@@ -162,6 +172,16 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.R = source.PackedValue;
             this.G = source.PackedValue;
             this.B = source.PackedValue;
+            this.A = ushort.MaxValue;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromRgb24(Rgb24 source)
+        {
+            this.R = ImageMaths.UpscaleFrom8BitTo16Bit(source.R);
+            this.G = ImageMaths.UpscaleFrom8BitTo16Bit(source.G);
+            this.B = ImageMaths.UpscaleFrom8BitTo16Bit(source.B);
             this.A = ushort.MaxValue;
         }
 

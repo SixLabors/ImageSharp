@@ -93,6 +93,10 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromBgr24(Bgr24 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromBgra32(Bgra32 source) => this.PackFromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc/>
@@ -102,6 +106,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromGray16(Gray16 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromRgb24(Rgb24 source) => this.PackFromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -147,8 +155,5 @@ namespace SixLabors.ImageSharp.PixelFormats
                    | (((int)Math.Round(vector.Z * 31F) & 0x1F) << 0)
                    | (((int)Math.Round(vector.W) & 0x1) << 15));
         }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private Vector4 ToByteScaledVector4() => this.ToVector4() * 255F;
     }
 }

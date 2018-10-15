@@ -62,6 +62,12 @@ namespace SixLabors.ImageSharp.PixelFormats
         void PackFromArgb32(Argb32 source);
 
         /// <summary>
+        /// Packs the pixel from an <see cref="Bgr24"/> value.
+        /// </summary>
+        /// <param name="source">The <see cref="Bgr24"/> value.</param>
+        void PackFromBgr24(Bgr24 source);
+
+        /// <summary>
         /// Packs the pixel from an <see cref="Bgra32"/> value.
         /// </summary>
         /// <param name="source">The <see cref="Bgra32"/> value.</param>
@@ -78,6 +84,12 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <param name="source">The <see cref="Gray16"/> value.</param>
         void PackFromGray16(Gray16 source);
+
+        /// <summary>
+        /// Packs the pixel from an <see cref="Rgb24"/> value.
+        /// </summary>
+        /// <param name="source">The <see cref="Rgb24"/> value.</param>
+        void PackFromRgb24(Rgb24 source);
 
         /// <summary>
         /// Packs the pixel from an <see cref="Rgba32"/> value.

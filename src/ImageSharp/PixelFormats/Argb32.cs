@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// as it avoids the need to create new values for modification operations.
     /// </remarks>
     [StructLayout(LayoutKind.Sequential)]
-    public struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
+    public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     {
         /// <summary>
         /// Gets or sets the alpha component.
@@ -165,7 +165,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Argb32 left, Argb32 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public PixelOperations<Argb32> CreatePixelOperations() => new PixelOperations<Argb32>();
+        public PixelOperations<Argb32> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -186,6 +186,16 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromArgb32(Argb32 source) => this.PackedValue = source.PackedValue;
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromBgr24(Bgr24 source)
+        {
+            this.R = source.R;
+            this.G = source.G;
+            this.B = source.B;
+            this.A = byte.MaxValue;
+        }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -215,6 +225,16 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.R = rgb;
             this.G = rgb;
             this.B = rgb;
+            this.A = byte.MaxValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromRgb24(Rgb24 source)
+        {
+            this.R = source.R;
+            this.G = source.G;
+            this.B = source.B;
             this.A = byte.MaxValue;
         }
 
@@ -268,13 +288,6 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public override int GetHashCode() => this.Argb.GetHashCode();
-
-        /// <summary>
-        /// Gets the <see cref="Vector4"/> representation without normalizing to [0, 1]
-        /// </summary>
-        /// <returns>A <see cref="Vector4"/> of values in [0, 255] </returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        internal Vector4 ToByteScaledVector4() => new Vector4(this.R, this.G, this.B, this.A);
 
         /// <summary>
         /// Packs the four floats into a color.

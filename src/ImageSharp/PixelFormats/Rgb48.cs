@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// </para>
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    public struct Rgb48 : IPixel<Rgb48>
+    public partial struct Rgb48 : IPixel<Rgb48>
     {
         private const float Max = ushort.MaxValue;
 
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Rgb48 left, Rgb48 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public PixelOperations<Rgb48> CreatePixelOperations() => new PixelOperations<Rgb48>();
+        public PixelOperations<Rgb48> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -98,6 +98,15 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromArgb32(Argb32 source)
+        {
+            this.R = ImageMaths.UpscaleFrom8BitTo16Bit(source.R);
+            this.G = ImageMaths.UpscaleFrom8BitTo16Bit(source.G);
+            this.B = ImageMaths.UpscaleFrom8BitTo16Bit(source.B);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromBgr24(Bgr24 source)
         {
             this.R = ImageMaths.UpscaleFrom8BitTo16Bit(source.R);
             this.G = ImageMaths.UpscaleFrom8BitTo16Bit(source.G);
@@ -134,6 +143,15 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.R = source.PackedValue;
             this.G = source.PackedValue;
             this.B = source.PackedValue;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromRgb24(Rgb24 source)
+        {
+            this.R = ImageMaths.UpscaleFrom8BitTo16Bit(source.R);
+            this.G = ImageMaths.UpscaleFrom8BitTo16Bit(source.G);
+            this.B = ImageMaths.UpscaleFrom8BitTo16Bit(source.B);
         }
 
         /// <inheritdoc />

@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// </para>
     /// </summary>
     [StructLayout(LayoutKind.Explicit)]
-    public struct Rgb24 : IPixel<Rgb24>
+    public partial struct Rgb24 : IPixel<Rgb24>
     {
         /// <summary>
         /// The red component.
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Rgb24 left, Rgb24 right) => !left.Equals(right);
 
         /// <inheritdoc/>
-        public PixelOperations<Rgb24> CreatePixelOperations() => new PixelOperations<Rgb24>();
+        public PixelOperations<Rgb24> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -112,6 +112,15 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void PackFromArgb32(Argb32 source)
+        {
+            this.R = source.R;
+            this.G = source.G;
+            this.B = source.B;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromBgr24(Bgr24 source)
         {
             this.R = source.R;
             this.G = source.G;
@@ -148,7 +157,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgba32(Rgba32 source) => this = Unsafe.As<Rgba32, Rgb24>(ref source);
+        public void PackFromRgb24(Rgb24 source) => this = source;
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void PackFromRgba32(Rgba32 source) => this = source.Rgb;
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]

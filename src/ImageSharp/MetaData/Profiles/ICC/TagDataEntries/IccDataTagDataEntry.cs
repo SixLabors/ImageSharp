@@ -12,8 +12,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
     /// </summary>
     internal sealed class IccDataTagDataEntry : IccTagDataEntry, IEquatable<IccDataTagDataEntry>
     {
-        private static readonly Encoding AsciiEncoding = Encoding.ASCII;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="IccDataTagDataEntry"/> class.
         /// </summary>
@@ -60,7 +58,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// Gets the <see cref="Data"/> decoded as 7bit ASCII.
         /// If <see cref="IsAscii"/> is false, returns null
         /// </summary>
-        public string AsciiString => this.IsAscii ? AsciiEncoding.GetString(this.Data, 0, this.Data.Length) : null;
+        public string AsciiString => this.IsAscii ? Encoding.ASCII.GetString(this.Data, 0, this.Data.Length) : null;
 
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)

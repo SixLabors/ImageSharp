@@ -6,7 +6,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 using SixLabors.ImageSharp.PixelFormats;
-using static SixLabors.ImageSharp.Common.Helpers.FloatToStringUtil;
 
 namespace SixLabors.ImageSharp.ColorSpaces
 {
@@ -156,7 +155,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"Rgb({FloatToString(this.R, this.G, this.B)})";
+        public override string ToString() => FormattableString.Invariant($"Rgb({this.R:#0.##}, {this.G:#0.##}, {this.B:#0.##})");
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is Rgb other && this.Equals(other);

@@ -4,7 +4,6 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using static SixLabors.ImageSharp.Common.Helpers.FloatToStringUtil;
 
 namespace SixLabors.ImageSharp.ColorSpaces
 {
@@ -96,7 +95,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"Lms({FloatToString(this.L, this.M, this.S)})";
+        public override string ToString() => FormattableString.Invariant($"Lms({this.L:#0.##}, {this.M:#0.##}, {this.S:#0.##})");
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is Lms other && this.Equals(other);

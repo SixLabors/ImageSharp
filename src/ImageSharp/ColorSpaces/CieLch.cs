@@ -4,7 +4,6 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using static SixLabors.ImageSharp.Common.Helpers.FloatToStringUtil;
 
 namespace SixLabors.ImageSharp.ColorSpaces
 {
@@ -130,7 +129,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"CieLch({FloatToString(this.L, this.C, this.H)})";
+        public override string ToString() => FormattableString.Invariant($"CieLch({this.L:#0.##}, {this.C:#0.##}, {this.H:#0.##})");
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

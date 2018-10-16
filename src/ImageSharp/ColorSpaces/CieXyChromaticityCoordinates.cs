@@ -3,7 +3,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using static SixLabors.ImageSharp.Common.Helpers.FloatToStringUtil;
 
 // ReSharper disable CompareOfFloatsByEqualityOperator
 namespace SixLabors.ImageSharp.ColorSpaces
@@ -68,7 +67,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public override int GetHashCode() => HashHelpers.Combine(this.X.GetHashCode(), this.Y.GetHashCode());
 
         /// <inheritdoc/>
-        public override string ToString() => $"CieXyChromaticityCoordinates({FloatToString(this.X, this.Y)})";
+        public override string ToString() => FormattableString.Invariant($"CieXyChromaticityCoordinates({this.X:#0.##}, {this.Y:#0.##})");
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is CieXyChromaticityCoordinates other && this.Equals(other);

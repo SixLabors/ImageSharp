@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -150,7 +151,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public override string ToString()
         {
             var vector = this.ToVector2();
-            return $"HalfVector2({vector.X:#0.##}, {vector.Y:#0.##})";
+            return FormattableString.Invariant($"HalfVector2({vector.X:#0.##}, {vector.Y:#0.##})");
         }
 
         /// <inheritdoc />

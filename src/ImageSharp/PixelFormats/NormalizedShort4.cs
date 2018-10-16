@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public override string ToString()
         {
             var vector = this.ToVector4();
-            return $"NormalizedShort4({vector.X:#0.##}, {vector.Y:#0.##}, {vector.Z:#0.##}, {vector.W:#0.##})";
+            return FormattableString.Invariant($"NormalizedShort4({vector.X:#0.##}, {vector.Y:#0.##}, {vector.Z:#0.##}, {vector.W:#0.##})");
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

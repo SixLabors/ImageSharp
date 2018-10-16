@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -189,7 +190,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public override string ToString()
         {
             var vector = this.ToVector4();
-            return $"RgbaVector({this.R:#0.##}, {this.G:#0.##}, {this.B:#0.##}, {this.A:#0.##})";
+            return FormattableString.Invariant($"RgbaVector({this.R:#0.##}, {this.G:#0.##}, {this.B:#0.##}, {this.A:#0.##})");
         }
 
         /// <inheritdoc/>

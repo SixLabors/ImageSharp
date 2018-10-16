@@ -162,7 +162,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public override string ToString()
         {
             var vector = this.ToVector2();
-            return $"Short2({vector.X:#0.##}, {vector.Y:#0.##})";
+            return FormattableString.Invariant($"Short2({vector.X:#0.##}, {vector.Y:#0.##})");
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

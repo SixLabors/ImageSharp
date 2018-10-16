@@ -148,7 +148,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public override string ToString()
         {
             var vector = this.ToVector3();
-            return $"Bgr565({vector.Z:#0.##}, {vector.Y:#0.##}, {vector.X:#0.##})";
+            return FormattableString.Invariant($"Bgr565({vector.Z:#0.##}, {vector.Y:#0.##}, {vector.X:#0.##})");
         }
 
         /// <inheritdoc />

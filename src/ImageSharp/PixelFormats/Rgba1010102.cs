@@ -135,7 +135,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         public bool Equals(Rgba1010102 other) => this.PackedValue == other.PackedValue;
 
         /// <inheritdoc />
-        public override string ToString() => this.ToVector4().ToString();
+        public override string ToString()
+        {
+            var vector = this.ToVector4();
+            return FormattableString.Invariant($"Rgba1010102({vector.X:#0.##}, {vector.Y:#0.##}, {vector.Z:#0.##}, {vector.W:#0.##})");
+        }
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]

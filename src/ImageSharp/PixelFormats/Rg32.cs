@@ -140,7 +140,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public override string ToString()
         {
             var vector = this.ToVector2();
-            return $"Rg32({vector.X:#0.##}, {vector.Y:#0.##})";
+            return FormattableString.Invariant($"Rg32({vector.X:#0.##}, {vector.Y:#0.##})");
         }
 
         /// <inheritdoc />

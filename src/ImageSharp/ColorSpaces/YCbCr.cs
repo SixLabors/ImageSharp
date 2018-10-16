@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"YCbCr({this.Y}, {this.Cb}, {this.Cr})";
+        public override string ToString() => FormattableString.Invariant($"YCbCr({this.Y}, {this.Cb}, {this.Cr})");
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is YCbCr other && this.Equals(other);

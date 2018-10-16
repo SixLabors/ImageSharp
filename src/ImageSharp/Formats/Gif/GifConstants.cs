@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The ASCII encoded bytes used to identify the GIF file.
         /// </summary>
-        internal static readonly byte[] MagicNumber = Encoding.UTF8.GetBytes(FileType + FileVersion);
+        internal static readonly byte[] MagicNumber = Encoding.ASCII.GetBytes(FileType + FileVersion);
 
         /// <summary>
         /// The extension block introducer <value>!</value>.
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The ASCII encoded application identification bytes.
         /// </summary>
-        internal static readonly byte[] NetscapeApplicationIdentificationBytes = Encoding.UTF8.GetBytes(NetscapeApplicationIdentification);
+        internal static readonly byte[] NetscapeApplicationIdentificationBytes = Encoding.ASCII.GetBytes(NetscapeApplicationIdentification);
 
         /// <summary>
         /// The Netscape looping application sub block size.
@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Gets the default encoding to use when reading comments.
         /// </summary>
-        public static readonly Encoding DefaultEncoding = Encoding.GetEncoding("ASCII");
+        public static readonly Encoding DefaultEncoding = Encoding.ASCII;
 
         /// <summary>
         /// The list of mimetypes that equate to a gif.

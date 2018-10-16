@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -130,7 +131,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public bool Equals(HalfSingle other) => this.PackedValue.Equals(other.PackedValue);
 
         /// <inheritdoc />
-        public override string ToString() => $"HalfSingle({this.ToSingle():#0.##})";
+        public override string ToString() => FormattableString.Invariant($"HalfSingle({this.ToSingle():#0.##})");
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]

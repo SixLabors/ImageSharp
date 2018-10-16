@@ -481,22 +481,36 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
 
                 ref TPixel rowRef = ref MemoryMarshal.GetReference(imageFrame.GetPixelRowSpan(writeY));
-                var rgba = new Rgba32(0, 0, 0, 255);
+                bool transFlag = this.graphicsControlExtension.TransparencyFlag;
 
-                // #403 The left + width value can be larger than the image width
-                for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width && x < imageWidth; x++)
+                if (!transFlag)
                 {
-                    int index = Unsafe.Add(ref indicesRef, i);
-
-                    if (!this.graphicsControlExtension.TransparencyFlag
-                        || this.graphicsControlExtension.TransparencyIndex != index)
+                    // #403 The left + width value can be larger than the image width
+                    for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width && x < imageWidth; x++)
                     {
+                        int index = Unsafe.Add(ref indicesRef, i);
                         ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
-                        rgba.Rgb = colorTable[index];
-                        pixel.PackFromRgba32(rgba);
-                    }
+                        Rgb24 rgb = colorTable[index];
+                        pixel.PackFromRgb24(rgb);
 
-                    i++;
+                        i++;
+                    }
+                }
+                else
+                {
+                    byte transIndex = this.graphicsControlExtension.TransparencyIndex;
+                    for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width && x < imageWidth; x++)
+                    {
+                        int index = Unsafe.Add(ref indicesRef, i);
+                        if (transIndex != index)
+                        {
+                            ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
+                            Rgb24 rgb = colorTable[index];
+                            pixel.PackFromRgb24(rgb);
+                        }
+
+                        i++;
+                    }
                 }
             }
 

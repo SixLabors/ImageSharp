@@ -3,10 +3,7 @@
 
 using System;
 using System.Collections.Generic;
-
-#if !NETSTANDARD1_1
 using System.Security.Cryptography;
-#endif
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
@@ -100,8 +97,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public IccProfile DeepClone() => new IccProfile(this);
 
-#if !NETSTANDARD1_1
-
         /// <summary>
         /// Calculates the MD5 hash value of an ICC profile
         /// </summary>
@@ -146,8 +141,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 }
             }
         }
-
-#endif
 
         /// <summary>
         /// Checks for signs of a corrupt profile.

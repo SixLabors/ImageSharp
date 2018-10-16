@@ -174,8 +174,6 @@ namespace SixLabors.ImageSharp
             }
         }
 
-#if !NETSTANDARD1_1
-
         /// <summary>
         /// By reading the header on the provided byte array this calculates the images format.
         /// </summary>
@@ -303,6 +301,5 @@ namespace SixLabors.ImageSharp
                 }
             }
         }
-#endif
     }
 }

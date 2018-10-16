@@ -9,9 +9,6 @@ namespace SixLabors.ImageSharp.Tests.Icc
 {
     public class IccProfileTests
     {
-
-#if !NETSTANDARD1_1
-
         [Theory]
         [MemberData(nameof(IccTestDataProfiles.ProfileIdTestData), MemberType = typeof(IccTestDataProfiles))]
         public void CalculateHash_WithByteArray_CalculatesProfileHash(byte[] data, IccProfileId expected)
@@ -32,8 +29,6 @@ namespace SixLabors.ImageSharp.Tests.Icc
 
             Assert.Equal(data, copy);
         }
-
-#endif
 
         [Theory]
         [MemberData(nameof(IccTestDataProfiles.ProfileValidityTestData), MemberType = typeof(IccTestDataProfiles))]

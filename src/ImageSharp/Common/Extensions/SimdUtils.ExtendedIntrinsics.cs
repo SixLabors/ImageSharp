@@ -69,6 +69,7 @@ namespace SixLabors.ImageSharp
             /// <remarks>
             /// It does NOT worth yet to utilize this method (2018 Oct).
             /// See benchmark results for the "PackFromVector4_Rgba32" benchmark!
+            /// TODO: Check again later!
             /// </remarks>
             // ReSharper disable once MemberHidesStaticFromOuterClass
             internal static void BulkConvertNormalizedFloatToByteClampOverflows(ReadOnlySpan<float> source, Span<byte> dest)

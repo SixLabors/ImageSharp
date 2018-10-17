@@ -14,22 +14,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Describes the EXIF specific markers
         /// </summary>
-        public static readonly byte[] JFifMarker = Encoding.UTF8.GetBytes("JFIF\0");
+        public static readonly byte[] JFifMarker = Encoding.ASCII.GetBytes("JFIF\0");
 
         /// <summary>
         /// Describes the EXIF specific markers
         /// </summary>
-        public static readonly byte[] IccMarker = Encoding.UTF8.GetBytes("ICC_PROFILE\0");
+        public static readonly byte[] IccMarker = Encoding.ASCII.GetBytes("ICC_PROFILE\0");
 
         /// <summary>
         /// Describes the ICC specific markers
         /// </summary>
-        public static readonly byte[] ExifMarker = Encoding.UTF8.GetBytes("Exif\0\0");
+        public static readonly byte[] ExifMarker = Encoding.ASCII.GetBytes("Exif\0\0");
 
         /// <summary>
         /// Describes Adobe specific markers <see href="http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe"/>
         /// </summary>
-        public static readonly byte[] AdobeMarker = Encoding.UTF8.GetBytes("Adobe");
+        public static readonly byte[] AdobeMarker = Encoding.ASCII.GetBytes("Adobe");
 
         /// <summary>
         /// Returns a value indicating whether the passed bytes are a match to the profile identifier

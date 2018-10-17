@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <inheritdoc/>
         public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
         {
-            return this.IsSupportedFileFormat(header) ? ImageFormats.Bmp : null;
+            return this.IsSupportedFileFormat(header) ? BmpFormat.Instance : null;
         }
 
         private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)

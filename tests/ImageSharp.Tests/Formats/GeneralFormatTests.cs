@@ -14,10 +14,9 @@ namespace SixLabors.ImageSharp.Tests
 {
     using System;
     using System.Reflection;
-
-    using SixLabors.Memory;
     using SixLabors.ImageSharp.Processing;
     using SixLabors.ImageSharp.Processing.Processors.Quantization;
+    using SixLabors.Memory;
 
     public class GeneralFormatTests : FileTestBase
     {
@@ -44,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests
                 using (Image<Rgba32> image = file.CreateImage())
                 {
                     string filename = path + "/" + file.FileNameWithoutExtension + ".txt";
-                    File.WriteAllText(filename, image.ToBase64String(ImageFormats.Png));
+                    File.WriteAllText(filename, image.ToBase64String(PngFormat.Instance));
                 }
             }
         }
@@ -58,7 +57,8 @@ namespace SixLabors.ImageSharp.Tests
             {
                 using (Image<Rgba32> image = file.CreateImage())
                 {
-                    image.Save($"{path}/{file.FileName}");
+                    var encoder = new PngEncoder { Quantizer = new WuQuantizer(KnownDiffusers.JarvisJudiceNinke, 256), ColorType = PngColorType.Palette };
+                    image.Save($"{path}/{file.FileName}.png", encoder);
                 }
             }
         }
@@ -135,15 +135,15 @@ namespace SixLabors.ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 byte[] serialized;
-                using (Image<Rgba32> image = Image.Load(file.Bytes, out IImageFormat mimeType))
-                using (MemoryStream memoryStream = new MemoryStream())
+                using (var image = Image.Load(file.Bytes, out IImageFormat mimeType))
+                using (var memoryStream = new MemoryStream())
                 {
                     image.Save(memoryStream, mimeType);
                     memoryStream.Flush();
                     serialized = memoryStream.ToArray();
                 }
 
-                using (Image<Rgba32> image2 = Image.Load<Rgba32>(serialized))
+                using (var image2 = Image.Load<Rgba32>(serialized))
                 {
                     image2.Save($"{path}/{file.FileName}");
                 }
@@ -169,14 +169,14 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData(10, 100, "jpg")]
         public void CanIdentifyImageLoadedFromBytes(int width, int height, string format)
         {
-            using (Image<Rgba32> image = Image.LoadPixelData(new Rgba32[width * height], width, height))
+            using (var image = Image.LoadPixelData(new Rgba32[width * height], width, height))
             {
                 using (var memoryStream = new MemoryStream())
                 {
                     image.Save(memoryStream, GetEncoder(format));
                     memoryStream.Position = 0;
 
-                    var imageInfo = Image.Identify(memoryStream);
+                    IImageInfo imageInfo = Image.Identify(memoryStream);
 
                     Assert.Equal(imageInfo.Width, width);
                     Assert.Equal(imageInfo.Height, height);

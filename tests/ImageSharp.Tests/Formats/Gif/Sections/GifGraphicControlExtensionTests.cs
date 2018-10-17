@@ -12,10 +12,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         [Fact]
         public void TestPackedValue()
         {
-            Assert.Equal(0, GifGraphicControlExtension.GetPackedValue(DisposalMethod.Unspecified, false, false));
-            Assert.Equal(11, GifGraphicControlExtension.GetPackedValue(DisposalMethod.RestoreToBackground, true, true));
-            Assert.Equal(4, GifGraphicControlExtension.GetPackedValue(DisposalMethod.NotDispose, false, false));
-            Assert.Equal(14, GifGraphicControlExtension.GetPackedValue(DisposalMethod.RestoreToPrevious, true, false));
+            Assert.Equal(0, GifGraphicControlExtension.GetPackedValue(GifDisposalMethod.Unspecified, false, false));
+            Assert.Equal(11, GifGraphicControlExtension.GetPackedValue(GifDisposalMethod.RestoreToBackground, true, true));
+            Assert.Equal(4, GifGraphicControlExtension.GetPackedValue(GifDisposalMethod.NotDispose, false, false));
+            Assert.Equal(14, GifGraphicControlExtension.GetPackedValue(GifDisposalMethod.RestoreToPrevious, true, false));
         }
     }
 }

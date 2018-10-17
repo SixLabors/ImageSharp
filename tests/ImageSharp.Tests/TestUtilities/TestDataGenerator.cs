@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 
 namespace SixLabors.ImageSharp.Tests
 {
@@ -10,7 +11,23 @@ namespace SixLabors.ImageSharp.Tests
 
             for (int i = 0; i < length; i++)
             {
-                values[i] = (float)rnd.NextDouble() * (maxVal - minVal) + minVal;
+                values[i] = GetRandomFloat(rnd, minVal, maxVal);
+            }
+
+            return values;
+        }
+
+        public static Vector4[] GenerateRandomVectorArray(this Random rnd, int length, float minVal, float maxVal)
+        {
+            var values = new Vector4[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                ref Vector4 v = ref values[i];
+                v.X = GetRandomFloat(rnd, minVal, maxVal);
+                v.Y = GetRandomFloat(rnd, minVal, maxVal);
+                v.Z = GetRandomFloat(rnd, minVal, maxVal);
+                v.W = GetRandomFloat(rnd, minVal, maxVal);
             }
 
             return values;
@@ -27,6 +44,11 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             return values;
+        }
+
+        private static float GetRandomFloat(Random rnd, float minVal, float maxVal)
+        {
+            return (float)rnd.NextDouble() * (maxVal - minVal) + minVal;
         }
     }
 }

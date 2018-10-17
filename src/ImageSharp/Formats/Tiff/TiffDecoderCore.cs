@@ -6,9 +6,11 @@ using System.Buffers;
 using System.IO;
 using System.Text;
 using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Formats
 {
@@ -585,7 +587,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <param name="top">The y-coordinate of the  top of the image block.</param>
         /// <param name="width">The width of the image block.</param>
         /// <param name="height">The height of the image block.</param>
-        public void ProcessImageBlockChunky<TPixel>(byte[] data, PixelAccessor<TPixel> pixels, int left, int top, int width, int height)
+        public void ProcessImageBlockChunky<TPixel>(byte[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
             switch (this.ColorType)
@@ -638,7 +640,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <param name="top">The y-coordinate of the  top of the image block.</param>
         /// <param name="width">The width of the image block.</param>
         /// <param name="height">The height of the image block.</param>
-        public void ProcessImageBlockPlanar<TPixel>(byte[][] data, PixelAccessor<TPixel> pixels, int left, int top, int width, int height)
+        public void ProcessImageBlockPlanar<TPixel>(byte[][] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
             switch (this.ColorType)
@@ -1235,44 +1237,43 @@ namespace SixLabors.ImageSharp.Formats
             int stripsPerPixel = this.PlanarConfiguration == TiffPlanarConfiguration.Chunky ? 1 : this.BitsPerSample.Length;
             int stripsPerPlane = stripOffsets.Length / stripsPerPixel;
 
-            using (PixelAccessor<TPixel> pixels = image.Lock())
-            {
-                byte[][] stripBytes = new byte[stripsPerPixel][];
+            Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
+            byte[][] stripBytes = new byte[stripsPerPixel][];
+
+            for (int stripIndex = 0; stripIndex < stripBytes.Length; stripIndex++)
+            {
+                int uncompressedStripSize = this.CalculateImageBufferSize(image.Width, rowsPerStrip, stripIndex);
+                stripBytes[stripIndex] = ArrayPool<byte>.Shared.Rent(uncompressedStripSize);
+            }
+
+            try
+            {
+                for (int i = 0; i < stripsPerPlane; i++)
+                {
+                    int stripHeight = i < stripsPerPlane - 1 || image.Height % rowsPerStrip == 0 ? rowsPerStrip : image.Height % rowsPerStrip;
+
+                    for (int planeIndex = 0; planeIndex < stripsPerPixel; planeIndex++)
+                    {
+                        int stripIndex = (i * stripsPerPixel) + planeIndex;
+                        this.DecompressImageBlock(stripOffsets[stripIndex], stripByteCounts[stripIndex], stripBytes[planeIndex]);
+                    }
+
+                    if (this.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
+                    {
+                        this.ProcessImageBlockChunky(stripBytes[0], pixels, 0, rowsPerStrip * i, image.Width, stripHeight);
+                    }
+                    else
+                    {
+                        this.ProcessImageBlockPlanar(stripBytes, pixels, 0, rowsPerStrip * i, image.Width, stripHeight);
+                    }
+                }
+            }
+            finally
+            {
                 for (int stripIndex = 0; stripIndex < stripBytes.Length; stripIndex++)
                 {
-                    int uncompressedStripSize = this.CalculateImageBufferSize(image.Width, rowsPerStrip, stripIndex);
-                    stripBytes[stripIndex] = ArrayPool<byte>.Shared.Rent(uncompressedStripSize);
-                }
-
-                try
-                {
-                    for (int i = 0; i < stripsPerPlane; i++)
-                    {
-                        int stripHeight = i < stripsPerPlane - 1 || image.Height % rowsPerStrip == 0 ? rowsPerStrip : image.Height % rowsPerStrip;
-
-                        for (int planeIndex = 0; planeIndex < stripsPerPixel; planeIndex++)
-                        {
-                            int stripIndex = (i * stripsPerPixel) + planeIndex;
-                            this.DecompressImageBlock(stripOffsets[stripIndex], stripByteCounts[stripIndex], stripBytes[planeIndex]);
-                        }
-
-                        if (this.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
-                        {
-                            this.ProcessImageBlockChunky(stripBytes[0], pixels, 0, rowsPerStrip * i, image.Width, stripHeight);
-                        }
-                        else
-                        {
-                            this.ProcessImageBlockPlanar(stripBytes, pixels, 0, rowsPerStrip * i, image.Width, stripHeight);
-                        }
-                    }
-                }
-                finally
-                {
-                    for (int stripIndex = 0; stripIndex < stripBytes.Length; stripIndex++)
-                    {
-                        ArrayPool<byte>.Shared.Return(stripBytes[stripIndex]);
-                    }
+                    ArrayPool<byte>.Shared.Return(stripBytes[stripIndex]);
                 }
             }
         }

@@ -14,6 +14,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     public class JpegEncoderTests
     {
+        public static readonly TheoryData<string, int> QualityFiles =
+        new TheoryData<string, int>
+        {
+            { TestImages.Jpeg.Baseline.Calliphora, 80},
+            { TestImages.Jpeg.Progressive.Fb, 75 }
+        };
+
         public static readonly TheoryData<JpegSubsample, int> BitsPerPixel_Quality =
         new TheoryData<JpegSubsample, int>
         {
@@ -35,6 +42,29 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         };
 
         [Theory]
+        [MemberData(nameof(QualityFiles))]
+        public void Encode_PreserveQuality(string imagePath, int quality)
+        {
+            var options = new JpegEncoder();
+
+            var testFile = TestFile.Create(imagePath);
+            using (Image<Rgba32> input = testFile.CreateImage())
+            {
+                using (var memStream = new MemoryStream())
+                {
+                    input.Save(memStream, options);
+
+                    memStream.Position = 0;
+                    using (var output = Image.Load<Rgba32>(memStream))
+                    {
+                        JpegMetaData meta = output.MetaData.GetFormatMetaData(JpegFormat.Instance);
+                        Assert.Equal(quality, meta.Quality);
+                    }
+                }
+            }
+        }
+
+        [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, nameof(BitsPerPixel_Quality), PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 73, 71, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 48, 24, PixelTypes.Rgba32)]
@@ -43,18 +73,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [WithSolidFilledImages(nameof(BitsPerPixel_Quality), 1, 1, 255, 100, 50, 255, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 7, 5, PixelTypes.Rgba32)]
         public void EncodeBaseline_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample, int quality)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            TestJpegEncoderCore(provider, subsample, quality);
-        }
+            where TPixel : struct, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality);
 
         [Theory]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 48, 48, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
         public void EncodeBaseline_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample, int quality)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            TestJpegEncoderCore(provider, subsample, quality);
-        }
+            where TPixel : struct, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality);
 
         /// <summary>
         /// Anton's SUPER-SCIENTIFIC tolerance threshold calculation
@@ -100,38 +124,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 // Does DebugSave & load reference CompareToReferenceInput():
                 image.VerifyEncoder(provider, "jpeg", info, encoder, comparer, referenceImageExtension: "png");
-            }
-        }
-
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void IgnoreMetadata_ControlsIfExifProfileIsWritten(bool ignoreMetaData)
-        {
-            var encoder = new JpegEncoder()
-            {
-                IgnoreMetadata = ignoreMetaData
-            };
-
-            using (Image<Rgba32> input = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage())
-            {
-                using (var memStream = new MemoryStream())
-                {
-                    input.Save(memStream, encoder);
-
-                    memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
-                    {
-                        if (ignoreMetaData)
-                        {
-                            Assert.Null(output.MetaData.ExifProfile);
-                        }
-                        else
-                        {
-                            Assert.NotNull(output.MetaData.ExifProfile);
-                        }
-                    }
-                }
             }
         }
 

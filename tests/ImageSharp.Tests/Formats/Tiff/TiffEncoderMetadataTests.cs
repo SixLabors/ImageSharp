@@ -13,6 +13,7 @@ namespace SixLabors.ImageSharp.Tests
 
     using SixLabors.ImageSharp.MetaData;
     using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+    using SixLabors.ImageSharp.Primitives;
 
     public class TiffEncoderMetadataTests
     {

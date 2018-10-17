@@ -11,6 +11,15 @@ namespace SixLabors.ImageSharp.Formats
     /// </summary>
     public class TiffFormat : IImageFormat
     {
+        private TiffFormat()
+        {
+        }
+
+        /// <summary>
+        /// Gets the current instance.
+        /// </summary>
+        public static TiffFormat Instance { get; } = new TiffFormat();
+
         /// <inheritdoc/>
         public string Name => "TIFF";
 

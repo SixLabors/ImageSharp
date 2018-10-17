@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {

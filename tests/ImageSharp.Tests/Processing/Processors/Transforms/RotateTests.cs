@@ -7,7 +7,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
-    public class RotateTests : FileTestBase
+    [GroupOutput("Transforms")]
+    public class RotateTests
     {
         public static readonly TheoryData<float> RotateAngles
             = new TheoryData<float>
@@ -25,29 +26,21 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         };
 
         [Theory]
-        [WithTestPatternImages(nameof(RotateAngles), 100, 50, DefaultPixelType)]
-        [WithTestPatternImages(nameof(RotateAngles), 50, 100, DefaultPixelType)]
+        [WithTestPatternImages(nameof(RotateAngles), 100, 50, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(RotateAngles), 50, 100, PixelTypes.Rgba32)]
         public void Rotate_WithAngle<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Rotate(value));
-                image.DebugSave(provider, value);
-            }
+            provider.RunValidatingProcessorTest(ctx => ctx.Rotate(value), value, appendPixelTypeToFileName: false);
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(RotateEnumValues), 100, 50, DefaultPixelType)]
-        [WithTestPatternImages(nameof(RotateEnumValues), 50, 100, DefaultPixelType)]
+        [WithTestPatternImages(nameof(RotateEnumValues), 100, 50, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(RotateEnumValues), 50, 100, PixelTypes.Rgba32)]
         public void Rotate_WithRotateTypeEnum<TPixel>(TestImageProvider<TPixel> provider, RotateMode value)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Rotate(value));
-                image.DebugSave(provider, value);
-            }
+            provider.RunValidatingProcessorTest(ctx => ctx.Rotate(value), value, appendPixelTypeToFileName: false);
         }
     }
 }

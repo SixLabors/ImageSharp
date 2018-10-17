@@ -67,16 +67,16 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ConstructorCopy()
         {
-            Assert.Throws<ArgumentNullException>(() => { new ExifProfile((ExifProfile)null); });
+            Assert.Throws<NullReferenceException>(() => ((ExifProfile)null).DeepClone());
 
             ExifProfile profile = GetExifProfile();
 
-            var clone = new ExifProfile(profile);
+            ExifProfile clone = profile.DeepClone();
             TestProfile(clone);
 
             profile.SetValue(ExifTag.ColorSpace, (ushort)2);
 
-            clone = new ExifProfile(profile);
+            clone = profile.DeepClone();
             TestProfile(clone);
         }
 
@@ -234,10 +234,12 @@ namespace SixLabors.ImageSharp.Tests
             exifProfile.SetValue(ExifTag.XResolution, new Rational(200));
             exifProfile.SetValue(ExifTag.YResolution, new Rational(300));
 
-            var metaData = new ImageMetaData();
-            metaData.ExifProfile = exifProfile;
-            metaData.HorizontalResolution = 200;
-            metaData.VerticalResolution = 300;
+            var metaData = new ImageMetaData
+            {
+                ExifProfile = exifProfile,
+                HorizontalResolution = 200,
+                VerticalResolution = 300
+            };
 
             metaData.HorizontalResolution = 100;
 
@@ -355,11 +357,11 @@ namespace SixLabors.ImageSharp.Tests
 
             // act
             Image<Rgba32> reloadedImage = WriteAndRead(image, imageFormat);
-            
+
             // assert
             ExifProfile actual = reloadedImage.MetaData.ExifProfile;
             Assert.NotNull(actual);
-            foreach(KeyValuePair<ExifTag, object> expectedProfileValue in TestProfileValues)
+            foreach (KeyValuePair<ExifTag, object> expectedProfileValue in TestProfileValues)
             {
                 ExifValue actualProfileValue = actual.GetValue(expectedProfileValue.Key);
                 Assert.NotNull(actualProfileValue);
@@ -371,7 +373,7 @@ namespace SixLabors.ImageSharp.Tests
         public void ProfileToByteArray()
         {
             // arrange
-            byte[] exifBytesWithExifCode = ProfileResolver.ExifMarker.Concat(ExifConstants.LittleEndianByteOrderMarker).ToArray(); 
+            byte[] exifBytesWithExifCode = ProfileResolver.ExifMarker.Concat(ExifConstants.LittleEndianByteOrderMarker).ToArray();
             byte[] exifBytesWithoutExifCode = ExifConstants.LittleEndianByteOrderMarker;
             ExifProfile expectedProfile = CreateExifProfile();
             var expectedProfileTags = expectedProfile.Values.Select(x => x.Tag).ToList();
@@ -384,7 +386,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.NotNull(actualBytes);
             Assert.NotEmpty(actualBytes);
             Assert.Equal(exifBytesWithoutExifCode, actualBytes.Take(exifBytesWithoutExifCode.Length).ToArray());
-            foreach(ExifTag expectedProfileTag in expectedProfileTags)
+            foreach (ExifTag expectedProfileTag in expectedProfileTags)
             {
                 ExifValue actualProfileValue = actualProfile.GetValue(expectedProfileTag);
                 ExifValue expectedProfileValue = expectedProfile.GetValue(expectedProfileTag);
@@ -396,7 +398,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             var profile = new ExifProfile();
 
-            foreach(KeyValuePair<ExifTag, object> exifProfileValue in TestProfileValues)
+            foreach (KeyValuePair<ExifTag, object> exifProfileValue in TestProfileValues)
             {
                 profile.SetValue(exifProfileValue.Key, exifProfileValue.Value);
             }
@@ -416,7 +418,7 @@ namespace SixLabors.ImageSharp.Tests
 
         private static Image<Rgba32> WriteAndRead(Image<Rgba32> image, TestImageWriteFormat imageFormat)
         {
-            switch(imageFormat)
+            switch (imageFormat)
             {
                 case TestImageWriteFormat.Jpeg:
                     return WriteAndReadJpeg(image);

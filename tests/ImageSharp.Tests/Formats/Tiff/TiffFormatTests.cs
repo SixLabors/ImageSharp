@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void FormatProperties_AreAsExpected()
         {
-            TiffFormat tiffFormat = new TiffFormat();
+            TiffFormat tiffFormat = TiffFormat.Instance;
 
             Assert.Equal("TIFF", tiffFormat.Name);
             Assert.Equal("image/tiff", tiffFormat.DefaultMimeType);

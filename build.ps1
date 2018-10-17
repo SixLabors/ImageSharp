@@ -94,7 +94,7 @@ if("$env:APPVEYOR_API_URL" -ne ""){
 }
 
 Write-Host "Building version '${version}'"
-dotnet restore /p:packageversion=$version
+dotnet restore /p:packageversion=$version /p:DisableImplicitNuGetFallbackFolder=true
 
 Write-Host "Building projects"
 dotnet build -c Release /p:packageversion=$version

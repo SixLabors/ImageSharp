@@ -17,17 +17,17 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Gets or sets the number of bits per sample or per palette index (not per pixel).
         /// Not all values are allowed for all <see cref="ColorType"/> values.
         /// </summary>
-        public PngBitDepth BitDepth { get; set; } = PngBitDepth.Bit8;
+        public PngBitDepth? BitDepth { get; set; }
 
         /// <summary>
         /// Gets or sets the color type.
         /// </summary>
-        public PngColorType ColorType { get; set; } = PngColorType.RgbWithAlpha;
+        public PngColorType? ColorType { get; set; }
 
         /// <summary>
         /// Gets or sets the filter method.
         /// </summary>
-        public PngFilterMethod FilterMethod { get; set; } = PngFilterMethod.Paeth;
+        public PngFilterMethod? FilterMethod { get; set; }
 
         /// <summary>
         /// Gets or sets the compression level 1-9.
@@ -36,29 +36,20 @@ namespace SixLabors.ImageSharp.Formats.Png
         public int CompressionLevel { get; set; } = 6;
 
         /// <summary>
-        /// Gets or sets the gamma value, that will be written
-        /// the the stream, when the <see cref="WriteGamma"/> property
-        /// is set to true. The default value is 2.2F.
+        /// Gets or sets the gamma value, that will be written the the image.
         /// </summary>
-        /// <value>The gamma value of the image.</value>
-        public float Gamma { get; set; } = 2.2F;
+        public float? Gamma { get; set; }
 
         /// <summary>
         /// Gets or sets quantizer for reducing the color count.
         /// Defaults to the <see cref="WuQuantizer"/>
         /// </summary>
-        public IQuantizer Quantizer { get; set; } = new WuQuantizer();
+        public IQuantizer Quantizer { get; set; }
 
         /// <summary>
         /// Gets or sets the transparency threshold.
         /// </summary>
         public byte Threshold { get; set; } = 255;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether this instance should write
-        /// gamma information to the stream. The default value is false.
-        /// </summary>
-        public bool WriteGamma { get; set; }
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.

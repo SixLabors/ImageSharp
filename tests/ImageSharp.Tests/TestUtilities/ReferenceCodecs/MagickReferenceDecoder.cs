@@ -29,13 +29,13 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                 {
                     if (magickImage.Depth == 8)
                     {
-                        byte[] data = pixels.ToByteArray("RGBA");
-                        
+                        byte[] data = pixels.ToByteArray(PixelMapping.RGBA);
+
                         PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(data, resultPixels, resultPixels.Length);
                     }
                     else if (magickImage.Depth == 16)
                     {
-                        ushort[] data = pixels.ToShortArray("RGBA");
+                        ushort[] data = pixels.ToShortArray(PixelMapping.RGBA);
                         Span<byte> bytes = MemoryMarshal.Cast<ushort, byte>(data.AsSpan());
 
                         PixelOperations<TPixel>.Instance.PackFromRgba64Bytes(bytes, resultPixels, resultPixels.Length);

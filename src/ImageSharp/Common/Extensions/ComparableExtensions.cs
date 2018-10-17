@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="byte"/> representing the clamped value.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static byte Clamp(this byte value, byte min, byte max)
         {
             // Order is important here as someone might set min to higher than max.
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="int"/> representing the clamped value.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static uint Clamp(this uint value, uint min, uint max)
         {
             if (value >= max)
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="int"/> representing the clamped value.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static int Clamp(this int value, int min, int max)
         {
             if (value >= max)
@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="float"/> representing the clamped value.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static float Clamp(this float value, float min, float max)
         {
             if (value >= max)
@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="double"/> representing the clamped value.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static double Clamp(this double value, double min, double max)
         {
             if (value >= max)
@@ -135,39 +135,6 @@ namespace SixLabors.ImageSharp
             }
 
             return value;
-        }
-
-        /// <summary>
-        /// Converts an <see cref="int"/> to a <see cref="byte"/> first restricting the value between the
-        /// minimum and maximum allowable ranges.
-        /// </summary>
-        /// <param name="value">The <see cref="int"/> this method extends.</param>
-        /// <returns>The <see cref="byte"/></returns>
-        public static byte ToByte(this int value)
-        {
-            return (byte)value.Clamp(0, 255);
-        }
-
-        /// <summary>
-        /// Converts an <see cref="float"/> to a <see cref="byte"/> first restricting the value between the
-        /// minimum and maximum allowable ranges.
-        /// </summary>
-        /// <param name="value">The <see cref="float"/> this method extends.</param>
-        /// <returns>The <see cref="byte"/></returns>
-        public static byte ToByte(this float value)
-        {
-            return (byte)value.Clamp(0, 255);
-        }
-
-        /// <summary>
-        /// Converts an <see cref="double"/> to a <see cref="byte"/> first restricting the value between the
-        /// minimum and maximum allowable ranges.
-        /// </summary>
-        /// <param name="value">The <see cref="double"/> this method extends.</param>
-        /// <returns>The <see cref="byte"/></returns>
-        public static byte ToByte(this double value)
-        {
-            return (byte)value.Clamp(0, 255);
         }
     }
 }

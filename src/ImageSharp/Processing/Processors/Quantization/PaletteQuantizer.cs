@@ -37,10 +37,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Initializes a new instance of the <see cref="PaletteQuantizer"/> class.
         /// </summary>
         /// <param name="diffuser">The error diffusion algorithm, if any, to apply to the output image</param>
-        public PaletteQuantizer(IErrorDiffuser diffuser)
-        {
-            this.Diffuser = diffuser;
-        }
+        public PaletteQuantizer(IErrorDiffuser diffuser) => this.Diffuser = diffuser;
 
         /// <inheritdoc />
         public IErrorDiffuser Diffuser { get; }
@@ -49,6 +46,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public virtual IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>()
             where TPixel : struct, IPixel<TPixel>
             => this.CreateFrameQuantizer(() => NamedColors<TPixel>.WebSafePalette);
+
+        /// <inheritdoc/>
+        public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(int maxColors)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel[] websafe = NamedColors<TPixel>.WebSafePalette;
+            int max = Math.Min(maxColors, websafe.Length);
+
+            if (max != websafe.Length)
+            {
+                return this.CreateFrameQuantizer(() => NamedColors<TPixel>.WebSafePalette.AsSpan(0, max).ToArray());
+            }
+
+            return this.CreateFrameQuantizer(() => websafe);
+        }
 
         /// <summary>
         /// Gets the palette to use to quantize the image.

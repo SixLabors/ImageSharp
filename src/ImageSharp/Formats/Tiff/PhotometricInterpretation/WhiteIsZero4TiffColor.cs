@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.CompilerServices;
-
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="width">The width of the image block.</param>
         /// <param name="height">The height of the image block.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Decode<TPixel>(byte[] data, PixelAccessor<TPixel> pixels, int left, int top, int width, int height)
+        public static void Decode<TPixel>(byte[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel color = default(TPixel);

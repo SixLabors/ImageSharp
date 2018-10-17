@@ -88,7 +88,9 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             SimdUtils.ExtendedIntrinsics.BulkConvertNormalizedFloatToByteClampOverflows(sBytes, dFloats);
         }
 
+        // TODO: Check again later!
         // RESULTS:
+        //
         // BenchmarkDotNet=v0.10.14, OS=Windows 10.0.17134
         // Intel Core i7-7700HQ CPU 2.80GHz (Kaby Lake), 1 CPU, 8 logical and 4 physical cores
         // Frequency=2742187 Hz, Resolution=364.6724 ns, Timer=TSC

@@ -62,13 +62,13 @@ namespace SixLabors.ImageSharp.Tests
             IImageEncoder bmpEncoder = IsWindows ? (IImageEncoder)SystemDrawingReferenceEncoder.Bmp : new BmpEncoder();
 
             cfg.ConfigureCodecs(
-                ImageFormats.Png,
+                PngFormat.Instance,
                 MagickReferenceDecoder.Instance,
                 pngEncoder,
                 new PngImageFormatDetector());
 
             cfg.ConfigureCodecs(
-                ImageFormats.Bmp,
+                BmpFormat.Instance,
                 SystemDrawingReferenceDecoder.Instance,
                 bmpEncoder,
                 new BmpImageFormatDetector());

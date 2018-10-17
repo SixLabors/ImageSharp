@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         private static readonly ImageComparer TolerantComparer = ImageComparer.TolerantPercentage(0.5f, 3);
 
         private ITestOutputHelper Output { get; }
-
+        
         public static readonly TheoryData<string> ResamplerNames = new TheoryData<string>
         {
             nameof(KnownResamplers.Bicubic),

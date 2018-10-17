@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp
                 return null;
             }
 
-            using (IManagedByteBuffer buffer = config.MemoryAllocator.AllocateManagedByteBuffer(maxHeaderSize))
+            using (IManagedByteBuffer buffer = config.MemoryAllocator.AllocateManagedByteBuffer(maxHeaderSize, AllocationOptions.Clean))
             {
                 long startPosition = stream.Position;
                 stream.Read(buffer.Array, 0, maxHeaderSize);

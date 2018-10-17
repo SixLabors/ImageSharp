@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests
 
         public virtual string SourceFileOrDescription => "";
 
-        public Configuration Configuration { get; set; } = Configuration.Default.ShallowCopy();
+        public Configuration Configuration { get; set; } = Configuration.CreateDefaultInstance();
 
         /// <summary>
         /// Utility instance to provide informations about the test image & manage input/output

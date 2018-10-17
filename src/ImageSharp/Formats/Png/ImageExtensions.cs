@@ -35,6 +35,6 @@ namespace SixLabors.ImageSharp
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         public static void SaveAsPng<TPixel>(this Image<TPixel> source, Stream stream, PngEncoder encoder)
             where TPixel : struct, IPixel<TPixel>
-            => source.Save(stream, encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(ImageFormats.Png));
+            => source.Save(stream, encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PngFormat.Instance));
     }
 }

@@ -15,11 +15,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
     public sealed class GifEncoder : IImageEncoder, IGifEncoderOptions
     {
         /// <summary>
-        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being encoded.
-        /// </summary>
-        public bool IgnoreMetadata { get; set; } = false;
-
-        /// <summary>
         /// Gets or sets the encoding that should be used when writing comments.
         /// </summary>
         public Encoding TextEncoding { get; set; } = GifConstants.DefaultEncoding;
@@ -33,7 +28,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Gets or sets the color table mode: Global or local.
         /// </summary>
-        public GifColorTableMode ColorTableMode { get; set; }
+        public GifColorTableMode? ColorTableMode { get; set; }
 
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)

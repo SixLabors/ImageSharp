@@ -16,6 +16,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     public class OctreeQuantizer : IQuantizer
     {
         /// <summary>
+        /// The default maximum number of colors to use when quantizing the image.
+        /// </summary>
+        public const int DefaultMaxColors = 256;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
         /// </summary>
         public OctreeQuantizer()
@@ -26,7 +31,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
         /// </summary>
-        /// <param name="maxColors">The maximum number of colors to hold in the color palette</param>
+        /// <param name="maxColors">The maximum number of colors to hold in the color palette.</param>
         public OctreeQuantizer(int maxColors)
             : this(GetDiffuser(true), maxColors)
         {
@@ -37,7 +42,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         /// <param name="dither">Whether to apply dithering to the output image</param>
         public OctreeQuantizer(bool dither)
-            : this(GetDiffuser(dither), 255)
+            : this(GetDiffuser(dither), DefaultMaxColors)
         {
         }
 
@@ -46,7 +51,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         /// <param name="diffuser">The error diffusion algorithm, if any, to apply to the output image</param>
         public OctreeQuantizer(IErrorDiffuser diffuser)
-            : this(diffuser, 255)
+            : this(diffuser, DefaultMaxColors)
         {
         }
 
@@ -57,10 +62,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <param name="maxColors">The maximum number of colors to hold in the color palette</param>
         public OctreeQuantizer(IErrorDiffuser diffuser, int maxColors)
         {
-            Guard.MustBeBetweenOrEqualTo(maxColors, 1, 255, nameof(maxColors));
-
             this.Diffuser = diffuser;
-            this.MaxColors = maxColors;
+            this.MaxColors = maxColors.Clamp(1, DefaultMaxColors);
         }
 
         /// <inheritdoc />
@@ -75,6 +78,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>()
             where TPixel : struct, IPixel<TPixel>
             => new OctreeFrameQuantizer<TPixel>(this);
+
+        /// <inheritdoc/>
+        public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(int maxColors)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            maxColors = maxColors.Clamp(1, DefaultMaxColors);
+            return new OctreeFrameQuantizer<TPixel>(this, maxColors);
+        }
 
         private static IErrorDiffuser GetDiffuser(bool dither) => dither ? KnownDiffusers.FloydSteinberg : null;
     }

@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Formats
 {

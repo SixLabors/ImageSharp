@@ -9,12 +9,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     public sealed class JpegConfigurationModule : IConfigurationModule
     {
         /// <inheritdoc/>
-        public void Configure(Configuration config)
+        public void Configure(Configuration configuration)
         {
-            config.ImageFormatsManager.SetEncoder(ImageFormats.Jpeg, new JpegEncoder());
-            config.ImageFormatsManager.SetDecoder(ImageFormats.Jpeg, new JpegDecoder());
-
-            config.ImageFormatsManager.AddImageFormatDetector(new JpegImageFormatDetector());
+            configuration.ImageFormatsManager.SetEncoder(JpegFormat.Instance, new JpegEncoder());
+            configuration.ImageFormatsManager.SetDecoder(JpegFormat.Instance, new JpegDecoder());
+            configuration.ImageFormatsManager.AddImageFormatDetector(new JpegImageFormatDetector());
         }
     }
 }

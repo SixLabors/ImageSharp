@@ -88,19 +88,19 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             }
 
             uint ifdOffset = this.ReadUInt32();
-            this.AddValues(values, (int)ifdOffset);
+            this.AddValues(values, ifdOffset);
 
             uint thumbnailOffset = this.ReadUInt32();
-            this.GetThumbnail((int)thumbnailOffset);
+            this.GetThumbnail(thumbnailOffset);
 
             if (this.exifOffset != 0)
             {
-                this.AddValues(values, (int)this.exifOffset);
+                this.AddValues(values, this.exifOffset);
             }
 
             if (this.gpsOffset != 0)
             {
-                this.AddValues(values, (int)this.gpsOffset);
+                this.AddValues(values, this.gpsOffset);
             }
 
             return values;
@@ -127,25 +127,14 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
         private unsafe string ConvertToString(ReadOnlySpan<byte> buffer)
         {
-            Span<byte> nullChar = stackalloc byte[1] { 0 };
-
-            int nullCharIndex = buffer.IndexOf(nullChar);
+            int nullCharIndex = buffer.IndexOf((byte)0);
 
             if (nullCharIndex > -1)
             {
                 buffer = buffer.Slice(0, nullCharIndex);
             }
 
-#if NETSTANDARD1_1
-            return Encoding.UTF8.GetString(buffer.ToArray(), 0, buffer.Length);
-#elif NETCOREAPP2_1
             return Encoding.UTF8.GetString(buffer);
-#else
-            fixed (byte* pointer = &MemoryMarshal.GetReference(buffer))
-            {
-                return Encoding.UTF8.GetString(pointer, buffer.Length);
-            }
-#endif
         }
 
         /// <summary>
@@ -153,9 +142,14 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// </summary>
         /// <param name="values">The values.</param>
         /// <param name="index">The index.</param>
-        private void AddValues(List<ExifValue> values, int index)
+        private void AddValues(List<ExifValue> values, uint index)
         {
-            this.position = index;
+            if (index > (uint)this.exifData.Length)
+            {
+                return;
+            }
+
+            this.position = (int)index;
             int count = this.ReadUInt16();
 
             for (int i = 0; i < count; i++)
@@ -431,7 +425,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return null;
         }
 
-        private void GetThumbnail(int offset)
+        private void GetThumbnail(uint offset)
         {
             var values = new List<ExifValue>();
             this.AddValues(values, offset);
@@ -515,10 +509,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return new Rational(numerator, denominator, false);
         }
 
-        private sbyte ConvertToSignedByte(ReadOnlySpan<byte> buffer)
-        {
-            return unchecked((sbyte)buffer[0]);
-        }
+        private sbyte ConvertToSignedByte(ReadOnlySpan<byte> buffer) => unchecked((sbyte)buffer[0]);
 
         private int ConvertToInt32(ReadOnlySpan<byte> buffer) // SignedLong in Exif Specification
         {

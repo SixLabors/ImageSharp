@@ -21,9 +21,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private int padding;
 
-        private readonly BmpBitsPerPixel bitsPerPixel;
-
         private readonly MemoryAllocator memoryAllocator;
+
+        private BmpBitsPerPixel? bitsPerPixel;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BmpEncoderCore"/> class.
@@ -48,37 +48,39 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            // Cast to int will get the bytes per pixel
-            short bpp = (short)(8 * (int)this.bitsPerPixel);
+            ImageMetaData metaData = image.MetaData;
+            BmpMetaData bmpMetaData = metaData.GetFormatMetaData(BmpFormat.Instance);
+            this.bitsPerPixel = this.bitsPerPixel ?? bmpMetaData.BitsPerPixel;
+
+            short bpp = (short)this.bitsPerPixel;
             int bytesPerLine = 4 * (((image.Width * bpp) + 31) / 32);
-            this.padding = bytesPerLine - (image.Width * (int)this.bitsPerPixel);
+            this.padding = bytesPerLine - (int)(image.Width * (bpp / 8F));
 
             // Set Resolution.
-            ImageMetaData meta = image.MetaData;
             int hResolution = 0;
             int vResolution = 0;
 
-            if (meta.ResolutionUnits != PixelResolutionUnit.AspectRatio)
+            if (metaData.ResolutionUnits != PixelResolutionUnit.AspectRatio)
             {
-                if (meta.HorizontalResolution > 0 && meta.VerticalResolution > 0)
+                if (metaData.HorizontalResolution > 0 && metaData.VerticalResolution > 0)
                 {
-                    switch (meta.ResolutionUnits)
+                    switch (metaData.ResolutionUnits)
                     {
                         case PixelResolutionUnit.PixelsPerInch:
 
-                            hResolution = (int)Math.Round(UnitConverter.InchToMeter(meta.HorizontalResolution));
-                            vResolution = (int)Math.Round(UnitConverter.InchToMeter(meta.VerticalResolution));
+                            hResolution = (int)Math.Round(UnitConverter.InchToMeter(metaData.HorizontalResolution));
+                            vResolution = (int)Math.Round(UnitConverter.InchToMeter(metaData.VerticalResolution));
                             break;
 
                         case PixelResolutionUnit.PixelsPerCentimeter:
 
-                            hResolution = (int)Math.Round(UnitConverter.CmToMeter(meta.HorizontalResolution));
-                            vResolution = (int)Math.Round(UnitConverter.CmToMeter(meta.VerticalResolution));
+                            hResolution = (int)Math.Round(UnitConverter.CmToMeter(metaData.HorizontalResolution));
+                            vResolution = (int)Math.Round(UnitConverter.CmToMeter(metaData.VerticalResolution));
                             break;
 
                         case PixelResolutionUnit.PixelsPerMeter:
-                            hResolution = (int)Math.Round(meta.HorizontalResolution);
-                            vResolution = (int)Math.Round(meta.VerticalResolution);
+                            hResolution = (int)Math.Round(metaData.HorizontalResolution);
+                            vResolution = (int)Math.Round(metaData.VerticalResolution);
 
                             break;
                     }
@@ -145,10 +147,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
         }
 
-        private IManagedByteBuffer AllocateRow(int width, int bytesPerPixel)
-        {
-            return this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, this.padding);
-        }
+        private IManagedByteBuffer AllocateRow(int width, int bytesPerPixel) => this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, this.padding);
 
         /// <summary>
         /// Writes the 32bit color palette to the stream.

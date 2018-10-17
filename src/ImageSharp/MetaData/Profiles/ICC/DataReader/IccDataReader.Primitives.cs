@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             }
 
             Guard.MustBeGreaterThan(length, 0, nameof(length));
-            string value = AsciiEncoding.GetString(this.data, this.AddIndex(length), length);
+            string value = Encoding.ASCII.GetString(this.data, this.AddIndex(length), length);
 
             // remove data after (potential) null terminator
             int pos = value.IndexOf('\0');

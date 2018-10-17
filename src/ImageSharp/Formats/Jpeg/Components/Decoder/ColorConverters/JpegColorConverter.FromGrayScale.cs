@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
             }
 
-            public override void ConvertToRgba(ComponentValues values, Span<Vector4> result)
+            public override void ConvertToRgba(in ComponentValues values, Span<Vector4> result)
             {
                 // TODO: We can optimize a lot here with Vector<float> and SRCS.Unsafe()!
                 ReadOnlySpan<float> yVals = values.Component0;

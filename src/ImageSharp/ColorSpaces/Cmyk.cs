@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -11,12 +10,34 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// <summary>
     /// Represents an CMYK (cyan, magenta, yellow, keyline) color.
     /// </summary>
-    internal readonly struct Cmyk : IEquatable<Cmyk>, IAlmostEquatable<Cmyk, float>
+    public readonly struct Cmyk : IEquatable<Cmyk>
     {
+        private static readonly Vector4 Min = Vector4.Zero;
+        private static readonly Vector4 Max = Vector4.One;
+
         /// <summary>
-        /// The backing vector for SIMD support.
+        /// Gets the cyan color component.
+        /// <remarks>A value ranging between 0 and 1.</remarks>
         /// </summary>
-        private readonly Vector4 backingVector;
+        public readonly float C;
+
+        /// <summary>
+        /// Gets the magenta color component.
+        /// <remarks>A value ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float M;
+
+        /// <summary>
+        /// Gets the yellow color component.
+        /// <remarks>A value ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float Y;
+
+        /// <summary>
+        /// Gets the keyline black color component.
+        /// <remarks>A value ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float K;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Cmyk"/> struct.
@@ -25,7 +46,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="m">The magenta component.</param>
         /// <param name="y">The yellow component.</param>
         /// <param name="k">The keyline black component.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Cmyk(float c, float m, float y, float k)
             : this(new Vector4(c, m, y, k))
         {
@@ -35,127 +56,62 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// Initializes a new instance of the <see cref="Cmyk"/> struct.
         /// </summary>
         /// <param name="vector">The vector representing the c, m, y, k components.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Cmyk(Vector4 vector)
-            : this()
         {
-            this.backingVector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One);
-        }
-
-        /// <summary>
-        /// Gets the cyan color component.
-        /// <remarks>A value ranging between 0 and 1.</remarks>
-        /// </summary>
-        public float C
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.X;
-        }
-
-        /// <summary>
-        /// Gets the magenta color component.
-        /// <remarks>A value ranging between 0 and 1.</remarks>
-        /// </summary>
-        public float M
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Y;
-        }
-
-        /// <summary>
-        /// Gets the yellow color component.
-        /// <remarks>A value ranging between 0 and 1.</remarks>
-        /// </summary>
-        public float Y
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Z;
-        }
-
-        /// <summary>
-        /// Gets the keyline black color component.
-        /// <remarks>A value ranging between 0 and 1.</remarks>
-        /// </summary>
-        public float K
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.W;
+            vector = Vector4.Clamp(vector, Min, Max);
+            this.C = vector.X;
+            this.M = vector.Y;
+            this.Y = vector.Z;
+            this.K = vector.W;
         }
 
         /// <summary>
         /// Compares two <see cref="Cmyk"/> objects for equality.
         /// </summary>
-        /// <param name="left">
-        /// The <see cref="Cmyk"/> on the left side of the operand.
-        /// </param>
-        /// <param name="right">
-        /// The <see cref="Cmyk"/> on the right side of the operand.
-        /// </param>
+        /// <param name="left">The <see cref="Cmyk"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Cmyk"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator ==(Cmyk left, Cmyk right)
-        {
-            return left.Equals(right);
-        }
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static bool operator ==(Cmyk left, Cmyk right) => left.Equals(right);
 
         /// <summary>
         /// Compares two <see cref="Cmyk"/> objects for inequality
         /// </summary>
-        /// <param name="left">
-        /// The <see cref="Cmyk"/> on the left side of the operand.
-        /// </param>
-        /// <param name="right">
-        /// The <see cref="Cmyk"/> on the right side of the operand.
-        /// </param>
+        /// <param name="left">The <see cref="Cmyk"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Cmyk"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(Cmyk left, Cmyk right)
-        {
-            return !left.Equals(right);
-        }
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static bool operator !=(Cmyk left, Cmyk right) => !left.Equals(right);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public override int GetHashCode()
         {
-            return this.backingVector.GetHashCode();
+            int hash = this.C.GetHashCode();
+            hash = HashHelpers.Combine(hash, this.M.GetHashCode());
+            hash = HashHelpers.Combine(hash, this.Y.GetHashCode());
+            return HashHelpers.Combine(hash, this.K.GetHashCode());
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return this.Equals(default)
-                ? "Cmyk [Empty]"
-                : $"Cmyk [ C={this.C:#0.##}, M={this.M:#0.##}, Y={this.Y:#0.##}, K={this.K:#0.##}]";
-        }
+        public override string ToString() => FormattableString.Invariant($"Cmyk({this.C:#0.##}, {this.M:#0.##}, {this.Y:#0.##}, {this.K:#0.##})");
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is Cmyk other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is Cmyk other && this.Equals(other);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(Cmyk other)
         {
-            return this.backingVector.Equals(other.backingVector);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool AlmostEquals(Cmyk other, float precision)
-        {
-            var result = Vector4.Abs(this.backingVector - other.backingVector);
-
-            return result.X <= precision
-                && result.Y <= precision
-                && result.Z <= precision
-                && result.W <= precision;
+            return this.C.Equals(other.C)
+                && this.M.Equals(other.M)
+                && this.Y.Equals(other.Y)
+                && this.K.Equals(other.K);
         }
     }
 }

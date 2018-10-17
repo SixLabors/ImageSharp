@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image to resize.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        /// <remarks>Passing zero for one of height or width within the resize options will automatically preserve the aspect ratio of the original image</remarks>
+        /// <remarks>Passing zero for one of height or width within the resize options will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
         public static IImageProcessingContext<TPixel> Resize<TPixel>(this IImageProcessingContext<TPixel> source, ResizeOptions options)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new ResizeProcessor<TPixel>(options, source.GetCurrentSize()));
@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image to resize.</param>
         /// <param name="size">The target image size.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
+        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
         public static IImageProcessingContext<TPixel> Resize<TPixel>(this IImageProcessingContext<TPixel> source, Size size)
             where TPixel : struct, IPixel<TPixel>
             => Resize(source, size.Width, size.Height, KnownResamplers.Bicubic, false);
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="size">The target image size.</param>
         /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
+        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
         public static IImageProcessingContext<TPixel> Resize<TPixel>(this IImageProcessingContext<TPixel> source, Size size, bool compand)
             where TPixel : struct, IPixel<TPixel>
             => Resize(source, size.Width, size.Height, KnownResamplers.Bicubic, compand);
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
+        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
         public static IImageProcessingContext<TPixel> Resize<TPixel>(this IImageProcessingContext<TPixel> source, int width, int height)
             where TPixel : struct, IPixel<TPixel>
             => Resize(source, width, height, KnownResamplers.Bicubic, false);
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="height">The target image height.</param>
         /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
+        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
         public static IImageProcessingContext<TPixel> Resize<TPixel>(this IImageProcessingContext<TPixel> source, int width, int height, bool compand)
             where TPixel : struct, IPixel<TPixel>
             => Resize(source, width, height, KnownResamplers.Bicubic, compand);
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="height">The target image height.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
+        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
         public static IImageProcessingContext<TPixel> Resize<TPixel>(this IImageProcessingContext<TPixel> source, int width, int height, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>
             => Resize(source, width, height, sampler, false);
@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
         /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
+        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
         public static IImageProcessingContext<TPixel> Resize<TPixel>(this IImageProcessingContext<TPixel> source, Size size, IResampler sampler, bool compand)
             where TPixel : struct, IPixel<TPixel>
             => Resize(source, size.Width, size.Height, sampler, new Rectangle(0, 0, size.Width, size.Height), compand);
@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
         /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
+        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
         public static IImageProcessingContext<TPixel> Resize<TPixel>(this IImageProcessingContext<TPixel> source, int width, int height, IResampler sampler, bool compand)
             where TPixel : struct, IPixel<TPixel>
             => Resize(source, width, height, sampler, new Rectangle(0, 0, width, height), compand);
@@ -136,7 +136,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </param>
         /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
+        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
         public static IImageProcessingContext<TPixel> Resize<TPixel>(
             this IImageProcessingContext<TPixel> source,
             int width,
@@ -161,7 +161,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </param>
         /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
+        /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
         public static IImageProcessingContext<TPixel> Resize<TPixel>(
             this IImageProcessingContext<TPixel> source,
             int width,

@@ -2,9 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -55,27 +57,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private void FlipX(ImageFrame<TPixel> source, Configuration configuration)
         {
             int height = source.Height;
-            int halfHeight = (int)Math.Ceiling(source.Height * .5F);
 
-            using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
+            using (IMemoryOwner<TPixel> tempBuffer = configuration.MemoryAllocator.Allocate<TPixel>(source.Width))
             {
-                ParallelFor.WithConfiguration(
-                    0,
-                    halfHeight,
-                    configuration,
-                    y =>
-                        {
-                            int newY = height - y - 1;
-                            Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
-                            Span<TPixel> altSourceRow = source.GetPixelRowSpan(newY);
-                            Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
-                            Span<TPixel> altTargetRow = targetPixels.GetRowSpan(newY);
+                Span<TPixel> temp = tempBuffer.Memory.Span;
 
-                            sourceRow.CopyTo(altTargetRow);
-                            altSourceRow.CopyTo(targetRow);
-                        });
-
-                Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
+                for (int yTop = 0; yTop < height / 2; yTop++)
+                {
+                    int yBottom = height - yTop - 1;
+                    Span<TPixel> topRow = source.GetPixelRowSpan(yBottom);
+                    Span<TPixel> bottomRow = source.GetPixelRowSpan(yTop);
+                    topRow.CopyTo(temp);
+                    bottomRow.CopyTo(topRow);
+                    temp.CopyTo(bottomRow);
+                }
             }
         }
 
@@ -86,31 +81,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="configuration">The configuration.</param>
         private void FlipY(ImageFrame<TPixel> source, Configuration configuration)
         {
-            int width = source.Width;
-            int height = source.Height;
-            int halfWidth = (int)Math.Ceiling(width * .5F);
-
-            using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
-            {
-                ParallelFor.WithConfiguration(
-                    0,
-                    height,
-                    configuration,
-                    y =>
+            ParallelHelper.IterateRows(
+                source.Bounds(),
+                configuration,
+                rows =>
+                    {
+                        for (int y = rows.Min; y < rows.Max; y++)
                         {
-                            Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
-                            Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
-
-                            for (int x = 0; x < halfWidth; x++)
-                            {
-                                int newX = width - x - 1;
-                                targetRow[x] = sourceRow[newX];
-                                targetRow[newX] = sourceRow[x];
-                            }
-                        });
-
-                Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
-            }
+                            source.GetPixelRowSpan(y).Reverse();
+                        }
+                    });
         }
     }
 }

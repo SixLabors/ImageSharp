@@ -12,16 +12,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     public sealed class JpegEncoder : IImageEncoder, IJpegEncoderOptions
     {
         /// <summary>
-        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
-        /// </summary>
-        public bool IgnoreMetadata { get; set; }
-
-        /// <summary>
         /// Gets or sets the quality, that will be used to encode the image. Quality
         /// index must be between 0 and 100 (compression from max to min).
         /// Defaults to <value>75</value>.
         /// </summary>
-        public int Quality { get; set; } = 75;
+        public int? Quality { get; set; }
 
         /// <summary>
         /// Gets or sets the subsample ration, that will be used to encode the image.

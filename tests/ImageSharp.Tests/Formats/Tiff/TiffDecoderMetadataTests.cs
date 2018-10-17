@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Tests
             Image<Rgba32> image = new Image<Rgba32>(null, 20, 20);
 
             decoder.ReadMetadata<Rgba32>(ifd, image);
-            var metadata = image.MetaData.Properties.FirstOrDefault(m => m.Name == metadataName)?.Value;
+            var metadata = image.MetaData.Properties.FirstOrDefault(m => m.Name == metadataName).Value;
 
             Assert.Equal(metadataValue, metadata);
         }
@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Tests
             Image<Rgba32> image = new Image<Rgba32>(null, 20, 20);
 
             decoder.ReadMetadata<Rgba32>(ifd, image);
-            var metadata = image.MetaData.Properties.FirstOrDefault(m => m.Name == metadataName)?.Value;
+            var metadata = image.MetaData.Properties.FirstOrDefault(m => m.Name == metadataName).Value;
 
             Assert.Null(metadata);
         }

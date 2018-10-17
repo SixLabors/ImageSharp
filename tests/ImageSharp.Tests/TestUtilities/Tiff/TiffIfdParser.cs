@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Tests
     using ImageSharp.Formats.Tiff;
 
     using SixLabors.ImageSharp.MetaData.Profiles.Exif;
-
+    using SixLabors.ImageSharp.Primitives;
     using Xunit;
 
     /// <summary>

@@ -11,33 +11,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
     /// <summary>
     /// Represent the value of the EXIF profile.
     /// </summary>
-    public sealed class ExifValue : IEquatable<ExifValue>
+    public sealed class ExifValue : IEquatable<ExifValue>, IDeepCloneable<ExifValue>
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ExifValue"/> class
-        /// by making a copy from another exif value.
-        /// </summary>
-        /// <param name="other">The other exif value, where the clone should be made from.</param>
-        /// <exception cref="System.ArgumentNullException"><paramref name="other"/> is null.</exception>
-        public ExifValue(ExifValue other)
-        {
-            Guard.NotNull(other, nameof(other));
-
-            this.DataType = other.DataType;
-            this.IsArray = other.IsArray;
-            this.Tag = other.Tag;
-
-            if (!other.IsArray)
-            {
-                this.Value = other.Value;
-            }
-            else
-            {
-                var array = (Array)other.Value;
-                this.Value = array.Clone();
-            }
-        }
-
         /// <summary>
         /// Initializes a new instance of the <see cref="ExifValue"/> class.
         /// </summary>
@@ -51,6 +26,33 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             this.DataType = dataType;
             this.IsArray = isArray && dataType != ExifDataType.Ascii;
             this.Value = value;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ExifValue"/> class
+        /// by making a copy from another exif value.
+        /// </summary>
+        /// <param name="other">The other exif value, where the clone should be made from.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="other"/> is null.</exception>
+        private ExifValue(ExifValue other)
+        {
+            Guard.NotNull(other, nameof(other));
+
+            this.DataType = other.DataType;
+            this.IsArray = other.IsArray;
+            this.Tag = other.Tag;
+
+            if (!other.IsArray)
+            {
+                // All types are value types except for string which is immutable so safe to simply assign.
+                this.Value = other.Value;
+            }
+            else
+            {
+                // All array types are value types so Clone() is sufficient here.
+                var array = (Array)other.Value;
+                this.Value = array.Clone();
+            }
         }
 
         /// <summary>
@@ -145,10 +147,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator ==(ExifValue left, ExifValue right)
-        {
-            return ReferenceEquals(left, right) || left.Equals(right);
-        }
+        public static bool operator ==(ExifValue left, ExifValue right) => ReferenceEquals(left, right) || left.Equals(right);
 
         /// <summary>
         /// Compares two <see cref="ExifValue"/> objects for equality.
@@ -162,16 +161,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator !=(ExifValue left, ExifValue right)
-        {
-            return !(left == right);
-        }
+        public static bool operator !=(ExifValue left, ExifValue right) => !(left == right);
 
         /// <inheritdoc />
-        public override bool Equals(object obj)
-        {
-            return obj is ExifValue other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is ExifValue other && this.Equals(other);
 
         /// <inheritdoc />
         public bool Equals(ExifValue other)
@@ -187,9 +180,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             }
 
             return
-              this.Tag == other.Tag &&
-              this.DataType == other.DataType &&
-              object.Equals(this.Value, other.Value);
+              this.Tag == other.Tag
+              && this.DataType == other.DataType
+              && object.Equals(this.Value, other.Value);
         }
 
         /// <summary>
@@ -205,10 +198,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         }
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return this.GetHashCode(this);
-        }
+        public override int GetHashCode() => this.GetHashCode(this);
 
         /// <inheritdoc/>
         public override string ToString()
@@ -237,6 +227,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
             return sb.ToString();
         }
+
+        /// <inheritdoc/>
+        public ExifValue DeepClone() => new ExifValue(this);
 
         /// <summary>
         /// Creates a new <see cref="ExifValue"/>
@@ -584,7 +577,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         private static ExifValue CreateNumber(ExifTag tag, object value, bool isArray)
         {
             Type type = value?.GetType();
-            if (type != null && type.IsArray)
+            if (type?.IsArray == true)
             {
                 type = type.GetElementType();
             }

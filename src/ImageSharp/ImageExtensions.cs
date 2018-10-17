@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
@@ -17,7 +16,6 @@ namespace SixLabors.ImageSharp
     /// </summary>
     public static partial class ImageExtensions
     {
-#if !NETSTANDARD1_1
         /// <summary>
         /// Writes the image to the given stream using the currently loaded image format.
         /// </summary>
@@ -78,7 +76,6 @@ namespace SixLabors.ImageSharp
                 source.Save(fs, encoder);
             }
         }
-#endif
 
         /// <summary>
         /// Writes the image to the given stream using the currently loaded image format.

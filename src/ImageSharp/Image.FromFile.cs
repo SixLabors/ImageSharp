@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-#if !NETSTANDARD1_1
 using System;
 using System.IO;
 using SixLabors.ImageSharp.Formats;
@@ -213,4 +212,3 @@ namespace SixLabors.ImageSharp
         }
     }
 }
-#endif

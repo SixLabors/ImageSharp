@@ -4,6 +4,7 @@
 using System;
 using System.Linq;
 using Moq;
+using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.IO;
 using Xunit;
 // ReSharper disable InconsistentNaming
@@ -22,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             // the shallow copy of configuration should behave exactly like the default configuration,
             // so by using the copy, we test both the default and the copy.
-            this.DefaultConfiguration = Configuration.CreateDefaultInstance().ShallowCopy();
+            this.DefaultConfiguration = Configuration.CreateDefaultInstance().Clone();
             this.ConfigurationEmpty = new Configuration();
         }
 
@@ -37,19 +38,13 @@ namespace SixLabors.ImageSharp.Tests
         /// Test that the default configuration is not null.
         /// </summary>
         [Fact]
-        public void TestDefaultConfigurationIsNotNull()
-        {
-            Assert.True(Configuration.Default != null);
-        }
+        public void TestDefaultConfigurationIsNotNull() => Assert.True(Configuration.Default != null);
 
         /// <summary>
         /// Test that the default configuration read origin options is set to begin.
         /// </summary>
         [Fact]
-        public void TestDefaultConfigurationReadOriginIsCurrent()
-        {
-            Assert.True(Configuration.Default.ReadOrigin == ReadOrigin.Current);
-        }
+        public void TestDefaultConfigurationReadOriginIsCurrent() => Assert.True(Configuration.Default.ReadOrigin == ReadOrigin.Current);
 
         /// <summary>
         /// Test that the default configuration parallel options max degrees of parallelism matches the
@@ -101,7 +96,7 @@ namespace SixLabors.ImageSharp.Tests
 
             Assert.Equal(count, config.ImageFormats.Count());
 
-            config.ImageFormatsManager.AddImageFormat(ImageFormats.Bmp);
+            config.ImageFormatsManager.AddImageFormat(BmpFormat.Instance);
 
             Assert.Equal(count, config.ImageFormats.Count());
         }

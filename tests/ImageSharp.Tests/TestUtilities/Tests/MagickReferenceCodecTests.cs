@@ -14,10 +14,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
 
     public class MagickReferenceCodecTests
     {
-        public MagickReferenceCodecTests(ITestOutputHelper output)
-        {
-            this.Output = output;
-        }
+        public MagickReferenceCodecTests(ITestOutputHelper output) => this.Output = output;
 
         private ITestOutputHelper Output { get; }
 
@@ -61,6 +58,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         [WithBlankImages(1, 1, PixelTypesToTest48, TestImages.Png.Rgb48Bpp)]
         [WithBlankImages(1, 1, PixelTypesToTest48, TestImages.Png.Rgb48BppInterlaced)]
         [WithBlankImages(1, 1, PixelTypesToTest48, TestImages.Png.Rgb48BppTrans)]
+        [WithBlankImages(1, 1, PixelTypesToTest48, TestImages.Png.Gray16Bit)]
         public void MagickDecode_16BitDepthImage_IsApproximatelyEquivalentTo_SystemDrawingResult<TPixel>(TestImageProvider<TPixel> dummyProvider, string testImage)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -71,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
 
             // 1020 == 4 * 255 (Equivalent to manhattan distance of 1+1+1+1=4 in Rgba32 space)
             var comparer = ImageComparer.TolerantPercentage(1, 1020);
-            
+
             using (var mImage = Image.Load<TPixel>(path, magickDecoder))
             using (var sdImage = Image.Load<TPixel>(path, sdDecoder))
             {

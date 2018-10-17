@@ -12,6 +12,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Gets the number of bits per pixel.
         /// </summary>
-        BmpBitsPerPixel BitsPerPixel { get; }
+        BmpBitsPerPixel? BitsPerPixel { get; }
     }
 }

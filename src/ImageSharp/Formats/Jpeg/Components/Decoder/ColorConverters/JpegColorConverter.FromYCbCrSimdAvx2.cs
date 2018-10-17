@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 
             public static bool IsAvailable => Vector.IsHardwareAccelerated && SimdUtils.IsAvx2CompatibleArchitecture;
 
-            public override void ConvertToRgba(ComponentValues values, Span<Vector4> result)
+            public override void ConvertToRgba(in ComponentValues values, Span<Vector4> result)
             {
                 int remainder = result.Length % 8;
                 int simdCount = result.Length - remainder;
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             /// <summary>
             /// SIMD convert using buffers of sizes divisable by 8.
             /// </summary>
-            internal static void ConvertCore(ComponentValues values, Span<Vector4> result)
+            internal static void ConvertCore(in ComponentValues values, Span<Vector4> result)
             {
                 // This implementation is actually AVX specific.
                 // An AVX register is capable of storing 8 float-s.

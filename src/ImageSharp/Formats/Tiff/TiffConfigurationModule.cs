@@ -9,11 +9,11 @@ namespace SixLabors.ImageSharp.Formats
     public sealed class TiffConfigurationModule : IConfigurationModule
     {
         /// <inheritdoc/>
-        public void Configure(Configuration host)
+        public void Configure(Configuration configuration)
         {
-            host.ImageFormatsManager.SetEncoder(ImageFormats.Tiff, new TiffEncoder());
-            host.ImageFormatsManager.SetDecoder(ImageFormats.Tiff, new TiffDecoder());
-            host.ImageFormatsManager.AddImageFormatDetector(new TiffImageFormatDetector());
+            configuration.ImageFormatsManager.SetEncoder(TiffFormat.Instance, new TiffEncoder());
+            configuration.ImageFormatsManager.SetDecoder(TiffFormat.Instance, new TiffDecoder());
+            configuration.ImageFormatsManager.AddImageFormatDetector(new TiffImageFormatDetector());
         }
     }
 }

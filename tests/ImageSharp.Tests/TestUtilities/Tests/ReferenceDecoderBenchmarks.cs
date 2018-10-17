@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         private ITestOutputHelper Output { get; }
 
         public const string SkipBenchmarks =
-#if false
+#if true
             "Benchmark, enable manually!";
 #else
             null;

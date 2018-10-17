@@ -3,15 +3,12 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
-#if !NETSTANDARD1_1
 using SixLabors.ImageSharp.IO;
-#endif
 using SixLabors.ImageSharp.Processing;
 using SixLabors.Memory;
 
@@ -59,6 +56,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets or sets the maximum number of concurrent tasks enabled in ImageSharp algorithms
         /// configured with this <see cref="Configuration"/> instance.
+        /// Initialized with <see cref="Environment.ProcessorCount"/> by default.
         /// </summary>
         public int MaxDegreeOfParallelism
         {
@@ -99,12 +97,10 @@ namespace SixLabors.ImageSharp
         /// </summary>
         internal int MaxHeaderSize => this.ImageFormatsManager.MaxHeaderSize;
 
-#if !NETSTANDARD1_1
         /// <summary>
         /// Gets or sets the filesystem helper for accessing the local file system.
         /// </summary>
         internal IFileSystem FileSystem { get; set; } = new LocalFileSystem();
-#endif
 
         /// <summary>
         /// Gets or sets the image operations provider factory.
@@ -125,7 +121,7 @@ namespace SixLabors.ImageSharp
         /// Creates a shallow copy of the <see cref="Configuration"/>
         /// </summary>
         /// <returns>A new configuration instance</returns>
-        public Configuration ShallowCopy()
+        public Configuration Clone()
         {
             return new Configuration
             {
@@ -134,10 +130,7 @@ namespace SixLabors.ImageSharp
                 MemoryAllocator = this.MemoryAllocator,
                 ImageOperationsProvider = this.ImageOperationsProvider,
                 ReadOrigin = this.ReadOrigin,
-
-#if !NETSTANDARD1_1
                 FileSystem = this.FileSystem
-#endif
             };
         }
 

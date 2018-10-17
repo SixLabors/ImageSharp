@@ -280,5 +280,11 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.B = (byte)vector.Z;
             this.A = (byte)vector.W;
         }
+
+        /// <inheritdoc />
+        public override string ToString()
+        {
+            return $"({this.B},{this.G},{this.R},{this.A})";
+        }
     }
 }

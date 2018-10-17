@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.ImageSharp.Processing.Processors.Overlays;
@@ -112,26 +113,29 @@ namespace SixLabors.ImageSharp.Benchmarks
                     Buffer2D<TPixel> sourcePixels = source.PixelBuffer;
                     rowColors.GetSpan().Fill(glowColor);
 
-                    ParallelFor.WithConfiguration(
-                        minY,
-                        maxY,
+                    var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
+                    ParallelHelper.IterateRows(
+                        workingRect,
                         configuration,
-                        y =>
+                        rows =>
                             {
-                                int offsetY = y - startY;
-
-                                for (int x = minX; x < maxX; x++)
+                                for (int y = rows.Min; y < rows.Max; y++)
                                 {
-                                    int offsetX = x - startX;
-                                    float distance = Vector2.Distance(centre, new Vector2(offsetX, offsetY));
-                                    Vector4 sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
-                                    TPixel packed = default(TPixel);
-                                    packed.PackFromVector4(
-                                        PremultipliedLerp(
-                                            sourceColor,
-                                            glowColor.ToVector4(),
-                                            1 - (.95F * (distance / maxDistance))));
-                                    sourcePixels[offsetX, offsetY] = packed;
+                                    int offsetY = y - startY;
+
+                                    for (int x = minX; x < maxX; x++)
+                                    {
+                                        int offsetX = x - startX;
+                                        float distance = Vector2.Distance(centre, new Vector2(offsetX, offsetY));
+                                        Vector4 sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
+                                        TPixel packed = default(TPixel);
+                                        packed.PackFromVector4(
+                                            PremultipliedLerp(
+                                                sourceColor,
+                                                glowColor.ToVector4(),
+                                                1 - (.95F * (distance / maxDistance))));
+                                        sourcePixels[offsetX, offsetY] = packed;
+                                    }
                                 }
                             });
                 }

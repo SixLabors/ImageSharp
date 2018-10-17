@@ -9,11 +9,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     public sealed class BmpConfigurationModule : IConfigurationModule
     {
         /// <inheritdoc/>
-        public void Configure(Configuration config)
+        public void Configure(Configuration configuration)
         {
-            config.ImageFormatsManager.SetEncoder(ImageFormats.Bmp, new BmpEncoder());
-            config.ImageFormatsManager.SetDecoder(ImageFormats.Bmp, new BmpDecoder());
-            config.ImageFormatsManager.AddImageFormatDetector(new BmpImageFormatDetector());
+            configuration.ImageFormatsManager.SetEncoder(BmpFormat.Instance, new BmpEncoder());
+            configuration.ImageFormatsManager.SetDecoder(BmpFormat.Instance, new BmpDecoder());
+            configuration.ImageFormatsManager.AddImageFormatDetector(new BmpImageFormatDetector());
         }
     }
 }

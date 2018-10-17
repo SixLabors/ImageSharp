@@ -2,17 +2,15 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.IO;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.Formats.Bmp;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Formats.Gif;
 using Moq;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
 
@@ -27,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             this.DefaultFormatsManager = Configuration.CreateDefaultInstance().ImageFormatsManager;
             this.FormatsManagerEmpty = new ImageFormatManager();
-        }        
+        }
 
         [Fact]
         public void IfAutoloadWellKnownFormatsIsTrueAllFormatsAreLoaded()
@@ -61,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests
             });
             Assert.Throws<ArgumentNullException>(() =>
             {
-                this.DefaultFormatsManager.SetEncoder(ImageFormats.Bmp, null);
+                this.DefaultFormatsManager.SetEncoder(BmpFormat.Instance, null);
             });
             Assert.Throws<ArgumentNullException>(() =>
             {
@@ -78,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests
             });
             Assert.Throws<ArgumentNullException>(() =>
             {
-                this.DefaultFormatsManager.SetDecoder(ImageFormats.Bmp, null);
+                this.DefaultFormatsManager.SetDecoder(BmpFormat.Instance, null);
             });
             Assert.Throws<ArgumentNullException>(() =>
             {
@@ -114,7 +112,7 @@ namespace SixLabors.ImageSharp.Tests
             IImageDecoder found2 = this.FormatsManagerEmpty.FindDecoder(TestFormat.GlobalTestFormat);
             Assert.Equal(decoder2, found2);
             Assert.NotEqual(found, found2);
-        }        
+        }
 
         [Fact]
         public void AddFormatCallsConfig()
@@ -124,6 +122,25 @@ namespace SixLabors.ImageSharp.Tests
             config.Configure(provider.Object);
 
             provider.Verify(x => x.Configure(config));
+        }
+
+        [Fact]
+        public void DetectFormatAllocatesCleanBuffer()
+        {
+            byte[] jpegImage;
+            using (var buffer = new MemoryStream())
+            {
+                using (var image = new Image<Rgba32>(100, 100))
+                {
+                    image.SaveAsJpeg(buffer);
+                    jpegImage = buffer.ToArray();
+                }
+            }
+
+            byte[] invalidImage = { 1, 2, 3 };
+
+            Assert.Equal(Image.DetectFormat(jpegImage), JpegFormat.Instance);
+            Assert.True(Image.DetectFormat(invalidImage) is null);
         }
     }
 }

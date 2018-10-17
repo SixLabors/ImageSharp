@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats
         {
             if (this.IsSupportedFileFormat(header))
             {
-                return ImageFormats.Tiff;
+                return TiffFormat.Instance;
             }
 
             return null;

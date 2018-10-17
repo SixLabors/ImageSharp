@@ -3,13 +3,13 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Drawing;
 
 namespace SixLabors.ImageSharp.Tests
 {
     using System;
     using Xunit;
     using ImageSharp;
+    using SixLabors.ImageSharp.Memory;
 
     public abstract class PhotometricInterpretationTestBase
     {
@@ -43,27 +43,22 @@ namespace SixLabors.ImageSharp.Tests
             return output;
         }
 
-        internal static void AssertDecode(Rgba32[][] expectedResult, Action<PixelAccessor<Rgba32>> decodeAction)
+        internal static void AssertDecode(Rgba32[][] expectedResult, Action<Buffer2D<Rgba32>> decodeAction)
         {
             int resultWidth = expectedResult[0].Length;
             int resultHeight = expectedResult.Length;
             Image<Rgba32> image = new Image<Rgba32>(resultWidth, resultHeight);
             image.Mutate(x => x.Fill(DefaultColor));
 
-            using (PixelAccessor<Rgba32> pixels = image.Lock())
-            {
-                decodeAction(pixels);
-            }
+            Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();
+            decodeAction(pixels);
 
-            using (PixelAccessor<Rgba32> pixels = image.Lock())
+            for (int y = 0; y < resultHeight; y++)
             {
-                for (int y = 0; y < resultHeight; y++)
+                for (int x = 0; x < resultWidth; x++)
                 {
-                    for (int x = 0; x < resultWidth; x++)
-                    {
-                        Assert.True(expectedResult[y][x] == pixels[x, y],
-                            $"Pixel ({x}, {y}) should be {expectedResult[y][x]} but was {pixels[x, y]}");
-                    }
+                    Assert.True(expectedResult[y][x] == pixels[x, y],
+                        $"Pixel ({x}, {y}) should be {expectedResult[y][x]} but was {pixels[x, y]}");
                 }
             }
         }

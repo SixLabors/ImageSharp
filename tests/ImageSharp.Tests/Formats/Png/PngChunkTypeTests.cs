@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
         private static PngChunkType GetType(string text)
         {
-            return (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(Encoding.UTF8.GetBytes(text));
+            return (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(Encoding.ASCII.GetBytes(text));
         }
     }
 }

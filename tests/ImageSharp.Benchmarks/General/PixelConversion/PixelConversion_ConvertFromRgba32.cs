@@ -1,86 +1,15 @@
 ﻿// ReSharper disable InconsistentNaming
 
+using System.Runtime.CompilerServices;
+
+using BenchmarkDotNet.Attributes;
+
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Benchmarks.General
+namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 {
-    using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
-
-    using BenchmarkDotNet.Attributes;
-
     public class PixelConversion_ConvertFromRgba32
     {
-        interface ITestPixel<T>
-            where T : struct, ITestPixel<T>
-        {
-            void FromRgba32(Rgba32 source);
-
-            void FromRgba32(ref Rgba32 source);
-
-            void FromBytes(byte r, byte g, byte b, byte a);
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        struct TestArgb : ITestPixel<TestArgb>
-        {
-            private byte a, r, g, b;
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void FromRgba32(Rgba32 p)
-            {
-                this.r = p.R;
-                this.g = p.G;
-                this.b = p.B;
-                this.a = p.A;
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void FromRgba32(ref Rgba32 p)
-            {
-                this.r = p.R;
-                this.g = p.G;
-                this.b = p.B;
-                this.a = p.A;
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void FromBytes(byte r, byte g, byte b, byte a)
-            {
-                this.r = r;
-                this.g = g;
-                this.b = b;
-                this.a = a;
-            }
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        struct TestRgba : ITestPixel<TestRgba>
-        {
-            private byte r, g, b, a;
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void FromRgba32(Rgba32 source)
-            {
-                this = Unsafe.As<Rgba32, TestRgba>(ref source);
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void FromRgba32(ref Rgba32 source)
-            {
-                this = Unsafe.As<Rgba32, TestRgba>(ref source);
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void FromBytes(byte r, byte g, byte b, byte a)
-            {
-                this.r = r;
-                this.g = g;
-                this.b = b;
-                this.a = a;
-            }
-        }
-
         struct ConversionRunner<T>
             where T : struct, ITestPixel<T>
         {

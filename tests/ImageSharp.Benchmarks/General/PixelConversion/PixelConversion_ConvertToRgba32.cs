@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 
         private ConversionRunner<TestArgb> permutedRunner;
 
-        [Params(128)]
+        [Params(32)]
         public int Count { get; set; }
 
         [GlobalSetup]

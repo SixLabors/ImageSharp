@@ -53,5 +53,20 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
         {
             dest = Unsafe.As<TestRgba, Rgba32>(ref this);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector4 ToVector4()
+        {
+            return new Vector4(this.r, this.g, this.b, this.a);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyToVector4(ref Vector4 dest)
+        {
+            dest.X = this.r;
+            dest.Y = this.g;
+            dest.Z = this.b;
+            dest.W = this.a;
+        }
     }
 }

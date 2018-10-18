@@ -29,6 +29,15 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
                 this.v = p;
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public Vector4 ToVector4() => this.v;
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void CopyToVector4(ref Vector4 dest)
+            {
+                dest = this.v;
+            }
+
             public void FromRgba32(Rgba32 source) => throw new System.NotImplementedException();
             public void FromRgba32(ref Rgba32 source) => throw new System.NotImplementedException();
             public void FromBytes(byte r, byte g, byte b, byte a) => throw new System.NotImplementedException();

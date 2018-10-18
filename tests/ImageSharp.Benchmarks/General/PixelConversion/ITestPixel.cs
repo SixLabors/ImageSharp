@@ -20,5 +20,9 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
         Rgba32 ToRgba32();
 
         void CopyToRgba32(ref Rgba32 dest);
+
+        Vector4 ToVector4();
+
+        void CopyToVector4(ref Vector4 dest);
     }
 }

@@ -45,6 +45,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Kaboom = "Png/kaboom.png";
             public const string PDSrc = "Png/pd-source.png";
             public const string PDDest = "Png/pd-dest.png";
+            public const string Gray1BitTrans = "Png/gray-1-trns.png";
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";

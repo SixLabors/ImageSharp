@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 
         private ConversionRunner<TestArgb> permutedRunner;
 
-        [Params(128)]
+        [Params(32)]
         public int Count { get; set; }
 
         [GlobalSetup]
@@ -104,10 +104,10 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
     }
 
     // RESULTS:
-    //            Method | Count |       Mean |     Error |    StdDev | Scaled | ScaledSD |
-    // ----------------- |------ |-----------:|----------:|----------:|-------:|---------:|
-    //  CompatibleRetval |   128 |   210.1 ns | 0.8443 ns | 0.7484 ns |   1.00 |     0.00 |
-    //  CompatibleCopyTo |   128 |   140.1 ns | 0.4297 ns | 0.4019 ns |   0.67 |     0.00 |
-    //    PermutedRetval |   128 | 1,044.6 ns | 3.7901 ns | 3.3599 ns |   4.97 |     0.02 |
-    //    PermutedCopyTo |   128 |   140.3 ns | 0.6495 ns | 0.5757 ns |   0.67 |     0.00 |
+    //            Method | Count |      Mean |     Error |    StdDev | Scaled | ScaledSD |
+    // ----------------- |------ |----------:|----------:|----------:|-------:|---------:|
+    //  CompatibleRetval |    32 |  53.05 ns | 0.1865 ns | 0.1557 ns |   1.00 |     0.00 |
+    //  CompatibleCopyTo |    32 |  36.12 ns | 0.3596 ns | 0.3003 ns |   0.68 |     0.01 |
+    //    PermutedRetval |    32 | 303.61 ns | 5.1697 ns | 4.8358 ns |   5.72 |     0.09 |
+    //    PermutedCopyTo |    32 |  38.05 ns | 0.8053 ns | 1.2297 ns |   0.72 |     0.02 |
 }

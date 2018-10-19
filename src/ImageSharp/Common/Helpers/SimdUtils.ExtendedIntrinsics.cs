@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp
         {
             public static bool IsAvailable { get; } =
 #if NETCOREAPP2_1
-// TODO: Add a build target for .NET 4.7.2
+// TODO: Also available in .NET 4.7.2, we need to add a build target!
                 true;
 #else
                 false;
@@ -31,14 +31,15 @@ namespace SixLabors.ImageSharp
             internal static void BulkConvertByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
             {
                 Guard.IsTrue(
-                    source.Length % Vector<byte>.Count == 0,
+                    dest.Length % Vector<byte>.Count == 0,
                     nameof(source),
                     "dest.Length should be divisable by Vector<byte>.Count!");
 
-                int n = source.Length / Vector<byte>.Count;
+                int n = dest.Length / Vector<byte>.Count;
 
                 ref Vector<byte> sourceBase = ref Unsafe.As<byte, Vector<byte>>(ref MemoryMarshal.GetReference(source));
                 ref Vector<float> destBase = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(dest));
+                ref Vector<uint> destBaseU = ref Unsafe.As<Vector<float>, Vector<uint>>(ref destBase);
 
                 const float Scale = 1f / 255f;
 
@@ -50,16 +51,23 @@ namespace SixLabors.ImageSharp
                     Vector.Widen(s0, out Vector<uint> w0, out Vector<uint> w1);
                     Vector.Widen(s1, out Vector<uint> w2, out Vector<uint> w3);
 
-                    Vector<float> f0 = Vector.ConvertToSingle(w0) * Scale;
-                    Vector<float> f1 = Vector.ConvertToSingle(w1) * Scale;
-                    Vector<float> f2 = Vector.ConvertToSingle(w2) * Scale;
-                    Vector<float> f3 = Vector.ConvertToSingle(w3) * Scale;
+                    ref Vector<uint> d = ref Unsafe.Add(ref destBaseU, i * 4);
+                    d = w0;
+                    Unsafe.Add(ref d, 1) = w1;
+                    Unsafe.Add(ref d, 2) = w2;
+                    Unsafe.Add(ref d, 3) = w3;
+                }
 
-                    ref Vector<float> d = ref Unsafe.Add(ref destBase, i * 4);
-                    d = f0;
-                    Unsafe.Add(ref d, 1) = f1;
-                    Unsafe.Add(ref d, 2) = f2;
-                    Unsafe.Add(ref d, 3) = f3;
+                n = dest.Length / Vector<float>.Count;
+
+                for (int i = 0; i < n; i++)
+                {
+                    ref Vector<float> df = ref Unsafe.Add(ref destBase, i);
+                    ref Vector<uint> du = ref Unsafe.As<Vector<float>, Vector<uint>>(ref df);
+
+                    Vector<float> v = Vector.ConvertToSingle(du);
+                    v *= Scale;
+                    df = v;
                 }
             }
 

@@ -13,15 +13,18 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void QuantizersDitherByDefault()
         {
-            var palette = new PaletteQuantizer();
+            var werner = new WernerPaletteQuantizer();
+            var websafe = new WebSafePaletteQuantizer();
             var octree = new OctreeQuantizer();
             var wu = new WuQuantizer();
 
-            Assert.NotNull(palette.Diffuser);
+            Assert.NotNull(werner.Diffuser);
+            Assert.NotNull(websafe.Diffuser);
             Assert.NotNull(octree.Diffuser);
             Assert.NotNull(wu.Diffuser);
 
-            Assert.True(palette.CreateFrameQuantizer<Rgba32>().Dither);
+            Assert.True(werner.CreateFrameQuantizer<Rgba32>().Dither);
+            Assert.True(websafe.CreateFrameQuantizer<Rgba32>().Dither);
             Assert.True(octree.CreateFrameQuantizer<Rgba32>().Dither);
             Assert.True(wu.CreateFrameQuantizer<Rgba32>().Dither);
         }
@@ -36,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Assert.True(image[0, 0].Equals(default(TPixel)));
 
-                var quantizer = new PaletteQuantizer(dither);
+                var quantizer = new WebSafePaletteQuantizer(dither);
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {

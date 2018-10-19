@@ -2,12 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
 {
@@ -131,23 +128,26 @@ namespace SixLabors.ImageSharp
             ref Vector<float> destBaseAsFloat = ref Unsafe.As<Octet.OfUInt32, Vector<float>>(ref destBaseAsWideOctet);
 
             int n = dest.Length / 8;
-            Octet.OfUInt32 temp = default;
 
             for (int i = 0; i < n; i++)
             {
-                Octet.OfByte sVal = Unsafe.Add(ref sourceBase, i);
+                ref Octet.OfByte s = ref Unsafe.Add(ref sourceBase, i);
+                ref Octet.OfUInt32 d = ref Unsafe.Add(ref destBaseAsWideOctet, i);
+                d.LoadFrom(ref s);
+            }
 
-                // This call is the bottleneck now:
-                temp.LoadFrom(ref sVal);
+            for (int i = 0; i < n; i++)
+            {
+                ref Vector<float> df = ref Unsafe.Add(ref destBaseAsFloat, i);
 
-                Vector<uint> vi = Unsafe.As<Octet.OfUInt32, Vector<uint>>(ref temp);
+                var vi = Vector.AsVectorUInt32(df);
                 vi &= mask;
                 vi |= magicInt;
 
                 var vf = Vector.AsVectorSingle(vi);
                 vf = (vf - magicFloat) * bVec;
 
-                Unsafe.Add(ref destBaseAsFloat, i) = vf;
+                df = vf;
             }
         }
 

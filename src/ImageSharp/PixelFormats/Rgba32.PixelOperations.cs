@@ -27,28 +27,17 @@ namespace SixLabors.ImageSharp.PixelFormats
                 if (count < 128 || !SimdUtils.IsAvx2CompatibleArchitecture)
                 {
                     // Doesn't worth to bother with SIMD:
-                    base.ToVector4(sourceColors, destinationVectors, count);
+                    ToVector4Common(sourceColors, destinationVectors, count);
                     return;
                 }
 
-                int remainder = count % 2;
-                int alignedCount = count - remainder;
-
-                if (alignedCount > 0)
+                if (SimdUtils.ExtendedIntrinsics.IsAvailable)
                 {
-                    ReadOnlySpan<byte> rawSrc = MemoryMarshal.Cast<Rgba32, byte>(sourceColors);
-                    Span<float> rawDest = MemoryMarshal.Cast<Vector4, float>(destinationVectors.Slice(0, alignedCount));
-
-                    SimdUtils.BulkConvertByteToNormalizedFloat(
-                        rawSrc,
-                        rawDest);
+                    ConvertToVector4UsingExtendedIntrinsics(sourceColors, destinationVectors, count);
                 }
-
-                if (remainder > 0)
+                else
                 {
-                    // actually: remainder == 1
-                    int lastIdx = count - 1;
-                    destinationVectors[lastIdx] = sourceColors[lastIdx].ToVector4();
+                    ConvertToVector4UsingStandardIntrinsics(sourceColors, destinationVectors, count);
                 }
             }
 
@@ -59,7 +48,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 if (count < 128 || !SimdUtils.IsAvx2CompatibleArchitecture)
                 {
-                    base.PackFromVector4(sourceVectors, destinationColors, count);
+                    PackFromVector4Common(sourceVectors, destinationColors, count);
                     return;
                 }
 
@@ -108,6 +97,52 @@ namespace SixLabors.ImageSharp.PixelFormats
                 GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
                 sourcePixels.Slice(0, count).CopyTo(dest);
+            }
+
+            private static void ConvertToVector4UsingExtendedIntrinsics(
+                ReadOnlySpan<Rgba32> sourceColors,
+                Span<Vector4> destinationVectors,
+                int count)
+            {
+                int remainder = count % 8;
+                int alignedCount = count - remainder;
+
+                if (alignedCount > 0)
+                {
+                    ReadOnlySpan<byte> rawSrc = MemoryMarshal.Cast<Rgba32, byte>(sourceColors);
+                    Span<float> rawDest = MemoryMarshal.Cast<Vector4, float>(destinationVectors.Slice(0, alignedCount));
+
+                    SimdUtils.ExtendedIntrinsics.BulkConvertByteToNormalizedFloat(rawSrc, rawDest);
+                }
+
+                if (remainder > 0)
+                {
+                    ToVector4Common(sourceColors.Slice(alignedCount), destinationVectors.Slice(alignedCount), remainder);
+                }
+            }
+
+            private static void ConvertToVector4UsingStandardIntrinsics(
+                ReadOnlySpan<Rgba32> sourceColors,
+                Span<Vector4> destinationVectors,
+                int count)
+            {
+                int remainder = count % 2;
+                int alignedCount = count - remainder;
+
+                if (alignedCount > 0)
+                {
+                    ReadOnlySpan<byte> rawSrc = MemoryMarshal.Cast<Rgba32, byte>(sourceColors);
+                    Span<float> rawDest = MemoryMarshal.Cast<Vector4, float>(destinationVectors.Slice(0, alignedCount));
+
+                    SimdUtils.BulkConvertByteToNormalizedFloat(rawSrc, rawDest);
+                }
+
+                if (remainder > 0)
+                {
+                    // actually: remainder == 1
+                    int lastIdx = count - 1;
+                    destinationVectors[lastIdx] = sourceColors[lastIdx].ToVector4();
+                }
             }
         }
     }

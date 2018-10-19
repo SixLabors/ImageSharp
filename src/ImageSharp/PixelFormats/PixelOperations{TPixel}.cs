@@ -29,17 +29,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="count">The number of pixels to convert.</param>
         internal virtual void PackFromVector4(ReadOnlySpan<Vector4> sourceVectors, Span<TPixel> destinationColors, int count)
         {
-            GuardSpans(sourceVectors, nameof(sourceVectors), destinationColors, nameof(destinationColors), count);
-
-            ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceVectors);
-            ref TPixel destRef = ref MemoryMarshal.GetReference(destinationColors);
-
-            for (int i = 0; i < count; i++)
-            {
-                ref Vector4 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                dp.PackFromVector4(sp);
-            }
+            PackFromVector4Common(sourceVectors, destinationColors, count);
         }
 
         /// <summary>
@@ -50,17 +40,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="count">The number of pixels to convert.</param>
         internal virtual void ToVector4(ReadOnlySpan<TPixel> sourceColors, Span<Vector4> destinationVectors, int count)
         {
-            GuardSpans(sourceColors, nameof(sourceColors), destinationVectors, nameof(destinationVectors), count);
-
-            ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourceColors);
-            ref Vector4 destRef = ref MemoryMarshal.GetReference(destinationVectors);
-
-            for (int i = 0; i < count; i++)
-            {
-                ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
-                ref Vector4 dp = ref Unsafe.Add(ref destRef, i);
-                dp = sp.ToVector4();
-            }
+            ToVector4Common(sourceColors, destinationVectors, count);
         }
 
         /// <summary>
@@ -125,6 +105,38 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             Guard.MustBeSizedAtLeast(source, minLength, sourceParamName);
             Guard.MustBeSizedAtLeast(destination, minLength, destinationParamName);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal static void PackFromVector4Common(ReadOnlySpan<Vector4> sourceVectors, Span<TPixel> destinationColors, int count)
+        {
+            GuardSpans(sourceVectors, nameof(sourceVectors), destinationColors, nameof(destinationColors), count);
+
+            ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceVectors);
+            ref TPixel destRef = ref MemoryMarshal.GetReference(destinationColors);
+
+            for (int i = 0; i < count; i++)
+            {
+                ref Vector4 sp = ref Unsafe.Add(ref sourceRef, i);
+                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
+                dp.PackFromVector4(sp);
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal static void ToVector4Common(ReadOnlySpan<TPixel> sourceColors, Span<Vector4> destinationVectors, int count)
+        {
+            GuardSpans(sourceColors, nameof(sourceColors), destinationVectors, nameof(destinationVectors), count);
+
+            ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourceColors);
+            ref Vector4 destRef = ref MemoryMarshal.GetReference(destinationVectors);
+
+            for (int i = 0; i < count; i++)
+            {
+                ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
+                ref Vector4 dp = ref Unsafe.Add(ref destRef, i);
+                dp = sp.ToVector4();
+            }
         }
     }
 }

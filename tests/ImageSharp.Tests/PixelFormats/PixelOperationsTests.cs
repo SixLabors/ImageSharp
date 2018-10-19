@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
         }
 
-        public static TheoryData<int> ArraySizesData => new TheoryData<int> { 0, 1, 2, 7, 16, 1111 };
+        public static TheoryData<int> ArraySizesData => new TheoryData<int> { 0, 1, 2, 7, 16, 512, 513, 514, 515, 516, 517, 518, 519, 520, 521, 522, 523, 524, 525, 526, 527, 528, 1111 };
 
         private static PixelOperations<TPixel> Operations => PixelOperations<TPixel>.Instance;
 

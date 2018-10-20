@@ -212,15 +212,11 @@ namespace SixLabors.ImageSharp.Tests.Common
         [InlineData(3, 128)]
         public void ExtendedIntrinsics_BulkConvertByteToNormalizedFloat(int seed, int count)
         {
-            if (!Vector.IsHardwareAccelerated)
-            {
-                return;
-            }
-
             byte[] source = new Random(seed).GenerateRandomByteArray(count);
             float[] result = new float[count];
             float[] expected = source.Select(b => (float)b / 255f).ToArray();
 
+            
             SimdUtils.ExtendedIntrinsics.BulkConvertByteToNormalizedFloat(source, result);
 
             Assert.Equal(expected, result, new ApproximateFloatComparer(1e-5f));

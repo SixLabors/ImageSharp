@@ -5,6 +5,7 @@ using BenchmarkDotNet.Attributes;
 
 namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
 {
+    [Config(typeof(Config.ShortClr))]
     public class UInt32ToSingle
     {
         private float[] data;
@@ -66,8 +67,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
                 Unsafe.Add(ref bf, i) = v;
             }
         }
-
-        // This code is not correct at all, it's just here as reference
+        
         [Benchmark]
         public void StandardSimdFromInt()
         {
@@ -84,6 +84,29 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
                 Vector<float> v = Vector.ConvertToSingle(u);
                 v *= scale;
                 Unsafe.Add(ref bf, i) = v;
+            }
+        }
+
+
+        [Benchmark]
+        public void StandardSimdFromInt_RefCast()
+        {
+            int n = Count / Vector<float>.Count;
+
+            ref Vector<float> bf = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
+            ref Vector<int> bu = ref Unsafe.As<Vector<float>, Vector<int>>(ref bf);
+
+            var scale = new Vector<float>(1f / 255f);
+
+            for (int i = 0; i < n; i++)
+            {
+                ref Vector<float> fRef = ref Unsafe.Add(ref bf, i);
+
+                Vector<int> du = Vector.AsVectorInt32(fRef);
+                Vector<float> v = Vector.ConvertToSingle(du);
+                v *= scale;
+
+                fRef = v;
             }
         }
     }

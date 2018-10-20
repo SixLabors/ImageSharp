@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
+// ReSharper disable MemberHidesStaticFromOuterClass
 namespace SixLabors.ImageSharp
 {
     internal static partial class SimdUtils
@@ -18,22 +20,47 @@ namespace SixLabors.ImageSharp
         {
             public static bool IsAvailable { get; } =
 #if NETCOREAPP2_1
-// TODO: Also available in .NET 4.7.2, we need to add a build target!
-                true;
+                // TODO: Also available in .NET 4.7.2, we need to add a build target!
+                Vector.IsHardwareAccelerated;
 #else
                 false;
 #endif
 
             /// <summary>
-            /// A variant of <see cref="SimdUtils.BulkConvertByteToNormalizedFloat"/>, which is faster on new .NET runtime.
+            /// <see cref="BulkConvertByteToNormalizedFloat"/> as much elements as possible, slicing them down (keeping the remainder).
+            /// </summary>
+            [Conditional("NETCOREAPP2_1")]
+            internal static void BulkConvertByteToNormalizedFloatReduce(
+                ref ReadOnlySpan<byte> source,
+                ref Span<float> dest)
+            {
+                DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same size!");
+
+                if (IsAvailable)
+                {
+                    int remainder = source.Length % Vector<byte>.Count;
+                    int alignedCount = source.Length - remainder;
+
+                    if (alignedCount > 0)
+                    {
+                        BulkConvertByteToNormalizedFloat(source.Slice(0, alignedCount), dest.Slice(0, alignedCount));
+
+                        source = source.Slice(alignedCount);
+                        dest = dest.Slice(alignedCount);
+                    }
+                }
+            }
+
+            /// <summary>
+            /// A variant of <see cref="BasicIntrinsics256.BulkConvertByteToNormalizedFloat"/>, which is faster on new RyuJIT runtime.
             /// </summary>
             // ReSharper disable once MemberHidesStaticFromOuterClass
             internal static void BulkConvertByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
             {
-                Guard.IsTrue(
+                DebugGuard.IsTrue(
                     dest.Length % Vector<byte>.Count == 0,
                     nameof(source),
-                    "dest.Length should be divisable by Vector<byte>.Count!");
+                    "dest.Length should be divisible by Vector<byte>.Count!");
 
                 int n = dest.Length / Vector<byte>.Count;
 
@@ -63,34 +90,52 @@ namespace SixLabors.ImageSharp
                 }
             }
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private static Vector<float> ConvertToSingle(Vector<uint> u, Vector<float> scale)
+            /// <summary>
+            /// <see cref="BulkConvertNormalizedFloatToByteClampOverflows"/> as much elements as possible, slicing them down (keeping the remainder).
+            /// </summary>
+            [Conditional("NETCOREAPP2_1")]
+            internal static void BulkConvertNormalizedFloatToByteClampOverflowsReduce(
+                ref ReadOnlySpan<float> source,
+                ref Span<byte> dest)
             {
-                Vector<int> vi = Vector.AsVectorInt32(u);
-                Vector<float> v = Vector.ConvertToSingle(vi);
-                v *= scale;
-                return v;
+                DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same size!");
+
+                if (IsAvailable)
+                {
+                    int remainder = source.Length % Vector<byte>.Count;
+                    int alignedCount = source.Length - remainder;
+
+                    if (alignedCount > 0)
+                    {
+                        BulkConvertNormalizedFloatToByteClampOverflows(source.Slice(0, alignedCount), dest.Slice(0, alignedCount));
+
+                        source = source.Slice(alignedCount);
+                        dest = dest.Slice(alignedCount);
+                    }
+                }
             }
 
             /// <summary>
-            /// A variant of <see cref="SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows"/>, which is faster on new .NET runtime.
+            /// A variant of <see cref="BasicIntrinsics256.BulkConvertNormalizedFloatToByteClampOverflows"/>, which is faster on new .NET runtime.
             /// </summary>
             /// <remarks>
             /// It does NOT worth yet to utilize this method (2018 Oct).
             /// See benchmark results for the "PackFromVector4_Rgba32" benchmark!
             /// TODO: Check again later!
             /// </remarks>
-            // ReSharper disable once MemberHidesStaticFromOuterClass
-            internal static void BulkConvertNormalizedFloatToByteClampOverflows(ReadOnlySpan<float> source, Span<byte> dest)
+            internal static void BulkConvertNormalizedFloatToByteClampOverflows(
+                ReadOnlySpan<float> source,
+                Span<byte> dest)
             {
-                Guard.IsTrue(
+                DebugGuard.IsTrue(
                     dest.Length % Vector<byte>.Count == 0,
                     nameof(dest),
-                    "dest.Length should be divisable by Vector<byte>.Count!");
+                    "dest.Length should be divisible by Vector<byte>.Count!");
 
                 int n = dest.Length / Vector<byte>.Count;
 
-                ref Vector<float> sourceBase = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(source));
+                ref Vector<float> sourceBase =
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(source));
                 ref Vector<byte> destBase = ref Unsafe.As<byte, Vector<byte>>(ref MemoryMarshal.GetReference(dest));
 
                 for (int i = 0; i < n; i++)
@@ -125,6 +170,15 @@ namespace SixLabors.ImageSharp
                 vf = Vector.Min(Vector.Max(vf, Vector<float>.Zero), maxBytes);
                 Vector<int> vi = Vector.ConvertToInt32(vf);
                 return Vector.AsVectorUInt32(vi);
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static Vector<float> ConvertToSingle(Vector<uint> u, Vector<float> scale)
+            {
+                Vector<int> vi = Vector.AsVectorInt32(u);
+                Vector<float> v = Vector.ConvertToSingle(vi);
+                v *= scale;
+                return v;
             }
         }
     }

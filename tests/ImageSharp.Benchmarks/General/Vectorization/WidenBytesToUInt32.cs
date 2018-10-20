@@ -3,8 +3,11 @@ using System.Runtime.CompilerServices;
 
 using BenchmarkDotNet.Attributes;
 
+using SixLabors.ImageSharp.Tuples;
+
 namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
 {
+    [Config(typeof(Config.ShortClr))]
     public class WidenBytesToUInt32
     {
         private byte[] source;
@@ -25,8 +28,8 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
         {
             const int N = Count / 8;
 
-            ref SimdUtils.Octet.OfByte sBase = ref Unsafe.As<byte, SimdUtils.Octet.OfByte>(ref this.source[0]);
-            ref SimdUtils.Octet.OfUInt32 dBase = ref Unsafe.As<uint, SimdUtils.Octet.OfUInt32>(ref this.dest[0]);
+            ref Octet.OfByte sBase = ref Unsafe.As<byte, Octet.OfByte>(ref this.source[0]);
+            ref Octet.OfUInt32 dBase = ref Unsafe.As<uint, Octet.OfUInt32>(ref this.dest[0]);
 
             for (int i = 0; i < N; i++)
             {

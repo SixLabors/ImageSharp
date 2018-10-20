@@ -95,12 +95,12 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         }
 
         [Benchmark(Baseline = true)]
-        public void BulkConvertNormalizedFloatToByteClampOverflows()
+        public void BasicIntrinsics256_BulkConvertNormalizedFloatToByteClampOverflows()
         {
             Span<float> sBytes = MemoryMarshal.Cast<Vector4, float>(this.source.GetSpan());
             Span<byte> dFloats = MemoryMarshal.Cast<Rgba32, byte>(this.destination.GetSpan());
 
-            SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(sBytes, dFloats);
+            SimdUtils.BasicIntrinsics256.BulkConvertNormalizedFloatToByteClampOverflows(sBytes, dFloats);
         }
 
         [Benchmark]

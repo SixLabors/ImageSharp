@@ -52,22 +52,13 @@ namespace SixLabors.ImageSharp.PixelFormats
                     return;
                 }
 
-                int remainder = count % 2;
-                int alignedCount = count - remainder;
-
-                if (alignedCount > 0)
+                if (SimdUtils.ExtendedIntrinsics.IsAvailable)
                 {
-                    ReadOnlySpan<float> rawSrc = MemoryMarshal.Cast<Vector4, float>(sourceVectors.Slice(0, alignedCount));
-                    Span<byte> rawDest = MemoryMarshal.Cast<Rgba32, byte>(destinationColors);
-
-                    SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(rawSrc, rawDest);
+                    ConvertFromVector4ExtendedIntrinsics(sourceVectors, destinationColors, count);
                 }
-
-                if (remainder > 0)
+                else
                 {
-                    // actually: remainder == 1
-                    int lastIdx = count - 1;
-                    destinationColors[lastIdx].PackFromVector4(sourceVectors[lastIdx]);
+                    ConvertFromVector4StandardIntrinsics(sourceVectors, destinationColors, count);
                 }
             }
 
@@ -142,6 +133,46 @@ namespace SixLabors.ImageSharp.PixelFormats
                     // actually: remainder == 1
                     int lastIdx = count - 1;
                     destinationVectors[lastIdx] = sourceColors[lastIdx].ToVector4();
+                }
+            }
+
+            private static void ConvertFromVector4ExtendedIntrinsics(ReadOnlySpan<Vector4> sourceVectors, Span<Rgba32> destinationColors, int count)
+            {
+                int remainder = count % 8;
+                int alignedCount = count - remainder;
+
+                if (alignedCount > 0)
+                {
+                    ReadOnlySpan<float> rawSrc = MemoryMarshal.Cast<Vector4, float>(sourceVectors);
+                    Span<byte> rawDest = MemoryMarshal.Cast<Rgba32, byte>(destinationColors.Slice(0, alignedCount));
+
+                    SimdUtils.ExtendedIntrinsics.BulkConvertNormalizedFloatToByteClampOverflows(rawSrc, rawDest);
+                }
+
+                if (remainder > 0)
+                {
+                    PackFromVector4Common(sourceVectors.Slice(alignedCount), destinationColors.Slice(alignedCount), remainder);
+                }
+            }
+
+            private static void ConvertFromVector4StandardIntrinsics(ReadOnlySpan<Vector4> sourceVectors, Span<Rgba32> destinationColors, int count)
+            {
+                int remainder = count % 2;
+                int alignedCount = count - remainder;
+
+                if (alignedCount > 0)
+                {
+                    ReadOnlySpan<float> rawSrc = MemoryMarshal.Cast<Vector4, float>(sourceVectors.Slice(0, alignedCount));
+                    Span<byte> rawDest = MemoryMarshal.Cast<Rgba32, byte>(destinationColors);
+
+                    SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(rawSrc, rawDest);
+                }
+
+                if (remainder > 0)
+                {
+                    // actually: remainder == 1
+                    int lastIdx = count - 1;
+                    destinationColors[lastIdx].PackFromVector4(sourceVectors[lastIdx]);
                 }
             }
         }

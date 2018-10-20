@@ -2,7 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace SixLabors.ImageSharp.Common.Tuples
+namespace SixLabors.ImageSharp.Tuples
 {
     /// <summary>
     /// Its faster to process multiple Vector4-s together, so let's pair them!

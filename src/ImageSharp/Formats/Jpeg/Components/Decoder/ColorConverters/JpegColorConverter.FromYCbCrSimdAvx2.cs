@@ -6,7 +6,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-using SixLabors.ImageSharp.Common.Tuples;
+using SixLabors.ImageSharp.Tuples;
 
 // ReSharper disable ImpureMethodCallOnReadonlyValueField
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters

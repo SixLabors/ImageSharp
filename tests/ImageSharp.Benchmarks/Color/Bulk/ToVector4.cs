@@ -30,8 +30,8 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [Params(
             //64, 
             //256,
-            //512,
-            2048
+            512
+            //1024
             )]
         public int Count { get; set; }
 
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             SimdUtils.ExtendedIntrinsics.BulkConvertByteToNormalizedFloat(sBytes, dFloats);
         }
 
-        //[Benchmark]
+        [Benchmark]
         public void ExtendedIntrinsics_BulkConvertByteToNormalizedFloat_2Loops()
         {
             Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             }
         }
 
-        //[Benchmark]
+        [Benchmark]
         public void ExtendedIntrinsics_BulkConvertByteToNormalizedFloat_ConvertInSameLoop()
         {
             Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());

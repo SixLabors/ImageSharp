@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 }
                 else
                 {
-                    ConvertToVector4UsingStandardIntrinsics(sourceColors, destinationVectors, count);
+                    ConvertToVector4UsingBasicIntrinsics(sourceColors, destinationVectors, count);
                 }
             }
 
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 }
                 else
                 {
-                    ConvertFromVector4StandardIntrinsics(sourceVectors, destinationColors, count);
+                    ConvertFromVector4BasicIntrinsics(sourceVectors, destinationColors, count);
                 }
             }
 
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 }
             }
 
-            private static void ConvertToVector4UsingStandardIntrinsics(
+            private static void ConvertToVector4UsingBasicIntrinsics(
                 ReadOnlySpan<Rgba32> sourceColors,
                 Span<Vector4> destinationVectors,
                 int count)
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                     ReadOnlySpan<byte> rawSrc = MemoryMarshal.Cast<Rgba32, byte>(sourceColors);
                     Span<float> rawDest = MemoryMarshal.Cast<Vector4, float>(destinationVectors.Slice(0, alignedCount));
 
-                    SimdUtils.BulkConvertByteToNormalizedFloat(rawSrc, rawDest);
+                    SimdUtils.BasicIntrinsics256.BulkConvertByteToNormalizedFloat(rawSrc, rawDest);
                 }
 
                 if (remainder > 0)
@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 }
             }
 
-            private static void ConvertFromVector4StandardIntrinsics(ReadOnlySpan<Vector4> sourceVectors, Span<Rgba32> destinationColors, int count)
+            private static void ConvertFromVector4BasicIntrinsics(ReadOnlySpan<Vector4> sourceVectors, Span<Rgba32> destinationColors, int count)
             {
                 int remainder = count % 2;
                 int alignedCount = count - remainder;
@@ -165,7 +165,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                     ReadOnlySpan<float> rawSrc = MemoryMarshal.Cast<Vector4, float>(sourceVectors.Slice(0, alignedCount));
                     Span<byte> rawDest = MemoryMarshal.Cast<Rgba32, byte>(destinationColors);
 
-                    SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(rawSrc, rawDest);
+                    SimdUtils.BasicIntrinsics256.BulkConvertNormalizedFloatToByteClampOverflows(rawSrc, rawDest);
                 }
 
                 if (remainder > 0)

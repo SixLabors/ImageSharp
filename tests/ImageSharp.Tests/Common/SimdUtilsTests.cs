@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         {
             float[] data = new float[Vector<float>.Count];
 
-            var rnd = new Random();
+            var rnd = new Random(seed);
 
             for (int i = 0; i < Vector<float>.Count; i++)
             {
@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         [InlineData(1, 8)]
         [InlineData(2, 16)]
         [InlineData(3, 128)]
-        public void BulkConvertNormalizedFloatToByte_WithRoundedData(int seed, int count)
+        public void BasicIntrinsics_BulkConvertNormalizedFloatToByte_WithRoundedData(int seed, int count)
         {
             if (this.SkipOnNonAvx2())
             {
@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
             byte[] dest = new byte[count];
 
-            SimdUtils.BulkConvertNormalizedFloatToByte(normalized, dest);
+            SimdUtils.BasicIntrinsics256.BulkConvertNormalizedFloatToByte(normalized, dest);
 
             byte[] expected = orig.Select(f => (byte)(f)).ToArray();
 
@@ -142,7 +142,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         [InlineData(1, 8)]
         [InlineData(2, 16)]
         [InlineData(3, 128)]
-        public void BulkConvertNormalizedFloatToByte_WithNonRoundedData(int seed, int count)
+        public void BasicIntrinsics_BulkConvertNormalizedFloatToByte_WithNonRoundedData(int seed, int count)
         {
             if (this.SkipOnNonAvx2())
             {
@@ -153,87 +153,113 @@ namespace SixLabors.ImageSharp.Tests.Common
 
             byte[] dest = new byte[count];
 
-            SimdUtils.BulkConvertNormalizedFloatToByte(source, dest);
+            SimdUtils.BasicIntrinsics256.BulkConvertNormalizedFloatToByte(source, dest);
 
             byte[] expected = source.Select(f => (byte)Math.Round(f * 255f)).ToArray();
 
             Assert.Equal(expected, dest);
         }
 
+        public static readonly TheoryData<int> ArraySizesDivisibleBy8 = new TheoryData<int> { 0, 8, 16, 1024 };
 
-        [Theory]
-        [InlineData(1, 0)]
-        [InlineData(2, 32)]
-        [InlineData(3, 128)]
-        public void BulkConvertByteToNormalizedFloat(int seed, int count)
-        {
-            if (this.SkipOnNonAvx2())
-            {
-                return;
-            }
+        public static readonly TheoryData<int> ArraySizesDivisibleBy32 = new TheoryData<int> { 0, 32, 512 };
 
-            byte[] source = new Random(seed).GenerateRandomByteArray(count);
-            float[] result = new float[count];
-            float[] expected = source.Select(b => (float)b / 255f).ToArray();
-
-            SimdUtils.BulkConvertByteToNormalizedFloat(source, result);
-
-            Assert.Equal(expected, result, new ApproximateFloatComparer(1e-5f));
-        }
-        
-        [Theory]
-        [InlineData(1, 0)]
-        [InlineData(2, 32)]
-        [InlineData(3, 128)]
-        public void ExtendedIntrinsics_BulkConvertByteToNormalizedFloat(int seed, int count)
-        {
-            byte[] source = new Random(seed).GenerateRandomByteArray(count);
-            float[] result = new float[count];
-            float[] expected = source.Select(b => (float)b / 255f).ToArray();
-
-            
-            SimdUtils.ExtendedIntrinsics.BulkConvertByteToNormalizedFloat(source, result);
-
-            Assert.Equal(expected, result, new ApproximateFloatComparer(1e-5f));
-        }
-
-
-        public static readonly TheoryData<int> BulkConvertNormalizedFloatToByteClampOverflows_Data =
+        public static readonly TheoryData<int> ArbitraryArraySizes =
             new TheoryData<int>
                 {
-                    0, 64, 1024
+                    0, 1, 2, 3, 4, 7, 8, 9, 15, 16, 17, 63, 64, 255, 511, 512, 513, 514, 515, 516, 517, 518, 519, 520, 520,
                 };
 
         [Theory]
-        [MemberData(nameof(BulkConvertNormalizedFloatToByteClampOverflows_Data))]
-        public void BulkConvertNormalizedFloatToByteClampOverflows(int count)
+        [MemberData(nameof(ArraySizesDivisibleBy8))]
+        public void BasicIntrinsics_BulkConvertByteToNormalizedFloat(int count)
         {
             if (this.SkipOnNonAvx2())
             {
                 return;
             }
 
-            float[] source = new Random(count).GenerateRandomFloatArray(count, -0.1f, 1.2f);
-            byte[] expected = source.Select(NormalizedFloatToByte).ToArray();
-            byte[] actual = new byte[count];
-
-            SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(source, actual);
-
-            Assert.Equal(expected, actual);
+            TestImpl_BulkConvertByteToNormalizedFloat(
+                count,
+                (s, d) => SimdUtils.BasicIntrinsics256.BulkConvertByteToNormalizedFloat(s.Span, d.Span));
+        }
+        
+        [Theory]
+        [MemberData(nameof(ArraySizesDivisibleBy32))]
+        public void ExtendedIntrinsics_BulkConvertByteToNormalizedFloat(int count)
+        {
+            TestImpl_BulkConvertByteToNormalizedFloat(
+                count,
+                (s, d) => SimdUtils.ExtendedIntrinsics.BulkConvertByteToNormalizedFloat(s.Span, d.Span));
         }
 
         [Theory]
-        [MemberData(nameof(BulkConvertNormalizedFloatToByteClampOverflows_Data))]
+        [MemberData(nameof(ArbitraryArraySizes))]
+        public void BulkConvertByteToNormalizedFloat(int count)
+        {
+            TestImpl_BulkConvertByteToNormalizedFloat(
+                count,
+                (s, d) => SimdUtils.BulkConvertByteToNormalizedFloat(s.Span, d.Span));
+        }
+
+        private static void TestImpl_BulkConvertByteToNormalizedFloat(
+            int count,
+            Action<Memory<byte>, Memory<float>> convert)
+        {
+            byte[] source = new Random(count).GenerateRandomByteArray(count);
+            float[] result = new float[count];
+            float[] expected = source.Select(b => (float)b / 255f).ToArray();
+
+            convert(source, result);
+
+            Assert.Equal(expected, result, new ApproximateFloatComparer(1e-5f));
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesDivisibleBy8))]
+        public void BasicIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows(int count)
+        {
+            if (this.SkipOnNonAvx2())
+            {
+                return;
+            }
+
+            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count,
+                (s, d) => SimdUtils.BasicIntrinsics256.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span)
+                );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesDivisibleBy32))]
         public void ExtendedIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows(int count)
+        {
+            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count,
+                (s, d) => SimdUtils.ExtendedIntrinsics.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span)
+            );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArbitraryArraySizes))]
+        public void BulkConvertNormalizedFloatToByteClampOverflows(int count)
+        {
+            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count,
+                (s, d) => SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span)
+            );
+        }
+
+        private static void TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
+            int count,
+            Action<Memory<float>, Memory<byte>> convert)
         {
             float[] source = new Random(count).GenerateRandomFloatArray(count, -0.1f, 1.2f);
             byte[] expected = source.Select(NormalizedFloatToByte).ToArray();
             byte[] actual = new byte[count];
 
-            SimdUtils.ExtendedIntrinsics.BulkConvertNormalizedFloatToByteClampOverflows(source, actual);
+            convert(source, actual);
 
             Assert.Equal(expected, actual);
         }
+
         private static byte NormalizedFloatToByte(float f) => (byte)Math.Min(255f, Math.Max(0f, f * 255f + 0.5f));
 
         [Theory]

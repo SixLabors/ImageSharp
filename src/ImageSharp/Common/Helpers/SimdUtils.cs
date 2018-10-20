@@ -22,17 +22,10 @@ namespace SixLabors.ImageSharp
         public static bool IsAvx2CompatibleArchitecture { get; } =
             Vector.IsHardwareAccelerated && Vector<float>.Count == 8 && Vector<int>.Count == 8;
 
-        internal static void GuardAvx2(string operation)
-        {
-            if (!IsAvx2CompatibleArchitecture)
-            {
-                throw new NotSupportedException($"{operation} is supported only on AVX2 CPU!");
-            }
-        }
-
         /// <summary>
         /// Transform all scalars in 'v' in a way that converting them to <see cref="int"/> would have rounding semantics.
         /// </summary>
+        /// <param name="v">The vector</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static Vector4 PseudoRound(this Vector4 v)
         {
@@ -48,14 +41,15 @@ namespace SixLabors.ImageSharp
         ///     <cref>https://github.com/g-truc/glm/blob/master/glm/simd/common.h#L110</cref>
         /// </see>
         /// </summary>
+        /// <param name="v">The vector</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static Vector<float> FastRound(this Vector<float> x)
+        internal static Vector<float> FastRound(this Vector<float> v)
         {
             Vector<int> magic0 = new Vector<int>(int.MinValue); // 0x80000000
             Vector<float> sgn0 = Vector.AsVectorSingle(magic0);
-            Vector<float> and0 = Vector.BitwiseAnd(sgn0, x);
+            Vector<float> and0 = Vector.BitwiseAnd(sgn0, v);
             Vector<float> or0 = Vector.BitwiseOr(and0, new Vector<float>(8388608.0f));
-            Vector<float> add0 = Vector.Add(x, or0);
+            Vector<float> add0 = Vector.Add(v, or0);
             Vector<float> sub0 = Vector.Subtract(add0, or0);
             return sub0;
         }
@@ -65,6 +59,8 @@ namespace SixLabors.ImageSharp
         /// <paramref name="source"/> should be the of the same size as <paramref name="dest"/>,
         /// but there are no restrictions on the span's length.
         /// </summary>
+        /// <param name="source">The source span of bytes</param>
+        /// <param name="dest">The destination span of floats</param>
         internal static void BulkConvertByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
         {
             DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same size!");
@@ -92,6 +88,8 @@ namespace SixLabors.ImageSharp
         /// <paramref name="source"/> should be the of the same size as <paramref name="dest"/>,
         /// but there are no restrictions on the span's length.
         /// </summary>
+        /// <param name="source">The source span of floats</param>
+        /// <param name="dest">The destination span of bytes</param>
         internal static void BulkConvertNormalizedFloatToByteClampOverflows(ReadOnlySpan<float> source, Span<byte> dest)
         {
             DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same size!");
@@ -117,6 +115,14 @@ namespace SixLabors.ImageSharp
 
                     Unsafe.Add(ref dBase, i) = (byte)f;
                 }
+            }
+        }
+
+        private static void GuardAvx2(string operation)
+        {
+            if (!IsAvx2CompatibleArchitecture)
+            {
+                throw new NotSupportedException($"{operation} is supported only on AVX2 CPU!");
             }
         }
     }

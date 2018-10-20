@@ -52,9 +52,8 @@ namespace SixLabors.ImageSharp
             }
 
             /// <summary>
-            /// A variant of <see cref="BasicIntrinsics256.BulkConvertByteToNormalizedFloat"/>, which is faster on new RyuJIT runtime.
+            /// Implementation <see cref="SimdUtils.BulkConvertByteToNormalizedFloat"/>, which is faster on new RyuJIT runtime.
             /// </summary>
-            // ReSharper disable once MemberHidesStaticFromOuterClass
             internal static void BulkConvertByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
             {
                 DebugGuard.IsTrue(
@@ -116,13 +115,8 @@ namespace SixLabors.ImageSharp
             }
 
             /// <summary>
-            /// A variant of <see cref="BasicIntrinsics256.BulkConvertNormalizedFloatToByteClampOverflows"/>, which is faster on new .NET runtime.
+            /// Implementation of <see cref="SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows"/>, which is faster on new .NET runtime.
             /// </summary>
-            /// <remarks>
-            /// It does NOT worth yet to utilize this method (2018 Oct).
-            /// See benchmark results for the "PackFromVector4_Rgba32" benchmark!
-            /// TODO: Check again later!
-            /// </remarks>
             internal static void BulkConvertNormalizedFloatToByteClampOverflows(
                 ReadOnlySpan<float> source,
                 Span<byte> dest)

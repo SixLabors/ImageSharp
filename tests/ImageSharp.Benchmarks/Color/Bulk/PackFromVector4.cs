@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         protected IMemoryOwner<TPixel> destination;
 
         [Params(
-            //64,
+            64,
             2048
             )]
         public int Count { get; set; }
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
     public class PackFromVector4_Rgba32 : PackFromVector4<Rgba32>
     {
         [Benchmark]
-        public void FastDefault()
+        public void BasicBulk()
         {
             ref Vector4 sBase = ref this.source.GetSpan()[0];
             ref Rgba32 dBase = ref this.destination.GetSpan()[0];
@@ -112,16 +112,31 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             SimdUtils.ExtendedIntrinsics.BulkConvertNormalizedFloatToByteClampOverflows(sBytes, dFloats);
         }
 
-        // RESULTS:
-        //                                                            Method | Runtime | Count |      Mean |     Error |    StdDev | Scaled | ScaledSD | Allocated |
-        // ----------------------------------------------------------------- |-------- |------ |----------:|----------:|----------:|-------:|---------:|----------:|
-        //                                                       FastDefault |     Clr |  2048 | 15.989 us | 6.1384 us | 0.3468 us |   4.07 |     0.08 |       0 B |
-        //                    BulkConvertNormalizedFloatToByteClampOverflows |     Clr |  2048 |  3.931 us | 0.6264 us | 0.0354 us |   1.00 |     0.00 |       0 B |
-        //  ExtendedIntrinsic_BulkConvertNormalizedFloatToByteClampOverflows |     Clr |  2048 |  2.100 us | 0.4717 us | 0.0267 us |   0.53 |     0.01 |       0 B |
-        // 
-        //                                                                   |         |       |           |           |           |        |          |           |
-        //                                                       FastDefault |    Core |  2048 | 14.693 us | 0.5131 us | 0.0290 us |   3.76 |     0.03 |       0 B |
-        //                    BulkConvertNormalizedFloatToByteClampOverflows |    Core |  2048 |  3.913 us | 0.5661 us | 0.0320 us |   1.00 |     0.00 |       0 B |
-        //  ExtendedIntrinsic_BulkConvertNormalizedFloatToByteClampOverflows |    Core |  2048 |  1.966 us | 0.4056 us | 0.0229 us |   0.50 |     0.01 |       0 B |
+        // RESULTS (2018 October):
+        //                                                             Method | Runtime | Count |         Mean |        Error |     StdDev | Scaled | ScaledSD |  Gen 0 | Allocated |
+        // ------------------------------------------------------------------ |-------- |------ |-------------:|-------------:|-----------:|-------:|---------:|-------:|----------:|
+        //                                                          BasicBulk |     Clr |    64 |    581.62 ns |    33.625 ns |  1.8999 ns |   2.27 |     0.02 |      - |       0 B |
+        //  BasicIntrinsics256_BulkConvertNormalizedFloatToByteClampOverflows |     Clr |    64 |    256.66 ns |    45.153 ns |  2.5512 ns |   1.00 |     0.00 |      - |       0 B |
+        //   ExtendedIntrinsic_BulkConvertNormalizedFloatToByteClampOverflows |     Clr |    64 |    201.92 ns |    30.161 ns |  1.7042 ns |   0.79 |     0.01 |      - |       0 B |
+        //                                               PixelOperations_Base |     Clr |    64 |    665.01 ns |    13.032 ns |  0.7363 ns |   2.59 |     0.02 | 0.0067 |      24 B |
+        //                                        PixelOperations_Specialized |     Clr |    64 |    295.14 ns |    26.335 ns |  1.4880 ns |   1.15 |     0.01 |      - |       0 B |
+        //                                                                    |         |       |              |              |            |        |          |        |           |
+        //                                                          BasicBulk |    Core |    64 |    513.22 ns |    91.110 ns |  5.1479 ns |   3.19 |     0.03 |      - |       0 B |
+        //  BasicIntrinsics256_BulkConvertNormalizedFloatToByteClampOverflows |    Core |    64 |    160.76 ns |     2.760 ns |  0.1559 ns |   1.00 |     0.00 |      - |       0 B |
+        //   ExtendedIntrinsic_BulkConvertNormalizedFloatToByteClampOverflows |    Core |    64 |     95.98 ns |    10.077 ns |  0.5694 ns |   0.60 |     0.00 |      - |       0 B |
+        //                                               PixelOperations_Base |    Core |    64 |    591.74 ns |    49.856 ns |  2.8170 ns |   3.68 |     0.01 | 0.0067 |      24 B |
+        //                                        PixelOperations_Specialized |    Core |    64 |    149.11 ns |     4.485 ns |  0.2534 ns |   0.93 |     0.00 |      - |       0 B |
+        //                                                                    |         |       |              |              |            |        |          |        |           |
+        //                                                          BasicBulk |     Clr |  2048 | 15,345.85 ns | 1,213.551 ns | 68.5679 ns |   3.90 |     0.01 |      - |       0 B |
+        //  BasicIntrinsics256_BulkConvertNormalizedFloatToByteClampOverflows |     Clr |  2048 |  3,939.49 ns |    71.101 ns |  4.0173 ns |   1.00 |     0.00 |      - |       0 B |
+        //   ExtendedIntrinsic_BulkConvertNormalizedFloatToByteClampOverflows |     Clr |  2048 |  2,272.61 ns |   110.671 ns |  6.2531 ns |   0.58 |     0.00 |      - |       0 B |
+        //                                               PixelOperations_Base |     Clr |  2048 | 17,422.47 ns |   811.733 ns | 45.8644 ns |   4.42 |     0.01 |      - |      24 B |
+        //                                        PixelOperations_Specialized |     Clr |  2048 |  3,984.26 ns |   110.352 ns |  6.2351 ns |   1.01 |     0.00 |      - |       0 B |
+        //                                                                    |         |       |              |              |            |        |          |        |           |
+        //                                                          BasicBulk |    Core |  2048 | 14,950.43 ns |   699.309 ns | 39.5123 ns |   3.76 |     0.02 |      - |       0 B |
+        //  BasicIntrinsics256_BulkConvertNormalizedFloatToByteClampOverflows |    Core |  2048 |  3,978.28 ns |   481.105 ns | 27.1833 ns |   1.00 |     0.00 |      - |       0 B |
+        //   ExtendedIntrinsic_BulkConvertNormalizedFloatToByteClampOverflows |    Core |  2048 |  2,169.54 ns |    75.606 ns |  4.2719 ns | !!0.55!|     0.00 |      - |       0 B |
+        //                                               PixelOperations_Base |    Core |  2048 | 18,403.62 ns | 1,494.056 ns | 84.4169 ns |   4.63 |     0.03 |      - |      24 B |
+        //                                        PixelOperations_Specialized |    Core |  2048 |  2,227.60 ns |   486.761 ns | 27.5029 ns | !!0.56!|     0.01 |      - |       0 B |
     }
 }

@@ -160,31 +160,6 @@ namespace SixLabors.ImageSharp.Tests.Common
             Assert.Equal(expected, dest);
         }
 
-        private static float Clamp255(float x) => Math.Min(255f, Math.Max(0f, x));
-
-        [Theory]
-        [InlineData(1, 0)]
-        [InlineData(1, 8)]
-        [InlineData(2, 16)]
-        [InlineData(3, 128)]
-        public void BulkConvertNormalizedFloatToByteClampOverflows(int seed, int count)
-        {
-            if (this.SkipOnNonAvx2())
-            {
-                return;
-            }
-
-            float[] orig = new Random(seed).GenerateRandomRoundedFloatArray(count, -50, 444);
-            float[] normalized = orig.Select(f => f / 255f).ToArray();
-
-            byte[] dest = new byte[count];
-
-            SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(normalized, dest);
-
-            byte[] expected = orig.Select(f => (byte)Clamp255(f)).ToArray();
-
-            Assert.Equal(expected, dest);
-        }
 
         [Theory]
         [InlineData(1, 0)]
@@ -222,23 +197,44 @@ namespace SixLabors.ImageSharp.Tests.Common
             Assert.Equal(expected, result, new ApproximateFloatComparer(1e-5f));
         }
 
+
+        public static readonly TheoryData<int> BulkConvertNormalizedFloatToByteClampOverflows_Data =
+            new TheoryData<int>
+                {
+                    0, 64, 1024
+                };
+
         [Theory]
-        [InlineData(1, 0)]
-        [InlineData(2, 32)]
-        [InlineData(3, 128)]
-        public void ExtendedIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows(int seed, int count)
+        [MemberData(nameof(BulkConvertNormalizedFloatToByteClampOverflows_Data))]
+        public void BulkConvertNormalizedFloatToByteClampOverflows(int count)
         {
-            float[] orig = new Random(seed).GenerateRandomRoundedFloatArray(count, -50, 444);
-            float[] normalized = orig.Select(f => f / 255f).ToArray();
+            if (this.SkipOnNonAvx2())
+            {
+                return;
+            }
 
-            byte[] dest = new byte[count];
+            float[] source = new Random(count).GenerateRandomFloatArray(count, -0.1f, 1.2f);
+            byte[] expected = source.Select(NormalizedFloatToByte).ToArray();
+            byte[] actual = new byte[count];
 
-            SimdUtils.ExtendedIntrinsics.BulkConvertNormalizedFloatToByteClampOverflows(normalized, dest);
+            SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(source, actual);
 
-            byte[] expected = orig.Select(f => (byte)Clamp255(f)).ToArray();
-
-            Assert.Equal(expected, dest);
+            Assert.Equal(expected, actual);
         }
+
+        [Theory]
+        [MemberData(nameof(BulkConvertNormalizedFloatToByteClampOverflows_Data))]
+        public void ExtendedIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows(int count)
+        {
+            float[] source = new Random(count).GenerateRandomFloatArray(count, -0.1f, 1.2f);
+            byte[] expected = source.Select(NormalizedFloatToByte).ToArray();
+            byte[] actual = new byte[count];
+
+            SimdUtils.ExtendedIntrinsics.BulkConvertNormalizedFloatToByteClampOverflows(source, actual);
+
+            Assert.Equal(expected, actual);
+        }
+        private static byte NormalizedFloatToByte(float f) => (byte)Math.Min(255f, Math.Max(0f, f * 255f + 0.5f));
 
         [Theory]
         [InlineData(0)]
@@ -265,7 +261,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
             float[] source = { 0, 7, 42, 255, 0.5f, 1.1f, 2.6f, 16f };
 
-            var expected = source.Select(f => (byte)Math.Round(f)).ToArray();
+            byte[] expected = source.Select(f => (byte)Math.Round(f)).ToArray();
 
             source = source.Select(f => f / 255f).ToArray();
 
@@ -298,8 +294,6 @@ namespace SixLabors.ImageSharp.Tests.Common
             ref Vector<float> iiRef = ref Unsafe.As<Tuple8.OfUInt32, Vector<float>>(ref ii);
 
             iiRef = x;
-
-            //Tuple8.OfUInt32 ii = Unsafe.As<Vector<float>, Tuple8.OfUInt32>(ref x);
 
             ref Tuple8.OfByte d = ref MemoryMarshal.Cast<byte, Tuple8.OfByte>(dest)[0];
             d.LoadFrom(ref ii);

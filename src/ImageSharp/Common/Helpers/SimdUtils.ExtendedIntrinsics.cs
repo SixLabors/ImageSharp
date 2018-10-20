@@ -85,15 +85,13 @@ namespace SixLabors.ImageSharp
             {
                 Guard.IsTrue(
                     dest.Length % Vector<byte>.Count == 0,
-                    nameof(source),
+                    nameof(dest),
                     "dest.Length should be divisable by Vector<byte>.Count!");
 
                 int n = dest.Length / Vector<byte>.Count;
 
                 ref Vector<float> sourceBase = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(source));
                 ref Vector<byte> destBase = ref Unsafe.As<byte, Vector<byte>>(ref MemoryMarshal.GetReference(dest));
-
-                Vector<float> scale = new Vector<float>(255);
 
                 for (int i = 0; i < n; i++)
                 {
@@ -104,10 +102,10 @@ namespace SixLabors.ImageSharp
                     Vector<float> f2 = Unsafe.Add(ref s, 2);
                     Vector<float> f3 = Unsafe.Add(ref s, 3);
 
-                    Vector<uint> w0 = ConvertToUInt32(f0, scale);
-                    Vector<uint> w1 = ConvertToUInt32(f1, scale);
-                    Vector<uint> w2 = ConvertToUInt32(f2, scale);
-                    Vector<uint> w3 = ConvertToUInt32(f3, scale);
+                    Vector<uint> w0 = ConvertToUInt32(f0);
+                    Vector<uint> w1 = ConvertToUInt32(f1);
+                    Vector<uint> w2 = ConvertToUInt32(f2);
+                    Vector<uint> w3 = ConvertToUInt32(f3);
 
                     Vector<ushort> u0 = Vector.Narrow(w0, w1);
                     Vector<ushort> u1 = Vector.Narrow(w2, w3);
@@ -119,10 +117,12 @@ namespace SixLabors.ImageSharp
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private static Vector<uint> ConvertToUInt32(Vector<float> vf, Vector<float> scale)
+            private static Vector<uint> ConvertToUInt32(Vector<float> vf)
             {
-                vf = Vector.Min(Vector.Max(vf, Vector<float>.Zero), Vector<float>.One);
-                vf *= scale;
+                Vector<float> maxBytes = new Vector<float>(255f);
+                vf *= maxBytes;
+                vf += new Vector<float>(0.5f);
+                vf = Vector.Min(Vector.Max(vf, Vector<float>.Zero), maxBytes);
                 Vector<int> vi = Vector.ConvertToInt32(vf);
                 return Vector.AsVectorUInt32(vi);
             }

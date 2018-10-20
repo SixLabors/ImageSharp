@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
     {
         private float[] data;
 
-        private const int Count = 64;
+        private const int Count = 32;
 
         [GlobalSetup]
         public void Setup()
@@ -24,8 +24,10 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
 
             int n = Count / Vector<float>.Count;
 
-            Vector<float> magick = new Vector<float>(32768.0f);
-            Vector<float> scale = new Vector<float>(255f) / new Vector<float>(256f);
+            var bVec = new Vector<float>(256.0f / 255.0f);
+            var magicFloat = new Vector<float>(32768.0f);
+            var magicInt = new Vector<uint>(1191182336); // reinterpreded value of 32768.0f
+            var mask = new Vector<uint>(255);
 
             for (int i = 0; i < n; i++)
             {
@@ -33,13 +35,16 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
                 // u.f = 32768.0f + x * (255.0f / 256.0f);
                 // return (uint8_t)u.i;
 
-                ref Vector<float> d = ref Unsafe.Add(ref b, i);
-                Vector<float> x = d;
-                //x = Vector.Max(x, Vector<float>.Zero);
-                //x = Vector.Min(x, Vector<float>.One);
+                ref Vector<float> df = ref Unsafe.Add(ref b, i);
 
-                x = (x * scale) + magick;
-                d = x;
+                var vi = Vector.AsVectorUInt32(df);
+                vi &= mask;
+                vi |= magicInt;
+
+                var vf = Vector.AsVectorSingle(vi);
+                vf = (vf - magicFloat) * bVec;
+
+                df = vf;
             }
         }
 
@@ -48,18 +53,37 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
         {
             int n = Count / Vector<float>.Count;
 
-            ref Vector<float> b = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
+            ref Vector<float> bf = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
+            ref Vector<uint> bu = ref Unsafe.As<Vector<float>, Vector<uint>>(ref bf);
 
             var scale = new Vector<float>(1f / 255f);
 
             for (int i = 0; i < n; i++)
             {
-                ref Vector<float> df = ref Unsafe.Add(ref b, i);
-                Vector<uint> du = Unsafe.As<Vector<float>, Vector<uint>>(ref df);
-
-                Vector<float> v = Vector.ConvertToSingle(du);
+                Vector<uint> u = Unsafe.Add(ref bu, i);
+                Vector<float> v = Vector.ConvertToSingle(u);
                 v *= scale;
-                df = v;
+                Unsafe.Add(ref bf, i) = v;
+            }
+        }
+
+        // This code is not correct at all, it's just here as reference
+        [Benchmark]
+        public void StandardSimdFromInt()
+        {
+            int n = Count / Vector<float>.Count;
+
+            ref Vector<float> bf = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
+            ref Vector<int> bu = ref Unsafe.As<Vector<float>, Vector<int>>(ref bf);
+
+            var scale = new Vector<float>(1f / 255f);
+
+            for (int i = 0; i < n; i++)
+            {
+                Vector<int> u = Unsafe.Add(ref bu, i);
+                Vector<float> v = Vector.ConvertToSingle(u);
+                v *= scale;
+                Unsafe.Add(ref bf, i) = v;
             }
         }
     }

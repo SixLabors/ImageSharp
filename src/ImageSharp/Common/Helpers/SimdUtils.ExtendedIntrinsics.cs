@@ -39,9 +39,8 @@ namespace SixLabors.ImageSharp
 
                 ref Vector<byte> sourceBase = ref Unsafe.As<byte, Vector<byte>>(ref MemoryMarshal.GetReference(source));
                 ref Vector<float> destBase = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(dest));
-                ref Vector<uint> destBaseU = ref Unsafe.As<Vector<float>, Vector<uint>>(ref destBase);
 
-                const float Scale = 1f / 255f;
+                var scale = new Vector<float>(1f / 255f);
 
                 for (int i = 0; i < n; i++)
                 {
@@ -51,24 +50,26 @@ namespace SixLabors.ImageSharp
                     Vector.Widen(s0, out Vector<uint> w0, out Vector<uint> w1);
                     Vector.Widen(s1, out Vector<uint> w2, out Vector<uint> w3);
 
-                    ref Vector<uint> d = ref Unsafe.Add(ref destBaseU, i * 4);
-                    d = w0;
-                    Unsafe.Add(ref d, 1) = w1;
-                    Unsafe.Add(ref d, 2) = w2;
-                    Unsafe.Add(ref d, 3) = w3;
+                    Vector<float> f0 = ConvertToSingle(w0, scale);
+                    Vector<float> f1 = ConvertToSingle(w1, scale);
+                    Vector<float> f2 = ConvertToSingle(w2, scale);
+                    Vector<float> f3 = ConvertToSingle(w3, scale);
+
+                    ref Vector<float> d = ref Unsafe.Add(ref destBase, i * 4);
+                    d = f0;
+                    Unsafe.Add(ref d, 1) = f1;
+                    Unsafe.Add(ref d, 2) = f2;
+                    Unsafe.Add(ref d, 3) = f3;
                 }
+            }
 
-                n = dest.Length / Vector<float>.Count;
-
-                for (int i = 0; i < n; i++)
-                {
-                    ref Vector<float> df = ref Unsafe.Add(ref destBase, i);
-                    ref Vector<uint> du = ref Unsafe.As<Vector<float>, Vector<uint>>(ref df);
-
-                    Vector<float> v = Vector.ConvertToSingle(du);
-                    v *= Scale;
-                    df = v;
-                }
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static Vector<float> ConvertToSingle(Vector<uint> u, Vector<float> scale)
+            {
+                Vector<int> vi = Vector.AsVectorInt32(u);
+                Vector<float> v = Vector.ConvertToSingle(vi);
+                v *= scale;
+                return v;
             }
 
             /// <summary>
@@ -92,26 +93,21 @@ namespace SixLabors.ImageSharp
                 ref Vector<float> sourceBase = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(source));
                 ref Vector<byte> destBase = ref Unsafe.As<byte, Vector<byte>>(ref MemoryMarshal.GetReference(dest));
 
+                Vector<float> scale = new Vector<float>(255);
+
                 for (int i = 0; i < n; i++)
                 {
                     ref Vector<float> s = ref Unsafe.Add(ref sourceBase, i * 4);
 
                     Vector<float> f0 = s;
-                    f0 = Clamp(f0);
-
                     Vector<float> f1 = Unsafe.Add(ref s, 1);
-                    f1 = Clamp(f1);
-
                     Vector<float> f2 = Unsafe.Add(ref s, 2);
-                    f2 = Clamp(f2);
-
                     Vector<float> f3 = Unsafe.Add(ref s, 3);
-                    f3 = Clamp(f3);
 
-                    Vector<uint> w0 = Vector.ConvertToUInt32(f0 * 255f);
-                    Vector<uint> w1 = Vector.ConvertToUInt32(f1 * 255f);
-                    Vector<uint> w2 = Vector.ConvertToUInt32(f2 * 255f);
-                    Vector<uint> w3 = Vector.ConvertToUInt32(f3 * 255f);
+                    Vector<uint> w0 = ConvertToUInt32(f0, scale);
+                    Vector<uint> w1 = ConvertToUInt32(f1, scale);
+                    Vector<uint> w2 = ConvertToUInt32(f2, scale);
+                    Vector<uint> w3 = ConvertToUInt32(f3, scale);
 
                     Vector<ushort> u0 = Vector.Narrow(w0, w1);
                     Vector<ushort> u1 = Vector.Narrow(w2, w3);
@@ -123,9 +119,12 @@ namespace SixLabors.ImageSharp
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private static Vector<float> Clamp(Vector<float> x)
+            private static Vector<uint> ConvertToUInt32(Vector<float> vf, Vector<float> scale)
             {
-                return Vector.Min(Vector.Max(x, Vector<float>.Zero), Vector<float>.One);
+                vf = Vector.Min(Vector.Max(vf, Vector<float>.Zero), Vector<float>.One);
+                vf *= scale;
+                Vector<int> vi = Vector.ConvertToInt32(vf);
+                return Vector.AsVectorUInt32(vi);
             }
         }
     }

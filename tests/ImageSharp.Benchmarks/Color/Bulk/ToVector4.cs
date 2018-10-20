@@ -29,8 +29,9 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
         [Params(
             //64, 
-            //512
-            256
+            //256,
+            //512,
+            2048
             )]
         public int Count { get; set; }
 
@@ -60,70 +61,214 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             }
         }
 
-        //[Benchmark]
-        public void CommonBulk()
+        [Benchmark]
+        public void PixelOperations_Base()
         {
             new PixelOperations<TPixel>().ToVector4(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
         }
 
-        //[Benchmark]
-        public void OptimizedBulk()
+        [Benchmark]
+        public void PixelOperations_Specialized()
         {
             PixelOperations<TPixel>.Instance.ToVector4(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
         }
     }
 
-    [RyuJitX64Job]
-    [DisassemblyDiagnoser(printAsm: true, printSource: true)]
+    [Config(typeof(Config.ShortClr))]
     public class ToVector4_Rgba32 : ToVector4<Rgba32>
     {
-        class Config : ManualConfig
-        {
-        }
-
-        [Benchmark(Baseline = true)]
-        public void FastScalarBulk()
+        [Benchmark]
+        public void BasicBulk()
         {
             ref Rgba32 sBase = ref this.source.GetSpan()[0];
             ref Vector4 dBase = ref this.destination.GetSpan()[0];
 
+            Vector4 scale = new Vector4(1f / 255f);
+
+            Vector4 v = default;
+
             for (int i = 0; i < this.Count; i++)
             {
                 ref Rgba32 s = ref Unsafe.Add(ref sBase, i);
-                ref Vector4 d = ref Unsafe.Add(ref dBase, i);
-                d.X = s.R;
-                d.Y = s.G;
-                d.Z = s.B;
-                d.W = s.A;
+                v.X = s.R;
+                v.Y = s.G;
+                v.Z = s.B;
+                v.W = s.A;
+                v *= scale;
+                Unsafe.Add(ref dBase, i) = v;
+            }
+        }
+        
+        [Benchmark(Baseline = true)]
+        public void BulkConvertByteToNormalizedFloat_2Loops()
+        {
+            Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
+            Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
+
+            var bVec = new Vector<float>(256.0f / 255.0f);
+            var magicFloat = new Vector<float>(32768.0f);
+            var magicInt = new Vector<uint>(1191182336); // reinterpreded value of 32768.0f
+            var mask = new Vector<uint>(255);
+
+            ref SimdUtils.Octet.OfByte sourceBase = ref Unsafe.As<byte, SimdUtils.Octet.OfByte>(ref MemoryMarshal.GetReference((ReadOnlySpan<byte>)sBytes));
+            ref SimdUtils.Octet.OfUInt32 destBaseAsWideOctet = ref Unsafe.As<float, SimdUtils.Octet.OfUInt32>(ref MemoryMarshal.GetReference(dFloats));
+
+            ref Vector<float> destBaseAsFloat = ref Unsafe.As<SimdUtils.Octet.OfUInt32, Vector<float>>(ref destBaseAsWideOctet);
+
+            int n = dFloats.Length / 8;
+
+            for (int i = 0; i < n; i++)
+            {
+                ref SimdUtils.Octet.OfByte s = ref Unsafe.Add(ref sourceBase, i);
+                ref SimdUtils.Octet.OfUInt32 d = ref Unsafe.Add(ref destBaseAsWideOctet, i);
+                d.LoadFrom(ref s);
+            }
+
+            for (int i = 0; i < n; i++)
+            {
+                ref Vector<float> df = ref Unsafe.Add(ref destBaseAsFloat, i);
+
+                var vi = Vector.AsVectorUInt32(df);
+                vi &= mask;
+                vi |= magicInt;
+
+                var vf = Vector.AsVectorSingle(vi);
+                vf = (vf - magicFloat) * bVec;
+
+                df = vf;
+            }
+        }
+
+        //[Benchmark]
+        public void BulkConvertByteToNormalizedFloat_ConvertInSameLoop()
+        {
+            Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
+            Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
+
+            var bVec = new Vector<float>(256.0f / 255.0f);
+            var magicFloat = new Vector<float>(32768.0f);
+            var magicInt = new Vector<uint>(1191182336); // reinterpreded value of 32768.0f
+            var mask = new Vector<uint>(255);
+
+            ref SimdUtils.Octet.OfByte sourceBase = ref Unsafe.As<byte, SimdUtils.Octet.OfByte>(ref MemoryMarshal.GetReference((ReadOnlySpan<byte>)sBytes));
+            ref SimdUtils.Octet.OfUInt32 destBaseAsWideOctet = ref Unsafe.As<float, SimdUtils.Octet.OfUInt32>(ref MemoryMarshal.GetReference(dFloats));
+
+            ref Vector<float> destBaseAsFloat = ref Unsafe.As<SimdUtils.Octet.OfUInt32, Vector<float>>(ref destBaseAsWideOctet);
+
+            int n = dFloats.Length / 8;
+
+            var temp = default(SimdUtils.Octet.OfUInt32);
+            ref Vector<uint> tempRef = ref Unsafe.As<SimdUtils.Octet.OfUInt32, Vector<uint>>(ref temp);
+
+            for (int i = 0; i < n; i++)
+            {
+                ref SimdUtils.Octet.OfByte s = ref Unsafe.Add(ref sourceBase, i);
+                temp.LoadFrom(ref s);
+
+                Vector<uint> vi = tempRef;
+
+                vi &= mask;
+                vi |= magicInt;
+
+                var vf = Vector.AsVectorSingle(vi);
+                vf = (vf - magicFloat) * bVec;
+
+                Unsafe.Add(ref destBaseAsFloat, i) = vf;
             }
         }
 
         [Benchmark]
-        public void BulkConvertByteToNormalizedFloat()
+        public void ExtendedIntrinsics_BulkConvertByteToNormalizedFloat_2Loops()
         {
             Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
             Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
 
-            SimdUtils.BulkConvertByteToNormalizedFloat(sBytes, dFloats);
+            int n = dFloats.Length / Vector<byte>.Count;
+
+            ref Vector<byte> sourceBase = ref Unsafe.As<byte, Vector<byte>>(ref MemoryMarshal.GetReference((ReadOnlySpan<byte>)sBytes));
+            ref Vector<float> destBase = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(dFloats));
+            ref Vector<uint> destBaseU = ref Unsafe.As<Vector<float>, Vector<uint>>(ref destBase);
+
+            for (int i = 0; i < n; i++)
+            {
+                Vector<byte> b = Unsafe.Add(ref sourceBase, i);
+
+                Vector.Widen(b, out Vector<ushort> s0, out Vector<ushort> s1);
+                Vector.Widen(s0, out Vector<uint> w0, out Vector<uint> w1);
+                Vector.Widen(s1, out Vector<uint> w2, out Vector<uint> w3);
+
+                ref Vector<uint> d = ref Unsafe.Add(ref destBaseU, i * 4);
+                d = w0;
+                Unsafe.Add(ref d, 1) = w1;
+                Unsafe.Add(ref d, 2) = w2;
+                Unsafe.Add(ref d, 3) = w3;
+            }
+
+            n = dFloats.Length / Vector<float>.Count;
+            var scale = new Vector<float>(1f / 255f);
+
+            for (int i = 0; i < n; i++)
+            {
+                ref Vector<float> dRef = ref Unsafe.Add(ref destBase, i);
+
+                Vector<int> du = Vector.AsVectorInt32(dRef);
+                Vector<float> v = Vector.ConvertToSingle(du);
+                v *= scale;
+
+                dRef = v;
+            }
         }
 
         [Benchmark]
-        public void ExtendedIntrinsics_BulkConvertByteToNormalizedFloat()
+        public void ExtendedIntrinsics_BulkConvertByteToNormalizedFloat_ConvertInSameLoop()
         {
             Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
             Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
 
-            SimdUtils.ExtendedIntrinsics.BulkConvertByteToNormalizedFloat(sBytes, dFloats);
-        }
+            int n = dFloats.Length / Vector<byte>.Count;
 
-        //[Benchmark]
-        public void Original()
-        {
-            ToVector4SimdAligned(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
+            ref Vector<byte> sourceBase = ref Unsafe.As<byte, Vector<byte>>(ref MemoryMarshal.GetReference((ReadOnlySpan<byte>)sBytes));
+            ref Vector<float> destBase = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(dFloats));
+            var scale = new Vector<float>(1f / 255f);
+
+            for (int i = 0; i < n; i++)
+            {
+                Vector<byte> b = Unsafe.Add(ref sourceBase, i);
+
+                Vector.Widen(b, out Vector<ushort> s0, out Vector<ushort> s1);
+                Vector.Widen(s0, out Vector<uint> w0, out Vector<uint> w1);
+                Vector.Widen(s1, out Vector<uint> w2, out Vector<uint> w3);
+
+                Vector<float> f0 = ConvertToNormalizedSingle(w0, scale);
+                Vector<float> f1 = ConvertToNormalizedSingle(w1, scale);
+                Vector<float> f2 = ConvertToNormalizedSingle(w2, scale);
+                Vector<float> f3 = ConvertToNormalizedSingle(w3, scale);
+
+                ref Vector<float> d = ref Unsafe.Add(ref destBase, i * 4);
+                d = f0;
+                Unsafe.Add(ref d, 1) = f1;
+                Unsafe.Add(ref d, 2) = f2;
+                Unsafe.Add(ref d, 3) = f3;
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ToVector4SimdAligned(ReadOnlySpan<Rgba32> sourceColors, Span<Vector4> destVectors, int count)
+        private static Vector<float> ConvertToNormalizedSingle(Vector<uint> u, Vector<float> scale)
+        {
+            Vector<int> vi = Vector.AsVectorInt32(u);
+            Vector<float> v = Vector.ConvertToSingle(vi);
+            v *= scale;
+            return v;
+        }
+
+        //[Benchmark]
+        public void OldImplementation()
+        {
+            ToVector4OldImplementation(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ToVector4OldImplementation(ReadOnlySpan<Rgba32> sourceColors, Span<Vector4> destVectors, int count)
         {
             if (!Vector.IsHardwareAccelerated)
             {

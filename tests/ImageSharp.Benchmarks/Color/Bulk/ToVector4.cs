@@ -30,8 +30,9 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [Params(
             //64, 
             //256,
-            512
-            //1024
+            //512,
+            //1024,
+            2048
             )]
         public int Count { get; set; }
 
@@ -100,12 +101,12 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         }
         
         [Benchmark(Baseline = true)]
-        public void BulkConvertByteToNormalizedFloat()
+        public void BasicIntrinsics256_BulkConvertByteToNormalizedFloat()
         {
             Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
             Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
 
-            SimdUtils.BulkConvertByteToNormalizedFloat(sBytes, dFloats);
+            SimdUtils.BasicIntrinsics256.BulkConvertByteToNormalizedFloat(sBytes, dFloats);
         }
 
         [Benchmark]
@@ -117,7 +118,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             SimdUtils.ExtendedIntrinsics.BulkConvertByteToNormalizedFloat(sBytes, dFloats);
         }
 
-        [Benchmark]
+        //[Benchmark]
         public void ExtendedIntrinsics_BulkConvertByteToNormalizedFloat_2Loops()
         {
             Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
@@ -199,68 +200,6 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             Vector<float> v = Vector.ConvertToSingle(vi);
             v *= scale;
             return v;
-        }
-
-        //[Benchmark]
-        public void OldImplementation()
-        {
-            int count = this.Count;
-            var bVec = new Vector<float>(256.0f / 255.0f);
-            var magicFloat = new Vector<float>(32768.0f);
-            var magicInt = new Vector<uint>(1191182336); // reinterpreded value of 32768.0f
-            var mask = new Vector<uint>(255);
-
-            int unpackedRawCount = count * 4;
-
-            ref uint sourceBase = ref Unsafe.As<Rgba32, uint>(ref MemoryMarshal.GetReference((ReadOnlySpan<Rgba32>)this.source.GetSpan()));
-            ref UnpackedRGBA destBaseAsUnpacked = ref Unsafe.As<Vector4, UnpackedRGBA>(ref MemoryMarshal.GetReference(this.destination.GetSpan()));
-            ref Vector<uint> destBaseAsUInt = ref Unsafe.As<UnpackedRGBA, Vector<uint>>(ref destBaseAsUnpacked);
-            ref Vector<float> destBaseAsFloat = ref Unsafe.As<UnpackedRGBA, Vector<float>>(ref destBaseAsUnpacked);
-
-            for (int i = 0; i < count; i++)
-            {
-                uint sVal = Unsafe.Add(ref sourceBase, i);
-                ref UnpackedRGBA dst = ref Unsafe.Add(ref destBaseAsUnpacked, i);
-
-                // This call is the bottleneck now:
-                dst.Load(sVal);
-            }
-
-            int numOfVectors = unpackedRawCount / Vector<uint>.Count;
-
-            for (int i = 0; i < numOfVectors; i++)
-            {
-                Vector<uint> vi = Unsafe.Add(ref destBaseAsUInt, i);
-
-                vi &= mask;
-                vi |= magicInt;
-
-                var vf = Vector.AsVectorSingle(vi);
-                vf = (vf - magicFloat) * bVec;
-
-                Unsafe.Add(ref destBaseAsFloat, i) = vf;
-            }
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct UnpackedRGBA
-        {
-            private uint r;
-
-            private uint g;
-
-            private uint b;
-
-            private uint a;
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void Load(uint p)
-            {
-                this.r = p;
-                this.g = p >> 8;
-                this.b = p >> 16;
-                this.a = p >> 24;
-            }
         }
     }
 }

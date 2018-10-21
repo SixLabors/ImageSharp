@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp
     internal static partial class SimdUtils
     {
         /// <summary>
-        /// 256bit / AVX2 intrinsics NOT depending on newer API-s (Vector.Widen, Vector.Narrow, Vector.ConvertTo*)
+        /// Implementation with 256bit / AVX2 intrinsics NOT depending on newer API-s (Vector.Widen etc.)
         /// </summary>
         public static class BasicIntrinsics256
         {

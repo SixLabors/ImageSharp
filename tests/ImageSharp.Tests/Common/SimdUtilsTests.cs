@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         [InlineData(1, 8)]
         [InlineData(2, 16)]
         [InlineData(3, 128)]
-        public void BasicIntrinsics_BulkConvertNormalizedFloatToByte_WithRoundedData(int seed, int count)
+        public void BasicIntrinsics256_BulkConvertNormalizedFloatToByte_WithRoundedData(int seed, int count)
         {
             if (this.SkipOnNonAvx2())
             {
@@ -142,7 +142,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         [InlineData(1, 8)]
         [InlineData(2, 16)]
         [InlineData(3, 128)]
-        public void BasicIntrinsics_BulkConvertNormalizedFloatToByte_WithNonRoundedData(int seed, int count)
+        public void BasicIntrinsics256_BulkConvertNormalizedFloatToByte_WithNonRoundedData(int seed, int count)
         {
             if (this.SkipOnNonAvx2())
             {
@@ -161,6 +161,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         }
 
         public static readonly TheoryData<int> ArraySizesDivisibleBy8 = new TheoryData<int> { 0, 8, 16, 1024 };
+        public static readonly TheoryData<int> ArraySizesDivisibleBy4 = new TheoryData<int> { 0, 4, 8, 28, 1020 };
 
         public static readonly TheoryData<int> ArraySizesDivisibleBy32 = new TheoryData<int> { 0, 32, 512 };
 
@@ -171,8 +172,17 @@ namespace SixLabors.ImageSharp.Tests.Common
                 };
 
         [Theory]
+        [MemberData(nameof(ArraySizesDivisibleBy4))]
+        public void FallbackIntrinsics128_BulkConvertByteToNormalizedFloat(int count)
+        {
+            TestImpl_BulkConvertByteToNormalizedFloat(
+                count,
+                (s, d) => SimdUtils.FallbackIntrinsics128.BulkConvertByteToNormalizedFloat(s.Span, d.Span));
+        }
+
+        [Theory]
         [MemberData(nameof(ArraySizesDivisibleBy8))]
-        public void BasicIntrinsics_BulkConvertByteToNormalizedFloat(int count)
+        public void BasicIntrinsics256_BulkConvertByteToNormalizedFloat(int count)
         {
             if (this.SkipOnNonAvx2())
             {
@@ -216,8 +226,17 @@ namespace SixLabors.ImageSharp.Tests.Common
         }
 
         [Theory]
+        [MemberData(nameof(ArraySizesDivisibleBy4))]
+        public void FallbackIntrinsics128_BulkConvertNormalizedFloatToByteClampOverflows(int count)
+        {
+            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count,
+                (s, d) => SimdUtils.FallbackIntrinsics128.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span)
+            );
+        }
+
+        [Theory]
         [MemberData(nameof(ArraySizesDivisibleBy8))]
-        public void BasicIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows(int count)
+        public void BasicIntrinsics256_BulkConvertNormalizedFloatToByteClampOverflows(int count)
         {
             if (this.SkipOnNonAvx2())
             {

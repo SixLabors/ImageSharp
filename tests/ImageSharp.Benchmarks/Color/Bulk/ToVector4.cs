@@ -79,29 +79,16 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
     public class ToVector4_Rgba32 : ToVector4<Rgba32>
     {
         [Benchmark]
-        public void BasicBulk()
+        public void FallbackIntrinsics128()
         {
-            ref Rgba32 sBase = ref this.source.GetSpan()[0];
-            ref Vector4 dBase = ref this.destination.GetSpan()[0];
+            Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
+            Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
 
-            Vector4 scale = new Vector4(1f / 255f);
-
-            Vector4 v = default;
-
-            for (int i = 0; i < this.Count; i++)
-            {
-                ref Rgba32 s = ref Unsafe.Add(ref sBase, i);
-                v.X = s.R;
-                v.Y = s.G;
-                v.Z = s.B;
-                v.W = s.A;
-                v *= scale;
-                Unsafe.Add(ref dBase, i) = v;
-            }
+            SimdUtils.FallbackIntrinsics128.BulkConvertByteToNormalizedFloat(sBytes, dFloats);
         }
         
         [Benchmark(Baseline = true)]
-        public void BasicIntrinsics256_BulkConvertByteToNormalizedFloat()
+        public void BasicIntrinsics256()
         {
             Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
             Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
@@ -110,7 +97,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         }
 
         [Benchmark]
-        public void ExtendedIntrinsics_BulkConvertByteToNormalizedFloat()
+        public void ExtendedIntrinsics()
         {
             Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
             Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());

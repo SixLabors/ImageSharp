@@ -72,30 +72,16 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
     public class PackFromVector4_Rgba32 : PackFromVector4<Rgba32>
     {
         [Benchmark]
-        public void BasicBulk()
+        public void FallbackIntrinsics128()
         {
-            ref Vector4 sBase = ref this.source.GetSpan()[0];
-            ref Rgba32 dBase = ref this.destination.GetSpan()[0];
+            Span<float> sBytes = MemoryMarshal.Cast<Vector4, float>(this.source.GetSpan());
+            Span<byte> dFloats = MemoryMarshal.Cast<Rgba32, byte>(this.destination.GetSpan());
 
-            Vector4 maxBytes = new Vector4(255);
-            Vector4 half = new Vector4(0.5f);
-
-            for (int i = 0; i < this.Count; i++)
-            {
-                Vector4 v = Unsafe.Add(ref sBase, i);
-                v *= maxBytes;
-                v += half;
-                v = Vector4.Clamp(v, Vector4.Zero, maxBytes);
-                ref Rgba32 d = ref Unsafe.Add(ref dBase, i);
-                d.R = (byte)v.X;
-                d.G = (byte)v.Y;
-                d.B = (byte)v.Z;
-                d.A = (byte)v.W;
-            }
+            SimdUtils.FallbackIntrinsics128.BulkConvertNormalizedFloatToByteClampOverflows(sBytes, dFloats);
         }
 
         [Benchmark(Baseline = true)]
-        public void BasicIntrinsics256_BulkConvertNormalizedFloatToByteClampOverflows()
+        public void BasicIntrinsics256()
         {
             Span<float> sBytes = MemoryMarshal.Cast<Vector4, float>(this.source.GetSpan());
             Span<byte> dFloats = MemoryMarshal.Cast<Rgba32, byte>(this.destination.GetSpan());
@@ -104,7 +90,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         }
 
         [Benchmark]
-        public void ExtendedIntrinsic_BulkConvertNormalizedFloatToByteClampOverflows()
+        public void ExtendedIntrinsic()
         {
             Span<float> sBytes = MemoryMarshal.Cast<Vector4, float>(this.source.GetSpan());
             Span<byte> dFloats = MemoryMarshal.Cast<Rgba32, byte>(this.destination.GetSpan());

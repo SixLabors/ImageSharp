@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Converts `dest.Length` <see cref="byte"/>-s to <see cref="float"/>-s normalized into [0..1].
+        /// Converts all input <see cref="byte"/>-s to <see cref="float"/>-s normalized into [0..1].
         /// <paramref name="source"/> should be the of the same size as <paramref name="dest"/>,
         /// but there are no restrictions on the span's length.
         /// </summary>
@@ -67,6 +67,7 @@ namespace SixLabors.ImageSharp
 
             ExtendedIntrinsics.BulkConvertByteToNormalizedFloatReduce(ref source, ref dest);
             BasicIntrinsics256.BulkConvertByteToNormalizedFloatReduce(ref source, ref dest);
+            FallbackIntrinsics128.BulkConvertByteToNormalizedFloatReduce(ref source, ref dest);
 
             // Deal with the remainder:
             int count = source.Length;
@@ -83,7 +84,7 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Convert 'source.Length' <see cref="float"/> values normalized into [0..1] from 'source' into 'dest' buffer of <see cref="byte"/>.
+        /// Convert all <see cref="float"/> values normalized into [0..1] from 'source' into 'dest' buffer of <see cref="byte"/>.
         /// The values are scaled up into [0-255] and rounded, overflows are clamped.
         /// <paramref name="source"/> should be the of the same size as <paramref name="dest"/>,
         /// but there are no restrictions on the span's length.
@@ -96,6 +97,7 @@ namespace SixLabors.ImageSharp
 
             ExtendedIntrinsics.BulkConvertNormalizedFloatToByteClampOverflowsReduce(ref source, ref dest);
             BasicIntrinsics256.BulkConvertNormalizedFloatToByteClampOverflowsReduce(ref source, ref dest);
+            FallbackIntrinsics128.BulkConvertNormalizedFloatToByteClampOverflowsReduce(ref source, ref dest);
 
             // Deal with the remainder:
             int count = source.Length;

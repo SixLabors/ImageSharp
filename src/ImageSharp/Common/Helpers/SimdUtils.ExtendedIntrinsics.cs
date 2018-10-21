@@ -10,8 +10,9 @@ namespace SixLabors.ImageSharp
     internal static partial class SimdUtils
     {
         /// <summary>
-        /// Methods accelerated only in RyuJIT having dotnet/coreclr#10662 merged (.NET Core 2.1+ .NET 4.7.2+)
-        /// PR:
+        /// Implementation methods based on newer <see cref="Vector{T}"/> API-s (Vector.Widen, Vector.Narrow, Vector.ConvertTo*).
+        /// Only accelerated only on RyuJIT having dotnet/coreclr#10662 merged (.NET Core 2.1+ .NET 4.7.2+)
+        /// See:
         /// https://github.com/dotnet/coreclr/pull/10662
         /// API Proposal:
         /// https://github.com/dotnet/corefx/issues/15957

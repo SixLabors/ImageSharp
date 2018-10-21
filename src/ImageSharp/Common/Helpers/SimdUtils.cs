@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp
         [MethodImpl(InliningOptions.ShortMethod)]
         internal static void BulkConvertByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
         {
-            DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same size!");
+            DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
 
 #if NETCOREAPP2_1
             ExtendedIntrinsics.BulkConvertByteToNormalizedFloatReduce(ref source, ref dest);
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp
         [MethodImpl(InliningOptions.ShortMethod)]
         internal static void BulkConvertNormalizedFloatToByteClampOverflows(ReadOnlySpan<float> source, Span<byte> dest)
         {
-            DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same size!");
+            DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
 
 #if NETCOREAPP2_1
             ExtendedIntrinsics.BulkConvertNormalizedFloatToByteClampOverflowsReduce(ref source, ref dest);
@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static byte ConvertToByte(float f) => (byte)ImageMaths.Clamp((f * 255f) + 0.5f, 0, 255f);
+        private static byte ConvertToByte(float f) => (byte)ComparableExtensions.Clamp((f * 255f) + 0.5f, 0, 255f);
 
         [Conditional("DEBUG")]
         private static void VerifyIsAvx2Compatible(string operation)

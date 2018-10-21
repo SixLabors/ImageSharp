@@ -10,7 +10,7 @@ using BenchmarkDotNet.Attributes;
 
 namespace SixLabors.ImageSharp.Benchmarks.General.BasicMath
 {
-    public class Clamp
+    public class ClampInt32IntoByte
     {
         [Params(-1, 0, 255, 256)]
         public int Value { get; set; }

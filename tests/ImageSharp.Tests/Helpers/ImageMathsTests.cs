@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         [InlineData(10.1f, -0.1f, 10, 10f)]
         public void Clamp(float x, float min, float max, float expected)
         {
-            float actual = ImageMaths.Clamp(x, min, max);
+            float actual = x.Clamp(min, max);
             Assert.Equal(expected, actual);
         }
 

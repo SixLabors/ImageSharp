@@ -61,9 +61,6 @@ namespace SixLabors.ImageSharp
             return x & (m - 1);
         }
 
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static float Clamp(float x, float min, float max) => Math.Min(max, Math.Max(min, x));
-
         /// <summary>
         /// Returns the absolute value of a 32-bit signed integer. Uses bit shifting to speed up the operation.
         /// </summary>

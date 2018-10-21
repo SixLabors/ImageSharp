@@ -1,7 +1,8 @@
 ﻿using System;
+
 using BenchmarkDotNet.Attributes;
 
-namespace SixLabors.ImageSharp.Benchmarks.General
+namespace SixLabors.ImageSharp.Benchmarks.General.BasicMath
 {
     public class Pow
     {

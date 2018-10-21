@@ -154,12 +154,32 @@ namespace SixLabors.ImageSharp
         private static byte ConvertToByte(float f) => (byte)ImageMaths.Clamp((f * 255f) + 0.5f, 0, 255f);
 
         [Conditional("DEBUG")]
-        private static void GuardAvx2(string operation)
+        private static void VerifyIsAvx2Compatible(string operation)
         {
             if (!IsAvx2CompatibleArchitecture)
             {
                 throw new NotSupportedException($"{operation} is supported only on AVX2 CPU!");
             }
+        }
+
+        [Conditional("DEBUG")]
+        private static void VerifySpanInput(ReadOnlySpan<byte> source, Span<float> dest, int shouldBeDivisibleBy)
+        {
+            DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
+            DebugGuard.IsTrue(
+                ImageMaths.ModuloP2(dest.Length, shouldBeDivisibleBy) == 0,
+                nameof(source),
+                $"length should be divisable by {shouldBeDivisibleBy}!");
+        }
+
+        [Conditional("DEBUG")]
+        private static void VerifySpanInput(ReadOnlySpan<float> source, Span<byte> dest, int shouldBeDivisibleBy)
+        {
+            DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
+            DebugGuard.IsTrue(
+                ImageMaths.ModuloP2(dest.Length, shouldBeDivisibleBy) == 0,
+                nameof(source),
+                $"length should be divisable by {shouldBeDivisibleBy}!");
         }
     }
 }

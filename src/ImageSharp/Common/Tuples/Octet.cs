@@ -3,8 +3,14 @@ using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Tuples
 {
+    /// <summary>
+    /// Contains 8 element value tuples of various types.
+    /// </summary>
     internal static class Octet
     {
+        /// <summary>
+        /// Value tuple of <see cref="uint"/>-s
+        /// </summary>
         [StructLayout(LayoutKind.Explicit, Size = 8 * sizeof(uint))]
         public struct OfUInt32
         {
@@ -34,7 +40,7 @@ namespace SixLabors.ImageSharp.Tuples
 
             public override string ToString()
             {
-                return $"[{this.V0},{this.V1},{this.V2},{this.V3},{this.V4},{this.V5},{this.V6},{this.V7}]";
+                return $"{nameof(Octet)}.{nameof(OfUInt32)}({this.V0},{this.V1},{this.V2},{this.V3},{this.V4},{this.V5},{this.V6},{this.V7})";
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
@@ -51,6 +57,9 @@ namespace SixLabors.ImageSharp.Tuples
             }
         }
 
+        /// <summary>
+        /// Value tuple of <see cref="byte"/>-s
+        /// </summary>
         [StructLayout(LayoutKind.Explicit, Size = 8)]
         public struct OfByte
         {
@@ -80,7 +89,7 @@ namespace SixLabors.ImageSharp.Tuples
 
             public override string ToString()
             {
-                return $"[{this.V0},{this.V1},{this.V2},{this.V3},{this.V4},{this.V5},{this.V6},{this.V7}]";
+                return $"{nameof(Octet)}.{nameof(OfByte)}({this.V0},{this.V1},{this.V2},{this.V3},{this.V4},{this.V5},{this.V6},{this.V7})";
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]

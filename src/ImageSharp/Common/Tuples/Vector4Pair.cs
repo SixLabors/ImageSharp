@@ -7,6 +7,7 @@ namespace SixLabors.ImageSharp.Tuples
     /// <summary>
     /// Its faster to process multiple Vector4-s together, so let's pair them!
     /// On AVX2 this pair should be convertible to <see cref="Vector{T}"/> of <see cref="float"/>!
+    /// TODO: Investigate defining this as union with an Octet.OfSingle type.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     internal struct Vector4Pair
@@ -14,8 +15,6 @@ namespace SixLabors.ImageSharp.Tuples
         public Vector4 A;
 
         public Vector4 B;
-
-        private static readonly Vector4 Scale = new Vector4(1 / 255f);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void MultiplyInplace(float value)
@@ -52,8 +51,9 @@ namespace SixLabors.ImageSharp.Tuples
             b = b.FastRound();
 
             // Downscale by 1/255
-            this.A *= Scale;
-            this.B *= Scale;
+            var scale = new Vector4(1 / 255f);
+            this.A *= scale;
+            this.B *= scale;
         }
 
         /// <summary>
@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Tuples
 
         public override string ToString()
         {
-            return $"{this.A}, {this.B}";
+            return $"{nameof(Vector4Pair)}({this.A}, {this.B})";
         }
     }
 }

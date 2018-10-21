@@ -40,13 +40,35 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Calculates <paramref name="x"/> % 4
+        /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int Modulo4(int x) => x & 3;
+
+        /// <summary>
+        /// Calculates <paramref name="x"/> % 8
+        /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int Modulo8(int x) => x & 7;
+
+        /// <summary>
+        /// Fast (x mod m) calculator, with the restriction that
+        /// <paramref name="m"/> should be power of 2.
+        /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int ModuloP2(int x, int m)
+        {
+            return x & (m - 1);
+        }
+
+        /// <summary>
         /// Returns the absolute value of a 32-bit signed integer. Uses bit shifting to speed up the operation.
         /// </summary>
         /// <param name="x">
         /// A number that is greater than <see cref="int.MinValue"/>, but less than or equal to <see cref="int.MaxValue"/>
         /// </param>
         /// <returns>The <see cref="int"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static int FastAbs(int x)
         {
             int y = x >> 31;
@@ -58,7 +80,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="x">A single-precision floating-point number</param>
         /// <returns>The number <paramref name="x" /> raised to the power of 2.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static float Pow2(float x) => x * x;
 
         /// <summary>
@@ -66,7 +88,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="x">A single-precision floating-point number</param>
         /// <returns>The number <paramref name="x" /> raised to the power of 3.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static float Pow3(float x) => x * x * x;
 
         /// <summary>
@@ -77,7 +99,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="int"/>
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static int GetBitsNeededForColorDepth(int colors) => Math.Max(1, (int)Math.Ceiling(Math.Log(colors, 2)));
 
         /// <summary>
@@ -85,7 +107,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="bitDepth">The bit depth.</param>
         /// <returns>The <see cref="int"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static int GetColorCountForBitDepth(int bitDepth) => 1 << bitDepth;
 
         /// <summary>
@@ -94,7 +116,7 @@ namespace SixLabors.ImageSharp
         /// <param name="x">The x provided to G(x).</param>
         /// <param name="sigma">The spread of the blur.</param>
         /// <returns>The Gaussian G(x)</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static float Gaussian(float x, float sigma)
         {
             const float Numerator = 1.0f;
@@ -117,7 +139,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The sine cardinal of <paramref name="f" />.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static float SinC(float f)
         {
             if (MathF.Abs(f) > Constants.Epsilon)
@@ -140,7 +162,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="float"/>.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static float GetBcValue(float x, float b, float c)
         {
             if (x < 0F)
@@ -176,7 +198,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The bounding <see cref="Rectangle"/>.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static Rectangle GetBoundingRectangle(Point topLeft, Point bottomRight) => new Rectangle(topLeft.X, topLeft.Y, bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y);
 
         /// <summary>

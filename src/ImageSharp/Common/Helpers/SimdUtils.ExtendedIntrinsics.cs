@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp
                 ref ReadOnlySpan<byte> source,
                 ref Span<float> dest)
             {
-                DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same size!");
+                DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
 
                 if (!IsAvailable)
                 {
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp
                 ref ReadOnlySpan<float> source,
                 ref Span<byte> dest)
             {
-                DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same size!");
+                DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
 
                 if (!IsAvailable)
                 {
@@ -88,10 +88,7 @@ namespace SixLabors.ImageSharp
             /// </summary>
             internal static void BulkConvertByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
             {
-                DebugGuard.IsTrue(
-                    ImageMaths.ModuloP2(dest.Length, Vector<byte>.Count) == 0,
-                    nameof(source),
-                    "dest.Length should be divisible by Vector<byte>.Count!");
+                VerifySpanInput(source, dest, Vector<byte>.Count);
 
                 int n = dest.Length / Vector<byte>.Count;
 
@@ -126,10 +123,7 @@ namespace SixLabors.ImageSharp
                 ReadOnlySpan<float> source,
                 Span<byte> dest)
             {
-                DebugGuard.IsTrue(
-                    ImageMaths.ModuloP2(dest.Length, Vector<byte>.Count) == 0,
-                    nameof(dest),
-                    "dest.Length should be divisible by Vector<byte>.Count!");
+                VerifySpanInput(source, dest, Vector<byte>.Count);
 
                 int n = dest.Length / Vector<byte>.Count;
 

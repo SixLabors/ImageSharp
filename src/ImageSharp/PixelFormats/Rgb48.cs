@@ -165,12 +165,12 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Rgba32 ToRgba32()
+        public void ToRgba32(ref Rgba32 dest)
         {
-            byte r = ImageMaths.DownScaleFrom16BitTo8Bit(this.R);
-            byte g = ImageMaths.DownScaleFrom16BitTo8Bit(this.G);
-            byte b = ImageMaths.DownScaleFrom16BitTo8Bit(this.B);
-            return new Rgba32(r, g, b, byte.MaxValue);
+            dest.R = ImageMaths.DownScaleFrom16BitTo8Bit(this.R);
+            dest.G = ImageMaths.DownScaleFrom16BitTo8Bit(this.G);
+            dest.B = ImageMaths.DownScaleFrom16BitTo8Bit(this.B);
+            dest.A = byte.MaxValue;
         }
 
         /// <inheritdoc/>

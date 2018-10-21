@@ -105,7 +105,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Rgba32 ToRgba32() => new Rgba32(0, 0, 0, this.PackedValue);
+        public void ToRgba32(ref Rgba32 dest)
+        {
+            dest = default;
+            dest.A = this.PackedValue;
+        }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

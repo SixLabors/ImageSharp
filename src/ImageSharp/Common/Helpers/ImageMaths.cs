@@ -39,6 +39,22 @@ namespace SixLabors.ImageSharp
             return (a / GreatestCommonDivisor(a, b)) * b;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int Modulo4(int a) => a & 3;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int Modulo8(int a) => a & 7;
+
+        /// <summary>
+        /// Fast (mod m) calculator,
+        /// where <paramref name="m"/> should be a power of 2.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int ModuloP2(int a, int m)
+        {
+            return a & (m - 1);
+        }
+
         /// <summary>
         /// Returns the absolute value of a 32-bit signed integer. Uses bit shifting to speed up the operation.
         /// </summary>

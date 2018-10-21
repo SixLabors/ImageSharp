@@ -17,15 +17,16 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
     {
         public class Argb32OperationsTests : PixelOperationsTests<Argb32>
         {
-            public Argb32OperationsTests(ITestOutputHelper output)
+            public const string SkipProfilingBenchmarks =
+#if true
+                "Profiling benchmark - enable manually!";
+#else
+                null;
+#endif
+
                 : base(output)
             {
             }
-
-            // For 4.6 test runner MemberData does not work without redeclaring the public field in the 
-            // derived test class:
-            // TODO: Can this not be delared in the parent class?
-            public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
 
             [Fact]
             public void IsSpecialImplementation() => Assert.IsType<Argb32.PixelOperations>(PixelOperations<Argb32>.Instance);
@@ -265,28 +266,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             [Fact]
             public void IsSpecialImplementation() => Assert.IsType<Rgba32.PixelOperations>(PixelOperations<Rgba32>.Instance);
 
-            [Fact]
-            public void ToVector4SimdAligned()
-            {
-                if (!Vector.IsHardwareAccelerated)
-                {
-                    return;
-                }
-
-                Rgba32[] source = CreatePixelTestData(64);
-                Vector4[] expected = CreateExpectedVector4Data(source);
-
-                TestOperation(
-                    source,
-                    expected,
-                    (s, d) => Rgba32.PixelOperations.ToVector4SimdAligned(s, d.GetSpan(), 64)
-                );
-            }
-
-            // [Fact] // Profiling benchmark - enable manually!
-#pragma warning disable xUnit1013 // Public method should be marked as test
             public void Benchmark_ToVector4()
-#pragma warning restore xUnit1013 // Public method should be marked as test
             {
                 const int times = 200000;
                 const int count = 1024;
@@ -334,8 +314,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             {
             }
 
-            public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
-
             [Fact]
             public void IsSpecialImplementation() => Assert.IsType<RgbaVector.PixelOperations>(PixelOperations<RgbaVector>.Instance);
         }
@@ -364,7 +342,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
         }
 
-        public static TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
+        public static TheoryData<int> ArraySizesData => new TheoryData<int> { 0, 1, 2, 7, 16, 512, 513, 514, 515, 516, 517, 518, 519, 520, 521, 522, 523, 524, 525, 526, 527, 528, 1111 };
 
         internal static PixelOperations<TPixel> Operations => PixelOperations<TPixel>.Instance;
 

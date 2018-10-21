@@ -100,8 +100,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <summary>
         /// Expands the packed representation into an <see cref="Rgba32"/>.
         /// </summary>
-        /// <returns>The <see cref="Rgba32"/>.</returns>
-        Rgba32 ToRgba32();
+        /// <param name="dest">The reference to the destination <see cref="Rgba32"/> pixel</param>
+        void ToRgba32(ref Rgba32 dest);
 
         /// <summary>
         /// Packs the pixel from an <see cref="Rgb48"/> value.
@@ -114,5 +114,19 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <param name="source">The <see cref="Rgba64"/> value.</param>
         void PackFromRgba64(Rgba64 source);
+    }
+
+    /// <summary>
+    /// Temporary extension methods for compatibility
+    /// </summary>
+    internal static class PixelExtensions
+    {
+        public static Rgba32 ToRgba32<TPixel>(this TPixel pixel)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Rgba32 result = default;
+            pixel.ToRgba32(ref result);
+            return result;
+        }
     }
 }

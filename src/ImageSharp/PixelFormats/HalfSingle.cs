@@ -106,7 +106,10 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Rgba32 ToRgba32() => new Rgba32(this.ToScaledVector4());
+        public void ToRgba32(ref Rgba32 dest)
+        {
+            dest.PackFromScaledVector4(this.ToScaledVector4());
+        }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

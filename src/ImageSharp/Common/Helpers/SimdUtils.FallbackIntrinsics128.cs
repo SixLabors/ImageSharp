@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp
                 ref ReadOnlySpan<byte> source,
                 ref Span<float> dest)
             {
-                DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same size!");
+                DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
 
                 int remainder = ImageMaths.Modulo4(source.Length);
                 int adjustedCount = source.Length - remainder;
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp
                 ref ReadOnlySpan<float> source,
                 ref Span<byte> dest)
             {
-                DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same size!");
+                DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
 
                 int remainder = ImageMaths.Modulo4(source.Length);
                 int adjustedCount = source.Length - remainder;
@@ -72,10 +72,7 @@ namespace SixLabors.ImageSharp
             [MethodImpl(InliningOptions.ColdPath)]
             internal static void BulkConvertByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
             {
-                DebugGuard.IsTrue(
-                    ImageMaths.Modulo4(dest.Length) == 0,
-                    nameof(dest),
-                    "dest.Length should be divisible by 4!");
+                VerifySpanInput(source, dest, 4);
 
                 int count = dest.Length / 4;
                 if (count == 0)
@@ -109,10 +106,7 @@ namespace SixLabors.ImageSharp
                 ReadOnlySpan<float> source,
                 Span<byte> dest)
             {
-                DebugGuard.IsTrue(
-                    ImageMaths.Modulo4(source.Length) == 0,
-                    nameof(source),
-                    "source.Length should be divisible by 4!");
+                VerifySpanInput(source, dest, 4);
 
                 int count = source.Length / 4;
                 if (count == 0)

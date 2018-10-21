@@ -30,11 +30,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal virtual void PackFromVector4(ReadOnlySpan<Vector4> sourceVectors, Span<TPixel> destinationColors, int count)
         {
             ReadOnlySpan<Vector4> sourceVectors1 = sourceVectors;
-            Span<TPixel> destinationColors1 = destinationColors;
-            GuardSpans(sourceVectors1, nameof(sourceVectors1), destinationColors1, nameof(destinationColors1), count);
+            GuardSpans(sourceVectors1, nameof(sourceVectors1), destinationColors, nameof(destinationColors), count);
 
             ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceVectors1);
-            ref TPixel destRef = ref MemoryMarshal.GetReference(destinationColors1);
+            ref TPixel destRef = ref MemoryMarshal.GetReference(destinationColors);
 
             for (int i = 0; i < count; i++)
             {
@@ -53,11 +52,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal virtual void ToVector4(ReadOnlySpan<TPixel> sourceColors, Span<Vector4> destinationVectors, int count)
         {
             ReadOnlySpan<TPixel> sourceColors1 = sourceColors;
-            Span<Vector4> destinationVectors1 = destinationVectors;
-            GuardSpans(sourceColors1, nameof(sourceColors1), destinationVectors1, nameof(destinationVectors1), count);
+            GuardSpans(sourceColors1, nameof(sourceColors1), destinationVectors, nameof(destinationVectors), count);
 
             ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourceColors1);
-            ref Vector4 destRef = ref MemoryMarshal.GetReference(destinationVectors1);
+            ref Vector4 destRef = ref MemoryMarshal.GetReference(destinationVectors);
 
             for (int i = 0; i < count; i++)
             {

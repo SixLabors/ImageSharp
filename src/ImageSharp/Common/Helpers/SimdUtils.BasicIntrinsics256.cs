@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp
                 ref ReadOnlySpan<byte> source,
                 ref Span<float> dest)
             {
-                DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same size!");
+                DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
 
                 if (!IsAvailable)
                 {
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp
                 ref ReadOnlySpan<float> source,
                 ref Span<byte> dest)
             {
-                DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same size!");
+                DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
 
                 if (!IsAvailable)
                 {
@@ -78,16 +78,15 @@ namespace SixLabors.ImageSharp
 
             /// <summary>
             /// SIMD optimized implementation for <see cref="SimdUtils.BulkConvertByteToNormalizedFloat"/>.
-            /// Works only with `dest.Length` divisible by 8.
+            /// Works only with span Length divisible by 8.
             /// Implementation adapted from:
             /// http://lolengine.net/blog/2011/3/20/understanding-fast-float-integer-conversions
             /// http://stackoverflow.com/a/536278
             /// </summary>
             internal static void BulkConvertByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
             {
-                GuardAvx2(nameof(BulkConvertByteToNormalizedFloat));
-
-                DebugGuard.IsTrue(ImageMaths.Modulo8(dest.Length) == 0, nameof(source), "dest.Length should be divisable by 8!");
+                VerifyIsAvx2Compatible(nameof(BulkConvertByteToNormalizedFloat));
+                VerifySpanInput(source, dest, 8);
 
                 var bVec = new Vector<float>(256.0f / 255.0f);
                 var magicFloat = new Vector<float>(32768.0f);
@@ -128,9 +127,8 @@ namespace SixLabors.ImageSharp
             /// </summary>
             internal static void BulkConvertNormalizedFloatToByteClampOverflows(ReadOnlySpan<float> source, Span<byte> dest)
             {
-                GuardAvx2(nameof(BulkConvertNormalizedFloatToByteClampOverflows));
-
-                DebugGuard.IsTrue(ImageMaths.Modulo8(source.Length) == 0, nameof(source), "source.Length should be divisible by 8!");
+                VerifyIsAvx2Compatible(nameof(BulkConvertNormalizedFloatToByteClampOverflows));
+                VerifySpanInput(source, dest, 8);
 
                 if (source.Length == 0)
                 {
@@ -168,9 +166,9 @@ namespace SixLabors.ImageSharp
             }
 
             /// <summary>
-            /// Convert 'source.Length' <see cref="float"/> values normalized into [0..1] from 'source'
+            /// Convert all <see cref="float"/> values normalized into [0..1] from 'source'
             /// into 'dest' buffer of <see cref="byte"/>. The values are scaled up into [0-255] and rounded.
-            /// The implementation is SIMD optimized and works only with `source.Length` divisible by 8.
+            /// This implementation is SIMD optimized and works only when span Length is divisible by 8.
             /// Based on:
             /// <see>
             ///     <cref>http://lolengine.net/blog/2011/3/20/understanding-fast-float-integer-conversions</cref>
@@ -178,12 +176,8 @@ namespace SixLabors.ImageSharp
             /// </summary>
             internal static void BulkConvertNormalizedFloatToByte(ReadOnlySpan<float> source, Span<byte> dest)
             {
-                GuardAvx2(nameof(BulkConvertNormalizedFloatToByte));
-
-                DebugGuard.IsTrue(
-                    ImageMaths.Modulo8(source.Length) == 0,
-                    nameof(source),
-                    "source.Length should be divisible by 8!");
+                VerifyIsAvx2Compatible(nameof(BulkConvertNormalizedFloatToByte));
+                VerifySpanInput(source, dest, 8);
 
                 if (source.Length == 0)
                 {

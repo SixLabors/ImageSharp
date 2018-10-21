@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -61,25 +62,22 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="source">The source span of bytes</param>
         /// <param name="dest">The destination span of floats</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
         internal static void BulkConvertByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
         {
             DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same size!");
 
+#if NETCOREAPP2_1
             ExtendedIntrinsics.BulkConvertByteToNormalizedFloatReduce(ref source, ref dest);
+#else
             BasicIntrinsics256.BulkConvertByteToNormalizedFloatReduce(ref source, ref dest);
+#endif
             FallbackIntrinsics128.BulkConvertByteToNormalizedFloatReduce(ref source, ref dest);
 
             // Deal with the remainder:
-            int count = source.Length;
-            if (count > 0)
+            if (source.Length > 0)
             {
-                // TODO: Do we need to optimize anything on this? (There are at most 7 remainders)
-                ref byte sBase = ref MemoryMarshal.GetReference(source);
-                ref float dBase = ref MemoryMarshal.GetReference(dest);
-                for (int i = 0; i < count; i++)
-                {
-                    Unsafe.Add(ref dBase, i) = Unsafe.Add(ref sBase, i) / 255f;
-                }
+                ConverByteToNormalizedFloatRemainder(source, dest);
             }
         }
 
@@ -91,35 +89,71 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="source">The source span of floats</param>
         /// <param name="dest">The destination span of bytes</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
         internal static void BulkConvertNormalizedFloatToByteClampOverflows(ReadOnlySpan<float> source, Span<byte> dest)
         {
             DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same size!");
 
+#if NETCOREAPP2_1
             ExtendedIntrinsics.BulkConvertNormalizedFloatToByteClampOverflowsReduce(ref source, ref dest);
+#else
             BasicIntrinsics256.BulkConvertNormalizedFloatToByteClampOverflowsReduce(ref source, ref dest);
+#endif
             FallbackIntrinsics128.BulkConvertNormalizedFloatToByteClampOverflowsReduce(ref source, ref dest);
 
             // Deal with the remainder:
-            int count = source.Length;
-            if (count > 0)
+            if (source.Length > 0)
             {
-                ref float sBase = ref MemoryMarshal.GetReference(source);
-                ref byte dBase = ref MemoryMarshal.GetReference(dest);
-
-                for (int i = 0; i < count; i++)
-                {
-                    // TODO: Do we need to optimize anything on this? (There are at most 7 remainders)
-                    float f = Unsafe.Add(ref sBase, i);
-                    f *= 255f;
-                    f += 0.5f;
-                    f = MathF.Max(0, f);
-                    f = MathF.Min(255f, f);
-
-                    Unsafe.Add(ref dBase, i) = (byte)f;
-                }
+                ConvertNormalizedFloatToByteRemainder(source, dest);
             }
         }
 
+        [MethodImpl(InliningOptions.ColdPath)]
+        private static void ConverByteToNormalizedFloatRemainder(ReadOnlySpan<byte> source, Span<float> dest)
+        {
+            ref byte sBase = ref MemoryMarshal.GetReference(source);
+            ref float dBase = ref MemoryMarshal.GetReference(dest);
+
+            // There are at most 3 elements at this point, having a for loop is overkill.
+            // Let's minimize the no. of instructions!
+            switch (source.Length)
+            {
+                case 3:
+                    Unsafe.Add(ref dBase, 2) = Unsafe.Add(ref sBase, 2) / 255f;
+                    goto case 2;
+                case 2:
+                    Unsafe.Add(ref dBase, 1) = Unsafe.Add(ref sBase, 1) / 255f;
+                    goto case 1;
+                case 1:
+                    dBase = sBase / 255f;
+                    break;
+            }
+        }
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private static void ConvertNormalizedFloatToByteRemainder(ReadOnlySpan<float> source, Span<byte> dest)
+        {
+            ref float sBase = ref MemoryMarshal.GetReference(source);
+            ref byte dBase = ref MemoryMarshal.GetReference(dest);
+
+            switch (source.Length)
+            {
+                case 3:
+                    Unsafe.Add(ref dBase, 2) = ConvertToByte(Unsafe.Add(ref sBase, 2));
+                    goto case 2;
+                case 2:
+                    Unsafe.Add(ref dBase, 1) = ConvertToByte(Unsafe.Add(ref sBase, 1));
+                    goto case 1;
+                case 1:
+                    dBase = ConvertToByte(sBase);
+                    break;
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static byte ConvertToByte(float f) => (byte)ImageMaths.Clamp((f * 255f) + 0.5f, 0, 255f);
+
+        [Conditional("DEBUG")]
         private static void GuardAvx2(string operation)
         {
             if (!IsAvx2CompatibleArchitecture)

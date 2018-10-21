@@ -1,71 +1,81 @@
-﻿using System;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
+// ReSharper disable MemberHidesStaticFromOuterClass
 namespace SixLabors.ImageSharp
 {
     internal static partial class SimdUtils
     {
         /// <summary>
         /// Fallback implementation based on <see cref="Vector4"/> (128bit).
-        /// For <see cref="Vector4"/>, efficient software fallback implementations are present
-        /// + maybe even mono can emit intrinsics for that type :P
+        /// For <see cref="Vector4"/>, efficient software fallback implementations are present,
+        /// and we hope that even mono's JIT is able to emit SIMD instructions for that type :P
         /// </summary>
         public static class FallbackIntrinsics128
         {
             /// <summary>
-            /// <see cref="BulkConvertByteToNormalizedFloat"/> as much elements as possible, slicing them down (keeping the remainder).
+            /// <see cref="BulkConvertByteToNormalizedFloat"/> as many elements as possible, slicing them down (keeping the remainder).
             /// </summary>
+            [MethodImpl(InliningOptions.ShortMethod)]
             internal static void BulkConvertByteToNormalizedFloatReduce(
                 ref ReadOnlySpan<byte> source,
                 ref Span<float> dest)
             {
                 DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same size!");
 
-                int remainder = source.Length % 4;
-                int alignedCount = source.Length - remainder;
+                int remainder = ImageMaths.Modulo4(source.Length);
+                int adjustedCount = source.Length - remainder;
 
-                if (alignedCount > 0)
+                if (adjustedCount > 0)
                 {
                     BulkConvertByteToNormalizedFloat(
-                        source.Slice(0, alignedCount),
-                        dest.Slice(0, alignedCount));
+                        source.Slice(0, adjustedCount),
+                        dest.Slice(0, adjustedCount));
 
-                    source = source.Slice(alignedCount);
-                    dest = dest.Slice(alignedCount);
+                    source = source.Slice(adjustedCount);
+                    dest = dest.Slice(adjustedCount);
                 }
             }
 
             /// <summary>
-            /// <see cref="BulkConvertNormalizedFloatToByteClampOverflows"/> as much elements as possible, slicing them down (keeping the remainder).
+            /// <see cref="BulkConvertNormalizedFloatToByteClampOverflows"/> as many elements as possible, slicing them down (keeping the remainder).
             /// </summary>
+            [MethodImpl(InliningOptions.ShortMethod)]
             internal static void BulkConvertNormalizedFloatToByteClampOverflowsReduce(
                 ref ReadOnlySpan<float> source,
                 ref Span<byte> dest)
             {
                 DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same size!");
 
-                int remainder = source.Length % 4;
-                int alignedCount = source.Length - remainder;
+                int remainder = ImageMaths.Modulo4(source.Length);
+                int adjustedCount = source.Length - remainder;
 
-                if (alignedCount > 0)
+                if (adjustedCount > 0)
                 {
                     BulkConvertNormalizedFloatToByteClampOverflows(
-                        source.Slice(0, alignedCount),
-                        dest.Slice(0, alignedCount));
+                        source.Slice(0, adjustedCount),
+                        dest.Slice(0, adjustedCount));
 
-                    source = source.Slice(alignedCount);
-                    dest = dest.Slice(alignedCount);
+                    source = source.Slice(adjustedCount);
+                    dest = dest.Slice(adjustedCount);
                 }
             }
 
             /// <summary>
             /// Implementation of <see cref="SimdUtils.BulkConvertByteToNormalizedFloat"/> using <see cref="Vector4"/>.
             /// </summary>
+            [MethodImpl(InliningOptions.ColdPath)]
             internal static void BulkConvertByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
             {
-                DebugGuard.IsTrue((dest.Length % 4) == 0, nameof(dest), "dest.Length should be divisible by 4!");
+                DebugGuard.IsTrue(
+                    ImageMaths.Modulo4(dest.Length) == 0,
+                    nameof(dest),
+                    "dest.Length should be divisible by 4!");
 
                 int count = dest.Length / 4;
                 if (count == 0)
@@ -94,11 +104,15 @@ namespace SixLabors.ImageSharp
             /// <summary>
             /// Implementation of <see cref="SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows"/> using <see cref="Vector4"/>.
             /// </summary>
+            [MethodImpl(InliningOptions.ColdPath)]
             internal static void BulkConvertNormalizedFloatToByteClampOverflows(
                 ReadOnlySpan<float> source,
                 Span<byte> dest)
             {
-                DebugGuard.IsTrue((source.Length % 4) == 0, nameof(source), "source.Length should be divisible by 4!");
+                DebugGuard.IsTrue(
+                    ImageMaths.Modulo4(source.Length) == 0,
+                    nameof(source),
+                    "source.Length should be divisible by 4!");
 
                 int count = source.Length / 4;
                 if (count == 0)

@@ -1,9 +1,9 @@
-﻿namespace SixLabors.ImageSharp.Benchmarks.General
+﻿using System;
+
+using BenchmarkDotNet.Attributes;
+
+namespace SixLabors.ImageSharp.Benchmarks.General.BasicMath
 {
-    using System;
-
-    using BenchmarkDotNet.Attributes;
-
     public class Abs
     {
         [Params(-1, 1)]

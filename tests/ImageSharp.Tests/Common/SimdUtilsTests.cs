@@ -264,13 +264,26 @@ namespace SixLabors.ImageSharp.Tests.Common
             TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count,
                 (s, d) => SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span)
             );
+
+            // for small values, let's stress test the implementation a bit:
+            if (count > 0 && count < 10)
+            {
+                for (int i = 0; i < 20; i++)
+                {
+                    TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
+                        count,
+                        (s, d) => SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span),
+                        i + 42);
+                }
+            }
         }
 
         private static void TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
             int count,
-            Action<Memory<float>, Memory<byte>> convert)
+            Action<Memory<float>, Memory<byte>> convert, int seed = -1)
         {
-            float[] source = new Random(count).GenerateRandomFloatArray(count, -0.1f, 1.2f);
+            seed = seed > 0 ? seed : count;
+            float[] source = new Random(seed).GenerateRandomFloatArray(count, -0.2f, 1.2f);
             byte[] expected = source.Select(NormalizedFloatToByte).ToArray();
             byte[] actual = new byte[count];
 

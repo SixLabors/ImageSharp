@@ -132,7 +132,7 @@ namespace SixLabors.ImageSharp
                     s *= maxBytes;
                     s += half;
 
-                    // I'm not sure if Clamp() is properly implemented with intrinsics.
+                    // I'm not sure if Vector4.Clamp() is properly implemented with intrinsics.
                     s = Vector4.Max(Vector4.Zero, s);
                     s = Vector4.Min(maxBytes, s);
 

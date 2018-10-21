@@ -15,15 +15,17 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
     public class PixelOperationsTests
     {
-        public class Argb32OperationsTests : PixelOperationsTests<Argb32>
-        {
-            public const string SkipProfilingBenchmarks =
+        public const string SkipProfilingBenchmarks =
 #if true
-                "Profiling benchmark - enable manually!";
+            "Profiling benchmark - enable manually!";
 #else
                 null;
 #endif
 
+        public class Argb32OperationsTests : PixelOperationsTests<Argb32>
+        {
+            
+            public Argb32OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
             }
@@ -39,8 +41,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             {
             }
 
-            public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
-
             [Fact]
             public void IsSpecialImplementation() => Assert.IsType<Bgr24.PixelOperations>(PixelOperations<Bgr24>.Instance);
         }
@@ -52,8 +52,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             {
             }
 
-            public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
-
             [Fact]
             public void IsSpecialImplementation() => Assert.IsType<Bgra32.PixelOperations>(PixelOperations<Bgra32>.Instance);
         }
@@ -64,8 +62,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 : base(output)
             {
             }
-
-            public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
 
             [Fact]
             public void IsSpecialImplementation() => Assert.IsType<Gray8.PixelOperations>(PixelOperations<Gray8>.Instance);
@@ -163,8 +159,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             {
             }
 
-            public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
-
             [Fact]
             public void IsSpecialImplementation() => Assert.IsType<Gray16.PixelOperations>(PixelOperations<Gray16>.Instance);
 
@@ -261,11 +255,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             {
             }
 
-            public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
-
             [Fact]
             public void IsSpecialImplementation() => Assert.IsType<Rgba32.PixelOperations>(PixelOperations<Rgba32>.Instance);
 
+            [Fact(Skip = SkipProfilingBenchmarks)]
             public void Benchmark_ToVector4()
             {
                 const int times = 200000;
@@ -288,8 +281,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             {
             }
 
-            public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
-
             [Fact]
             public void IsSpecialImplementation() => Assert.IsType<Rgb48.PixelOperations>(PixelOperations<Rgb48>.Instance);
         }
@@ -300,8 +291,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 : base(output)
             {
             }
-
-            public static new TheoryData<int> ArraySizesData => new TheoryData<int> { 7, 16, 1111 };
 
             [Fact]
             public void IsSpecialImplementation() => Assert.IsType<Rgba64.PixelOperations>(PixelOperations<Rgba64>.Instance);

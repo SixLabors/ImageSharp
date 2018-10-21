@@ -99,30 +99,30 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         }
 
         // RESULTS (2018 October):
-        //                                                             Method | Runtime | Count |         Mean |        Error |     StdDev | Scaled | ScaledSD |  Gen 0 | Allocated |
-        // ------------------------------------------------------------------ |-------- |------ |-------------:|-------------:|-----------:|-------:|---------:|-------:|----------:|
-        //                                                          BasicBulk |     Clr |    64 |    581.62 ns |    33.625 ns |  1.8999 ns |   2.27 |     0.02 |      - |       0 B |
-        //  BasicIntrinsics256_BulkConvertNormalizedFloatToByteClampOverflows |     Clr |    64 |    256.66 ns |    45.153 ns |  2.5512 ns |   1.00 |     0.00 |      - |       0 B |
-        //   ExtendedIntrinsic_BulkConvertNormalizedFloatToByteClampOverflows |     Clr |    64 |    201.92 ns |    30.161 ns |  1.7042 ns |   0.79 |     0.01 |      - |       0 B |
-        //                                               PixelOperations_Base |     Clr |    64 |    665.01 ns |    13.032 ns |  0.7363 ns |   2.59 |     0.02 | 0.0067 |      24 B |
-        //                                        PixelOperations_Specialized |     Clr |    64 |    295.14 ns |    26.335 ns |  1.4880 ns |   1.15 |     0.01 |      - |       0 B |
-        //                                                                    |         |       |              |              |            |        |          |        |           |
-        //                                                          BasicBulk |    Core |    64 |    513.22 ns |    91.110 ns |  5.1479 ns |   3.19 |     0.03 |      - |       0 B |
-        //  BasicIntrinsics256_BulkConvertNormalizedFloatToByteClampOverflows |    Core |    64 |    160.76 ns |     2.760 ns |  0.1559 ns |   1.00 |     0.00 |      - |       0 B |
-        //   ExtendedIntrinsic_BulkConvertNormalizedFloatToByteClampOverflows |    Core |    64 |     95.98 ns |    10.077 ns |  0.5694 ns |   0.60 |     0.00 |      - |       0 B |
-        //                                               PixelOperations_Base |    Core |    64 |    591.74 ns |    49.856 ns |  2.8170 ns |   3.68 |     0.01 | 0.0067 |      24 B |
-        //                                        PixelOperations_Specialized |    Core |    64 |    149.11 ns |     4.485 ns |  0.2534 ns |   0.93 |     0.00 |      - |       0 B |
-        //                                                                    |         |       |              |              |            |        |          |        |           |
-        //                                                          BasicBulk |     Clr |  2048 | 15,345.85 ns | 1,213.551 ns | 68.5679 ns |   3.90 |     0.01 |      - |       0 B |
-        //  BasicIntrinsics256_BulkConvertNormalizedFloatToByteClampOverflows |     Clr |  2048 |  3,939.49 ns |    71.101 ns |  4.0173 ns |   1.00 |     0.00 |      - |       0 B |
-        //   ExtendedIntrinsic_BulkConvertNormalizedFloatToByteClampOverflows |     Clr |  2048 |  2,272.61 ns |   110.671 ns |  6.2531 ns |   0.58 |     0.00 |      - |       0 B |
-        //                                               PixelOperations_Base |     Clr |  2048 | 17,422.47 ns |   811.733 ns | 45.8644 ns |   4.42 |     0.01 |      - |      24 B |
-        //                                        PixelOperations_Specialized |     Clr |  2048 |  3,984.26 ns |   110.352 ns |  6.2351 ns |   1.01 |     0.00 |      - |       0 B |
-        //                                                                    |         |       |              |              |            |        |          |        |           |
-        //                                                          BasicBulk |    Core |  2048 | 14,950.43 ns |   699.309 ns | 39.5123 ns |   3.76 |     0.02 |      - |       0 B |
-        //  BasicIntrinsics256_BulkConvertNormalizedFloatToByteClampOverflows |    Core |  2048 |  3,978.28 ns |   481.105 ns | 27.1833 ns |   1.00 |     0.00 |      - |       0 B |
-        //   ExtendedIntrinsic_BulkConvertNormalizedFloatToByteClampOverflows |    Core |  2048 |  2,169.54 ns |    75.606 ns |  4.2719 ns | !!0.55!|     0.00 |      - |       0 B |
-        //                                               PixelOperations_Base |    Core |  2048 | 18,403.62 ns | 1,494.056 ns | 84.4169 ns |   4.63 |     0.03 |      - |      24 B |
-        //                                        PixelOperations_Specialized |    Core |  2048 |  2,227.60 ns |   486.761 ns | 27.5029 ns | !!0.56!|     0.01 |      - |       0 B |
+        //                       Method | Runtime | Count |         Mean |        Error |      StdDev | Scaled | ScaledSD |  Gen 0 | Allocated |
+        // ---------------------------- |-------- |------ |-------------:|-------------:|------------:|-------:|---------:|-------:|----------:|
+        //        FallbackIntrinsics128 |     Clr |    64 |    340.38 ns |    22.319 ns |   1.2611 ns |   1.41 |     0.01 |      - |       0 B |
+        //           BasicIntrinsics256 |     Clr |    64 |    240.79 ns |    11.421 ns |   0.6453 ns |   1.00 |     0.00 |      - |       0 B |
+        //            ExtendedIntrinsic |     Clr |    64 |    199.09 ns |   124.239 ns |   7.0198 ns |   0.83 |     0.02 |      - |       0 B |
+        //         PixelOperations_Base |     Clr |    64 |    647.99 ns |    24.003 ns |   1.3562 ns |   2.69 |     0.01 | 0.0067 |      24 B |
+        //  PixelOperations_Specialized |     Clr |    64 |    259.79 ns |    13.391 ns |   0.7566 ns |   1.08 |     0.00 |      - |       0 B | <--- ceremonial overhead has been minimized!
+        //                              |         |       |              |              |             |        |          |        |           |
+        //        FallbackIntrinsics128 |    Core |    64 |    234.64 ns |    12.320 ns |   0.6961 ns |   1.58 |     0.00 |      - |       0 B |
+        //           BasicIntrinsics256 |    Core |    64 |    148.87 ns |     2.794 ns |   0.1579 ns |   1.00 |     0.00 |      - |       0 B |
+        //            ExtendedIntrinsic |    Core |    64 |     94.06 ns |    10.015 ns |   0.5659 ns |   0.63 |     0.00 |      - |       0 B |
+        //         PixelOperations_Base |    Core |    64 |    573.52 ns |    31.865 ns |   1.8004 ns |   3.85 |     0.01 | 0.0067 |      24 B |
+        //  PixelOperations_Specialized |    Core |    64 |    117.21 ns |    13.264 ns |   0.7494 ns |   0.79 |     0.00 |      - |       0 B |
+        //                              |         |       |              |              |             |        |          |        |           |
+        //        FallbackIntrinsics128 |     Clr |  2048 |  6,735.93 ns | 2,139.340 ns | 120.8767 ns |   1.71 |     0.03 |      - |       0 B |
+        //           BasicIntrinsics256 |     Clr |  2048 |  3,929.29 ns |   334.027 ns |  18.8731 ns |   1.00 |     0.00 |      - |       0 B |
+        //            ExtendedIntrinsic |     Clr |  2048 |  2,226.01 ns |   130.525 ns |   7.3749 ns |!! 0.57 |     0.00 |      - |       0 B | <--- ExtendedIntrinsics rock!
+        //         PixelOperations_Base |     Clr |  2048 | 16,760.84 ns |   367.800 ns |  20.7814 ns |   4.27 |     0.02 |      - |      24 B | <--- Extra copies using "Vector4 TPixel.ToVector4()"
+        //  PixelOperations_Specialized |     Clr |  2048 |  3,986.03 ns |   237.238 ns |  13.4044 ns |   1.01 |     0.00 |      - |       0 B | <--- can't yet detect whether ExtendedIntrinsics are available :(
+        //                              |         |       |              |              |             |        |          |        |           |
+        //        FallbackIntrinsics128 |    Core |  2048 |  6,644.65 ns | 2,677.090 ns | 151.2605 ns |   1.69 |     0.05 |      - |       0 B |
+        //           BasicIntrinsics256 |    Core |  2048 |  3,923.70 ns | 1,971.760 ns | 111.4081 ns |   1.00 |     0.00 |      - |       0 B |
+        //            ExtendedIntrinsic |    Core |  2048 |  2,092.32 ns |   375.657 ns |  21.2253 ns |!! 0.53 |     0.01 |      - |       0 B | <--- ExtendedIntrinsics rock!
+        //         PixelOperations_Base |    Core |  2048 | 16,875.73 ns | 1,271.957 ns |  71.8679 ns |   4.30 |     0.10 |      - |      24 B |
+        //  PixelOperations_Specialized |    Core |  2048 |  2,129.92 ns |   262.888 ns |  14.8537 ns |!! 0.54 |     0.01 |      - |       0 B | <--- ExtendedIntrinsics rock!
     }
 }

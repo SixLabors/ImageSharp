@@ -3,13 +3,13 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace SixLabors.ImageSharp.Benchmarks.General
+using System;
+using System.Runtime.CompilerServices;
+
+using BenchmarkDotNet.Attributes;
+
+namespace SixLabors.ImageSharp.Benchmarks.General.BasicMath
 {
-    using System;
-    using System.Runtime.CompilerServices;
-
-    using BenchmarkDotNet.Attributes;
-
     public class Clamp
     {
         [Params(-1, 0, 255, 256)]

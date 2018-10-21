@@ -10,56 +10,70 @@ namespace SixLabors.ImageSharp.Tests.Helpers
     public class ImageMathsTests
     {
         [Theory]
-        [InlineData(0, 0)]
-        [InlineData(1, 1)]
-        [InlineData(2, 2)]
-        [InlineData(3, 3)]
-        [InlineData(4, 0)]
-        [InlineData(100, 0)]
-        [InlineData(123, 3)]
-        [InlineData(53436353, 1)]
-        public void Modulo4(int a, int expected)
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        [InlineData(100)]
+        [InlineData(123)]
+        [InlineData(53436353)]
+        public void Modulo4(int x)
         {
-            int actual = ImageMaths.Modulo4(a);
-            Assert.Equal(expected, actual);
+            int actual = ImageMaths.Modulo4(x);
+            Assert.Equal(x % 4, actual);
         }
 
         [Theory]
-        [InlineData(0, 0)]
-        [InlineData(1, 1)]
-        [InlineData(2, 2)]
-        [InlineData(6, 6)]
-        [InlineData(7, 7)]
-        [InlineData(8, 0)]
-        [InlineData(100, 4)]
-        [InlineData(123, 3)]
-        [InlineData(53436353, 1)]
-        [InlineData(975, 7)]
-        public void Modulo8(int a, int expected)
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(6)]
+        [InlineData(7)]
+        [InlineData(8)]
+        [InlineData(100)]
+        [InlineData(123)]
+        [InlineData(53436353)]
+        [InlineData(975)]
+        public void Modulo8(int x)
         {
-            int actual = ImageMaths.Modulo8(a);
-            Assert.Equal(expected, actual);
+            int actual = ImageMaths.Modulo8(x);
+            Assert.Equal(x % 8, actual);
         }
 
         [Theory]
-        [InlineData(0, 2, 0)]
-        [InlineData(1, 2, 1)]
-        [InlineData(2, 2, 0)]
-        [InlineData(0, 4, 0)]
-        [InlineData(3, 4, 3)]
-        [InlineData(5, 4, 1)]
-        [InlineData(5, 8, 5)]
-        [InlineData(8, 8, 0)]
-        [InlineData(8, 16, 8)]
-        [InlineData(15, 16, 15)]
-        [InlineData(17, 16, 1)]
-        [InlineData(17, 32, 17)]
-        [InlineData(31, 32, 31)]
-        [InlineData(32, 32, 0)]
-        [InlineData(33, 32, 1)]
-        public void Modulo2P(int a, int m, int expected)
+        [InlineData(0, 2)]
+        [InlineData(1, 2)]
+        [InlineData(2, 2)]
+        [InlineData(0, 4)]
+        [InlineData(3, 4)]
+        [InlineData(5, 4)]
+        [InlineData(5, 8)]
+        [InlineData(8, 8)]
+        [InlineData(8, 16)]
+        [InlineData(15, 16)]
+        [InlineData(17, 16)]
+        [InlineData(17, 32)]
+        [InlineData(31, 32)]
+        [InlineData(32, 32)]
+        [InlineData(33, 32)]
+        public void Modulo2P(int x, int m)
         {
-            int actual = ImageMaths.ModuloP2(a, m);
+            int actual = ImageMaths.ModuloP2(x, m);
+            Assert.Equal(x % m, actual);
+        }
+
+        [Theory]
+        [InlineData(0, 0, 0, 0)]
+        [InlineData(0.5f, 0, 1, 0.5f)]
+        [InlineData(-0.5f, -0.1f, 10, -0.1f)]
+        [InlineData(-0.05f, -0.1f, 10, -0.05f)]
+        [InlineData(9.9f, -0.1f, 10, 9.9f)]
+        [InlineData(10f, -0.1f, 10, 10f)]
+        [InlineData(10.1f, -0.1f, 10, 10f)]
+        public void Clamp(float x, float min, float max, float expected)
+        {
+            float actual = ImageMaths.Clamp(x, min, max);
             Assert.Equal(expected, actual);
         }
 

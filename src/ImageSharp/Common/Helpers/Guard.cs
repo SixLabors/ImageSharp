@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp
 {
@@ -19,6 +20,7 @@ namespace SixLabors.ImageSharp
         /// <param name="value">The target object, which cannot be null.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is null</exception>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void NotNull<T>(T value, string parameterName)
             where T : class
         {
@@ -35,6 +37,7 @@ namespace SixLabors.ImageSharp
         /// <param name="parameterName">Name of the parameter.</param>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is empty or contains only blanks.</exception>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void NotNullOrWhiteSpace(string value, string parameterName)
         {
             if (value is null)
@@ -56,6 +59,7 @@ namespace SixLabors.ImageSharp
         /// <param name="parameterName">Name of the parameter.</param>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is empty.</exception>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void NotNullOrEmpty<T>(ICollection<T> value, string parameterName)
         {
             if (value is null)
@@ -79,6 +83,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentException">
         /// <paramref name="value"/> is greater than the maximum value.
         /// </exception>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void MustBeLessThan<TValue>(TValue value, TValue max, string parameterName)
                     where TValue : IComparable<TValue>
         {
@@ -99,6 +104,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentException">
         /// <paramref name="value"/> is greater than the maximum value.
         /// </exception>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void MustBeLessThanOrEqualTo<TValue>(TValue value, TValue max, string parameterName)
                     where TValue : IComparable<TValue>
         {
@@ -119,6 +125,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentException">
         /// <paramref name="value"/> is less than the minimum value.
         /// </exception>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void MustBeGreaterThan<TValue>(TValue value, TValue min, string parameterName)
             where TValue : IComparable<TValue>
         {
@@ -141,6 +148,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentException">
         /// <paramref name="value"/> is less than the minimum value.
         /// </exception>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void MustBeGreaterThanOrEqualTo<TValue>(TValue value, TValue min, string parameterName)
             where TValue : IComparable<TValue>
         {
@@ -162,6 +170,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentException">
         /// <paramref name="value"/> is less than the minimum value of greater than the maximum value.
         /// </exception>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void MustBeBetweenOrEqualTo<TValue>(TValue value, TValue min, TValue max, string parameterName)
             where TValue : IComparable<TValue>
         {
@@ -181,6 +190,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentException">
         /// <paramref name="target"/> is false
         /// </exception>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void IsTrue(bool target, string parameterName, string message)
         {
             if (!target)
@@ -199,6 +209,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentException">
         /// <paramref name="target"/> is true
         /// </exception>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void IsFalse(bool target, string parameterName, string message)
         {
             if (target)
@@ -217,11 +228,32 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentException">
         /// <paramref name="source"/> has less than <paramref name="minLength"/> items
         /// </exception>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void MustBeSizedAtLeast<T>(ReadOnlySpan<T> source, int minLength, string parameterName)
         {
             if (source.Length < minLength)
             {
                 throw new ArgumentException($"Span-s must be at least of length {minLength}!", parameterName);
+            }
+        }
+
+        /// <summary>
+        /// Verifies that the 'destination' span is not shorter than 'source'.
+        /// </summary>
+        /// <typeparam name="TSource">The source element type</typeparam>
+        /// <typeparam name="TDest">The destination element type</typeparam>
+        /// <param name="source">The source span</param>
+        /// <param name="destination">The destination span</param>
+        /// <param name="destinationParamName">The name of the argument for 'destination'</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void DestinationShouldNotBeTooShort<TSource, TDest>(
+            ReadOnlySpan<TSource> source,
+            Span<TDest> destination,
+            string destinationParamName)
+        {
+            if (destination.Length < source.Length)
+            {
+                throw new ArgumentException($"Destination span is too short!", destinationParamName);
             }
         }
 
@@ -235,34 +267,13 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentException">
         /// <paramref name="source"/> has less than <paramref name="minLength"/> items
         /// </exception>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void MustBeSizedAtLeast<T>(Span<T> source, int minLength, string parameterName)
         {
             if (source.Length < minLength)
             {
                 throw new ArgumentException($"Span-s must be at least of length {minLength}!", parameterName);
             }
-        }
-
-        /// <summary>
-        /// Verifies that the given 'source' and 'dest' spans are at least of 'minLength' size.
-        /// Throwing an <see cref="ArgumentException"/> if the condition is not met.
-        /// </summary>
-        /// <typeparam name="TSource">The source element type</typeparam>
-        /// <typeparam name="TDest">The destination element type</typeparam>
-        /// <param name="source">The source span</param>
-        /// <param name="sourceParamName">The source parameter name</param>
-        /// <param name="dest">The destination span</param>
-        /// <param name="destParamName">The destination parameter name</param>
-        /// <param name="minLength">The minimum length</param>
-        public static void SpansMustBeSizedAtLeast<TSource, TDest>(
-            Span<TSource> source,
-            string sourceParamName,
-            Span<TDest> dest,
-            string destParamName,
-            int minLength)
-        {
-            MustBeSizedAtLeast(source, minLength, sourceParamName);
-            MustBeSizedAtLeast(dest, minLength, destParamName);
         }
 
         /// <summary>
@@ -285,6 +296,18 @@ namespace SixLabors.ImageSharp
         {
             MustBeSizedAtLeast(source, minLength, sourceParamName);
             MustBeSizedAtLeast(dest, minLength, destParamName);
+        }
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private static void ThrowArgumentException(string message, string parameterName)
+        {
+            throw new ArgumentException(message, parameterName);
+        }
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private static void ThrowArgumentNullException(string message)
+        {
+            throw new ArgumentException(message);
         }
     }
 }

@@ -386,9 +386,10 @@ namespace SixLabors.ImageSharp.Formats.Png
                 {
                     // 8 bit grayscale + alpha
                     // TODO: Should we consider in the future a GrayAlpha16 type.
+                    Rgba32 rgba = default;
                     for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 2)
                     {
-                        var rgba = Unsafe.Add(ref rowSpanRef, x).ToRgba32();
+                        Unsafe.Add(ref rowSpanRef, x).ToRgba32(ref rgba);
                         Unsafe.Add(ref rawScanlineSpanRef, o) = ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
                         Unsafe.Add(ref rawScanlineSpanRef, o + 1) = rgba.A;
                     }
@@ -645,12 +646,14 @@ namespace SixLabors.ImageSharp.Formats.Png
                 ref byte alphaTableRef = ref MemoryMarshal.GetReference(alphaTable.GetSpan());
                 Span<byte> quantizedSpan = quantized.GetPixelSpan();
 
+                Rgba32 rgba = default;
+
                 for (int i = 0; i < paletteLength; i++)
                 {
                     if (quantizedSpan.IndexOf((byte)i) > -1)
                     {
                         int offset = i * 3;
-                        var rgba = palette[i].ToRgba32();
+                        palette[i].ToRgba32(ref rgba);
 
                         byte alpha = rgba.A;
 

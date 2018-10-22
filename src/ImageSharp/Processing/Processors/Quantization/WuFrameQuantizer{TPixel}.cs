@@ -879,7 +879,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
 
             // Expected order r->g->b->a
-            var rgba = pixel.ToRgba32();
+            Rgba32 rgba = default;
+            pixel.ToRgba32(ref rgba);
 
             int r = rgba.R >> (8 - IndexBits);
             int g = rgba.G >> (8 - IndexBits);

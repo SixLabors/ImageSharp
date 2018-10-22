@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Rgba32_PackFromScaledVector4()
+        public void Rgba32_FromScaledVector4()
         {
             // arrange
             var rgba = new Rgba32(Vector4.One);
@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Rgba32_PackFromRgba32_ToRgba32()
+        public void Rgba32_FromRgba32_ToRgba32()
         {
             // arrange
             var rgba = default(Rgba32);
@@ -213,7 +213,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Rgba32_PackFromBgra32_ToRgba32()
+        public void Rgba32_FromBgra32_ToRgba32()
         {
             // arrange
             var rgba = default(Rgba32);
@@ -229,7 +229,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Rgba32_PackFromArgb32_ToArgb32()
+        public void Rgba32_FromArgb32_ToArgb32()
         {
             // arrange
             var rgba = default(Rgba32);
@@ -245,7 +245,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Rgba32_PackFromRgb48()
+        public void Rgba32_FromRgb48()
         {
             // arrange
             var input = default(Rgba32);
@@ -261,7 +261,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Rgba32_PackFromRgba64()
+        public void Rgba32_FromRgba64()
         {
             // arrange
             var input = default(Rgba32);

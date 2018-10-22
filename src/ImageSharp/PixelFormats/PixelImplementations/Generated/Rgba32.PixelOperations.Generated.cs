@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal partial class PixelOperations
         {
             /// <inheritdoc />
-            internal override void PackFromRgba32(ReadOnlySpan<Rgba32> source, Span<Rgba32> destPixels, int count)
+            internal override void FromRgba32(ReadOnlySpan<Rgba32> source, Span<Rgba32> destPixels, int count)
             {
                 GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
 

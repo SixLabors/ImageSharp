@@ -26,7 +26,7 @@
                     ref Rgba64 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref <#=pixelType#> dp = ref Unsafe.Add(ref destRef, i);
 
-                    dp.PackFromRgba64(sp);
+                    dp.FromRgba64(sp);
                 }
             }
 		<#
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal class PixelOperations : PixelOperations<Rgba64>
         {
             /// <inheritdoc />
-            internal override void PackFromRgba64(ReadOnlySpan<Rgba64> source, Span<Rgba64> destPixels, int count)
+            internal override void FromRgba64(ReadOnlySpan<Rgba64> source, Span<Rgba64> destPixels, int count)
             {
                 GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
 

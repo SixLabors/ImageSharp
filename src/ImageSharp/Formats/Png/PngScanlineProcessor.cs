@@ -377,7 +377,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 }
                 else
                 {
-                    PixelOperations<TPixel>.Instance.PackFromRgb24Bytes(scanlineSpan, rowSpan, header.Width);
+                    PixelOperations<TPixel>.Instance.FromRgb24Bytes(scanlineSpan, rowSpan, header.Width);
                 }
 
                 return;
@@ -526,7 +526,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else
             {
-                PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(scanlineSpan, rowSpan, header.Width);
+                PixelOperations<TPixel>.Instance.FromRgba32Bytes(scanlineSpan, rowSpan, header.Width);
             }
         }
 

@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void HalfSingle_PackFromScaledVector4()
+        public void HalfSingle_FromScaledVector4()
         {
             // arrange 
             Vector4 scaled = new HalfSingle(-1F).ToScaledVector4();

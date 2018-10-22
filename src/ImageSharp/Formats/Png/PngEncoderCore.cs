@@ -237,7 +237,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                 }
 
                 // Create quantized frame returning the palette and set the bit depth.
-                quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(image.Frames.RootFrame);
+                quantized = this.quantizer.CreateFrameQuantizer<TPixel>(image.GetConfiguration())
+                    .QuantizeFrame(image.Frames.RootFrame);
                 byte quantizedBits = (byte)ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length).Clamp(1, 8);
                 bits = Math.Max(bits, quantizedBits);
 

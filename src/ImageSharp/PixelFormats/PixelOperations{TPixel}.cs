@@ -24,10 +24,15 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <summary>
         /// Bulk version of <see cref="IPixel.FromVector4"/> converting 'sourceVectors.Length' pixels into 'destinationColors'.
         /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
         /// <param name="destinationColors">The <see cref="Span{T}"/> to the destination colors.</param>
-        internal virtual void FromVector4(ReadOnlySpan<Vector4> sourceVectors, Span<TPixel> destinationColors)
+        internal virtual void FromVector4(
+            Configuration configuration,
+            ReadOnlySpan<Vector4> sourceVectors,
+            Span<TPixel> destinationColors)
         {
+            Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationColors, nameof(destinationColors));
 
             ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceVectors);
@@ -44,10 +49,15 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <summary>
         /// Bulk version of <see cref="IPixel.ToVector4()"/> converting 'sourceColors.Length' pixels into 'destinationVectors'.
         /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
         /// <param name="destinationVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
-        internal virtual void ToVector4(ReadOnlySpan<TPixel> sourceColors, Span<Vector4> destinationVectors)
+        internal virtual void ToVector4(
+            Configuration configuration,
+            ReadOnlySpan<TPixel> sourceColors,
+            Span<Vector4> destinationVectors)
         {
+            Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(sourceColors, destinationVectors, nameof(destinationVectors));
 
             ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourceColors);
@@ -64,10 +74,15 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <summary>
         /// Bulk version of <see cref="IPixel.FromScaledVector4"/> converting 'sourceVectors.Length' pixels into 'destinationColors'.
         /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
         /// <param name="destinationColors">The <see cref="Span{T}"/> to the destination colors.</param>
-        internal virtual void FromScaledVector4(ReadOnlySpan<Vector4> sourceVectors, Span<TPixel> destinationColors)
+        internal virtual void FromScaledVector4(
+            Configuration configuration,
+            ReadOnlySpan<Vector4> sourceVectors,
+            Span<TPixel> destinationColors)
         {
+            Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationColors, nameof(destinationColors));
 
             ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceVectors);
@@ -84,10 +99,15 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <summary>
         /// Bulk version of <see cref="IPixel.ToScaledVector4()"/> converting 'sourceColors.Length' pixels into 'destinationVectors'.
         /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
         /// <param name="destinationVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
-        internal virtual void ToScaledVector4(ReadOnlySpan<TPixel> sourceColors, Span<Vector4> destinationVectors)
+        internal virtual void ToScaledVector4(
+            Configuration configuration,
+            ReadOnlySpan<TPixel> sourceColors,
+            Span<Vector4> destinationVectors)
         {
+            Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(sourceColors, destinationVectors, nameof(destinationVectors));
 
             ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourceColors);

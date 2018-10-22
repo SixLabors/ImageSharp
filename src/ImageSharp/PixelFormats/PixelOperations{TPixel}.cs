@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
         /// <param name="destinationColors">The <see cref="Span{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromVector4(ReadOnlySpan<Vector4> sourceVectors, Span<TPixel> destinationColors, int count)
+        internal virtual void FromVector4(ReadOnlySpan<Vector4> sourceVectors, Span<TPixel> destinationColors, int count)
         {
             GuardSpans(sourceVectors, nameof(sourceVectors), destinationColors, nameof(destinationColors), count);
 
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
         /// <param name="destinationColors">The <see cref="Span{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromScaledVector4(ReadOnlySpan<Vector4> sourceVectors, Span<TPixel> destinationColors, int count)
+        internal virtual void FromScaledVector4(ReadOnlySpan<Vector4> sourceVectors, Span<TPixel> destinationColors, int count)
         {
             GuardSpans(sourceVectors, nameof(sourceVectors), destinationColors, nameof(destinationColors), count);
 
@@ -108,12 +108,12 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <summary>
         /// Performs a bulk conversion of a collection of one pixel format into another.
         /// </summary>
-        /// <typeparam name="TPixel2">The pixel format.</typeparam>
+        /// <typeparam name="TDestinationPixel">The pixel format.</typeparam>
         /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
         /// <param name="destinationColors">The <see cref="Span{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void To<TPixel2>(ReadOnlySpan<TPixel> sourceColors, Span<TPixel2> destinationColors, int count)
-            where TPixel2 : struct, IPixel<TPixel2>
+        internal virtual void To<TDestinationPixel>(ReadOnlySpan<TPixel> sourceColors, Span<TDestinationPixel> destinationColors, int count)
+            where TDestinationPixel : struct, IPixel<TDestinationPixel>
         {
             GuardSpans(sourceColors, nameof(sourceColors), destinationColors, nameof(destinationColors), count);
 
@@ -121,11 +121,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
             // Gray8 and Gray16 are special implementations of IPixel in that they do not conform to the
             // standard RGBA colorspace format and must be converted from RGBA using the special ITU BT709 alogrithm.
-            // One of the requirements of PackFromScaledVector4/ToScaledVector4 is that it unaware of this and
+            // One of the requirements of FromScaledVector4/ToScaledVector4 is that it unaware of this and
             // packs/unpacks the pixel without and conversion so we employ custom methods do do this.
-            if (typeof(TPixel2).Equals(typeof(Gray16)))
+            if (typeof(TDestinationPixel) == typeof(Gray16))
             {
-                ref Gray16 gray16Ref = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<TPixel2, Gray16>(destinationColors));
+                ref Gray16 gray16Ref = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<TDestinationPixel, Gray16>(destinationColors));
                 for (int i = 0; i < count; i++)
                 {
                     ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
@@ -136,9 +136,9 @@ namespace SixLabors.ImageSharp.PixelFormats
                 return;
             }
 
-            if (typeof(TPixel2).Equals(typeof(Gray8)))
+            if (typeof(TDestinationPixel) == typeof(Gray8))
             {
-                ref Gray8 gray8Ref = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<TPixel2, Gray8>(destinationColors));
+                ref Gray8 gray8Ref = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<TDestinationPixel, Gray8>(destinationColors));
                 for (int i = 0; i < count; i++)
                 {
                     ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
@@ -150,11 +150,11 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             // Normal converson
-            ref TPixel2 destRef = ref MemoryMarshal.GetReference(destinationColors);
+            ref TDestinationPixel destRef = ref MemoryMarshal.GetReference(destinationColors);
             for (int i = 0; i < count; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
-                ref TPixel2 dp = ref Unsafe.Add(ref destRef, i);
+                ref TDestinationPixel dp = ref Unsafe.Add(ref destRef, i);
                 dp.FromScaledVector4(sp.ToScaledVector4());
             }
         }

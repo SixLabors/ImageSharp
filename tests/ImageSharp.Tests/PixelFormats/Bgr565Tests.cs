@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Bgr565_PackFromScaledVector4()
+        public void Bgr565_FromScaledVector4()
         {
             // arrange
             Vector4 scaled = new Bgr565(Vector3.One).ToScaledVector4();

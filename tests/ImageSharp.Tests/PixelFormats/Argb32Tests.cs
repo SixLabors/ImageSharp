@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Argb32_PackFromScaledVector4()
+        public void Argb32_FromScaledVector4()
         {
             // arrange
             Vector4 scaled = new Argb32(Vector4.One).ToScaledVector4();

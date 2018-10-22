@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void HalfVector4_PackFromScaledVector4()
+        public void HalfVector4_FromScaledVector4()
         {
             // arrange
             var halfVector4 = default(HalfVector4);

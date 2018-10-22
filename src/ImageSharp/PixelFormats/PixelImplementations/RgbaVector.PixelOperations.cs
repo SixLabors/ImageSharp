@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal class PixelOperations : PixelOperations<RgbaVector>
         {
             /// <inheritdoc />
-            internal override void PackFromScaledVector4(ReadOnlySpan<Vector4> sourceVectors, Span<RgbaVector> destinationColors, int count)
+            internal override void FromScaledVector4(ReadOnlySpan<Vector4> sourceVectors, Span<RgbaVector> destinationColors, int count)
             {
                 GuardSpans(sourceVectors, nameof(sourceVectors), destinationColors, nameof(destinationColors), count);
 

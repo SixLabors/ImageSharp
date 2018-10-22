@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Alpha8_PackFromScaledVector4()
+        public void Alpha8_FromScaledVector4()
         {
             // Arrange
             Alpha8 alpha = default;

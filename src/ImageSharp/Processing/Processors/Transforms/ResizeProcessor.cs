@@ -309,7 +309,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                 }
 
                                 Span<TPixel> targetRowSpan = destination.GetPixelRowSpan(y);
-                                PixelOperations<TPixel>.Instance.PackFromVector4(tempRowSpan, targetRowSpan, tempRowSpan.Length);
+                                PixelOperations<TPixel>.Instance.FromVector4(tempRowSpan, targetRowSpan, tempRowSpan.Length);
                             }
                         });
             }

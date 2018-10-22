@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Short2_PackFromScaledVector4()
+        public void Short2_FromScaledVector4()
         {
             // arrange
             var pixel = default(Short2);
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Short2_PackFromRgba32_ToRgba32()
+        public void Short2_FromRgba32_ToRgba32()
         {
             // arrange
             var short2 = default(Short2);
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Short2_PackFromRgb48()
+        public void Short2_FromRgb48()
         {
             // arrange
             var input = default(Short2);
@@ -127,7 +127,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Short2_PackFromRgba64()
+        public void Short2_FromRgba64()
         {
             // arrange
             var input = default(Short2);

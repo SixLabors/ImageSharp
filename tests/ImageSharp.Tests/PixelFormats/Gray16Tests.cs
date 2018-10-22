@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             => Assert.Equal(input, new Gray16(input).PackedValue);
 
         [Fact]
-        public void Gray16_PackFromScaledVector4()
+        public void Gray16_FromScaledVector4()
         {
             // Arrange
             Gray16 gray = default;
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Gray16_PackFromVector4()
+        public void Gray16_FromVector4()
         {
             // Arrange
             Gray16 gray = default;
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Gray16_PackFromRgba32()
+        public void Gray16_FromRgba32()
         {
             // Arrange
             Gray16 gray = default;

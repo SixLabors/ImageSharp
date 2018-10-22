@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             Guard.MustBeBetweenOrEqualTo(colors.Length, 1, 256, nameof(colors));
             this.palette = colors;
             this.paletteVector = new Vector4[this.palette.Length];
-            PixelOperations<TPixel>.Instance.ToScaledVector4(this.palette, this.paletteVector, this.palette.Length);
+            PixelOperations<TPixel>.Instance.ToScaledVector4(this.palette, this.paletteVector);
         }
 
         /// <inheritdoc/>

@@ -18,23 +18,27 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal class PixelOperations : PixelOperations<RgbaVector>
         {
             /// <inheritdoc />
-            internal override void FromScaledVector4(ReadOnlySpan<Vector4> sourceVectors, Span<RgbaVector> destinationColors, int count)
+            internal override void FromScaledVector4(
+                ReadOnlySpan<Vector4> sourceVectors,
+                Span<RgbaVector> destinationColors)
             {
-                GuardSpans(sourceVectors, nameof(sourceVectors), destinationColors, nameof(destinationColors), count);
+                Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationColors, nameof(destinationColors));
 
-                MemoryMarshal.Cast<Vector4, RgbaVector>(sourceVectors).Slice(0, count).CopyTo(destinationColors);
+                MemoryMarshal.Cast<Vector4, RgbaVector>(sourceVectors).CopyTo(destinationColors);
             }
 
             /// <inheritdoc />
-            internal override void ToScaledVector4(ReadOnlySpan<RgbaVector> sourceColors, Span<Vector4> destinationVectors, int count)
-                => this.ToVector4(sourceColors, destinationVectors, count);
+            internal override void ToScaledVector4(
+                ReadOnlySpan<RgbaVector> sourceColors,
+                Span<Vector4> destinationVectors)
+                => this.ToVector4(sourceColors, destinationVectors);
 
             /// <inheritdoc />
-            internal override void ToVector4(ReadOnlySpan<RgbaVector> sourceColors, Span<Vector4> destinationVectors, int count)
+            internal override void ToVector4(ReadOnlySpan<RgbaVector> sourceColors, Span<Vector4> destinationVectors)
             {
-                GuardSpans(sourceColors, nameof(sourceColors), destinationVectors, nameof(destinationVectors), count);
+                Guard.DestinationShouldNotBeTooShort(sourceColors, destinationVectors, nameof(destinationVectors));
 
-                MemoryMarshal.Cast<RgbaVector, Vector4>(sourceColors).Slice(0, count).CopyTo(destinationVectors);
+                MemoryMarshal.Cast<RgbaVector, Vector4>(sourceColors).CopyTo(destinationVectors);
             }
         }
     }

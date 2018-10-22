@@ -252,7 +252,7 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"ImageFrame<{typeof(TPixel).Name}>: {this.Width}x{this.Height}";
+        public override string ToString() => $"ImageFrame<{typeof(TPixel).Name}>({this.Width}x{this.Height})";
 
         /// <summary>
         /// Clones the current instance.
@@ -300,7 +300,7 @@ namespace SixLabors.ImageSharp
                         {
                             Span<TPixel> sourceRow = this.GetPixelRowSpan(y);
                             Span<TPixel2> targetRow = target.GetPixelRowSpan(y);
-                            PixelOperations<TPixel>.Instance.To(sourceRow, targetRow);
+                            PixelOperations<TPixel>.Instance.To(configuration, sourceRow, targetRow);
                         }
                     });
 

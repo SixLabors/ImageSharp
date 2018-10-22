@@ -702,6 +702,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 case PngColorType.Rgb:
                     PngScanlineProcessor.ProcessRgbScanline(
+                        this.configuration,
                         this.header,
                         scanlineSpan,
                         rowSpan,
@@ -715,6 +716,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 case PngColorType.RgbWithAlpha:
                     PngScanlineProcessor.ProcessRgbaScanline(
+                        this.configuration,
                         this.header,
                         scanlineSpan,
                         rowSpan,

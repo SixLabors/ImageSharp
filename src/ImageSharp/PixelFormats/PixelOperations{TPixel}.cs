@@ -125,9 +125,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// Converts 'sourceColors.Length' pixels from 'sourceColors' into 'destinationColors'.
         /// </summary>
         /// <typeparam name="TDestinationPixel">The destination pixel type.</typeparam>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
         /// <param name="destinationColors">The <see cref="Span{T}"/> to the destination colors.</param>
         internal virtual void To<TDestinationPixel>(
+            Configuration configuration,
             ReadOnlySpan<TPixel> sourceColors,
             Span<TDestinationPixel> destinationColors)
             where TDestinationPixel : struct, IPixel<TDestinationPixel>

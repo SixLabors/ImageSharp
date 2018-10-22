@@ -19,7 +19,7 @@ using System.Runtime.InteropServices;
 		#>
 
 			/// <inheritdoc />
-            internal override void From<#=pixelType#>(ReadOnlySpan<<#=pixelType#>> source, Span<<#=pixelType#>> destPixels)
+            internal override void From<#=pixelType#>(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<<#=pixelType#>> destPixels)
             {
                 Guard.DestinationShouldNotBeTooShort(source, destPixels, nameof(destPixels));
 
@@ -27,7 +27,7 @@ using System.Runtime.InteropServices;
             }
 
             /// <inheritdoc />
-            internal override void To<#=pixelType#>(ReadOnlySpan<<#=pixelType#>> sourcePixels, Span<<#=pixelType#>> destPixels)
+            internal override void To<#=pixelType#>(Configuration configuration, ReadOnlySpan<<#=pixelType#>> sourcePixels, Span<<#=pixelType#>> destPixels)
             {
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
@@ -42,7 +42,7 @@ using System.Runtime.InteropServices;
         #>
 
 			/// <inheritdoc />
-            internal override void To<#=toPixelType#>(ReadOnlySpan<<#=fromPixelType#>> sourcePixels, Span<<#=toPixelType#>> destPixels)
+            internal override void To<#=toPixelType#>(Configuration configuration, ReadOnlySpan<<#=fromPixelType#>> sourcePixels, Span<<#=toPixelType#>> destPixels)
             {
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 

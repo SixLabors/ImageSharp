@@ -16,19 +16,18 @@
 		#>
 
         /// <summary>
-        /// Converts 'count' elements in 'source` span of <see cref="<#=pixelType#>"/> data to a span of <typeparamref name="TPixel"/>-s.
+        /// Converts all pixels in 'source` span of <see cref="<#=pixelType#>"/> into a span of <typeparamref name="TPixel"/>-s.
         /// </summary>
         /// <param name="source">The source <see cref="Span{T}"/> of <see cref="<#=pixelType#>"/> data.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void From<#=pixelType#>(ReadOnlySpan<<#=pixelType#>> source, Span<TPixel> destPixels, int count)
+        internal virtual void From<#=pixelType#>(ReadOnlySpan<<#=pixelType#>> source, Span<TPixel> destPixels)
         {
-            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+            Guard.DestinationShouldNotBeTooShort(source, destPixels, nameof(destPixels));
             
             ref <#=pixelType#> sourceBaseRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < source.Length; i++)
             {
                 ref <#=pixelType#> sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -38,7 +37,7 @@
         }
 
         /// <summary>
-        /// A helper for <see cref="From<#=pixelType#>(ReadOnlySpan{<#=pixelType#>}, Span{TPixel}, int)"/> that expects a byte span.
+        /// A helper for <see cref="From<#=pixelType#>(ReadOnlySpan{<#=pixelType#>}, Span{TPixel})"/> that expects a byte span.
         /// The layout of the data in 'sourceBytes' must be compatible with <see cref="<#=pixelType#>"/> layout.
         /// </summary>
         /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
@@ -47,7 +46,7 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void From<#=pixelType#>Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
         {
-            this.From<#=pixelType#>(MemoryMarshal.Cast<byte, <#=pixelType#>>(sourceBytes), destPixels, count);
+            this.From<#=pixelType#>(MemoryMarshal.Cast<byte, <#=pixelType#>>(sourceBytes).Slice(0, count), destPixels);
         }
 
 <#
@@ -57,19 +56,18 @@
     {
         #>
         /// <summary>
-        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="<#=pixelType#>"/>-s.
+        /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="<#=pixelType#>"/>-s.
         /// </summary>
         /// <param name="sourcePixels">The span of source pixels</param>
         /// <param name="destPixels">The destination span of <see cref="<#=pixelType#>"/> data.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void To<#=pixelType#>(ReadOnlySpan<TPixel> sourcePixels, Span<<#=pixelType#>> destPixels, int count)
+        internal virtual void To<#=pixelType#>(ReadOnlySpan<TPixel> sourcePixels, Span<<#=pixelType#>> destPixels)
         {
-            GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+            Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
             ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
             ref <#=pixelType#> destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < sourcePixels.Length; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref <#=pixelType#> dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -79,7 +77,7 @@
         }
 
         /// <summary>
-        /// A helper for <see cref="To<#=pixelType#>(ReadOnlySpan{TPixel}, Span{<#=pixelType#>}, int)"/> that expects a byte span as destination.
+        /// A helper for <see cref="To<#=pixelType#>(ReadOnlySpan{TPixel}, Span{<#=pixelType#>})"/> that expects a byte span as destination.
         /// The layout of the data in 'destBytes' must be compatible with <see cref="<#=pixelType#>"/> layout.
         /// </summary>
         /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
@@ -88,7 +86,7 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void To<#=pixelType#>Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.To<#=pixelType#>(sourcePixels, MemoryMarshal.Cast<byte, <#=pixelType#>>(destBytes), count);
+            this.To<#=pixelType#>(sourcePixels.Slice(count), MemoryMarshal.Cast<byte, <#=pixelType#>>(destBytes));
         }
 <#
     }

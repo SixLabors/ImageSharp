@@ -22,31 +22,31 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
 			
 			/// <inheritdoc />
-            internal override void FromGray16(ReadOnlySpan<Gray16> source, Span<Gray16> destPixels, int count)
+            internal override void FromGray16(ReadOnlySpan<Gray16> source, Span<Gray16> destPixels)
             {
-                GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+                Guard.DestinationShouldNotBeTooShort(source, destPixels, nameof(destPixels));
 
-                source.Slice(0, count).CopyTo(destPixels);
+                source.CopyTo(destPixels);
             }
 
             /// <inheritdoc />
-            internal override void ToGray16(ReadOnlySpan<Gray16> sourcePixels, Span<Gray16> destPixels, int count)
+            internal override void ToGray16(ReadOnlySpan<Gray16> sourcePixels, Span<Gray16> destPixels)
             {
-                GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
-                sourcePixels.Slice(0, count).CopyTo(destPixels);
+                sourcePixels.CopyTo(destPixels);
             }
 
 		
 			/// <inheritdoc />
-            internal override void ToArgb32(ReadOnlySpan<Gray16> sourcePixels, Span<Argb32> destPixels, int count)
+            internal override void ToArgb32(ReadOnlySpan<Gray16> sourcePixels, Span<Argb32> destPixels)
             {
-                GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
                 ref Gray16 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref Argb32 destRef = ref MemoryMarshal.GetReference(destPixels);
 
-                for (int i = 0; i < count; i++)
+                for (int i = 0; i < sourcePixels.Length; i++)
                 {
                     ref Gray16 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Argb32 dp = ref Unsafe.Add(ref destRef, i);
@@ -56,14 +56,14 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void ToBgr24(ReadOnlySpan<Gray16> sourcePixels, Span<Bgr24> destPixels, int count)
+            internal override void ToBgr24(ReadOnlySpan<Gray16> sourcePixels, Span<Bgr24> destPixels)
             {
-                GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
                 ref Gray16 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref Bgr24 destRef = ref MemoryMarshal.GetReference(destPixels);
 
-                for (int i = 0; i < count; i++)
+                for (int i = 0; i < sourcePixels.Length; i++)
                 {
                     ref Gray16 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Bgr24 dp = ref Unsafe.Add(ref destRef, i);
@@ -73,14 +73,14 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void ToBgra32(ReadOnlySpan<Gray16> sourcePixels, Span<Bgra32> destPixels, int count)
+            internal override void ToBgra32(ReadOnlySpan<Gray16> sourcePixels, Span<Bgra32> destPixels)
             {
-                GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
                 ref Gray16 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref Bgra32 destRef = ref MemoryMarshal.GetReference(destPixels);
 
-                for (int i = 0; i < count; i++)
+                for (int i = 0; i < sourcePixels.Length; i++)
                 {
                     ref Gray16 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Bgra32 dp = ref Unsafe.Add(ref destRef, i);
@@ -90,14 +90,14 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void ToGray8(ReadOnlySpan<Gray16> sourcePixels, Span<Gray8> destPixels, int count)
+            internal override void ToGray8(ReadOnlySpan<Gray16> sourcePixels, Span<Gray8> destPixels)
             {
-                GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
                 ref Gray16 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref Gray8 destRef = ref MemoryMarshal.GetReference(destPixels);
 
-                for (int i = 0; i < count; i++)
+                for (int i = 0; i < sourcePixels.Length; i++)
                 {
                     ref Gray16 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Gray8 dp = ref Unsafe.Add(ref destRef, i);
@@ -107,14 +107,14 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void ToRgb24(ReadOnlySpan<Gray16> sourcePixels, Span<Rgb24> destPixels, int count)
+            internal override void ToRgb24(ReadOnlySpan<Gray16> sourcePixels, Span<Rgb24> destPixels)
             {
-                GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
                 ref Gray16 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref Rgb24 destRef = ref MemoryMarshal.GetReference(destPixels);
 
-                for (int i = 0; i < count; i++)
+                for (int i = 0; i < sourcePixels.Length; i++)
                 {
                     ref Gray16 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Rgb24 dp = ref Unsafe.Add(ref destRef, i);
@@ -124,14 +124,14 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void ToRgba32(ReadOnlySpan<Gray16> sourcePixels, Span<Rgba32> destPixels, int count)
+            internal override void ToRgba32(ReadOnlySpan<Gray16> sourcePixels, Span<Rgba32> destPixels)
             {
-                GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
                 ref Gray16 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref Rgba32 destRef = ref MemoryMarshal.GetReference(destPixels);
 
-                for (int i = 0; i < count; i++)
+                for (int i = 0; i < sourcePixels.Length; i++)
                 {
                     ref Gray16 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Rgba32 dp = ref Unsafe.Add(ref destRef, i);
@@ -141,14 +141,14 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void ToRgb48(ReadOnlySpan<Gray16> sourcePixels, Span<Rgb48> destPixels, int count)
+            internal override void ToRgb48(ReadOnlySpan<Gray16> sourcePixels, Span<Rgb48> destPixels)
             {
-                GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
                 ref Gray16 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref Rgb48 destRef = ref MemoryMarshal.GetReference(destPixels);
 
-                for (int i = 0; i < count; i++)
+                for (int i = 0; i < sourcePixels.Length; i++)
                 {
                     ref Gray16 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Rgb48 dp = ref Unsafe.Add(ref destRef, i);
@@ -158,14 +158,14 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void ToRgba64(ReadOnlySpan<Gray16> sourcePixels, Span<Rgba64> destPixels, int count)
+            internal override void ToRgba64(ReadOnlySpan<Gray16> sourcePixels, Span<Rgba64> destPixels)
             {
-                GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
                 ref Gray16 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref Rgba64 destRef = ref MemoryMarshal.GetReference(destPixels);
 
-                for (int i = 0; i < count; i++)
+                for (int i = 0; i < sourcePixels.Length; i++)
                 {
                     ref Gray16 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Rgba64 dp = ref Unsafe.Add(ref destRef, i);

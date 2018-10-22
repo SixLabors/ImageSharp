@@ -17,7 +17,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
     [Config(typeof(Config.ShortClr))]
-    public abstract class PackFromVector4<TPixel>
+    public abstract class FromVector4<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         protected IMemoryOwner<Vector4> source;
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         }
     }
 
-    public class PackFromVector4_Rgba32 : PackFromVector4<Rgba32>
+    public class FromVector4Rgba32 : FromVector4<Rgba32>
     {
         [Benchmark]
         public void FallbackIntrinsics128()

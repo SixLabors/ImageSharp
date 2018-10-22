@@ -13,7 +13,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
-    public abstract class PackFromXyzw<TPixel>
+    public abstract class FromRgba32Bytes<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private IMemoryOwner<TPixel> destination;
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         }
     }
 
-    public class PackFromXyzw_Rgba32 : PackFromXyzw<Rgba32>
+    public class FromRgba32BytesRgba32 : FromRgba32Bytes<Rgba32>
     {
     }
 }

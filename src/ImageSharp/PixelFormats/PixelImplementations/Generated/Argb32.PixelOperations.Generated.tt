@@ -1,4 +1,4 @@
-﻿<#@include file="RgbaCompatible.Common.ttinclude" #>
+﻿<#@include file="_Common.ttinclude" #>
 <#@ output extension=".cs" #>
 
 namespace SixLabors.ImageSharp.PixelFormats
@@ -14,15 +14,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal class PixelOperations : PixelOperations<Argb32>
         {
 			<#
-    GenerateDefaultSelfConversionMethods("Argb32");
-    GenerateDefaultConvertToMethod("Argb32", "Bgr24");
-    GenerateDefaultConvertToMethod("Argb32", "Bgra32");
-    GenerateDefaultConvertToMethod("Argb32", "Gray8");
-    GenerateDefaultConvertToMethod("Argb32", "Gray16");
-    GenerateDefaultConvertToMethod("Argb32", "Rgb24");
-    GenerateDefaultConvertToMethod("Argb32", "Rgba32");
-    GenerateDefaultConvertToMethod("Argb32", "Rgb48");
-    GenerateDefaultConvertToMethod("Argb32", "Rgba64");
+    GenerateAllDefaultConversionMethods("Argb32");
 			#>
 
 		}

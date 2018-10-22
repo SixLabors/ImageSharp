@@ -19,7 +19,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         internal class PixelOperations : PixelOperations<Argb32>
         {
-            /// <inheritdoc />
+			
+			/// <inheritdoc />
             internal override void FromArgb32(ReadOnlySpan<Argb32> source, Span<Argb32> destPixels, int count)
             {
                 GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
@@ -35,7 +36,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 sourcePixels.Slice(0, count).CopyTo(destPixels);
             }
 
-			
+		
 			/// <inheritdoc />
             internal override void ToBgr24(ReadOnlySpan<Argb32> sourcePixels, Span<Bgr24> destPixels, int count)
             {

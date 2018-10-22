@@ -86,7 +86,7 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void To<#=pixelType#>Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.To<#=pixelType#>(sourcePixels.Slice(count), MemoryMarshal.Cast<byte, <#=pixelType#>>(destBytes));
+            this.To<#=pixelType#>(sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, <#=pixelType#>>(destBytes));
         }
 <#
     }

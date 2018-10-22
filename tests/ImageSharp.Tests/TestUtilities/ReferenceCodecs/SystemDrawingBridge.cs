@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                         byte* sourcePtr = sourcePtrBase + (data.Stride * y);
 
                         Buffer.MemoryCopy(sourcePtr, destPtr, destRowByteCount, sourceRowByteCount);
-                        PixelOperations<TPixel>.Instance.FromBgr24(workBuffer.GetSpan().Slice(w), row);
+                        PixelOperations<TPixel>.Instance.FromBgr24(workBuffer.GetSpan().Slice(0, w), row);
                     }
                 }
             }

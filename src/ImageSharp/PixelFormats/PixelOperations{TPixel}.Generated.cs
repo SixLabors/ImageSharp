@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ToArgb32Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToArgb32(sourcePixels.Slice(count), MemoryMarshal.Cast<byte, Argb32>(destBytes));
+            this.ToArgb32(sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Argb32>(destBytes));
         }
 
         /// <summary>
@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ToBgr24Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToBgr24(sourcePixels.Slice(count), MemoryMarshal.Cast<byte, Bgr24>(destBytes));
+            this.ToBgr24(sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Bgr24>(destBytes));
         }
 
         /// <summary>
@@ -211,7 +211,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ToBgra32Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToBgra32(sourcePixels.Slice(count), MemoryMarshal.Cast<byte, Bgra32>(destBytes));
+            this.ToBgra32(sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Bgra32>(destBytes));
         }
 
         /// <summary>
@@ -279,7 +279,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ToGray8Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToGray8(sourcePixels.Slice(count), MemoryMarshal.Cast<byte, Gray8>(destBytes));
+            this.ToGray8(sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Gray8>(destBytes));
         }
 
         /// <summary>
@@ -347,7 +347,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ToGray16Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToGray16(sourcePixels.Slice(count), MemoryMarshal.Cast<byte, Gray16>(destBytes));
+            this.ToGray16(sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Gray16>(destBytes));
         }
 
         /// <summary>
@@ -415,7 +415,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ToRgb24Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToRgb24(sourcePixels.Slice(count), MemoryMarshal.Cast<byte, Rgb24>(destBytes));
+            this.ToRgb24(sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Rgb24>(destBytes));
         }
 
         /// <summary>
@@ -483,7 +483,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ToRgba32Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToRgba32(sourcePixels.Slice(count), MemoryMarshal.Cast<byte, Rgba32>(destBytes));
+            this.ToRgba32(sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Rgba32>(destBytes));
         }
 
         /// <summary>
@@ -551,7 +551,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ToRgb48Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToRgb48(sourcePixels.Slice(count), MemoryMarshal.Cast<byte, Rgb48>(destBytes));
+            this.ToRgb48(sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Rgb48>(destBytes));
         }
 
         /// <summary>
@@ -619,7 +619,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ToRgba64Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToRgba64(sourcePixels.Slice(count), MemoryMarshal.Cast<byte, Rgba64>(destBytes));
+            this.ToRgba64(sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Rgba64>(destBytes));
         }
     }
 }

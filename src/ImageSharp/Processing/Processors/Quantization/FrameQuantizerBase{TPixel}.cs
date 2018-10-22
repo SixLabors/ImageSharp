@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public virtual QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image)
         {
             Guard.NotNull(image, nameof(image));
-            
+
             // Get the size of the source image
             int height = image.Height;
             int width = image.Width;

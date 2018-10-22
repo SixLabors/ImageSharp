@@ -448,7 +448,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 {
                     Span<TPixel> row = source.GetPixelRowSpan(y);
                     Span<Rgba32> rgbaSpan = rgbaBuffer.GetSpan();
-                    PixelOperations<TPixel>.Instance.ToRgba32(row, rgbaSpan, source.Width);
+                    PixelOperations<TPixel>.Instance.ToRgba32(row, rgbaSpan);
                     ref Rgba32 scanBaseRef = ref MemoryMarshal.GetReference(rgbaSpan);
 
                     // And loop through each column

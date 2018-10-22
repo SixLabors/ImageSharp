@@ -19,19 +19,19 @@ using System.Runtime.InteropServices;
 		#>
 
 			/// <inheritdoc />
-            internal override void From<#=pixelType#>(ReadOnlySpan<<#=pixelType#>> source, Span<<#=pixelType#>> destPixels, int count)
+            internal override void From<#=pixelType#>(ReadOnlySpan<<#=pixelType#>> source, Span<<#=pixelType#>> destPixels)
             {
-                GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+                Guard.DestinationShouldNotBeTooShort(source, destPixels, nameof(destPixels));
 
-                source.Slice(0, count).CopyTo(destPixels);
+                source.CopyTo(destPixels);
             }
 
             /// <inheritdoc />
-            internal override void To<#=pixelType#>(ReadOnlySpan<<#=pixelType#>> sourcePixels, Span<<#=pixelType#>> destPixels, int count)
+            internal override void To<#=pixelType#>(ReadOnlySpan<<#=pixelType#>> sourcePixels, Span<<#=pixelType#>> destPixels)
             {
-                GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
-                sourcePixels.Slice(0, count).CopyTo(destPixels);
+                sourcePixels.CopyTo(destPixels);
             }
 
 		<#+
@@ -42,14 +42,14 @@ using System.Runtime.InteropServices;
         #>
 
 			/// <inheritdoc />
-            internal override void To<#=toPixelType#>(ReadOnlySpan<<#=fromPixelType#>> sourcePixels, Span<<#=toPixelType#>> destPixels, int count)
+            internal override void To<#=toPixelType#>(ReadOnlySpan<<#=fromPixelType#>> sourcePixels, Span<<#=toPixelType#>> destPixels)
             {
-                GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
                 ref <#=fromPixelType#> sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref <#=toPixelType#> destRef = ref MemoryMarshal.GetReference(destPixels);
 
-                for (int i = 0; i < count; i++)
+                for (int i = 0; i < sourcePixels.Length; i++)
                 {
                     ref <#=fromPixelType#> sp = ref Unsafe.Add(ref sourceRef, i);
                     ref <#=toPixelType#> dp = ref Unsafe.Add(ref destRef, i);

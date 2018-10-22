@@ -327,7 +327,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     {
                         Span<Gray16> luminanceSpan = luminanceBuffer.GetSpan();
                         ref Gray16 luminanceRef = ref MemoryMarshal.GetReference(luminanceSpan);
-                        PixelOperations<TPixel>.Instance.ToGray16(rowSpan, luminanceSpan, rowSpan.Length);
+                        PixelOperations<TPixel>.Instance.ToGray16(rowSpan, luminanceSpan);
 
                         // Can't map directly to byte array as it's big endian.
                         for (int x = 0, o = 0; x < luminanceSpan.Length; x++, o += 2)
@@ -370,7 +370,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     {
                         Span<Rgba64> rgbaSpan = rgbaBuffer.GetSpan();
                         ref Rgba64 rgbaRef = ref MemoryMarshal.GetReference(rgbaSpan);
-                        PixelOperations<TPixel>.Instance.ToRgba64(rowSpan, rgbaSpan, rowSpan.Length);
+                        PixelOperations<TPixel>.Instance.ToRgba64(rowSpan, rgbaSpan);
 
                         // Can't map directly to byte array as it's big endian.
                         for (int x = 0, o = 0; x < rgbaSpan.Length; x++, o += 4)
@@ -430,7 +430,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         {
                             Span<Rgba64> rgbaSpan = rgbaBuffer.GetSpan();
                             ref Rgba64 rgbaRef = ref MemoryMarshal.GetReference(rgbaSpan);
-                            PixelOperations<TPixel>.Instance.ToRgba64(rowSpan, rgbaSpan, rowSpan.Length);
+                            PixelOperations<TPixel>.Instance.ToRgba64(rowSpan, rgbaSpan);
 
                             // Can't map directly to byte array as it's big endian.
                             for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 8)
@@ -453,7 +453,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         {
                             Span<Rgb48> rgbSpan = rgbBuffer.GetSpan();
                             ref Rgb48 rgbRef = ref MemoryMarshal.GetReference(rgbSpan);
-                            PixelOperations<TPixel>.Instance.ToRgb48(rowSpan, rgbSpan, rowSpan.Length);
+                            PixelOperations<TPixel>.Instance.ToRgb48(rowSpan, rgbSpan);
 
                             // Can't map directly to byte array as it's big endian.
                             for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 6)

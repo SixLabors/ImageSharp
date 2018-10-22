@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
     /// On-stack worker struct to efficiently encapsulate the TPixel -> Rgb24 -> YCbCr conversion chain of 8x8 pixel blocks.
     /// </summary>
     /// <typeparam name="TPixel">The pixel type to work on</typeparam>
-    internal struct YCbCrForwardConverter<TPixel>
+    internal ref struct YCbCrForwardConverter<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.pixelBlock.LoadAndStretchEdges(pixels, x, y);
 
             Span<Rgb24> rgbSpan = this.rgbBlock.AsSpanUnsafe();
-            PixelOperations<TPixel>.Instance.ToRgb24(this.pixelBlock.AsSpanUnsafe(), rgbSpan, 64);
+            PixelOperations<TPixel>.Instance.ToRgb24(this.pixelBlock.AsSpanUnsafe(), rgbSpan);
 
             ref float yBlockStart = ref Unsafe.As<Block8x8F, float>(ref this.Y);
             ref float cbBlockStart = ref Unsafe.As<Block8x8F, float>(ref this.Cb);

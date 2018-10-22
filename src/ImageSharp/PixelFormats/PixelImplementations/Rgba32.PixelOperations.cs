@@ -19,13 +19,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal partial class PixelOperations : PixelOperations<Rgba32>
         {
             /// <inheritdoc />
-            internal override void ToVector4(ReadOnlySpan<Rgba32> sourceColors, Span<Vector4> destinationVectors, int count)
+            internal override void ToVector4(ReadOnlySpan<Rgba32> sourceColors, Span<Vector4> destinationVectors)
             {
-                Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
-                Guard.MustBeSizedAtLeast(destinationVectors, count, nameof(destinationVectors));
+                Guard.DestinationShouldNotBeTooShort(sourceColors, destinationVectors, nameof(destinationVectors));
 
-                sourceColors = sourceColors.Slice(0, count);
-                destinationVectors = destinationVectors.Slice(0, count);
+                destinationVectors = destinationVectors.Slice(0, sourceColors.Length);
 
                 SimdUtils.BulkConvertByteToNormalizedFloat(
                     MemoryMarshal.Cast<Rgba32, byte>(sourceColors),
@@ -33,12 +31,11 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void FromVector4(ReadOnlySpan<Vector4> sourceVectors, Span<Rgba32> destinationColors, int count)
+            internal override void FromVector4(ReadOnlySpan<Vector4> sourceVectors, Span<Rgba32> destinationColors)
             {
-                GuardSpans(sourceVectors, nameof(sourceVectors), destinationColors, nameof(destinationColors), count);
+                Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationColors, nameof(destinationColors));
 
-                sourceVectors = sourceVectors.Slice(0, count);
-                destinationColors = destinationColors.Slice(0, count);
+                destinationColors = destinationColors.Slice(0, sourceVectors.Length);
 
                 SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(
                     MemoryMarshal.Cast<Vector4, float>(sourceVectors),
@@ -46,15 +43,17 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void ToScaledVector4(ReadOnlySpan<Rgba32> sourceColors, Span<Vector4> destinationVectors, int count)
+            internal override void ToScaledVector4(ReadOnlySpan<Rgba32> sourceColors, Span<Vector4> destinationVectors)
             {
-                this.ToVector4(sourceColors, destinationVectors, count);
+                this.ToVector4(sourceColors, destinationVectors);
             }
 
             /// <inheritdoc />
-            internal override void FromScaledVector4(ReadOnlySpan<Vector4> sourceVectors, Span<Rgba32> destinationColors, int count)
+            internal override void FromScaledVector4(
+                ReadOnlySpan<Vector4> sourceVectors,
+                Span<Rgba32> destinationColors)
             {
-                this.FromVector4(sourceVectors, destinationColors, count);
+                this.FromVector4(sourceVectors, destinationColors);
             }
         }
     }

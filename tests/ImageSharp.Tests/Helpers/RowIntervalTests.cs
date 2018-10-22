@@ -2,7 +2,6 @@
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Memory;
-using SixLabors.Memory;
 
 using Xunit;
 

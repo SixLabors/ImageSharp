@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             ulong expected = 0x7FFF7FFF7FFF7FFF;
 
             // act 
-            pixel.PackFromScaledVector4(scaled);
+            pixel.FromScaledVector4(scaled);
             ulong actual = pixel.PackedValue;
 
             // assert

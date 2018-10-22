@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             
             for (int i = 0; i < this.Count; i++)
             {
-                Unsafe.Add(ref d, i).PackFromVector4(Unsafe.Add(ref s, i));
+                Unsafe.Add(ref d, i).FromVector4(Unsafe.Add(ref s, i));
             }
         }
 

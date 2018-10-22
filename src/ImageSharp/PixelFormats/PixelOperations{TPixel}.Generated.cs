@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref Argb32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.PackFromArgb32(sp);
+                dp.FromArgb32(sp);
             }
         }
 
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref Argb32 dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.PackFromScaledVector4(sp.ToScaledVector4());
+                dp.FromScaledVector4(sp.ToScaledVector4());
             }
         }
 
@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref Bgr24 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.PackFromBgr24(sp);
+                dp.FromBgr24(sp);
             }
         }
 
@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref Bgr24 dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.PackFromScaledVector4(sp.ToScaledVector4());
+                dp.FromScaledVector4(sp.ToScaledVector4());
             }
         }
 
@@ -168,7 +168,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref Bgra32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.PackFromBgra32(sp);
+                dp.FromBgra32(sp);
             }
         }
 
@@ -203,7 +203,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref Bgra32 dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.PackFromScaledVector4(sp.ToScaledVector4());
+                dp.FromScaledVector4(sp.ToScaledVector4());
             }
         }
 
@@ -238,7 +238,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref Gray8 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.PackFromGray8(sp);
+                dp.FromGray8(sp);
             }
         }
 
@@ -273,7 +273,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref Gray8 dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.PackFromScaledVector4(sp.ToScaledVector4());
+                dp.FromScaledVector4(sp.ToScaledVector4());
             }
         }
 
@@ -308,7 +308,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref Gray16 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.PackFromGray16(sp);
+                dp.FromGray16(sp);
             }
         }
 
@@ -343,7 +343,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref Gray16 dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.PackFromScaledVector4(sp.ToScaledVector4());
+                dp.FromScaledVector4(sp.ToScaledVector4());
             }
         }
 
@@ -378,7 +378,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref Rgb24 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.PackFromRgb24(sp);
+                dp.FromRgb24(sp);
             }
         }
 
@@ -413,7 +413,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref Rgb24 dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.PackFromScaledVector4(sp.ToScaledVector4());
+                dp.FromScaledVector4(sp.ToScaledVector4());
             }
         }
 
@@ -448,7 +448,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref Rgba32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.PackFromRgba32(sp);
+                dp.FromRgba32(sp);
             }
         }
 
@@ -483,7 +483,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref Rgba32 dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.PackFromScaledVector4(sp.ToScaledVector4());
+                dp.FromScaledVector4(sp.ToScaledVector4());
             }
         }
 
@@ -518,7 +518,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref Rgb48 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.PackFromRgb48(sp);
+                dp.FromRgb48(sp);
             }
         }
 
@@ -553,7 +553,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref Rgb48 dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.PackFromScaledVector4(sp.ToScaledVector4());
+                dp.FromScaledVector4(sp.ToScaledVector4());
             }
         }
 
@@ -588,7 +588,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref Rgba64 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.PackFromRgba64(sp);
+                dp.FromRgba64(sp);
             }
         }
 
@@ -623,7 +623,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref Rgba64 dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.PackFromScaledVector4(sp.ToScaledVector4());
+                dp.FromScaledVector4(sp.ToScaledVector4());
             }
         }
 

@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
                         var v = new Vector4(val, val, val, 1);
                         Rgba32 color = default;
-                        color.PackFromVector4(v);
+                        color.FromVector4(v);
 
                         int yy = by * 8 + y;
                         int xx = bx * 8 + x;

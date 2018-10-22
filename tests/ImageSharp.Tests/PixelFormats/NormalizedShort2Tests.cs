@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             uint expected = 0x80018001;
 
             // act
-            short2.PackFromScaledVector4(scaled);
+            short2.FromScaledVector4(scaled);
             uint actual = short2.PackedValue;
 
             // assert

@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Vector4 scaled = new Gray8(expected).ToScaledVector4();
 
             // Act
-            gray.PackFromScaledVector4(scaled);
+            gray.FromScaledVector4(scaled);
             byte actual = gray.PackedValue;
 
             // Assert
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var vector = new Gray8(expected).ToVector4();
 
             // Act
-            gray.PackFromVector4(vector);
+            gray.FromVector4(vector);
             byte actual = gray.PackedValue;
 
             // Assert
@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             byte expected = ImageMaths.Get8BitBT709Luminance(rgb, rgb, rgb);
 
             // Act
-            gray.PackFromRgba32(new Rgba32(rgb, rgb, rgb));
+            gray.FromRgba32(new Rgba32(rgb, rgb, rgb));
             byte actual = gray.PackedValue;
 
             // Assert

@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests
                     v /= 10;
 
                     var color = default(TPixel);
-                    color.PackFromVector4(v);
+                    color.FromVector4(v);
 
                     pixels[i, j] = color;
                 }

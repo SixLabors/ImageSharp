@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests.Issues
 
             // Test PackFromScaledVector4.
             var pixel = default(NormalizedByte4);
-            pixel.PackFromScaledVector4(scaled);
+            pixel.FromScaledVector4(scaled);
             Assert.Equal(0x81818181, pixel.PackedValue);
 
             // Test Ordering
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.Issues
             float w = -0.7f;
             Assert.Equal(0xA740DA0D, new NormalizedByte4(x, y, z, w).PackedValue);
             var n = default(NormalizedByte4);
-            n.PackFromRgba32(new Rgba32(141, 90, 192, 39));
+            n.FromRgba32(new Rgba32(141, 90, 192, 39));
             Assert.Equal(0xA740DA0D, n.PackedValue);
 
             Assert.Equal((uint)958796544, new NormalizedByte4(0.0008f, 0.15f, 0.30f, 0.45f).PackedValue);
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Tests.Issues
 
             // Test PackFromScaledVector4.
             var pixel = default(NormalizedShort4);
-            pixel.PackFromScaledVector4(scaled);
+            pixel.FromScaledVector4(scaled);
             Assert.Equal((ulong)0x7FFF7FFF7FFF7FFF, pixel.PackedValue);
 
             // Test Ordering
@@ -192,7 +192,7 @@ namespace SixLabors.ImageSharp.Tests.Issues
 
             // Test PackFromScaledVector4.
             var pixel = default(Short4);
-            pixel.PackFromScaledVector4(scaled);
+            pixel.FromScaledVector4(scaled);
             Assert.Equal((ulong)0x7FFF7FFF7FFF7FFF, pixel.PackedValue);
 
             // Test clamping.

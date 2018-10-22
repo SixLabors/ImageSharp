@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Vector4 scaled = new Gray16(expected).ToScaledVector4();
 
             // Act
-            gray.PackFromScaledVector4(scaled);
+            gray.FromScaledVector4(scaled);
             ushort actual = gray.PackedValue;
 
             // Assert
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var vector = new Gray16(expected).ToVector4();
 
             // Act
-            gray.PackFromVector4(vector);
+            gray.FromVector4(vector);
             ushort actual = gray.PackedValue;
 
             // Assert
@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             ushort expected = ImageMaths.Get16BitBT709Luminance(scaledRgb, scaledRgb, scaledRgb);
 
             // Act
-            gray.PackFromRgba32(new Rgba32(rgb, rgb, rgb));
+            gray.FromRgba32(new Rgba32(rgb, rgb, rgb));
             ushort actual = gray.PackedValue;
 
             // Assert

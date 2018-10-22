@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static PixelOperations<TPixel> Instance { get; } = default(TPixel).CreatePixelOperations();
 
         /// <summary>
-        /// Bulk version of <see cref="IPixel.PackFromVector4(Vector4)"/>
+        /// Bulk version of <see cref="IPixel.FromVector4"/>
         /// </summary>
         /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
         /// <param name="destinationColors">The <see cref="Span{T}"/> to the destination colors.</param>
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             {
                 ref Vector4 sp = ref Unsafe.Add(ref sourceRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                dp.PackFromVector4(sp);
+                dp.FromVector4(sp);
             }
         }
 
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Bulk version of <see cref="IPixel.PackFromScaledVector4(Vector4)"/>
+        /// Bulk version of <see cref="IPixel.FromScaledVector4"/>
         /// </summary>
         /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
         /// <param name="destinationColors">The <see cref="Span{T}"/> to the destination colors.</param>
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             {
                 ref Vector4 sp = ref Unsafe.Add(ref sourceRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                dp.PackFromScaledVector4(sp);
+                dp.FromScaledVector4(sp);
             }
         }
 
@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
                 ref TPixel2 dp = ref Unsafe.Add(ref destRef, i);
-                dp.PackFromScaledVector4(sp.ToScaledVector4());
+                dp.FromScaledVector4(sp.ToScaledVector4());
             }
         }
 

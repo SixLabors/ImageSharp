@@ -72,11 +72,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromScaledVector4(Vector4 vector)
+        public void FromScaledVector4(Vector4 vector)
         {
             vector *= 65534F;
             vector -= new Vector4(32767F);
-            this.PackFromVector4(vector);
+            this.FromVector4(vector);
         }
 
         /// <inheritdoc/>
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromVector4(Vector4 vector) => this.PackedValue = Pack(ref vector);
+        public void FromVector4(Vector4 vector) => this.PackedValue = Pack(ref vector);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -106,46 +106,46 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromArgb32(Argb32 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+        public void FromArgb32(Argb32 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromBgr24(Bgr24 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+        public void FromBgr24(Bgr24 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromBgra32(Bgra32 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+        public void FromBgra32(Bgra32 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromGray8(Gray8 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+        public void FromGray8(Gray8 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromGray16(Gray16 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+        public void FromGray16(Gray16 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgb24(Rgb24 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+        public void FromRgb24(Rgb24 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgba32(Rgba32 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+        public void FromRgba32(Rgba32 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
         public void ToRgba32(ref Rgba32 dest)
         {
-            dest.PackFromScaledVector4(this.ToScaledVector4());
+            dest.FromScaledVector4(this.ToScaledVector4());
         }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgb48(Rgb48 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+        public void FromRgb48(Rgb48 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgba64(Rgba64 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+        public void FromRgba64(Rgba64 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
         public override bool Equals(object obj) => obj is Short4 other && this.Equals(other);

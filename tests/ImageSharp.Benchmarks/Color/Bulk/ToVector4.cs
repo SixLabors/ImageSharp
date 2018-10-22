@@ -10,10 +10,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Attributes.Jobs;
-using BenchmarkDotNet.Configs;
-using BenchmarkDotNet.Environments;
-using BenchmarkDotNet.Jobs;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -27,20 +23,21 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
         protected IMemoryOwner<Vector4> destination;
 
+        protected Configuration Configuration => Configuration.Default;
+
         [Params(
-            64, 
+            64,
             //256,
             //512,
             //1024,
-            2048
-            )]
+            2048)]
         public int Count { get; set; }
 
         [GlobalSetup]
         public void Setup()
         {
-            this.source = Configuration.Default.MemoryAllocator.Allocate<TPixel>(this.Count);
-            this.destination = Configuration.Default.MemoryAllocator.Allocate<Vector4>(this.Count);
+            this.source = this.Configuration.MemoryAllocator.Allocate<TPixel>(this.Count);
+            this.destination = this.Configuration.MemoryAllocator.Allocate<Vector4>(this.Count);
         }
 
         [GlobalCleanup]
@@ -65,13 +62,19 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [Benchmark]
         public void PixelOperations_Base()
         {
-            new PixelOperations<TPixel>().ToVector4(this.source.GetSpan(), this.destination.GetSpan());
+            new PixelOperations<TPixel>().ToVector4(
+                this.Configuration,
+                this.source.GetSpan(),
+                this.destination.GetSpan());
         }
 
         [Benchmark]
         public void PixelOperations_Specialized()
         {
-            PixelOperations<TPixel>.Instance.ToVector4(this.source.GetSpan(), this.destination.GetSpan());
+            PixelOperations<TPixel>.Instance.ToVector4(
+                this.Configuration,
+                this.source.GetSpan(),
+                this.destination.GetSpan());
         }
     }
 

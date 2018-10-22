@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static PixelOperations<TPixel> Instance { get; } = default(TPixel).CreatePixelOperations();
 
         /// <summary>
-        /// Bulk version of <see cref="IPixel.FromVector4"/>
+        /// Bulk version of <see cref="IPixel.FromVector4"/> converting 'sourceVectors.Length' pixels into 'destinationColors'.
         /// </summary>
         /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
         /// <param name="destinationColors">The <see cref="Span{T}"/> to the destination colors.</param>
@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Bulk version of <see cref="IPixel.ToVector4()"/>.
+        /// Bulk version of <see cref="IPixel.ToVector4()"/> converting 'sourceColors.Length' pixels into 'destinationVectors'.
         /// </summary>
         /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
         /// <param name="destinationVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Bulk version of <see cref="IPixel.FromScaledVector4"/>
+        /// Bulk version of <see cref="IPixel.FromScaledVector4"/> converting 'sourceVectors.Length' pixels into 'destinationColors'.
         /// </summary>
         /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
         /// <param name="destinationColors">The <see cref="Span{T}"/> to the destination colors.</param>
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Bulk version of <see cref="IPixel.ToScaledVector4()"/>.
+        /// Bulk version of <see cref="IPixel.ToScaledVector4()"/> converting 'sourceColors.Length' pixels into 'destinationVectors'.
         /// </summary>
         /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
         /// <param name="destinationVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
@@ -102,17 +102,19 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Performs a bulk conversion of a collection of one pixel format into another.
+        /// Converts 'sourceColors.Length' pixels from 'sourceColors' into 'destinationColors'.
         /// </summary>
-        /// <typeparam name="TDestinationPixel">The pixel format.</typeparam>
+        /// <typeparam name="TDestinationPixel">The destination pixel type.</typeparam>
         /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
         /// <param name="destinationColors">The <see cref="Span{T}"/> to the destination colors.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void To<TDestinationPixel>(ReadOnlySpan<TPixel> sourceColors, Span<TDestinationPixel> destinationColors, int count)
+        internal virtual void To<TDestinationPixel>(
+            ReadOnlySpan<TPixel> sourceColors,
+            Span<TDestinationPixel> destinationColors)
             where TDestinationPixel : struct, IPixel<TDestinationPixel>
         {
-            GuardSpans(sourceColors, nameof(sourceColors), destinationColors, nameof(destinationColors), count);
+            Guard.DestinationShouldNotBeTooShort(sourceColors, destinationColors, nameof(destinationColors));
 
+            int count = sourceColors.Length;
             ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourceColors);
 
             // Gray8 and Gray16 are special implementations of IPixel in that they do not conform to the

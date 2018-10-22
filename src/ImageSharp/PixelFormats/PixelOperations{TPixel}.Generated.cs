@@ -11,19 +11,18 @@ namespace SixLabors.ImageSharp.PixelFormats
     public partial class PixelOperations<TPixel>
     {
         /// <summary>
-        /// Converts 'count' elements in 'source` span of <see cref="Argb32"/> data to a span of <typeparamref name="TPixel"/>-s.
+        /// Converts all pixels in 'source` span of <see cref="Argb32"/> into a span of <typeparamref name="TPixel"/>-s.
         /// </summary>
         /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Argb32"/> data.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void FromArgb32(ReadOnlySpan<Argb32> source, Span<TPixel> destPixels, int count)
+        internal virtual void FromArgb32(ReadOnlySpan<Argb32> source, Span<TPixel> destPixels)
         {
-            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+            Guard.DestinationShouldNotBeTooShort(source, destPixels, nameof(destPixels));
             
             ref Argb32 sourceBaseRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < source.Length; i++)
             {
                 ref Argb32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -33,7 +32,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// A helper for <see cref="FromArgb32(ReadOnlySpan{Argb32}, Span{TPixel}, int)"/> that expects a byte span.
+        /// A helper for <see cref="FromArgb32(ReadOnlySpan{Argb32}, Span{TPixel})"/> that expects a byte span.
         /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Argb32"/> layout.
         /// </summary>
         /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
@@ -42,23 +41,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void FromArgb32Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
         {
-            this.FromArgb32(MemoryMarshal.Cast<byte, Argb32>(sourceBytes), destPixels, count);
+            this.FromArgb32(MemoryMarshal.Cast<byte, Argb32>(sourceBytes).Slice(0, count), destPixels);
         }
 
         /// <summary>
-        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Argb32"/>-s.
+        /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Argb32"/>-s.
         /// </summary>
         /// <param name="sourcePixels">The span of source pixels</param>
         /// <param name="destPixels">The destination span of <see cref="Argb32"/> data.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToArgb32(ReadOnlySpan<TPixel> sourcePixels, Span<Argb32> destPixels, int count)
+        internal virtual void ToArgb32(ReadOnlySpan<TPixel> sourcePixels, Span<Argb32> destPixels)
         {
-            GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+            Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
             ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
             ref Argb32 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < sourcePixels.Length; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref Argb32 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -68,7 +66,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// A helper for <see cref="ToArgb32(ReadOnlySpan{TPixel}, Span{Argb32}, int)"/> that expects a byte span as destination.
+        /// A helper for <see cref="ToArgb32(ReadOnlySpan{TPixel}, Span{Argb32})"/> that expects a byte span as destination.
         /// The layout of the data in 'destBytes' must be compatible with <see cref="Argb32"/> layout.
         /// </summary>
         /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
@@ -77,23 +75,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ToArgb32Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToArgb32(sourcePixels, MemoryMarshal.Cast<byte, Argb32>(destBytes), count);
+            this.ToArgb32(sourcePixels.Slice(count), MemoryMarshal.Cast<byte, Argb32>(destBytes));
         }
 
         /// <summary>
-        /// Converts 'count' elements in 'source` span of <see cref="Bgr24"/> data to a span of <typeparamref name="TPixel"/>-s.
+        /// Converts all pixels in 'source` span of <see cref="Bgr24"/> into a span of <typeparamref name="TPixel"/>-s.
         /// </summary>
         /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Bgr24"/> data.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void FromBgr24(ReadOnlySpan<Bgr24> source, Span<TPixel> destPixels, int count)
+        internal virtual void FromBgr24(ReadOnlySpan<Bgr24> source, Span<TPixel> destPixels)
         {
-            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+            Guard.DestinationShouldNotBeTooShort(source, destPixels, nameof(destPixels));
             
             ref Bgr24 sourceBaseRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < source.Length; i++)
             {
                 ref Bgr24 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -103,7 +100,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// A helper for <see cref="FromBgr24(ReadOnlySpan{Bgr24}, Span{TPixel}, int)"/> that expects a byte span.
+        /// A helper for <see cref="FromBgr24(ReadOnlySpan{Bgr24}, Span{TPixel})"/> that expects a byte span.
         /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Bgr24"/> layout.
         /// </summary>
         /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
@@ -112,23 +109,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void FromBgr24Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
         {
-            this.FromBgr24(MemoryMarshal.Cast<byte, Bgr24>(sourceBytes), destPixels, count);
+            this.FromBgr24(MemoryMarshal.Cast<byte, Bgr24>(sourceBytes).Slice(0, count), destPixels);
         }
 
         /// <summary>
-        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Bgr24"/>-s.
+        /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Bgr24"/>-s.
         /// </summary>
         /// <param name="sourcePixels">The span of source pixels</param>
         /// <param name="destPixels">The destination span of <see cref="Bgr24"/> data.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToBgr24(ReadOnlySpan<TPixel> sourcePixels, Span<Bgr24> destPixels, int count)
+        internal virtual void ToBgr24(ReadOnlySpan<TPixel> sourcePixels, Span<Bgr24> destPixels)
         {
-            GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+            Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
             ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
             ref Bgr24 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < sourcePixels.Length; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref Bgr24 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -138,7 +134,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// A helper for <see cref="ToBgr24(ReadOnlySpan{TPixel}, Span{Bgr24}, int)"/> that expects a byte span as destination.
+        /// A helper for <see cref="ToBgr24(ReadOnlySpan{TPixel}, Span{Bgr24})"/> that expects a byte span as destination.
         /// The layout of the data in 'destBytes' must be compatible with <see cref="Bgr24"/> layout.
         /// </summary>
         /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
@@ -147,23 +143,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ToBgr24Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToBgr24(sourcePixels, MemoryMarshal.Cast<byte, Bgr24>(destBytes), count);
+            this.ToBgr24(sourcePixels.Slice(count), MemoryMarshal.Cast<byte, Bgr24>(destBytes));
         }
 
         /// <summary>
-        /// Converts 'count' elements in 'source` span of <see cref="Bgra32"/> data to a span of <typeparamref name="TPixel"/>-s.
+        /// Converts all pixels in 'source` span of <see cref="Bgra32"/> into a span of <typeparamref name="TPixel"/>-s.
         /// </summary>
         /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Bgra32"/> data.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void FromBgra32(ReadOnlySpan<Bgra32> source, Span<TPixel> destPixels, int count)
+        internal virtual void FromBgra32(ReadOnlySpan<Bgra32> source, Span<TPixel> destPixels)
         {
-            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+            Guard.DestinationShouldNotBeTooShort(source, destPixels, nameof(destPixels));
             
             ref Bgra32 sourceBaseRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < source.Length; i++)
             {
                 ref Bgra32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -173,7 +168,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// A helper for <see cref="FromBgra32(ReadOnlySpan{Bgra32}, Span{TPixel}, int)"/> that expects a byte span.
+        /// A helper for <see cref="FromBgra32(ReadOnlySpan{Bgra32}, Span{TPixel})"/> that expects a byte span.
         /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Bgra32"/> layout.
         /// </summary>
         /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
@@ -182,23 +177,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void FromBgra32Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
         {
-            this.FromBgra32(MemoryMarshal.Cast<byte, Bgra32>(sourceBytes), destPixels, count);
+            this.FromBgra32(MemoryMarshal.Cast<byte, Bgra32>(sourceBytes).Slice(0, count), destPixels);
         }
 
         /// <summary>
-        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Bgra32"/>-s.
+        /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Bgra32"/>-s.
         /// </summary>
         /// <param name="sourcePixels">The span of source pixels</param>
         /// <param name="destPixels">The destination span of <see cref="Bgra32"/> data.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToBgra32(ReadOnlySpan<TPixel> sourcePixels, Span<Bgra32> destPixels, int count)
+        internal virtual void ToBgra32(ReadOnlySpan<TPixel> sourcePixels, Span<Bgra32> destPixels)
         {
-            GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+            Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
             ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
             ref Bgra32 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < sourcePixels.Length; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref Bgra32 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -208,7 +202,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// A helper for <see cref="ToBgra32(ReadOnlySpan{TPixel}, Span{Bgra32}, int)"/> that expects a byte span as destination.
+        /// A helper for <see cref="ToBgra32(ReadOnlySpan{TPixel}, Span{Bgra32})"/> that expects a byte span as destination.
         /// The layout of the data in 'destBytes' must be compatible with <see cref="Bgra32"/> layout.
         /// </summary>
         /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
@@ -217,23 +211,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ToBgra32Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToBgra32(sourcePixels, MemoryMarshal.Cast<byte, Bgra32>(destBytes), count);
+            this.ToBgra32(sourcePixels.Slice(count), MemoryMarshal.Cast<byte, Bgra32>(destBytes));
         }
 
         /// <summary>
-        /// Converts 'count' elements in 'source` span of <see cref="Gray8"/> data to a span of <typeparamref name="TPixel"/>-s.
+        /// Converts all pixels in 'source` span of <see cref="Gray8"/> into a span of <typeparamref name="TPixel"/>-s.
         /// </summary>
         /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Gray8"/> data.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void FromGray8(ReadOnlySpan<Gray8> source, Span<TPixel> destPixels, int count)
+        internal virtual void FromGray8(ReadOnlySpan<Gray8> source, Span<TPixel> destPixels)
         {
-            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+            Guard.DestinationShouldNotBeTooShort(source, destPixels, nameof(destPixels));
             
             ref Gray8 sourceBaseRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < source.Length; i++)
             {
                 ref Gray8 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -243,7 +236,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// A helper for <see cref="FromGray8(ReadOnlySpan{Gray8}, Span{TPixel}, int)"/> that expects a byte span.
+        /// A helper for <see cref="FromGray8(ReadOnlySpan{Gray8}, Span{TPixel})"/> that expects a byte span.
         /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Gray8"/> layout.
         /// </summary>
         /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
@@ -252,23 +245,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void FromGray8Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
         {
-            this.FromGray8(MemoryMarshal.Cast<byte, Gray8>(sourceBytes), destPixels, count);
+            this.FromGray8(MemoryMarshal.Cast<byte, Gray8>(sourceBytes).Slice(0, count), destPixels);
         }
 
         /// <summary>
-        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Gray8"/>-s.
+        /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Gray8"/>-s.
         /// </summary>
         /// <param name="sourcePixels">The span of source pixels</param>
         /// <param name="destPixels">The destination span of <see cref="Gray8"/> data.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToGray8(ReadOnlySpan<TPixel> sourcePixels, Span<Gray8> destPixels, int count)
+        internal virtual void ToGray8(ReadOnlySpan<TPixel> sourcePixels, Span<Gray8> destPixels)
         {
-            GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+            Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
             ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
             ref Gray8 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < sourcePixels.Length; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref Gray8 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -278,7 +270,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// A helper for <see cref="ToGray8(ReadOnlySpan{TPixel}, Span{Gray8}, int)"/> that expects a byte span as destination.
+        /// A helper for <see cref="ToGray8(ReadOnlySpan{TPixel}, Span{Gray8})"/> that expects a byte span as destination.
         /// The layout of the data in 'destBytes' must be compatible with <see cref="Gray8"/> layout.
         /// </summary>
         /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
@@ -287,23 +279,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ToGray8Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToGray8(sourcePixels, MemoryMarshal.Cast<byte, Gray8>(destBytes), count);
+            this.ToGray8(sourcePixels.Slice(count), MemoryMarshal.Cast<byte, Gray8>(destBytes));
         }
 
         /// <summary>
-        /// Converts 'count' elements in 'source` span of <see cref="Gray16"/> data to a span of <typeparamref name="TPixel"/>-s.
+        /// Converts all pixels in 'source` span of <see cref="Gray16"/> into a span of <typeparamref name="TPixel"/>-s.
         /// </summary>
         /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Gray16"/> data.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void FromGray16(ReadOnlySpan<Gray16> source, Span<TPixel> destPixels, int count)
+        internal virtual void FromGray16(ReadOnlySpan<Gray16> source, Span<TPixel> destPixels)
         {
-            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+            Guard.DestinationShouldNotBeTooShort(source, destPixels, nameof(destPixels));
             
             ref Gray16 sourceBaseRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < source.Length; i++)
             {
                 ref Gray16 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -313,7 +304,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// A helper for <see cref="FromGray16(ReadOnlySpan{Gray16}, Span{TPixel}, int)"/> that expects a byte span.
+        /// A helper for <see cref="FromGray16(ReadOnlySpan{Gray16}, Span{TPixel})"/> that expects a byte span.
         /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Gray16"/> layout.
         /// </summary>
         /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
@@ -322,23 +313,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void FromGray16Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
         {
-            this.FromGray16(MemoryMarshal.Cast<byte, Gray16>(sourceBytes), destPixels, count);
+            this.FromGray16(MemoryMarshal.Cast<byte, Gray16>(sourceBytes).Slice(0, count), destPixels);
         }
 
         /// <summary>
-        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Gray16"/>-s.
+        /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Gray16"/>-s.
         /// </summary>
         /// <param name="sourcePixels">The span of source pixels</param>
         /// <param name="destPixels">The destination span of <see cref="Gray16"/> data.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToGray16(ReadOnlySpan<TPixel> sourcePixels, Span<Gray16> destPixels, int count)
+        internal virtual void ToGray16(ReadOnlySpan<TPixel> sourcePixels, Span<Gray16> destPixels)
         {
-            GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+            Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
             ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
             ref Gray16 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < sourcePixels.Length; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref Gray16 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -348,7 +338,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// A helper for <see cref="ToGray16(ReadOnlySpan{TPixel}, Span{Gray16}, int)"/> that expects a byte span as destination.
+        /// A helper for <see cref="ToGray16(ReadOnlySpan{TPixel}, Span{Gray16})"/> that expects a byte span as destination.
         /// The layout of the data in 'destBytes' must be compatible with <see cref="Gray16"/> layout.
         /// </summary>
         /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
@@ -357,23 +347,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ToGray16Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToGray16(sourcePixels, MemoryMarshal.Cast<byte, Gray16>(destBytes), count);
+            this.ToGray16(sourcePixels.Slice(count), MemoryMarshal.Cast<byte, Gray16>(destBytes));
         }
 
         /// <summary>
-        /// Converts 'count' elements in 'source` span of <see cref="Rgb24"/> data to a span of <typeparamref name="TPixel"/>-s.
+        /// Converts all pixels in 'source` span of <see cref="Rgb24"/> into a span of <typeparamref name="TPixel"/>-s.
         /// </summary>
         /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Rgb24"/> data.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void FromRgb24(ReadOnlySpan<Rgb24> source, Span<TPixel> destPixels, int count)
+        internal virtual void FromRgb24(ReadOnlySpan<Rgb24> source, Span<TPixel> destPixels)
         {
-            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+            Guard.DestinationShouldNotBeTooShort(source, destPixels, nameof(destPixels));
             
             ref Rgb24 sourceBaseRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < source.Length; i++)
             {
                 ref Rgb24 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -383,7 +372,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// A helper for <see cref="FromRgb24(ReadOnlySpan{Rgb24}, Span{TPixel}, int)"/> that expects a byte span.
+        /// A helper for <see cref="FromRgb24(ReadOnlySpan{Rgb24}, Span{TPixel})"/> that expects a byte span.
         /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Rgb24"/> layout.
         /// </summary>
         /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
@@ -392,23 +381,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void FromRgb24Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
         {
-            this.FromRgb24(MemoryMarshal.Cast<byte, Rgb24>(sourceBytes), destPixels, count);
+            this.FromRgb24(MemoryMarshal.Cast<byte, Rgb24>(sourceBytes).Slice(0, count), destPixels);
         }
 
         /// <summary>
-        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Rgb24"/>-s.
+        /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Rgb24"/>-s.
         /// </summary>
         /// <param name="sourcePixels">The span of source pixels</param>
         /// <param name="destPixels">The destination span of <see cref="Rgb24"/> data.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToRgb24(ReadOnlySpan<TPixel> sourcePixels, Span<Rgb24> destPixels, int count)
+        internal virtual void ToRgb24(ReadOnlySpan<TPixel> sourcePixels, Span<Rgb24> destPixels)
         {
-            GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+            Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
             ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
             ref Rgb24 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < sourcePixels.Length; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref Rgb24 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -418,7 +406,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// A helper for <see cref="ToRgb24(ReadOnlySpan{TPixel}, Span{Rgb24}, int)"/> that expects a byte span as destination.
+        /// A helper for <see cref="ToRgb24(ReadOnlySpan{TPixel}, Span{Rgb24})"/> that expects a byte span as destination.
         /// The layout of the data in 'destBytes' must be compatible with <see cref="Rgb24"/> layout.
         /// </summary>
         /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
@@ -427,23 +415,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ToRgb24Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToRgb24(sourcePixels, MemoryMarshal.Cast<byte, Rgb24>(destBytes), count);
+            this.ToRgb24(sourcePixels.Slice(count), MemoryMarshal.Cast<byte, Rgb24>(destBytes));
         }
 
         /// <summary>
-        /// Converts 'count' elements in 'source` span of <see cref="Rgba32"/> data to a span of <typeparamref name="TPixel"/>-s.
+        /// Converts all pixels in 'source` span of <see cref="Rgba32"/> into a span of <typeparamref name="TPixel"/>-s.
         /// </summary>
         /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Rgba32"/> data.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void FromRgba32(ReadOnlySpan<Rgba32> source, Span<TPixel> destPixels, int count)
+        internal virtual void FromRgba32(ReadOnlySpan<Rgba32> source, Span<TPixel> destPixels)
         {
-            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+            Guard.DestinationShouldNotBeTooShort(source, destPixels, nameof(destPixels));
             
             ref Rgba32 sourceBaseRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < source.Length; i++)
             {
                 ref Rgba32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -453,7 +440,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// A helper for <see cref="FromRgba32(ReadOnlySpan{Rgba32}, Span{TPixel}, int)"/> that expects a byte span.
+        /// A helper for <see cref="FromRgba32(ReadOnlySpan{Rgba32}, Span{TPixel})"/> that expects a byte span.
         /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Rgba32"/> layout.
         /// </summary>
         /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
@@ -462,23 +449,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void FromRgba32Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
         {
-            this.FromRgba32(MemoryMarshal.Cast<byte, Rgba32>(sourceBytes), destPixels, count);
+            this.FromRgba32(MemoryMarshal.Cast<byte, Rgba32>(sourceBytes).Slice(0, count), destPixels);
         }
 
         /// <summary>
-        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Rgba32"/>-s.
+        /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Rgba32"/>-s.
         /// </summary>
         /// <param name="sourcePixels">The span of source pixels</param>
         /// <param name="destPixels">The destination span of <see cref="Rgba32"/> data.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToRgba32(ReadOnlySpan<TPixel> sourcePixels, Span<Rgba32> destPixels, int count)
+        internal virtual void ToRgba32(ReadOnlySpan<TPixel> sourcePixels, Span<Rgba32> destPixels)
         {
-            GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+            Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
             ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
             ref Rgba32 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < sourcePixels.Length; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref Rgba32 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -488,7 +474,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// A helper for <see cref="ToRgba32(ReadOnlySpan{TPixel}, Span{Rgba32}, int)"/> that expects a byte span as destination.
+        /// A helper for <see cref="ToRgba32(ReadOnlySpan{TPixel}, Span{Rgba32})"/> that expects a byte span as destination.
         /// The layout of the data in 'destBytes' must be compatible with <see cref="Rgba32"/> layout.
         /// </summary>
         /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
@@ -497,23 +483,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ToRgba32Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToRgba32(sourcePixels, MemoryMarshal.Cast<byte, Rgba32>(destBytes), count);
+            this.ToRgba32(sourcePixels.Slice(count), MemoryMarshal.Cast<byte, Rgba32>(destBytes));
         }
 
         /// <summary>
-        /// Converts 'count' elements in 'source` span of <see cref="Rgb48"/> data to a span of <typeparamref name="TPixel"/>-s.
+        /// Converts all pixels in 'source` span of <see cref="Rgb48"/> into a span of <typeparamref name="TPixel"/>-s.
         /// </summary>
         /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Rgb48"/> data.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void FromRgb48(ReadOnlySpan<Rgb48> source, Span<TPixel> destPixels, int count)
+        internal virtual void FromRgb48(ReadOnlySpan<Rgb48> source, Span<TPixel> destPixels)
         {
-            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+            Guard.DestinationShouldNotBeTooShort(source, destPixels, nameof(destPixels));
             
             ref Rgb48 sourceBaseRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < source.Length; i++)
             {
                 ref Rgb48 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -523,7 +508,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// A helper for <see cref="FromRgb48(ReadOnlySpan{Rgb48}, Span{TPixel}, int)"/> that expects a byte span.
+        /// A helper for <see cref="FromRgb48(ReadOnlySpan{Rgb48}, Span{TPixel})"/> that expects a byte span.
         /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Rgb48"/> layout.
         /// </summary>
         /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
@@ -532,23 +517,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void FromRgb48Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
         {
-            this.FromRgb48(MemoryMarshal.Cast<byte, Rgb48>(sourceBytes), destPixels, count);
+            this.FromRgb48(MemoryMarshal.Cast<byte, Rgb48>(sourceBytes).Slice(0, count), destPixels);
         }
 
         /// <summary>
-        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Rgb48"/>-s.
+        /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Rgb48"/>-s.
         /// </summary>
         /// <param name="sourcePixels">The span of source pixels</param>
         /// <param name="destPixels">The destination span of <see cref="Rgb48"/> data.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToRgb48(ReadOnlySpan<TPixel> sourcePixels, Span<Rgb48> destPixels, int count)
+        internal virtual void ToRgb48(ReadOnlySpan<TPixel> sourcePixels, Span<Rgb48> destPixels)
         {
-            GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+            Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
             ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
             ref Rgb48 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < sourcePixels.Length; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref Rgb48 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -558,7 +542,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// A helper for <see cref="ToRgb48(ReadOnlySpan{TPixel}, Span{Rgb48}, int)"/> that expects a byte span as destination.
+        /// A helper for <see cref="ToRgb48(ReadOnlySpan{TPixel}, Span{Rgb48})"/> that expects a byte span as destination.
         /// The layout of the data in 'destBytes' must be compatible with <see cref="Rgb48"/> layout.
         /// </summary>
         /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
@@ -567,23 +551,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ToRgb48Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToRgb48(sourcePixels, MemoryMarshal.Cast<byte, Rgb48>(destBytes), count);
+            this.ToRgb48(sourcePixels.Slice(count), MemoryMarshal.Cast<byte, Rgb48>(destBytes));
         }
 
         /// <summary>
-        /// Converts 'count' elements in 'source` span of <see cref="Rgba64"/> data to a span of <typeparamref name="TPixel"/>-s.
+        /// Converts all pixels in 'source` span of <see cref="Rgba64"/> into a span of <typeparamref name="TPixel"/>-s.
         /// </summary>
         /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Rgba64"/> data.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void FromRgba64(ReadOnlySpan<Rgba64> source, Span<TPixel> destPixels, int count)
+        internal virtual void FromRgba64(ReadOnlySpan<Rgba64> source, Span<TPixel> destPixels)
         {
-            GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+            Guard.DestinationShouldNotBeTooShort(source, destPixels, nameof(destPixels));
             
             ref Rgba64 sourceBaseRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < source.Length; i++)
             {
                 ref Rgba64 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -593,7 +576,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// A helper for <see cref="FromRgba64(ReadOnlySpan{Rgba64}, Span{TPixel}, int)"/> that expects a byte span.
+        /// A helper for <see cref="FromRgba64(ReadOnlySpan{Rgba64}, Span{TPixel})"/> that expects a byte span.
         /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Rgba64"/> layout.
         /// </summary>
         /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
@@ -602,23 +585,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void FromRgba64Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
         {
-            this.FromRgba64(MemoryMarshal.Cast<byte, Rgba64>(sourceBytes), destPixels, count);
+            this.FromRgba64(MemoryMarshal.Cast<byte, Rgba64>(sourceBytes).Slice(0, count), destPixels);
         }
 
         /// <summary>
-        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Rgba64"/>-s.
+        /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Rgba64"/>-s.
         /// </summary>
         /// <param name="sourcePixels">The span of source pixels</param>
         /// <param name="destPixels">The destination span of <see cref="Rgba64"/> data.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToRgba64(ReadOnlySpan<TPixel> sourcePixels, Span<Rgba64> destPixels, int count)
+        internal virtual void ToRgba64(ReadOnlySpan<TPixel> sourcePixels, Span<Rgba64> destPixels)
         {
-            GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+            Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
             ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
             ref Rgba64 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < sourcePixels.Length; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref Rgba64 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -628,7 +610,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// A helper for <see cref="ToRgba64(ReadOnlySpan{TPixel}, Span{Rgba64}, int)"/> that expects a byte span as destination.
+        /// A helper for <see cref="ToRgba64(ReadOnlySpan{TPixel}, Span{Rgba64})"/> that expects a byte span as destination.
         /// The layout of the data in 'destBytes' must be compatible with <see cref="Rgba64"/> layout.
         /// </summary>
         /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
@@ -637,7 +619,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ToRgba64Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToRgba64(sourcePixels, MemoryMarshal.Cast<byte, Rgba64>(destBytes), count);
+            this.ToRgba64(sourcePixels.Slice(count), MemoryMarshal.Cast<byte, Rgba64>(destBytes));
         }
     }
 }

@@ -11,6 +11,29 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 <#+
+	void GenerateDefaultSelfConversionMethods(string pixelType)
+    {
+		#>
+
+			/// <inheritdoc />
+            internal override void From<#=pixelType#>(ReadOnlySpan<<#=pixelType#>> source, Span<<#=pixelType#>> destPixels, int count)
+            {
+                GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+
+                source.Slice(0, count).CopyTo(destPixels);
+            }
+
+            /// <inheritdoc />
+            internal override void To<#=pixelType#>(ReadOnlySpan<<#=pixelType#>> sourcePixels, Span<<#=pixelType#>> destPixels, int count)
+            {
+                GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
+
+                sourcePixels.Slice(0, count).CopyTo(destPixels);
+            }
+
+		<#+
+    }
+
 	void GenerateDefaultConvertToMethod(string fromPixelType, string toPixelType)
     {
         #>

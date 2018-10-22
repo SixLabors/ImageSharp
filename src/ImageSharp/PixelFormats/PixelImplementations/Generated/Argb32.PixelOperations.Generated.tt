@@ -13,23 +13,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         internal class PixelOperations : PixelOperations<Argb32>
         {
-            /// <inheritdoc />
-            internal override void FromArgb32(ReadOnlySpan<Argb32> source, Span<Argb32> destPixels, int count)
-            {
-                GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
-
-                source.Slice(0, count).CopyTo(destPixels);
-            }
-
-            /// <inheritdoc />
-            internal override void ToArgb32(ReadOnlySpan<Argb32> sourcePixels, Span<Argb32> destPixels, int count)
-            {
-                GuardSpans(sourcePixels, nameof(sourcePixels), destPixels, nameof(destPixels), count);
-
-                sourcePixels.Slice(0, count).CopyTo(destPixels);
-            }
-
 			<#
+    GenerateDefaultSelfConversionMethods("Argb32");
     GenerateDefaultConvertToMethod("Argb32", "Bgr24");
     GenerateDefaultConvertToMethod("Argb32", "Bgra32");
     GenerateDefaultConvertToMethod("Argb32", "Gray8");

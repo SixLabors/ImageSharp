@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                     ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Argb32 dp = ref Unsafe.Add(ref destRef, i);
 
-                    dp.PackFromRgb48(sp);
+                    dp.FromRgb48(sp);
                 }
             }
 		
@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                     ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Bgr24 dp = ref Unsafe.Add(ref destRef, i);
 
-                    dp.PackFromRgb48(sp);
+                    dp.FromRgb48(sp);
                 }
             }
 		
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                     ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Bgra32 dp = ref Unsafe.Add(ref destRef, i);
 
-                    dp.PackFromRgb48(sp);
+                    dp.FromRgb48(sp);
                 }
             }
 		
@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                     ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Gray8 dp = ref Unsafe.Add(ref destRef, i);
 
-                    dp.PackFromRgb48(sp);
+                    dp.FromRgb48(sp);
                 }
             }
 		
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                     ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Gray16 dp = ref Unsafe.Add(ref destRef, i);
 
-                    dp.PackFromRgb48(sp);
+                    dp.FromRgb48(sp);
                 }
             }
 		
@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                     ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Rgb24 dp = ref Unsafe.Add(ref destRef, i);
 
-                    dp.PackFromRgb48(sp);
+                    dp.FromRgb48(sp);
                 }
             }
 		
@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                     ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Rgba32 dp = ref Unsafe.Add(ref destRef, i);
 
-                    dp.PackFromRgb48(sp);
+                    dp.FromRgb48(sp);
                 }
             }
 		
@@ -168,7 +168,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                     ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Rgba64 dp = ref Unsafe.Add(ref destRef, i);
 
-                    dp.PackFromRgb48(sp);
+                    dp.FromRgb48(sp);
                 }
             }
 		

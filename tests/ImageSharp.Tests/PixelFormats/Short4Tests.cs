@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             // act
             var pixel = default(Short4);
-            pixel.PackFromScaledVector4(scaled);
+            pixel.FromScaledVector4(scaled);
             ulong actual = pixel.PackedValue;
 
             // assert
@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Rgba32(20, 38, 0, 255);
 
             // act 
-            short4.PackFromRgba32(expected);
+            short4.FromRgba32(expected);
             actual = short4.ToRgba32();
 
             // assert
@@ -123,8 +123,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Bgra32(20, 38, 0, 255);
 
             // act 
-            short4.PackFromBgra32(expected);
-            actual.PackFromRgba32(short4.ToRgba32());
+            short4.FromBgra32(expected);
+            actual.FromRgba32(short4.ToRgba32());
 
             // assert
             Assert.Equal(expected, actual);
@@ -139,8 +139,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Argb32(20, 38, 0, 255);
 
             // act 
-            short4.PackFromArgb32(expected);
-            actual.PackFromRgba32(short4.ToRgba32());
+            short4.FromArgb32(expected);
+            actual.FromRgba32(short4.ToRgba32());
 
             // assert
             Assert.Equal(expected, actual);
@@ -155,8 +155,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Rgb48(65535, 0, 65535);
 
             // act
-            input.PackFromRgb48(expected);
-            actual.PackFromScaledVector4(input.ToScaledVector4());
+            input.FromRgb48(expected);
+            actual.FromScaledVector4(input.ToScaledVector4());
 
             // assert
             Assert.Equal(expected, actual);
@@ -171,8 +171,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Rgba64(65535, 0, 65535, 0);
 
             // act
-            input.PackFromRgba64(expected);
-            actual.PackFromScaledVector4(input.ToScaledVector4());
+            input.FromRgba64(expected);
+            actual.FromScaledVector4(input.ToScaledVector4());
 
             // assert
             Assert.Equal(expected, actual);

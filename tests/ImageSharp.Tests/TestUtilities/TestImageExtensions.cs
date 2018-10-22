@@ -678,7 +678,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 float value = bufferSpan[i] * scale;
                 var v = new Vector4(value, value, value, 1f);
-                pixels[i].PackFromVector4(v);
+                pixels[i].FromVector4(v);
             }
 
             return image;

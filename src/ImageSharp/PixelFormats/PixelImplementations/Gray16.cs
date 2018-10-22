@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromScaledVector4(Vector4 vector) => this.PackFromVector4(vector);
+        public void FromScaledVector4(Vector4 vector) => this.FromVector4(vector);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromVector4(Vector4 vector)
+        public void FromVector4(Vector4 vector)
         {
             vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * Max * Average;
             this.PackedValue = (ushort)MathF.Round(vector.X + vector.Y + vector.Z);
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromArgb32(Argb32 source)
+        public void FromArgb32(Argb32 source)
         {
             this.PackedValue = ImageMaths.Get16BitBT709Luminance(
                 ImageMaths.UpscaleFrom8BitTo16Bit(source.R),
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromBgr24(Bgr24 source)
+        public void FromBgr24(Bgr24 source)
         {
             this.PackedValue = ImageMaths.Get16BitBT709Luminance(
                 ImageMaths.UpscaleFrom8BitTo16Bit(source.R),
@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromBgra32(Bgra32 source)
+        public void FromBgra32(Bgra32 source)
         {
             this.PackedValue = ImageMaths.Get16BitBT709Luminance(
                 ImageMaths.UpscaleFrom8BitTo16Bit(source.R),
@@ -108,15 +108,15 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromGray8(Gray8 source) => this.PackedValue = ImageMaths.UpscaleFrom8BitTo16Bit(source.PackedValue);
+        public void FromGray8(Gray8 source) => this.PackedValue = ImageMaths.UpscaleFrom8BitTo16Bit(source.PackedValue);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromGray16(Gray16 source) => this.PackedValue = source.PackedValue;
+        public void FromGray16(Gray16 source) => this.PackedValue = source.PackedValue;
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgb24(Rgb24 source)
+        public void FromRgb24(Rgb24 source)
         {
             this.PackedValue = ImageMaths.Get16BitBT709Luminance(
                 ImageMaths.UpscaleFrom8BitTo16Bit(source.R),
@@ -126,7 +126,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgba32(Rgba32 source)
+        public void FromRgba32(Rgba32 source)
         {
             this.PackedValue = ImageMaths.Get16BitBT709Luminance(
                 ImageMaths.UpscaleFrom8BitTo16Bit(source.R),
@@ -147,11 +147,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgb48(Rgb48 source) => this.PackedValue = ImageMaths.Get16BitBT709Luminance(source.R, source.G, source.B);
+        public void FromRgb48(Rgb48 source) => this.PackedValue = ImageMaths.Get16BitBT709Luminance(source.R, source.G, source.B);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgba64(Rgba64 source) => this.PackedValue = ImageMaths.Get16BitBT709Luminance(source.R, source.G, source.B);
+        public void FromRgba64(Rgba64 source) => this.PackedValue = ImageMaths.Get16BitBT709Luminance(source.R, source.G, source.B);
 
         /// <inheritdoc />
         public override bool Equals(object obj) => obj is Gray16 other && this.Equals(other);

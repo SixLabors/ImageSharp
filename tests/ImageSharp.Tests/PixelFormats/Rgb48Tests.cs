@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             // act 
             Vector4 scaled = short3.ToScaledVector4();
-            pixel.PackFromScaledVector4(scaled);
+            pixel.FromScaledVector4(scaled);
 
             // assert
             Assert.Equal(expected, pixel);

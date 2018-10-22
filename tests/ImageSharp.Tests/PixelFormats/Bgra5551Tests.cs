@@ -53,10 +53,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Vector4 scaled = new Bgra5551(Vector4.One).ToScaledVector4();
             int expected = 0xFFFF;
             var pixel = default(Bgra5551);
-            pixel.PackFromScaledVector4(scaled);
+            pixel.FromScaledVector4(scaled);
 
             // act
-            pixel.PackFromScaledVector4(scaled);
+            pixel.FromScaledVector4(scaled);
             ushort actual = pixel.PackedValue;
 
             // assert

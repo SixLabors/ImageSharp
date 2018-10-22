@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromScaledVector4(Vector4 vector) => this.PackFromVector4(vector);
+        public void FromScaledVector4(Vector4 vector) => this.FromVector4(vector);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromVector4(Vector4 vector) => this.PackedValue = Pack(vector.W);
+        public void FromVector4(Vector4 vector) => this.PackedValue = Pack(vector.W);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -77,31 +77,31 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromArgb32(Argb32 source) => this.PackedValue = source.A;
+        public void FromArgb32(Argb32 source) => this.PackedValue = source.A;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromBgr24(Bgr24 source) => this.PackedValue = byte.MaxValue;
+        public void FromBgr24(Bgr24 source) => this.PackedValue = byte.MaxValue;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromBgra32(Bgra32 source) => this.PackedValue = source.A;
+        public void FromBgra32(Bgra32 source) => this.PackedValue = source.A;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromGray8(Gray8 source) => this.PackedValue = byte.MaxValue;
+        public void FromGray8(Gray8 source) => this.PackedValue = byte.MaxValue;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromGray16(Gray16 source) => this.PackedValue = byte.MaxValue;
+        public void FromGray16(Gray16 source) => this.PackedValue = byte.MaxValue;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgb24(Rgb24 source) => this.PackedValue = byte.MaxValue;
+        public void FromRgb24(Rgb24 source) => this.PackedValue = byte.MaxValue;
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgba32(Rgba32 source) => this.PackedValue = source.A;
+        public void FromRgba32(Rgba32 source) => this.PackedValue = source.A;
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -113,11 +113,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgb48(Rgb48 source) => this.PackedValue = byte.MaxValue;
+        public void FromRgb48(Rgb48 source) => this.PackedValue = byte.MaxValue;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgba64(Rgba64 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+        public void FromRgba64(Rgba64 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <summary>
         /// Compares an object with the packed vector.

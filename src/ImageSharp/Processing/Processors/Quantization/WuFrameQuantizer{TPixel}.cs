@@ -199,7 +199,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                         float a = Volume(ref this.colorCube[k], vmaSpan);
 
                         ref TPixel color = ref this.palette[k];
-                        color.PackFromScaledVector4(new Vector4(r, g, b, a) / weight / 255F);
+                        color.FromScaledVector4(new Vector4(r, g, b, a) / weight / 255F);
                     }
                 }
             }

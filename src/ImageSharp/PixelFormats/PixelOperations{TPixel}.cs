@@ -26,15 +26,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
         /// <param name="destinationColors">The <see cref="Span{T}"/> to the destination colors.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void FromVector4(ReadOnlySpan<Vector4> sourceVectors, Span<TPixel> destinationColors, int count)
+        internal virtual void FromVector4(ReadOnlySpan<Vector4> sourceVectors, Span<TPixel> destinationColors)
         {
-            GuardSpans(sourceVectors, nameof(sourceVectors), destinationColors, nameof(destinationColors), count);
+            Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationColors, nameof(destinationColors));
 
             ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceVectors);
             ref TPixel destRef = ref MemoryMarshal.GetReference(destinationColors);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < sourceVectors.Length; i++)
             {
                 ref Vector4 sp = ref Unsafe.Add(ref sourceRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destRef, i);
@@ -47,15 +46,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
         /// <param name="destinationVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToVector4(ReadOnlySpan<TPixel> sourceColors, Span<Vector4> destinationVectors, int count)
+        internal virtual void ToVector4(ReadOnlySpan<TPixel> sourceColors, Span<Vector4> destinationVectors)
         {
-            GuardSpans(sourceColors, nameof(sourceColors), destinationVectors, nameof(destinationVectors), count);
+            Guard.DestinationShouldNotBeTooShort(sourceColors, destinationVectors, nameof(destinationVectors));
 
             ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourceColors);
             ref Vector4 destRef = ref MemoryMarshal.GetReference(destinationVectors);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < sourceColors.Length; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
                 ref Vector4 dp = ref Unsafe.Add(ref destRef, i);
@@ -68,15 +66,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
         /// <param name="destinationColors">The <see cref="Span{T}"/> to the destination colors.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void FromScaledVector4(ReadOnlySpan<Vector4> sourceVectors, Span<TPixel> destinationColors, int count)
+        internal virtual void FromScaledVector4(ReadOnlySpan<Vector4> sourceVectors, Span<TPixel> destinationColors)
         {
-            GuardSpans(sourceVectors, nameof(sourceVectors), destinationColors, nameof(destinationColors), count);
+            Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationColors, nameof(destinationColors));
 
             ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceVectors);
             ref TPixel destRef = ref MemoryMarshal.GetReference(destinationColors);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < sourceVectors.Length; i++)
             {
                 ref Vector4 sp = ref Unsafe.Add(ref sourceRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destRef, i);
@@ -89,15 +86,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
         /// <param name="destinationVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
-        /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToScaledVector4(ReadOnlySpan<TPixel> sourceColors, Span<Vector4> destinationVectors, int count)
+        internal virtual void ToScaledVector4(ReadOnlySpan<TPixel> sourceColors, Span<Vector4> destinationVectors)
         {
-            GuardSpans(sourceColors, nameof(sourceColors), destinationVectors, nameof(destinationVectors), count);
+            Guard.DestinationShouldNotBeTooShort(sourceColors, destinationVectors, nameof(destinationVectors));
 
             ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourceColors);
             ref Vector4 destRef = ref MemoryMarshal.GetReference(destinationVectors);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < sourceColors.Length; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
                 ref Vector4 dp = ref Unsafe.Add(ref destRef, i);

@@ -159,7 +159,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 Span<TPixel> destRow = destination.GetPixelRowSpan(yy);
 
-                PixelOperations<TPixel>.Instance.FromVector4(this.rgbaBuffer.GetSpan(), destRow, destination.Width);
+                // TODO: Investigate if slicing is actually necessary
+                PixelOperations<TPixel>.Instance.FromVector4(this.rgbaBuffer.GetSpan().Slice(0, destRow.Length), destRow);
             }
         }
     }

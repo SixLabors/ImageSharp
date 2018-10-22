@@ -269,7 +269,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 {
                     this.Measure(
                         times,
-                        () => PixelOperations<Rgba32>.Instance.ToVector4(source.GetSpan(), dest.GetSpan(), count));
+                        () => PixelOperations<Rgba32>.Instance.ToVector4(source.GetSpan(), dest.GetSpan()));
                 }
             }
         }
@@ -367,7 +367,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromVector4(s, d.GetSpan(), count)
+                (s, d) => Operations.FromVector4(s, d.GetSpan())
             );
         }
 
@@ -381,7 +381,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromScaledVector4(s, d.GetSpan(), count)
+                (s, d) => Operations.FromScaledVector4(s, d.GetSpan())
             );
         }
 
@@ -417,7 +417,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToVector4(s, d.GetSpan(), count)
+                (s, d) => Operations.ToVector4(s, d.GetSpan())
             );
         }
 
@@ -431,7 +431,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToScaledVector4(s, d.GetSpan(), count)
+                (s, d) => Operations.ToScaledVector4(s, d.GetSpan())
             );
         }
 

@@ -93,12 +93,12 @@ namespace SixLabors.ImageSharp.PixelFormats
                 Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
                 Span<Vector4> sourceSpan = buffer.Slice(destination.Length * 2, destination.Length);
 
-                PixelOperations<TPixel>.Instance.ToScaledVector4(background, backgroundSpan, destination.Length);
-                PixelOperations<TPixelSrc>.Instance.ToScaledVector4(source, sourceSpan, destination.Length);
+                PixelOperations<TPixel>.Instance.ToScaledVector4(background, backgroundSpan);
+                PixelOperations<TPixelSrc>.Instance.ToScaledVector4(source, sourceSpan);
 
                 this.BlendFunction(destinationSpan, backgroundSpan, sourceSpan, amount);
 
-                PixelOperations<TPixel>.Instance.FromScaledVector4(destinationSpan, destination, destination.Length);
+                PixelOperations<TPixel>.Instance.FromScaledVector4(destinationSpan, destination);
             }
         }
 
@@ -127,12 +127,12 @@ namespace SixLabors.ImageSharp.PixelFormats
                 Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
                 Span<Vector4> sourceSpan = buffer.Slice(destination.Length * 2, destination.Length);
 
-                PixelOperations<TPixel>.Instance.ToScaledVector4(background, backgroundSpan, destination.Length);
-                PixelOperations<TPixelSrc>.Instance.ToScaledVector4(source, sourceSpan, destination.Length);
+                PixelOperations<TPixel>.Instance.ToScaledVector4(background, backgroundSpan);
+                PixelOperations<TPixelSrc>.Instance.ToScaledVector4(source, sourceSpan);
 
                 this.BlendFunction(destinationSpan, backgroundSpan, sourceSpan, amount);
 
-                PixelOperations<TPixel>.Instance.FromScaledVector4(destinationSpan, destination, destination.Length);
+                PixelOperations<TPixel>.Instance.FromScaledVector4(destinationSpan, destination);
             }
         }
     }

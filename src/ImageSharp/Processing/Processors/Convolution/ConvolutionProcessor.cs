@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                     DenseMatrixUtils.Convolve(in matrix, source.PixelBuffer, vectorSpan, y, x, maxY, maxX, startX);
                                 }
 
-                                PixelOperations<TPixel>.Instance.PackFromVector4(vectorSpan, targetRowSpan, length);
+                                PixelOperations<TPixel>.Instance.FromVector4(vectorSpan, targetRowSpan, length);
                             }
                         });
 

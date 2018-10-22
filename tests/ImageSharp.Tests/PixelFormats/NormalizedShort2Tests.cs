@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void NormalizedShort2_PackFromScaledVector4()
+        public void NormalizedShort2_FromScaledVector4()
         {
             // arrange
             Vector4 scaled = new NormalizedShort2(-Vector2.One).ToScaledVector4();

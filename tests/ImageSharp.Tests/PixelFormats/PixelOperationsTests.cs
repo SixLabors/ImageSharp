@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             [Theory]
             [MemberData(nameof(ArraySizesData))]
-            public void PackFromGray8Bytes(int count)
+            public void FromGray8Bytes(int count)
             {
                 byte[] source = CreateByteTestData(count);
                 var expected = new Gray8[count];
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 TestOperation(
                     source,
                     expected,
-                    (s, d) => Operations.PackFromGray8Bytes(s, d.GetSpan(), count)
+                    (s, d) => Operations.FromGray8Bytes(s, d.GetSpan(), count)
                 );
             }
 
@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             [Theory]
             [MemberData(nameof(ArraySizesData))]
-            public void PackFromGray16Bytes(int count)
+            public void FromGray16Bytes(int count)
             {
                 byte[] source = CreateByteTestData(count * 2);
                 Span<byte> sourceSpan = source.AsSpan();
@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 TestOperation(
                     source,
                     expected,
-                    (s, d) => Operations.PackFromGray16Bytes(s, d.GetSpan(), count)
+                    (s, d) => Operations.FromGray16Bytes(s, d.GetSpan(), count)
                 );
             }
 
@@ -164,7 +164,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             [Theory]
             [MemberData(nameof(ArraySizesData))]
-            public void PackFromGray8Bytes(int count)
+            public void FromGray8Bytes(int count)
             {
                 byte[] source = CreateByteTestData(count);
                 var expected = new Gray16[count];
@@ -177,7 +177,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 TestOperation(
                     source,
                     expected,
-                    (s, d) => Operations.PackFromGray8Bytes(s, d.GetSpan(), count)
+                    (s, d) => Operations.FromGray8Bytes(s, d.GetSpan(), count)
                 );
             }
 
@@ -204,7 +204,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             [Theory]
             [MemberData(nameof(ArraySizesData))]
-            public void PackFromGray16Bytes(int count)
+            public void FromGray16Bytes(int count)
             {
                 byte[] source = CreateByteTestData(count * 2);
                 Span<byte> sourceSpan = source.AsSpan();
@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 TestOperation(
                     source,
                     expected,
-                    (s, d) => Operations.PackFromGray16Bytes(s, d.GetSpan(), count)
+                    (s, d) => Operations.FromGray16Bytes(s, d.GetSpan(), count)
                 );
             }
 
@@ -359,7 +359,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
-        public void PackFromVector4(int count)
+        public void FromVector4(int count)
         {
             Vector4[] source = CreateVector4TestData(count);
             TPixel[] expected = CreateExpectedPixelData(source);
@@ -367,13 +367,13 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromVector4(s, d.GetSpan(), count)
+                (s, d) => Operations.FromVector4(s, d.GetSpan(), count)
             );
         }
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
-        public void PackFromScaledVector4(int count)
+        public void FromScaledVector4(int count)
         {
             Vector4[] source = CreateVector4TestData(count);
             TPixel[] expected = CreateScaledExpectedPixelData(source);
@@ -381,7 +381,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromScaledVector4(s, d.GetSpan(), count)
+                (s, d) => Operations.FromScaledVector4(s, d.GetSpan(), count)
             );
         }
 
@@ -437,7 +437,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
-        public void PackFromArgb32Bytes(int count)
+        public void FromArgb32Bytes(int count)
         {
             byte[] source = CreateByteTestData(count * 4);
             var expected = new TPixel[count];
@@ -452,7 +452,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromArgb32Bytes(s, d.GetSpan(), count)
+                (s, d) => Operations.FromArgb32Bytes(s, d.GetSpan(), count)
             );
         }
 
@@ -484,7 +484,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
-        public void PackFromBgr24Bytes(int count)
+        public void FromBgr24Bytes(int count)
         {
             byte[] source = CreateByteTestData(count * 3);
             var expected = new TPixel[count];
@@ -499,7 +499,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromBgr24Bytes(s, d.GetSpan(), count)
+                (s, d) => Operations.FromBgr24Bytes(s, d.GetSpan(), count)
             );
         }
 
@@ -529,7 +529,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
-        public void PackFromBgra32Bytes(int count)
+        public void FromBgra32Bytes(int count)
         {
             byte[] source = CreateByteTestData(count * 4);
             var expected = new TPixel[count];
@@ -544,7 +544,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromBgra32Bytes(s, d.GetSpan(), count)
+                (s, d) => Operations.FromBgra32Bytes(s, d.GetSpan(), count)
             );
         }
 
@@ -575,7 +575,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
-        public void PackFromRgb24Bytes(int count)
+        public void FromRgb24Bytes(int count)
         {
             byte[] source = CreateByteTestData(count * 3);
             var expected = new TPixel[count];
@@ -590,7 +590,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromRgb24Bytes(s, d.GetSpan(), count)
+                (s, d) => Operations.FromRgb24Bytes(s, d.GetSpan(), count)
             );
         }
 
@@ -620,7 +620,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
-        public void PackFromRgba32Bytes(int count)
+        public void FromRgba32Bytes(int count)
         {
             byte[] source = CreateByteTestData(count * 4);
             var expected = new TPixel[count];
@@ -635,7 +635,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromRgba32Bytes(s, d.GetSpan(), count)
+                (s, d) => Operations.FromRgba32Bytes(s, d.GetSpan(), count)
             );
         }
 
@@ -666,7 +666,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
-        public void PackFromRgb48Bytes(int count)
+        public void FromRgb48Bytes(int count)
         {
             byte[] source = CreateByteTestData(count * 6);
             Span<byte> sourceSpan = source.AsSpan();
@@ -681,7 +681,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromRgb48Bytes(s, d.GetSpan(), count)
+                (s, d) => Operations.FromRgb48Bytes(s, d.GetSpan(), count)
             );
         }
 
@@ -715,7 +715,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
-        public void PackFromRgba64Bytes(int count)
+        public void FromRgba64Bytes(int count)
         {
             byte[] source = CreateByteTestData(count * 8);
             Span<byte> sourceSpan = source.AsSpan();
@@ -730,7 +730,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromRgba64Bytes(s, d.GetSpan(), count)
+                (s, d) => Operations.FromRgba64Bytes(s, d.GetSpan(), count)
             );
         }
 

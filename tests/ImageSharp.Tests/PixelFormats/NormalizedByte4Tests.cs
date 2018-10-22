@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void NormalizedByte4_PackFromScaledVector4()
+        public void NormalizedByte4_FromScaledVector4()
         {
             // arrange
             var pixel = default(NormalizedByte4);

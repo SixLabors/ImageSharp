@@ -55,13 +55,13 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new PixelOperations<TPixel>().PackFromRgba32Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
+            new PixelOperations<TPixel>().FromRgba32Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-           PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
+           PixelOperations<TPixel>.Instance.FromRgba32Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
         }
     }
 

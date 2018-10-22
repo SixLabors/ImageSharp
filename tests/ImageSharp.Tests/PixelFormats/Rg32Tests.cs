@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Rg32_PackFromScaledVector4()
+        public void Rg32_FromScaledVector4()
         {
             // arrange
             var rg32 = new Rg32(Vector2.One);

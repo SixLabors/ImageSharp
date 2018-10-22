@@ -436,7 +436,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     this.stream.Read(row);
                     int newY = Invert(y, height, inverted);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                    PixelOperations<TPixel>.Instance.PackFromBgr24Bytes(row.GetSpan(), pixelSpan, width);
+                    PixelOperations<TPixel>.Instance.FromBgr24Bytes(row.GetSpan(), pixelSpan, width);
                 }
             }
         }
@@ -461,7 +461,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     this.stream.Read(row);
                     int newY = Invert(y, height, inverted);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                    PixelOperations<TPixel>.Instance.PackFromBgra32Bytes(row.GetSpan(), pixelSpan, width);
+                    PixelOperations<TPixel>.Instance.FromBgra32Bytes(row.GetSpan(), pixelSpan, width);
                 }
             }
         }

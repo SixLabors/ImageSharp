@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal class PixelOperations : PixelOperations<Gray8>
         {
             /// <inheritdoc />
-            internal override void PackFromGray8(ReadOnlySpan<Gray8> source, Span<Gray8> destPixels, int count)
+            internal override void FromGray8(ReadOnlySpan<Gray8> source, Span<Gray8> destPixels, int count)
             {
                 GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
 

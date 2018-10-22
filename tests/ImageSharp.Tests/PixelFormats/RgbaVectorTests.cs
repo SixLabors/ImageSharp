@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void RgbaVector_PackFromRgb48()
+        public void RgbaVector_FromRgb48()
         {
             // arrange
             var input = default(RgbaVector);
@@ -132,7 +132,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void RgbaVector_PackFromRgba64()
+        public void RgbaVector_FromRgba64()
         {
             // arrange
             var input = default(RgbaVector);

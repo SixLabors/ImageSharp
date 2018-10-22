@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void PackFromRgba32()
+        public void FromRgba32()
         {
             var rgb = default(Rgb24);
             rgb.FromRgba32(new Rgba32(1, 2, 3, 4));
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             a / 255f);
 
         [Fact]
-        public void PackFromVector4()
+        public void FromVector4()
         {
             var rgb = default(Rgb24);
             rgb.FromVector4(Vec(1, 2, 3, 4));

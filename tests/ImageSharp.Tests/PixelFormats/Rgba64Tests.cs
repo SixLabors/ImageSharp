@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Rgba64_PackFromScaledVector4()
+        public void Rgba64_FromScaledVector4()
         {
             // arrange
             var pixel = default(Rgba64);

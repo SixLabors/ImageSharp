@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal class PixelOperations : PixelOperations<Rgb24>
         {
             /// <inheritdoc />
-            internal override void PackFromRgb24(ReadOnlySpan<Rgb24> source, Span<Rgb24> destPixels, int count)
+            internal override void FromRgb24(ReadOnlySpan<Rgb24> source, Span<Rgb24> destPixels, int count)
             {
                 GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
 

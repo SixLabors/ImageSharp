@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests
                             v.W = 1F;
                         }
 
-                        PixelOperations<TPixel>.Instance.PackFromScaledVector4(tempSpan, pixelSpan, pixelSpan.Length);
+                        PixelOperations<TPixel>.Instance.FromScaledVector4(tempSpan, pixelSpan, pixelSpan.Length);
                     }
                 }
             });

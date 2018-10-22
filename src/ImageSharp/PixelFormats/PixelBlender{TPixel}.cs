@@ -93,12 +93,12 @@ namespace SixLabors.ImageSharp.PixelFormats
                 Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
                 Span<Vector4> sourceSpan = buffer.Slice(destination.Length * 2, destination.Length);
 
-                PixelOperations<TPixel>.Instance.ToScaledVector4(background, backgroundSpan);
-                PixelOperations<TPixelSrc>.Instance.ToScaledVector4(source, sourceSpan);
+                PixelOperations<TPixel>.Instance.ToScaledVector4(background.Slice(0, background.Length), backgroundSpan);
+                PixelOperations<TPixelSrc>.Instance.ToScaledVector4(source.Slice(0, background.Length), sourceSpan);
 
                 this.BlendFunction(destinationSpan, backgroundSpan, sourceSpan, amount);
 
-                PixelOperations<TPixel>.Instance.FromScaledVector4(destinationSpan, destination);
+                PixelOperations<TPixel>.Instance.FromScaledVector4(destinationSpan.Slice(0, background.Length), destination);
             }
         }
 
@@ -127,12 +127,12 @@ namespace SixLabors.ImageSharp.PixelFormats
                 Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
                 Span<Vector4> sourceSpan = buffer.Slice(destination.Length * 2, destination.Length);
 
-                PixelOperations<TPixel>.Instance.ToScaledVector4(background, backgroundSpan);
-                PixelOperations<TPixelSrc>.Instance.ToScaledVector4(source, sourceSpan);
+                PixelOperations<TPixel>.Instance.ToScaledVector4(background.Slice(0, background.Length), backgroundSpan);
+                PixelOperations<TPixelSrc>.Instance.ToScaledVector4(source.Slice(0, background.Length), sourceSpan);
 
                 this.BlendFunction(destinationSpan, backgroundSpan, sourceSpan, amount);
 
-                PixelOperations<TPixel>.Instance.FromScaledVector4(destinationSpan, destination);
+                PixelOperations<TPixel>.Instance.FromScaledVector4(destinationSpan.Slice(0, background.Length), destination);
             }
         }
     }

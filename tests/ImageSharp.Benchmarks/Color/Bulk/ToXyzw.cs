@@ -19,14 +19,17 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
         private IMemoryOwner<byte> destination;
 
+        private Configuration configuration;
+
         [Params(16, 128, 1024)]
         public int Count { get; set; }
 
         [GlobalSetup]
         public void Setup()
         {
-            this.source = Configuration.Default.MemoryAllocator.Allocate<TPixel>(this.Count);
-            this.destination = Configuration.Default.MemoryAllocator.Allocate<byte>(this.Count * 4);
+            this.configuration = Configuration.Default;
+            this.source = this.configuration.MemoryAllocator.Allocate<TPixel>(this.Count);
+            this.destination = this.configuration.MemoryAllocator.Allocate<byte>(this.Count * 4);
         }
 
         [GlobalCleanup]
@@ -56,10 +59,20 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         }
 
         [Benchmark]
-        public void CommonBulk() => new PixelOperations<TPixel>().ToRgba32Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
+        public void CommonBulk() =>
+            new PixelOperations<TPixel>().ToRgba32Bytes(
+                this.configuration,
+                this.source.GetSpan(),
+                this.destination.GetSpan(),
+                this.Count);
 
         [Benchmark]
-        public void OptimizedBulk() => PixelOperations<TPixel>.Instance.ToRgba32Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
+        public void OptimizedBulk() =>
+            PixelOperations<TPixel>.Instance.ToRgba32Bytes(
+                this.configuration,
+                this.source.GetSpan(),
+                this.destination.GetSpan(),
+                this.Count);
     }
 
     public class ToXyzw_Rgba32 : ToXyzw<Rgba32>

@@ -20,14 +20,17 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
         private IMemoryOwner<byte> source;
 
+        private Configuration configuration;
+
         [Params(16, 128, 1024)]
         public int Count { get; set; }
 
         [GlobalSetup]
         public void Setup()
         {
-            this.destination = Configuration.Default.MemoryAllocator.Allocate<TPixel>(this.Count);
-            this.source = Configuration.Default.MemoryAllocator.Allocate<byte>(this.Count * 4);
+            this.configuration = Configuration.Default;
+            this.destination = this.configuration.MemoryAllocator.Allocate<TPixel>(this.Count);
+            this.source = this.configuration.MemoryAllocator.Allocate<byte>(this.Count * 4);
         }
 
         [GlobalCleanup]
@@ -55,13 +58,13 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new PixelOperations<TPixel>().FromRgba32Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
+            new PixelOperations<TPixel>().FromRgba32Bytes(this.configuration, this.source.GetSpan(), this.destination.GetSpan(), this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-           PixelOperations<TPixel>.Instance.FromRgba32Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
+           PixelOperations<TPixel>.Instance.FromRgba32Bytes(this.configuration, this.source.GetSpan(), this.destination.GetSpan(), this.Count);
         }
     }
 

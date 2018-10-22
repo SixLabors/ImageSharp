@@ -28,6 +28,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
+        /// Configuration bound to the encoding operation.
+        /// </summary>
+        private Configuration configuration;
+
+        /// <summary>
         /// A reusable buffer used to reduce allocations.
         /// </summary>
         private readonly byte[] buffer = new byte[20];
@@ -81,6 +86,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
+
+            this.configuration = image.GetConfiguration();
 
             ImageMetaData metaData = image.MetaData;
             this.gifMetaData = metaData.GetFormatMetaData(GifFormat.Instance);
@@ -220,7 +227,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             {
                 Span<Rgba32> rgbaSpan = rgbaBuffer.GetSpan();
                 ref Rgba32 paletteRef = ref MemoryMarshal.GetReference(rgbaSpan);
-                PixelOperations<TPixel>.Instance.ToRgba32(quantized.Palette, rgbaSpan);
+                PixelOperations<TPixel>.Instance.ToRgba32(this.configuration, quantized.Palette, rgbaSpan);
 
                 for (int i = quantized.Palette.Length - 1; i >= 0; i--)
                 {
@@ -322,7 +329,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="stream">The stream to write to.</param>
         private void WriteComments(ImageMetaData metadata, Stream stream)
         {
-            if (!metadata.TryGetProperty(GifConstants.Comments, out ImageProperty property) || string.IsNullOrEmpty(property.Value))
+            if (!metadata.TryGetProperty(GifConstants.Comments, out ImageProperty property)
+                || string.IsNullOrEmpty(property.Value))
             {
                 return;
             }
@@ -420,7 +428,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             using (IManagedByteBuffer colorTable = this.memoryAllocator.AllocateManagedByteBuffer(colorTableLength))
             {
-                PixelOperations<TPixel>.Instance.ToRgb24Bytes(image.Palette.AsSpan(), colorTable.GetSpan(), pixelCount);
+                PixelOperations<TPixel>.Instance.ToRgb24Bytes(
+                    this.configuration,
+                    image.Palette.AsSpan(),
+                    colorTable.GetSpan(),
+                    pixelCount);
                 stream.Write(colorTable.Array, 0, colorTableLength);
             }
         }

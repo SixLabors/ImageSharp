@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
 			
 			/// <inheritdoc />
-            internal override void FromGray8(ReadOnlySpan<Gray8> source, Span<Gray8> destPixels)
+            internal override void FromGray8(Configuration configuration, ReadOnlySpan<Gray8> source, Span<Gray8> destPixels)
             {
                 Guard.DestinationShouldNotBeTooShort(source, destPixels, nameof(destPixels));
 
@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void ToGray8(ReadOnlySpan<Gray8> sourcePixels, Span<Gray8> destPixels)
+            internal override void ToGray8(Configuration configuration, ReadOnlySpan<Gray8> sourcePixels, Span<Gray8> destPixels)
             {
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
 		
 			/// <inheritdoc />
-            internal override void ToArgb32(ReadOnlySpan<Gray8> sourcePixels, Span<Argb32> destPixels)
+            internal override void ToArgb32(Configuration configuration, ReadOnlySpan<Gray8> sourcePixels, Span<Argb32> destPixels)
             {
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void ToBgr24(ReadOnlySpan<Gray8> sourcePixels, Span<Bgr24> destPixels)
+            internal override void ToBgr24(Configuration configuration, ReadOnlySpan<Gray8> sourcePixels, Span<Bgr24> destPixels)
             {
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void ToBgra32(ReadOnlySpan<Gray8> sourcePixels, Span<Bgra32> destPixels)
+            internal override void ToBgra32(Configuration configuration, ReadOnlySpan<Gray8> sourcePixels, Span<Bgra32> destPixels)
             {
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void ToGray16(ReadOnlySpan<Gray8> sourcePixels, Span<Gray16> destPixels)
+            internal override void ToGray16(Configuration configuration, ReadOnlySpan<Gray8> sourcePixels, Span<Gray16> destPixels)
             {
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void ToRgb24(ReadOnlySpan<Gray8> sourcePixels, Span<Rgb24> destPixels)
+            internal override void ToRgb24(Configuration configuration, ReadOnlySpan<Gray8> sourcePixels, Span<Rgb24> destPixels)
             {
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void ToRgba32(ReadOnlySpan<Gray8> sourcePixels, Span<Rgba32> destPixels)
+            internal override void ToRgba32(Configuration configuration, ReadOnlySpan<Gray8> sourcePixels, Span<Rgba32> destPixels)
             {
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void ToRgb48(ReadOnlySpan<Gray8> sourcePixels, Span<Rgb48> destPixels)
+            internal override void ToRgb48(Configuration configuration, ReadOnlySpan<Gray8> sourcePixels, Span<Rgb48> destPixels)
             {
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
@@ -158,7 +158,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void ToRgba64(ReadOnlySpan<Gray8> sourcePixels, Span<Rgba64> destPixels)
+            internal override void ToRgba64(Configuration configuration, ReadOnlySpan<Gray8> sourcePixels, Span<Rgba64> destPixels)
             {
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 

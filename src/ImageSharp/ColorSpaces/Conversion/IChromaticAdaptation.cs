@@ -30,7 +30,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="destination">The span to the destination colors.</param>
         /// <param name="sourceWhitePoint">The source white point.</param>
         /// <param name="destinationWhitePoint">The destination white point.</param>
-        /// <param name="count">The number of colors to convert.</param>
-        void Transform(Span<CieXyz> source, Span<CieXyz> destination, CieXyz sourceWhitePoint, in CieXyz destinationWhitePoint, int count);
+        void Transform(
+            ReadOnlySpan<CieXyz> source,
+            Span<CieXyz> destination,
+            CieXyz sourceWhitePoint,
+            in CieXyz destinationWhitePoint);
     }
 }

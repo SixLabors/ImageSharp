@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var bgra = default(Bgra4444);
 
             // act
-            bgra.PackFromScaledVector4(scaled);
+            bgra.FromScaledVector4(scaled);
             ushort actual = bgra.PackedValue;
 
             // assert

@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromScaledVector4(Vector4 vector) => this.PackFromVector4(vector);
+        public void FromScaledVector4(Vector4 vector) => this.FromVector4(vector);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromVector4(Vector4 vector)
+        public void FromVector4(Vector4 vector)
         {
             vector *= MaxBytes;
             vector += Half;
@@ -80,31 +80,31 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromArgb32(Argb32 source) => this.PackedValue = ImageMaths.Get8BitBT709Luminance(source.R, source.G, source.B);
+        public void FromArgb32(Argb32 source) => this.PackedValue = ImageMaths.Get8BitBT709Luminance(source.R, source.G, source.B);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromBgr24(Bgr24 source) => this.PackedValue = ImageMaths.Get8BitBT709Luminance(source.R, source.G, source.B);
+        public void FromBgr24(Bgr24 source) => this.PackedValue = ImageMaths.Get8BitBT709Luminance(source.R, source.G, source.B);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromBgra32(Bgra32 source) => this.PackedValue = ImageMaths.Get8BitBT709Luminance(source.R, source.G, source.B);
+        public void FromBgra32(Bgra32 source) => this.PackedValue = ImageMaths.Get8BitBT709Luminance(source.R, source.G, source.B);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromGray8(Gray8 source) => this.PackedValue = source.PackedValue;
+        public void FromGray8(Gray8 source) => this.PackedValue = source.PackedValue;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromGray16(Gray16 source) => this.PackedValue = ImageMaths.DownScaleFrom16BitTo8Bit(source.PackedValue);
+        public void FromGray16(Gray16 source) => this.PackedValue = ImageMaths.DownScaleFrom16BitTo8Bit(source.PackedValue);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgb24(Rgb24 source) => this.PackedValue = ImageMaths.Get8BitBT709Luminance(source.R, source.G, source.B);
+        public void FromRgb24(Rgb24 source) => this.PackedValue = ImageMaths.Get8BitBT709Luminance(source.R, source.G, source.B);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgba32(Rgba32 source) => this.PackedValue = ImageMaths.Get8BitBT709Luminance(source.R, source.G, source.B);
+        public void FromRgba32(Rgba32 source) => this.PackedValue = ImageMaths.Get8BitBT709Luminance(source.R, source.G, source.B);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgb48(Rgb48 source)
+        public void FromRgb48(Rgb48 source)
             => this.PackedValue = ImageMaths.Get8BitBT709Luminance(
                 ImageMaths.DownScaleFrom16BitTo8Bit(source.R),
                 ImageMaths.DownScaleFrom16BitTo8Bit(source.G),
@@ -126,7 +126,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgba64(Rgba64 source)
+        public void FromRgba64(Rgba64 source)
             => this.PackedValue = ImageMaths.Get8BitBT709Luminance(
                 ImageMaths.DownScaleFrom16BitTo8Bit(source.R),
                 ImageMaths.DownScaleFrom16BitTo8Bit(source.G),

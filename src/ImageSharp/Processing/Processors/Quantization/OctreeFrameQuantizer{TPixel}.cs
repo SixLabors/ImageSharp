@@ -499,7 +499,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                         // Set the color of the palette entry
                         var vector = Vector3.Clamp(new Vector3(this.red, this.green, this.blue) / this.pixelCount, Vector3.Zero, new Vector3(255));
                         TPixel pixel = default;
-                        pixel.PackFromRgba32(new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z, byte.MaxValue));
+                        pixel.FromRgba32(new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z, byte.MaxValue));
                         palette[index] = pixel;
 
                         // Consume the next palette index

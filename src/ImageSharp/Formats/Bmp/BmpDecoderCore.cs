@@ -231,7 +231,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                     for (int x = 0; x < width; x++)
                     {
-                        color.PackFromBgr24(Unsafe.As<byte, Bgr24>(ref colors[bufferRow[x] * 4]));
+                        color.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[bufferRow[x] * 4]));
                         pixelRow[x] = color;
                     }
                 }
@@ -365,7 +365,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         {
                             int colorIndex = ((rowSpan[offset] >> (8 - bits - (shift * bits))) & mask) * 4;
 
-                            color.PackFromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIndex]));
+                            color.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIndex]));
                             pixelRow[newX] = color;
                         }
 
@@ -408,7 +408,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         GetBytesFrom5BitValue((temp & Rgb16GMask) >> 5),
                         GetBytesFrom5BitValue(temp & Rgb16BMask));
 
-                        color.PackFromRgb24(rgb);
+                        color.FromRgb24(rgb);
                         pixelRow[x] = color;
                         offset += 2;
                     }

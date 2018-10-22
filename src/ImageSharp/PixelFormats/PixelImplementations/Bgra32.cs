@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromScaledVector4(Vector4 vector) => this.PackFromVector4(vector);
+        public void FromScaledVector4(Vector4 vector) => this.FromVector4(vector);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromVector4(Vector4 vector) => this.Pack(ref vector);
+        public void FromVector4(Vector4 vector) => this.Pack(ref vector);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromArgb32(Argb32 source)
+        public void FromArgb32(Argb32 source)
         {
             this.R = source.R;
             this.G = source.G;
@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromBgr24(Bgr24 source)
+        public void FromBgr24(Bgr24 source)
         {
             this.R = source.R;
             this.G = source.G;
@@ -161,11 +161,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromBgra32(Bgra32 source) => this = source;
+        public void FromBgra32(Bgra32 source) => this = source;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromGray8(Gray8 source)
+        public void FromGray8(Gray8 source)
         {
             this.R = source.PackedValue;
             this.G = source.PackedValue;
@@ -175,7 +175,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromGray16(Gray16 source)
+        public void FromGray16(Gray16 source)
         {
             byte rgb = ImageMaths.DownScaleFrom16BitTo8Bit(source.PackedValue);
             this.R = rgb;
@@ -186,7 +186,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgba32(Rgba32 source)
+        public void FromRgba32(Rgba32 source)
         {
             this.R = source.R;
             this.G = source.G;
@@ -196,7 +196,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgb24(Rgb24 source)
+        public void FromRgb24(Rgb24 source)
         {
             this.R = source.R;
             this.G = source.G;
@@ -216,7 +216,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgb48(Rgb48 source)
+        public void FromRgb48(Rgb48 source)
         {
             this.R = ImageMaths.DownScaleFrom16BitTo8Bit(source.R);
             this.G = ImageMaths.DownScaleFrom16BitTo8Bit(source.G);
@@ -226,7 +226,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void PackFromRgba64(Rgba64 source)
+        public void FromRgba64(Rgba64 source)
         {
             this.R = ImageMaths.DownScaleFrom16BitTo8Bit(source.R);
             this.G = ImageMaths.DownScaleFrom16BitTo8Bit(source.G);

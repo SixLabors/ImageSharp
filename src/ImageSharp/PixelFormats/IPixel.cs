@@ -115,18 +115,4 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="source">The <see cref="Rgba64"/> value.</param>
         void PackFromRgba64(Rgba64 source);
     }
-
-    /// <summary>
-    /// Temporary extension methods for compatibility
-    /// </summary>
-    internal static class PixelExtensions
-    {
-        public static Rgba32 ToRgba32<TPixel>(this TPixel pixel)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            Rgba32 result = default;
-            pixel.ToRgba32(ref result);
-            return result;
-        }
-    }
 }

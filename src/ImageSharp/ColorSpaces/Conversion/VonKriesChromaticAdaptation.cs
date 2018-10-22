@@ -65,9 +65,14 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <inheritdoc/>
-        public void Transform(Span<CieXyz> source, Span<CieXyz> destination, CieXyz sourceWhitePoint, in CieXyz destinationWhitePoint, int count)
+        public void Transform(
+            ReadOnlySpan<CieXyz> source,
+            Span<CieXyz> destination,
+            CieXyz sourceWhitePoint,
+            in CieXyz destinationWhitePoint)
         {
-            Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+            int count = source.Length;
 
             if (sourceWhitePoint.Equals(destinationWhitePoint))
             {

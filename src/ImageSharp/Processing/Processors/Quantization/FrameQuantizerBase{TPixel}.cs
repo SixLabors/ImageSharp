@@ -17,6 +17,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     public abstract class FrameQuantizerBase<TPixel> : IFrameQuantizer<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        private readonly Configuration configuration;
+
         /// <summary>
         /// A lookup table for colors
         /// </summary>
@@ -79,7 +81,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             // Collect the palette. Required before the second pass runs.
             TPixel[] palette = this.GetPalette();
             this.paletteVector = new Vector4[palette.Length];
-            PixelOperations<TPixel>.Instance.ToScaledVector4(palette, this.paletteVector);
+            PixelOperations<TPixel>.Instance.ToScaledVector4(image.Configuration, palette, this.paletteVector);
             var quantizedFrame = new QuantizedFrame<TPixel>(image.MemoryAllocator, width, height, palette);
 
             if (this.Dither)

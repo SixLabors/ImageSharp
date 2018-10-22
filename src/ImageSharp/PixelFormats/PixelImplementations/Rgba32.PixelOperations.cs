@@ -19,7 +19,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal partial class PixelOperations : PixelOperations<Rgba32>
         {
             /// <inheritdoc />
-            internal override void ToVector4(ReadOnlySpan<Rgba32> sourceColors, Span<Vector4> destinationVectors)
+            internal override void ToVector4(
+                Configuration configuration,
+                ReadOnlySpan<Rgba32> sourceColors,
+                Span<Vector4> destinationVectors)
             {
                 Guard.DestinationShouldNotBeTooShort(sourceColors, destinationVectors, nameof(destinationVectors));
 
@@ -31,7 +34,10 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void FromVector4(ReadOnlySpan<Vector4> sourceVectors, Span<Rgba32> destinationColors)
+            internal override void FromVector4(
+                Configuration configuration,
+                ReadOnlySpan<Vector4> sourceVectors,
+                Span<Rgba32> destinationColors)
             {
                 Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationColors, nameof(destinationColors));
 
@@ -43,17 +49,21 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void ToScaledVector4(ReadOnlySpan<Rgba32> sourceColors, Span<Vector4> destinationVectors)
+            internal override void ToScaledVector4(
+                Configuration configuration,
+                ReadOnlySpan<Rgba32> sourceColors,
+                Span<Vector4> destinationVectors)
             {
-                this.ToVector4(sourceColors, destinationVectors);
+                this.ToVector4(configuration, sourceColors, destinationVectors);
             }
 
             /// <inheritdoc />
             internal override void FromScaledVector4(
+                Configuration configuration,
                 ReadOnlySpan<Vector4> sourceVectors,
                 Span<Rgba32> destinationColors)
             {
-                this.FromVector4(sourceVectors, destinationColors);
+                this.FromVector4(configuration, sourceVectors, destinationColors);
             }
         }
     }

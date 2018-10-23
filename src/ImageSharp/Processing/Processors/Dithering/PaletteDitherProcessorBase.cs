@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         {
             this.Palette = palette ?? throw new ArgumentNullException(nameof(palette));
             this.paletteVector = new Vector4[this.Palette.Length];
-            PixelOperations<TPixel>.Instance.ToScaledVector4(this.Palette, this.paletteVector, this.Palette.Length);
+            PixelOperations<TPixel>.Instance.ToScaledVector4(this.Palette, this.paletteVector);
         }
 
         /// <summary>

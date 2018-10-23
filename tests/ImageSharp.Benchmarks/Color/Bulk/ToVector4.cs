@@ -65,13 +65,13 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [Benchmark]
         public void PixelOperations_Base()
         {
-            new PixelOperations<TPixel>().ToVector4(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
+            new PixelOperations<TPixel>().ToVector4(this.source.GetSpan(), this.destination.GetSpan());
         }
 
         [Benchmark]
         public void PixelOperations_Specialized()
         {
-            PixelOperations<TPixel>.Instance.ToVector4(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
+            PixelOperations<TPixel>.Instance.ToVector4(this.source.GetSpan(), this.destination.GetSpan());
         }
     }
 

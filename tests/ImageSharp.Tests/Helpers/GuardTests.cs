@@ -3,7 +3,10 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+
 using Xunit;
+// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests.Helpers
 {
@@ -14,6 +17,35 @@ namespace SixLabors.ImageSharp.Tests.Helpers
     {
         class Test
         {
+        }
+
+        [Theory]
+        [InlineData(0, 0)]
+        [InlineData(0, 1)]
+        [InlineData(0, 42)]
+        [InlineData(1, 1)]
+        [InlineData(10, 42)]
+        [InlineData(42, 42)]
+        public void DestinationShouldNotBeTooShort_WhenOk(int sourceLength, int destLength)
+        {
+            ReadOnlySpan<int> source = new int[sourceLength];
+            Span<float> dest = new float[destLength];
+
+            Guard.DestinationShouldNotBeTooShort(source, dest, nameof(dest));
+        }
+
+        [Theory]
+        [InlineData(1, 0)]
+        [InlineData(42, 41)]
+        public void DestinationShouldNotBeTooShort_WhenThrows(int sourceLength, int destLength)
+        {
+            Assert.ThrowsAny<ArgumentException>(
+                () =>
+                    {
+                        ReadOnlySpan<int> source = new int[sourceLength];
+                        Span<float> dest = new float[destLength];
+                        Guard.DestinationShouldNotBeTooShort(source, dest, nameof(dest));
+                    });
         }
 
         /// <summary>

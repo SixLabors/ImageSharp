@@ -240,7 +240,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             var white = new Rgb24(255, 255, 255);
             foreach (TPixel pixel in data)
             {
-                var rgba = pixel.ToRgba32();
+                Rgba32 rgba = default;
+                pixel.ToRgba32(ref rgba);
                 if (rgba.A == 0)
                 {
                     continue;

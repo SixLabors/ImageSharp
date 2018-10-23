@@ -154,7 +154,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 return this.GetClosestPixel(ref pixel);
             }
 
-            var rgba = pixel.ToRgba32();
+            Rgba32 rgba = default;
+            pixel.ToRgba32(ref rgba);
             if (rgba.Equals(default))
             {
                 return this.transparentIndex;
@@ -434,7 +435,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                     {
                         // Go to the next level down in the tree
                         int shift = 7 - level;
-                        var rgba = pixel.ToRgba32();
+                        Rgba32 rgba = default;
+                        pixel.ToRgba32(ref rgba);
 
                         int index = ((rgba.B & Mask[level]) >> (shift - 2))
                                     | ((rgba.G & Mask[level]) >> (shift - 1))
@@ -497,7 +499,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                         // Set the color of the palette entry
                         var vector = Vector3.Clamp(new Vector3(this.red, this.green, this.blue) / this.pixelCount, Vector3.Zero, new Vector3(255));
                         TPixel pixel = default;
-                        pixel.PackFromRgba32(new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z, byte.MaxValue));
+                        pixel.FromRgba32(new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z, byte.MaxValue));
                         palette[index] = pixel;
 
                         // Consume the next palette index
@@ -529,7 +531,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                     if (!this.leaf)
                     {
                         int shift = 7 - level;
-                        var rgba = pixel.ToRgba32();
+                        Rgba32 rgba = default;
+                        pixel.ToRgba32(ref rgba);
 
                         int pixelIndex = ((rgba.B & Mask[level]) >> (shift - 2))
                                          | ((rgba.G & Mask[level]) >> (shift - 1))
@@ -556,7 +559,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 public void Increment(ref TPixel pixel)
                 {
-                    var rgba = pixel.ToRgba32();
+                    Rgba32 rgba = default;
+                    pixel.ToRgba32(ref rgba);
                     this.pixelCount++;
                     this.red += rgba.R;
                     this.green += rgba.G;

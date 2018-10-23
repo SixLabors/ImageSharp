@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 
             Span<CieXyz> actualSpan = new CieXyz[5];
 
-            adaptation.Transform(inputSpan, actualSpan, sourceWhitePoint, destinationWhitePoint, inputSpan.Length);
+            adaptation.Transform(inputSpan, actualSpan, sourceWhitePoint, destinationWhitePoint);
 
             for (int i = 0; i < inputSpan.Length; i++)
             {

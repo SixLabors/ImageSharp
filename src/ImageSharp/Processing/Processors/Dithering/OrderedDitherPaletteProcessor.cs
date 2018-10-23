@@ -4,7 +4,6 @@
 using System;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Dithering;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Dithering
@@ -32,10 +31,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <param name="dither">The ordered ditherer.</param>
         /// <param name="palette">The palette to select substitute colors from.</param>
         public OrderedDitherPaletteProcessor(IOrderedDither dither, TPixel[] palette)
-            : base(palette)
-        {
-            this.Dither = dither ?? throw new ArgumentNullException(nameof(dither));
-        }
+            : base(palette) => this.Dither = dither ?? throw new ArgumentNullException(nameof(dither));
 
         /// <summary>
         /// Gets the ditherer.
@@ -45,7 +41,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            Rgba32 rgba = default;
             bool isAlphaOnly = typeof(TPixel) == typeof(Alpha8);
 
             var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
@@ -58,10 +53,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             TPixel sourcePixel = source[startX, startY];
             TPixel previousPixel = sourcePixel;
             PixelPair<TPixel> pair = this.GetClosestPixelPair(ref sourcePixel);
-            sourcePixel.ToRgba32(ref rgba);
+            var rgba = sourcePixel.ToRgba32();
 
             // Convert to grayscale using ITU-R Recommendation BT.709 if required
-            float luminance = isAlphaOnly ? rgba.A : (.2126F * rgba.R) + (.7152F * rgba.G) + (.0722F * rgba.B);
+            byte luminance = isAlphaOnly ? rgba.A : ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
 
             for (int y = startY; y < endY; y++)
             {
@@ -83,8 +78,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                             continue;
                         }
 
-                        sourcePixel.ToRgba32(ref rgba);
-                        luminance = isAlphaOnly ? rgba.A : (.2126F * rgba.R) + (.7152F * rgba.G) + (.0722F * rgba.B);
+                        rgba = sourcePixel.ToRgba32();
+                        luminance = isAlphaOnly ? rgba.A : ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
 
                         // Setup the previous pointer
                         previousPixel = sourcePixel;

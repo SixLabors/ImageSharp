@@ -21,7 +21,6 @@ namespace SixLabors.ImageSharp
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is null</exception>
         [MethodImpl(InliningOptions.ShortMethod)]
-        [DebuggerStepThrough]
         public static void NotNull<T>(T value, string parameterName)
             where T : class
         {
@@ -39,7 +38,6 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is empty or contains only blanks.</exception>
         [MethodImpl(InliningOptions.ShortMethod)]
-        [DebuggerStepThrough]
         public static void NotNullOrWhiteSpace(string value, string parameterName)
         {
             if (value is null)
@@ -62,7 +60,6 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is empty.</exception>
         [MethodImpl(InliningOptions.ShortMethod)]
-        [DebuggerStepThrough]
         public static void NotNullOrEmpty<T>(ICollection<T> value, string parameterName)
         {
             if (value is null)
@@ -87,7 +84,6 @@ namespace SixLabors.ImageSharp
         /// <paramref name="value"/> is greater than the maximum value.
         /// </exception>
         [MethodImpl(InliningOptions.ShortMethod)]
-        [DebuggerStepThrough]
         public static void MustBeLessThan<TValue>(TValue value, TValue max, string parameterName)
                     where TValue : IComparable<TValue>
         {
@@ -109,7 +105,6 @@ namespace SixLabors.ImageSharp
         /// <paramref name="value"/> is greater than the maximum value.
         /// </exception>
         [MethodImpl(InliningOptions.ShortMethod)]
-        [DebuggerStepThrough]
         public static void MustBeLessThanOrEqualTo<TValue>(TValue value, TValue max, string parameterName)
                     where TValue : IComparable<TValue>
         {
@@ -131,7 +126,6 @@ namespace SixLabors.ImageSharp
         /// <paramref name="value"/> is less than the minimum value.
         /// </exception>
         [MethodImpl(InliningOptions.ShortMethod)]
-        [DebuggerStepThrough]
         public static void MustBeGreaterThan<TValue>(TValue value, TValue min, string parameterName)
             where TValue : IComparable<TValue>
         {
@@ -155,7 +149,6 @@ namespace SixLabors.ImageSharp
         /// <paramref name="value"/> is less than the minimum value.
         /// </exception>
         [MethodImpl(InliningOptions.ShortMethod)]
-        [DebuggerStepThrough]
         public static void MustBeGreaterThanOrEqualTo<TValue>(TValue value, TValue min, string parameterName)
             where TValue : IComparable<TValue>
         {
@@ -178,7 +171,6 @@ namespace SixLabors.ImageSharp
         /// <paramref name="value"/> is less than the minimum value of greater than the maximum value.
         /// </exception>
         [MethodImpl(InliningOptions.ShortMethod)]
-        [DebuggerStepThrough]
         public static void MustBeBetweenOrEqualTo<TValue>(TValue value, TValue min, TValue max, string parameterName)
             where TValue : IComparable<TValue>
         {
@@ -199,7 +191,6 @@ namespace SixLabors.ImageSharp
         /// <paramref name="target"/> is false
         /// </exception>
         [MethodImpl(InliningOptions.ShortMethod)]
-        [DebuggerStepThrough]
         public static void IsTrue(bool target, string parameterName, string message)
         {
             if (!target)
@@ -219,7 +210,6 @@ namespace SixLabors.ImageSharp
         /// <paramref name="target"/> is true
         /// </exception>
         [MethodImpl(InliningOptions.ShortMethod)]
-        [DebuggerStepThrough]
         public static void IsFalse(bool target, string parameterName, string message)
         {
             if (target)
@@ -239,7 +229,6 @@ namespace SixLabors.ImageSharp
         /// <paramref name="source"/> has less than <paramref name="minLength"/> items
         /// </exception>
         [MethodImpl(InliningOptions.ShortMethod)]
-        [DebuggerStepThrough]
         public static void MustBeSizedAtLeast<T>(ReadOnlySpan<T> source, int minLength, string parameterName)
         {
             if (source.Length < minLength)
@@ -257,7 +246,6 @@ namespace SixLabors.ImageSharp
         /// <param name="destination">The destination span</param>
         /// <param name="destinationParamName">The name of the argument for 'destination'</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        [DebuggerStepThrough]
         public static void DestinationShouldNotBeTooShort<TSource, TDest>(
             ReadOnlySpan<TSource> source,
             Span<TDest> destination,
@@ -280,7 +268,6 @@ namespace SixLabors.ImageSharp
         /// <paramref name="source"/> has less than <paramref name="minLength"/> items
         /// </exception>
         [MethodImpl(InliningOptions.ShortMethod)]
-        [DebuggerStepThrough]
         public static void MustBeSizedAtLeast<T>(Span<T> source, int minLength, string parameterName)
         {
             if (source.Length < minLength)

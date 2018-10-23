@@ -17,8 +17,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     public abstract class FrameQuantizerBase<TPixel> : IFrameQuantizer<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private readonly Configuration configuration;
-
         /// <summary>
         /// A lookup table for colors
         /// </summary>

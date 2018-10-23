@@ -1,6 +1,8 @@
 ﻿// ReSharper disable InconsistentNaming
 
+using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 using BenchmarkDotNet.Attributes;
 
@@ -8,14 +10,14 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 {
-    public class PixelConversion_ConvertFromRgba32
+    public abstract class PixelConversion_ConvertFromRgba32
     {
-        struct ConversionRunner<T>
+        internal struct ConversionRunner<T>
             where T : struct, ITestPixel<T>
         {
-            private T[] dest;
+            public readonly T[] dest;
 
-            private Rgba32[] source;
+            public readonly Rgba32[] source;
 
             public ConversionRunner(int count)
             {
@@ -67,72 +69,146 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             }
         }
         
-        private ConversionRunner<TestRgba> compatibleMemLayoutRunner;
+        internal ConversionRunner<TestRgba> compatibleMemLayoutRunner;
 
-        private ConversionRunner<TestArgb> permutedRunner;
+        internal ConversionRunner<TestArgb> permutedRunnerRgbaToArgb;
 
-        [Params(32)]
+        [Params(
+            256,
+            2048
+        )]
         public int Count { get; set; }
 
         [GlobalSetup]
         public void Setup()
         {
             this.compatibleMemLayoutRunner = new ConversionRunner<TestRgba>(this.Count);
-            this.permutedRunner = new ConversionRunner<TestArgb>(this.Count);
+            this.permutedRunnerRgbaToArgb = new ConversionRunner<TestArgb>(this.Count);
         }
+    }
 
+    public class PixelConversion_ConvertFromRgba32_Compatible : PixelConversion_ConvertFromRgba32
+    {
         [Benchmark(Baseline = true)]
-        public void CompatibleByRef()
+        public void ByRef()
         {
             this.compatibleMemLayoutRunner.RunByRefConversion();
         }
 
         [Benchmark]
-        public void CompatibleByVal()
+        public void ByVal()
         {
             this.compatibleMemLayoutRunner.RunByValConversion();
         }
 
         [Benchmark]
-        public void CompatibleFromBytes()
+        public void FromBytes()
         {
             this.compatibleMemLayoutRunner.RunFromBytesConversion();
         }
 
-
         [Benchmark]
-        public void PermutedByRef()
+        public void Inline()
         {
-            this.permutedRunner.RunByRefConversion();
+            ref Rgba32 sBase = ref this.compatibleMemLayoutRunner.source[0];
+            ref Rgba32 dBase = ref Unsafe.As<TestRgba, Rgba32>(ref this.compatibleMemLayoutRunner.dest[0]);
+
+            for (int i = 0; i < this.Count; i++)
+            {
+                Unsafe.Add(ref dBase, i) = Unsafe.Add(ref sBase, i);
+            }
         }
 
-        [Benchmark]
-        public void PermutedByVal()
-        {
-            this.permutedRunner.RunByValConversion();
-        }
-
-        [Benchmark]
-        public void PermutedFromBytes()
-        {
-            this.permutedRunner.RunFromBytesConversion();
-        }
+        //     Method | Count |     Mean |    Error |   StdDev | Scaled | ScaledSD |
+        // ---------- |------ |---------:|---------:|---------:|-------:|---------:|
+        //      ByRef |   256 | 128.5 ns | 1.217 ns | 1.138 ns |   1.00 |     0.00 |
+        //      ByVal |   256 | 196.7 ns | 2.792 ns | 2.612 ns |   1.53 |     0.02 |
+        //  FromBytes |   256 | 321.7 ns | 2.180 ns | 1.820 ns |   2.50 |     0.03 |
+        //     Inline |   256 | 129.9 ns | 2.759 ns | 2.581 ns |   1.01 |     0.02 |
     }
 
-    /*
-     * Results:
-     *              Method | Count |       Mean |    StdDev | Scaled | Scaled-StdDev |
-     *  ------------------ |------ |----------- |---------- |------- |-------------- |
-     *     CompatibleByRef |    32 | 20.6339 ns | 0.0742 ns |   1.00 |          0.00 |
-     *     CompatibleByVal |    32 | 23.7425 ns | 0.0997 ns |   1.15 |          0.01 |
-     * CompatibleFromBytes |    32 | 38.7017 ns | 0.1103 ns |   1.88 |          0.01 |
-     *       PermutedByRef |    32 | 39.2892 ns | 0.1366 ns |   1.90 |          0.01 |
-     *       PermutedByVal |    32 | 38.5178 ns | 0.1946 ns |   1.87 |          0.01 |
-     *   PermutedFromBytes |    32 | 38.6683 ns | 0.0801 ns |   1.87 |          0.01 |
-     *  
-     *  !!! Conclusion !!!
-     *  All memory-incompatible (permuted) variants are equivalent with the the "FromBytes" solution. 
-     *  In memory compatible cases we should use the optimized Bulk-copying variant anyways, 
-     *  so there is no benefit introducing non-bulk API-s other than FromBytes() OR FromRgba32().
-     */
+    public class PixelConversion_ConvertFromRgba32_Permuted_RgbaToArgb : PixelConversion_ConvertFromRgba32
+    {
+        [Benchmark(Baseline = true)]
+        public void ByRef()
+        {
+            this.permutedRunnerRgbaToArgb.RunByRefConversion();
+        }
+
+        [Benchmark]
+        public void ByVal()
+        {
+            this.permutedRunnerRgbaToArgb.RunByValConversion();
+        }
+
+        [Benchmark]
+        public void FromBytes()
+        {
+            this.permutedRunnerRgbaToArgb.RunFromBytesConversion();
+        }
+
+        [Benchmark]
+        public void InlineShuffle()
+        {
+            ref Rgba32 sBase = ref this.permutedRunnerRgbaToArgb.source[0];
+            ref TestArgb dBase = ref this.permutedRunnerRgbaToArgb.dest[0];
+
+            for (int i = 0; i < this.Count; i++)
+            {
+                Rgba32 s = Unsafe.Add(ref sBase, i);
+                ref TestArgb d = ref Unsafe.Add(ref dBase, i);
+
+                d.R = s.R;
+                d.G = s.G;
+                d.B = s.B;
+                d.A = s.A;
+            }
+        }
+
+        [Benchmark]
+        public void PixelConverter_Rgba32_ToArgb32()
+        {
+            ref uint sBase = ref Unsafe.As<Rgba32, uint>(ref this.permutedRunnerRgbaToArgb.source[0]);
+            ref uint dBase = ref Unsafe.As<TestArgb, uint>(ref this.permutedRunnerRgbaToArgb.dest[0]);
+
+            for (int i = 0; i < this.Count; i++)
+            {
+                uint s = Unsafe.Add(ref sBase, i);
+                Unsafe.Add(ref dBase, i) = PixelConverter.Rgba32.ToArgb32(s);
+            }
+        }
+
+        [Benchmark]
+        public void PixelConverter_Rgba32_ToArgb32_CopyThenWorkOnSingleBuffer()
+        {
+            Span<uint> source = MemoryMarshal.Cast<Rgba32, uint>(this.permutedRunnerRgbaToArgb.source);
+            Span<uint> dest = MemoryMarshal.Cast<TestArgb, uint>(this.permutedRunnerRgbaToArgb.dest);
+            source.CopyTo(dest);
+
+            ref uint dBase = ref MemoryMarshal.GetReference(dest);
+
+            for (int i = 0; i < this.Count; i++)
+            {
+                uint s = Unsafe.Add(ref dBase, i);
+                Unsafe.Add(ref dBase, i) = PixelConverter.Rgba32.ToArgb32(s);
+            }
+        }
+
+        // RESULTS:
+        //                                                     Method | Count |       Mean |      Error |     StdDev | Scaled | ScaledSD |
+        // ---------------------------------------------------------- |------ |-----------:|-----------:|-----------:|-------:|---------:|
+        //                                                      ByRef |   256 |   328.7 ns |  6.6141 ns |  6.1868 ns |   1.00 |     0.00 |
+        //                                                      ByVal |   256 |   322.0 ns |  4.3541 ns |  4.0728 ns |   0.98 |     0.02 |
+        //                                                  FromBytes |   256 |   321.5 ns |  3.3499 ns |  3.1335 ns |   0.98 |     0.02 |
+        //                                              InlineShuffle |   256 |   330.7 ns |  4.2525 ns |  3.9778 ns |   1.01 |     0.02 |
+        //                             PixelConverter_Rgba32_ToArgb32 |   256 |   167.4 ns |  0.6357 ns |  0.5309 ns |   0.51 |     0.01 |
+        //  PixelConverter_Rgba32_ToArgb32_CopyThenWorkOnSingleBuffer |   256 |   196.6 ns |  0.8929 ns |  0.7915 ns |   0.60 |     0.01 |
+        //                                                            |       |            |            |            |        |          |
+        //                                                      ByRef |  2048 | 2,534.4 ns |  8.2947 ns |  6.9265 ns |   1.00 |     0.00 |
+        //                                                      ByVal |  2048 | 2,638.5 ns | 52.6843 ns | 70.3320 ns |   1.04 |     0.03 |
+        //                                                  FromBytes |  2048 | 2,517.2 ns | 40.8055 ns | 38.1695 ns |   0.99 |     0.01 |
+        //                                              InlineShuffle |  2048 | 2,546.5 ns | 21.2506 ns | 19.8778 ns |   1.00 |     0.01 |
+        //                             PixelConverter_Rgba32_ToArgb32 |  2048 | 1,265.7 ns |  5.1397 ns |  4.5562 ns |   0.50 |     0.00 |
+        //  PixelConverter_Rgba32_ToArgb32_CopyThenWorkOnSingleBuffer |  2048 | 1,410.3 ns | 11.1939 ns |  9.9231 ns |   0.56 |     0.00 |// 
+    }
 }

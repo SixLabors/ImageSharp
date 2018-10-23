@@ -4,7 +4,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
-    public class PixelConverterTests
+    public abstract class PixelConverterTests
     {
         public static readonly TheoryData<byte, byte, byte, byte> RgbaData =
             new TheoryData<byte, byte, byte, byte>
@@ -23,34 +23,103 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                     { 67, 71, 101, 109 }
                 };
 
-        [Theory]
-        [MemberData(nameof(RgbaData))]
-        public void Rgba32ToArgb32(byte r, byte g, byte b, byte a)
+        public class FromRgba32 : PixelConverterTests
         {
-            Rgba32 s = ReferenceImplementations.MakeRgba32(r, g, b, a);
+            [Theory]
+            [MemberData(nameof(RgbaData))]
+            public void ToArgb32(byte r, byte g, byte b, byte a)
+            {
+                Rgba32 s = ReferenceImplementations.MakeRgba32(r, g, b, a);
 
-            // Act:
-            uint actualPacked = PixelConverter.Rgba32.ToArgb32(s.PackedValue);
+                // Act:
+                uint actualPacked = PixelConverter.FromRgba32.ToArgb32(s.PackedValue);
 
-            // Assert:
-            uint expectedPacked = ReferenceImplementations.ToArgb32(s).PackedValue;
+                // Assert:
+                uint expectedPacked = ReferenceImplementations.MakeArgb32(r, g, b, a).PackedValue;
 
-            Assert.Equal(expectedPacked, actualPacked);
+                Assert.Equal(expectedPacked, actualPacked);
+            }
+
+            [Theory]
+            [MemberData(nameof(RgbaData))]
+            public void ToBgra32(byte r, byte g, byte b, byte a)
+            {
+                Rgba32 s = ReferenceImplementations.MakeRgba32(r, g, b, a);
+
+                // Act:
+                uint actualPacked = PixelConverter.FromRgba32.ToBgra32(s.PackedValue);
+
+                // Assert:
+                uint expectedPacked = ReferenceImplementations.MakeBgra32(r, g, b, a).PackedValue;
+
+                Assert.Equal(expectedPacked, actualPacked);
+            }
         }
 
-        [Theory]
-        [MemberData(nameof(RgbaData))]
-        public void Argb32ToRgba32(byte r, byte g, byte b, byte a)
+        public class FromArgb32 : PixelConverterTests
         {
-            Argb32 s = ReferenceImplementations.MakeArgb32(r, g, b, a);
+            [Theory]
+            [MemberData(nameof(RgbaData))]
+            public void ToRgba32(byte r, byte g, byte b, byte a)
+            {
+                Argb32 s = ReferenceImplementations.MakeArgb32(r, g, b, a);
 
-            // Act:
-            uint actualPacked = PixelConverter.Argb32.ToRgba32(s.PackedValue);
+                // Act:
+                uint actualPacked = PixelConverter.FromArgb32.ToRgba32(s.PackedValue);
 
-            // Assert:
-            uint expectedPacked = ReferenceImplementations.ToRgba32(s).PackedValue;
+                // Assert:
+                uint expectedPacked = ReferenceImplementations.MakeRgba32(r, g, b, a).PackedValue;
 
-            Assert.Equal(expectedPacked, actualPacked);
+                Assert.Equal(expectedPacked, actualPacked);
+            }
+
+            [Theory]
+            [MemberData(nameof(RgbaData))]
+            public void ToBgra32(byte r, byte g, byte b, byte a)
+            {
+                Argb32 s = ReferenceImplementations.MakeArgb32(r, g, b, a);
+
+                // Act:
+                uint actualPacked = PixelConverter.FromArgb32.ToBgra32(s.PackedValue);
+
+                // Assert:
+                uint expectedPacked = ReferenceImplementations.MakeBgra32(r, g, b, a).PackedValue;
+
+                Assert.Equal(expectedPacked, actualPacked);
+            }
+        }
+
+        public class FromBgra32 : PixelConverterTests
+        {
+            [Theory]
+            [MemberData(nameof(RgbaData))]
+            public void ToArgb32(byte r, byte g, byte b, byte a)
+            {
+                Bgra32 s = ReferenceImplementations.MakeBgra32(r, g, b, a);
+
+                // Act:
+                uint actualPacked = PixelConverter.FromBgra32.ToArgb32(s.PackedValue);
+
+                // Assert:
+                uint expectedPacked = ReferenceImplementations.MakeArgb32(r, g, b, a).PackedValue;
+
+                Assert.Equal(expectedPacked, actualPacked);
+            }
+
+            [Theory]
+            [MemberData(nameof(RgbaData))]
+            public void ToRgba32(byte r, byte g, byte b, byte a)
+            {
+                Bgra32 s = ReferenceImplementations.MakeBgra32(r, g, b, a);
+
+                // Act:
+                uint actualPacked = PixelConverter.FromBgra32.ToRgba32(s.PackedValue);
+
+                // Assert:
+                uint expectedPacked = ReferenceImplementations.MakeRgba32(r, g, b, a).PackedValue;
+
+                Assert.Equal(expectedPacked, actualPacked);
+            }
         }
 
 
@@ -83,66 +152,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 d.G = g;
                 d.B = b;
                 d.A = a;
-                return d;
-            }
-
-            public static Argb32 ToArgb32(Rgba32 s)
-            {
-                Argb32 d = default;
-                d.R = s.R;
-                d.G = s.G;
-                d.B = s.B;
-                d.A = s.A;
-                return d;
-            }
-
-            public static Argb32 ToArgb32(Bgra32 s)
-            {
-                Argb32 d = default;
-                d.R = s.R;
-                d.G = s.G;
-                d.B = s.B;
-                d.A = s.A;
-                return d;
-            }
-
-            public static Rgba32 ToRgba32(Argb32 s)
-            {
-                Rgba32 d = default;
-                d.R = s.R;
-                d.G = s.G;
-                d.B = s.B;
-                d.A = s.A;
-                return d;
-            }
-
-            public static Rgba32 ToRgba32(Bgra32 s)
-            {
-                Rgba32 d = default;
-                d.R = s.R;
-                d.G = s.G;
-                d.B = s.B;
-                d.A = s.A;
-                return d;
-            }
-
-            public static Bgra32 ToBgra32(Rgba32 s)
-            {
-                Bgra32 d = default;
-                d.R = s.R;
-                d.G = s.G;
-                d.B = s.B;
-                d.A = s.A;
-                return d;
-            }
-
-            public static Bgra32 ToBgra32(Argb32 s)
-            {
-                Bgra32 d = default;
-                d.R = s.R;
-                d.G = s.G;
-                d.B = s.B;
-                d.A = s.A;
                 return d;
             }
         }

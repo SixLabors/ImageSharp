@@ -178,27 +178,5 @@ namespace SixLabors.ImageSharp.PixelFormats
                 dp.FromScaledVector4(sp.ToScaledVector4());
             }
         }
-
-        /// <summary>
-        /// Verifies that the given 'source' and 'destination' spans are at least of 'minLength' size.
-        /// Throwing an <see cref="ArgumentException"/> if the condition is not met.
-        /// </summary>
-        /// <typeparam name="TSource">The source element type</typeparam>
-        /// <typeparam name="TDest">The destination element type</typeparam>
-        /// <param name="source">The source span</param>
-        /// <param name="sourceParamName">The source parameter name</param>
-        /// <param name="destination">The destination span</param>
-        /// <param name="destinationParamName">The destination parameter name</param>
-        /// <param name="minLength">The minimum length</param>
-        protected internal static void GuardSpans<TSource, TDest>(
-            ReadOnlySpan<TSource> source,
-            string sourceParamName,
-            Span<TDest> destination,
-            string destinationParamName,
-            int minLength)
-        {
-            Guard.MustBeSizedAtLeast(source, minLength, sourceParamName);
-            Guard.MustBeSizedAtLeast(destination, minLength, destinationParamName);
-        }
     }
 }

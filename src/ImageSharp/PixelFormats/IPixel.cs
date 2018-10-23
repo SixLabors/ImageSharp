@@ -24,93 +24,93 @@ namespace SixLabors.ImageSharp.PixelFormats
     }
 
     /// <summary>
-    /// An interface that represents a pixel type.
+    /// A base interface for all pixels, defining the mandatory operations to be implemented by a pixel type.
     /// </summary>
     public interface IPixel
     {
         /// <summary>
-        /// Sets the packed representation from a scaled <see cref="Vector4"/>.
+        /// Initializes the pixel instance from a generic ("scaled") <see cref="Vector4"/>.
         /// </summary>
-        /// <param name="vector">The vector to create the packed representation from.</param>
+        /// <param name="vector">The vector to load the pixel from.</param>
         void FromScaledVector4(Vector4 vector);
 
         /// <summary>
-        /// Expands the packed representation into a scaled <see cref="Vector4"/>
-        /// with values clamped between <value>0</value> and <value>1</value>.
+        /// Expands the pixel into a generic ("scaled") <see cref="Vector4"/> representation
+        /// with values scaled and clamped between <value>0</value> and <value>1</value>.
         /// The vector components are typically expanded in least to greatest significance order.
         /// </summary>
         /// <returns>The <see cref="Vector4"/>.</returns>
         Vector4 ToScaledVector4();
 
         /// <summary>
-        /// Sets the packed representation from a <see cref="Vector4"/>.
+        /// Initializes the pixel instance from a <see cref="Vector4"/> which is specific to the current pixel type.
         /// </summary>
-        /// <param name="vector">The vector to create the packed representation from.</param>
+        /// <param name="vector">The vector to load the pixel from.</param>
         void FromVector4(Vector4 vector);
 
         /// <summary>
-        /// Expands the packed representation into a <see cref="Vector4"/>.
+        /// Expands the pixel into a <see cref="Vector4"/> which is specific to the current pixel type.
         /// The vector components are typically expanded in least to greatest significance order.
         /// </summary>
         /// <returns>The <see cref="Vector4"/>.</returns>
         Vector4 ToVector4();
 
         /// <summary>
-        /// Packs the pixel from an <see cref="Argb32"/> value.
+        /// Initializes the pixel instance from an <see cref="Argb32"/> value.
         /// </summary>
         /// <param name="source">The <see cref="Argb32"/> value.</param>
         void FromArgb32(Argb32 source);
 
         /// <summary>
-        /// Packs the pixel from an <see cref="Bgr24"/> value.
+        /// Initializes the pixel instance from an <see cref="Bgr24"/> value.
         /// </summary>
         /// <param name="source">The <see cref="Bgr24"/> value.</param>
         void FromBgr24(Bgr24 source);
 
         /// <summary>
-        /// Packs the pixel from an <see cref="Bgra32"/> value.
+        /// Initializes the pixel instance from an <see cref="Bgra32"/> value.
         /// </summary>
         /// <param name="source">The <see cref="Bgra32"/> value.</param>
         void FromBgra32(Bgra32 source);
 
         /// <summary>
-        /// Packs the Pixel from an <see cref="Gray8"/> value.
+        /// Initializes the pixel instance from an <see cref="Gray8"/> value.
         /// </summary>
         /// <param name="source">The <see cref="Gray8"/> value.</param>
         void FromGray8(Gray8 source);
 
         /// <summary>
-        /// Packs the Pixel from an <see cref="Gray16"/> value.
+        /// Initializes the pixel instance from an <see cref="Gray16"/> value.
         /// </summary>
         /// <param name="source">The <see cref="Gray16"/> value.</param>
         void FromGray16(Gray16 source);
 
         /// <summary>
-        /// Packs the pixel from an <see cref="Rgb24"/> value.
+        /// Initializes the pixel instance from an <see cref="Rgb24"/> value.
         /// </summary>
         /// <param name="source">The <see cref="Rgb24"/> value.</param>
         void FromRgb24(Rgb24 source);
 
         /// <summary>
-        /// Packs the pixel from an <see cref="Rgba32"/> value.
+        /// Initializes the pixel instance from an <see cref="Rgba32"/> value.
         /// </summary>
         /// <param name="source">The <see cref="Rgba32"/> value.</param>
         void FromRgba32(Rgba32 source);
 
         /// <summary>
-        /// Expands the packed representation into an <see cref="Rgba32"/>.
+        /// Convert the pixel instance into <see cref="Rgba32"/> representation.
         /// </summary>
         /// <param name="dest">The reference to the destination <see cref="Rgba32"/> pixel</param>
         void ToRgba32(ref Rgba32 dest);
 
         /// <summary>
-        /// Packs the pixel from an <see cref="Rgb48"/> value.
+        /// Initializes the pixel instance from an <see cref="Rgb48"/> value.
         /// </summary>
         /// <param name="source">The <see cref="Rgb48"/> value.</param>
         void FromRgb48(Rgb48 source);
 
         /// <summary>
-        /// Packs the pixel from an <see cref="Rgba64"/> value.
+        /// Initializes the pixel instance from an <see cref="Rgba64"/> value.
         /// </summary>
         /// <param name="source">The <see cref="Rgba64"/> value.</param>
         void FromRgba64(Rgba64 source);

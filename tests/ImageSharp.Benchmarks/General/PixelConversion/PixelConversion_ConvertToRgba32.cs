@@ -1,14 +1,14 @@
 ﻿// ReSharper disable InconsistentNaming
 
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+using BenchmarkDotNet.Attributes;
+
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Benchmarks.General
+namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 {
-    using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
-
-    using BenchmarkDotNet.Attributes;
-
     /// <summary>
     /// When implementing TPixel --> Rgba32 style conversions on IPixel, should which API should we prefer?
     /// 1. Rgba32 ToRgba32(); 
@@ -18,53 +18,6 @@ namespace SixLabors.ImageSharp.Benchmarks.General
     /// </summary>
     public class PixelConversion_ConvertToRgba32
     {
-        interface ITestPixel<T>
-            where T : struct, ITestPixel<T>
-        {
-            Rgba32 ToRgba32();
-
-            void CopyToRgba32(ref Rgba32 dest);
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        struct TestArgb : ITestPixel<TestArgb>
-        {
-            private byte a, r, g, b;
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Rgba32 ToRgba32()
-            {
-                return new Rgba32(this.r, this.g, this.b, this.a);
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void CopyToRgba32(ref Rgba32 dest)
-            {
-                dest.R = this.r;
-                dest.G = this.g;
-                dest.B = this.b;
-                dest.A = this.a;
-            }
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        struct TestRgba : ITestPixel<TestRgba>
-        {
-            private byte r, g, b, a;
-            
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Rgba32 ToRgba32()
-            {
-                return Unsafe.As<TestRgba, Rgba32>(ref this);
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void CopyToRgba32(ref Rgba32 dest)
-            {
-                dest = Unsafe.As<TestRgba, Rgba32>(ref this);
-            }
-        }
-
         struct ConversionRunner<T>
             where T : struct, ITestPixel<T>
         {
@@ -111,7 +64,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
 
         private ConversionRunner<TestArgb> permutedRunner;
 
-        [Params(128)]
+        [Params(32)]
         public int Count { get; set; }
 
         [GlobalSetup]

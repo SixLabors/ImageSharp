@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             ref Rgba32 sBase = ref this.source[0];
             ref Argb32 dBase = ref this.dest[0];
 
-            for (int i = 0; i < this.Count / 2; i += 2)
+            for (int i = 0; i < this.Count; i += 2)
             {
                 ref Rgba32 s0 = ref Unsafe.Add(ref sBase, i);
                 Rgba32 s1 = Unsafe.Add(ref s0, 1);
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             ref Rgba32 sBase = ref this.source[0];
             ref Argb32 dBase = ref this.dest[0];
 
-            for (int i = 0; i < this.Count / 4; i += 4)
+            for (int i = 0; i < this.Count; i += 4)
             {
                 ref Rgba32 s0 = ref Unsafe.Add(ref sBase, i);
                 ref Rgba32 s1 = ref Unsafe.Add(ref s0, 1);
@@ -98,119 +98,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
                 Unsafe.Add(ref d2, 1).FromRgba32(s3);
             }
         }
-
-        [Benchmark]
-        public void Default_Group4_ManualInline_V1()
-        {
-            ref Rgba32 sBase = ref this.source[0];
-            ref Argb32 dBase = ref this.dest[0];
-
-            for (int i = 0; i < this.Count / 4; i += 4)
-            {
-                ref Rgba32 s0 = ref Unsafe.Add(ref sBase, i);
-                ref Rgba32 s1 = ref Unsafe.Add(ref s0, 1);
-                ref Rgba32 s2 = ref Unsafe.Add(ref s1, 1);
-                Rgba32 s3 = Unsafe.Add(ref s2, 1);
-
-                ref Argb32 d0 = ref Unsafe.Add(ref dBase, i);
-                ref Argb32 d1 = ref Unsafe.Add(ref d0, 1);
-                ref Argb32 d2 = ref Unsafe.Add(ref d1, 1);
-                ref Argb32 d3 = ref Unsafe.Add(ref d2, 1);
-
-                d0.R = s0.R;
-                d0.G = s0.G;
-                d0.B = s0.B;
-                d0.A = s0.A;
-
-                d1.R = s1.R;
-                d1.G = s1.G;
-                d1.B = s1.B;
-                d1.A = s1.A;
-
-                d2.R = s2.R;
-                d2.G = s2.G;
-                d2.B = s2.B;
-                d2.A = s2.A;
-
-                d3.R = s3.R;
-                d3.G = s3.G;
-                d3.B = s3.B;
-                d3.A = s3.A;
-            }
-        }
-
-        [Benchmark]
-        public void Default_Group4_ManualInline_V2()
-        {
-            ref Rgba32 sBase = ref this.source[0];
-            ref Argb32 dBase = ref this.dest[0];
-
-            for (int i = 0; i < this.Count / 4; i += 4)
-            {
-                ref Rgba32 s0 = ref Unsafe.Add(ref sBase, i);
-                ref Rgba32 s1 = ref Unsafe.Add(ref s0, 1);
-                ref Rgba32 s2 = ref Unsafe.Add(ref s1, 1);
-                Rgba32 s3 = Unsafe.Add(ref s2, 1);
-
-                ref Argb32 d0 = ref Unsafe.Add(ref dBase, i);
-                ref Argb32 d1 = ref Unsafe.Add(ref d0, 1);
-                ref Argb32 d2 = ref Unsafe.Add(ref d1, 1);
-                ref Argb32 d3 = ref Unsafe.Add(ref d2, 1);
-                
-                d0.R = s0.R;
-                d1.R = s1.R;
-                d2.R = s2.R;
-                d3.R = s3.R;
-
-                d0.G = s0.G;
-                d1.G = s1.G;
-                d2.G = s2.G;
-                d3.G = s3.G;
-
-                d0.B = s0.B;
-                d1.B = s1.B;
-                d2.B = s2.B;
-                d3.B = s3.B;
-
-                d0.A = s0.A;
-                d1.A = s1.A;
-                d2.A = s2.A;
-                d3.A = s3.A;
-            }
-        }
-
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        private static void Group4GenericImpl<TPixel>(ReadOnlySpan<Rgba32> source, Span<TPixel> dest)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            ref Rgba32 sBase = ref MemoryMarshal.GetReference(source);
-            ref TPixel dBase = ref MemoryMarshal.GetReference(dest);
-
-            for (int i = 0; i < source.Length / 4; i += 4)
-            {
-                ref Rgba32 s0 = ref Unsafe.Add(ref sBase, i);
-                ref Rgba32 s1 = ref Unsafe.Add(ref s0, 1);
-                ref Rgba32 s2 = ref Unsafe.Add(ref s1, 1);
-                Rgba32 s3 = Unsafe.Add(ref s2, 1);
-
-                ref TPixel d0 = ref Unsafe.Add(ref dBase, i);
-                ref TPixel d1 = ref Unsafe.Add(ref d0, 1);
-                ref TPixel d2 = ref Unsafe.Add(ref d1, 1);
-
-                d0.FromRgba32(s0);
-                d1.FromRgba32(s1);
-                d2.FromRgba32(s2);
-                Unsafe.Add(ref d2, 1).FromRgba32(s3);
-            }
-        }
-
-        [Benchmark]
-        public void Default_Group4_Generic()
-        {
-            Group4GenericImpl(this.source.AsSpan(), this.dest.AsSpan());
-        }
-
+        
         [Benchmark]
         public void BitOps()
         {
@@ -274,5 +162,15 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
                 return tmp1 + tmp3;
             }
         }
+
+        // RESULTS:
+        //               Method | Count |      Mean |     Error |    StdDev | Scaled |
+        // -------------------- |------ |----------:|----------:|----------:|-------:|
+        //              Default |    64 | 107.33 ns | 1.0633 ns | 0.9426 ns |   1.00 |
+        //      Default_Generic |    64 | 111.15 ns | 0.3789 ns | 0.3544 ns |   1.04 |
+        //       Default_Group2 |    64 |  90.36 ns | 0.7779 ns | 0.6896 ns |   0.84 |
+        //       Default_Group4 |    64 |  82.39 ns | 0.2726 ns | 0.2550 ns |   0.77 |
+        //               BitOps |    64 |  39.25 ns | 0.3266 ns | 0.2895 ns |   0.37 |
+        //  BitOps_GroupAsULong |    64 |  41.80 ns | 0.2227 ns | 0.2083 ns |   0.39 |
     }
 }

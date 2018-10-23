@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             ref Rgba32 sBase = ref this.source[0];
             ref Bgra32 dBase = ref this.dest[0];
 
-            for (int i = 0; i < this.Count / 2; i+=2)
+            for (int i = 0; i < this.Count; i+=2)
             {
                 ref Rgba32 s0 = ref Unsafe.Add(ref sBase, i);
                 Rgba32 s1 = Unsafe.Add(ref s0, 1);
@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             ref Rgba32 sBase = ref this.source[0];
             ref Bgra32 dBase = ref this.dest[0];
 
-            for (int i = 0; i < this.Count / 4; i += 4)
+            for (int i = 0; i < this.Count; i += 4)
             {
                 ref Rgba32 s0 = ref Unsafe.Add(ref sBase, i);
                 ref Rgba32 s1 = ref Unsafe.Add(ref s0, 1);
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
                 Unsafe.Add(ref d2, 1).FromRgba32(s3);
             }
         }
-
+        
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static void Group4GenericImpl<TPixel>(ReadOnlySpan<Rgba32> source, Span<TPixel> dest)
             where TPixel : struct, IPixel<TPixel>
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             ref Rgba32 sBase = ref MemoryMarshal.GetReference(source);
             ref TPixel dBase = ref MemoryMarshal.GetReference(dest);
 
-            for (int i = 0; i < source.Length / 4; i += 4)
+            for (int i = 0; i < source.Length; i += 4)
             {
                 ref Rgba32 s0 = ref Unsafe.Add(ref sBase, i);
                 ref Rgba32 s1 = ref Unsafe.Add(ref s0, 1);
@@ -142,7 +142,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             }
         }
 
-        [Benchmark]
+        //[Benchmark]
         public void Default_Group4_Generic()
         {
             Group4GenericImpl(this.source.AsSpan(), this.dest.AsSpan());
@@ -215,7 +215,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             }
         }
 
-        [Benchmark]
+        //[Benchmark]
         public void Bitops_SingleTuple()
         {
             ref Tuple4OfUInt32 sBase = ref Unsafe.As<Rgba32, Tuple4OfUInt32>(ref this.source[0]);
@@ -226,7 +226,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             }
         }
 
-        [Benchmark]
+        //[Benchmark]
         public void Bitops_Simd()
         {
             ref Octet.OfUInt32 sBase = ref Unsafe.As<Rgba32, Octet.OfUInt32>(ref this.source[0]);
@@ -379,15 +379,14 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 
 
         // RESULTS:
-        //                  Method | Count |      Mean |     Error |    StdDev | Scaled |
-        // ----------------------- |------ |----------:|----------:|----------:|-------:|
-        //                 Default |    64 | 107.13 ns | 0.7752 ns | 0.6872 ns |   1.00 |
-        //         Default_Generic |    64 | 113.78 ns | 0.7713 ns | 0.6022 ns |   1.06 |
-        //          Default_Group2 |    64 |  43.72 ns | 0.1711 ns | 0.1600 ns |   0.41 |
-        //          Default_Group4 |    64 |  23.47 ns | 0.1901 ns | 0.1588 ns |   0.22 |
-        //  Default_Group4_Generic |    64 |  32.46 ns | 0.4297 ns | 0.4019 ns |   0.30 |
-        //            Bitops_Tuple |    64 |  77.71 ns | 0.2779 ns | 0.2599 ns |   0.73 |
-        //      Bitops_SingleTuple |    64 |  58.64 ns | 0.4511 ns | 0.4220 ns |   0.55 |
-        //             Bitops_Simd |    64 | 110.58 ns | 0.4686 ns | 0.4383 ns |   1.03 |
+        //               Method | Count |      Mean |     Error |    StdDev | Scaled |
+        // -------------------- |------ |----------:|----------:|----------:|-------:|
+        //              Default |    64 | 106.84 ns | 0.4042 ns | 0.3583 ns |   1.00 |
+        //      Default_Generic |    64 | 113.11 ns | 0.6998 ns | 0.6203 ns |   1.06 |
+        //       Default_Group2 |    64 |  86.81 ns | 0.4976 ns | 0.4654 ns |   0.81 |
+        //       Default_Group4 |    64 |  83.53 ns | 1.3826 ns | 1.2933 ns |   0.78 |
+        //               BitOps |    64 |  54.23 ns | 0.1920 ns | 0.1796 ns |   0.51 |
+        //         Bitops_Tuple |    64 |  73.45 ns | 0.5475 ns | 0.4853 ns |   0.69 |
+        //  BitOps_GroupAsULong |    64 |  64.28 ns | 0.4046 ns | 0.3785 ns |   0.60 |
     }
 }

@@ -174,7 +174,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             for (int i = 0; i < this.Count; i++)
             {
                 uint s = Unsafe.Add(ref sBase, i);
-                Unsafe.Add(ref dBase, i) = PixelConverter.Rgba32.ToArgb32(s);
+                Unsafe.Add(ref dBase, i) = PixelConverter.FromRgba32.ToArgb32(s);
             }
         }
 
@@ -190,7 +190,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             for (int i = 0; i < this.Count; i++)
             {
                 uint s = Unsafe.Add(ref dBase, i);
-                Unsafe.Add(ref dBase, i) = PixelConverter.Rgba32.ToArgb32(s);
+                Unsafe.Add(ref dBase, i) = PixelConverter.FromRgba32.ToArgb32(s);
             }
         }
 

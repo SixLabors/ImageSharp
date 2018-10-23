@@ -219,8 +219,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel color = default;
-            var rgba = new Rgba32(0, 0, 0, 255);
-
             using (Buffer2D<byte> buffer = this.memoryAllocator.Allocate2D<byte>(width, height, AllocationOptions.Clean))
             {
                 this.UncompressRle8(width, buffer.GetSpan());
@@ -233,8 +231,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                     for (int x = 0; x < width; x++)
                     {
-                        rgba.Bgr = Unsafe.As<byte, Bgr24>(ref colors[bufferRow[x] * 4]);
-                        color.PackFromRgba32(rgba);
+                        color.PackFromBgr24(Unsafe.As<byte, Bgr24>(ref colors[bufferRow[x] * 4]));
                         pixelRow[x] = color;
                     }
                 }
@@ -352,8 +349,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             using (IManagedByteBuffer row = this.memoryAllocator.AllocateManagedByteBuffer(arrayWidth + padding, AllocationOptions.Clean))
             {
                 TPixel color = default;
-                var rgba = new Rgba32(0, 0, 0, 255);
-
                 Span<byte> rowSpan = row.GetSpan();
 
                 for (int y = 0; y < height; y++)
@@ -363,7 +358,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     int offset = 0;
                     Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
 
-                    // TODO: Could use PixelOperations here!
                     for (int x = 0; x < arrayWidth; x++)
                     {
                         int colOffset = x * ppb;
@@ -371,9 +365,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         {
                             int colorIndex = ((rowSpan[offset] >> (8 - bits - (shift * bits))) & mask) * 4;
 
-                            // Stored in b-> g-> r order.
-                            rgba.Bgr = Unsafe.As<byte, Bgr24>(ref colors[colorIndex]);
-                            color.PackFromRgba32(rgba);
+                            color.PackFromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIndex]));
                             pixelRow[newX] = color;
                         }
 
@@ -397,7 +389,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int padding = CalculatePadding(width, 2);
             int stride = (width * 2) + padding;
             TPixel color = default;
-            var rgba = new Rgba32(0, 0, 0, 255);
 
             using (IManagedByteBuffer buffer = this.memoryAllocator.AllocateManagedByteBuffer(stride))
             {
@@ -412,11 +403,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     {
                         short temp = BitConverter.ToInt16(buffer.Array, offset);
 
-                        rgba.R = GetBytesFrom5BitValue((temp & Rgb16RMask) >> 10);
-                        rgba.G = GetBytesFrom5BitValue((temp & Rgb16GMask) >> 5);
-                        rgba.B = GetBytesFrom5BitValue(temp & Rgb16BMask);
+                        var rgb = new Rgb24(
+                        GetBytesFrom5BitValue((temp & Rgb16RMask) >> 10),
+                        GetBytesFrom5BitValue((temp & Rgb16GMask) >> 5),
+                        GetBytesFrom5BitValue(temp & Rgb16BMask));
 
-                        color.PackFromRgba32(rgba);
+                        color.PackFromRgb24(rgb);
                         pixelRow[x] = color;
                         offset += 2;
                     }
@@ -537,7 +529,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.metaData = meta;
 
             short bitsPerPixel = this.infoHeader.BitsPerPixel;
-            var bmpMetaData = this.metaData.GetFormatMetaData(BmpFormat.Instance);
+            BmpMetaData bmpMetaData = this.metaData.GetFormatMetaData(BmpFormat.Instance);
 
             // We can only encode at these bit rates so far.
             if (bitsPerPixel.Equals((short)BmpBitsPerPixel.Pixel24)

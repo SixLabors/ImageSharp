@@ -80,10 +80,10 @@ namespace SixLabors.ImageSharp.Tests
                     }
                     else
                     {
-                        ca.ToRgb24(ref rgb1);
-                        cb.ToRgb24(ref rgb2);
+                        rgb1 = ca.ToRgba32().Rgb;
+                        rgb2 = cb.ToRgba32().Rgb;
 
-                        if (rgb1.R != rgb2.R || rgb1.G != rgb2.G || rgb1.B != rgb2.B)
+                        if (!rgb1.Equals(rgb2))
                         {
                             return false;
                         }
@@ -94,10 +94,7 @@ namespace SixLabors.ImageSharp.Tests
             return true;
         }
 
-        public static string ToCsv<T>(this IEnumerable<T> items, string separator = ",")
-        {
-            return String.Join(separator, items.Select(o => String.Format(CultureInfo.InvariantCulture, "{0}", o)));
-        }
+        public static string ToCsv<T>(this IEnumerable<T> items, string separator = ",") => string.Join(separator, items.Select(o => string.Format(CultureInfo.InvariantCulture, "{0}", o)));
 
         public static Type GetClrType(this PixelTypes pixelType) => PixelTypes2ClrTypes[pixelType];
 
@@ -141,10 +138,7 @@ namespace SixLabors.ImageSharp.Tests
         internal static PixelTypes[] GetAllPixelTypes() => (PixelTypes[])Enum.GetValues(typeof(PixelTypes));
 
         internal static TPixel GetPixelOfNamedColor<TPixel>(string colorName)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            return (TPixel)typeof(NamedColors<TPixel>).GetTypeInfo().GetField(colorName).GetValue(null);
-        }
+            where TPixel : struct, IPixel<TPixel> => (TPixel)typeof(NamedColors<TPixel>).GetTypeInfo().GetField(colorName).GetValue(null);
 
         /// <summary>
         /// Utility for testing image processor extension methods:

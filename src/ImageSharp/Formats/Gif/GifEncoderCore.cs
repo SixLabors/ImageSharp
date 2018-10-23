@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -209,16 +210,20 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             // Transparent pixels are much more likely to be found at the end of a palette
             int index = -1;
-            Rgba32 trans = default;
+            int length = quantized.Palette.Length;
 
-            ref TPixel paletteRef = ref MemoryMarshal.GetReference(quantized.Palette.AsSpan());
-            for (int i = quantized.Palette.Length - 1; i >= 0; i--)
+            using (IMemoryOwner<Rgba32> rgbaBuffer = this.memoryAllocator.Allocate<Rgba32>(length))
             {
-                ref TPixel entry = ref Unsafe.Add(ref paletteRef, i);
-                entry.ToRgba32(ref trans);
-                if (trans.Equals(default))
+                Span<Rgba32> rgbaSpan = rgbaBuffer.GetSpan();
+                ref Rgba32 paletteRef = ref MemoryMarshal.GetReference(rgbaSpan);
+                PixelOperations<TPixel>.Instance.ToRgba32(quantized.Palette, rgbaSpan, length);
+
+                for (int i = quantized.Palette.Length - 1; i >= 0; i--)
                 {
-                    index = i;
+                    if (Unsafe.Add(ref paletteRef, i).Equals(default))
+                    {
+                        index = i;
+                    }
                 }
             }
 
@@ -405,24 +410,13 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void WriteColorTable<TPixel>(QuantizedFrame<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            int pixelCount = image.Palette.Length;
-
             // The maximium number of colors for the bit depth
             int colorTableLength = ImageMaths.GetColorCountForBitDepth(this.bitDepth) * 3;
-            Rgb24 rgb = default;
+            int pixelCount = image.Palette.Length;
 
             using (IManagedByteBuffer colorTable = this.memoryAllocator.AllocateManagedByteBuffer(colorTableLength))
             {
-                ref TPixel paletteRef = ref MemoryMarshal.GetReference(image.Palette.AsSpan());
-                ref Rgb24 rgb24Ref = ref Unsafe.As<byte, Rgb24>(ref MemoryMarshal.GetReference(colorTable.GetSpan()));
-                for (int i = 0; i < pixelCount; i++)
-                {
-                    ref TPixel entry = ref Unsafe.Add(ref paletteRef, i);
-                    entry.ToRgb24(ref rgb);
-                    Unsafe.Add(ref rgb24Ref, i) = rgb;
-                }
-
-                // Write the palette to the stream
+                PixelOperations<TPixel>.Instance.ToRgb24Bytes(image.Palette.AsSpan(), colorTable.GetSpan(), pixelCount);
                 stream.Write(colorTable.Array, 0, colorTableLength);
             }
         }

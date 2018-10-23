@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 return;
             }
 
-            // Normal converson
+            // Normal conversion
             ref TDestinationPixel destRef = ref MemoryMarshal.GetReference(destinationColors);
             for (int i = 0; i < count; i++)
             {

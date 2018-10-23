@@ -42,13 +42,11 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             Span<TPixel> s = this.source.GetSpan();
             Span<byte> d = this.destination.GetSpan();
 
-            var rgba = default(Rgba32);
-
             for (int i = 0; i < this.Count; i++)
             {
                 TPixel c = s[i];
                 int i4 = i * 4;
-                c.ToRgba32(ref rgba);
+                var rgba = c.ToRgba32();
                 d[i4] = rgba.R;
                 d[i4 + 1] = rgba.G;
                 d[i4 + 2] = rgba.B;
@@ -57,16 +55,10 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         }
 
         [Benchmark]
-        public void CommonBulk()
-        {
-            new PixelOperations<TPixel>().ToRgba32Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
-        }
+        public void CommonBulk() => new PixelOperations<TPixel>().ToRgba32Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
 
         [Benchmark]
-        public void OptimizedBulk()
-        {
-            PixelOperations<TPixel>.Instance.ToRgba32Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
-        }
+        public void OptimizedBulk() => PixelOperations<TPixel>.Instance.ToRgba32Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
     }
 
     public class ToXyzw_Rgba32 : ToXyzw<Rgba32>

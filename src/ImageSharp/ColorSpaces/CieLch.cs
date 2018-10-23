@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"CieLch({this.L:#0.##}, {this.C:#0.##}, {this.H:#0.##})";
+        public override string ToString() => FormattableString.Invariant($"CieLch({this.L:#0.##}, {this.C:#0.##}, {this.H:#0.##})");
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

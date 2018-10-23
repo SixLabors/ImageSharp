@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -11,7 +10,12 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
     public class Rgb24Tests
     {
         public static readonly TheoryData<byte, byte, byte> ColorData =
-            new TheoryData<byte, byte, byte>() { { 1, 2, 3 }, { 4, 5, 6 }, { 0, 255, 42 } };
+            new TheoryData<byte, byte, byte>()
+            {
+                { 1, 2, 3 },
+                { 4, 5, 6 },
+                { 0, 255, 42 }
+            };
 
         [Theory]
         [MemberData(nameof(ColorData))]
@@ -97,79 +101,12 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void ToRgb24()
-        {
-            var rgb = new Rgb24(1, 2, 3);
-            var dest = default(Rgb24);
-
-            rgb.ToRgb24(ref dest);
-
-            Assert.Equal(rgb, dest);
-        }
-
-        [Fact]
         public void ToRgba32()
         {
             var rgb = new Rgb24(1, 2, 3);
-            var rgba = default(Rgba32);
-
-            rgb.ToRgba32(ref rgba);
+            var rgba = rgb.ToRgba32();
 
             Assert.Equal(new Rgba32(1, 2, 3, 255), rgba);
-        }
-
-        [Fact]
-        public void ToBgr24()
-        {
-            var rgb = new Rgb24(1, 2, 3);
-            var bgr = default(Bgr24);
-
-            rgb.ToBgr24(ref bgr);
-
-            Assert.Equal(new Bgr24(1, 2, 3), bgr);
-        }
-
-        [Fact]
-        public void ToBgra32()
-        {
-            var rgb = new Rgb24(1, 2, 3);
-            var bgra = default(Bgra32);
-
-            rgb.ToBgra32(ref bgra);
-
-            Assert.Equal(new Bgra32(1, 2, 3, 255), bgra);
-        }
-
-        [Fact]
-        public void Rgb24_PackFromRgb48_ToRgb48()
-        {
-            // arrange
-            var input = default(Rgb24);
-            var actual = default(Rgb48);
-            var expected = new Rgb48(65535, 0, 65535);
-
-            // act
-            input.PackFromRgb48(expected);
-            input.ToRgb48(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void Rgb24_PackFromRgba64_ToRgba64()
-        {
-            // arrange
-            var input = default(Rgb24);
-            var actual = default(Rgba64);
-            var expected = new Rgba64(65535, 0, 65535, 65535);
-
-            // act
-            input.PackFromRgba64(expected);
-            input.ToRgba64(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
         }
     }
 }

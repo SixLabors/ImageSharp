@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// <summary>
     /// Helper methods for packing and unpacking floating point values
     /// </summary>
-    internal class HalfTypeHelper
+    internal static class HalfTypeHelper
     {
         /// <summary>
         /// Packs a <see cref="float"/> into an <see cref="ushort"/>
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                     return (ushort)s;
                 }
 
-                m = m | 0x00800000;
+                m |= 0x00800000;
 
                 int t = 14 - e;
                 int a = (1 << (t - 1)) - 1;
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             if ((m & 0x00800000) != 0)
             {
                 m = 0;
-                e += 1;
+                e++;
             }
 
             if (e > 30)
@@ -97,11 +97,11 @@ namespace SixLabors.ImageSharp.PixelFormats
                     while ((mantissa & 1024) == 0)
                     {
                         exponent--;
-                        mantissa = mantissa << 1;
+                        mantissa <<= 1;
                     }
 
                     mantissa &= 0xfffffbff;
-                    result = ((uint)((((uint)value & 0x8000) << 16) | ((exponent + 127) << 23))) | (mantissa << 13);
+                    result = (((uint)value & 0x8000) << 16) | ((exponent + 127) << 23) | (mantissa << 13);
                 }
                 else
                 {
@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
             else
             {
-                result = ((((uint)value & 0x8000) << 16) | ((((((uint)value >> 10) & 0x1f) - 15) + 127) << 23)) | (mantissa << 13);
+                result = (((uint)value & 0x8000) << 16) | ((((((uint)value >> 10) & 0x1f) - 15) + 127) << 23) | (mantissa << 13);
             }
 
             var uif = new Uif { U = result };

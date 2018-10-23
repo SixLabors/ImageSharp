@@ -127,7 +127,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"CieLab({this.L:#0.##}, {this.A:#0.##}, {this.B:#0.##})";
+        public override string ToString() => FormattableString.Invariant($"CieLab({this.L:#0.##}, {this.A:#0.##}, {this.B:#0.##})");
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is CieLab other && this.Equals(other);

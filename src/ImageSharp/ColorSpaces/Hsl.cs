@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"Hsl({this.H:#0.##}, {this.S:#0.##}, {this.L:#0.##})";
+        public override string ToString() => FormattableString.Invariant($"Hsl({this.H:#0.##}, {this.S:#0.##}, {this.L:#0.##})");
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is Hsl other && this.Equals(other);

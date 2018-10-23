@@ -32,30 +32,19 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 if (header.BitDepth == 16)
                 {
-                    Rgb48 rgb48 = default;
                     for (int x = 0, o = 0; x < header.Width; x++, o += 2)
                     {
                         ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                        rgb48.R = luminance;
-                        rgb48.G = luminance;
-                        rgb48.B = luminance;
-
-                        pixel.PackFromRgb48(rgb48);
+                        pixel.PackFromGray16(new Gray16(luminance));
                         Unsafe.Add(ref rowSpanRef, x) = pixel;
                     }
                 }
                 else
                 {
-                    // TODO: We should really be using Rgb24 here but IPixel does not have a PackFromRgb24 method.
-                    var rgba32 = new Rgba32(0, 0, 0, byte.MaxValue);
                     for (int x = 0; x < header.Width; x++)
                     {
                         byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, x) * scaleFactor);
-                        rgba32.R = luminance;
-                        rgba32.G = luminance;
-                        rgba32.B = luminance;
-
-                        pixel.PackFromRgba32(rgba32);
+                        pixel.PackFromGray8(new Gray8(luminance));
                         Unsafe.Add(ref rowSpanRef, x) = pixel;
                     }
                 }
@@ -80,6 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else
             {
+                byte scaledLuminanceTrans = (byte)(luminanceTrans * scaleFactor);
                 Rgba32 rgba32 = default;
                 for (int x = 0; x < header.Width; x++)
                 {
@@ -87,7 +77,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     rgba32.R = luminance;
                     rgba32.G = luminance;
                     rgba32.B = luminance;
-                    rgba32.A = luminance.Equals(luminanceTrans) ? byte.MinValue : byte.MaxValue;
+                    rgba32.A = luminance.Equals(scaledLuminanceTrans) ? byte.MinValue : byte.MaxValue;
 
                     pixel.PackFromRgba32(rgba32);
                     Unsafe.Add(ref rowSpanRef, x) = pixel;
@@ -115,30 +105,19 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 if (header.BitDepth == 16)
                 {
-                    Rgb48 rgb48 = default;
                     for (int x = pixelOffset, o = 0; x < header.Width; x += increment, o += 2)
                     {
                         ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                        rgb48.R = luminance;
-                        rgb48.G = luminance;
-                        rgb48.B = luminance;
-
-                        pixel.PackFromRgb48(rgb48);
+                        pixel.PackFromGray16(new Gray16(luminance));
                         Unsafe.Add(ref rowSpanRef, x) = pixel;
                     }
                 }
                 else
                 {
-                    // TODO: We should really be using Rgb24 here but IPixel does not have a PackFromRgb24 method.
-                    var rgba32 = new Rgba32(0, 0, 0, byte.MaxValue);
                     for (int x = pixelOffset, o = 0; x < header.Width; x += increment, o++)
                     {
                         byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, o) * scaleFactor);
-                        rgba32.R = luminance;
-                        rgba32.G = luminance;
-                        rgba32.B = luminance;
-
-                        pixel.PackFromRgba32(rgba32);
+                        pixel.PackFromGray8(new Gray8(luminance));
                         Unsafe.Add(ref rowSpanRef, x) = pixel;
                     }
                 }
@@ -163,6 +142,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else
             {
+                byte scaledLuminanceTrans = (byte)(luminanceTrans * scaleFactor);
                 Rgba32 rgba32 = default;
                 for (int x = pixelOffset; x < header.Width; x += increment)
                 {
@@ -170,7 +150,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     rgba32.R = luminance;
                     rgba32.G = luminance;
                     rgba32.B = luminance;
-                    rgba32.A = luminance.Equals(luminanceTrans) ? byte.MinValue : byte.MaxValue;
+                    rgba32.A = luminance.Equals(scaledLuminanceTrans) ? byte.MinValue : byte.MaxValue;
 
                     pixel.PackFromRgba32(rgba32);
                     Unsafe.Add(ref rowSpanRef, x) = pixel;
@@ -309,14 +289,12 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else
             {
-                // TODO: We should have PackFromRgb24.
-                var rgba = new Rgba32(0, 0, 0, byte.MaxValue);
                 for (int x = 0; x < header.Width; x++)
                 {
                     int index = Unsafe.Add(ref scanlineSpanRef, x);
-                    rgba.Rgb = Unsafe.Add(ref palettePixelsRef, index);
+                    Rgb24 rgb = Unsafe.Add(ref palettePixelsRef, index);
 
-                    pixel.PackFromRgba32(rgba);
+                    pixel.PackFromRgb24(rgb);
                     Unsafe.Add(ref rowSpanRef, x) = pixel;
                 }
             }
@@ -356,13 +334,12 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else
             {
-                var rgba = new Rgba32(0, 0, 0, byte.MaxValue);
                 for (int x = pixelOffset, o = 0; x < header.Width; x += increment, o++)
                 {
                     int index = Unsafe.Add(ref scanlineSpanRef, o);
-                    rgba.Rgb = Unsafe.Add(ref palettePixelsRef, index);
+                    Rgb24 rgb = Unsafe.Add(ref palettePixelsRef, index);
 
-                    pixel.PackFromRgba32(rgba);
+                    pixel.PackFromRgb24(rgb);
                     Unsafe.Add(ref rowSpanRef, x) = pixel;
                 }
             }
@@ -509,14 +486,14 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else
             {
-                var rgba = new Rgba32(0, 0, 0, byte.MaxValue);
+                Rgb24 rgb = default;
                 for (int x = pixelOffset, o = 0; x < header.Width; x += increment, o += bytesPerPixel)
                 {
-                    rgba.R = Unsafe.Add(ref scanlineSpanRef, o);
-                    rgba.G = Unsafe.Add(ref scanlineSpanRef, o + bytesPerSample);
-                    rgba.B = Unsafe.Add(ref scanlineSpanRef, o + (2 * bytesPerSample));
+                    rgb.R = Unsafe.Add(ref scanlineSpanRef, o);
+                    rgb.G = Unsafe.Add(ref scanlineSpanRef, o + bytesPerSample);
+                    rgb.B = Unsafe.Add(ref scanlineSpanRef, o + (2 * bytesPerSample));
 
-                    pixel.PackFromRgba32(rgba);
+                    pixel.PackFromRgb24(rgb);
                     Unsafe.Add(ref rowSpanRef, x) = pixel;
                 }
             }

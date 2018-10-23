@@ -56,22 +56,6 @@ namespace SixLabors.ImageSharp.PixelFormats
             {
                 this.PackFromVector4(sourceVectors, destinationColors, count);
             }
-
-            /// <inheritdoc />
-            internal override void PackFromRgba32(ReadOnlySpan<Rgba32> source, Span<Rgba32> destPixels, int count)
-            {
-                GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
-
-                source.Slice(0, count).CopyTo(destPixels);
-            }
-
-            /// <inheritdoc />
-            internal override void ToRgba32(ReadOnlySpan<Rgba32> sourcePixels, Span<Rgba32> dest, int count)
-            {
-                GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
-
-                sourcePixels.Slice(0, count).CopyTo(dest);
-            }
         }
     }
 }

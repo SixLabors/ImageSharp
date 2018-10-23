@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
@@ -289,22 +287,16 @@ namespace SixLabors.ImageSharp
 
             var target = new ImageFrame<TPixel2>(configuration, this.Width, this.Height, this.MetaData.DeepClone());
 
-            ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
+            ParallelHelper.IterateRows(
                 this.Bounds(),
                 configuration,
-                (rows, tempRowBuffer) =>
+                (rows) =>
                     {
                         for (int y = rows.Min; y < rows.Max; y++)
                         {
                             Span<TPixel> sourceRow = this.GetPixelRowSpan(y);
                             Span<TPixel2> targetRow = target.GetPixelRowSpan(y);
-                            Span<Vector4> tempRowSpan = tempRowBuffer.Span;
-
-                            PixelOperations<TPixel>.Instance.ToScaledVector4(sourceRow, tempRowSpan, sourceRow.Length);
-                            PixelOperations<TPixel2>.Instance.PackFromScaledVector4(
-                                tempRowSpan,
-                                targetRow,
-                                targetRow.Length);
+                            PixelOperations<TPixel>.Instance.To(sourceRow, targetRow, sourceRow.Length);
                         }
                     });
 

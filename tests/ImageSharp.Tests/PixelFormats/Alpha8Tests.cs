@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Alpha8_PackFromScaledVector4()
+        public void Alpha8_FromScaledVector4()
         {
             // Arrange
             Alpha8 alpha = default;
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Vector4 scaled = new Alpha8(.5F).ToScaledVector4();
 
             // Act
-            alpha.PackFromScaledVector4(scaled);
+            alpha.FromScaledVector4(scaled);
             byte actual = alpha.PackedValue;
 
             // Assert

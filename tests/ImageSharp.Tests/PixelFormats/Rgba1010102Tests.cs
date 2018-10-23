@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Rgba1010102_PackFromScaledVector4()
+        public void Rgba1010102_FromScaledVector4()
         {
             // arrange
             var rgba = new Rgba1010102(Vector4.One);
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             // act
             Vector4 scaled = rgba.ToScaledVector4();
-            actual.PackFromScaledVector4(scaled);
+            actual.FromScaledVector4(scaled);
 
             // assert
             Assert.Equal(expected, actual.PackedValue);

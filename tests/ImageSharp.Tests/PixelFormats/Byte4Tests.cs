@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Byte4_PackFromScaledVector4()
+        public void Byte4_FromScaledVector4()
         {
             // arrange
             Vector4 scaled = new Byte4(Vector4.One * 255).ToScaledVector4();
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             uint expected = 0xFFFFFFFF;
 
             // act
-            pixel.PackFromScaledVector4(scaled);
+            pixel.FromScaledVector4(scaled);
             uint actual = pixel.PackedValue;
 
             // assert

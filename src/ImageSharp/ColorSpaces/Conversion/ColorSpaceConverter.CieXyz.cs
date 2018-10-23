@@ -4,6 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
@@ -17,7 +18,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 
         private static readonly CieLuvToCieXyzConverter CieLuvToCieXyzConverter = new CieLuvToCieXyzConverter();
 
-        private static readonly HunterLabToCieXyzConverter HunterLabToCieXyzConverter = new HunterLabToCieXyzConverter();
+        private static readonly HunterLabToCieXyzConverter
+            HunterLabToCieXyzConverter = new HunterLabToCieXyzConverter();
 
         private LinearRgbToCieXyzConverter linearRgbToCieXyzConverter;
 
@@ -40,10 +42,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        /// <param name="count">The number of colors to convert.</param>
-        public void Convert(ReadOnlySpan<CieLab> source, Span<CieXyz> destination, int count)
+        public void Convert(ReadOnlySpan<CieLab> source, Span<CieXyz> destination)
         {
-            Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+            int count = source.Length;
 
             ref CieLab sourceRef = ref MemoryMarshal.GetReference(source);
             ref CieXyz destRef = ref MemoryMarshal.GetReference(destination);
@@ -75,10 +77,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        /// <param name="count">The number of colors to convert.</param>
-        public void Convert(ReadOnlySpan<CieLch> source, Span<CieXyz> destination, int count)
+        public void Convert(ReadOnlySpan<CieLch> source, Span<CieXyz> destination)
         {
-            Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+            int count = source.Length;
 
             ref CieLch sourceRef = ref MemoryMarshal.GetReference(source);
             ref CieXyz destRef = ref MemoryMarshal.GetReference(destination);
@@ -110,10 +112,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        /// <param name="count">The number of colors to convert.</param>
-        public void Convert(ReadOnlySpan<CieLchuv> source, Span<CieXyz> destination, int count)
+        public void Convert(ReadOnlySpan<CieLchuv> source, Span<CieXyz> destination)
         {
-            Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+            int count = source.Length;
 
             ref CieLchuv sourceRef = ref MemoryMarshal.GetReference(source);
             ref CieXyz destRef = ref MemoryMarshal.GetReference(destination);
@@ -145,10 +147,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        /// <param name="count">The number of colors to convert.</param>
-        public void Convert(ReadOnlySpan<CieLuv> source, Span<CieXyz> destination, int count)
+        public void Convert(ReadOnlySpan<CieLuv> source, Span<CieXyz> destination)
         {
-            Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+            int count = source.Length;
 
             ref CieLuv sourceRef = ref MemoryMarshal.GetReference(source);
             ref CieXyz destRef = ref MemoryMarshal.GetReference(destination);
@@ -177,10 +179,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        /// <param name="count">The number of colors to convert.</param>
-        public void Convert(ReadOnlySpan<CieXyy> source, Span<CieXyz> destination, int count)
+        public void Convert(ReadOnlySpan<CieXyy> source, Span<CieXyz> destination)
         {
-            Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+            int count = source.Length;
 
             ref CieXyy sourceRef = ref MemoryMarshal.GetReference(source);
             ref CieXyz destRef = ref MemoryMarshal.GetReference(destination);
@@ -211,10 +213,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        /// <param name="count">The number of colors to convert.</param>
-        public void Convert(ReadOnlySpan<Cmyk> source, Span<CieXyz> destination, int count)
+        public void Convert(ReadOnlySpan<Cmyk> source, Span<CieXyz> destination)
         {
-            Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+            int count = source.Length;
 
             ref Cmyk sourceRef = ref MemoryMarshal.GetReference(source);
             ref CieXyz destRef = ref MemoryMarshal.GetReference(destination);
@@ -245,10 +247,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        /// <param name="count">The number of colors to convert.</param>
-        public void Convert(ReadOnlySpan<Hsl> source, Span<CieXyz> destination, int count)
+        public void Convert(ReadOnlySpan<Hsl> source, Span<CieXyz> destination)
         {
-            Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+            int count = source.Length;
 
             ref Hsl sourceRef = ref MemoryMarshal.GetReference(source);
             ref CieXyz destRef = ref MemoryMarshal.GetReference(destination);
@@ -279,10 +281,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        /// <param name="count">The number of colors to convert.</param>
-        public void Convert(ReadOnlySpan<Hsv> source, Span<CieXyz> destination, int count)
+        public void Convert(ReadOnlySpan<Hsv> source, Span<CieXyz> destination)
         {
-            Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+            int count = source.Length;
 
             ref Hsv sourceRef = ref MemoryMarshal.GetReference(source);
             ref CieXyz destRef = ref MemoryMarshal.GetReference(destination);
@@ -314,10 +316,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        /// <param name="count">The number of colors to convert.</param>
-        public void Convert(ReadOnlySpan<HunterLab> source, Span<CieXyz> destination, int count)
+        public void Convert(ReadOnlySpan<HunterLab> source, Span<CieXyz> destination)
         {
-            Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+            int count = source.Length;
 
             ref HunterLab sourceRef = ref MemoryMarshal.GetReference(source);
             ref CieXyz destRef = ref MemoryMarshal.GetReference(destination);
@@ -350,10 +352,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        /// <param name="count">The number of colors to convert.</param>
-        public void Convert(ReadOnlySpan<LinearRgb> source, Span<CieXyz> destination, int count)
+        public void Convert(ReadOnlySpan<LinearRgb> source, Span<CieXyz> destination)
         {
-            Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+            int count = source.Length;
 
             ref LinearRgb sourceRef = ref MemoryMarshal.GetReference(source);
             ref CieXyz destRef = ref MemoryMarshal.GetReference(destination);
@@ -382,10 +384,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        /// <param name="count">The number of colors to convert.</param>
-        public void Convert(ReadOnlySpan<Lms> source, Span<CieXyz> destination, int count)
+        public void Convert(ReadOnlySpan<Lms> source, Span<CieXyz> destination)
         {
-            Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+            int count = source.Length;
 
             ref Lms sourceRef = ref MemoryMarshal.GetReference(source);
             ref CieXyz destRef = ref MemoryMarshal.GetReference(destination);
@@ -415,10 +417,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        /// <param name="count">The number of colors to convert.</param>
-        public void Convert(ReadOnlySpan<Rgb> source, Span<CieXyz> destination, int count)
+        public void Convert(ReadOnlySpan<Rgb> source, Span<CieXyz> destination)
         {
-            Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+            int count = source.Length;
 
             ref Rgb sourceRef = ref MemoryMarshal.GetReference(source);
             ref CieXyz destRef = ref MemoryMarshal.GetReference(destination);
@@ -449,10 +451,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        /// <param name="count">The number of colors to convert.</param>
-        public void Convert(ReadOnlySpan<YCbCr> source, Span<CieXyz> destination, int count)
+        public void Convert(ReadOnlySpan<YCbCr> source, Span<CieXyz> destination)
         {
-            Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+            int count = source.Length;
 
             ref YCbCr sourceRef = ref MemoryMarshal.GetReference(source);
             ref CieXyz destRef = ref MemoryMarshal.GetReference(destination);

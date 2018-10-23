@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp
             // Deal with the remainder:
             if (source.Length > 0)
             {
-                ConverByteToNormalizedFloatRemainder(source, dest);
+                ConvertByteToNormalizedFloatRemainder(source, dest);
             }
         }
 
@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp
         }
 
         [MethodImpl(InliningOptions.ColdPath)]
-        private static void ConverByteToNormalizedFloatRemainder(ReadOnlySpan<byte> source, Span<float> dest)
+        private static void ConvertByteToNormalizedFloatRemainder(ReadOnlySpan<byte> source, Span<float> dest)
         {
             ref byte sBase = ref MemoryMarshal.GetReference(source);
             ref float dBase = ref MemoryMarshal.GetReference(dest);

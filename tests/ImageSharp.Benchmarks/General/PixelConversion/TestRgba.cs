@@ -57,16 +57,15 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()
         {
-            return new Vector4(this.r, this.g, this.b, this.a);
+            return new Vector4(this.r, this.g, this.b, this.a) *  new Vector4(1f / 255f);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void CopyToVector4(ref Vector4 dest)
         {
-            dest.X = this.r;
-            dest.Y = this.g;
-            dest.Z = this.b;
-            dest.W = this.a;
+            var tmp = new Vector4(this.r, this.g, this.b, this.a);
+            tmp *= new Vector4(1f / 255f);
+            dest = tmp;
         }
     }
 }

@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void HalfVector2_PackFromScaledVector4()
+        public void HalfVector2_FromScaledVector4()
         {
             // arrange
             Vector4 scaled = new HalfVector2(Vector2.One).ToScaledVector4();
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var halfVector = default(HalfVector2);
 
             // act
-            halfVector.PackFromScaledVector4(scaled);
+            halfVector.FromScaledVector4(scaled);
             uint actual = halfVector.PackedValue;
 
             // assert

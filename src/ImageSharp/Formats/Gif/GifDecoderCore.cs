@@ -491,7 +491,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                         int index = Unsafe.Add(ref indicesRef, i);
                         ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
                         Rgb24 rgb = colorTable[index];
-                        pixel.PackFromRgb24(rgb);
+                        pixel.FromRgb24(rgb);
 
                         i++;
                     }
@@ -506,7 +506,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                         {
                             ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
                             Rgb24 rgb = colorTable[index];
-                            pixel.PackFromRgb24(rgb);
+                            pixel.FromRgb24(rgb);
                         }
 
                         i++;

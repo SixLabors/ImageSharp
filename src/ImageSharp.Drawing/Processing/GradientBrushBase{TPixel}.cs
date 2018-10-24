@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.Processing
                             onLocalGradient);
 
                         TPixel resultColor = default;
-                        resultColor.PackFromVector4(result);
+                        resultColor.FromVector4(result);
                         return resultColor;
                     }
                 }

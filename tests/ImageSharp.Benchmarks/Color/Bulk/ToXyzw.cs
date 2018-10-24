@@ -46,7 +46,8 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             {
                 TPixel c = s[i];
                 int i4 = i * 4;
-                var rgba = c.ToRgba32();
+                Rgba32 rgba = default;
+                c.ToRgba32(ref rgba);
                 d[i4] = rgba.R;
                 d[i4 + 1] = rgba.G;
                 d[i4 + 2] = rgba.B;

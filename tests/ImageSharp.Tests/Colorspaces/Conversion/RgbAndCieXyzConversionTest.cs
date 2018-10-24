@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 
             // Act
             var actual = converter.ToRgb(input);
-            converter.Convert(inputSpan, actualSpan, actualSpan.Length);
+            converter.Convert(inputSpan, actualSpan);
 
             // Assert
             Assert.Equal(Rgb.DefaultWorkingSpace, actual.WorkingSpace, ColorSpaceComparer);
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 
             // Act
             var actual = converter.ToRgb(input);
-            converter.Convert(inputSpan, actualSpan, actualSpan.Length);
+            converter.Convert(inputSpan, actualSpan);
 
             // Assert
             Assert.Equal(Rgb.DefaultWorkingSpace, actual.WorkingSpace, ColorSpaceComparer);
@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 
             // Act
             var actual = converter.ToCieXyz(input);
-            converter.Convert(inputSpan, actualSpan, actualSpan.Length);
+            converter.Convert(inputSpan, actualSpan);
 
             // Assert
             Assert.Equal(expected, actual, ColorSpaceComparer);
@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 
             // Act
             var actual = converter.ToCieXyz(input);
-            converter.Convert(inputSpan, actualSpan, actualSpan.Length);
+            converter.Convert(inputSpan, actualSpan);
 
             // Assert
             Assert.Equal(expected, actual, ColorSpaceComparer);

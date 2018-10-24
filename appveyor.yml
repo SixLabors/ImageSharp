@@ -12,10 +12,10 @@ environment:
     - target_framework: netcoreapp2.1
       is_32bit: True
 
-    - target_framework: net471
+    - target_framework: net472
       is_32bit: False
 
-    - target_framework: net471
+    - target_framework: net472
       is_32bit: True
 
     - target_framework: net462

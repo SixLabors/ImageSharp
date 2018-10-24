@@ -68,12 +68,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             }
         }
 
-        private IccTagTableEntry[] WriteTagData(IccDataWriter writer, List<IccTagDataEntry> entries)
+        private IccTagTableEntry[] WriteTagData(IccDataWriter writer, IccTagDataEntry[] entries)
         {
             IEnumerable<IGrouping<IccTagDataEntry, IccTagDataEntry>> grouped = entries.GroupBy(t => t);
 
             // (Header size) + (entry count) + (nr of entries) * (size of table entry)
-            writer.SetIndex(128 + 4 + (entries.Count * 12));
+            writer.SetIndex(128 + 4 + (entries.Length * 12));
 
             var table = new List<IccTagTableEntry>();
             foreach (IGrouping<IccTagDataEntry, IccTagDataEntry> group in grouped)

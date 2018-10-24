@@ -57,11 +57,13 @@ namespace SixLabors.ImageSharp.Processing.Processors
             ushort startX = (ushort)intersect.X;
             ushort endX = (ushort)intersect.Right;
 
-            ushort width = (ushort)(endX - startX);
-            ushort height = (ushort)(endY - startY);
+            ushort width = (ushort)intersect.Width;
+            ushort height = (ushort)intersect.Height;
 
             // Tweaked to support upto 4k wide pixels and not more. 4096 / 16 is 256 thus the '-1'
-            byte s = (byte)Math.Truncate((width / 16f) - 1);
+            byte clusterSize = (byte)((width / 16) - 1);
+
+            float threshold = 0.85f;
 
             // Using pooled 2d buffer for integer image table
             using (Buffer2D<ulong> intImage = configuration.MemoryAllocator.Allocate2D<ulong>(width, height, AllocationOptions.Clean))
@@ -126,23 +128,21 @@ namespace SixLabors.ImageSharp.Processing.Processors
                                 {
                                     ref Rgb24 rgb = ref span[(width * j) + 1];
 
-                                    x1 = (ushort)Math.Max(i - s + 1, 0);
-                                    x2 = (ushort)Math.Min(i + s + 1, endY - 1);
-                                    y1 = (ushort)Math.Max(j - s + 1, 0);
-                                    y2 = (ushort)Math.Min(j + s + 1, endX - 1);
+                                    x1 = (ushort)Math.Max(i - clusterSize + 1, 0);
+                                    x2 = (ushort)Math.Min(i + clusterSize + 1, endY - 1);
+                                    y1 = (ushort)Math.Max(j - clusterSize + 1, 0);
+                                    y2 = (ushort)Math.Min(j + clusterSize + 1, endX - 1);
 
                                     count = (uint)((x2 - x1) * (y2 - y1));
 
                                     sum = (long)(intImage[x2, y2] - intImage[x1, y2] - intImage[x2, y1] + intImage[x1, y1])
 
-                                    if ((rgb.R + rgb.G + rgb.B) * count < sum * (1.0 - 0.15))
+                                    if ((rgb.R + rgb.G + rgb.B) * count < sum * threshold)
                                     {
-                                        //row[j] = this.Lower;
                                         rgb = this.Lower.ToRgba32().Rgb;
                                     }
                                     else
                                     {
-                                        //row[j] = this.Upper;
                                         rgb = this.Upper.ToRgba32().Rgb;
                                     }
                                 }

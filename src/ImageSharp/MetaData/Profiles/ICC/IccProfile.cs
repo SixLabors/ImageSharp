@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Cryptography;
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
@@ -47,13 +45,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// </summary>
         /// <param name="header">The profile header</param>
         /// <param name="entries">The actual profile data</param>
-        internal IccProfile(IccProfileHeader header, IEnumerable<IccTagDataEntry> entries)
+        internal IccProfile(IccProfileHeader header, IccTagDataEntry[] entries)
         {
-            Guard.NotNull(header, nameof(header));
-            Guard.NotNull(entries, nameof(entries));
-
-            this.header = header;
-            this.entries = entries.ToArray();
+            this.header = header ?? throw new ArgumentNullException(nameof(header));
+            this.entries = entries ?? throw new ArgumentNullException(nameof(entries));
         }
 
         /// <summary>

@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         {
             this.Parts = ExifParts.All;
             this.data = data;
-            this.InvalidTags = new List<ExifTag>();
+            this.InvalidTags = Array.Empty<ExifTag>();
         }
 
         /// <summary>
@@ -289,7 +289,15 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
             this.values = reader.ReadValues();
 
-            this.InvalidTags = new List<ExifTag>(reader.InvalidTags);
+            if (reader.InvalidTags.Count > 0)
+            {
+                this.InvalidTags = new List<ExifTag>(reader.InvalidTags);
+            }
+            else
+            {
+                this.InvalidTags = Array.Empty<ExifTag>();
+            }
+
             this.thumbnailOffset = (int)reader.ThumbnailOffset;
             this.thumbnailLength = (int)reader.ThumbnailLength;
         }

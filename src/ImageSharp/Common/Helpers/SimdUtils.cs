@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp
         {
             DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
 
-#if NETCOREAPP2_1
+#if SUPPORTS_EXTENDED_INTRINSICS
             ExtendedIntrinsics.BulkConvertByteToNormalizedFloatReduce(ref source, ref dest);
 #else
             BasicIntrinsics256.BulkConvertByteToNormalizedFloatReduce(ref source, ref dest);
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp
         {
             DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
 
-#if NETCOREAPP2_1
+#if SUPPORTS_EXTENDED_INTRINSICS
             ExtendedIntrinsics.BulkConvertNormalizedFloatToByteClampOverflowsReduce(ref source, ref dest);
 #else
             BasicIntrinsics256.BulkConvertNormalizedFloatToByteClampOverflowsReduce(ref source, ref dest);

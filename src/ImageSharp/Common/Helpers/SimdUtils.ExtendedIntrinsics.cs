@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -20,8 +19,7 @@ namespace SixLabors.ImageSharp
         public static class ExtendedIntrinsics
         {
             public static bool IsAvailable { get; } =
-#if NETCOREAPP2_1
-                // TODO: Also available in .NET 4.7.2, we need to add a build target!
+#if SUPPORTS_EXTENDED_INTRINSICS
                 Vector.IsHardwareAccelerated;
 #else
                 false;

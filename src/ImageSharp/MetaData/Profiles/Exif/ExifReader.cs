@@ -5,7 +5,6 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using SixLabors.ImageSharp.IO;
@@ -383,15 +382,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         }
 
         private TEnum ToEnum<TEnum>(int value, TEnum defaultValue)
-            where TEnum : struct
+            where TEnum : struct, Enum
         {
             var enumValue = (TEnum)(object)value;
-            if (Enum.GetValues(typeof(TEnum)).Cast<TEnum>().Any(v => v.Equals(enumValue)))
-            {
-                return enumValue;
-            }
 
-            return defaultValue;
+            return Enum.IsDefined(typeof(TEnum), enumValue) ? enumValue : defaultValue;
         }
 
         private bool TryReadSpan(int length, out ReadOnlySpan<byte> span)

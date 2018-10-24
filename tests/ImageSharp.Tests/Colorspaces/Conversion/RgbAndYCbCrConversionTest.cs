@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 
             // Act
             var actual = Converter.ToRgb(input);
-            Converter.Convert(inputSpan, actualSpan, actualSpan.Length);
+            Converter.Convert(inputSpan, actualSpan);
 
             // Assert
             Assert.Equal(Rgb.DefaultWorkingSpace, actual.WorkingSpace, ColorSpaceComparer);
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 
             // Act
             var actual = Converter.ToYCbCr(input);
-            Converter.Convert(inputSpan, actualSpan, actualSpan.Length);
+            Converter.Convert(inputSpan, actualSpan);
 
             // Assert
             Assert.Equal(expected, actual, ColorSpaceComparer);

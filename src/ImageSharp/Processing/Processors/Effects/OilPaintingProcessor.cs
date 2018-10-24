@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                                         float blue = MathF.Abs(blueBin[maxIndex] / maxIntensity);
 
                                         ref TPixel pixel = ref targetRow[x];
-                                        pixel.PackFromVector4(
+                                        pixel.FromVector4(
                                             new Vector4(red, green, blue, sourceRow[x].ToVector4().W));
                                     }
                                 }

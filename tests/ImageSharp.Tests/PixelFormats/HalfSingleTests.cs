@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void HalfSingle_PackFromScaledVector4()
+        public void HalfSingle_FromScaledVector4()
         {
             // arrange 
             Vector4 scaled = new HalfSingle(-1F).ToScaledVector4();
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var halfSingle = default(HalfSingle);
 
             // act
-            halfSingle.PackFromScaledVector4(scaled);
+            halfSingle.FromScaledVector4(scaled);
             ushort actual = halfSingle.PackedValue;
 
             // assert

@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Bgr565_PackFromScaledVector4()
+        public void Bgr565_FromScaledVector4()
         {
             // arrange
             Vector4 scaled = new Bgr565(Vector3.One).ToScaledVector4();
@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var pixel = default(Bgr565);
 
             // act
-            pixel.PackFromScaledVector4(scaled);
+            pixel.FromScaledVector4(scaled);
             ushort actual = pixel.PackedValue;
 
             // assert

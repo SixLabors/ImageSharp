@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Primitives;
@@ -19,7 +18,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
     /// </summary>
     internal sealed class ExifReader
     {
-        private readonly List<ExifTag> invalidTags = new List<ExifTag>();
+        private List<ExifTag> invalidTags;
         private readonly byte[] exifData;
         private int position;
         private Endianness endianness = Endianness.BigEndian;
@@ -38,7 +37,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <summary>
         /// Gets the invalid tags.
         /// </summary>
-        public IReadOnlyList<ExifTag> InvalidTags => this.invalidTags;
+        public IReadOnlyList<ExifTag> InvalidTags => this.invalidTags ?? (IReadOnlyList<ExifTag>)Array.Empty<ExifTag>();
 
         /// <summary>
         /// Gets the thumbnail length in the byte stream
@@ -338,7 +337,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 // Ensure that the new index does not overrun the data
                 if (newIndex > int.MaxValue)
                 {
-                    this.invalidTags.Add(tag);
+                    this.AddInvalidTag(tag);
 
                     exifValue = default;
 
@@ -349,7 +348,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
                 if (this.RemainingLength < size)
                 {
-                    this.invalidTags.Add(tag);
+                    this.AddInvalidTag(tag);
+
                     this.position = oldIndex;
 
                     exifValue = default;
@@ -370,6 +370,16 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             exifValue = new ExifValue(tag, dataType, value, isArray: value != null && numberOfComponents != 1);
 
             return true;
+        }
+
+        private void AddInvalidTag(ExifTag tag)
+        {
+            if (this.invalidTags == null)
+            {
+                this.invalidTags = new List<ExifTag>();
+            }
+
+            this.invalidTags.Add(tag);
         }
 
         private TEnum ToEnum<TEnum>(int value, TEnum defaultValue)

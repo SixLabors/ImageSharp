@@ -296,7 +296,7 @@ namespace SixLabors.ImageSharp
                         {
                             Span<TPixel> sourceRow = this.GetPixelRowSpan(y);
                             Span<TPixel2> targetRow = target.GetPixelRowSpan(y);
-                            PixelOperations<TPixel>.Instance.To(sourceRow, targetRow, sourceRow.Length);
+                            PixelOperations<TPixel>.Instance.To(sourceRow, targetRow);
                         }
                     });
 

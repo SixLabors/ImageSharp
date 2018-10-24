@@ -75,9 +75,9 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
         }
 
         // RESULTS:
-        //     Method | Count |     Mean |     Error |    StdDev | Scaled |
-        // ---------- |------ |---------:|----------:|----------:|-------:|
-        //  UseRetval |    32 | 94.99 ns | 1.1199 ns | 0.9352 ns |   1.00 |
-        //  UseCopyTo |    32 | 59.47 ns | 0.6104 ns | 0.5710 ns |   0.63 |
+        //     Method | Count |     Mean |    Error |   StdDev | Scaled |
+        // ---------- |------ |---------:|---------:|---------:|-------:|
+        //  UseRetval |    32 | 109.0 ns | 1.202 ns | 1.125 ns |   1.00 |
+        //  UseCopyTo |    32 | 108.6 ns | 1.151 ns | 1.020 ns |   1.00 |
     }
 }

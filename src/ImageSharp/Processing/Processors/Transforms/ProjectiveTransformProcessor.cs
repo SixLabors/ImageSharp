@@ -227,7 +227,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                                     // Reverse the premultiplication
                                     Vector4Utils.UnPremultiply(ref sum);
-                                    dest.PackFromVector4(sum);
+                                    dest.FromVector4(sum);
                                 }
                             }
                         });

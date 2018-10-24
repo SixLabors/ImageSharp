@@ -77,81 +77,81 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     workingnRectangle,
                     configuration,
                     rows =>
-                    {
-                        ulong sum;
-
-                        for (int i = rows.Min; i < rows.Max; i++)
                         {
-                            using (IMemoryOwner<Rgb24> tmpPixels = configuration.MemoryAllocator.Allocate<Rgb24>(width, AllocationOptions.None))
+                            ulong sum;
+
+                            for (int i = rows.Min; i < rows.Max; i++)
                             {
-                                Span<Rgb24> span = tmpPixels.GetSpan();
-                                this.pixelOpInstance.ToRgb24(source.GetPixelRowSpan(i), span);
-
-                                sum = 0;
-
-                                for (int j = startX; j < endX; j++)
+                                using (IMemoryOwner<Rgb24> tmpPixels = configuration.MemoryAllocator.Allocate<Rgb24>(width, AllocationOptions.None))
                                 {
-                                    ref Rgb24 rgb = ref span[(width * j) + i];
+                                    Span<Rgb24> span = tmpPixels.GetSpan();
+                                    this.pixelOpInstance.ToRgb24(source.GetPixelRowSpan(i), span);
 
-                                    sum += (ulong)(rgb.B + rgb.G + rgb.B);
+                                    sum = 0;
 
-                                    if (i != 0)
+                                    for (int j = startX; j < endX; j++)
                                     {
-                                        intImage[i, j] = intImage[i - 1, j] + sum;
-                                    }
-                                    else
-                                    {
-                                        intImage[i, j] = sum;
+                                        ref Rgb24 rgb = ref span[(width * j) + i];
+
+                                        sum += (ulong)(rgb.B + rgb.G + rgb.B);
+
+                                        if (i != 0)
+                                        {
+                                            intImage[i, j] = intImage[i - 1, j] + sum;
+                                        }
+                                        else
+                                        {
+                                            intImage[i, j] = sum;
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
                 );
 
                 ParallelHelper.IterateRows(
                     workingnRectangle,
                     configuration,
                     rows =>
-                    {
-                        ushort x1, x2, y1, y2;
-
-                        uint count;
-
-                        long sum;
-
-                        for (int i = rows.Min; i < rows.Max; i++)
                         {
-                            using (IMemoryOwner<Rgb24> tmpPixes = configuration.MemoryAllocator.Allocate<Rgb24>(width))
+                            ushort x1, x2, y1, y2;
+
+                            uint count;
+
+                            long sum;
+
+                            for (int i = rows.Min; i < rows.Max; i++)
                             {
-                                Span<Rgb24> span = tmpPixes.GetSpan();
-                                this.pixelOpInstance.ToRgb24(source.GetPixelRowSpan(i), span);
-
-                                for (int j = startX; j < endX; j++)
+                                using (IMemoryOwner<Rgb24> tmpPixes = configuration.MemoryAllocator.Allocate<Rgb24>(width))
                                 {
-                                    ref Rgb24 rgb = ref span[(width * j) + 1];
+                                    Span<Rgb24> span = tmpPixes.GetSpan();
+                                    this.pixelOpInstance.ToRgb24(source.GetPixelRowSpan(i), span);
 
-                                    x1 = (ushort)Math.Max(i - clusterSize + 1, 0);
-                                    x2 = (ushort)Math.Min(i + clusterSize + 1, endY - 1);
-                                    y1 = (ushort)Math.Max(j - clusterSize + 1, 0);
-                                    y2 = (ushort)Math.Min(j + clusterSize + 1, endX - 1);
-
-                                    count = (uint)((x2 - x1) * (y2 - y1));
-
-                                    sum = (long)(intImage[x2, y2] - intImage[x1, y2] - intImage[x2, y1] + intImage[x1, y1])
-
-                                    if ((rgb.R + rgb.G + rgb.B) * count < sum * threshold)
+                                    for (int j = startX; j < endX; j++)
                                     {
-                                        rgb = this.Lower;
-                                    }
-                                    else
-                                    {
-                                        rgb = this.Upper;
+                                        ref Rgb24 rgb = ref span[(width * j) + 1];
+
+                                        x1 = (ushort)Math.Max(i - clusterSize + 1, 0);
+                                        x2 = (ushort)Math.Min(i + clusterSize + 1, endY - 1);
+                                        y1 = (ushort)Math.Max(j - clusterSize + 1, 0);
+                                        y2 = (ushort)Math.Min(j + clusterSize + 1, endX - 1);
+
+                                        count = (uint)((x2 - x1) * (y2 - y1));
+
+                                        sum = (long)(intImage[x2, y2] - intImage[x1, y2] - intImage[x2, y1] + intImage[x1, y1]);
+
+                                        if ((rgb.R + rgb.G + rgb.B) * count < sum * threshold)
+                                        {
+                                            rgb = this.Lower;
+                                        }
+                                        else
+                                        {
+                                            rgb = this.Upper;
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
                 );
             }
         }

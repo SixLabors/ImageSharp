@@ -163,20 +163,20 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     blue.W = red.W = green.W = (float)x / (float)right;
 
-                    c.PackFromVector4(red);
+                    c.FromVector4(red);
                     int topBand = top;
                     for (int y = topBand; y < top + height; y++)
                     {
                         pixels[x, y] = c;
                     }
                     topBand = topBand + height;
-                    c.PackFromVector4(green);
+                    c.FromVector4(green);
                     for (int y = topBand; y < topBand + height; y++)
                     {
                         pixels[x, y] = c;
                     }
                     topBand = topBand + height;
-                    c.PackFromVector4(blue);
+                    c.FromVector4(blue);
                     for (int y = topBand; y < bottom; y++)
                     {
                         pixels[x, y] = c;
@@ -207,7 +207,7 @@ namespace SixLabors.ImageSharp.Tests
                         t.PackedValue += stepsPerPixel;
                         Vector4 v = t.ToVector4();
                         //v.W = (x - left) / (float)left;
-                        c.PackFromVector4(v);
+                        c.FromVector4(v);
                         pixels[x, y] = c;
                     }
             }

@@ -217,7 +217,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             {
                 Span<Rgba32> rgbaSpan = rgbaBuffer.GetSpan();
                 ref Rgba32 paletteRef = ref MemoryMarshal.GetReference(rgbaSpan);
-                PixelOperations<TPixel>.Instance.ToRgba32(quantized.Palette, rgbaSpan, length);
+                PixelOperations<TPixel>.Instance.ToRgba32(quantized.Palette, rgbaSpan);
 
                 for (int i = quantized.Palette.Length - 1; i >= 0; i--)
                 {

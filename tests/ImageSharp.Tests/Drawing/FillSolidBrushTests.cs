@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             vec.W = alpha;
 
             TPixel fillColor = default;
-            fillColor.PackFromVector4(vec);
+            fillColor.FromVector4(vec);
 
             using (Image<TPixel> image = provider.GetImage())
             {

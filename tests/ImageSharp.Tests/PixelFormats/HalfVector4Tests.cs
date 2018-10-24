@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void HalfVector4_PackFromScaledVector4()
+        public void HalfVector4_FromScaledVector4()
         {
             // arrange
             var halfVector4 = default(HalfVector4);
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             ulong expected = 13547034390470638592uL;
 
             // act 
-            halfVector4.PackFromScaledVector4(scaled);
+            halfVector4.FromScaledVector4(scaled);
             ulong actual = halfVector4.PackedValue;
 
             // assert

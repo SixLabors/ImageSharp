@@ -80,8 +80,8 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
                 Span<TPixelA> aSpan = expected.GetPixelRowSpan(y);
                 Span<TPixelB> bSpan = actual.GetPixelRowSpan(y);
 
-                PixelOperations<TPixelA>.Instance.ToRgba64(aSpan, aBuffer, width);
-                PixelOperations<TPixelB>.Instance.ToRgba64(bSpan, bBuffer, width);
+                PixelOperations<TPixelA>.Instance.ToRgba64(aSpan, aBuffer);
+                PixelOperations<TPixelB>.Instance.ToRgba64(bSpan, bBuffer);
 
                 for (int x = 0; x < width; x++)
                 {

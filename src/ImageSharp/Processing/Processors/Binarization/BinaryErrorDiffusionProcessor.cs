@@ -88,7 +88,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             // Collect the values before looping so we can reduce our calculation count for identical sibling pixels
             TPixel sourcePixel = source[startX, startY];
             TPixel previousPixel = sourcePixel;
-            var rgba = sourcePixel.ToRgba32();
+            Rgba32 rgba = default;
+            sourcePixel.ToRgba32(ref rgba);
 
             // Convert to grayscale using ITU-R Recommendation BT.709 if required
             byte luminance = isAlphaOnly ? rgba.A : ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
@@ -105,7 +106,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                     // rather than calculating it again. This is an inexpensive optimization.
                     if (!previousPixel.Equals(sourcePixel))
                     {
-                        rgba = sourcePixel.ToRgba32();
+                        sourcePixel.ToRgba32(ref rgba);
                         luminance = isAlphaOnly ? rgba.A : ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
 
                         // Setup the previous pointer

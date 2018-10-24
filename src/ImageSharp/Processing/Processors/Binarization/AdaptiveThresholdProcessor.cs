@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Threading.Tasks;
+using System.Buffers;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
@@ -34,8 +34,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="lower">Color for lower threshold</param>
         public AdaptiveThresholdProcessor(TPixel upper, TPixel lower)
         {
-            this.Upper = upper;
-            this.Lower = lower;
+            this.Upper.PackFromRgba32(upper.ToRgba32());
+            this.Lower.PackFromRgba32(lower.ToRgba32());
         }
 
         /// <summary>
@@ -75,26 +75,29 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     {
                         ulong sum;
 
-                        Rgb24 rgb = default;
-
                         for (int i = rows.Min; i < rows.Max; i++)
                         {
-                            var row = source.GetPixelRowSpan(i);
-
-                            sum = 0;
-
-                            for (int j = startX; j < endX; j++)
+                            using (IMemoryOwner<Rgb24> tmpPixels = configuration.MemoryAllocator.Allocate<Rgb24>(width, AllocationOptions.None))
                             {
-                                row[j].ToRgb24(ref rgb);
-                                sum += (ulong)(rgb.B + rgb.G + rgb.B);
+                                Span<Rgb24> span = tmpPixels.GetSpan();
+                                PixelOperations<TPixel>.Instance.ToRgb24(source.GetPixelRowSpan(i), span, width);
 
-                                if (i != 0)
+                                sum = 0;
+
+                                for (int j = startX; j < endX; j++)
                                 {
-                                    intImage[i, j] = intImage[i - 1, j] + sum;
-                                }
-                                else
-                                {
-                                    intImage[i, j] = sum;
+                                    ref Rgb24 rgb = ref span[(width * j) + i];
+
+                                    sum += (ulong)(rgb.B + rgb.G + rgb.B);
+
+                                    if (i != 0)
+                                    {
+                                        intImage[i, j] = intImage[i - 1, j] + sum;
+                                    }
+                                    else
+                                    {
+                                        intImage[i, j] = sum;
+                                    }
                                 }
                             }
                         }
@@ -114,30 +117,34 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
                         for (int i = rows.Min; i < rows.Max; i++)
                         {
-                            var row = source.GetPixelRowSpan(i);
-
-                            Rgb24 rgb = default;
-
-                            for (int j = startX; j < endX; j++)
+                            using (IMemoryOwner<Rgb24> tmpPixes = configuration.MemoryAllocator.Allocate<Rgb24>(width))
                             {
-                                x1 = (ushort)Math.Max(i - s + 1, 0);
-                                x2 = (ushort)Math.Min(i + s + 1, endY - 1);
-                                y1 = (ushort)Math.Max(j - s + 1, 0);
-                                y2 = (ushort)Math.Min(j + s + 1, endX - 1);
+                                Span<Rgb24> span = tmpPixes.GetSpan();
+                                PixelOperations<TPixel>.Instance.ToRgb24(source.GetPixelRowSpan(i), span, width);
 
-                                count = (uint)((x2 - x1) * (y2 - y1));
-
-                                sum = (long)(intImage[x2, y2] - intImage[x1, y2] - intImage[x2, y1] + intImage[x1, y1]);
-
-                                row[j].ToRgb24(ref rgb);
-
-                                if ((rgb.R + rgb.G + rgb.B) * count < sum * (1.0 - 0.15))
+                                for (int j = startX; j < endX; j++)
                                 {
-                                    row[j] = this.Lower;
-                                }
-                                else
-                                {
-                                    row[j] = this.Upper;
+                                    ref Rgb24 rgb = ref span[(width * j) + 1];
+
+                                    x1 = (ushort)Math.Max(i - s + 1, 0);
+                                    x2 = (ushort)Math.Min(i + s + 1, endY - 1);
+                                    y1 = (ushort)Math.Max(j - s + 1, 0);
+                                    y2 = (ushort)Math.Min(j + s + 1, endX - 1);
+
+                                    count = (uint)((x2 - x1) * (y2 - y1));
+
+                                    sum = (long)(intImage[x2, y2] - intImage[x1, y2] - intImage[x2, y1] + intImage[x1, y1])
+
+                                    if ((rgb.R + rgb.G + rgb.B) * count < sum * (1.0 - 0.15))
+                                    {
+                                        //row[j] = this.Lower;
+                                        rgb = this.Lower.ToRgba32().Rgb;
+                                    }
+                                    else
+                                    {
+                                        //row[j] = this.Upper;
+                                        rgb = this.Upper.ToRgba32().Rgb;
+                                    }
                                 }
                             }
                         }

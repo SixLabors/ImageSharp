@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void NormalizedShort2_PackFromScaledVector4()
+        public void NormalizedShort2_FromScaledVector4()
         {
             // arrange
             Vector4 scaled = new NormalizedShort2(-Vector2.One).ToScaledVector4();
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             uint expected = 0x80018001;
 
             // act
-            short2.PackFromScaledVector4(scaled);
+            short2.FromScaledVector4(scaled);
             uint actual = short2.PackedValue;
 
             // assert

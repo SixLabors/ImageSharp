@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Rg32_PackFromScaledVector4()
+        public void Rg32_FromScaledVector4()
         {
             // arrange
             var rg32 = new Rg32(Vector2.One);
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             // act
             Vector4 scaled = rg32.ToScaledVector4();
-            pixel.PackFromScaledVector4(scaled);
+            pixel.FromScaledVector4(scaled);
             uint actual = pixel.PackedValue;
 
             // assert

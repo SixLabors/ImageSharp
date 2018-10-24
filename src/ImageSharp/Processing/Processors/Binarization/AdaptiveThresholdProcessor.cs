@@ -19,6 +19,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
     internal class AdaptiveThresholdProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        private readonly PixelOperations<TPixel> pixelOpInstance;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="AdaptiveThresholdProcessor{TPixel}"/> class.
         /// </summary>
@@ -34,19 +36,20 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="lower">Color for lower threshold</param>
         public AdaptiveThresholdProcessor(TPixel upper, TPixel lower)
         {
-            this.Upper.PackFromRgba32(upper.ToRgba32());
-            this.Lower.PackFromRgba32(lower.ToRgba32());
+            this.pixelOpInstance = PixelOperations<TPixel>.Instance;
+            this.Upper.FromRgba32(upper.ToRgba32());
+            this.Lower.FromRgba32(lower.ToRgba32());
         }
 
         /// <summary>
         /// Gets or sets upper color limit for thresholding
         /// </summary>
-        public TPixel Upper { get; set; }
+        public Rgb24 Upper { get; set; }
 
         /// <summary>
         /// Gets or sets lower color limit for threshold
         /// </summary>
-        public TPixel Lower { get; set; }
+        public Rgb24 Lower { get; set; }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
@@ -82,7 +85,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                             using (IMemoryOwner<Rgb24> tmpPixels = configuration.MemoryAllocator.Allocate<Rgb24>(width, AllocationOptions.None))
                             {
                                 Span<Rgb24> span = tmpPixels.GetSpan();
-                                PixelOperations<TPixel>.Instance.ToRgb24(source.GetPixelRowSpan(i), span, width);
+                                this.pixelOpInstance.ToRgb24(source.GetPixelRowSpan(i), span);
 
                                 sum = 0;
 
@@ -122,7 +125,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                             using (IMemoryOwner<Rgb24> tmpPixes = configuration.MemoryAllocator.Allocate<Rgb24>(width))
                             {
                                 Span<Rgb24> span = tmpPixes.GetSpan();
-                                PixelOperations<TPixel>.Instance.ToRgb24(source.GetPixelRowSpan(i), span, width);
+                                this.pixelOpInstance.ToRgb24(source.GetPixelRowSpan(i), span);
 
                                 for (int j = startX; j < endX; j++)
                                 {
@@ -139,11 +142,11 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
                                     if ((rgb.R + rgb.G + rgb.B) * count < sum * threshold)
                                     {
-                                        rgb = this.Lower.ToRgba32().Rgb;
+                                        rgb = this.Lower;
                                     }
                                     else
                                     {
-                                        rgb = this.Upper.ToRgba32().Rgb;
+                                        rgb = this.Upper;
                                     }
                                 }
                             }

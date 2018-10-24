@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// Initializes a new instance of the <see cref="IccCurveTagDataEntry"/> class.
         /// </summary>
         public IccCurveTagDataEntry()
-            : this(new float[0], IccProfileTag.Unknown)
+            : this(Array.Empty<float>(), IccProfileTag.Unknown)
         {
         }
 
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// </summary>
         /// <param name="tagSignature">Tag Signature</param>
         public IccCurveTagDataEntry(IccProfileTag tagSignature)
-            : this(new float[0], tagSignature)
+            : this(Array.Empty<float>(), tagSignature)
         {
         }
 
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccCurveTagDataEntry(float[] curveData, IccProfileTag tagSignature)
             : base(IccTypeSignature.Curve, tagSignature)
         {
-            this.CurveData = curveData ?? new float[0];
+            this.CurveData = curveData ?? Array.Empty<float>();
         }
 
         /// <summary>

@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
@@ -20,7 +21,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <summary>
         /// The backing file for the <see cref="Entries"/> property
         /// </summary>
-        private List<IccTagDataEntry> entries;
+        private IccTagDataEntry[] entries;
 
         /// <summary>
         /// ICC profile header
@@ -52,7 +53,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             Guard.NotNull(entries, nameof(entries));
 
             this.header = header;
-            this.entries = new List<IccTagDataEntry>(entries);
+            this.entries = entries.ToArray();
         }
 
         /// <summary>
@@ -85,7 +86,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <summary>
         /// Gets the actual profile data
         /// </summary>
-        public List<IccTagDataEntry> Entries
+        public IccTagDataEntry[] Entries
         {
             get
             {
@@ -212,12 +213,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
             if (this.data is null)
             {
-                this.entries = new List<IccTagDataEntry>();
+                this.entries = Array.Empty<IccTagDataEntry>();
                 return;
             }
 
             var reader = new IccReader();
-            this.entries = new List<IccTagDataEntry>(reader.ReadTagData(this.data));
+            this.entries = reader.ReadTagData(this.data);
         }
     }
 }

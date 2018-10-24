@@ -53,7 +53,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             TPixel sourcePixel = source[startX, startY];
             TPixel previousPixel = sourcePixel;
             PixelPair<TPixel> pair = this.GetClosestPixelPair(ref sourcePixel);
-            var rgba = sourcePixel.ToRgba32();
+            Rgba32 rgba = default;
+            sourcePixel.ToRgba32(ref rgba);
 
             // Convert to grayscale using ITU-R Recommendation BT.709 if required
             byte luminance = isAlphaOnly ? rgba.A : ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
@@ -78,7 +79,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                             continue;
                         }
 
-                        rgba = sourcePixel.ToRgba32();
+                        sourcePixel.ToRgba32(ref rgba);
                         luminance = isAlphaOnly ? rgba.A : ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
 
                         // Setup the previous pointer

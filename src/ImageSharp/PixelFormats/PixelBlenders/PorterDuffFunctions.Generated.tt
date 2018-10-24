@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
-            dest.PackFromScaledVector4(<#=blender#><#=composer#>(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
+            dest.FromScaledVector4(<#=blender#><#=composer#>(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
 

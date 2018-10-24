@@ -133,6 +133,6 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
      *  !!! Conclusion !!!
      *  All memory-incompatible (permuted) variants are equivalent with the the "FromBytes" solution. 
      *  In memory compatible cases we should use the optimized Bulk-copying variant anyways, 
-     *  so there is no benefit introducing non-bulk API-s other than PackFromBytes() OR PackFromRgba32().
+     *  so there is no benefit introducing non-bulk API-s other than FromBytes() OR FromRgba32().
      */
 }

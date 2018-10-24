@@ -35,15 +35,15 @@ namespace SixLabors.ImageSharp.Benchmarks
                 Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
                 Span<Vector4> sourceSpan = buffer.Slice(destination.Length * 2, destination.Length);
 
-                PixelOperations<TPixel>.Instance.ToVector4(background, backgroundSpan, destination.Length);
-                PixelOperations<TPixel>.Instance.ToVector4(source, sourceSpan, destination.Length);
+                PixelOperations<TPixel>.Instance.ToVector4(background, backgroundSpan);
+                PixelOperations<TPixel>.Instance.ToVector4(source, sourceSpan);
 
                 for (int i = 0; i < destination.Length; i++)
                 {
                     destinationSpan[i] = PorterDuffFunctions.NormalSrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
                 }
 
-                PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
+                PixelOperations<TPixel>.Instance.FromVector4(destinationSpan, destination);
             }
         }
 

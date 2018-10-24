@@ -63,7 +63,16 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             this.Parts = other.Parts;
             this.thumbnailLength = other.thumbnailLength;
             this.thumbnailOffset = other.thumbnailOffset;
-            this.InvalidTags = new List<ExifTag>(other.InvalidTags);
+
+            if (other.InvalidTags.Count > 0)
+            {
+                this.InvalidTags = new List<ExifTag>(other.InvalidTags);
+            }
+            else
+            {
+                this.InvalidTags = Array.Empty<ExifTag>();
+            }
+
             if (other.values != null)
             {
                 this.values = new List<ExifValue>(other.Values.Count);

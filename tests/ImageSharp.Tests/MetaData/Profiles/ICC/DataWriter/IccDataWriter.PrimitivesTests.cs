@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             byte[] output = writer.GetData();
 
             Assert.Equal(0, count);
-            Assert.Equal(new byte[0], output);
+            Assert.Equal(Array.Empty<byte>(), output);
         }
 
         [Fact]
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
             byte[] output = writer.GetData();
 
             Assert.Equal(0, count);
-            Assert.Equal(new byte[0], output);
+            Assert.Equal(Array.Empty<byte>(), output);
         }
 
         [Theory]

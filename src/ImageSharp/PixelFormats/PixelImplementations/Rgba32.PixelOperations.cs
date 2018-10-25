@@ -21,31 +21,31 @@ namespace SixLabors.ImageSharp.PixelFormats
             /// <inheritdoc />
             internal override void ToVector4(
                 Configuration configuration,
-                ReadOnlySpan<Rgba32> sourceColors,
-                Span<Vector4> destinationVectors)
+                ReadOnlySpan<Rgba32> sourcePixels,
+                Span<Vector4> destVectors)
             {
-                Guard.DestinationShouldNotBeTooShort(sourceColors, destinationVectors, nameof(destinationVectors));
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
 
-                destinationVectors = destinationVectors.Slice(0, sourceColors.Length);
+                destVectors = destVectors.Slice(0, sourcePixels.Length);
 
                 SimdUtils.BulkConvertByteToNormalizedFloat(
-                    MemoryMarshal.Cast<Rgba32, byte>(sourceColors),
-                    MemoryMarshal.Cast<Vector4, float>(destinationVectors));
+                    MemoryMarshal.Cast<Rgba32, byte>(sourcePixels),
+                    MemoryMarshal.Cast<Vector4, float>(destVectors));
             }
 
             /// <inheritdoc />
             internal override void FromVector4(
                 Configuration configuration,
                 ReadOnlySpan<Vector4> sourceVectors,
-                Span<Rgba32> destinationColors)
+                Span<Rgba32> destPixels)
             {
-                Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationColors, nameof(destinationColors));
+                Guard.DestinationShouldNotBeTooShort(sourceVectors, destPixels, nameof(destPixels));
 
-                destinationColors = destinationColors.Slice(0, sourceVectors.Length);
+                destPixels = destPixels.Slice(0, sourceVectors.Length);
 
                 SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(
                     MemoryMarshal.Cast<Vector4, float>(sourceVectors),
-                    MemoryMarshal.Cast<Rgba32, byte>(destinationColors));
+                    MemoryMarshal.Cast<Rgba32, byte>(destPixels));
             }
 
             /// <inheritdoc />

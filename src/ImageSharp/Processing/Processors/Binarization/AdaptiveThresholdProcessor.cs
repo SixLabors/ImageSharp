@@ -37,19 +37,20 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public AdaptiveThresholdProcessor(TPixel upper, TPixel lower)
         {
             this.pixelOpInstance = PixelOperations<TPixel>.Instance;
-            this.Upper.FromRgba32(upper.ToRgba32());
-            this.Lower.FromRgba32(lower.ToRgba32());
+
+            this.Upper = upper;
+            this.Lower = lower;
         }
 
         /// <summary>
         /// Gets or sets upper color limit for thresholding
         /// </summary>
-        public Rgb24 Upper { get; set; }
+        public TPixel Upper { get; set; }
 
         /// <summary>
         /// Gets or sets lower color limit for threshold
         /// </summary>
-        public Rgb24 Lower { get; set; }
+        public TPixel Lower { get; set; }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
@@ -69,90 +70,83 @@ namespace SixLabors.ImageSharp.Processing.Processors
             float threshold = 0.85f;
 
             // Using pooled 2d buffer for integer image table
-            using (Buffer2D<ulong> intImage = configuration.MemoryAllocator.Allocate2D<ulong>(width, height, AllocationOptions.Clean))
+            using (Buffer2D<ulong> intImage = configuration.MemoryAllocator.Allocate2D<ulong>(width, height))
             {
-                var workingnRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
+                var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
 
-                ParallelHelper.IterateRows(
-                    workingnRectangle,
+                ParallelHelper.IterateRowsWithTempBuffer<Rgb24>(
+                    workingRectangle,
                     configuration,
-                    rows =>
+                    (rows, memory) =>
+                    {
+                        ulong sum = 0;
+
+                        Span<Rgb24> tmpSpan = memory.Span;
+
+                        for (int i = rows.Min; i < rows.Max; i++)
                         {
-                            ulong sum;
+                            this.pixelOpInstance.ToRgb24(source.GetPixelRowSpan(i), tmpSpan);
 
-                            for (int i = rows.Min; i < rows.Max; i++)
+                            sum = 0;
+
+                            for (int j = startX; j < endX; j++)
                             {
-                                using (IMemoryOwner<Rgb24> tmpPixels = configuration.MemoryAllocator.Allocate<Rgb24>(width, AllocationOptions.None))
+                                ref Rgb24 rgb = ref tmpSpan[j];
+
+                                sum += (ulong)(rgb.R + rgb.G + rgb.B);
+
+                                if (i != 0)
                                 {
-                                    Span<Rgb24> span = tmpPixels.GetSpan();
-                                    this.pixelOpInstance.ToRgb24(source.GetPixelRowSpan(i), span);
-
-                                    sum = 0;
-
-                                    for (int j = startX; j < endX; j++)
-                                    {
-                                        ref Rgb24 rgb = ref span[(width * j) + i];
-
-                                        sum += (ulong)(rgb.B + rgb.G + rgb.B);
-
-                                        if (i != 0)
-                                        {
-                                            intImage[i, j] = intImage[i - 1, j] + sum;
-                                        }
-                                        else
-                                        {
-                                            intImage[i, j] = sum;
-                                        }
-                                    }
+                                    intImage[i, j] = intImage[i - 1, j] + sum;
+                                }
+                                else
+                                {
+                                    intImage[i, j] = sum;
                                 }
                             }
                         }
-                );
+                    });
 
-                ParallelHelper.IterateRows(
-                    workingnRectangle,
+                ParallelHelper.IterateRowsWithTempBuffer<Rgb24>(
+                    workingRectangle,
                     configuration,
-                    rows =>
+                    (rows, memory) =>
+                    {
+                        ushort x1, x2, y1, y2;
+                        uint count = 0;
+                        long sum = 0;
+
+                        Span<Rgb24> tmpSpan = memory.Span;
+
+                        for (int i = rows.Min; i < rows.Max; i++)
                         {
-                            ushort x1, x2, y1, y2;
+                            Span<TPixel> originalSpan = source.GetPixelRowSpan(i);
+                            this.pixelOpInstance.ToRgb24(originalSpan, tmpSpan);
 
-                            uint count;
-
-                            long sum;
-
-                            for (int i = rows.Min; i < rows.Max; i++)
+                            for (int j = startX; j < endX; j++)
                             {
-                                using (IMemoryOwner<Rgb24> tmpPixes = configuration.MemoryAllocator.Allocate<Rgb24>(width))
+                                ref Rgb24 rgb = ref tmpSpan[j];
+
+                                x1 = (ushort)Math.Max(i - clusterSize + 1, 0);
+                                x2 = (ushort)Math.Min(i + clusterSize + 1, endY - 1);
+                                y1 = (ushort)Math.Max(j - clusterSize + 1, 0);
+                                y2 = (ushort)Math.Min(j + clusterSize + 1, endX - 1);
+
+                                count = (uint)((x2 - x1) * (y2 - y1));
+
+                                sum = (long)(intImage[x2, y2] - intImage[x1, y2] - intImage[x2, y1] + intImage[x1, y1]);
+
+                                if ((rgb.R + rgb.G + rgb.B) * count < sum * threshold)
                                 {
-                                    Span<Rgb24> span = tmpPixes.GetSpan();
-                                    this.pixelOpInstance.ToRgb24(source.GetPixelRowSpan(i), span);
-
-                                    for (int j = startX; j < endX; j++)
-                                    {
-                                        ref Rgb24 rgb = ref span[(width * j) + 1];
-
-                                        x1 = (ushort)Math.Max(i - clusterSize + 1, 0);
-                                        x2 = (ushort)Math.Min(i + clusterSize + 1, endY - 1);
-                                        y1 = (ushort)Math.Max(j - clusterSize + 1, 0);
-                                        y2 = (ushort)Math.Min(j + clusterSize + 1, endX - 1);
-
-                                        count = (uint)((x2 - x1) * (y2 - y1));
-
-                                        sum = (long)(intImage[x2, y2] - intImage[x1, y2] - intImage[x2, y1] + intImage[x1, y1]);
-
-                                        if ((rgb.R + rgb.G + rgb.B) * count < sum * threshold)
-                                        {
-                                            rgb = this.Lower;
-                                        }
-                                        else
-                                        {
-                                            rgb = this.Upper;
-                                        }
-                                    }
+                                    originalSpan[j] = this.Lower;
+                                }
+                                else
+                                {
+                                    originalSpan[j] = this.Upper;
                                 }
                             }
                         }
-                );
+                    });
             }
         }
     }

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -26,17 +27,17 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
-        /// <param name="destinationColors">The <see cref="Span{T}"/> to the destination colors.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination colors.</param>
         internal virtual void FromVector4(
             Configuration configuration,
             ReadOnlySpan<Vector4> sourceVectors,
-            Span<TPixel> destinationColors)
+            Span<TPixel> destPixels)
         {
             Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationColors, nameof(destinationColors));
+            Guard.DestinationShouldNotBeTooShort(sourceVectors, destPixels, nameof(destPixels));
 
             ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceVectors);
-            ref TPixel destRef = ref MemoryMarshal.GetReference(destinationColors);
+            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
             for (int i = 0; i < sourceVectors.Length; i++)
             {
@@ -50,20 +51,20 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// Bulk version of <see cref="IPixel.ToVector4()"/> converting 'sourceColors.Length' pixels into 'destinationVectors'.
         /// </summary>
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-        /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destinationVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
+        /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source colors.</param>
+        /// <param name="destVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
         internal virtual void ToVector4(
             Configuration configuration,
-            ReadOnlySpan<TPixel> sourceColors,
-            Span<Vector4> destinationVectors)
+            ReadOnlySpan<TPixel> sourcePixels,
+            Span<Vector4> destVectors)
         {
             Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(sourceColors, destinationVectors, nameof(destinationVectors));
+            Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
 
-            ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourceColors);
-            ref Vector4 destRef = ref MemoryMarshal.GetReference(destinationVectors);
+            ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+            ref Vector4 destRef = ref MemoryMarshal.GetReference(destVectors);
 
-            for (int i = 0; i < sourceColors.Length; i++)
+            for (int i = 0; i < sourcePixels.Length; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
                 ref Vector4 dp = ref Unsafe.Add(ref destRef, i);
@@ -176,6 +177,63 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
                 ref TDestinationPixel dp = ref Unsafe.Add(ref destRef, i);
                 dp.FromScaledVector4(sp.ToScaledVector4());
+            }
+        }
+
+        /// <summary>
+        /// Provides an efficient default implementation for <see cref="ToVector4"/> and <see cref="ToScaledVector4"/>
+        /// which is applicable for <see cref="Rgba32"/>-compatible pixel types where <see cref="IPixel.ToVector4"/>
+        /// returns the same scaled result as <see cref="IPixel.ToScaledVector4"/>.
+        /// The method is works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
+        /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal void RunRgba32CompatibleToVector4Conversion(
+            Configuration configuration,
+            ReadOnlySpan<TPixel> sourcePixels,
+            Span<Vector4> destVectors)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
+
+            int count = sourcePixels.Length;
+
+            using (IMemoryOwner<Rgba32> tempBuffer = configuration.MemoryAllocator.Allocate<Rgba32>(count))
+            {
+                Span<Rgba32> tempSpan = tempBuffer.Memory.Span;
+                this.ToRgba32(configuration, sourcePixels, tempSpan);
+
+                SimdUtils.BulkConvertByteToNormalizedFloat(
+                    MemoryMarshal.Cast<Rgba32, byte>(tempSpan),
+                    MemoryMarshal.Cast<Vector4, float>(destVectors));
+            }
+        }
+
+        /// <summary>
+        /// Provides an efficient default implementation for <see cref="FromVector4"/> and <see cref="FromScaledVector4"/>
+        /// which is applicable for <see cref="Rgba32"/>-compatible pixel types where <see cref="IPixel.ToVector4"/>
+        /// returns the same scaled result as <see cref="IPixel.ToScaledVector4"/>.
+        /// The method is works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
+        /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal void RunRgba32CompatibleFromVector4Conversion(
+            Configuration configuration,
+            ReadOnlySpan<Vector4> sourceVectors,
+            Span<TPixel> destPixels)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(sourceVectors, destPixels, nameof(destPixels));
+
+            int count = sourceVectors.Length;
+
+            using (IMemoryOwner<Rgba32> tempBuffer = configuration.MemoryAllocator.Allocate<Rgba32>(count))
+            {
+                Span<Rgba32> tempSpan = tempBuffer.Memory.Span;
+
+                SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(
+                    MemoryMarshal.Cast<Vector4, float>(sourceVectors),
+                    MemoryMarshal.Cast<Rgba32, byte>(tempSpan));
+
+                this.FromRgba32(configuration, tempSpan, destPixels);
             }
         }
     }

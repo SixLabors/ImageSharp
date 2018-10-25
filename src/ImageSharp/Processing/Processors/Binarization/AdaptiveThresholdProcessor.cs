@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing.Processors
+namespace SixLabors.ImageSharp.Processing.Processors.Binarization
 {
     /// <summary>
     /// Performs Bradley Adaptive Threshold filter against an image
@@ -25,7 +25,21 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// Initializes a new instance of the <see cref="AdaptiveThresholdProcessor{TPixel}"/> class.
         /// </summary>
         public AdaptiveThresholdProcessor()
-            : this(NamedColors<TPixel>.White, NamedColors<TPixel>.Black)
+            : this(NamedColors<TPixel>.White, NamedColors<TPixel>.Black, 0.85f)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AdaptiveThresholdProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="threshold">Threshold limit</param>
+        public AdaptiveThresholdProcessor(float threshold)
+            : this(NamedColors<TPixel>.White, NamedColors<TPixel>.Black, threshold)
+        {
+        }
+
+        public AdaptiveThresholdProcessor(TPixel upper, TPixel lower)
+            : this(upper, lower, 0.85f)
         {
         }
 
@@ -34,12 +48,14 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </summary>
         /// <param name="upper">Color for upper threshold</param>
         /// <param name="lower">Color for lower threshold</param>
-        public AdaptiveThresholdProcessor(TPixel upper, TPixel lower)
+        /// <param name="threshold">Threshold limit</param>
+        public AdaptiveThresholdProcessor(TPixel upper, TPixel lower, float threshold)
         {
             this.pixelOpInstance = PixelOperations<TPixel>.Instance;
 
             this.Upper = upper;
             this.Lower = lower;
+            this.Threshold = threshold;
         }
 
         /// <summary>
@@ -51,6 +67,11 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// Gets or sets lower color limit for threshold
         /// </summary>
         public TPixel Lower { get; set; }
+
+        /// <summary>
+        /// Gets or sets the value for threshold limit
+        /// </summary>
+        public float Threshold { get; set; }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
@@ -66,8 +87,6 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             // Tweaked to support upto 4k wide pixels and not more. 4096 / 16 is 256 thus the '-1'
             byte clusterSize = (byte)((width / 16) - 1);
-
-            float threshold = 0.85f;
 
             // Using pooled 2d buffer for integer image table
             using (Buffer2D<ulong> intImage = configuration.MemoryAllocator.Allocate2D<ulong>(width, height))
@@ -136,7 +155,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
                                 sum = (long)(intImage[x2, y2] - intImage[x1, y2] - intImage[x2, y1] + intImage[x1, y1]);
 
-                                if ((rgb.R + rgb.G + rgb.B) * count < sum * threshold)
+                                if ((rgb.R + rgb.G + rgb.B) * count < sum * this.Threshold)
                                 {
                                     originalSpan[j] = this.Lower;
                                 }

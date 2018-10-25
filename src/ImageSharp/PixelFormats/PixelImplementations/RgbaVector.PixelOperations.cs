@@ -38,12 +38,12 @@ namespace SixLabors.ImageSharp.PixelFormats
             /// <inheritdoc />
             internal override void ToVector4(
                 Configuration configuration,
-                ReadOnlySpan<RgbaVector> sourceColors,
-                Span<Vector4> destinationVectors)
+                ReadOnlySpan<RgbaVector> sourcePixels,
+                Span<Vector4> destVectors)
             {
-                Guard.DestinationShouldNotBeTooShort(sourceColors, destinationVectors, nameof(destinationVectors));
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
 
-                MemoryMarshal.Cast<RgbaVector, Vector4>(sourceColors).CopyTo(destinationVectors);
+                MemoryMarshal.Cast<RgbaVector, Vector4>(sourcePixels).CopyTo(destVectors);
             }
         }
     }

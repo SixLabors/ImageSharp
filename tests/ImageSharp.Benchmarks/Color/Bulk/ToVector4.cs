@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
         [Params(
             64,
-            //256,
+            256,
             //512,
             //1024,
             2048)]
@@ -58,20 +58,25 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
                 d[i] = s[i].ToVector4();
             }
         }
-
-        [Benchmark]
-        public void PixelOperations_Base()
-        {
-            new PixelOperations<TPixel>().ToVector4(
-                this.Configuration,
-                this.source.GetSpan(),
-                this.destination.GetSpan());
-        }
+        
 
         [Benchmark]
         public void PixelOperations_Specialized()
         {
             PixelOperations<TPixel>.Instance.ToVector4(
+                this.Configuration,
+                this.source.GetSpan(),
+                this.destination.GetSpan());
+        }
+    }
+
+    [Config(typeof(Config.ShortClr))]
+    public class ToVector4_Bgra32 : ToVector4<Bgra32>
+    {
+        [Benchmark(Baseline = true)]
+        public void PixelOperations_Base()
+        {
+            new PixelOperations<Bgra32>().ToVector4(
                 this.Configuration,
                 this.source.GetSpan(),
                 this.destination.GetSpan());
@@ -89,7 +94,16 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
             SimdUtils.FallbackIntrinsics128.BulkConvertByteToNormalizedFloat(sBytes, dFloats);
         }
-        
+
+        [Benchmark]
+        public void PixelOperations_Base()
+        {
+            new PixelOperations<Rgba32>().ToVector4(
+                this.Configuration,
+                this.source.GetSpan(),
+                this.destination.GetSpan());
+        }
+
         [Benchmark(Baseline = true)]
         public void BasicIntrinsics256()
         {

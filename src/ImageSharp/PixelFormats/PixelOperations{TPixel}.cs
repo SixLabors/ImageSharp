@@ -36,15 +36,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(sourceVectors, destPixels, nameof(destPixels));
 
-            ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceVectors);
-            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
-
-            for (int i = 0; i < sourceVectors.Length; i++)
-            {
-                ref Vector4 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                dp.FromVector4(sp);
-            }
+            FromVector4DefaultImpl(sourceVectors, destPixels);
         }
 
         /// <summary>
@@ -61,15 +53,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
 
-            ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
-            ref Vector4 destRef = ref MemoryMarshal.GetReference(destVectors);
-
-            for (int i = 0; i < sourcePixels.Length; i++)
-            {
-                ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
-                ref Vector4 dp = ref Unsafe.Add(ref destRef, i);
-                dp = sp.ToVector4();
-            }
+            ToVector4DefaultImpl(sourcePixels, destVectors);
         }
 
         /// <summary>
@@ -135,6 +119,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             Span<TDestinationPixel> destinationColors)
             where TDestinationPixel : struct, IPixel<TDestinationPixel>
         {
+            Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(sourceColors, destinationColors, nameof(destinationColors));
 
             int count = sourceColors.Length;
@@ -197,6 +182,13 @@ namespace SixLabors.ImageSharp.PixelFormats
 
             int count = sourcePixels.Length;
 
+            // Not worth for small buffers:
+            if (count < 128)
+            {
+                ToVector4DefaultImpl(sourcePixels, destVectors);
+                return;
+            }
+
             using (IMemoryOwner<Rgba32> tempBuffer = configuration.MemoryAllocator.Allocate<Rgba32>(count))
             {
                 Span<Rgba32> tempSpan = tempBuffer.Memory.Span;
@@ -225,6 +217,13 @@ namespace SixLabors.ImageSharp.PixelFormats
 
             int count = sourceVectors.Length;
 
+            // Not worth for small buffers:
+            if (count < 128)
+            {
+                FromVector4DefaultImpl(sourceVectors, destPixels);
+                return;
+            }
+
             using (IMemoryOwner<Rgba32> tempBuffer = configuration.MemoryAllocator.Allocate<Rgba32>(count))
             {
                 Span<Rgba32> tempSpan = tempBuffer.Memory.Span;
@@ -234,6 +233,34 @@ namespace SixLabors.ImageSharp.PixelFormats
                     MemoryMarshal.Cast<Rgba32, byte>(tempSpan));
 
                 this.FromRgba32(configuration, tempSpan, destPixels);
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static void FromVector4DefaultImpl(ReadOnlySpan<Vector4> sourceVectors, Span<TPixel> destPixels)
+        {
+            ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceVectors);
+            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
+
+            for (int i = 0; i < sourceVectors.Length; i++)
+            {
+                ref Vector4 sp = ref Unsafe.Add(ref sourceRef, i);
+                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
+                dp.FromVector4(sp);
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static void ToVector4DefaultImpl(ReadOnlySpan<TPixel> sourcePixels, Span<Vector4> destVectors)
+        {
+            ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+            ref Vector4 destRef = ref MemoryMarshal.GetReference(destVectors);
+
+            for (int i = 0; i < sourcePixels.Length; i++)
+            {
+                ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
+                ref Vector4 dp = ref Unsafe.Add(ref destRef, i);
+                dp = sp.ToVector4();
             }
         }
     }

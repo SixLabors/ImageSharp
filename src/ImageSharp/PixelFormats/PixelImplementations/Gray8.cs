@@ -18,6 +18,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         private static readonly Vector4 Half = new Vector4(0.5F);
         private const float Average = 1 / 3F;
 
+        private static readonly Vector4 Min = new Vector4(0, 0, 0, 1f);
+        private static readonly Vector4 Max = Vector4.One;
+
+        private static readonly Vector4 Accumulator = new Vector4(255f * Average, 255f * Average, 255f * Average, 0.5f);
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Gray8"/> struct.
         /// </summary>
@@ -64,10 +69,12 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromVector4(Vector4 vector)
         {
-            vector *= MaxBytes;
-            vector += Half;
-            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes) * Average;
-            this.PackedValue = (byte)(vector.X + vector.Y + vector.Z);
+            vector = Vector4.Max(Min, vector);
+            vector = Vector4.Min(Max, vector);
+
+            float roundedSum = Vector4.Dot(vector, Accumulator);
+
+            this.PackedValue = (byte)roundedSum;
         }
 
         /// <inheritdoc />

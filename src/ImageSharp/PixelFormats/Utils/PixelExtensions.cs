@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.PixelFormats
+namespace SixLabors.ImageSharp.PixelFormats.Utils
 {
     /// <summary>
     /// Low-performance extension methods to help conversion syntax, suitable for testing purposes.

@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp
         {
             if (buffer.Length == 0)
             {
-                return null;
+                return string.Empty;
             }
 
             fixed (byte* bytes = buffer)

@@ -1,4 +1,7 @@
-﻿using System.Buffers;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Buffers;
 using System.Numerics;
 
 using SixLabors.ImageSharp.Memory;

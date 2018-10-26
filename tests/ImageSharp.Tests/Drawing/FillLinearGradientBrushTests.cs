@@ -328,7 +328,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 TPixel color = colors[stopColorCodes[i % colors.Length]];
                 float position = stopPositions[i];
                 colorStops[i] = new ColorStop<TPixel>(position, color);
-                coloringVariant.AppendFormat(CultureInfo.InvariantCulture, "{0}@{1};", color.ToRgba32().ToHex(), position);
+                Rgba32 rgba = default;
+                color.ToRgba32(ref rgba);
+                coloringVariant.AppendFormat(CultureInfo.InvariantCulture, "{0}@{1};", rgba.ToHex(), position);
             }
 
             FormattableString variant = $"({startX},{startY})_TO_({endX},{endY})__[{coloringVariant}]";

@@ -171,6 +171,8 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
         }
 
+        // TODO: The Vector4 helpers should be moved to a utility class.
+
         /// <summary>
         /// Provides an efficient default implementation for <see cref="ToVector4"/> and <see cref="ToScaledVector4"/>
         /// which is applicable for <see cref="Rgba32"/>-compatible pixel types where <see cref="IPixel.ToVector4"/>
@@ -195,15 +197,19 @@ namespace SixLabors.ImageSharp.PixelFormats
                 return;
             }
 
-            using (IMemoryOwner<Rgba32> tempBuffer = configuration.MemoryAllocator.Allocate<Rgba32>(count))
-            {
-                Span<Rgba32> tempSpan = tempBuffer.Memory.Span;
-                this.ToRgba32(configuration, sourcePixels, tempSpan);
+            // Using the last quarter of 'destVectors' as a temporary buffer to avoid allocation:
+            int countWithoutLastItem = count - 1;
+            ReadOnlySpan<TPixel> reducedSource = sourcePixels.Slice(0, countWithoutLastItem);
+            Span<Rgba32> lastQuarterOfDestBuffer = MemoryMarshal.Cast<Vector4, Rgba32>(destVectors).Slice((3 * count) + 1, countWithoutLastItem);
+            this.ToRgba32(configuration, reducedSource, lastQuarterOfDestBuffer);
 
-                SimdUtils.BulkConvertByteToNormalizedFloat(
-                    MemoryMarshal.Cast<Rgba32, byte>(tempSpan),
-                    MemoryMarshal.Cast<Vector4, float>(destVectors));
-            }
+            // 'destVectors' and 'lastQuarterOfDestBuffer' are ovelapping buffers,
+            // but we are always reading/writing at different positions:
+            SimdUtils.BulkConvertByteToNormalizedFloat(
+                MemoryMarshal.Cast<Rgba32, byte>(lastQuarterOfDestBuffer),
+                MemoryMarshal.Cast<Vector4, float>(destVectors.Slice(0, countWithoutLastItem)));
+
+            destVectors[countWithoutLastItem] = sourcePixels[countWithoutLastItem].ToVector4();
         }
 
         /// <summary>
@@ -230,6 +236,8 @@ namespace SixLabors.ImageSharp.PixelFormats
                 return;
             }
 
+            // For the opposite direction it's not easy to implement the trick used in RunRgba32CompatibleToVector4Conversion,
+            // so let's allocate a temporary buffer as usually:
             using (IMemoryOwner<Rgba32> tempBuffer = configuration.MemoryAllocator.Allocate<Rgba32>(count))
             {
                 Span<Rgba32> tempSpan = tempBuffer.Memory.Span;

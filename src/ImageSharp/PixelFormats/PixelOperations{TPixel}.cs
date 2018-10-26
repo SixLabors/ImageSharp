@@ -18,12 +18,6 @@ namespace SixLabors.ImageSharp.PixelFormats
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// It's not worth to bother the transitive pixel conversion method below this limit.
-        /// The value depends on the actual gain brought by the SIMD characteristics of the executing CPU and JIT.
-        /// </summary>
-        private static readonly int Vector4ConversionThreshold = CalculateVector4ConversionThreshold();
-
-        /// <summary>
         /// Gets the global <see cref="PixelOperations{TPixel}"/> instance for the pixel type <typeparamref name="TPixel"/>
         /// </summary>
         public static PixelOperations<TPixel> Instance { get; } = default(TPixel).CreatePixelOperations();
@@ -42,7 +36,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(sourceVectors, destPixels, nameof(destPixels));
 
-            FromVector4DefaultImpl(sourceVectors, destPixels);
+            Utils.Vector4Converters.Default.DangerousFromVector4(sourceVectors, destPixels);
         }
 
         /// <summary>
@@ -59,7 +53,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
 
-            ToVector4DefaultImpl(sourcePixels, destVectors);
+            Utils.Vector4Converters.Default.DangerousToVector4(sourcePixels, destVectors);
         }
 
         /// <summary>
@@ -76,15 +70,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationColors, nameof(destinationColors));
 
-            ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceVectors);
-            ref TPixel destRef = ref MemoryMarshal.GetReference(destinationColors);
-
-            for (int i = 0; i < sourceVectors.Length; i++)
-            {
-                ref Vector4 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                dp.FromScaledVector4(sp);
-            }
+            Utils.Vector4Converters.Default.DangerousFromScaledVector4(sourceVectors, destinationColors);
         }
 
         /// <summary>
@@ -101,15 +87,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(sourceColors, destinationVectors, nameof(destinationVectors));
 
-            ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourceColors);
-            ref Vector4 destRef = ref MemoryMarshal.GetReference(destinationVectors);
-
-            for (int i = 0; i < sourceColors.Length; i++)
-            {
-                ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
-                ref Vector4 dp = ref Unsafe.Add(ref destRef, i);
-                dp = sp.ToScaledVector4();
-            }
+            Utils.Vector4Converters.Default.DangerousToScaledVector4(sourceColors, destinationVectors);
         }
 
         /// <summary>
@@ -169,123 +147,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref TDestinationPixel dp = ref Unsafe.Add(ref destRef, i);
                 dp.FromScaledVector4(sp.ToScaledVector4());
             }
-        }
-
-        // TODO: The Vector4 helpers should be moved to a utility class.
-
-        /// <summary>
-        /// Provides an efficient default implementation for <see cref="ToVector4"/> and <see cref="ToScaledVector4"/>
-        /// which is applicable for <see cref="Rgba32"/>-compatible pixel types where <see cref="IPixel.ToVector4"/>
-        /// returns the same scaled result as <see cref="IPixel.ToScaledVector4"/>.
-        /// The method is works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        internal void RunRgba32CompatibleToVector4Conversion(
-            Configuration configuration,
-            ReadOnlySpan<TPixel> sourcePixels,
-            Span<Vector4> destVectors)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
-
-            int count = sourcePixels.Length;
-
-            // Not worth for small buffers:
-            if (count < Vector4ConversionThreshold)
-            {
-                ToVector4DefaultImpl(sourcePixels, destVectors);
-                return;
-            }
-
-            // Using the last quarter of 'destVectors' as a temporary buffer to avoid allocation:
-            int countWithoutLastItem = count - 1;
-            ReadOnlySpan<TPixel> reducedSource = sourcePixels.Slice(0, countWithoutLastItem);
-            Span<Rgba32> lastQuarterOfDestBuffer = MemoryMarshal.Cast<Vector4, Rgba32>(destVectors).Slice((3 * count) + 1, countWithoutLastItem);
-            this.ToRgba32(configuration, reducedSource, lastQuarterOfDestBuffer);
-
-            // 'destVectors' and 'lastQuarterOfDestBuffer' are ovelapping buffers,
-            // but we are always reading/writing at different positions:
-            SimdUtils.BulkConvertByteToNormalizedFloat(
-                MemoryMarshal.Cast<Rgba32, byte>(lastQuarterOfDestBuffer),
-                MemoryMarshal.Cast<Vector4, float>(destVectors.Slice(0, countWithoutLastItem)));
-
-            destVectors[countWithoutLastItem] = sourcePixels[countWithoutLastItem].ToVector4();
-        }
-
-        /// <summary>
-        /// Provides an efficient default implementation for <see cref="FromVector4"/> and <see cref="FromScaledVector4"/>
-        /// which is applicable for <see cref="Rgba32"/>-compatible pixel types where <see cref="IPixel.ToVector4"/>
-        /// returns the same scaled result as <see cref="IPixel.ToScaledVector4"/>.
-        /// The method is works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        internal void RunRgba32CompatibleFromVector4Conversion(
-            Configuration configuration,
-            ReadOnlySpan<Vector4> sourceVectors,
-            Span<TPixel> destPixels)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destPixels, nameof(destPixels));
-
-            int count = sourceVectors.Length;
-
-            // Not worth for small buffers:
-            if (count < Vector4ConversionThreshold)
-            {
-                FromVector4DefaultImpl(sourceVectors, destPixels);
-                return;
-            }
-
-            // For the opposite direction it's not easy to implement the trick used in RunRgba32CompatibleToVector4Conversion,
-            // so let's allocate a temporary buffer as usually:
-            using (IMemoryOwner<Rgba32> tempBuffer = configuration.MemoryAllocator.Allocate<Rgba32>(count))
-            {
-                Span<Rgba32> tempSpan = tempBuffer.Memory.Span;
-
-                SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(
-                    MemoryMarshal.Cast<Vector4, float>(sourceVectors),
-                    MemoryMarshal.Cast<Rgba32, byte>(tempSpan));
-
-                this.FromRgba32(configuration, tempSpan, destPixels);
-            }
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static void FromVector4DefaultImpl(ReadOnlySpan<Vector4> sourceVectors, Span<TPixel> destPixels)
-        {
-            ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceVectors);
-            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
-
-            for (int i = 0; i < sourceVectors.Length; i++)
-            {
-                ref Vector4 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                dp.FromVector4(sp);
-            }
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static void ToVector4DefaultImpl(ReadOnlySpan<TPixel> sourcePixels, Span<Vector4> destVectors)
-        {
-            ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
-            ref Vector4 destRef = ref MemoryMarshal.GetReference(destVectors);
-
-            for (int i = 0; i < sourcePixels.Length; i++)
-            {
-                ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
-                ref Vector4 dp = ref Unsafe.Add(ref destRef, i);
-                dp = sp.ToVector4();
-            }
-        }
-
-        private static int CalculateVector4ConversionThreshold()
-        {
-            if (!Vector.IsHardwareAccelerated)
-            {
-                return int.MaxValue;
-            }
-
-            return SimdUtils.ExtendedIntrinsics.IsAvailable && SimdUtils.IsAvx2CompatibleArchitecture ? 256 : 128;
         }
     }
 }

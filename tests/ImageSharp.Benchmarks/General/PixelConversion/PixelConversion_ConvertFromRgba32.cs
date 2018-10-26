@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using BenchmarkDotNet.Attributes;
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 {

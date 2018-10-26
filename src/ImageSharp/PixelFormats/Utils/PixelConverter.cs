@@ -1,11 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.PixelFormats
+namespace SixLabors.ImageSharp.PixelFormats.Utils
 {
     /// <summary>
     /// Contains optimized implementations for conversion between pixel formats.

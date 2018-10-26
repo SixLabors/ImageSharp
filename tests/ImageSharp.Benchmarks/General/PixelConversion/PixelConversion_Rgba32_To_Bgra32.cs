@@ -12,7 +12,7 @@ using SixLabors.ImageSharp.Tuples;
 namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 {
     //[MonoJob]
-    [RyuJitX64Job]
+    //[RyuJitX64Job]
     public class PixelConversion_Rgba32_To_Bgra32
     {
         private Rgba32[] source;
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 
             for (int i = 0; i < this.Count; i++)
             {
-                Rgba32 s = Unsafe.Add(ref sBase, i);
+                ref Rgba32 s = ref Unsafe.Add(ref sBase, i);
                 Unsafe.Add(ref dBase, i).FromRgba32(s);
             }
         }
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 
             for (int i = 0; i < source.Length; i++)
             {
-                Rgba32 s = Unsafe.Add(ref sBase, i);
+                ref Rgba32 s = ref Unsafe.Add(ref sBase, i);
                 Unsafe.Add(ref dBase, i).FromRgba32(s);
             }
         }
@@ -379,14 +379,14 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 
 
         // RESULTS:
-        //               Method | Count |      Mean |     Error |    StdDev | Scaled |
-        // -------------------- |------ |----------:|----------:|----------:|-------:|
-        //              Default |    64 | 106.84 ns | 0.4042 ns | 0.3583 ns |   1.00 |
-        //      Default_Generic |    64 | 113.11 ns | 0.6998 ns | 0.6203 ns |   1.06 |
-        //       Default_Group2 |    64 |  86.81 ns | 0.4976 ns | 0.4654 ns |   0.81 |
-        //       Default_Group4 |    64 |  83.53 ns | 1.3826 ns | 1.2933 ns |   0.78 |
-        //               BitOps |    64 |  54.23 ns | 0.1920 ns | 0.1796 ns |   0.51 |
-        //         Bitops_Tuple |    64 |  73.45 ns | 0.5475 ns | 0.4853 ns |   0.69 |
-        //  BitOps_GroupAsULong |    64 |  64.28 ns | 0.4046 ns | 0.3785 ns |   0.60 |
+        //               Method | Count |     Mean |     Error |    StdDev | Scaled | ScaledSD |
+        // -------------------- |------ |---------:|----------:|----------:|-------:|---------:|
+        //              Default |    64 | 82.67 ns | 0.6737 ns | 0.5625 ns |   1.00 |     0.00 |
+        //      Default_Generic |    64 | 88.73 ns | 1.7959 ns | 1.7638 ns |   1.07 |     0.02 |
+        //       Default_Group2 |    64 | 91.03 ns | 1.5237 ns | 1.3508 ns |   1.10 |     0.02 |
+        //       Default_Group4 |    64 | 86.62 ns | 1.5737 ns | 1.4720 ns |   1.05 |     0.02 |
+        //               BitOps |    64 | 57.45 ns | 0.6067 ns | 0.5066 ns |   0.69 |     0.01 |
+        //         Bitops_Tuple |    64 | 75.47 ns | 1.1824 ns | 1.1060 ns |   0.91 |     0.01 |
+        //  BitOps_GroupAsULong |    64 | 65.42 ns | 0.7157 ns | 0.6695 ns |   0.79 |     0.01 |
     }
 }

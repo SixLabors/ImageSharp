@@ -1,18 +1,16 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-
-using System;
-using System.Buffers;
-using BenchmarkDotNet.Attributes;
-
-using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.PixelFormats;
 
 // ReSharper disable InconsistentNaming
 
+using System.Buffers;
+using BenchmarkDotNet.Attributes;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
-    public abstract class ToXyzw<TPixel>
+    public abstract class Rgb24Bytes<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private IMemoryOwner<TPixel> source;
@@ -29,7 +27,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         {
             this.configuration = Configuration.Default;
             this.source = this.configuration.MemoryAllocator.Allocate<TPixel>(this.Count);
-            this.destination = this.configuration.MemoryAllocator.Allocate<byte>(this.Count * 4);
+            this.destination = this.configuration.MemoryAllocator.Allocate<byte>(this.Count * 3);
         }
 
         [GlobalCleanup]
@@ -40,27 +38,8 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         }
 
         [Benchmark(Baseline = true)]
-        public void PerElement()
-        {
-            Span<TPixel> s = this.source.GetSpan();
-            Span<byte> d = this.destination.GetSpan();
-
-            for (int i = 0; i < this.Count; i++)
-            {
-                TPixel c = s[i];
-                int i4 = i * 4;
-                Rgba32 rgba = default;
-                c.ToRgba32(ref rgba);
-                d[i4] = rgba.R;
-                d[i4 + 1] = rgba.G;
-                d[i4 + 2] = rgba.B;
-                d[i4 + 3] = rgba.A;
-            }
-        }
-
-        [Benchmark]
         public void CommonBulk() =>
-            new PixelOperations<TPixel>().ToRgba32Bytes(
+            new PixelOperations<TPixel>().ToRgb24Bytes(
                 this.configuration,
                 this.source.GetSpan(),
                 this.destination.GetSpan(),
@@ -68,18 +47,14 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
         [Benchmark]
         public void OptimizedBulk() =>
-            PixelOperations<TPixel>.Instance.ToRgba32Bytes(
+            PixelOperations<TPixel>.Instance.ToRgb24Bytes(
                 this.configuration,
                 this.source.GetSpan(),
                 this.destination.GetSpan(),
                 this.Count);
     }
 
-    public class ToXyzw_Rgba32 : ToXyzw<Rgba32>
-    {
-    }
-
-    public class ToXyzw_Argb32 : ToXyzw<Argb32>
+    public class Rgb24Bytes_Rgba32 : Rgb24Bytes<Rgba32>
     {
     }
 }

@@ -106,9 +106,10 @@ namespace SixLabors.ImageSharp.Tests
         {
             // Transparent pixels are much more likely to be found at the end of a palette
             int index = -1;
+            Rgba32 trans = default;
             for (int i = quantized.Palette.Length - 1; i >= 0; i--)
             {
-                var trans = quantized.Palette[i].ToRgba32();
+                quantized.Palette[i].ToRgba32(ref trans);
 
                 if (trans.Equals(default))
                 {

@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
 
             this.Upper = upper;
             this.Lower = lower;
-            this.Threshold = threshold;
+            this.ThresholdLimit = threshold;
         }
 
         /// <summary>
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// <summary>
         /// Gets or sets the value for threshold limit
         /// </summary>
-        public float Threshold { get; set; }
+        public float ThresholdLimit { get; set; }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
@@ -90,81 +90,73 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
 
             // Using pooled 2d buffer for integer image table
             using (Buffer2D<ulong> intImage = configuration.MemoryAllocator.Allocate2D<ulong>(width, height))
+            using (IMemoryOwner<Rgb24> tmpBuffer = configuration.MemoryAllocator.Allocate<Rgb24>(width * height))
             {
-                var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
+                Rectangle workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
 
-                ParallelHelper.IterateRowsWithTempBuffer<Rgb24>(
+                this.pixelOpInstance.ToRgb24(source.GetPixelSpan(), tmpBuffer.GetSpan());
+
+                ParallelHelper.IterateRows(
                     workingRectangle,
                     configuration,
-                    (rows, memory) =>
+                    rows =>
                     {
-                        ulong sum = 0;
-
-                        Span<Rgb24> tmpSpan = memory.Span;
-
-                        for (int i = rows.Min; i < rows.Max; i++)
+                        Span<Rgb24> rgbSpan = tmpBuffer.GetSpan();
+                        uint sum;
+                        for (int x = startX; x < endX; x++)
                         {
-                            this.pixelOpInstance.ToRgb24(source.GetPixelRowSpan(i), tmpSpan);
-
                             sum = 0;
-
-                            for (int j = startX; j < endX; j++)
+                            for (int y = rows.Min; y < rows.Max; y++)
                             {
-                                ref Rgb24 rgb = ref tmpSpan[j];
+                                ref Rgb24 rgb = ref rgbSpan[(width * y) + x];
+                                sum += (uint)(rgb.R + rgb.G + rgb.B);
 
-                                sum += (ulong)(rgb.R + rgb.G + rgb.B);
-
-                                if (i != 0)
+                                if (x > 0)
                                 {
-                                    intImage[i, j] = intImage[i - 1, j] + sum;
+                                    intImage[x - startX, y - startY] = intImage[x - 1 - startX, y - startY] + sum;
                                 }
                                 else
                                 {
-                                    intImage[i, j] = sum;
+                                    intImage[x - startX, y - startY] = sum;
                                 }
                             }
                         }
                     });
 
-                ParallelHelper.IterateRowsWithTempBuffer<Rgb24>(
+                ParallelHelper.IterateRows(
                     workingRectangle,
                     configuration,
-                    (rows, memory) =>
+                    rows =>
                     {
                         ushort x1, x2, y1, y2;
-                        uint count = 0;
+                        Span<Rgb24> rgbSpan = tmpBuffer.GetSpan();
                         long sum = 0;
+                        uint count = 0;
 
-                        Span<Rgb24> tmpSpan = memory.Span;
-
-                        for (int i = rows.Min; i < rows.Max; i++)
+                        for (int x = startX; x < endX; x++)
                         {
-                            Span<TPixel> originalSpan = source.GetPixelRowSpan(i);
-                            this.pixelOpInstance.ToRgb24(originalSpan, tmpSpan);
-
-                            for (int j = startX; j < endX; j++)
+                            for (int y = rows.Min; y < rows.Max; y++)
                             {
-                                ref Rgb24 rgb = ref tmpSpan[j];
-
-                                x1 = (ushort)Math.Max(i - clusterSize + 1, 0);
-                                x2 = (ushort)Math.Min(i + clusterSize + 1, endY - 1);
-                                y1 = (ushort)Math.Max(j - clusterSize + 1, 0);
-                                y2 = (ushort)Math.Min(j + clusterSize + 1, endX - 1);
+                                ref Rgb24 rgb = ref rgbSpan[(width * y) + x];
+                                x1 = (ushort)Math.Max(x - clusterSize + 1 - startX, 0);
+                                x2 = (ushort)Math.Min(x + clusterSize + 1 - startX, endX - startX - 1);
+                                y1 = (ushort)Math.Max(y - clusterSize + 1 - startY, 0);
+                                y2 = (ushort)Math.Min(y + clusterSize + 1 - startY, endY - startY - 1);
 
                                 count = (uint)((x2 - x1) * (y2 - y1));
 
-                                sum = (long)(intImage[x2, y2] - intImage[x1, y2] - intImage[x2, y1] + intImage[x1, y1]);
+                                sum = (long)(intImage[x2, y2] - intImage[x2, y1] - intImage[x1, y2] + intImage[x1, y1]);
 
-                                if ((rgb.R + rgb.G + rgb.B) * count < sum * this.Threshold)
+                                if ((rgb.R + rgb.G + rgb.B) * count <= sum * this.ThresholdLimit)
                                 {
-                                    originalSpan[j] = this.Lower;
+                                    source[x, y] = this.Lower;
                                 }
                                 else
                                 {
-                                    originalSpan[j] = this.Upper;
+                                    source[x, y] = this.Upper;
                                 }
                             }
-                        }
+                        }                        
                     });
             }
         }

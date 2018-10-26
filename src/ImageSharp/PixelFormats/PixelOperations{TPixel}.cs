@@ -18,6 +18,12 @@ namespace SixLabors.ImageSharp.PixelFormats
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
+        /// It's not worth to bother the transitive pixel conversion method below this limit.
+        /// The value depends on the actual gain brought by the SIMD characteristics of the executing CPU and JIT.
+        /// </summary>
+        private static readonly int Vector4ConversionThreshold = CalculateVector4ConversionThreshold();
+
+        /// <summary>
         /// Gets the global <see cref="PixelOperations{TPixel}"/> instance for the pixel type <typeparamref name="TPixel"/>
         /// </summary>
         public static PixelOperations<TPixel> Instance { get; } = default(TPixel).CreatePixelOperations();
@@ -183,7 +189,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             int count = sourcePixels.Length;
 
             // Not worth for small buffers:
-            if (count < 128)
+            if (count < Vector4ConversionThreshold)
             {
                 ToVector4DefaultImpl(sourcePixels, destVectors);
                 return;
@@ -218,7 +224,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             int count = sourceVectors.Length;
 
             // Not worth for small buffers:
-            if (count < 128)
+            if (count < Vector4ConversionThreshold)
             {
                 FromVector4DefaultImpl(sourceVectors, destPixels);
                 return;
@@ -262,6 +268,16 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ref Vector4 dp = ref Unsafe.Add(ref destRef, i);
                 dp = sp.ToVector4();
             }
+        }
+
+        private static int CalculateVector4ConversionThreshold()
+        {
+            if (!Vector.IsHardwareAccelerated)
+            {
+                return int.MaxValue;
+            }
+
+            return SimdUtils.ExtendedIntrinsics.IsAvailable && SimdUtils.IsAvx2CompatibleArchitecture ? 256 : 128;
         }
     }
 }

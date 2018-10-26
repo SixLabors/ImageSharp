@@ -10,13 +10,13 @@ namespace SixLabors.ImageSharp.Tests.Common
     public class EncoderExtensionsTests
     {
         [Fact]
-        public void GetString_EmptyBuffer_ReturnsNull()
+        public void GetString_EmptyBuffer_ReturnsEmptyString()
         {
             var buffer = new ReadOnlySpan<byte>();
 
             string result = Encoding.UTF8.GetString(buffer);
 
-            Assert.Null(result);
+            Assert.Equal(string.Empty, result);
         }
 
         [Fact]

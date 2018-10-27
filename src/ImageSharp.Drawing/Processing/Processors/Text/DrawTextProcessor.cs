@@ -167,20 +167,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
         {
             // just enough accuracy to allow for half pixel differences which
             // later are componded into full pixel offsets while rendering.
-            private const float AcuracyMultiple = 2;
+            private const float AccuracyMultiple = 2;
 
-            private PathBuilder builder;
+            private readonly PathBuilder builder;
 
             private Point currentRenderPosition = default;
             private (GlyphRendererParameters glyph, PointF subPixelOffset) currentGlyphRenderParams = default;
-            private int offset = 0;
+            private readonly int offset = 0;
             private PointF currentPoint = default(PointF);
 
-            private readonly Dictionary<(GlyphRendererParameters glyph, PointF subPixelOffset), GlyphRenderData> glyphData = new Dictionary<(GlyphRendererParameters glyph, PointF subPixelOffset), GlyphRenderData>();
+            private readonly Dictionary<(GlyphRendererParameters glyph, PointF subPixelOffset), GlyphRenderData>
+                glyphData = new Dictionary<(GlyphRendererParameters glyph, PointF subPixelOffset), GlyphRenderData>();
 
-            private bool renderOutline = false;
-            private bool renderFill = false;
-            private bool raterizationRequired = false;
+            private readonly bool renderOutline = false;
+            private readonly bool renderFill = false;
+            private bool rasterizationRequired = false;
 
             public CachingGlyphRenderer(MemoryAllocator memoryAllocator, int size, IPen pen, bool renderFill)
             {
@@ -218,21 +219,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
                 this.builder.StartFigure();
             }
 
-            public bool BeginGlyph(RectangleF bounds, GlyphRendererParameters paramters)
+            public bool BeginGlyph(RectangleF bounds, GlyphRendererParameters parameters)
             {
                 this.currentRenderPosition = Point.Truncate(bounds.Location);
                 PointF dif = bounds.Location - this.currentRenderPosition;
 
-                dif.X = ((int)(dif.X * AcuracyMultiple)) / AcuracyMultiple;
-                dif.Y = ((int)(dif.Y * AcuracyMultiple)) / AcuracyMultiple;
+                dif.X = ((int)(dif.X * AccuracyMultiple)) / AccuracyMultiple;
+                dif.Y = ((int)(dif.Y * AccuracyMultiple)) / AccuracyMultiple;
 
                 // we have offset our rendering origion a little bit down to prevent edge cropping, move the draw origin up to compensate
                 this.currentRenderPosition = new Point(this.currentRenderPosition.X - this.offset, this.currentRenderPosition.Y - this.offset);
-                this.currentGlyphRenderParams = (paramters, dif);
+                this.currentGlyphRenderParams = (parameters, dif);
                 if (this.glyphData.ContainsKey(this.currentGlyphRenderParams))
                 {
                     // we have already drawn the glyph vectors skip trying again
-                    this.raterizationRequired = false;
+                    this.rasterizationRequired = false;
                     return false;
                 }
 
@@ -242,7 +243,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
                 // ensure all glyphs render around [zero, zero]  so offset negative root positions so when we draw the glyph we can offet it back
                 this.builder.SetOrigin(new PointF(-(int)bounds.X + this.offset, -(int)bounds.Y + this.offset));
 
-                this.raterizationRequired = true;
+                this.rasterizationRequired = true;
                 return true;
             }
 
@@ -279,7 +280,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
                 GlyphRenderData renderData = default;
 
                 // has the glyoh been rendedered already????
-                if (this.raterizationRequired)
+                if (this.rasterizationRequired)
                 {
                     IPath path = this.builder.Build();
 

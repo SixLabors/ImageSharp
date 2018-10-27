@@ -5,6 +5,7 @@ using System;
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats
 {

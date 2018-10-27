@@ -138,7 +138,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var gray = new Gray8(luminance);
 
             // Act
-            var actual = gray.ToRgba32();
+            Rgba32 actual = default;
+            gray.ToRgba32(ref actual);
 
             // Assert
             Assert.Equal(luminance, actual.R);

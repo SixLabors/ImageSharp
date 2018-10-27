@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Rgba32(128, 127, 0, 255);
 
             // act
-            actual = short2.ToRgba32();
+            short2.ToRgba32(ref actual);
 
             // assert
             Assert.Equal(expected, actual);
@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             // act 
             short2.FromRgba32(expected);
-            actual = short2.ToRgba32();
+            short2.ToRgba32(ref actual);
 
             // assert
             Assert.Equal(expected, actual);

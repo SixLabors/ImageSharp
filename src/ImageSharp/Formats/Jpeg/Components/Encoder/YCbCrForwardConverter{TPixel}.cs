@@ -53,12 +53,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// Converts a 8x8 image area inside 'pixels' at position (x,y) placing the result members of the structure (<see cref="Y"/>, <see cref="Cb"/>, <see cref="Cr"/>)
         /// </summary>
-        public void Convert(IPixelSource<TPixel> pixels, int x, int y)
+        public void Convert(ImageFrame<TPixel> frame, int x, int y)
         {
-            this.pixelBlock.LoadAndStretchEdges(pixels, x, y);
+            this.pixelBlock.LoadAndStretchEdges(frame, x, y);
 
             Span<Rgb24> rgbSpan = this.rgbBlock.AsSpanUnsafe();
-            PixelOperations<TPixel>.Instance.ToRgb24(this.pixelBlock.AsSpanUnsafe(), rgbSpan);
+            PixelOperations<TPixel>.Instance.ToRgb24(frame.Configuration, this.pixelBlock.AsSpanUnsafe(), rgbSpan);
 
             ref float yBlockStart = ref Unsafe.As<Block8x8F, float>(ref this.Y);
             ref float cbBlockStart = ref Unsafe.As<Block8x8F, float>(ref this.Cb);

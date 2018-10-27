@@ -79,8 +79,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 
             int width = maxX - minX;
 
-            MemoryAllocator memoryAllocator = this.Image.GetConfiguration().MemoryAllocator;
-
             var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
 
             ParallelHelper.IterateRows(
@@ -93,7 +91,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                             Span<TPixelDst> background = source.GetPixelRowSpan(y).Slice(minX, width);
                             Span<TPixelSrc> foreground =
                                 targetImage.GetPixelRowSpan(y - locationY).Slice(targetX, width);
-                            blender.Blend<TPixelSrc>(memoryAllocator, background, background, foreground, this.Opacity);
+                            blender.Blend<TPixelSrc>(configuration, background, background, foreground, this.Opacity);
                         }
                     });
         }

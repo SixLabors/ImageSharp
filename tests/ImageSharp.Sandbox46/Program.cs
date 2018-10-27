@@ -3,6 +3,8 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations;
+
 namespace SixLabors.ImageSharp.Sandbox46
 {
     using System;

@@ -21,7 +21,6 @@ namespace SixLabors.ImageSharp
     public sealed class ImageFrame<TPixel> : IPixelSource<TPixel>, IDisposable
         where TPixel : struct, IPixel<TPixel>
     {
-        private readonly Configuration configuration;
         private bool isDisposed;
 
         /// <summary>
@@ -84,7 +83,7 @@ namespace SixLabors.ImageSharp
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            this.configuration = configuration;
+            this.Configuration = configuration;
             this.MemoryAllocator = configuration.MemoryAllocator;
             this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(width, height);
             this.MetaData = metaData ?? new ImageFrameMetaData();
@@ -118,7 +117,7 @@ namespace SixLabors.ImageSharp
             Guard.MustBeGreaterThan(height, 0, nameof(height));
             Guard.NotNull(metaData, nameof(metaData));
 
-            this.configuration = configuration;
+            this.Configuration = configuration;
             this.MemoryAllocator = configuration.MemoryAllocator;
             this.PixelBuffer = new Buffer2D<TPixel>(memorySource, width, height);
             this.MetaData = metaData;
@@ -134,7 +133,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(source, nameof(source));
 
-            this.configuration = configuration;
+            this.Configuration = configuration;
             this.MemoryAllocator = configuration.MemoryAllocator;
             this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(source.PixelBuffer.Width, source.PixelBuffer.Height);
             source.PixelBuffer.GetSpan().CopyTo(this.PixelBuffer.GetSpan());
@@ -145,6 +144,11 @@ namespace SixLabors.ImageSharp
         /// Gets the <see cref="MemoryAllocator" /> to use for buffer allocations.
         /// </summary>
         public MemoryAllocator MemoryAllocator { get; }
+
+        /// <summary>
+        /// Gets the <see cref="Configuration"/> instance associated with this <see cref="ImageFrame{TPixel}"/>.
+        /// </summary>
+        internal Configuration Configuration { get; }
 
         /// <summary>
         /// Gets the image pixels. Not private as Buffer2D requires an array in its constructor.
@@ -248,13 +252,13 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"ImageFrame<{typeof(TPixel).Name}>: {this.Width}x{this.Height}";
+        public override string ToString() => $"ImageFrame<{typeof(TPixel).Name}>({this.Width}x{this.Height})";
 
         /// <summary>
         /// Clones the current instance.
         /// </summary>
         /// <returns>The <see cref="ImageFrame{TPixel}"/></returns>
-        internal ImageFrame<TPixel> Clone() => this.Clone(this.configuration);
+        internal ImageFrame<TPixel> Clone() => this.Clone(this.Configuration);
 
         /// <summary>
         /// Clones the current instance.
@@ -269,7 +273,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel2">The pixel format.</typeparam>
         /// <returns>The <see cref="ImageFrame{TPixel2}"/></returns>
         internal ImageFrame<TPixel2> CloneAs<TPixel2>()
-            where TPixel2 : struct, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.configuration);
+            where TPixel2 : struct, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.Configuration);
 
         /// <summary>
         /// Returns a copy of the image frame in the given pixel format.
@@ -296,7 +300,7 @@ namespace SixLabors.ImageSharp
                         {
                             Span<TPixel> sourceRow = this.GetPixelRowSpan(y);
                             Span<TPixel2> targetRow = target.GetPixelRowSpan(y);
-                            PixelOperations<TPixel>.Instance.To(sourceRow, targetRow, sourceRow.Length);
+                            PixelOperations<TPixel>.Instance.To(configuration, sourceRow, targetRow);
                         }
                     });
 

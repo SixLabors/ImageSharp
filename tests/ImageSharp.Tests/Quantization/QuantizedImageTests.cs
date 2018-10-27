@@ -10,6 +10,8 @@ namespace SixLabors.ImageSharp.Tests
 {
     public class QuantizedImageTests
     {
+        private Configuration Configuration => Configuration.Default;
+
         [Fact]
         public void QuantizersDitherByDefault()
         {
@@ -23,16 +25,18 @@ namespace SixLabors.ImageSharp.Tests
             Assert.NotNull(octree.Diffuser);
             Assert.NotNull(wu.Diffuser);
 
-            Assert.True(werner.CreateFrameQuantizer<Rgba32>().Dither);
-            Assert.True(websafe.CreateFrameQuantizer<Rgba32>().Dither);
-            Assert.True(octree.CreateFrameQuantizer<Rgba32>().Dither);
-            Assert.True(wu.CreateFrameQuantizer<Rgba32>().Dither);
+            Assert.True(werner.CreateFrameQuantizer<Rgba32>(this.Configuration).Dither);
+            Assert.True(websafe.CreateFrameQuantizer<Rgba32>(this.Configuration).Dither);
+            Assert.True(octree.CreateFrameQuantizer<Rgba32>(this.Configuration).Dither);
+            Assert.True(wu.CreateFrameQuantizer<Rgba32>(this.Configuration).Dither);
         }
 
         [Theory]
         [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32, true)]
         [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32, false)]
-        public void PaletteQuantizerYieldsCorrectTransparentPixel<TPixel>(TestImageProvider<TPixel> provider, bool dither)
+        public void PaletteQuantizerYieldsCorrectTransparentPixel<TPixel>(
+            TestImageProvider<TPixel> provider,
+            bool dither)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -43,7 +47,8 @@ namespace SixLabors.ImageSharp.Tests
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
-                    QuantizedFrame<TPixel> quantized = quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
+                    QuantizedFrame<TPixel> quantized =
+                        quantizer.CreateFrameQuantizer<TPixel>(this.Configuration).QuantizeFrame(frame);
 
                     int index = this.GetTransparentIndex(quantized);
                     Assert.Equal(index, quantized.GetPixelSpan()[0]);
@@ -54,7 +59,9 @@ namespace SixLabors.ImageSharp.Tests
         [Theory]
         [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32, true)]
         [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32, false)]
-        public void OctreeQuantizerYieldsCorrectTransparentPixel<TPixel>(TestImageProvider<TPixel> provider, bool dither)
+        public void OctreeQuantizerYieldsCorrectTransparentPixel<TPixel>(
+            TestImageProvider<TPixel> provider,
+            bool dither)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -65,7 +72,8 @@ namespace SixLabors.ImageSharp.Tests
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
-                    QuantizedFrame<TPixel> quantized = quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
+                    QuantizedFrame<TPixel> quantized =
+                        quantizer.CreateFrameQuantizer<TPixel>(this.Configuration).QuantizeFrame(frame);
 
                     int index = this.GetTransparentIndex(quantized);
                     Assert.Equal(index, quantized.GetPixelSpan()[0]);
@@ -87,7 +95,8 @@ namespace SixLabors.ImageSharp.Tests
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
-                    QuantizedFrame<TPixel> quantized = quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
+                    QuantizedFrame<TPixel> quantized =
+                        quantizer.CreateFrameQuantizer<TPixel>(this.Configuration).QuantizeFrame(frame);
 
                     int index = this.GetTransparentIndex(quantized);
                     Assert.Equal(index, quantized.GetPixelSpan()[0]);
@@ -100,9 +109,10 @@ namespace SixLabors.ImageSharp.Tests
         {
             // Transparent pixels are much more likely to be found at the end of a palette
             int index = -1;
+            Rgba32 trans = default;
             for (int i = quantized.Palette.Length - 1; i >= 0; i--)
             {
-                var trans = quantized.Palette[i].ToRgba32();
+                quantized.Palette[i].ToRgba32(ref trans);
 
                 if (trans.Equals(default))
                 {

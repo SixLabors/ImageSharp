@@ -3,6 +3,8 @@
 
 using System;
 using System.IO;
+
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
@@ -22,6 +24,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private int padding;
 
         private readonly MemoryAllocator memoryAllocator;
+
+        private Configuration configuration;
 
         private BmpBitsPerPixel? bitsPerPixel;
 
@@ -48,6 +52,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
+            this.configuration = image.GetConfiguration();
             ImageMetaData metaData = image.MetaData;
             BmpMetaData bmpMetaData = metaData.GetFormatMetaData(BmpFormat.Instance);
             this.bitsPerPixel = this.bitsPerPixel ?? bmpMetaData.BitsPerPixel;
@@ -163,7 +168,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToBgra32Bytes(pixelSpan, row.GetSpan(), pixelSpan.Length);
+                    PixelOperations<TPixel>.Instance.ToBgra32Bytes(
+                        this.configuration,
+                        pixelSpan,
+                        row.GetSpan(),
+                        pixelSpan.Length);
                     stream.Write(row.Array, 0, row.Length());
                 }
             }
@@ -183,7 +192,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToBgr24Bytes(pixelSpan, row.GetSpan(), pixelSpan.Length);
+                    PixelOperations<TPixel>.Instance.ToBgr24Bytes(
+                        this.configuration,
+                        pixelSpan,
+                        row.GetSpan(),
+                        pixelSpan.Length);
                     stream.Write(row.Array, 0, row.Length());
                 }
             }

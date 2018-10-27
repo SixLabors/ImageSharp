@@ -80,6 +80,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                 configuration,
                 rows =>
                     {
+                        Rgba32 rgba = default;
                         for (int y = rows.Min; y < rows.Max; y++)
                         {
                             Span<TPixel> row = source.GetPixelRowSpan(y);
@@ -87,7 +88,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                             for (int x = startX; x < endX; x++)
                             {
                                 ref TPixel color = ref row[x];
-                                var rgba = color.ToRgba32();
+                                color.ToRgba32(ref rgba);
 
                                 // Convert to grayscale using ITU-R Recommendation BT.709 if required
                                 byte luminance = isAlphaOnly ? rgba.A : ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);

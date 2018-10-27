@@ -65,10 +65,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void PackFromRgba32()
+        public void FromRgba32()
         {
             var rgb = default(Rgb24);
-            rgb.PackFromRgba32(new Rgba32(1, 2, 3, 4));
+            rgb.FromRgba32(new Rgba32(1, 2, 3, 4));
 
             Assert.Equal(1, rgb.R);
             Assert.Equal(2, rgb.G);
@@ -82,10 +82,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             a / 255f);
 
         [Fact]
-        public void PackFromVector4()
+        public void FromVector4()
         {
             var rgb = default(Rgb24);
-            rgb.PackFromVector4(Vec(1, 2, 3, 4));
+            rgb.FromVector4(Vec(1, 2, 3, 4));
 
             Assert.Equal(1, rgb.R);
             Assert.Equal(2, rgb.G);
@@ -104,7 +104,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         public void ToRgba32()
         {
             var rgb = new Rgb24(1, 2, 3);
-            var rgba = rgb.ToRgba32();
+            Rgba32 rgba = default;
+            rgb.ToRgba32(ref rgba);
 
             Assert.Equal(new Rgba32(1, 2, 3, 255), rgba);
         }

@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Scales a value from a 16 bit <see cref="ushort"/> to it's 8 bit <see cref="byte"/> equivalent.
         /// </summary>
-        /// <param name="component">The 8 bit compoonent value.</param>
+        /// <param name="component">The 8 bit component value.</param>
         /// <returns>The <see cref="byte"/></returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static byte DownScaleFrom16BitTo8Bit(ushort component)

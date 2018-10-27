@@ -68,13 +68,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         public int MaxColors { get; }
 
+        /// <param name="configuration"></param>
         /// <inheritdoc />
-        public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>()
+        public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration)
             where TPixel : struct, IPixel<TPixel>
             => new WuFrameQuantizer<TPixel>(this);
 
         /// <inheritdoc/>
-        public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(int maxColors)
+        public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration, int maxColors)
             where TPixel : struct, IPixel<TPixel>
         {
             maxColors = maxColors.Clamp(QuantizerConstants.MinColors, QuantizerConstants.MaxColors);

@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
     [StructLayout(LayoutKind.Sequential)]
     struct TestRgba : ITestPixel<TestRgba>
     {
-        private byte r, g, b, a;
+        public byte R, G, B, A;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void FromRgba32(Rgba32 source)
@@ -26,10 +26,10 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void FromBytes(byte r, byte g, byte b, byte a)
         {
-            this.r = r;
-            this.g = g;
-            this.b = b;
-            this.a = a;
+            this.R = r;
+            this.G = g;
+            this.B = b;
+            this.A = a;
         }
 
         public void FromVector4(Vector4 source)
@@ -57,16 +57,15 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()
         {
-            return new Vector4(this.r, this.g, this.b, this.a);
+            return new Vector4(this.R, this.G, this.B, this.A) *  new Vector4(1f / 255f);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void CopyToVector4(ref Vector4 dest)
         {
-            dest.X = this.r;
-            dest.Y = this.g;
-            dest.Z = this.b;
-            dest.W = this.a;
+            var tmp = new Vector4(this.R, this.G, this.B, this.A);
+            tmp *= new Vector4(1f / 255f);
+            dest = tmp;
         }
     }
 }

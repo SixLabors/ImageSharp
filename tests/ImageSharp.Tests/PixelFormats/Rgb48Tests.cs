@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             => Assert.Equal(Vector4.One, new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue).ToVector4());
 
         [Fact]
-        public void Rgb48_PackFromScaledVector4()
+        public void Rgb48_FromScaledVector4()
         {
             // arrange
             var pixel = default(Rgb48);
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             // act 
             Vector4 scaled = short3.ToScaledVector4();
-            pixel.PackFromScaledVector4(scaled);
+            pixel.FromScaledVector4(scaled);
 
             // assert
             Assert.Equal(expected, pixel);
@@ -52,7 +52,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Rgba32(20, 38, 76, 255);
 
             // act
-            var actual = rgba48.ToRgba32();
+            Rgba32 actual = default;
+            rgba48.ToRgba32(ref actual);
 
             // assert
             Assert.Equal(expected, actual);

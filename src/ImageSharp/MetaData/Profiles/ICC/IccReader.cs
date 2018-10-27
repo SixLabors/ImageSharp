@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
@@ -126,7 +127,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             // A normal profile usually has 5-15 entries
             if (tagCount > 100)
             {
-                return new IccTagTableEntry[0];
+                return Array.Empty<IccTagTableEntry>();
             }
 
             var table = new List<IccTagTableEntry>((int)tagCount);

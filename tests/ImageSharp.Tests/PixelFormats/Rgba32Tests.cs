@@ -5,6 +5,7 @@ using System;
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
@@ -159,7 +160,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Rgba32_PackFromScaledVector4()
+        public void Rgba32_FromScaledVector4()
         {
             // arrange
             var rgba = new Rgba32(Vector4.One);
@@ -168,7 +169,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             // act
             Vector4 scaled = rgba.ToScaledVector4();
-            actual.PackFromScaledVector4(scaled);
+            actual.FromScaledVector4(scaled);
 
             // assert
             Assert.Equal(expected, actual.PackedValue);
@@ -190,14 +191,14 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Rgba32(0x1a, 0, 0x80, 0);
 
             // act
-            actual.PackFromRgba32(rgba);
+            actual.FromRgba32(rgba);
 
             // assert
             Assert.Equal(expected, actual);
         }
 
         [Fact]
-        public void Rgba32_PackFromRgba32_ToRgba32()
+        public void Rgba32_FromRgba32_ToRgba32()
         {
             // arrange
             var rgba = default(Rgba32);
@@ -205,15 +206,15 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Rgba32(0x1a, 0, 0x80, 0);
 
             // act 
-            rgba.PackFromRgba32(expected);
-            actual.PackFromRgba32(rgba);
+            rgba.FromRgba32(expected);
+            actual.FromRgba32(rgba);
 
             // assert
             Assert.Equal(expected, actual);
         }
 
         [Fact]
-        public void Rgba32_PackFromBgra32_ToRgba32()
+        public void Rgba32_FromBgra32_ToRgba32()
         {
             // arrange
             var rgba = default(Rgba32);
@@ -221,15 +222,15 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Bgra32(0x1a, 0, 0x80, 0);
 
             // act 
-            rgba.PackFromBgra32(expected);
-            actual.PackFromRgba32(rgba);
+            rgba.FromBgra32(expected);
+            actual.FromRgba32(rgba);
 
             // assert
             Assert.Equal(expected, actual);
         }
 
         [Fact]
-        public void Rgba32_PackFromArgb32_ToArgb32()
+        public void Rgba32_FromArgb32_ToArgb32()
         {
             // arrange
             var rgba = default(Rgba32);
@@ -237,15 +238,15 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Argb32(0x1a, 0, 0x80, 0);
 
             // act 
-            rgba.PackFromArgb32(expected);
-            actual.PackFromRgba32(rgba);
+            rgba.FromArgb32(expected);
+            actual.FromRgba32(rgba);
 
             // assert
             Assert.Equal(expected, actual);
         }
 
         [Fact]
-        public void Rgba32_PackFromRgb48()
+        public void Rgba32_FromRgb48()
         {
             // arrange
             var input = default(Rgba32);
@@ -253,15 +254,15 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Rgb48(65535, 0, 65535);
 
             // act
-            input.PackFromRgb48(expected);
-            actual.PackFromScaledVector4(input.ToScaledVector4());
+            input.FromRgb48(expected);
+            actual.FromScaledVector4(input.ToScaledVector4());
 
             // assert
             Assert.Equal(expected, actual);
         }
 
         [Fact]
-        public void Rgba32_PackFromRgba64()
+        public void Rgba32_FromRgba64()
         {
             // arrange
             var input = default(Rgba32);
@@ -269,8 +270,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Rgba64(65535, 0, 65535, 0);
 
             // act
-            input.PackFromRgba64(expected);
-            actual.PackFromScaledVector4(input.ToScaledVector4());
+            input.FromRgba64(expected);
+            actual.FromScaledVector4(input.ToScaledVector4());
 
             // assert
             Assert.Equal(expected, actual);

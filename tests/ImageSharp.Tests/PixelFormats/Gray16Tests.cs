@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             => Assert.Equal(input, new Gray16(input).PackedValue);
 
         [Fact]
-        public void Gray16_PackFromScaledVector4()
+        public void Gray16_FromScaledVector4()
         {
             // Arrange
             Gray16 gray = default;
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Vector4 scaled = new Gray16(expected).ToScaledVector4();
 
             // Act
-            gray.PackFromScaledVector4(scaled);
+            gray.FromScaledVector4(scaled);
             ushort actual = gray.PackedValue;
 
             // Assert
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Gray16_PackFromVector4()
+        public void Gray16_FromVector4()
         {
             // Arrange
             Gray16 gray = default;
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var vector = new Gray16(expected).ToVector4();
 
             // Act
-            gray.PackFromVector4(vector);
+            gray.FromVector4(vector);
             ushort actual = gray.PackedValue;
 
             // Assert
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Gray16_PackFromRgba32()
+        public void Gray16_FromRgba32()
         {
             // Arrange
             Gray16 gray = default;
@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             ushort expected = ImageMaths.Get16BitBT709Luminance(scaledRgb, scaledRgb, scaledRgb);
 
             // Act
-            gray.PackFromRgba32(new Rgba32(rgb, rgb, rgb));
+            gray.FromRgba32(new Rgba32(rgb, rgb, rgb));
             ushort actual = gray.PackedValue;
 
             // Assert
@@ -117,7 +117,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var gray = new Gray16(input);
 
             // Act
-            var actual = gray.ToRgba32();
+            Rgba32 actual = default;
+            gray.ToRgba32(ref actual);
 
             // Assert
             Assert.Equal(expected, actual.R);

@@ -257,7 +257,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                 Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
                                 Span<Vector4> tempRowSpan = tempRowBuffer.Span;
 
-                                PixelOperations<TPixel>.Instance.ToVector4(sourceRow, tempRowSpan);
+                                PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, tempRowSpan);
                                 Vector4Utils.Premultiply(tempRowSpan);
 
                                 ref Vector4 firstPassBaseRef = ref firstPassPixelsTransposed.Span[y];
@@ -309,7 +309,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                 }
 
                                 Span<TPixel> targetRowSpan = destination.GetPixelRowSpan(y);
-                                PixelOperations<TPixel>.Instance.FromVector4(tempRowSpan, targetRowSpan);
+                                PixelOperations<TPixel>.Instance.FromVector4(configuration, tempRowSpan, targetRowSpan);
                             }
                         });
             }

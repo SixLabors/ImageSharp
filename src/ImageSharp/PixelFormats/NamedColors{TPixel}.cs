@@ -739,7 +739,11 @@ namespace SixLabors.ImageSharp.PixelFormats
             var safe = new TPixel[constants.Length + 1];
 
             Span<byte> constantsBytes = MemoryMarshal.Cast<Rgba32, byte>(constants.AsSpan());
-            PixelOperations<TPixel>.Instance.FromRgba32Bytes(constantsBytes, safe, constants.Length);
+            PixelOperations<TPixel>.Instance.FromRgba32Bytes(
+                Configuration.Default,
+                constantsBytes,
+                safe,
+                constants.Length);
             return safe;
         }
     }

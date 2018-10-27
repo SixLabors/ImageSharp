@@ -19,6 +19,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             /// <inheritdoc />
             internal override void FromScaledVector4(
+                Configuration configuration,
                 ReadOnlySpan<Vector4> sourceVectors,
                 Span<RgbaVector> destinationColors)
             {
@@ -29,16 +30,20 @@ namespace SixLabors.ImageSharp.PixelFormats
 
             /// <inheritdoc />
             internal override void ToScaledVector4(
+                Configuration configuration,
                 ReadOnlySpan<RgbaVector> sourceColors,
                 Span<Vector4> destinationVectors)
-                => this.ToVector4(sourceColors, destinationVectors);
+                => this.ToVector4(configuration, sourceColors, destinationVectors);
 
             /// <inheritdoc />
-            internal override void ToVector4(ReadOnlySpan<RgbaVector> sourceColors, Span<Vector4> destinationVectors)
+            internal override void ToVector4(
+                Configuration configuration,
+                ReadOnlySpan<RgbaVector> sourcePixels,
+                Span<Vector4> destVectors)
             {
-                Guard.DestinationShouldNotBeTooShort(sourceColors, destinationVectors, nameof(destinationVectors));
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
 
-                MemoryMarshal.Cast<RgbaVector, Vector4>(sourceColors).CopyTo(destinationVectors);
+                MemoryMarshal.Cast<RgbaVector, Vector4>(sourcePixels).CopyTo(destVectors);
             }
         }
     }

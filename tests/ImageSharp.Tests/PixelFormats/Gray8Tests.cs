@@ -115,10 +115,11 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var gray = new Gray8(input);
 
             // Act
-            var actual = gray.ToRgba32();
+            Rgba32 actual = default;
+            gray.ToRgba32(ref actual);
 
             // Assert
-            Assert.Equal(input, actual.R);
+            Assert.Equal(input, actual.R); 
             Assert.Equal(input, actual.G);
             Assert.Equal(input, actual.B);
             Assert.Equal(byte.MaxValue, actual.A);

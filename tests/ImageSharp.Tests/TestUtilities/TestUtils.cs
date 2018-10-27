@@ -80,8 +80,11 @@ namespace SixLabors.ImageSharp.Tests
                     }
                     else
                     {
-                        rgb1 = ca.ToRgba32().Rgb;
-                        rgb2 = cb.ToRgba32().Rgb;
+                        Rgba32 rgba = default;
+                        ca.ToRgba32(ref rgba);
+                        rgb1 = rgba.Rgb;
+                        cb.ToRgba32(ref rgba);
+                        rgb2 = rgba.Rgb;
 
                         if (!rgb1.Equals(rgb2))
                         {

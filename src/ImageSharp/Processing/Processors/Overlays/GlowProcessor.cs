@@ -145,7 +145,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
                                 Span<TPixel> destination = source.GetPixelRowSpan(offsetY).Slice(offsetX, width);
 
                                 this.blender.Blend(
-                                    source.MemoryAllocator,
+                                    source.Configuration,
                                     destination,
                                     destination,
                                     rowColors.GetSpan(),

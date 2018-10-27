@@ -31,9 +31,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteFrameQuantizer{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The <see cref="Configuration"/> to configure internal operations.</param>
         /// <param name="quantizer">The palette quantizer.</param>
         /// <param name="colors">An array of all colors in the palette.</param>
-        public PaletteFrameQuantizer(PaletteQuantizer quantizer, TPixel[] colors)
+        public PaletteFrameQuantizer(Configuration configuration, PaletteQuantizer quantizer, TPixel[] colors)
             : base(quantizer, true)
         {
             // TODO: Why is this value constrained? Gif has limitations but theoretically
@@ -41,7 +42,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             Guard.MustBeBetweenOrEqualTo(colors.Length, 1, 256, nameof(colors));
             this.palette = colors;
             this.paletteVector = new Vector4[this.palette.Length];
-            PixelOperations<TPixel>.Instance.ToScaledVector4(this.palette, this.paletteVector);
+            PixelOperations<TPixel>.Instance.ToScaledVector4(configuration, this.palette, this.paletteVector);
         }
 
         /// <inheritdoc/>

@@ -12,12 +12,14 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
-    public abstract class ToXyzw<TPixel>
+    public abstract class ToRgba32Bytes<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private IMemoryOwner<TPixel> source;
 
         private IMemoryOwner<byte> destination;
+
+        private Configuration configuration;
 
         [Params(16, 128, 1024)]
         public int Count { get; set; }
@@ -25,8 +27,9 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [GlobalSetup]
         public void Setup()
         {
-            this.source = Configuration.Default.MemoryAllocator.Allocate<TPixel>(this.Count);
-            this.destination = Configuration.Default.MemoryAllocator.Allocate<byte>(this.Count * 4);
+            this.configuration = Configuration.Default;
+            this.source = this.configuration.MemoryAllocator.Allocate<TPixel>(this.Count);
+            this.destination = this.configuration.MemoryAllocator.Allocate<byte>(this.Count * 4);
         }
 
         [GlobalCleanup]
@@ -36,8 +39,8 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             this.destination.Dispose();
         }
 
-        [Benchmark(Baseline = true)]
-        public void PerElement()
+        //[Benchmark]
+        public void Naive()
         {
             Span<TPixel> s = this.source.GetSpan();
             Span<byte> d = this.destination.GetSpan();
@@ -55,18 +58,32 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             }
         }
 
-        [Benchmark]
-        public void CommonBulk() => new PixelOperations<TPixel>().ToRgba32Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
+        [Benchmark(Baseline = true)]
+        public void CommonBulk() =>
+            new PixelOperations<TPixel>().ToRgba32Bytes(
+                this.configuration,
+                this.source.GetSpan(),
+                this.destination.GetSpan(),
+                this.Count);
 
         [Benchmark]
-        public void OptimizedBulk() => PixelOperations<TPixel>.Instance.ToRgba32Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
+        public void OptimizedBulk() =>
+            PixelOperations<TPixel>.Instance.ToRgba32Bytes(
+                this.configuration,
+                this.source.GetSpan(),
+                this.destination.GetSpan(),
+                this.Count);
     }
 
-    public class ToXyzw_Rgba32 : ToXyzw<Rgba32>
+    public class ToRgba32Bytes_FromRgba32 : ToRgba32Bytes<Rgba32>
     {
     }
 
-    public class ToXyzw_Argb32 : ToXyzw<Argb32>
+    public class ToRgba32Bytes_FromArgb32 : ToRgba32Bytes<Argb32>
+    {
+    }
+
+    public class ToRgba32Bytes_FromBgra32 : ToRgba32Bytes<Bgra32>
     {
     }
 }

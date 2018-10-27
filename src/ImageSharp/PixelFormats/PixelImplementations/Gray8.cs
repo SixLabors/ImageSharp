@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public bool Equals(Gray8 other) => this.PackedValue.Equals(other.PackedValue);
 
         /// <inheritdoc />
-        public override string ToString() => $"Gray8({this.PackedValue}";
+        public override string ToString() => $"Gray8({this.PackedValue})";
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]

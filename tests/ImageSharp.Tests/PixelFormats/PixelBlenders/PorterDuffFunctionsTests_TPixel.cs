@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(0.6f, 0.6f, 0.6f, 1) },
         };
 
-        private MemoryAllocator MemoryAllocator { get; } = Configuration.Default.MemoryAllocator;
+        private Configuration Configuration => Configuration.Default;
 
         [Theory]
         [MemberData(nameof(NormalBlendFunctionData))]
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             where TPixel : struct, IPixel<TPixel>
         {
             var dest = new Span<TPixel>(new TPixel[1]);
-            new DefaultPixelBlenders<TPixel>.NormalSrcOver().Blend(this.MemoryAllocator, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            new DefaultPixelBlenders<TPixel>.NormalSrcOver().Blend(this.Configuration, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             where TPixel : struct, IPixel<TPixel>
         {
             var dest = new Span<TPixel>(new TPixel[1]);
-            new DefaultPixelBlenders<TPixel>.MultiplySrcOver().Blend(this.MemoryAllocator, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            new DefaultPixelBlenders<TPixel>.MultiplySrcOver().Blend(this.Configuration, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             where TPixel : struct, IPixel<TPixel>
         {
             var dest = new Span<TPixel>(new TPixel[1]);
-            new DefaultPixelBlenders<TPixel>.AddSrcOver().Blend(this.MemoryAllocator, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            new DefaultPixelBlenders<TPixel>.AddSrcOver().Blend(this.Configuration, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
@@ -167,7 +167,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             where TPixel : struct, IPixel<TPixel>
         {
             var dest = new Span<TPixel>(new TPixel[1]);
-            new DefaultPixelBlenders<TPixel>.SubtractSrcOver().Blend(this.MemoryAllocator, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            new DefaultPixelBlenders<TPixel>.SubtractSrcOver().Blend(this.Configuration, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
@@ -206,7 +206,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             where TPixel : struct, IPixel<TPixel>
         {
             var dest = new Span<TPixel>(new TPixel[1]);
-            new DefaultPixelBlenders<TPixel>.ScreenSrcOver().Blend(this.MemoryAllocator, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            new DefaultPixelBlenders<TPixel>.ScreenSrcOver().Blend(this.Configuration, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
@@ -245,7 +245,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             where TPixel : struct, IPixel<TPixel>
         {
             var dest = new Span<TPixel>(new TPixel[1]);
-            new DefaultPixelBlenders<TPixel>.DarkenSrcOver().Blend(this.MemoryAllocator, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            new DefaultPixelBlenders<TPixel>.DarkenSrcOver().Blend(this.Configuration, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
@@ -284,7 +284,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             where TPixel : struct, IPixel<TPixel>
         {
             var dest = new Span<TPixel>(new TPixel[1]);
-            new DefaultPixelBlenders<TPixel>.LightenSrcOver().Blend(this.MemoryAllocator, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            new DefaultPixelBlenders<TPixel>.LightenSrcOver().Blend(this.Configuration, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
@@ -323,7 +323,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             where TPixel : struct, IPixel<TPixel>
         {
             var dest = new Span<TPixel>(new TPixel[1]);
-            new DefaultPixelBlenders<TPixel>.OverlaySrcOver().Blend(this.MemoryAllocator, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            new DefaultPixelBlenders<TPixel>.OverlaySrcOver().Blend(this.Configuration, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
@@ -362,7 +362,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             where TPixel : struct, IPixel<TPixel>
         {
             var dest = new Span<TPixel>(new TPixel[1]);
-            new DefaultPixelBlenders<TPixel>.HardLightSrcOver().Blend(this.MemoryAllocator, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            new DefaultPixelBlenders<TPixel>.HardLightSrcOver().Blend(this.Configuration, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
             VectorAssert.Equal(expected, dest[0], 2);
         }
     }

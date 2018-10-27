@@ -84,8 +84,10 @@ namespace SixLabors.ImageSharp.Tests.Colors
             var color = new Rgba32(24, 48, 96, 192);
             var colorVector = new RgbaVector(24 / 255F, 48 / 255F, 96 / 255F, 192 / 255F);
 
-            var rgba = color.ToRgba32();
-            var rgbaVector = colorVector.ToRgba32();
+            Rgba32 rgba = default;
+            Rgba32 rgbaVector = default;
+            color.ToRgba32(ref rgba);
+            colorVector.ToRgba32(ref rgbaVector);
 
             Assert.Equal(rgba, rgbaVector);
         }

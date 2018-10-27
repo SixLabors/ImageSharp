@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Rgba32(20, 38, 76, 115);
 
             // act
-            actual = rgba64.ToRgba32();
+            rgba64.ToRgba32(ref actual);
 
             // assert
             Assert.Equal(expected, actual);

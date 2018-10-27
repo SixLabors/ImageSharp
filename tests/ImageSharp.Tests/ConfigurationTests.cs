@@ -6,6 +6,7 @@ using System.Linq;
 using Moq;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.IO;
+
 using Xunit;
 // ReSharper disable InconsistentNaming
 

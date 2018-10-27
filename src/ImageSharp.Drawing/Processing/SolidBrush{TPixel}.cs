@@ -92,10 +92,11 @@ namespace SixLabors.ImageSharp.Processing
                 Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
 
                 MemoryAllocator memoryAllocator = this.Target.MemoryAllocator;
+                Configuration configuration = this.Target.Configuration;
 
                 if (this.Options.BlendPercentage == 1f)
                 {
-                    this.Blender.Blend(memoryAllocator, destinationRow, destinationRow, this.Colors.GetSpan(), scanline);
+                    this.Blender.Blend(configuration, destinationRow, destinationRow, this.Colors.GetSpan(), scanline);
                 }
                 else
                 {
@@ -108,7 +109,12 @@ namespace SixLabors.ImageSharp.Processing
                             amountSpan[i] = scanline[i] * this.Options.BlendPercentage;
                         }
 
-                        this.Blender.Blend(memoryAllocator, destinationRow, destinationRow, this.Colors.GetSpan(), amountSpan);
+                        this.Blender.Blend(
+                            configuration,
+                            destinationRow,
+                            destinationRow,
+                            this.Colors.GetSpan(),
+                            amountSpan);
                     }
                 }
             }

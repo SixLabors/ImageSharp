@@ -160,6 +160,8 @@ namespace SixLabors.ImageSharp.Tests
                 public const string OrderedInterleavedProgressive723A = "Jpg/issues/Issue723-Ordered-Interleaved-Progressive-A.jpg";
                 public const string OrderedInterleavedProgressive723B = "Jpg/issues/Issue723-Ordered-Interleaved-Progressive-B.jpg";
                 public const string OrderedInterleavedProgressive723C = "Jpg/issues/Issue723-Ordered-Interleaved-Progressive-C.jpg";
+                public const string ExifGetString750Transform = "Jpg/issues/issue750-exif-tranform.jpg";
+                public const string ExifGetString750Load = "Jpg/issues/issue750-exif-load.jpg";
             }
 
             public static readonly string[] All = Baseline.All.Concat(Progressive.All).ToArray();

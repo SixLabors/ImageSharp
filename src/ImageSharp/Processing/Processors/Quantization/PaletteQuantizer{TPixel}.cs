@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public IErrorDiffuser Diffuser { get; }
 
         /// <inheritdoc/>
-        public IFrameQuantizer<TPixel1> CreateFrameQuantizer<TPixel1>()
+        public IFrameQuantizer<TPixel1> CreateFrameQuantizer<TPixel1>(Configuration configuration)
             where TPixel1 : struct, IPixel<TPixel1>
         {
             if (!typeof(TPixel).Equals(typeof(TPixel1)))
@@ -61,11 +61,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
 
             TPixel[] paletteRef = this.palette;
+            TPixel1[] castPalette = Unsafe.As<TPixel[], TPixel1[]>(ref paletteRef);
+
             return new PaletteFrameQuantizer<TPixel1>(this, Unsafe.As<TPixel[], TPixel1[]>(ref paletteRef));
         }
 
         /// <inheritdoc/>
-        public IFrameQuantizer<TPixel1> CreateFrameQuantizer<TPixel1>(int maxColors)
+        public IFrameQuantizer<TPixel1> CreateFrameQuantizer<TPixel1>(Configuration configuration, int maxColors)
             where TPixel1 : struct, IPixel<TPixel1>
         {
             if (!typeof(TPixel).Equals(typeof(TPixel1)))

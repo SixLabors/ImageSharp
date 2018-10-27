@@ -26,6 +26,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     /// </summary>
     internal class JpegImagePostProcessor : IDisposable
     {
+        private readonly Configuration configuration;
+
         /// <summary>
         /// The number of block rows to be processed in one Step.
         /// </summary>
@@ -49,15 +51,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegImagePostProcessor"/> class.
         /// </summary>
-        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
+        /// <param name="configuration">The <see cref="Configuration"/> to configure internal operations.</param>
         /// <param name="rawJpeg">The <see cref="IRawJpegData"/> representing the uncompressed spectral Jpeg data</param>
-        public JpegImagePostProcessor(MemoryAllocator memoryAllocator, IRawJpegData rawJpeg)
+        public JpegImagePostProcessor(Configuration configuration, IRawJpegData rawJpeg)
         {
+            this.configuration = configuration;
             this.RawJpeg = rawJpeg;
             IJpegComponent c0 = rawJpeg.Components.First();
             this.NumberOfPostProcessorSteps = c0.SizeInBlocks.Height / BlockRowsPerStep;
             this.PostProcessorBufferSize = new Size(c0.SizeInBlocks.Width * 8, PixelRowsPerStep);
 
+            MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
             this.ComponentProcessors = rawJpeg.Components.Select(c => new JpegComponentPostProcessor(memoryAllocator, this, c)).ToArray();
             this.rgbaBuffer = memoryAllocator.Allocate<Vector4>(rawJpeg.ImageSizeInPixels.Width);
             this.colorConverter = JpegColorConverter.GetConverter(rawJpeg.ColorSpace);
@@ -159,7 +163,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 Span<TPixel> destRow = destination.GetPixelRowSpan(yy);
 
-                PixelOperations<TPixel>.Instance.PackFromVector4(this.rgbaBuffer.GetSpan(), destRow, destination.Width);
+                // TODO: Investigate if slicing is actually necessary
+                PixelOperations<TPixel>.Instance.FromVector4(this.configuration, this.rgbaBuffer.GetSpan().Slice(0, destRow.Length), destRow);
             }
         }
     }

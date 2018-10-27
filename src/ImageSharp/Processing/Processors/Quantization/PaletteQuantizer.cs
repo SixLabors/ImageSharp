@@ -43,21 +43,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public IErrorDiffuser Diffuser { get; }
 
         /// <inheritdoc />
-        public abstract IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>()
+        public abstract IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration)
             where TPixel : struct, IPixel<TPixel>;
 
         /// <inheritdoc/>
-        public abstract IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(int maxColors)
+        public abstract IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration, int maxColors)
             where TPixel : struct, IPixel<TPixel>;
 
         /// <summary>
         /// Creates the generic frame quantizer.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="configuration">The <see cref="Configuration"/> to configure internal operations.</param>
         /// <param name="palette">The color palette.</param>
         /// <param name="maxColors">The maximum number of colors to hold in the color palette.</param>
         /// <returns>The <see cref="IFrameQuantizer{TPixel}"/></returns>
-        protected IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(TPixel[] palette, int maxColors)
+        protected IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration, TPixel[] palette, int maxColors)
             where TPixel : struct, IPixel<TPixel>
         {
             int max = Math.Min(QuantizerConstants.MaxColors, Math.Min(maxColors, palette.Length));

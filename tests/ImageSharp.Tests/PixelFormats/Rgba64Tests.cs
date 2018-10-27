@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Rgba64_PackFromScaledVector4()
+        public void Rgba64_FromScaledVector4()
         {
             // arrange
             var pixel = default(Rgba64);
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             // act 
             Vector4 scaled = short4.ToScaledVector4();
-            pixel.PackFromScaledVector4(scaled);
+            pixel.FromScaledVector4(scaled);
             ulong actual = pixel.PackedValue;
 
             // assert
@@ -71,8 +71,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
             var zero = default(Rgba64);
             var one = default(Rgba64);
-            zero.PackFromVector4(Vector4.One * -1234.0f);
-            one.PackFromVector4(Vector4.One * 1234.0f);
+            zero.FromVector4(Vector4.One * -1234.0f);
+            one.FromVector4(Vector4.One * 1234.0f);
             Assert.Equal(Vector4.Zero, zero.ToVector4());
             Assert.Equal(Vector4.One, one.ToVector4());
         }
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Rgba32(20, 38, 76, 115);
 
             // act
-            actual = rgba64.ToRgba32();
+            rgba64.ToRgba32(ref actual);
 
             // assert
             Assert.Equal(expected, actual);

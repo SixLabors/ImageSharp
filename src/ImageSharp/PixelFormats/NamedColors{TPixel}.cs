@@ -749,7 +749,12 @@ namespace SixLabors.ImageSharp.PixelFormats
             var converted = new TPixel[palette.Length + 1];
 
             Span<byte> constantsBytes = MemoryMarshal.Cast<Rgba32, byte>(palette.AsSpan());
-            PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(constantsBytes, converted, palette.Length);
+            PixelOperations<TPixel>.Instance.FromRgba32Bytes(
+                Configuration.Default,
+                constantsBytes,
+                converted,
+                palette.Length);
+
             return converted;
         }
     }

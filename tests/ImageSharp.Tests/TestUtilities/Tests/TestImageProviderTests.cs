@@ -275,11 +275,12 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(20, img.Height);
 
             Buffer2D<TPixel> pixels = img.GetRootFramePixelBuffer();
+            Rgba32 rgba = default;
             for (int y = 0; y < pixels.Height; y++)
             {
                 for (int x = 0; x < pixels.Width; x++)
                 {
-                    var rgba = pixels[x, y].ToRgba32();
+                    pixels[x, y].ToRgba32(ref rgba);
 
                     Assert.Equal(255, rgba.R);
                     Assert.Equal(100, rgba.G);

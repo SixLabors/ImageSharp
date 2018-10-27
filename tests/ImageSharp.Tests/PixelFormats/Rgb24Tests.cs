@@ -104,7 +104,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         public void ToRgba32()
         {
             var rgb = new Rgb24(1, 2, 3);
-            var rgba = rgb.ToRgba32();
+            Rgba32 rgba = default;
+            rgb.ToRgba32(ref rgba);
 
             Assert.Equal(new Rgba32(1, 2, 3, 255), rgba);
         }

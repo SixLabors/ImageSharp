@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 {
     /// <summary>
     /// Provides methods to allow the decoding of raw scanlines to image rows of different pixel formats.
+    /// TODO: We should make this a stateful class or struct to reduce the number of arguments on methods (most are invariant).
     /// </summary>
     internal static class PngScanlineProcessor
     {
@@ -346,6 +347,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         public static void ProcessRgbScanline<TPixel>(
+            Configuration configuration,
             in PngHeader header,
             ReadOnlySpan<byte> scanlineSpan,
             Span<TPixel> rowSpan,
@@ -357,7 +359,6 @@ namespace SixLabors.ImageSharp.Formats.Png
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel pixel = default;
-            ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
             ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
 
             if (!hasTrans)
@@ -377,7 +378,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 }
                 else
                 {
-                    PixelOperations<TPixel>.Instance.FromRgb24Bytes(scanlineSpan, rowSpan, header.Width);
+                    PixelOperations<TPixel>.Instance.FromRgb24Bytes(configuration, scanlineSpan, rowSpan, header.Width);
                 }
 
                 return;
@@ -500,6 +501,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         public static void ProcessRgbaScanline<TPixel>(
+            Configuration configuration,
             in PngHeader header,
             ReadOnlySpan<byte> scanlineSpan,
             Span<TPixel> rowSpan,
@@ -526,7 +528,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else
             {
-                PixelOperations<TPixel>.Instance.FromRgba32Bytes(scanlineSpan, rowSpan, header.Width);
+                PixelOperations<TPixel>.Instance.FromRgba32Bytes(configuration, scanlineSpan, rowSpan, header.Width);
             }
         }
 

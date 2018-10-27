@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
@@ -24,22 +23,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         private readonly TPixel[] palette;
 
         /// <summary>
-        /// The vector representation of the image palette.
-        /// </summary>
-        private readonly Vector4[] paletteVector;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="PaletteFrameQuantizer{TPixel}"/> class.
         /// </summary>
         /// <param name="quantizer">The palette quantizer.</param>
         /// <param name="colors">An array of all colors in the palette.</param>
         public PaletteFrameQuantizer(IQuantizer quantizer, TPixel[] colors)
-            : base(quantizer, true)
-        {
-            this.palette = colors;
-            this.paletteVector = new Vector4[this.palette.Length];
-            PixelOperations<TPixel>.Instance.ToScaledVector4(this.palette, this.paletteVector, this.palette.Length);
-        }
+            : base(quantizer, true) => this.palette = colors;
 
         /// <inheritdoc/>
         protected override void SecondPass(

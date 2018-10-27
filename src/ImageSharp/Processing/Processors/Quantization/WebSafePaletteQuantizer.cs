@@ -37,11 +37,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         /// <inheritdoc />
-        public override IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>()
-            => this.CreateFrameQuantizer<TPixel>(NamedColors<TPixel>.WebSafePalette.Length);
+        public override IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration)
+            => this.CreateFrameQuantizer<TPixel>(configuration, NamedColors<TPixel>.WebSafePalette.Length);
 
         /// <inheritdoc/>
-        public override IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(int maxColors)
-            => this.CreateFrameQuantizer(NamedColors<TPixel>.WebSafePalette, maxColors);
+        public override IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration, int maxColors)
+            => this.CreateFrameQuantizer(configuration, NamedColors<TPixel>.WebSafePalette, maxColors);
     }
 }

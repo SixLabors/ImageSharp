@@ -165,7 +165,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                                 currentPassPixel.ToVector4(),
                                                 currentTargetPixel.ToVector4());
 
-                                            currentTargetPixel.PackFromVector4(pixelValue);
+                                            currentTargetPixel.FromVector4(pixelValue);
                                         }
                                     }
                                 });

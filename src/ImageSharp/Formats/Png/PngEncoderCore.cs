@@ -44,6 +44,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
+        /// The configuration instance for the decoding operation
+        /// </summary>
+        private Configuration configuration;
+
+        /// <summary>
         /// The maximum block size, defaults at 64k for uncompressed blocks.
         /// </summary>
         private const int MaxBlockSize = 65535;
@@ -201,6 +206,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
+            this.configuration = image.GetConfiguration();
             this.width = image.Width;
             this.height = image.Height;
 
@@ -237,7 +243,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                 }
 
                 // Create quantized frame returning the palette and set the bit depth.
-                quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(image.Frames.RootFrame);
+                quantized = this.quantizer.CreateFrameQuantizer<TPixel>(image.GetConfiguration())
+                    .QuantizeFrame(image.Frames.RootFrame);
                 byte quantizedBits = (byte)ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length).Clamp(1, 8);
                 bits = Math.Max(bits, quantizedBits);
 
@@ -327,7 +334,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     {
                         Span<Gray16> luminanceSpan = luminanceBuffer.GetSpan();
                         ref Gray16 luminanceRef = ref MemoryMarshal.GetReference(luminanceSpan);
-                        PixelOperations<TPixel>.Instance.ToGray16(rowSpan, luminanceSpan, rowSpan.Length);
+                        PixelOperations<TPixel>.Instance.ToGray16(this.configuration, rowSpan, luminanceSpan);
 
                         // Can't map directly to byte array as it's big endian.
                         for (int x = 0, o = 0; x < luminanceSpan.Length; x++, o += 2)
@@ -342,19 +349,28 @@ namespace SixLabors.ImageSharp.Formats.Png
                     if (this.bitDepth == 8)
                     {
                         // 8 bit grayscale
-                        PixelOperations<TPixel>.Instance.ToGray8Bytes(rowSpan, rawScanlineSpan, rowSpan.Length);
+                        PixelOperations<TPixel>.Instance.ToGray8Bytes(
+                            this.configuration,
+                            rowSpan,
+                            rawScanlineSpan,
+                            rowSpan.Length);
                     }
                     else
                     {
                         // 1, 2, and 4 bit grayscale
-                        using (IManagedByteBuffer temp = this.memoryAllocator.AllocateManagedByteBuffer(rowSpan.Length, AllocationOptions.Clean))
+                        using (IManagedByteBuffer temp = this.memoryAllocator.AllocateManagedByteBuffer(
+                            rowSpan.Length,
+                            AllocationOptions.Clean))
                         {
                             int scaleFactor = 255 / (ImageMaths.GetColorCountForBitDepth(this.bitDepth) - 1);
                             Span<byte> tempSpan = temp.GetSpan();
-                            ref byte tempSpanRef = ref MemoryMarshal.GetReference(tempSpan);
 
                             // We need to first create an array of luminance bytes then scale them down to the correct bit depth.
-                            PixelOperations<TPixel>.Instance.ToGray8Bytes(rowSpan, tempSpan, rowSpan.Length);
+                            PixelOperations<TPixel>.Instance.ToGray8Bytes(
+                                this.configuration,
+                                rowSpan,
+                                tempSpan,
+                                rowSpan.Length);
                             this.ScaleDownFrom8BitArray(tempSpan, rawScanlineSpan, this.bitDepth, scaleFactor);
                         }
                     }
@@ -370,7 +386,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     {
                         Span<Rgba64> rgbaSpan = rgbaBuffer.GetSpan();
                         ref Rgba64 rgbaRef = ref MemoryMarshal.GetReference(rgbaSpan);
-                        PixelOperations<TPixel>.Instance.ToRgba64(rowSpan, rgbaSpan, rowSpan.Length);
+                        PixelOperations<TPixel>.Instance.ToRgba64(this.configuration, rowSpan, rgbaSpan);
 
                         // Can't map directly to byte array as it's big endian.
                         for (int x = 0, o = 0; x < rgbaSpan.Length; x++, o += 4)
@@ -386,10 +402,12 @@ namespace SixLabors.ImageSharp.Formats.Png
                 {
                     // 8 bit grayscale + alpha
                     // TODO: Should we consider in the future a GrayAlpha16 type.
+                    Rgba32 rgba = default;
                     for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 2)
                     {
-                        var rgba = Unsafe.Add(ref rowSpanRef, x).ToRgba32();
-                        Unsafe.Add(ref rawScanlineSpanRef, o) = ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
+                        Unsafe.Add(ref rowSpanRef, x).ToRgba32(ref rgba);
+                        Unsafe.Add(ref rawScanlineSpanRef, o) =
+                            ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
                         Unsafe.Add(ref rawScanlineSpanRef, o + 1) = rgba.A;
                     }
                 }
@@ -411,14 +429,22 @@ namespace SixLabors.ImageSharp.Formats.Png
                 case 4:
                     {
                         // 8 bit Rgba
-                        PixelOperations<TPixel>.Instance.ToRgba32Bytes(rowSpan, rawScanlineSpan, this.width);
+                        PixelOperations<TPixel>.Instance.ToRgba32Bytes(
+                            this.configuration,
+                            rowSpan,
+                            rawScanlineSpan,
+                            this.width);
                         break;
                     }
 
                 case 3:
                     {
                         // 8 bit Rgb
-                        PixelOperations<TPixel>.Instance.ToRgb24Bytes(rowSpan, rawScanlineSpan, this.width);
+                        PixelOperations<TPixel>.Instance.ToRgb24Bytes(
+                            this.configuration,
+                            rowSpan,
+                            rawScanlineSpan,
+                            this.width);
                         break;
                     }
 
@@ -429,7 +455,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         {
                             Span<Rgba64> rgbaSpan = rgbaBuffer.GetSpan();
                             ref Rgba64 rgbaRef = ref MemoryMarshal.GetReference(rgbaSpan);
-                            PixelOperations<TPixel>.Instance.ToRgba64(rowSpan, rgbaSpan, rowSpan.Length);
+                            PixelOperations<TPixel>.Instance.ToRgba64(this.configuration, rowSpan, rgbaSpan);
 
                             // Can't map directly to byte array as it's big endian.
                             for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 8)
@@ -452,7 +478,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         {
                             Span<Rgb48> rgbSpan = rgbBuffer.GetSpan();
                             ref Rgb48 rgbRef = ref MemoryMarshal.GetReference(rgbSpan);
-                            PixelOperations<TPixel>.Instance.ToRgb48(rowSpan, rgbSpan, rowSpan.Length);
+                            PixelOperations<TPixel>.Instance.ToRgb48(this.configuration, rowSpan, rgbSpan);
 
                             // Can't map directly to byte array as it's big endian.
                             for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 6)
@@ -645,12 +671,14 @@ namespace SixLabors.ImageSharp.Formats.Png
                 ref byte alphaTableRef = ref MemoryMarshal.GetReference(alphaTable.GetSpan());
                 Span<byte> quantizedSpan = quantized.GetPixelSpan();
 
+                Rgba32 rgba = default;
+
                 for (int i = 0; i < paletteLength; i++)
                 {
                     if (quantizedSpan.IndexOf((byte)i) > -1)
                     {
                         int offset = i * 3;
-                        var rgba = palette[i].ToRgba32();
+                        palette[i].ToRgba32(ref rgba);
 
                         byte alpha = rgba.A;
 

@@ -26,7 +26,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Issues.ExifDecodeOutOfRange694,
                 TestImages.Jpeg.Issues.InvalidEOI695,
                 TestImages.Jpeg.Issues.ExifResizeOutOfRange696,
-                TestImages.Jpeg.Issues.InvalidAPP0721
+                TestImages.Jpeg.Issues.InvalidAPP0721,
+                TestImages.Jpeg.Issues.ExifGetString750Load,
+                TestImages.Jpeg.Issues.ExifGetString750Transform
             };
 
         public static string[] ProgressiveTestJpegs =

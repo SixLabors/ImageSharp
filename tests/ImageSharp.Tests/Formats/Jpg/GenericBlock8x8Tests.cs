@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 {
                     var rgba = new Rgba32((byte)(i + 1), (byte)(j + 1), (byte)200, (byte)255);
                     var color = default(TPixel);
-                    color.PackFromRgba32(rgba);
+                    color.FromRgba32(rgba);
 
                     pixels[i, j] = color;
                 }

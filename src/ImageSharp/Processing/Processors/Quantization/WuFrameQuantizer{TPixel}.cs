@@ -199,7 +199,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                         float a = Volume(ref this.colorCube[k], vmaSpan);
 
                         ref TPixel color = ref this.palette[k];
-                        color.PackFromScaledVector4(new Vector4(r, g, b, a) / weight / 255F);
+                        color.FromScaledVector4(new Vector4(r, g, b, a) / weight / 255F);
                     }
                 }
             }
@@ -448,7 +448,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 {
                     Span<TPixel> row = source.GetPixelRowSpan(y);
                     Span<Rgba32> rgbaSpan = rgbaBuffer.GetSpan();
-                    PixelOperations<TPixel>.Instance.ToRgba32(row, rgbaSpan, source.Width);
+                    PixelOperations<TPixel>.Instance.ToRgba32(source.Configuration, row, rgbaSpan);
                     ref Rgba32 scanBaseRef = ref MemoryMarshal.GetReference(rgbaSpan);
 
                     // And loop through each column
@@ -879,7 +879,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
 
             // Expected order r->g->b->a
-            var rgba = pixel.ToRgba32();
+            Rgba32 rgba = default;
+            pixel.ToRgba32(ref rgba);
 
             int r = rgba.R >> (8 - IndexBits);
             int g = rgba.G >> (8 - IndexBits);

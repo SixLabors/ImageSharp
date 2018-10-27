@@ -1,0 +1,140 @@
+﻿<#
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+#>
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Runtime.InteropServices" #>
+<#@ output extension=".cs" #>
+<#    
+
+    void GenerateFromMethods(string pixelType)
+    {		
+		#>
+
+        /// <summary>
+        /// Converts all pixels in 'source` span of <see cref="<#=pixelType#>"/> into a span of <typeparamref name="TPixel"/>-s.
+        /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
+        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="<#=pixelType#>"/> data.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        internal virtual void From<#=pixelType#>(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<TPixel> destPixels)
+        {
+            Guard.DestinationShouldNotBeTooShort(source, destPixels, nameof(destPixels));
+            
+            ref <#=pixelType#> sourceBaseRef = ref MemoryMarshal.GetReference(source);
+            ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
+
+            for (int i = 0; i < source.Length; i++)
+            {
+                ref <#=pixelType#> sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+
+                dp.From<#=pixelType#>(sp);
+            }
+        }
+
+        /// <summary>
+        /// A helper for <see cref="From<#=pixelType#>(Configuration, ReadOnlySpan{<#=pixelType#>}, Span{TPixel})"/> that expects a byte span.
+        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="<#=pixelType#>"/> layout.
+        /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
+        /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void From<#=pixelType#>Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
+        {
+            this.From<#=pixelType#>(configuration, MemoryMarshal.Cast<byte, <#=pixelType#>>(sourceBytes).Slice(0, count), destPixels);
+        }
+
+<#
+    }
+
+    void GenerateToDestFormatMethods(string pixelType)
+    {
+        #>
+        /// <summary>
+        /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="<#=pixelType#>"/>-s.
+        /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
+        /// <param name="sourcePixels">The span of source pixels</param>
+        /// <param name="destPixels">The destination span of <see cref="<#=pixelType#>"/> data.</param>
+        internal virtual void To<#=pixelType#>(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<<#=pixelType#>> destPixels)
+        {
+            Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
+
+            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
+            ref <#=pixelType#> destBaseRef = ref MemoryMarshal.GetReference(destPixels);
+
+            for (int i = 0; i < sourcePixels.Length; i++)
+            {
+                ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref <#=pixelType#> dp = ref Unsafe.Add(ref destBaseRef, i);
+
+                dp.FromScaledVector4(sp.ToScaledVector4());
+            }
+        }
+
+        /// <summary>
+        /// A helper for <see cref="To<#=pixelType#>(Configuration, ReadOnlySpan{TPixel}, Span{<#=pixelType#>})"/> that expects a byte span as destination.
+        /// The layout of the data in 'destBytes' must be compatible with <see cref="<#=pixelType#>"/> layout.
+        /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
+        /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
+        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void To<#=pixelType#>Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+        {
+            this.To<#=pixelType#>(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, <#=pixelType#>>(destBytes));
+        }
+<#
+    }
+
+#>
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+// <auto-generated />
+
+using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+namespace SixLabors.ImageSharp.PixelFormats
+{
+    public partial class PixelOperations<TPixel>
+    {<#
+
+    GenerateFromMethods("Argb32");
+    GenerateToDestFormatMethods("Argb32");
+
+    GenerateFromMethods("Bgr24");
+    GenerateToDestFormatMethods("Bgr24");
+
+    GenerateFromMethods("Bgra32");
+    GenerateToDestFormatMethods("Bgra32");
+
+    GenerateFromMethods("Gray8");
+    GenerateToDestFormatMethods("Gray8");
+
+    GenerateFromMethods("Gray16");
+    GenerateToDestFormatMethods("Gray16");
+
+    GenerateFromMethods("Rgb24");
+    GenerateToDestFormatMethods("Rgb24");
+
+    GenerateFromMethods("Rgba32");
+    GenerateToDestFormatMethods("Rgba32");
+
+    GenerateFromMethods("Rgb48");
+    GenerateToDestFormatMethods("Rgb48");
+
+    GenerateFromMethods("Rgba64");
+    GenerateToDestFormatMethods("Rgba64");
+
+#>    }
+}

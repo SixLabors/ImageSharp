@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 {
@@ -21,7 +22,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <summary>
         /// The vector representation of the image palette.
         /// </summary>
-        private readonly Vector4[] paletteVector;
+        private Vector4[] paletteVector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteDitherProcessorBase{TPixel}"/> class.
@@ -30,8 +31,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         protected PaletteDitherProcessorBase(TPixel[] palette)
         {
             this.Palette = palette ?? throw new ArgumentNullException(nameof(palette));
-            this.paletteVector = new Vector4[this.Palette.Length];
-            PixelOperations<TPixel>.Instance.ToScaledVector4(this.Palette, this.paletteVector, this.Palette.Length);
         }
 
         /// <summary>
@@ -40,7 +39,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         public TPixel[] Palette { get; }
 
         /// <summary>
-        /// Returns the two closest colors from the palette calcluated via Euclidean distance in the Rgba space.
+        /// Returns the two closest colors from the palette calculated via Euclidean distance in the Rgba space.
         /// </summary>
         /// <param name="pixel">The source color to match.</param>
         /// <returns>The <see cref="PixelPair{TPixel}"/>.</returns>
@@ -89,6 +88,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             this.cache.Add(pixel, pair);
 
             return pair;
+        }
+
+        protected override void BeforeFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        {
+            base.BeforeFrameApply(source, sourceRectangle, configuration);
+
+            // Lazy init paletteVector:
+            if (this.paletteVector == null)
+            {
+                this.paletteVector = new Vector4[this.Palette.Length];
+                PixelOperations<TPixel>.Instance.ToScaledVector4(configuration, this.Palette, this.paletteVector);
+            }
         }
     }
 }

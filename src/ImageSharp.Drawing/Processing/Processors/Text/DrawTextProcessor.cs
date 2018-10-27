@@ -97,7 +97,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
 
             this.textRenderer = new CachingGlyphRenderer(source.GetMemoryAllocator(), this.Text.Length, this.Pen, this.Brush != null);
             this.textRenderer.Options = (GraphicsOptions)this.Options;
-            TextRenderer.RenderTextTo(this.textRenderer, this.Text, style);
+            var renderer = new TextRenderer(this.textRenderer);
+            renderer.RenderText(this.Text, style);
         }
 
         protected override void AfterImageApply(Image<TPixel> source, Rectangle sourceRectangle)
@@ -164,14 +165,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
 
         private class CachingGlyphRenderer : IGlyphRenderer, IDisposable
         {
+            // just enough accuracy to allow for half pixel differences which
+            // later are componded into full pixel offsets while rendering.
+            private const float AcuracyMultiple = 2;
+
             private PathBuilder builder;
 
             private Point currentRenderPosition = default;
-            private GlyphRendererParameters currentGlyphRenderParams = default;
+            private (GlyphRendererParameters glyph, PointF subPixelOffset) currentGlyphRenderParams = default;
             private int offset = 0;
             private PointF currentPoint = default(PointF);
 
-            private readonly Dictionary<GlyphRendererParameters, GlyphRenderData> glyphData = new Dictionary<GlyphRendererParameters, GlyphRenderData>();
+            private readonly Dictionary<(GlyphRendererParameters glyph, PointF subPixelOffset), GlyphRenderData> glyphData = new Dictionary<(GlyphRendererParameters glyph, PointF subPixelOffset), GlyphRenderData>();
 
             private bool renderOutline = false;
             private bool renderFill = false;
@@ -216,11 +221,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
             public bool BeginGlyph(RectangleF bounds, GlyphRendererParameters paramters)
             {
                 this.currentRenderPosition = Point.Truncate(bounds.Location);
+                PointF dif = bounds.Location - this.currentRenderPosition;
+
+                dif.X = ((int)(dif.X * AcuracyMultiple)) / AcuracyMultiple;
+                dif.Y = ((int)(dif.Y * AcuracyMultiple)) / AcuracyMultiple;
 
                 // we have offset our rendering origion a little bit down to prevent edge cropping, move the draw origin up to compensate
                 this.currentRenderPosition = new Point(this.currentRenderPosition.X - this.offset, this.currentRenderPosition.Y - this.offset);
-                this.currentGlyphRenderParams = paramters;
-                if (this.glyphData.ContainsKey(paramters))
+                this.currentGlyphRenderParams = (paramters, dif);
+                if (this.glyphData.ContainsKey(this.currentGlyphRenderParams))
                 {
                     // we have already drawn the glyph vectors skip trying again
                     this.raterizationRequired = false;
@@ -252,7 +261,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
 
             public void Dispose()
             {
-                foreach (KeyValuePair<GlyphRendererParameters, GlyphRenderData> kv in this.glyphData)
+                foreach (KeyValuePair<(GlyphRendererParameters glyph, PointF subPixelOffset), GlyphRenderData> kv in this.glyphData)
                 {
                     kv.Value.Dispose();
                 }

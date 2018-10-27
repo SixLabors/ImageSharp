@@ -22,8 +22,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
 
         private const string TestText = "Sphinx of black quartz, judge my vow\n0123456789";
 
-        public static ImageComparer TextDrawingComparer = ImageComparer.Exact;//.TolerantPercentage(0.01f);
-        public static ImageComparer OutlinedTextDrawingComparer = ImageComparer.Exact;// TolerantPercentage(0.5f, 3);
+        public static ImageComparer TextDrawingComparer = ImageComparer.Exact;
+        public static ImageComparer OutlinedTextDrawingComparer = ImageComparer.Exact;
 
         [Theory]
         [WithSolidFilledImages(200, 100, "White", PixelTypes.Rgba32, 50, 0, 0, "SixLaborsSampleAB.woff", AB)]

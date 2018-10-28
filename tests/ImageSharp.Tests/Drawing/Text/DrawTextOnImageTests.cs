@@ -151,6 +151,27 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
                 appendSourceFileOrDescription: true);
         }
 
+        [Theory]
+        [WithSolidFilledImages(1000, 1500, "White", PixelTypes.Rgba32)]
+        public static void TextPositioningIsRobust<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            if (!TestEnvironment.IsWindows)
+            {
+                // Does the system font "Baskerville Old Face" exist on most Linux/MAC machines?
+                return;
+            }
+            
+            Font font = SystemFonts.CreateFont("Baskerville Old Face", 30, FontStyle.Regular);
+
+            string text = Repeat("Beware the Jabberwock, my son!  The jaws that bite, the claws that catch!  Beware the Jubjub bird, and shun The frumious Bandersnatch!\n",
+                20);
+            var textOptions = new TextGraphicsOptions(true) { WrapTextWidth = 1000 };
+
+            provider.RunValidatingProcessorTest(
+                x => x.DrawText(textOptions, text, font, NamedColors<TPixel>.Black, new PointF(10, 50)), appendPixelTypeToFileName: false, appendSourceFileOrDescription: false);
+        }
+
         private static string Repeat(string str, int times) => string.Concat(Enumerable.Repeat(str, times));
 
         private static string ToTestOutputDisplayText(string text)
@@ -167,5 +188,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             Font font = fontCollection.Install(fontPath).CreateFont(size);
             return font;
         }
+
+        
     }
 }

@@ -165,18 +165,11 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         }
 
         [Theory]
-        [WithSolidFilledImages(1000, 1500, "White", PixelTypes.Rgba32, "Baskerville Old Face")]
-        [WithSolidFilledImages(1000, 1500, "White", PixelTypes.Rgba32, "Arial")]
+        [WithSolidFilledImages(1000, 1500, "White", PixelTypes.Rgba32, "OpenSans-Regular.ttf")]
         public void TextPositioningIsRobust<TPixel>(TestImageProvider<TPixel> provider, string fontName)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (!TestEnvironment.IsWindows)
-            {
-                // Does the system font "Baskerville Old Face" exist on most Linux/MAC machines?
-                return;
-            }
-            
-            Font font = SystemFonts.CreateFont(fontName, 30, FontStyle.Regular);
+            Font font = CreateFont(fontName, 30);
 
             string text = Repeat("Beware the Jabberwock, my son!  The jaws that bite, the claws that catch!  Beware the Jubjub bird, and shun The frumious Bandersnatch!\n",
                 20);

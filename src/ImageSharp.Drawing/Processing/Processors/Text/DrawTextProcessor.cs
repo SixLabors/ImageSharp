@@ -165,9 +165,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
 
         private class CachingGlyphRenderer : IGlyphRenderer, IDisposable
         {
-            // just enough accuracy to allow for half pixel differences which
-            // later are componded into full pixel offsets while rendering.
-            private const float AccuracyMultiple = 2;
+            // just enough accuracy to allow for 1/8 pixel differences which
+            // later are accumulated while rendering, but do not grow into full pixel offsets
+            // The value 8 is benchmarked to:
+            // - Provide a good accuracy (smaller than 0.2% image difference compared to the non-caching variant)
+            // - Cache hit ratio above 60%
+            private const float AccuracyMultiple = 8;
 
             private readonly PathBuilder builder;
 
@@ -222,14 +225,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
             public bool BeginGlyph(RectangleF bounds, GlyphRendererParameters parameters)
             {
                 this.currentRenderPosition = Point.Truncate(bounds.Location);
-                PointF dif = bounds.Location - this.currentRenderPosition;
+                PointF subPixelOffset = bounds.Location - this.currentRenderPosition;
 
-                dif.X = ((int)(dif.X * AccuracyMultiple)) / AccuracyMultiple;
-                dif.Y = ((int)(dif.Y * AccuracyMultiple)) / AccuracyMultiple;
+                subPixelOffset.X = MathF.Round(subPixelOffset.X * AccuracyMultiple) / AccuracyMultiple;
+                subPixelOffset.Y = MathF.Round(subPixelOffset.Y * AccuracyMultiple) / AccuracyMultiple;
 
                 // we have offset our rendering origion a little bit down to prevent edge cropping, move the draw origin up to compensate
                 this.currentRenderPosition = new Point(this.currentRenderPosition.X - this.offset, this.currentRenderPosition.Y - this.offset);
-                this.currentGlyphRenderParams = (parameters, dif);
+                this.currentGlyphRenderParams = (parameters, subPixelOffset);
+
                 if (this.glyphData.ContainsKey(this.currentGlyphRenderParams))
                 {
                     // we have already drawn the glyph vectors skip trying again

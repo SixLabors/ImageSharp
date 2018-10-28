@@ -746,6 +746,9 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         private static TPixel[] GetPalette(Rgba32[] palette)
         {
+            // TODO: This should be the length only. 
+            // We need to fix and update tests/reference images.
+            // If someone wants transparency they should add it to the palette.
             var converted = new TPixel[palette.Length + 1];
 
             Span<byte> constantsBytes = MemoryMarshal.Cast<Rgba32, byte>(palette.AsSpan());

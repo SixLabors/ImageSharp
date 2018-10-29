@@ -13,10 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         internal class PixelOperations : PixelOperations<Bgra32>
         {
-			<#
-    GenerateAllDefaultConversionMethods("Bgra32");
-			#>
-
-		}
-	}
+            <# GenerateAllDefaultConversionMethods("Bgra32"); #>
+        }
+    }
 }

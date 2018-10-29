@@ -44,20 +44,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Progressive.Bad.ExifUndefType,
                 TestImages.Jpeg.Issues.NoEoiProgressive517,
                 TestImages.Jpeg.Issues.BadRstProgressive518,
-                TestImages.Jpeg.Issues.MissingFF00ProgressiveBedroom159,
                 TestImages.Jpeg.Issues.DhtHasWrongLength624,
                 TestImages.Jpeg.Issues.OrderedInterleavedProgressive723A,
                 TestImages.Jpeg.Issues.OrderedInterleavedProgressive723B,
                 TestImages.Jpeg.Issues.OrderedInterleavedProgressive723C
-            };
-
-        /// <summary>
-        /// Golang decoder is unable to decode these
-        /// </summary>
-        public static string[] PdfJsOnly =
-            {
-                TestImages.Jpeg.Issues.NoEoiProgressive517, TestImages.Jpeg.Issues.BadRstProgressive518,
-                TestImages.Jpeg.Issues.MissingFF00ProgressiveBedroom159
             };
 
         private static readonly Dictionary<string, float> CustomToleranceValues =

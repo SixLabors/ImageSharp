@@ -10,7 +10,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public static string[] BaselineTestJpegs =
             {
                 TestImages.Jpeg.Baseline.Calliphora,
-                TestImages.Jpeg.Baseline.Cmyk, TestImages.Jpeg.Baseline.Ycck,
+                TestImages.Jpeg.Baseline.Cmyk,
+                TestImages.Jpeg.Baseline.Ycck,
                 TestImages.Jpeg.Baseline.Jpeg400,
                 TestImages.Jpeg.Baseline.Testorig420,
 
@@ -19,7 +20,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 TestImages.Jpeg.Baseline.Jpeg444,
                 TestImages.Jpeg.Baseline.Bad.BadEOF,
-                TestImages.Jpeg.Issues.MultiHuffmanBaseline394,
                 TestImages.Jpeg.Baseline.MultiScanBaselineCMYK,
                 TestImages.Jpeg.Baseline.Bad.BadRST,
                 TestImages.Jpeg.Issues.MultiHuffmanBaseline394,

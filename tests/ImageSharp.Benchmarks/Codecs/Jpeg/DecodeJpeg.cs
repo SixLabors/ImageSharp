@@ -14,13 +14,15 @@ using SDImage = System.Drawing.Image;
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
     [Config(typeof(Config.ShortClr))]
-    public class DecodeJpeg : BenchmarkBase
+    public class DecodeJpeg
     {
         private byte[] jpegBytes;
 
         private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
-        [Params(TestImages.Jpeg.Baseline.Jpeg420Exif, TestImages.Jpeg.Baseline.Calliphora)]
+        [Params(TestImages.Jpeg.Baseline.Jpeg420Exif
+            //, TestImages.Jpeg.Baseline.Calliphora
+            )]
         public string TestImage { get; set; }
 
         [GlobalSetup]

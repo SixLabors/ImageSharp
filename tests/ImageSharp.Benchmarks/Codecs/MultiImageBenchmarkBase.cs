@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
     using CoreImage = ImageSharp.Image;
 
-    public abstract class MultiImageBenchmarkBase : BenchmarkBase
+    public abstract class MultiImageBenchmarkBase
     {
         protected Dictionary<string, byte[]> FileNamesToBytes = new Dictionary<string, byte[]>();
 

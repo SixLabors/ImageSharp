@@ -290,6 +290,11 @@ namespace SixLabors.ImageSharp.Formats.Png
                 this.WritePaletteChunk(stream, quantized);
             }
 
+            if (pngMetaData.HasTrans)
+            {
+                //Write transparency header
+            }
+
             this.WritePhysicalChunk(stream, metaData);
             this.WriteGammaChunk(stream);
             this.WriteExifChunk(stream, metaData);

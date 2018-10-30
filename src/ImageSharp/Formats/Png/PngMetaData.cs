@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Formats.Png
 {
     /// <summary>
@@ -41,6 +43,31 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Gets or sets the gamma value for the image.
         /// </summary>
         public float Gamma { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Rgb 24 transparent color. This represents any color in an 8 bit Rgb24 encoded png that should be transparent
+        /// </summary>
+        public Rgb24 Rgb24Trans { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Rgb 48 transparent color. This represents any color in a 16 bit Rgb24 encoded png that should be transparent
+        /// </summary>
+        public Rgb48 Rgb48Trans { get; set; }
+
+        /// <summary>
+        /// Gets or sets the 8 bit grayscale transparent color. This represents any color in an 8 bit grayscale encoded png that should be transparent
+        /// </summary>
+        public byte LuminanceTrans { get; set; }
+
+        /// <summary>
+        /// Gets or sets the 16 bit grayscale transparent color. This represents any color in a 16 bit grayscale encoded png that should be transparent
+        /// </summary>
+        public ushort Luminance16Trans { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the image has transparency chunk and markers were decoded
+        /// </summary>
+        public bool HasTrans { get; set; }
 
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new PngMetaData(this);

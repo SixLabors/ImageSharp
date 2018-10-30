@@ -92,29 +92,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
 
             // Using pooled 2d buffer for integer image table and temp memory to hold Rgb24 converted pixel data
             using (Buffer2D<ulong> intImage = configuration.MemoryAllocator.Allocate2D<ulong>(width, height))
-            using (IMemoryOwner<Rgb24> bulkRgbBuf = configuration.MemoryAllocator.Allocate<Rgb24>(width * height))
+            using (IMemoryOwner<Rgb24> tmpBuffer = configuration.MemoryAllocator.Allocate<Rgb24>(width * height))
             {
                 // Defines the rectangle section of the image to work on
                 Rectangle workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
 
-                // TPixel span of the original image
-                Span<TPixel> pixelSpan = source.GetPixelSpan();
-
-                // RGB24 span of the converted pixel buffer
-                Span<Rgb24> rgbSpan = bulkRgbBuf.GetSpan();
-
-                // Bulk conversion to RGB24
-                this.pixelOpInstance.ToRgb24(pixelSpan, rgbSpan);
+                this.pixelOpInstance.ToRgb24(source.GetPixelSpan(), tmpBuffer.GetSpan());
 
                 for (int x = startX; x < endX; x++)
                 {
+                    Span<Rgb24> rgbSpan = tmpBuffer.GetSpan();
                     ulong sum = 0;
                     for (int y = startY; y < endY; y++)
                     {
                         ref Rgb24 rgb = ref rgbSpan[(width * y) + x];
 
-                        sum += (ulong)(rgb.R + rgb.G + rgb.B);
-
+                        sum += (ulong)(rgb.R + rgb.G + rgb.G);
                         if (x != 0)
                         {
                             intImage[x - startX, y - startY] = intImage[x - startX - 1, y - startY] + sum;
@@ -126,34 +119,41 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                     }
                 }
 
-                ushort x1, x2, y1, y2;
-                uint count = 0;
-
-                for (int x = startX; x < endX; x++)
-                {
-                    long sum = 0;
-                    for (int y = startY; y < endY; y++)
+                ParallelHelper.IterateRows(
+                    workingRectangle,
+                    configuration,
+                    rows =>
                     {
-                        ref Rgb24 rgb = ref rgbSpan[(width * y) + x];
+                        Span<Rgb24> rgbSpan = tmpBuffer.GetSpan();
+                        ushort x1, y1, x2, y2;
+                        uint count = 0;
+                        long sum = 0;
 
-                        x1 = (ushort)Math.Max(x - startX - clusterSize + 1, 0);
-                        x2 = (ushort)Math.Min(x - startX + clusterSize + 1, width - 1);
-                        y1 = (ushort)Math.Max(y - startY - clusterSize + 1, 0);
-                        y2 = (ushort)Math.Min(y - startY + clusterSize + 1, height - 1);
-
-                        count = (uint)((x2 - x1) * (y2 - y1));
-                        sum = (long)(intImage[x2, y2] - intImage[x1, y2] - intImage[x2, y1] + intImage[x1, y1]);
-
-                        if ((rgb.R + rgb.G + rgb.B) * count <= sum * this.ThresholdLimit)
+                        for (int x = startX; x < endX; x++)
                         {
-                            pixelSpan[(width * y) + x] = this.Lower;
+                            for (int y = rows.Min; y < rows.Max; y++)
+                            {
+                                ref Rgb24 rgb = ref rgbSpan[(width * y) + x];
+
+                                x1 = (ushort)Math.Max(x - startX - clusterSize + 1, 0);
+                                x2 = (ushort)Math.Min(x - startX + clusterSize + 1, width - 1);
+                                y1 = (ushort)Math.Max(y - startY - clusterSize + 1, 0);
+                                y2 = (ushort)Math.Min(y - startY + clusterSize + 1, height - 1);
+
+                                count = (uint)((x2 - x1) * (y2 - y1));
+                                sum = (long)(intImage[x2, y2] - intImage[x1, y2] - intImage[x2, y1] + intImage[x1, y1]);
+
+                                if ((rgb.R + rgb.G + rgb.B) * count <= sum * this.ThresholdLimit)
+                                {
+                                    source[x, y] = this.Lower;
+                                }
+                                else
+                                {
+                                    source[x, y] = this.Upper;
+                                }
+                            }
                         }
-                        else
-                        {
-                            pixelSpan[(width * y) + x] = this.Upper;
-                        }
-                    }
-                }
+                    });
             }
         }
     }

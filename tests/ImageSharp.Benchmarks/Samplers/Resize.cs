@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Benchmarks
             ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic);
         }
 
-        // RESULTS:
+        // RESULTS (2018 October):
         //
         // BenchmarkDotNet=v0.10.14, OS=Windows 10.0.17134
         // Intel Core i7-7700HQ CPU 2.80GHz (Kaby Lake), 1 CPU, 8 logical and 4 physical cores
@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.Benchmarks
             ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic, true);
         }
 
-        // RESULTS:
+        // RESULTS (2018 October):
         //
         // BenchmarkDotNet=v0.10.14, OS=Windows 10.0.17134
         // Intel Core i7-7700HQ CPU 2.80GHz (Kaby Lake), 1 CPU, 8 logical and 4 physical cores

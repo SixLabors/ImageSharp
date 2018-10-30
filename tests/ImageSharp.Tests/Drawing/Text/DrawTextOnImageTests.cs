@@ -26,6 +26,41 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         public static ImageComparer OutlinedTextDrawingComparer = ImageComparer.TolerantPercentage(0.5f, 3);
 
         [Theory]
+        [WithSolidFilledImages(276, 336, "White", PixelTypes.Rgba32)]
+        public void DoesntThrowExceptionWhenOverlappingRightEdge_Issue688<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Font font = CreateFont("OpenSans-Regular.ttf", 36);
+            TPixel color = NamedColors<TPixel>.Black;
+            float padding = 5;
+            var text = "A short piece of text";
+
+            using (var img = provider.GetImage())
+            {
+                float targetWidth = img.Width - (padding * 2);
+                float targetHeight = img.Height - (padding * 2);
+
+                // measure the text size
+                SizeF size = TextMeasurer.Measure(text, new RendererOptions(font));
+
+                //find out how much we need to scale the text to fill the space (up or down)
+                float scalingFactor = Math.Min(img.Width / size.Width, img.Height / size.Height);
+
+                //create a new font 
+                Font scaledFont = new Font(font, scalingFactor * font.Size);
+
+                var center = new PointF(img.Width / 2, img.Height / 2);
+                var textGraphicOptions = new TextGraphicsOptions(true)
+                {
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                
+                img.Mutate(i => i.DrawText(textGraphicOptions, text, scaledFont, color, center));
+            }
+        }
+
+        [Theory]
         [WithSolidFilledImages(200, 100, "White", PixelTypes.Rgba32, 50, 0, 0, "SixLaborsSampleAB.woff", AB)]
         [WithSolidFilledImages(900, 100, "White", PixelTypes.Rgba32, 50, 0, 0, "OpenSans-Regular.ttf", TestText)]
         [WithSolidFilledImages(400, 40, "White", PixelTypes.Rgba32, 20, 0, 0, "OpenSans-Regular.ttf", TestText)]

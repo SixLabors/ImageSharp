@@ -89,7 +89,17 @@ namespace SixLabors.ImageSharp.Processing
             /// <inheritdoc />
             internal override void Apply(Span<float> scanline, int x, int y)
             {
-                Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
+                Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x);
+
+                // constrain the spans to eachother
+                if (destinationRow.Length > scanline.Length)
+                {
+                    destinationRow = destinationRow.Slice(0, scanline.Length);
+                }
+                else
+                {
+                    scanline = scanline.Slice(0, destinationRow.Length);
+                }
 
                 MemoryAllocator memoryAllocator = this.Target.MemoryAllocator;
                 Configuration configuration = this.Target.Configuration;

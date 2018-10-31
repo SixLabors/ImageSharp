@@ -32,9 +32,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// <summary>
         /// Initializes a new instance of the <see cref="AdaptiveThresholdProcessor{TPixel}"/> class.
         /// </summary>
-        /// <param name="threshold">Threshold limit</param>
-        public AdaptiveThresholdProcessor(float threshold)
-            : this(NamedColors<TPixel>.White, NamedColors<TPixel>.Black, threshold)
+        /// <param name="thresholdLimit">Threshold limit</param>
+        public AdaptiveThresholdProcessor(float thresholdLimit)
+            : this(NamedColors<TPixel>.White, NamedColors<TPixel>.Black, thresholdLimit)
         {
         }
 
@@ -48,14 +48,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// </summary>
         /// <param name="upper">Color for upper threshold</param>
         /// <param name="lower">Color for lower threshold</param>
-        /// <param name="threshold">Threshold limit</param>
-        public AdaptiveThresholdProcessor(TPixel upper, TPixel lower, float threshold)
+        /// <param name="thresholdLimit">Threshold limit</param>
+        public AdaptiveThresholdProcessor(TPixel upper, TPixel lower, float thresholdLimit)
         {
             this.pixelOpInstance = PixelOperations<TPixel>.Instance;
 
             this.Upper = upper;
             this.Lower = lower;
-            this.ThresholdLimit = threshold;
+            this.ThresholdLimit = thresholdLimit;
         }
 
         /// <summary>
@@ -99,16 +99,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
 
                 this.pixelOpInstance.ToRgb24(source.GetPixelSpan(), tmpBuffer.GetSpan());
 
-                for (int x = startX; x < endX; x++)
+                for (ushort x = startX; x < endX; x++)
                 {
                     Span<Rgb24> rgbSpan = tmpBuffer.GetSpan();
                     ulong sum = 0;
-                    for (int y = startY; y < endY; y++)
+                    for (ushort y = startY; y < endY; y++)
                     {
                         ref Rgb24 rgb = ref rgbSpan[(width * y) + x];
 
                         sum += (ulong)(rgb.R + rgb.G + rgb.G);
-                        if (x != 0)
+                        if (x - startX != 0)
                         {
                             intImage[x - startX, y - startY] = intImage[x - startX - 1, y - startY] + sum;
                         }
@@ -129,9 +129,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                         uint count = 0;
                         long sum = 0;
 
-                        for (int x = startX; x < endX; x++)
+                        for (ushort x = startX; x < endX; x++)
                         {
-                            for (int y = rows.Min; y < rows.Max; y++)
+                            for (ushort y = (ushort)rows.Min; y < (ushort)rows.Max; y++)
                             {
                                 ref Rgb24 rgb = ref rgbSpan[(width * y) + x];
 
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                                 y2 = (ushort)Math.Min(y - startY + clusterSize + 1, height - 1);
 
                                 count = (uint)((x2 - x1) * (y2 - y1));
-                                sum = (long)(intImage[x2, y2] - intImage[x1, y2] - intImage[x2, y1] + intImage[x1, y1]);
+                                sum = (long)Math.Min(intImage[x2, y2] - intImage[x1, y2] - intImage[x2, y1] + intImage[x1, y1], long.MaxValue);
 
                                 if ((rgb.R + rgb.G + rgb.B) * count <= sum * this.ThresholdLimit)
                                 {

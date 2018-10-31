@@ -34,31 +34,6 @@ namespace SixLabors.ImageSharp.Tests
         [Theory]
         [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32, true)]
         [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32, false)]
-        public void PaletteQuantizerYieldsCorrectTransparentPixel<TPixel>(
-            TestImageProvider<TPixel> provider,
-            bool dither)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                Assert.True(image[0, 0].Equals(default(TPixel)));
-
-                var quantizer = new WebSafePaletteQuantizer(dither);
-
-                foreach (ImageFrame<TPixel> frame in image.Frames)
-                {
-                    QuantizedFrame<TPixel> quantized =
-                        quantizer.CreateFrameQuantizer<TPixel>(this.Configuration).QuantizeFrame(frame);
-
-                    int index = this.GetTransparentIndex(quantized);
-                    Assert.Equal(index, quantized.GetPixelSpan()[0]);
-                }
-            }
-        }
-
-        [Theory]
-        [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32, true)]
-        [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32, false)]
         public void OctreeQuantizerYieldsCorrectTransparentPixel<TPixel>(
             TestImageProvider<TPixel> provider,
             bool dither)

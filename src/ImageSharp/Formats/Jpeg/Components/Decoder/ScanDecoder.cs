@@ -142,7 +142,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint LRot(uint x, int y) => (x << y) | (x >> (32 - y));
 
         private void ParseBaselineData()

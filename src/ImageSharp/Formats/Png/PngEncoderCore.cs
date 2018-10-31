@@ -318,9 +318,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                 {
                     var r = BitConverter.GetBytes(pngMetaData.Rgb48Trans.Value.R);
                     var g = BitConverter.GetBytes(pngMetaData.Rgb48Trans.Value.R);
-                    var B = BitConverter.GetBytes(pngMetaData.Rgb48Trans.Value.B);
+                    var b = BitConverter.GetBytes(pngMetaData.Rgb48Trans.Value.B);
 
-                    var alphaArray = r.Concat(g).Concat(B).ToArray();
+                    var alphaArray = r.Concat(g).Concat(b).ToArray();
 
                     this.WriteChunk(stream, PngChunkType.PaletteAlpha, alphaArray, 0, alphaArray.Length);
                 }

@@ -11,6 +11,8 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
 
 using Xunit;
+using Xunit.Abstractions;
+
 // ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests.Drawing.Text
@@ -22,8 +24,50 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
 
         private const string TestText = "Sphinx of black quartz, judge my vow\n0123456789";
 
-        public static ImageComparer TextDrawingComparer = ImageComparer.TolerantPercentage(0.01f);
-        public static ImageComparer OutlinedTextDrawingComparer = ImageComparer.TolerantPercentage(0.5f, 3);
+        public static ImageComparer TextDrawingComparer = ImageComparer.TolerantPercentage(1e-5f);
+        public static ImageComparer OutlinedTextDrawingComparer = ImageComparer.TolerantPercentage(5e-4f);
+
+        public DrawTextOnImageTests(ITestOutputHelper output)
+        {
+            this.Output = output;
+        }
+
+        private ITestOutputHelper Output { get; }
+
+        [Theory]
+        [WithSolidFilledImages(276, 336, "White", PixelTypes.Rgba32)]
+        public void DoesntThrowExceptionWhenOverlappingRightEdge_Issue688<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Font font = CreateFont("OpenSans-Regular.ttf", 36);
+            TPixel color = NamedColors<TPixel>.Black;
+            float padding = 5;
+            var text = "A short piece of text";
+
+            using (var img = provider.GetImage())
+            {
+                float targetWidth = img.Width - (padding * 2);
+                float targetHeight = img.Height - (padding * 2);
+
+                // measure the text size
+                SizeF size = TextMeasurer.Measure(text, new RendererOptions(font));
+
+                //find out how much we need to scale the text to fill the space (up or down)
+                float scalingFactor = Math.Min(img.Width / size.Width, img.Height / size.Height);
+
+                //create a new font 
+                Font scaledFont = new Font(font, scalingFactor * font.Size);
+
+                var center = new PointF(img.Width / 2, img.Height / 2);
+                var textGraphicOptions = new TextGraphicsOptions(true)
+                {
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                
+                img.Mutate(i => i.DrawText(textGraphicOptions, text, scaledFont, color, center));
+            }
+        }
 
         [Theory]
         [WithSolidFilledImages(200, 100, "White", PixelTypes.Rgba32, 50, 0, 0, "SixLaborsSampleAB.woff", AB)]
@@ -87,8 +131,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
 
             TPixel color = NamedColors<TPixel>.Black;
 
+            // Based on the reported 0.0270% difference with AccuracyMultiple = 8
+            // We should avoid quality regressions leading to higher difference!
+            var comparer = ImageComparer.TolerantPercentage(0.03f);
+
             provider.VerifyOperation(
-                TextDrawingComparer,
+                comparer,
                 img =>
                     {
                         img.Mutate(c => c.DrawText(textOptions, sb.ToString(), font, color, new PointF(10, 5)));
@@ -151,6 +199,31 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
                 appendSourceFileOrDescription: true);
         }
 
+        [Theory]
+        [WithSolidFilledImages(1000, 1500, "White", PixelTypes.Rgba32, "OpenSans-Regular.ttf")]
+        public void TextPositioningIsRobust<TPixel>(TestImageProvider<TPixel> provider, string fontName)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Font font = CreateFont(fontName, 30);
+
+            string text = Repeat("Beware the Jabberwock, my son!  The jaws that bite, the claws that catch!  Beware the Jubjub bird, and shun The frumious Bandersnatch!\n",
+                20);
+            var textOptions = new TextGraphicsOptions(true) { WrapTextWidth = 1000 };
+
+            string details = fontName.Replace(" ", "");
+
+            // Based on the reported 0.1755% difference with AccuracyMultiple = 8
+            // We should avoid quality regressions leading to higher difference!
+            var comparer = ImageComparer.TolerantPercentage(0.2f);
+
+            provider.RunValidatingProcessorTest(
+                x => x.DrawText(textOptions, text, font, NamedColors<TPixel>.Black, new PointF(10, 50)),
+                details,
+                comparer,
+                appendPixelTypeToFileName: false,
+                appendSourceFileOrDescription: false);
+        }
+
         private static string Repeat(string str, int times) => string.Concat(Enumerable.Repeat(str, times));
 
         private static string ToTestOutputDisplayText(string text)
@@ -167,5 +240,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             Font font = fontCollection.Install(fontPath).CreateFont(size);
             return font;
         }
+
+        
     }
 }

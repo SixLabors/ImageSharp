@@ -327,9 +327,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                 else if (pngMetaData.Rgb24Trans != null)
                 {
                     var alphaArray = new byte[6];
-                    alphaArray[0] = pngMetaData.Rgb24Trans.Value.R;
-                    alphaArray[2] = pngMetaData.Rgb24Trans.Value.G;
-                    alphaArray[4] = pngMetaData.Rgb24Trans.Value.B;
+                    alphaArray[1] = pngMetaData.Rgb24Trans.Value.R;
+                    alphaArray[3] = pngMetaData.Rgb24Trans.Value.G;
+                    alphaArray[5] = pngMetaData.Rgb24Trans.Value.B;
                     this.WriteChunk(stream, PngChunkType.PaletteAlpha, alphaArray, 0, alphaArray.Length);
                 }
             }
@@ -344,7 +344,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                 else if (pngMetaData.LuminanceTrans != null)
                 {
                     var alphaArray = new byte[2];
-                    alphaArray[0] = pngMetaData.LuminanceTrans.Value;
+                    alphaArray[1] = pngMetaData.LuminanceTrans.Value;
+
+                    this.WriteChunk(stream, PngChunkType.PaletteAlpha, alphaArray, 0, alphaArray.Length);
                 }
             }
         }

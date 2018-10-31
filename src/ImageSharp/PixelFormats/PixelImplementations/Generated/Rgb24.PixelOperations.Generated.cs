@@ -23,11 +23,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         internal class PixelOperations : PixelOperations<Rgb24>
         {
-			
-			/// <inheritdoc />
+            /// <inheritdoc />
             internal override void FromRgb24(Configuration configuration, ReadOnlySpan<Rgb24> source, Span<Rgb24> destPixels)
             {
-				Guard.NotNull(configuration, nameof(configuration));
+                Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(source, destPixels, nameof(destPixels));
 
                 source.CopyTo(destPixels);
@@ -36,42 +35,41 @@ namespace SixLabors.ImageSharp.PixelFormats
             /// <inheritdoc />
             internal override void ToRgb24(Configuration configuration, ReadOnlySpan<Rgb24> sourcePixels, Span<Rgb24> destPixels)
             {
-				Guard.NotNull(configuration, nameof(configuration));
+                Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
                 sourcePixels.CopyTo(destPixels);
             }
 
-					
-			/// <inheritdoc />
-			internal override void FromVector4(Configuration configuration, ReadOnlySpan<Vector4> sourceVectors, Span<Rgb24> destPixels)
-			{
-				Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, false);
-			}
+            /// <inheritdoc />
+            internal override void FromVector4(Configuration configuration, ReadOnlySpan<Vector4> sourceVectors, Span<Rgb24> destPixels)
+            {
+                Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, false);
+            }
 
-			/// <inheritdoc />
-			internal override void ToVector4(Configuration configuration, ReadOnlySpan<Rgb24> sourcePixels, Span<Vector4> destVectors)
-			{
-				Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, false);
-			}
+            /// <inheritdoc />
+            internal override void ToVector4(Configuration configuration, ReadOnlySpan<Rgb24> sourcePixels, Span<Vector4> destVectors)
+            {
+                Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, false);
+            }
 
-			/// <inheritdoc />
-			internal override void FromScaledVector4(Configuration configuration, ReadOnlySpan<Vector4> sourceVectors, Span<Rgb24> destPixels)
-			{
-				Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, true);
-			}
+            /// <inheritdoc />
+            internal override void FromScaledVector4(Configuration configuration, ReadOnlySpan<Vector4> sourceVectors, Span<Rgb24> destPixels)
+            {
+                Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, true);
+            }
 
-			/// <inheritdoc />
-			internal override void ToScaledVector4(Configuration configuration, ReadOnlySpan<Rgb24> sourcePixels, Span<Vector4> destVectors)
-			{
-				Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, true);
-			}
+            /// <inheritdoc />
+            internal override void ToScaledVector4(Configuration configuration, ReadOnlySpan<Rgb24> sourcePixels, Span<Vector4> destVectors)
+            {
+                Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, true);
+            }
 
-		
-			/// <inheritdoc />
+
+            /// <inheritdoc />
             internal override void ToArgb32(Configuration configuration, ReadOnlySpan<Rgb24> sourcePixels, Span<Argb32> destPixels)
             {
-				Guard.NotNull(configuration, nameof(configuration));
+                Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
                 ref Rgb24 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
@@ -85,11 +83,11 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromRgb24(sp);
                 }
             }
-		
-			/// <inheritdoc />
+
+            /// <inheritdoc />
             internal override void ToBgr24(Configuration configuration, ReadOnlySpan<Rgb24> sourcePixels, Span<Bgr24> destPixels)
             {
-				Guard.NotNull(configuration, nameof(configuration));
+                Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
                 ref Rgb24 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
@@ -103,11 +101,11 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromRgb24(sp);
                 }
             }
-		
-			/// <inheritdoc />
+
+            /// <inheritdoc />
             internal override void ToBgra32(Configuration configuration, ReadOnlySpan<Rgb24> sourcePixels, Span<Bgra32> destPixels)
             {
-				Guard.NotNull(configuration, nameof(configuration));
+                Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
                 ref Rgb24 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
@@ -121,11 +119,11 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromRgb24(sp);
                 }
             }
-		
-			/// <inheritdoc />
+
+            /// <inheritdoc />
             internal override void ToGray8(Configuration configuration, ReadOnlySpan<Rgb24> sourcePixels, Span<Gray8> destPixels)
             {
-				Guard.NotNull(configuration, nameof(configuration));
+                Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
                 ref Rgb24 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
@@ -139,11 +137,11 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromRgb24(sp);
                 }
             }
-		
-			/// <inheritdoc />
+
+            /// <inheritdoc />
             internal override void ToGray16(Configuration configuration, ReadOnlySpan<Rgb24> sourcePixels, Span<Gray16> destPixels)
             {
-				Guard.NotNull(configuration, nameof(configuration));
+                Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
                 ref Rgb24 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
@@ -157,11 +155,11 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromRgb24(sp);
                 }
             }
-		
-			/// <inheritdoc />
+
+            /// <inheritdoc />
             internal override void ToRgba32(Configuration configuration, ReadOnlySpan<Rgb24> sourcePixels, Span<Rgba32> destPixels)
             {
-				Guard.NotNull(configuration, nameof(configuration));
+                Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
                 ref Rgb24 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
@@ -175,11 +173,11 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromRgb24(sp);
                 }
             }
-		
-			/// <inheritdoc />
+
+            /// <inheritdoc />
             internal override void ToRgb48(Configuration configuration, ReadOnlySpan<Rgb24> sourcePixels, Span<Rgb48> destPixels)
             {
-				Guard.NotNull(configuration, nameof(configuration));
+                Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
                 ref Rgb24 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
@@ -193,11 +191,11 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromRgb24(sp);
                 }
             }
-		
-			/// <inheritdoc />
+
+            /// <inheritdoc />
             internal override void ToRgba64(Configuration configuration, ReadOnlySpan<Rgb24> sourcePixels, Span<Rgba64> destPixels)
             {
-				Guard.NotNull(configuration, nameof(configuration));
+                Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
                 ref Rgb24 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
@@ -211,7 +209,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromRgb24(sp);
                 }
             }
-		
-		}
-	}
+        }
+    }
 }

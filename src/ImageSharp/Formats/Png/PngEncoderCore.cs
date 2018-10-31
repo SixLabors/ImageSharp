@@ -292,7 +292,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             if (pngMetaData.HasTrans)
             {
-                //Write transparency header
+                this.WriteTransparencyMarkers(stream, pngMetaData);
             }
 
             this.WritePhysicalChunk(stream, metaData);
@@ -303,6 +303,50 @@ namespace SixLabors.ImageSharp.Formats.Png
             stream.Flush();
 
             quantized?.Dispose();
+        }
+
+        /// <summary>
+        /// Writes the transparency markers to the stream
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <param name="pngMetaData">The image meta data.</param>
+        private void WriteTransparencyMarkers(Stream stream, PngMetaData pngMetaData)
+        {
+            if (pngMetaData.ColorType == PngColorType.Rgb)
+            {
+                if (pngMetaData.Rgb48Trans != null)
+                {
+                    var r = BitConverter.GetBytes(pngMetaData.Rgb48Trans.Value.R);
+                    var g = BitConverter.GetBytes(pngMetaData.Rgb48Trans.Value.R);
+                    var B = BitConverter.GetBytes(pngMetaData.Rgb48Trans.Value.B);
+
+                    var alphaArray = r.Concat(g).Concat(B).ToArray();
+
+                    this.WriteChunk(stream, PngChunkType.PaletteAlpha, alphaArray, 0, alphaArray.Length);
+                }
+                else if (pngMetaData.Rgb24Trans != null)
+                {
+                    var alphaArray = new byte[6];
+                    alphaArray[0] = pngMetaData.Rgb24Trans.Value.R;
+                    alphaArray[2] = pngMetaData.Rgb24Trans.Value.G;
+                    alphaArray[4] = pngMetaData.Rgb24Trans.Value.B;
+                    this.WriteChunk(stream, PngChunkType.PaletteAlpha, alphaArray, 0, alphaArray.Length);
+                }
+            }
+            else if (pngMetaData.ColorType == PngColorType.Grayscale)
+            {
+                if (pngMetaData.Luminance16Trans != null)
+                {
+                    var alphaArray = BitConverter.GetBytes(pngMetaData.Luminance16Trans.Value);
+
+                    this.WriteChunk(stream, PngChunkType.PaletteAlpha, alphaArray, 0, alphaArray.Length);
+                }
+                else if (pngMetaData.LuminanceTrans != null)
+                {
+                    var alphaArray = new byte[2];
+                    alphaArray[0] = pngMetaData.LuminanceTrans.Value;
+                }
+            }
         }
 
         /// <inheritdoc />
@@ -848,7 +892,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Writes the chunk end to the stream.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        private void WriteEndChunk(Stream stream) => this.WriteChunk(stream, PngChunkType.End, null);
+        private void WriteEndChunk(Stream stream)
+        {
+            this.WriteChunk(stream, PngChunkType.End, null);
+        }
 
         /// <summary>
         /// Writes a chunk to the stream.
@@ -856,7 +903,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
         /// <param name="type">The type of chunk to write.</param>
         /// <param name="data">The <see cref="T:byte[]"/> containing data.</param>
-        private void WriteChunk(Stream stream, PngChunkType type, byte[] data) => this.WriteChunk(stream, type, data, 0, data?.Length ?? 0);
+        private void WriteChunk(Stream stream, PngChunkType type, byte[] data)
+        {
+            this.WriteChunk(stream, type, data, 0, data?.Length ?? 0);
+        }
 
         /// <summary>
         /// Writes a chunk of a specified length to the stream at the given offset.

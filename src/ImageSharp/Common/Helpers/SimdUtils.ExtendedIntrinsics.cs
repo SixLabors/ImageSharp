@@ -26,6 +26,20 @@ namespace SixLabors.ImageSharp
 #endif
 
             /// <summary>
+            /// Widen and convert a vector of <see cref="short"/> values into 2 vectors of <see cref="float"/>-s.
+            /// </summary>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            internal static void ConvertToSingle(
+                Vector<short> source,
+                out Vector<float> dest1,
+                out Vector<float> dest2)
+            {
+                Vector.Widen(source, out Vector<int> i1, out Vector<int> i2);
+                dest1 = Vector.ConvertToSingle(i1);
+                dest2 = Vector.ConvertToSingle(i2);
+            }
+
+            /// <summary>
             /// <see cref="BulkConvertByteToNormalizedFloat"/> as many elements as possible, slicing them down (keeping the remainder).
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]

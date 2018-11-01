@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Fill the block from 'source' doing short -> float conversion.
         /// </summary>
-        public void LoadFrom(ref Block8x8 source)
+        public void LoadFromInt16Scalar(ref Block8x8 source)
         {
             ref short selfRef = ref Unsafe.As<Block8x8, short>(ref source);
 

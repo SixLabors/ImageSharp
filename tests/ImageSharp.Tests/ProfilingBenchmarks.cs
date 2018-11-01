@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests
     public class ProfilingBenchmarks : MeasureFixture
     {
         public const string SkipProfilingTests =
-#if false
+#if true
             null;
 #else
             "Profiling benchmark, enable manually!";

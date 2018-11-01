@@ -24,21 +24,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         public static readonly TheoryData<string> DecodeJpegData = new TheoryData<string>()
         {
-            TestImages.Jpeg.Baseline.Cmyk,
-            TestImages.Jpeg.Baseline.Ycck,
+            //TestImages.Jpeg.Baseline.Cmyk,
+            //TestImages.Jpeg.Baseline.Ycck,
             TestImages.Jpeg.Baseline.Calliphora,
             TestImages.Jpeg.Baseline.Jpeg400,
             TestImages.Jpeg.Baseline.Jpeg420Exif,
             TestImages.Jpeg.Baseline.Jpeg444,
         };
 
-        // [Theory] // Benchmark, enable manually
-        // [MemberData(nameof(DecodeJpegData))]
+        [Theory] // Benchmark, enable manually
+        [MemberData(nameof(DecodeJpegData))]
         public void DecodeJpeg(string fileName)
         {
             this.DecodeJpegBenchmarkImpl(fileName, new JpegDecoder());
         }
-
+        
         private void DecodeJpegBenchmarkImpl(string fileName, IImageDecoder decoder)
         {
             // do not run this on CI even by accident

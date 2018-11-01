@@ -112,6 +112,8 @@ namespace SixLabors.ImageSharp.IO
         /// byte array with the values between offset and (offset + count - 1) replaced by
         /// the bytes read from the current source.
         /// </param>
+        /// <returns>
+        /// The number of read bytes.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int Read(Span<byte> buffer)

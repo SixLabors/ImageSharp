@@ -514,9 +514,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            Span<byte> jfigMarker = stackalloc byte[JFifMarker.Length];
+            Span<byte> jfigMarker = stackalloc byte[JFifMarker.Length]; // 13 bytes
 
-            // 13 bytes
             this.InputStream.Read(jfigMarker);
 
             remaining -= JFifMarker.Length;
@@ -838,7 +837,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     }
                 }
             }
-
         }
 
         /// <summary>

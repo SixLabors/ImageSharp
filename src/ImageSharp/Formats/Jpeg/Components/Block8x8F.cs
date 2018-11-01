@@ -493,6 +493,51 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             }
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void LoadFrom(ref Block8x8 source)
+        {
+#if SUPPORTS_EXTENDED_INTRINSICS
+            if (SimdUtils.IsAvx2CompatibleArchitecture)
+            {
+                this.LoadFromInt16ExtendedAvx2(ref source);
+                return;
+            }
+#endif
+            this.LoadFromInt16Scalar(ref source);
+        }
+
+        /// <summary>
+        /// Loads values from <paramref name="source"/> using extended AVX2 intrinsics.
+        /// </summary>
+        /// <param name="source">The source <see cref="Block8x8"/></param>
+        public void LoadFromInt16ExtendedAvx2(ref Block8x8 source)
+        {
+            DebugGuard.IsTrue(
+                SimdUtils.IsAvx2CompatibleArchitecture,
+                "LoadFromUInt16ExtendedAvx2 only works on AVX2 compatible architecture!");
+
+            ref Vector<short> sRef = ref Unsafe.As<Block8x8, Vector<short>>(ref source);
+            ref Vector<float> dRef = ref Unsafe.As<Block8x8F, Vector<float>>(ref this);
+
+            // Vector<ushort>.Count == 16 on AVX2
+            // We can process 2 block rows in a single step
+            SimdUtils.ExtendedIntrinsics.ConvertToSingle(sRef, out Vector<float> top, out Vector<float> bottom);
+            dRef = top;
+            Unsafe.Add(ref dRef, 1) = bottom;
+
+            SimdUtils.ExtendedIntrinsics.ConvertToSingle(Unsafe.Add(ref sRef, 1), out top, out bottom);
+            Unsafe.Add(ref dRef, 2) = top;
+            Unsafe.Add(ref dRef, 3) = bottom;
+
+            SimdUtils.ExtendedIntrinsics.ConvertToSingle(Unsafe.Add(ref sRef, 2), out top, out bottom);
+            Unsafe.Add(ref dRef, 4) = top;
+            Unsafe.Add(ref dRef, 5) = bottom;
+
+            SimdUtils.ExtendedIntrinsics.ConvertToSingle(Unsafe.Add(ref sRef, 3), out top, out bottom);
+            Unsafe.Add(ref dRef, 6) = top;
+            Unsafe.Add(ref dRef, 7) = bottom;
+        }
+
         /// <inheritdoc />
         public override string ToString()
         {

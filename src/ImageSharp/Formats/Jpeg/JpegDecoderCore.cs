@@ -46,11 +46,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private readonly byte[] temp = new byte[2 * 16 * 4];
 
         /// <summary>
-        /// The buffer used to read markers from the stream.
-        /// </summary>
-        private readonly byte[] markerBuffer = new byte[2];
-
-        /// <summary>
         /// The DC HUffman tables
         /// </summary>
         private HuffmanTables dcHuffmanTables;
@@ -174,23 +169,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Finds the next file marker within the byte stream.
         /// </summary>
-        /// <param name="marker">The buffer to read file markers to</param>
+        /// <param name="markerBuffer">The buffer to read file markers to</param>
         /// <param name="stream">The input stream</param>
         /// <returns>The <see cref="JpegFileMarker"/></returns>
-        public static JpegFileMarker FindNextFileMarker(byte[] marker, DoubleBufferedStreamReader stream)
+        public static JpegFileMarker FindNextFileMarker(Span<byte> markerBuffer, DoubleBufferedStreamReader stream)
         {
-            int value = stream.Read(marker, 0, 2);
+            int value = stream.Read(markerBuffer);
 
             if (value == 0)
             {
                 return new JpegFileMarker(JpegConstants.Markers.EOI, stream.Length - 2);
             }
 
-            if (marker[0] == JpegConstants.Markers.XFF)
+            if (markerBuffer[0] == JpegConstants.Markers.XFF)
             {
                 // According to Section B.1.1.2:
                 // "Any marker may optionally be preceded by any number of fill bytes, which are bytes assigned code 0xFF."
-                int m = marker[1];
+                int m = markerBuffer[1];
                 while (m == JpegConstants.Markers.XFF)
                 {
                     int suffix = stream.ReadByte();
@@ -205,7 +200,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return new JpegFileMarker((byte)m, stream.Position - 2);
             }
 
-            return new JpegFileMarker(marker[1], stream.Position - 2, true);
+            return new JpegFileMarker(markerBuffer[1], stream.Position - 2, true);
         }
 
         /// <summary>
@@ -248,16 +243,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.MetaData = new ImageMetaData();
             this.InputStream = new DoubleBufferedStreamReader(this.configuration.MemoryAllocator, stream);
 
+            Span<byte> markerBuffer = stackalloc byte[2];
+
             // Check for the Start Of Image marker.
-            this.InputStream.Read(this.markerBuffer, 0, 2);
-            var fileMarker = new JpegFileMarker(this.markerBuffer[1], 0);
+            this.InputStream.Read(markerBuffer);
+            var fileMarker = new JpegFileMarker(markerBuffer[1], 0);
             if (fileMarker.Marker != JpegConstants.Markers.SOI)
             {
                 throw new ImageFormatException("Missing SOI marker.");
             }
 
-            this.InputStream.Read(this.markerBuffer, 0, 2);
-            byte marker = this.markerBuffer[1];
+            this.InputStream.Read(markerBuffer);
+            byte marker = markerBuffer[1];
             fileMarker = new JpegFileMarker(marker, (int)this.InputStream.Position - 2);
             this.QuantizationTables = new Block8x8F[4];
 
@@ -367,7 +364,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 }
 
                 // Read on.
-                fileMarker = FindNextFileMarker(this.markerBuffer, this.InputStream);
+                fileMarker = FindNextFileMarker(markerBuffer, this.InputStream);
             }
         }
 
@@ -518,10 +515,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            this.InputStream.Read(this.temp, 0, JFifMarker.Length);
+            Span<byte> jfigMarker = stackalloc byte[JFifMarker.Length];
+
+            // 13 bytes
+            this.InputStream.Read(jfigMarker);
+
             remaining -= JFifMarker.Length;
 
-            JFifMarker.TryParse(this.temp, out this.jFif);
+            JFifMarker.TryParse(jfigMarker, out this.jFif);
 
             // TODO: thumbnail
             if (remaining > 0)
@@ -545,7 +546,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
 
             byte[] profile = new byte[remaining];
-            this.InputStream.Read(profile, 0, remaining);
+            this.InputStream.Read(profile.AsSpan(0, remaining));
 
             if (ProfileResolver.IsProfile(profile, ProfileResolver.ExifMarker))
             {
@@ -571,21 +572,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             // Length is 14 though we only need to check 12.
             const int Icclength = 14;
+
             if (remaining < Icclength || this.IgnoreMetadata)
             {
                 this.InputStream.Skip(remaining);
                 return;
             }
 
-            byte[] identifier = new byte[Icclength];
-            this.InputStream.Read(identifier, 0, Icclength);
+            Span<byte> iccIdentifier = stackalloc byte[Icclength];
+
+            this.InputStream.Read(iccIdentifier);
+
             remaining -= Icclength; // We have read it by this point
 
-            if (ProfileResolver.IsProfile(identifier, ProfileResolver.IccMarker))
+            if (ProfileResolver.IsProfile(iccIdentifier, ProfileResolver.IccMarker))
             {
                 this.isIcc = true;
                 byte[] profile = new byte[remaining];
-                this.InputStream.Read(profile, 0, remaining);
+                this.InputStream.Read(profile.AsSpan(0, remaining));
 
                 if (this.iccData is null)
                 {
@@ -611,7 +615,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessApp14Marker(int remaining)
         {
-            const int MarkerLength = AdobeMarker.Length;
+            const int MarkerLength = AdobeMarker.Length; // 12 bytes
+
             if (remaining < MarkerLength)
             {
                 // Skip the application header length
@@ -619,10 +624,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            this.InputStream.Read(this.temp, 0, MarkerLength);
+            Span<byte> adobeMarker = stackalloc byte[MarkerLength];
+
+            this.InputStream.Read(adobeMarker);
+
             remaining -= MarkerLength;
 
-            AdobeMarker.TryParse(this.temp, out this.adobe);
+            AdobeMarker.TryParse(adobeMarker, out this.adobe);
 
             if (remaining > 0)
             {
@@ -656,7 +664,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                                 break;
                             }
 
-                            this.InputStream.Read(this.temp, 0, 64);
+                            this.InputStream.Read(this.temp.AsSpan(0, 64));
                             remaining -= 64;
 
                             ref Block8x8F table = ref this.QuantizationTables[quantizationTableSpec & 15];
@@ -676,7 +684,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                                 break;
                             }
 
-                            this.InputStream.Read(this.temp, 0, 128);
+                            this.InputStream.Read(this.temp.AsSpan(0, 128));
                             remaining -= 128;
 
                             ref Block8x8F table = ref this.QuantizationTables[quantizationTableSpec & 15];
@@ -718,7 +726,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 throw new ImageFormatException("Multiple SOF markers. Only single frame jpegs supported.");
             }
 
-            this.InputStream.Read(this.temp, 0, remaining);
+            this.InputStream.Read(this.temp.AsSpan(0, remaining));
 
             // We only support 8-bit precision.
             if (this.temp[0] != SupportedPrecision)
@@ -791,48 +799,47 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessDefineHuffmanTablesMarker(int remaining)
         {
-            using (IManagedByteBuffer huffmanData = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(256, AllocationOptions.Clean))
+            Span<byte> huffmanData = stackalloc byte[16];
+
+            ref byte huffmanDataRef = ref MemoryMarshal.GetReference(huffmanData);
+            for (int i = 2; i < remaining;)
             {
-                ref byte huffmanDataRef = ref MemoryMarshal.GetReference(huffmanData.GetSpan());
-                for (int i = 2; i < remaining;)
+                byte huffmanTableSpec = (byte)this.InputStream.ReadByte();
+                this.InputStream.Read(huffmanData.Slice(0, 16));
+
+                Span<byte> codeLengths = stackalloc byte[17];
+
+                ref byte codeLengthsRef = ref MemoryMarshal.GetReference(codeLengths);
+                int codeLengthSum = 0;
+
+                for (int j = 1; j < 17; j++)
                 {
-                    byte huffmanTableSpec = (byte)this.InputStream.ReadByte();
-                    this.InputStream.Read(huffmanData.Array, 0, 16);
+                    codeLengthSum += Unsafe.Add(ref codeLengthsRef, j) = Unsafe.Add(ref huffmanDataRef, j - 1);
+                }
 
-                    using (IManagedByteBuffer codeLengths = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(17, AllocationOptions.Clean))
+                using (IManagedByteBuffer huffmanValues = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(256, AllocationOptions.Clean))
+                {
+                    this.InputStream.Read(huffmanValues.Array.AsSpan(0, codeLengthSum));
+
+                    i += 17 + codeLengthSum;
+
+                    int tableType = huffmanTableSpec >> 4;
+                    int tableIndex = huffmanTableSpec & 15;
+
+                    this.BuildHuffmanTable(
+                        tableType == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
+                        tableIndex,
+                        codeLengths,
+                        huffmanValues.GetSpan());
+
+                    if (tableType != 0)
                     {
-                        ref byte codeLengthsRef = ref MemoryMarshal.GetReference(codeLengths.GetSpan());
-                        int codeLengthSum = 0;
-
-                        for (int j = 1; j < 17; j++)
-                        {
-                            codeLengthSum += Unsafe.Add(ref codeLengthsRef, j) = Unsafe.Add(ref huffmanDataRef, j - 1);
-                        }
-
-                        using (IManagedByteBuffer huffmanValues = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(256, AllocationOptions.Clean))
-                        {
-                            this.InputStream.Read(huffmanValues.Array, 0, codeLengthSum);
-
-                            i += 17 + codeLengthSum;
-
-                            int tableType = huffmanTableSpec >> 4;
-                            int tableIndex = huffmanTableSpec & 15;
-
-                            this.BuildHuffmanTable(
-                                tableType == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
-                                tableIndex,
-                                codeLengths.GetSpan(),
-                                huffmanValues.GetSpan());
-
-                            if (tableType != 0)
-                            {
-                                // Build a table that decodes both magnitude and value of small ACs in one go.
-                                this.fastACTables.BuildACTableLut(tableIndex, this.acHuffmanTables);
-                            }
-                        }
+                        // Build a table that decodes both magnitude and value of small ACs in one go.
+                        this.fastACTables.BuildACTableLut(tableIndex, this.acHuffmanTables);
                     }
                 }
             }
+
         }
 
         /// <summary>
@@ -884,7 +891,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.Frame.ComponentOrder[i] = (byte)componentIndex;
             }
 
-            this.InputStream.Read(this.temp, 0, 3);
+            this.InputStream.Read(this.temp.AsSpan(0, 3));
 
             int spectralStart = this.temp[0];
             int spectralEnd = this.temp[1];
@@ -924,8 +931,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private ushort ReadUint16()
         {
-            this.InputStream.Read(this.markerBuffer, 0, 2);
-            return BinaryPrimitives.ReadUInt16BigEndian(this.markerBuffer);
+            Span<byte> buffer = stackalloc byte[2];
+
+            this.InputStream.Read(buffer);
+
+            return BinaryPrimitives.ReadUInt16BigEndian(buffer);
         }
 
         /// <summary>

@@ -34,6 +34,8 @@ namespace SixLabors.ImageSharp.IO
 
         private int position;
 
+        private readonly MemoryAllocator memoryAllocator;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="DoubleBufferedStreamReader"/> class.
         /// </summary>
@@ -45,6 +47,7 @@ namespace SixLabors.ImageSharp.IO
             this.length = (int)stream.Length;
             this.managedBuffer = memoryAllocator.AllocateManagedByteBuffer(ChunkLength, AllocationOptions.Clean);
             this.bufferChunk = this.managedBuffer.Array;
+            this.memoryAllocator = memoryAllocator;
         }
 
         /// <summary>
@@ -109,31 +112,22 @@ namespace SixLabors.ImageSharp.IO
         /// byte array with the values between offset and (offset + count - 1) replaced by
         /// the bytes read from the current source.
         /// </param>
-        /// <param name="offset">
-        /// The zero-based byte offset in buffer at which to begin storing the data read
-        /// from the current stream.
-        /// </param>
-        /// <param name="count">The maximum number of bytes to be read from the current stream.</param>
-        /// <returns>
-        /// The total number of bytes read into the buffer. This can be less than the number
-        /// of bytes requested if that many bytes are not currently available, or zero (0)
-        /// if the end of the stream has been reached.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int Read(byte[] buffer, int offset, int count)
+        public int Read(Span<byte> buffer)
         {
             if (buffer.Length > ChunkLength)
             {
-                return this.ReadToBufferSlow(buffer, offset, count);
+                return this.ReadToBufferSlow(buffer);
             }
 
-            if (this.position == 0 || count + this.bytesRead > ChunkLength)
+            if (this.position == 0 || buffer.Length + this.bytesRead > ChunkLength)
             {
-                return this.ReadToChunkSlow(buffer, offset, count);
+                return this.ReadToChunkSlow(buffer);
             }
 
-            int n = this.GetCount(count);
-            this.CopyBytes(buffer, offset, n);
+            int n = this.GetCount(buffer.Length);
+            this.CopyBytes(buffer.Slice(0, n));
 
             this.position += n;
             this.bytesRead += n;
@@ -163,7 +157,7 @@ namespace SixLabors.ImageSharp.IO
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private int ReadToChunkSlow(byte[] buffer, int offset, int count)
+        private int ReadToChunkSlow(Span<byte> buffer)
         {
             // Refill our buffer then copy.
             if (this.position != this.stream.Position)
@@ -174,8 +168,8 @@ namespace SixLabors.ImageSharp.IO
             this.stream.Read(this.bufferChunk, 0, ChunkLength);
             this.bytesRead = 0;
 
-            int n = this.GetCount(count);
-            this.CopyBytes(buffer, offset, n);
+            int n = this.GetCount(buffer.Length);
+            this.CopyBytes(buffer.Slice(0, n));
 
             this.position += n;
             this.bytesRead += n;
@@ -184,7 +178,7 @@ namespace SixLabors.ImageSharp.IO
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private int ReadToBufferSlow(byte[] buffer, int offset, int count)
+        private int ReadToBufferSlow(Span<byte> buffer)
         {
             // Read to target but don't copy to our chunk.
             if (this.position != this.stream.Position)
@@ -192,7 +186,18 @@ namespace SixLabors.ImageSharp.IO
                 this.stream.Seek(this.position, SeekOrigin.Begin);
             }
 
-            int n = this.stream.Read(buffer, offset, count);
+            int n;
+
+#if NETCOREAPP2_1
+            n = this.stream.Read(buffer);
+#else
+            using (IManagedByteBuffer temp = this.memoryAllocator.AllocateManagedByteBuffer(buffer.Length))
+            {
+                n = this.stream.Read(temp.Array, 0, buffer.Length);
+
+                temp.Array.AsSpan(0, n).CopyTo(buffer);
+            }
+#endif
             this.Position += n;
             return n;
         }
@@ -215,23 +220,9 @@ namespace SixLabors.ImageSharp.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CopyBytes(byte[] buffer, int offset, int count)
+        private void CopyBytes(Span<byte> buffer)
         {
-            if (count < 9)
-            {
-                int byteCount = count;
-                int read = this.bytesRead;
-                byte[] chunk = this.bufferChunk;
-
-                while (--byteCount > -1)
-                {
-                    buffer[offset + byteCount] = chunk[read + byteCount];
-                }
-            }
-            else
-            {
-                Buffer.BlockCopy(this.bufferChunk, this.bytesRead, buffer, offset, count);
-            }
+            this.bufferChunk.AsSpan(this.bytesRead, buffer.Length).CopyTo(buffer);
         }
     }
 }

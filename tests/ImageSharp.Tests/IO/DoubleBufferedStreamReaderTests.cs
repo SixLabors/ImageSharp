@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests.IO
                 byte[] expected = stream.ToArray();
                 var reader = new DoubleBufferedStreamReader(this.allocator, stream);
 
-                Assert.Equal(2, reader.Read(buffer, 0, 2));
+                Assert.Equal(2, reader.Read(buffer.AsSpan(0, 2)));
                 Assert.Equal(expected[0], buffer[0]);
                 Assert.Equal(expected[1], buffer[1]);
 
@@ -108,8 +108,7 @@ namespace SixLabors.ImageSharp.Tests.IO
 
                 for (int i = 0, o = 0; i < expected.Length / 2; i++, o += 2)
                 {
-
-                    Assert.Equal(2, reader.Read(buffer, 0, 2));
+                    Assert.Equal(2, reader.Read(buffer.AsSpan(0, 2)));
                     Assert.Equal(expected[o], buffer[0]);
                     Assert.Equal(expected[o + 1], buffer[1]);
                     Assert.Equal(o + 2, reader.Position);

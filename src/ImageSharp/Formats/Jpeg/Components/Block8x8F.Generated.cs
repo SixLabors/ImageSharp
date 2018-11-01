@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Transpose the block into the destination block.
         /// </summary>
         /// <param name="d">The destination block</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(InliningOptions.ShortMethod)]
         public void TransposeInto(ref Block8x8F d)
         {
             d.V0L.X = V0L.X;
@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// AVX2-only variant for executing <see cref="NormalizeColorsInplace"/> and <see cref="RoundInplace"/> in one step.
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void NormalizeColorsAndRoundInplaceAvx2()
         {
             Vector<float> off = new Vector<float>(128f);

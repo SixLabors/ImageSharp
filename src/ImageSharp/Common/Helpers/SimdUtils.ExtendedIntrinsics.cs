@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp
             /// <summary>
             /// Widen and convert a vector of <see cref="short"/> values into 2 vectors of <see cref="float"/>-s.
             /// </summary>
-            [MethodImpl(InliningOptions.ShortMethod)]
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             internal static void ConvertToSingle(
                 Vector<short> source,
                 out Vector<float> dest1,

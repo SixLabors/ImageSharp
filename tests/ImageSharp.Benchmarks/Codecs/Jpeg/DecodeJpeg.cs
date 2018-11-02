@@ -76,5 +76,14 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         //                                 |         |                              |          |           |           |        |          |          |           |
         //  'Decode Jpeg - System.Drawing' |    Core | Jpg/baseline/jpeg420exif.jpg | 17.45 ms |  2.092 ms | 0.1182 ms |   1.00 |     0.00 | 218.7500 | 757.04 KB |
         //      'Decode Jpeg - ImageSharp' |    Core | Jpg/baseline/jpeg420exif.jpg | 48.39 ms | 14.562 ms | 0.8228 ms |   2.77 |     0.04 | 125.0000 | 529.96 KB |
+
+        // RESULTS (2018 November 1):
+        //                          Method | Runtime |                    TestImage |     Mean |     Error |    StdDev | Scaled | ScaledSD |    Gen 0 | Allocated |
+        // ------------------------------- |-------- |----------------------------- |---------:|----------:|----------:|-------:|---------:|---------:|----------:|
+        //  'Decode Jpeg - System.Drawing' |     Clr | Jpg/baseline/jpeg420exif.jpg | 17.59 ms |  4.611 ms | 0.2605 ms |   1.00 |     0.00 | 218.7500 | 757.88 KB |
+        //      'Decode Jpeg - ImageSharp' |     Clr | Jpg/baseline/jpeg420exif.jpg | 55.33 ms |  2.133 ms | 0.1205 ms |   3.15 |     0.04 | 125.0000 | 566.01 KB |
+        //                                 |         |                              |          |           |           |        |          |          |           |
+        //  'Decode Jpeg - System.Drawing' |    Core | Jpg/baseline/jpeg420exif.jpg | 17.83 ms | 24.326 ms | 1.3745 ms |   1.00 |     0.00 | 218.7500 | 757.04 KB |
+        //      'Decode Jpeg - ImageSharp' |    Core | Jpg/baseline/jpeg420exif.jpg | 44.93 ms |  3.088 ms | 0.1745 ms |   2.53 |     0.15 | 125.0000 | 529.96 KB |
     }
 }

@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.MetaData.Profiles.Icc;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.MetaData
 {

@@ -656,8 +656,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                         scanlineSpan,
                         rowSpan,
                         pngMetaData.HasTrans,
-                        pngMetaData.Luminance16Trans.GetValueOrDefault(),
-                        pngMetaData.LuminanceTrans.GetValueOrDefault());
+                        pngMetaData.TransparentGray16.GetValueOrDefault(),
+                        pngMetaData.TransparentGray8.GetValueOrDefault());
 
                     break;
 
@@ -690,8 +690,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                         this.bytesPerPixel,
                         this.bytesPerSample,
                         pngMetaData.HasTrans,
-                        pngMetaData.Rgb48Trans.GetValueOrDefault(),
-                        pngMetaData.Rgb24Trans.GetValueOrDefault());
+                        pngMetaData.TransparentRgb48.GetValueOrDefault(),
+                        pngMetaData.TransparentRgb24.GetValueOrDefault());
 
                     break;
 
@@ -740,8 +740,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                         pixelOffset,
                         increment,
                         pngMetaData.HasTrans,
-                        pngMetaData.Luminance16Trans.GetValueOrDefault(),
-                        pngMetaData.LuminanceTrans.GetValueOrDefault());
+                        pngMetaData.TransparentGray16.GetValueOrDefault(),
+                        pngMetaData.TransparentGray8.GetValueOrDefault());
 
                     break;
 
@@ -779,8 +779,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                         this.bytesPerPixel,
                         this.bytesPerSample,
                         pngMetaData.HasTrans,
-                        pngMetaData.Rgb48Trans.GetValueOrDefault(),
-                        pngMetaData.Rgb24Trans.GetValueOrDefault());
+                        pngMetaData.TransparentRgb48.GetValueOrDefault(),
+                        pngMetaData.TransparentRgb24.GetValueOrDefault());
 
                     break;
 
@@ -817,7 +817,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         ushort gc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(2, 2));
                         ushort bc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(4, 2));
 
-                        pngMetaData.Rgb48Trans = new Rgb48(rc, gc, bc);
+                        pngMetaData.TransparentRgb48 = new Rgb48(rc, gc, bc);
                         pngMetaData.HasTrans = true;
                         return;
                     }
@@ -825,7 +825,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     byte r = ReadByteLittleEndian(alpha, 0);
                     byte g = ReadByteLittleEndian(alpha, 2);
                     byte b = ReadByteLittleEndian(alpha, 4);
-                    pngMetaData.Rgb24Trans = new Rgb24(r, g, b);
+                    pngMetaData.TransparentRgb24 = new Rgb24(r, g, b);
                     pngMetaData.HasTrans = true;
                 }
             }
@@ -835,11 +835,11 @@ namespace SixLabors.ImageSharp.Formats.Png
                 {
                     if (this.header.BitDepth == 16)
                     {
-                        pngMetaData.Luminance16Trans = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(0, 2));
+                        pngMetaData.TransparentGray16 = new Gray16(BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(0, 2)));
                     }
                     else
                     {
-                        pngMetaData.LuminanceTrans = ReadByteLittleEndian(alpha, 0);
+                        pngMetaData.TransparentGray8 = new Gray8(ReadByteLittleEndian(alpha, 0));
                     }
 
                     pngMetaData.HasTrans = true;

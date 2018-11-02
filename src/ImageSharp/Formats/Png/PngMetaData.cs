@@ -47,22 +47,22 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Gets or sets the Rgb 24 transparent color. This represents any color in an 8 bit Rgb24 encoded png that should be transparent
         /// </summary>
-        public Rgb24? Rgb24Trans { get; set; }
+        public Rgb24? TransparentRgb24 { get; set; }
 
         /// <summary>
         /// Gets or sets the Rgb 48 transparent color. This represents any color in a 16 bit Rgb24 encoded png that should be transparent
         /// </summary>
-        public Rgb48? Rgb48Trans { get; set; }
+        public Rgb48? TransparentRgb48 { get; set; }
 
         /// <summary>
         /// Gets or sets the 8 bit grayscale transparent color. This represents any color in an 8 bit grayscale encoded png that should be transparent
         /// </summary>
-        public byte? LuminanceTrans { get; set; }
+        public Gray8? TransparentGray8 { get; set; }
 
         /// <summary>
         /// Gets or sets the 16 bit grayscale transparent color. This represents any color in a 16 bit grayscale encoded png that should be transparent
         /// </summary>
-        public ushort? Luminance16Trans { get; set; }
+        public Gray16? TransparentGray16 { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the image has transparency chunk and markers were decoded

@@ -314,37 +314,37 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             if (pngMetaData.ColorType == PngColorType.Rgb)
             {
-                if (pngMetaData.Rgb48Trans != null)
+                if (pngMetaData.TransparentRgb48 != null)
                 {
-                    var r = BitConverter.GetBytes(pngMetaData.Rgb48Trans.Value.R);
-                    var g = BitConverter.GetBytes(pngMetaData.Rgb48Trans.Value.R);
-                    var b = BitConverter.GetBytes(pngMetaData.Rgb48Trans.Value.B);
+                    var r = BitConverter.GetBytes(pngMetaData.TransparentRgb48.Value.R);
+                    var g = BitConverter.GetBytes(pngMetaData.TransparentRgb48.Value.R);
+                    var b = BitConverter.GetBytes(pngMetaData.TransparentRgb48.Value.B);
 
                     var alphaArray = r.Concat(g).Concat(b).ToArray();
 
                     this.WriteChunk(stream, PngChunkType.PaletteAlpha, alphaArray, 0, alphaArray.Length);
                 }
-                else if (pngMetaData.Rgb24Trans != null)
+                else if (pngMetaData.TransparentRgb24 != null)
                 {
                     var alphaArray = new byte[6];
-                    alphaArray[1] = pngMetaData.Rgb24Trans.Value.R;
-                    alphaArray[3] = pngMetaData.Rgb24Trans.Value.G;
-                    alphaArray[5] = pngMetaData.Rgb24Trans.Value.B;
+                    alphaArray[1] = pngMetaData.TransparentRgb24.Value.R;
+                    alphaArray[3] = pngMetaData.TransparentRgb24.Value.G;
+                    alphaArray[5] = pngMetaData.TransparentRgb24.Value.B;
                     this.WriteChunk(stream, PngChunkType.PaletteAlpha, alphaArray, 0, alphaArray.Length);
                 }
             }
             else if (pngMetaData.ColorType == PngColorType.Grayscale)
             {
-                if (pngMetaData.Luminance16Trans != null)
+                if (pngMetaData.TransparentGray16 != null)
                 {
-                    var alphaArray = BitConverter.GetBytes(pngMetaData.Luminance16Trans.Value);
+                    var alphaArray = BitConverter.GetBytes(pngMetaData.TransparentGray16.Value.PackedValue);
 
                     this.WriteChunk(stream, PngChunkType.PaletteAlpha, alphaArray, 0, alphaArray.Length);
                 }
-                else if (pngMetaData.LuminanceTrans != null)
+                else if (pngMetaData.TransparentGray8 != null)
                 {
                     var alphaArray = new byte[2];
-                    alphaArray[1] = pngMetaData.LuminanceTrans.Value;
+                    alphaArray[1] = pngMetaData.TransparentGray8.Value.PackedValue;
 
                     this.WriteChunk(stream, PngChunkType.PaletteAlpha, alphaArray, 0, alphaArray.Length);
                 }

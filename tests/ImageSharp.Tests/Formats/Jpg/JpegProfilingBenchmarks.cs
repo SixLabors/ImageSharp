@@ -32,8 +32,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             TestImages.Jpeg.Baseline.Jpeg444,
         };
 
-        //[Theory] // Benchmark, enable manually
-        //[MemberData(nameof(DecodeJpegData))]
+        [Theory] // Benchmark, enable manually
+        [MemberData(nameof(DecodeJpegData))]
         public void DecodeJpeg(string fileName)
         {
             this.DecodeJpegBenchmarkImpl(fileName, new JpegDecoder());
@@ -62,6 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 () =>
                     {
                         var img = Image.Load<Rgba32>(bytes, decoder);
+                        img.Dispose();
                     },
                 // ReSharper disable once ExplicitCallerInfoArgument
                 $"Decode {fileName}");

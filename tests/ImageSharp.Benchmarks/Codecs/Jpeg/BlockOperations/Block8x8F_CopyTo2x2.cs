@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WidenCopyImpl2x2(ref Block8x8F src, ref float destBase, int row, int destStride)
         {
-            ref Vector4 selfRight = ref Unsafe.Add(ref src.V0L, 2 * row);
+            ref Vector4 selfLeft = ref Unsafe.Add(ref src.V0L, 2 * row);
             ref Vector4 selfRight = ref Unsafe.Add(ref selfLeft, 1);
             ref float destLocalOrigo = ref Unsafe.Add(ref destBase, row * 2 * destStride);
 
@@ -257,31 +257,97 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
             var wRight = new Vector4(sRight.W);
 
             Unsafe.As<Vector2, Vector4>(ref dTopLeft) = xLeft;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopLeft, 1)) = yLeft;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopLeft, 2)) = zLeft;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopLeft, 3)) = wLeft;
-
+            AssignVector4Value(ref dTopLeft, 1, ref yLeft);
+            AssignVector4Value(ref dTopLeft, 2, ref zLeft);
+            AssignVector4Value(ref dTopLeft, 3, ref wLeft);
+            
             Unsafe.As<Vector2, Vector4>(ref dTopRight) = xRight;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopRight, 1)) = yRight;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopRight, 2)) = zRight;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopRight, 3)) = wRight;
+            AssignVector4Value(ref dTopRight, 1, ref yRight);
+            AssignVector4Value(ref dTopRight, 2, ref zRight);
+            AssignVector4Value(ref dTopRight, 3, ref wRight);
 
             Unsafe.As<Vector2, Vector4>(ref dBottomLeft) = xLeft;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomLeft, 1)) = yLeft;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomLeft, 2)) = zLeft;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomLeft, 3)) = wLeft;
+            AssignVector4Value(ref dBottomLeft, 1, ref yLeft);
+            AssignVector4Value(ref dBottomLeft, 2, ref zLeft);
+            AssignVector4Value(ref dBottomLeft, 3, ref wLeft);
 
             Unsafe.As<Vector2, Vector4>(ref dBottomRight) = xRight;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomRight, 1)) = yRight;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomRight, 2)) = zRight;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomRight, 3)) = wRight;
+            AssignVector4Value(ref dBottomRight, 1, ref yRight);
+            AssignVector4Value(ref dBottomRight, 2, ref zRight);
+            AssignVector4Value(ref dBottomRight, 3, ref wRight);
+        }
+
+        [Benchmark]
+        public void UseVector4_SafeRightCorner()
+        {
+            ref Vector2 destBase = ref Unsafe.As<float, Vector2>(ref this.destArea.GetReferenceToOrigin());
+            int destStride = this.destArea.Stride / 2;
+
+            ref Block8x8F src = ref this.block;
+
+            WidenCopyImpl2x2_Vector4_SafeRightCorner(ref src, ref destBase, 0, destStride);
+            WidenCopyImpl2x2_Vector4_SafeRightCorner(ref src, ref destBase, 1, destStride);
+            WidenCopyImpl2x2_Vector4_SafeRightCorner(ref src, ref destBase, 2, destStride);
+            WidenCopyImpl2x2_Vector4_SafeRightCorner(ref src, ref destBase, 3, destStride);
+            WidenCopyImpl2x2_Vector4_SafeRightCorner(ref src, ref destBase, 4, destStride);
+            WidenCopyImpl2x2_Vector4_SafeRightCorner(ref src, ref destBase, 5, destStride);
+            WidenCopyImpl2x2_Vector4_SafeRightCorner(ref src, ref destBase, 6, destStride);
+            WidenCopyImpl2x2_Vector4_SafeRightCorner(ref src, ref destBase, 7, destStride);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void WidenCopyImpl2x2_Vector4_SafeRightCorner(ref Block8x8F src, ref Vector2 destBase, int row, int destStride)
+        {
+            ref Vector4 sLeft = ref Unsafe.Add(ref src.V0L, 2 * row);
+            ref Vector4 sRight = ref Unsafe.Add(ref sLeft, 1);
+
+            ref Vector2 dTopLeft = ref Unsafe.Add(ref destBase, 2 * row * destStride);
+            ref Vector2 dBottomLeft = ref Unsafe.Add(ref dTopLeft, destStride);
+
+            var xLeft = new Vector4(sLeft.X);
+            var yLeft = new Vector4(sLeft.Y);
+            var zLeft = new Vector4(sLeft.Z);
+            var wLeft = new Vector4(sLeft.W);
+
+            var xRight = new Vector4(sRight.X);
+            var yRight = new Vector4(sRight.Y);
+            var zRight = new Vector4(sRight.Z);
+            var wRight = new Vector2(sRight.W);
+
+            Unsafe.As<Vector2, Vector4>(ref dTopLeft) = xLeft;
+            AssignVector4Value(ref dTopLeft, 1, ref yLeft);
+            AssignVector4Value(ref dTopLeft, 2, ref zLeft);
+            AssignVector4Value(ref dTopLeft, 3, ref wLeft);
+
+            AssignVector4Value(ref dTopLeft, 4, ref xRight);
+            AssignVector4Value(ref dTopLeft, 5, ref yRight);
+            AssignVector4Value(ref dTopLeft, 6, ref zRight);
+            Unsafe.Add(ref dTopLeft, 7) = wRight;
+
+            Unsafe.As<Vector2, Vector4>(ref dBottomLeft) = xLeft;
+            AssignVector4Value(ref dBottomLeft, 1, ref yLeft);
+            AssignVector4Value(ref dBottomLeft, 2, ref zLeft);
+            AssignVector4Value(ref dBottomLeft, 3, ref wLeft);
+
+            AssignVector4Value(ref dBottomLeft, 4, ref xRight);
+            AssignVector4Value(ref dBottomLeft, 5, ref yRight);
+            AssignVector4Value(ref dBottomLeft, 6, ref zRight);
+            Unsafe.Add(ref dBottomLeft, 7) = wRight;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void AssignVector4Value(ref Vector2 destBase, int offset, ref Vector4 value)
+        {
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset)) = value;
         }
 
         // RESULTS:
-        //       Method |     Mean |     Error |    StdDev | Scaled |
-        // ------------ |---------:|----------:|----------:|-------:|
-        //     Original | 88.93 ns | 0.7783 ns | 0.6899 ns |   1.00 |
-        //  Original_V2 | 88.39 ns | 0.9426 ns | 0.8356 ns |   0.99 |
-        //   UseVector2 | 45.63 ns | 0.4248 ns | 0.3548 ns |   0.51 |
+        //                      Method |     Mean |     Error |    StdDev | Scaled | ScaledSD |
+        // --------------------------- |---------:|----------:|----------:|-------:|---------:|
+        //                    Original | 93.78 ns | 1.8419 ns | 1.9708 ns |   1.00 |     0.00 |
+        //                 Original_V2 | 89.85 ns | 0.8809 ns | 0.7356 ns |   0.96 |     0.02 |
+        //                  UseVector2 | 81.81 ns | 0.4441 ns | 0.3937 ns |   0.87 |     0.02 |
+        //                  UseVector4 | 55.74 ns | 0.3674 ns | 0.3068 ns |   0.59 |     0.01 |
+        //  UseVector4_SafeRightCorner | 55.70 ns | 0.3239 ns | 0.2705 ns |   0.59 |     0.01 |
     }
 }

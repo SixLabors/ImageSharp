@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
         private byte ConvertToByte(ReadOnlySpan<byte> buffer) => buffer[0];
 
-        private unsafe string ConvertToString(ReadOnlySpan<byte> buffer)
+        private string ConvertToString(ReadOnlySpan<byte> buffer)
         {
             int nullCharIndex = buffer.IndexOf((byte)0);
 
@@ -382,13 +382,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             this.invalidTags.Add(tag);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private TEnum ToEnum<TEnum>(int value, TEnum defaultValue)
             where TEnum : struct
         {
-            var enumValue = (TEnum)(object)value;
-            if (Enum.GetValues(typeof(TEnum)).Cast<TEnum>().Any(v => v.Equals(enumValue)))
+            if (EnumHelper<TEnum>.IsDefined(value))
             {
-                return enumValue;
+                return Unsafe.As<int, TEnum>(ref value);
             }
 
             return defaultValue;
@@ -556,6 +556,19 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return this.endianness == Endianness.BigEndian
                 ? BinaryPrimitives.ReadInt16BigEndian(buffer)
                 : BinaryPrimitives.ReadInt16LittleEndian(buffer);
+        }
+
+        private class EnumHelper<TEnum>
+            where TEnum : struct
+        {
+            private static readonly int[] Values = Enum.GetValues(typeof(TEnum)).Cast<TEnum>()
+                .Select(e => Convert.ToInt32(e)).OrderBy(e => e).ToArray();
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static bool IsDefined(int value)
+            {
+                return Array.BinarySearch(Values, 0, Values.Length, value) > 0;
+            }
         }
     }
 }

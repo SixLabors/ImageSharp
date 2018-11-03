@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 return;
             }
 
-            // TODO: Optimize: implement all the cases with scale-specific, loopless code!
+            // TODO: Optimize: implement all cases with scale-specific, loopless code!
             this.CopyArbitraryScale(area, horizontalScale, verticalScale);
         }
 
@@ -79,9 +79,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             ref Vector4 sRight = ref Unsafe.Add(ref sLeft, 1);
 
             ref Vector2 dTopLeft = ref Unsafe.Add(ref destBase, 2 * row * destStride);
-            ref Vector2 dTopRight = ref Unsafe.Add(ref dTopLeft, 4);
             ref Vector2 dBottomLeft = ref Unsafe.Add(ref dTopLeft, destStride);
-            ref Vector2 dBottomRight = ref Unsafe.Add(ref dBottomLeft, 4);
 
             var xLeft = new Vector4(sLeft.X);
             var yLeft = new Vector4(sLeft.Y);
@@ -91,27 +89,33 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             var xRight = new Vector4(sRight.X);
             var yRight = new Vector4(sRight.Y);
             var zRight = new Vector4(sRight.Z);
-            var wRight = new Vector4(sRight.W);
+            var wRight = new Vector2(sRight.W);
 
             Unsafe.As<Vector2, Vector4>(ref dTopLeft) = xLeft;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopLeft, 1)) = yLeft;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopLeft, 2)) = zLeft;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopLeft, 3)) = wLeft;
+            AssignVector4Value(ref dTopLeft, 1, ref yLeft);
+            AssignVector4Value(ref dTopLeft, 2, ref zLeft);
+            AssignVector4Value(ref dTopLeft, 3, ref wLeft);
 
-            Unsafe.As<Vector2, Vector4>(ref dTopRight) = xRight;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopRight, 1)) = yRight;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopRight, 2)) = zRight;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopRight, 3)) = wRight;
+            AssignVector4Value(ref dTopLeft, 4, ref xRight);
+            AssignVector4Value(ref dTopLeft, 5, ref yRight);
+            AssignVector4Value(ref dTopLeft, 6, ref zRight);
+            Unsafe.Add(ref dTopLeft, 7) = wRight;
 
             Unsafe.As<Vector2, Vector4>(ref dBottomLeft) = xLeft;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomLeft, 1)) = yLeft;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomLeft, 2)) = zLeft;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomLeft, 3)) = wLeft;
+            AssignVector4Value(ref dBottomLeft, 1, ref yLeft);
+            AssignVector4Value(ref dBottomLeft, 2, ref zLeft);
+            AssignVector4Value(ref dBottomLeft, 3, ref wLeft);
 
-            Unsafe.As<Vector2, Vector4>(ref dBottomRight) = xRight;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomRight, 1)) = yRight;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomRight, 2)) = zRight;
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomRight, 3)) = wRight;
+            AssignVector4Value(ref dBottomLeft, 4, ref xRight);
+            AssignVector4Value(ref dBottomLeft, 5, ref yRight);
+            AssignVector4Value(ref dBottomLeft, 6, ref zRight);
+            Unsafe.Add(ref dBottomLeft, 7) = wRight;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void AssignVector4Value(ref Vector2 destBase, int offset, ref Vector4 value)
+        {
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset)) = value;
         }
 
         [MethodImpl(InliningOptions.ColdPath)]

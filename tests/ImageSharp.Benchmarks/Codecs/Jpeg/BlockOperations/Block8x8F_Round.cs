@@ -1,4 +1,7 @@
-﻿// ReSharper disable InconsistentNaming
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+// ReSharper disable InconsistentNaming
 
 using System;
 using System.Numerics;
@@ -8,7 +11,7 @@ using BenchmarkDotNet.Attributes;
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
-namespace SixLabors.ImageSharp.Benchmarks.General
+namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
 {
     public class Block8x8F_Round
     {

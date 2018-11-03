@@ -257,24 +257,24 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
             var wRight = new Vector4(sRight.W);
 
             Unsafe.As<Vector2, Vector4>(ref dTopLeft) = xLeft;
-            AssignVector4Value(ref dTopLeft, 1, ref yLeft);
-            AssignVector4Value(ref dTopLeft, 2, ref zLeft);
-            AssignVector4Value(ref dTopLeft, 3, ref wLeft);
-            
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopLeft, 1)) = yLeft;
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopLeft, 2)) = zLeft;
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopLeft, 3)) = wLeft;
+
             Unsafe.As<Vector2, Vector4>(ref dTopRight) = xRight;
-            AssignVector4Value(ref dTopRight, 1, ref yRight);
-            AssignVector4Value(ref dTopRight, 2, ref zRight);
-            AssignVector4Value(ref dTopRight, 3, ref wRight);
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopRight, 1)) = yRight;
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopRight, 2)) = zRight;
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopRight, 3)) = wRight;
 
             Unsafe.As<Vector2, Vector4>(ref dBottomLeft) = xLeft;
-            AssignVector4Value(ref dBottomLeft, 1, ref yLeft);
-            AssignVector4Value(ref dBottomLeft, 2, ref zLeft);
-            AssignVector4Value(ref dBottomLeft, 3, ref wLeft);
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomLeft, 1)) = yLeft;
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomLeft, 2)) = zLeft;
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomLeft, 3)) = wLeft;
 
             Unsafe.As<Vector2, Vector4>(ref dBottomRight) = xRight;
-            AssignVector4Value(ref dBottomRight, 1, ref yRight);
-            AssignVector4Value(ref dBottomRight, 2, ref zRight);
-            AssignVector4Value(ref dBottomRight, 3, ref wRight);
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomRight, 1)) = yRight;
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomRight, 2)) = zRight;
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomRight, 3)) = wRight;
         }
 
         [Benchmark]
@@ -315,39 +315,90 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
             var wRight = new Vector2(sRight.W);
 
             Unsafe.As<Vector2, Vector4>(ref dTopLeft) = xLeft;
-            AssignVector4Value(ref dTopLeft, 1, ref yLeft);
-            AssignVector4Value(ref dTopLeft, 2, ref zLeft);
-            AssignVector4Value(ref dTopLeft, 3, ref wLeft);
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopLeft, 1)) = yLeft;
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopLeft, 2)) = zLeft;
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopLeft, 3)) = wLeft;
 
-            AssignVector4Value(ref dTopLeft, 4, ref xRight);
-            AssignVector4Value(ref dTopLeft, 5, ref yRight);
-            AssignVector4Value(ref dTopLeft, 6, ref zRight);
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopLeft, 4)) = xRight;
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopLeft, 5)) = yRight;
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopLeft, 6)) = zRight;
             Unsafe.Add(ref dTopLeft, 7) = wRight;
 
             Unsafe.As<Vector2, Vector4>(ref dBottomLeft) = xLeft;
-            AssignVector4Value(ref dBottomLeft, 1, ref yLeft);
-            AssignVector4Value(ref dBottomLeft, 2, ref zLeft);
-            AssignVector4Value(ref dBottomLeft, 3, ref wLeft);
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomLeft, 1)) = yLeft;
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomLeft, 2)) = zLeft;
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomLeft, 3)) = wLeft;
 
-            AssignVector4Value(ref dBottomLeft, 4, ref xRight);
-            AssignVector4Value(ref dBottomLeft, 5, ref yRight);
-            AssignVector4Value(ref dBottomLeft, 6, ref zRight);
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomLeft, 4)) = xRight;
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomLeft, 5)) = yRight;
+            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomLeft, 6)) = zRight;
             Unsafe.Add(ref dBottomLeft, 7) = wRight;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void AssignVector4Value(ref Vector2 destBase, int offset, ref Vector4 value)
+
+        [Benchmark]
+        public void UseVector4_V2()
         {
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset)) = value;
+            ref Vector2 destBase = ref Unsafe.As<float, Vector2>(ref this.destArea.GetReferenceToOrigin());
+            int destStride = this.destArea.Stride / 2;
+
+            ref Block8x8F src = ref this.block;
+
+            WidenCopyImpl2x2_Vector4_V2(ref src, ref destBase, 0, destStride);
+            WidenCopyImpl2x2_Vector4_V2(ref src, ref destBase, 1, destStride);
+            WidenCopyImpl2x2_Vector4_V2(ref src, ref destBase, 2, destStride);
+            WidenCopyImpl2x2_Vector4_V2(ref src, ref destBase, 3, destStride);
+            WidenCopyImpl2x2_Vector4_V2(ref src, ref destBase, 4, destStride);
+            WidenCopyImpl2x2_Vector4_V2(ref src, ref destBase, 5, destStride);
+            WidenCopyImpl2x2_Vector4_V2(ref src, ref destBase, 6, destStride);
+            WidenCopyImpl2x2_Vector4_V2(ref src, ref destBase, 7, destStride);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void WidenCopyImpl2x2_Vector4_V2(ref Block8x8F src, ref Vector2 destBase, int row, int destStride)
+        {
+            ref Vector4 sLeft = ref Unsafe.Add(ref src.V0L, 2 * row);
+            ref Vector4 sRight = ref Unsafe.Add(ref sLeft, 1);
+
+            int offset = 2 * row * destStride;
+            ref Vector4 dTopLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset));
+            ref Vector4 dBottomLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset + destStride));
+
+            var xyLeft = new Vector4(sLeft.X);
+            xyLeft.Z = sLeft.Y;
+            xyLeft.W = sLeft.Y;
+
+            var zwLeft = new Vector4(sLeft.Z);
+            zwLeft.Z = sLeft.W;
+            zwLeft.W = sLeft.W;
+            
+            var xyRight = new Vector4(sRight.X);
+            xyRight.Z = sRight.Y;
+            xyRight.W = sRight.Y;
+
+            var zwRight = new Vector4(sRight.Z);
+            zwRight.Z = sRight.W;
+            zwRight.W = sRight.W;
+            
+            dTopLeft = xyLeft;
+            Unsafe.Add(ref dTopLeft, 1) = zwLeft;
+            Unsafe.Add(ref dTopLeft, 2) = xyRight;
+            Unsafe.Add(ref dTopLeft, 3) = zwRight;
+
+            dBottomLeft = xyLeft;
+            Unsafe.Add(ref dBottomLeft, 1) = zwLeft;
+            Unsafe.Add(ref dBottomLeft, 2) = xyRight;
+            Unsafe.Add(ref dBottomLeft, 3) = zwRight;
         }
 
         // RESULTS:
         //                      Method |     Mean |     Error |    StdDev | Scaled | ScaledSD |
         // --------------------------- |---------:|----------:|----------:|-------:|---------:|
-        //                    Original | 93.78 ns | 1.8419 ns | 1.9708 ns |   1.00 |     0.00 |
-        //                 Original_V2 | 89.85 ns | 0.8809 ns | 0.7356 ns |   0.96 |     0.02 |
-        //                  UseVector2 | 81.81 ns | 0.4441 ns | 0.3937 ns |   0.87 |     0.02 |
-        //                  UseVector4 | 55.74 ns | 0.3674 ns | 0.3068 ns |   0.59 |     0.01 |
-        //  UseVector4_SafeRightCorner | 55.70 ns | 0.3239 ns | 0.2705 ns |   0.59 |     0.01 |
+        //                    Original | 92.69 ns | 2.4722 ns | 2.7479 ns |   1.00 |     0.00 |
+        //                 Original_V2 | 91.72 ns | 1.2089 ns | 1.0095 ns |   0.99 |     0.03 |
+        //                  UseVector2 | 86.70 ns | 0.5873 ns | 0.5206 ns |   0.94 |     0.03 |
+        //                  UseVector4 | 55.42 ns | 0.2482 ns | 0.2322 ns |   0.60 |     0.02 |
+        //  UseVector4_SafeRightCorner | 58.97 ns | 0.4152 ns | 0.3884 ns |   0.64 |     0.02 |
+        //               UseVector4_V2 | 41.88 ns | 0.3531 ns | 0.3303 ns |   0.45 |     0.01 |
     }
 }

@@ -13,11 +13,11 @@ using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace SixLabors.ImageSharp.Tests.Formats.Jpg
+namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
 {
-    public class JpegProfilingBenchmarks : MeasureFixture
+    public class JpegBenchmarks : MeasureFixture
     {
-        public JpegProfilingBenchmarks(ITestOutputHelper output)
+        public JpegBenchmarks(ITestOutputHelper output)
             : base(output)
         {
         }
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             TestImages.Jpeg.Baseline.Jpeg444,
         };
 
-        [Theory] // Benchmark, enable manually
+        [Theory(Skip = ProfilingSetup.SkipProfilingTests)]
         [MemberData(nameof(DecodeJpegData))]
         public void DecodeJpeg(string fileName)
         {
@@ -69,11 +69,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         // Benchmark, enable manually!
-        // [Theory]
-        // [InlineData(1, 75, JpegSubsample.Ratio420)]
-        // [InlineData(30, 75, JpegSubsample.Ratio420)]
-        // [InlineData(30, 75, JpegSubsample.Ratio444)]
-        // [InlineData(30, 100, JpegSubsample.Ratio444)]
+        [Theory(Skip = ProfilingSetup.SkipProfilingTests)]
+        [InlineData(1, 75, JpegSubsample.Ratio420)]
+        [InlineData(30, 75, JpegSubsample.Ratio420)]
+        [InlineData(30, 75, JpegSubsample.Ratio444)]
+        [InlineData(30, 100, JpegSubsample.Ratio444)]
         public void EncodeJpeg(int executionCount, int quality, JpegSubsample subsample)
         {
             // do not run this on CI even by accident
@@ -106,6 +106,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     // ReSharper disable once ExplicitCallerInfoArgument
                     $@"Encode {testFiles.Length} images"
                     );
+            }
+
+            foreach (Image<Rgba32> image in testImages)
+            {
+                image.Dispose();
             }
         }
 

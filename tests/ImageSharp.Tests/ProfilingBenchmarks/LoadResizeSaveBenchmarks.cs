@@ -1,31 +1,23 @@
-﻿using System.IO;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.PixelFormats;
+using System.IO;
+
 using SixLabors.ImageSharp.Processing;
-using SixLabors.Primitives;
 
 using Xunit;
 using Xunit.Abstractions;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
 {
-    public class ProfilingBenchmarks : MeasureFixture
+    public class LoadResizeSaveBenchmarks : MeasureFixture
     {
-        public const string SkipProfilingTests =
-#if true
-            null;
-#else
-            "Profiling benchmark, enable manually!";
-#endif
-
-
-        public ProfilingBenchmarks(ITestOutputHelper output)
+        public LoadResizeSaveBenchmarks(ITestOutputHelper output)
             : base(output)
         {
         }
 
-        [Theory(Skip = SkipProfilingTests)]
+        [Theory(Skip = ProfilingSetup.SkipProfilingTests)]
         [InlineData(TestImages.Jpeg.Baseline.Jpeg420Exif)]
         public void LoadResizeSave(string imagePath)
         {

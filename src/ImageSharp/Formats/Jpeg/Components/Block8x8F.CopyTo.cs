@@ -3,9 +3,9 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-
 using SixLabors.ImageSharp.Memory;
 
+// ReSharper disable UseObjectOrCollectionInitializer
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
@@ -62,60 +62,51 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             ref Vector2 destBase = ref Unsafe.As<float, Vector2>(ref area.GetReferenceToOrigin());
             int destStride = area.Stride / 2;
 
-            this.WidenCopyImpl2x2(ref destBase, 0, destStride);
-            this.WidenCopyImpl2x2(ref destBase, 1, destStride);
-            this.WidenCopyImpl2x2(ref destBase, 2, destStride);
-            this.WidenCopyImpl2x2(ref destBase, 3, destStride);
-            this.WidenCopyImpl2x2(ref destBase, 4, destStride);
-            this.WidenCopyImpl2x2(ref destBase, 5, destStride);
-            this.WidenCopyImpl2x2(ref destBase, 6, destStride);
-            this.WidenCopyImpl2x2(ref destBase, 7, destStride);
+            this.WidenCopyRowImpl2x2(ref destBase, 0, destStride);
+            this.WidenCopyRowImpl2x2(ref destBase, 1, destStride);
+            this.WidenCopyRowImpl2x2(ref destBase, 2, destStride);
+            this.WidenCopyRowImpl2x2(ref destBase, 3, destStride);
+            this.WidenCopyRowImpl2x2(ref destBase, 4, destStride);
+            this.WidenCopyRowImpl2x2(ref destBase, 5, destStride);
+            this.WidenCopyRowImpl2x2(ref destBase, 6, destStride);
+            this.WidenCopyRowImpl2x2(ref destBase, 7, destStride);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WidenCopyImpl2x2(ref Vector2 destBase, int row, int destStride)
+        private void WidenCopyRowImpl2x2(ref Vector2 destBase, int row, int destStride)
         {
             ref Vector4 sLeft = ref Unsafe.Add(ref this.V0L, 2 * row);
             ref Vector4 sRight = ref Unsafe.Add(ref sLeft, 1);
 
-            ref Vector2 dTopLeft = ref Unsafe.Add(ref destBase, 2 * row * destStride);
-            ref Vector2 dBottomLeft = ref Unsafe.Add(ref dTopLeft, destStride);
+            int offset = 2 * row * destStride;
+            ref Vector4 dTopLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset));
+            ref Vector4 dBottomLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset + destStride));
 
-            var xLeft = new Vector4(sLeft.X);
-            var yLeft = new Vector4(sLeft.Y);
-            var zLeft = new Vector4(sLeft.Z);
-            var wLeft = new Vector4(sLeft.W);
+            var xyLeft = new Vector4(sLeft.X);
+            xyLeft.Z = sLeft.Y;
+            xyLeft.W = sLeft.Y;
 
-            var xRight = new Vector4(sRight.X);
-            var yRight = new Vector4(sRight.Y);
-            var zRight = new Vector4(sRight.Z);
-            var wRight = new Vector2(sRight.W);
+            var zwLeft = new Vector4(sLeft.Z);
+            zwLeft.Z = sLeft.W;
+            zwLeft.W = sLeft.W;
 
-            Unsafe.As<Vector2, Vector4>(ref dTopLeft) = xLeft;
-            AssignVector4Value(ref dTopLeft, 1, ref yLeft);
-            AssignVector4Value(ref dTopLeft, 2, ref zLeft);
-            AssignVector4Value(ref dTopLeft, 3, ref wLeft);
+            var xyRight = new Vector4(sRight.X);
+            xyRight.Z = sRight.Y;
+            xyRight.W = sRight.Y;
 
-            AssignVector4Value(ref dTopLeft, 4, ref xRight);
-            AssignVector4Value(ref dTopLeft, 5, ref yRight);
-            AssignVector4Value(ref dTopLeft, 6, ref zRight);
-            Unsafe.Add(ref dTopLeft, 7) = wRight;
+            var zwRight = new Vector4(sRight.Z);
+            zwRight.Z = sRight.W;
+            zwRight.W = sRight.W;
 
-            Unsafe.As<Vector2, Vector4>(ref dBottomLeft) = xLeft;
-            AssignVector4Value(ref dBottomLeft, 1, ref yLeft);
-            AssignVector4Value(ref dBottomLeft, 2, ref zLeft);
-            AssignVector4Value(ref dBottomLeft, 3, ref wLeft);
+            dTopLeft = xyLeft;
+            Unsafe.Add(ref dTopLeft, 1) = zwLeft;
+            Unsafe.Add(ref dTopLeft, 2) = xyRight;
+            Unsafe.Add(ref dTopLeft, 3) = zwRight;
 
-            AssignVector4Value(ref dBottomLeft, 4, ref xRight);
-            AssignVector4Value(ref dBottomLeft, 5, ref yRight);
-            AssignVector4Value(ref dBottomLeft, 6, ref zRight);
-            Unsafe.Add(ref dBottomLeft, 7) = wRight;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void AssignVector4Value(ref Vector2 destBase, int offset, ref Vector4 value)
-        {
-            Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset)) = value;
+            dBottomLeft = xyLeft;
+            Unsafe.Add(ref dBottomLeft, 1) = zwLeft;
+            Unsafe.Add(ref dBottomLeft, 2) = xyRight;
+            Unsafe.Add(ref dBottomLeft, 3) = zwRight;
         }
 
         [MethodImpl(InliningOptions.ColdPath)]

@@ -2,13 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Memory;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
@@ -18,12 +16,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal struct ResizeKernel
     {
         /// <summary>
-        /// The local left index position
+        /// The left index for the destination row
         /// </summary>
         public int Left;
 
         /// <summary>
-        /// The length of the weights window
+        /// The length of the kernel
         /// </summary>
         public int Length;
 
@@ -49,33 +47,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         }
 
         /// <summary>
-        /// Gets a reference to the first item of the window.
-        /// </summary>
-        /// <returns>The reference to the first item of the window</returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public ref float GetStartReference()
-        {
-            Span<float> span = this.buffer.Span;
-            return ref span[0];
-        }
-
-        /// <summary>
         /// Gets the span representing the portion of the <see cref="KernelMap"/> that this window covers
         /// </summary>
         /// <returns>The <see cref="Span{T}"/></returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Span<float> GetSpan() => this.buffer.Span;
+        public Span<float> GetValues() => this.buffer.Span;
 
         /// <summary>
         /// Computes the sum of vectors in 'rowSpan' weighted by weight values, pointed by this <see cref="ResizeKernel"/> instance.
         /// </summary>
         /// <param name="rowSpan">The input span of vectors</param>
-        /// <param name="sourceX">The source row position.</param>
         /// <returns>The weighted sum</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public Vector4 Convolve(Span<Vector4> rowSpan)
         {
-            ref float horizontalValues = ref this.GetStartReference();
+            ref float horizontalValues = ref MemoryMarshal.GetReference(this.GetValues());
             int left = this.Left;
             ref Vector4 vecPtr = ref Unsafe.Add(ref MemoryMarshal.GetReference(rowSpan), left);
 

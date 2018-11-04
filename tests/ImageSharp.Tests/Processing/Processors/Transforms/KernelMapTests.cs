@@ -21,10 +21,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             this.Output = output;
         }
         
-        [Theory(Skip = "TODO: Add asserionts")]
+        [Theory]
         [InlineData(500, 200, nameof(KnownResamplers.Bicubic))]
         [InlineData(50, 40, nameof(KnownResamplers.Bicubic))]
         [InlineData(40, 30, nameof(KnownResamplers.Bicubic))]
+        [InlineData(15, 10, nameof(KnownResamplers.Bicubic))]
         [InlineData(500, 200, nameof(KnownResamplers.Lanczos8))]
         [InlineData(100, 80, nameof(KnownResamplers.Lanczos8))]
         [InlineData(100, 10, nameof(KnownResamplers.Lanczos8))]
@@ -37,14 +38,15 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
             var bld = new StringBuilder();
 
-            foreach (ResizeKernel window in kernelMap.Kernels)
+            foreach (ResizeKernel kernel in kernelMap.Kernels)
             {
-                Span<float> span = window.GetSpan();
-                for (int i = 0; i < window.Length; i++)
+                bld.Append($"({kernel.Left:D3}) || ");
+                Span<float> span = kernel.GetValues();
+                for (int i = 0; i < kernel.Length; i++)
                 {
                     float value = span[i];
-                    bld.Append($"{value,7:F4}");
-                    bld.Append("| ");
+                    bld.Append($"{value,7:F5}");
+                    bld.Append(" | ");
                 }
 
                 bld.AppendLine();

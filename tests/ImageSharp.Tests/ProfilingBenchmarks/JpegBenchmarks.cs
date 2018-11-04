@@ -23,18 +23,13 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
         }
 
         public static readonly TheoryData<string> DecodeJpegData = new TheoryData<string>
-                                                                       {
-                                                                           // Except "Jpeg400", all images are YCbCr
-
-                                                                           TestImages.Jpeg.Baseline.Jpeg400,
-                                                                           TestImages.Jpeg.Baseline.Jpeg420Exif,
-                                                                           TestImages.Jpeg.Baseline.Lake, // 444
-
-                                                                           // Using images from the "issues" set, because they are LARGE
-                                                                           TestImages.Jpeg.Issues.MissingFF00ProgressiveBedroom159, // 420
-                                                                           // TestImages.Jpeg.Issues.BadRstProgressive518, // 444
-                                                                           TestImages.Jpeg.Issues.ExifGetString750Transform, // 420
-                                                                       };
+        {
+            TestImages.Jpeg.BenchmarkSuite.Jpeg400_SmallMonochrome,
+            TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr,
+            TestImages.Jpeg.BenchmarkSuite.Lake_Small444YCbCr,
+            TestImages.Jpeg.BenchmarkSuite.MissingFF00ProgressiveBedroom159_MidSize420YCbCr,
+            TestImages.Jpeg.BenchmarkSuite.ExifGetString750Transform_Huge420YCbCr,
+        };
 
         [Theory(Skip = ProfilingSetup.SkipProfilingTests)]
         [MemberData(nameof(DecodeJpegData))]

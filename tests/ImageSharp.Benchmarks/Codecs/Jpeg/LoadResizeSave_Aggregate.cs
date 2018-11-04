@@ -18,9 +18,17 @@ using SixLabors.ImageSharp.Tests;
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
     [Config(typeof(MultiImageBenchmarkBase.Config))]
-    public class LoadResizeSave_MultiImage : MultiImageBenchmarkBase
+    public class LoadResizeSave_Aggregate : MultiImageBenchmarkBase
     {
-        protected override IEnumerable<string> InputImageSubfoldersOrFiles => TestImages.Jpeg.BenchmarkSuite;
+        protected override IEnumerable<string> InputImageSubfoldersOrFiles =>
+            new[]
+                {
+                    TestImages.Jpeg.BenchmarkSuite.Jpeg400_SmallMonochrome,
+                    TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr,
+                    TestImages.Jpeg.BenchmarkSuite.Lake_Small444YCbCr,
+                    TestImages.Jpeg.BenchmarkSuite.MissingFF00ProgressiveBedroom159_MidSize420YCbCr,
+                    TestImages.Jpeg.BenchmarkSuite.ExifGetString750Transform_Huge420YCbCr,
+                };
 
         [Params(InputImageCategory.AllImages)]
         public override InputImageCategory InputCategory { get; set; }

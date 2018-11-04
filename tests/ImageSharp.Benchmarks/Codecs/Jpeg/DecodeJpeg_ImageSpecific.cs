@@ -45,16 +45,18 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         private byte[] jpegBytes;
 
         private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
-
-        // NOTE:
-        // The scaled result for very large image "TestImages.Jpeg.Issues.ExifGetString750Transform"
-        // is almost the same as the result for Jpeg420Exif,
-        // which proves that the execution time for the most common YCbCr 420 path scales linearly
+        
         [Params(
-            TestImages.Jpeg.Baseline.Lake,
-            TestImages.Jpeg.Issues.BadRstProgressive518,
+            TestImages.Jpeg.BenchmarkSuite.Lake_Small444YCbCr,
+            TestImages.Jpeg.BenchmarkSuite.BadRstProgressive518_Large444YCbCr,
 
-            TestImages.Jpeg.Baseline.Jpeg420Exif
+            // The scaled result for the large image "ExifGetString750Transform_Huge420YCbCr"
+            // is almost the same as the result for Jpeg420Exif,
+            // which proves that the execution time for the most common YCbCr 420 path scales linearly.
+            //
+            // TestImages.Jpeg.BenchmarkSuite.ExifGetString750Transform_Huge420YCbCr,
+
+            TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr
             )]
         public string TestImage { get; set; }
 

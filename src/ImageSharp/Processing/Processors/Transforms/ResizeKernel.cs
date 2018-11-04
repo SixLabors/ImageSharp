@@ -73,11 +73,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="sourceX">The source row position.</param>
         /// <returns>The weighted sum</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 Convolve(Span<Vector4> rowSpan, int sourceX)
+        public Vector4 Convolve(Span<Vector4> rowSpan)
         {
             ref float horizontalValues = ref this.GetStartReference();
             int left = this.Left;
-            ref Vector4 vecPtr = ref Unsafe.Add(ref MemoryMarshal.GetReference(rowSpan), left + sourceX);
+            ref Vector4 vecPtr = ref Unsafe.Add(ref MemoryMarshal.GetReference(rowSpan), left);
 
             // Destination color components
             Vector4 result = Vector4.Zero;

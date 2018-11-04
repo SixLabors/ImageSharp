@@ -269,9 +269,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                                 for (int x = minX; x < maxX; x++)
                                 {
-                                    ResizeKernel window = this.horizontalKernelMap.Kernels[x - startX];
+                                    ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - startX);
                                     Unsafe.Add(ref firstPassBaseRef, x * sourceHeight) =
-                                        window.Convolve(tempRowSpan);
+                                        kernel.Convolve(tempRowSpan);
                                 }
                             }
                         });
@@ -289,7 +289,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                             for (int y = rows.Min; y < rows.Max; y++)
                             {
                                 // Ensure offsets are normalized for cropping and padding.
-                                ResizeKernel window = this.verticalKernelMap.Kernels[y - startY];
+                                ResizeKernel kernel = this.verticalKernelMap.GetKernel(y - startY);
 
                                 ref Vector4 tempRowBase = ref MemoryMarshal.GetReference(tempRowSpan);
 
@@ -298,7 +298,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                     Span<Vector4> firstPassColumn = firstPassPixelsTransposed.GetRowSpan(x).Slice(sourceY);
 
                                     // Destination color components
-                                    Unsafe.Add(ref tempRowBase, x) = window.Convolve(firstPassColumn);
+                                    Unsafe.Add(ref tempRowBase, x) = kernel.Convolve(firstPassColumn);
                                 }
 
                                 Vector4Utils.UnPremultiply(tempRowSpan);

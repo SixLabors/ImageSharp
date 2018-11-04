@@ -17,6 +17,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     {
         private readonly Buffer2D<float> data;
 
+        private readonly ResizeKernel[] kernels;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="KernelMap"/> class.
         /// </summary>
@@ -25,15 +27,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="kernelRadius">The radius of the kernel</param>
         public KernelMap(MemoryAllocator memoryAllocator, int destinationSize, float kernelRadius)
         {
+            this.DestinationSize = destinationSize;
             int width = (int)Math.Ceiling(kernelRadius * 2);
             this.data = memoryAllocator.Allocate2D<float>(width, destinationSize, AllocationOptions.Clean);
-            this.Kernels = new ResizeKernel[destinationSize];
+            this.kernels = new ResizeKernel[destinationSize];
         }
 
-        /// <summary>
-        /// Gets the calculated <see cref="Kernels"/> values.
-        /// </summary>
-        public ResizeKernel[] Kernels { get; }
+        public int DestinationSize { get; }
 
         /// <summary>
         /// Disposes <see cref="KernelMap"/> instance releasing it's backing buffer.
@@ -42,6 +42,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         {
             this.data.Dispose();
         }
+
+        /// <summary>
+        /// Returns a <see cref="ResizeKernel"/> for an index value between 0 and destinationSize - 1.
+        /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public ref ResizeKernel GetKernel(int destIdx) => ref this.kernels[destIdx];
 
         /// <summary>
         /// Computes the weights to apply at each pixel when resizing.
@@ -88,7 +94,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 float sum = 0;
 
                 ResizeKernel ws = result.CreateKernel(i, left, right);
-                result.Kernels[i] = ws;
+                result.kernels[i] = ws;
 
                 ref float weightsBaseRef = ref MemoryMarshal.GetReference(ws.GetValues());
 

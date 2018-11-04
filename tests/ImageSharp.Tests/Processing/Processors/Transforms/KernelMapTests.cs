@@ -12,7 +12,7 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
-    public class KernelMapTests
+    public partial class KernelMapTests
     {
         private ITestOutputHelper Output { get; }
 
@@ -30,34 +30,52 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [InlineData(100, 80, nameof(KnownResamplers.Lanczos8))]
         [InlineData(100, 10, nameof(KnownResamplers.Lanczos8))]
         [InlineData(10, 100, nameof(KnownResamplers.Lanczos8))]
-        public void PrintKernelMap(int srcSize, int destSize, string resamplerName)
+        public void KernelMapContentIsCorrect(int srcSize, int destSize, string resamplerName)
         {
             var resampler = (IResampler)typeof(KnownResamplers).GetProperty(resamplerName).GetValue(null);
             
             var kernelMap = KernelMap.Calculate(resampler, destSize, srcSize, Configuration.Default.MemoryAllocator);
 
+            var referenceMap = ReferenceKernelMap.Calculate(resampler, destSize, srcSize);
+
+#if DEBUG
+            string text = PrintKernelMap(kernelMap);
+            this.Output.WriteLine(text);
+#endif
+
+            for (int i = 0; i < kernelMap.DestinationSize; i++)
+            {
+                ResizeKernel kernel = kernelMap.GetKernel(i);
+
+                ReferenceKernel referenceKernel = referenceMap.GetKernel(i);
+
+                Assert.Equal(referenceKernel.Length, kernel.Length);
+                Assert.Equal(referenceKernel.Left, kernel.Left);
+                Assert.True(kernel.GetValues().SequenceEqual(referenceKernel.Values));
+            }
+        }
+
+        private static string PrintKernelMap(KernelMap kernelMap)
+        {
             var bld = new StringBuilder();
 
-            foreach (ResizeKernel kernel in kernelMap.Kernels)
+            for (int i = 0; i < kernelMap.DestinationSize; i++)
             {
+                ResizeKernel kernel = kernelMap.GetKernel(i);
                 bld.Append($"({kernel.Left:D3}) || ");
                 Span<float> span = kernel.GetValues();
-                for (int i = 0; i < kernel.Length; i++)
+
+                for (int j = 0; j < kernel.Length; j++)
                 {
-                    float value = span[i];
-                    bld.Append($"{value,7:F5}");
+                    float value = span[j];
+                    bld.Append($"{value,8:F5}");
                     bld.Append(" | ");
                 }
 
                 bld.AppendLine();
             }
 
-            string outDir = TestEnvironment.CreateOutputDirectory("." + nameof(this.PrintKernelMap));
-            string fileName = $@"{outDir}\{resamplerName}_{srcSize}_{destSize}.MD";
-
-            File.WriteAllText(fileName, bld.ToString());
-
-            this.Output.WriteLine(bld.ToString());
+            return bld.ToString();
         }
     }
 }

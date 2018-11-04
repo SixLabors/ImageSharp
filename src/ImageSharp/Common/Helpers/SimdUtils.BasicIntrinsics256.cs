@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp
 
                 var bVec = new Vector<float>(256.0f / 255.0f);
                 var magicFloat = new Vector<float>(32768.0f);
-                var magicInt = new Vector<uint>(1191182336); // reinterpreded value of 32768.0f
+                var magicInt = new Vector<uint>(1191182336); // reinterpreted value of 32768.0f
                 var mask = new Vector<uint>(255);
 
                 ref Octet.OfByte sourceBase = ref Unsafe.As<byte, Octet.OfByte>(ref MemoryMarshal.GetReference(source));

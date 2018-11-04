@@ -82,11 +82,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             // we need to offset the pixel grid to account for when we outline a path.
             // basically if the line is [1,2] => [3,2] then when outlining at 1 we end up with a region of [0.5,1.5],[1.5, 1.5],[3.5,2.5],[2.5,2.5]
             // and this can cause missed fills when not using antialiasing.so we offset the pixel grid by 0.5 in the x & y direction thus causing the#
-            // region to alline with the pixel grid.
+            // region to align with the pixel grid.
             float offset = 0.5f;
             if (this.Options.Antialias)
             {
-                offset = 0f; // we are antialising skip offsetting as real antalising should take care of offset.
+                offset = 0f; // we are antialiasing skip offsetting as real antialiasing should take care of offset.
                 subpixelCount = this.Options.AntialiasSubpixelDepth;
                 if (subpixelCount < 4)
                 {
@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                             int pointsFound = region.Scan(subPixel + offset, buffer, configuration);
                             if (pointsFound == 0)
                             {
-                                // nothing on this line skip
+                                // nothing on this line, skip
                                 continue;
                             }
 

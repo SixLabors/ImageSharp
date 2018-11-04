@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private int currentComponentRowInBlocks;
 
         /// <summary>
-        /// The size of the area in <see cref="ColorBuffer"/> corrsponding to one 8x8 Jpeg block
+        /// The size of the area in <see cref="ColorBuffer"/> corresponding to one 8x8 Jpeg block
         /// </summary>
         private readonly Size blockAreaSize;
 

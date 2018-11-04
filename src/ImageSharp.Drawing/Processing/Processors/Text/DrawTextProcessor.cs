@@ -139,10 +139,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
                                 fistRow = -startY;
                             }
 
-                            int end = operation.Map.Height;
-
                             int maxHeight = source.Height - startY;
-                            end = Math.Min(end, maxHeight);
+                            int end = Math.Min(operation.Map.Height, maxHeight);
 
                             for (int row = fistRow; row < end; row++)
                             {

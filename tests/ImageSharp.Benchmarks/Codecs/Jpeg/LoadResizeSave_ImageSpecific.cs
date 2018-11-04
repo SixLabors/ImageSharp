@@ -11,11 +11,12 @@ using System.Drawing.Imaging;
 using SixLabors.ImageSharp.Processing;
 using SDImage = System.Drawing.Image;
 using SixLabors.ImageSharp.Formats.Jpeg;
+// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
     [Config(typeof(Config.ShortClr))]
-    public class LoadResizeSave
+    public class LoadResizeSave_ImageSpecific
     {
         private readonly Configuration configuration = new Configuration(new JpegConfigurationModule());
 
@@ -26,8 +27,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
         [Params(
-            TestImages.Jpeg.Baseline.Jpeg420Exif
-            //, TestImages.Jpeg.Baseline.Calliphora
+            TestImages.Jpeg.BenchmarkSuite.Lake_Small444YCbCr,
+            TestImages.Jpeg.BenchmarkSuite.BadRstProgressive518_Large444YCbCr,
+
+            TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr
             )]
         public string TestImage { get; set; }
 

@@ -166,18 +166,17 @@ namespace SixLabors.ImageSharp.Tests
 
             public static readonly string[] All = Baseline.All.Concat(Progressive.All).ToArray();
 
-            public static readonly string[] BenchmarkSuite =
+            public static class BenchmarkSuite
             {
-                // Except "Jpeg400", all images are YCbCr
-                Baseline.Jpeg400,
-                Baseline.Jpeg420Exif,
-                Baseline.Lake, // 444
+                public const string Jpeg400_SmallMonochrome = Baseline.Jpeg400;
+                public const string Jpeg420Exif_MidSizeYCbCr = Baseline.Jpeg420Exif;
+                public const string Lake_Small444YCbCr = Baseline.Lake;
 
-                // Using images from the "issues" set, because they are LARGE
-                Issues.MissingFF00ProgressiveBedroom159, // 420
-                // Issues.BadRstProgressive518, // 444
-                Issues.ExifGetString750Transform, // 420
-            };
+                // A few large images from the "issues" set are actually very useful for benchmarking:
+                public const string MissingFF00ProgressiveBedroom159_MidSize420YCbCr = Issues.MissingFF00ProgressiveBedroom159;
+                public const string BadRstProgressive518_Large444YCbCr = Issues.BadRstProgressive518;
+                public const string ExifGetString750Transform_Huge420YCbCr = Issues.ExifGetString750Transform;
+            }
         }
 
         public static class Bmp

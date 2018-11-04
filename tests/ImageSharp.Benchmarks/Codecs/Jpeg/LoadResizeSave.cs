@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             }
         }
 
-        // RESULTS (2018 October):
+        // RESULTS (2018 October 31):
         //
         // BenchmarkDotNet=v0.10.14, OS=Windows 10.0.17134
         // Intel Core i7-7700HQ CPU 2.80GHz (Kaby Lake), 1 CPU, 8 logical and 4 physical cores

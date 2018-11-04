@@ -15,9 +15,9 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
 {
-    public class JpegBenchmarks : MeasureFixture
+    public class JpegProfilingBenchmarks : MeasureFixture
     {
-        public JpegBenchmarks(ITestOutputHelper output)
+        public JpegProfilingBenchmarks(ITestOutputHelper output)
             : base(output)
         {
         }

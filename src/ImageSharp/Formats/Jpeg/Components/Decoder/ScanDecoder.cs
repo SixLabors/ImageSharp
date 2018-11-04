@@ -384,7 +384,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     else
                     {
                         this.DecodeBlockProgressiveAC(
-                            component,
                             ref block,
                             ref acHuffmanTable,
                             ref fastACRef);
@@ -514,7 +513,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         private void DecodeBlockProgressiveAC(
-            JpegComponent component,
             ref Block8x8 block,
             ref HuffmanTable acTable,
             ref short fastACRef)

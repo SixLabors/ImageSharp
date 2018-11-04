@@ -5,6 +5,8 @@ using System.IO;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
+using SixLabors.ImageSharp.Processing.Processors.Dithering;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp
@@ -53,6 +55,18 @@ namespace SixLabors.ImageSharp
         {
             var test = new OctreeFrameQuantizer<TPixel>(new OctreeQuantizer(false));
             test.AotGetPalette();
+        }
+
+        /// <summary>
+        /// This method pre-seeds the default FloydSteinbergDiffuser in the AoT compiler for iOS.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        public static void AotCompileDithering<TPixel>()
+            where TPixel : struct, IPixel<TPixel>
+        {
+            var test = new FloydSteinbergDiffuser();
+            TPixel pixel = default;
+            test.Dither<TPixel>(new ImageFrame<TPixel>(Configuration.Default, 1, 1), pixel, pixel, 0, 0, 0, 0, 0, 0);
         }
     }
 }

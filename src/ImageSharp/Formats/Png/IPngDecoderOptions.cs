@@ -6,7 +6,7 @@ using System.Text;
 namespace SixLabors.ImageSharp.Formats.Png
 {
     /// <summary>
-    /// The optioas for decoding png images
+    /// The options for decoding png images
     /// </summary>
     internal interface IPngDecoderOptions
     {

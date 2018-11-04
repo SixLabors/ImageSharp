@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Processing
             {
                 Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x);
 
-                // constrain the spans to eachother
+                // constrain the spans to each other
                 if (destinationRow.Length > scanline.Length)
                 {
                     destinationRow = destinationRow.Slice(0, scanline.Length);

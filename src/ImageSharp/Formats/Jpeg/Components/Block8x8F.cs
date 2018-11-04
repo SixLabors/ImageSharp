@@ -395,7 +395,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Scales the 16x16 region represented by the 4 source blocks to the 8x8  DST block.
+        /// Scales the 16x16 region represented by the 4 source blocks to the 8x8 DST block.
         /// </summary>
         /// <param name="destination">The destination block.</param>
         /// <param name="source">The source block.</param>
@@ -571,7 +571,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             // sign(dividend) = max(min(dividend, 1), -1)
             var sign = Vector4.Clamp(dividend, NegativeOne, Vector4.One);
 
-            // AlmostRound(dividend/divisor) = dividend/divisior + 0.5*sign(dividend)
+            // AlmostRound(dividend/divisor) = dividend/divisor + 0.5*sign(dividend)
             return (dividend / divisor) + (sign * Offset);
         }
 

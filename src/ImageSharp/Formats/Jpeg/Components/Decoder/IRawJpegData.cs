@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         Size ImageSizeInPixels { get; }
 
         /// <summary>
-        /// Gets the number of coponents.
+        /// Gets the number of components.
         /// </summary>
         int ComponentCount { get; }
 

@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// The hexadecimal representation of the combined color components arranged
         /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
         /// </param>
-        /// <returns>Returns a <typeparamref name="TPixel"/> that represents the color defined by the provided RGBA heax string.</returns>
+        /// <returns>Returns a <typeparamref name="TPixel"/> that represents the color defined by the provided RGBA hex string.</returns>
         public static TPixel FromHex(string hex)
         {
             Guard.NotNullOrWhiteSpace(hex, nameof(hex));

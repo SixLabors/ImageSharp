@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 // Uncomment to enable local profiling benchmarks. DO NOT PUSH TO MAIN!
-#define PROFILING
+// #define PROFILING
 
 namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
 {

@@ -165,6 +165,19 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             public static readonly string[] All = Baseline.All.Concat(Progressive.All).ToArray();
+
+            public static readonly string[] BenchmarkSuite =
+            {
+                // Except "Jpeg400", all images are YCbCr
+                Baseline.Jpeg400,
+                Baseline.Jpeg420Exif,
+                Baseline.Lake, // 444
+
+                // Using images from the "issues" set, because they are LARGE
+                Issues.MissingFF00ProgressiveBedroom159, // 420
+                Issues.BadRstProgressive518, // 444
+                Issues.ExifGetString750Transform, // 420
+            };
         }
 
         public static class Bmp

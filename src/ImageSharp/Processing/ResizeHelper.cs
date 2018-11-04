@@ -337,21 +337,19 @@ namespace SixLabors.ImageSharp.Processing
             float percentHeight = MathF.Abs(height / (float)sourceHeight);
             float percentWidth = MathF.Abs(width / (float)sourceWidth);
 
-            float sourceRatio = (float)sourceHeight / sourceWidth;
-
             // Find the shortest distance to go.
             int widthDiff = sourceWidth - width;
             int heightDiff = sourceHeight - height;
 
             if (widthDiff < heightDiff)
             {
-                destinationHeight = (int)MathF.Round(width * sourceRatio);
+                destinationHeight = (int)MathF.Round(width * ((float)sourceHeight / sourceWidth));
                 height = destinationHeight;
                 destinationWidth = width;
             }
             else if (widthDiff > heightDiff)
             {
-                destinationWidth = (int)MathF.Round(height / sourceRatio);
+                destinationWidth = (int)MathF.Round(height * ((float)sourceWidth / sourceHeight));
                 destinationHeight = height;
                 width = destinationWidth;
             }

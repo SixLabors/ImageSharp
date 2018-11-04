@@ -16,42 +16,36 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal struct ResizeKernel
     {
         /// <summary>
-        /// The left index for the destination row
-        /// </summary>
-        public int Left;
-
-        /// <summary>
-        /// The length of the kernel
-        /// </summary>
-        public int Length;
-
-        /// <summary>
-        /// The buffer containing the weights values.
-        /// </summary>
-        private readonly Memory<float> buffer;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="ResizeKernel"/> struct.
         /// </summary>
-        /// <param name="index">The destination index in the buffer</param>
-        /// <param name="left">The local left index</param>
-        /// <param name="buffer">The span</param>
-        /// <param name="length">The length of the window</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        internal ResizeKernel(int index, int left, Buffer2D<float> buffer, int length)
+        internal ResizeKernel(int left, Memory<float> bufferSlice)
         {
-            int flatStartIndex = index * buffer.Width;
             this.Left = left;
-            this.buffer = buffer.MemorySource.Memory.Slice(flatStartIndex, length);
-            this.Length = length;
+            this.BufferSlice = bufferSlice;
         }
+
+        /// <summary>
+        /// Gets the left index for the destination row
+        /// </summary>
+        public int Left { get; }
+
+        /// <summary>
+        /// Gets the slice of the buffer containing the weights values.
+        /// </summary>
+        public Memory<float> BufferSlice { get; }
+
+        /// <summary>
+        /// Gets the the length of the kernel
+        /// </summary>
+        public int Length => this.BufferSlice.Length;
 
         /// <summary>
         /// Gets the span representing the portion of the <see cref="KernelMap"/> that this window covers
         /// </summary>
         /// <returns>The <see cref="Span{T}"/></returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Span<float> GetValues() => this.buffer.Span;
+        public Span<float> GetValues() => this.BufferSlice.Span;
 
         /// <summary>
         /// Computes the sum of vectors in 'rowSpan' weighted by weight values, pointed by this <see cref="ResizeKernel"/> instance.

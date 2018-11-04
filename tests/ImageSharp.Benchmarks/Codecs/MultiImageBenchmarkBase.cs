@@ -3,6 +3,9 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Jobs;
+
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
@@ -22,6 +25,25 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
     public abstract class MultiImageBenchmarkBase
     {
+        public class Config : ManualConfig
+        {
+            public Config()
+            {
+                // Uncomment if you want to use any of the diagnoser
+                this.Add(new BenchmarkDotNet.Diagnosers.MemoryDiagnoser());
+            }
+
+            public class ShortClr : Benchmarks.Config
+            {
+                public ShortClr()
+                {
+                    this.Add(
+                        Job.Core.WithLaunchCount(1).WithWarmupCount(1).WithTargetCount(2)
+                    );
+                }
+            }
+        }
+
         protected Dictionary<string, byte[]> FileNamesToBytes = new Dictionary<string, byte[]>();
 
         protected Dictionary<string, Image<Rgba32>> FileNamesToImageSharpImages = new Dictionary<string, Image<Rgba32>>();
@@ -49,7 +71,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         /// <summary>
         /// Gets the file names containing these strings are substrings are not processed by the benchmark.
         /// </summary>
-        protected IEnumerable<string> ExcludeSubstringsInFileNames => new[] { "badeof", "BadEof", "CriticalEOF" };
+        protected virtual IEnumerable<string> ExcludeSubstringsInFileNames => new[] { "badeof", "BadEof", "CriticalEOF" };
 
         /// <summary>
         /// Enumerates folders containing files OR files to be processed by the benchmark.
@@ -87,7 +109,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         protected abstract IEnumerable<string> InputImageSubfoldersOrFiles { get; }
 
         [GlobalSetup]
-        public void ReadImages()
+        public virtual void Setup()
         {
             if (!Vector.IsHardwareAccelerated)
             {
@@ -107,11 +129,13 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
                     continue;
                 }
 
+                string[] excludeStrings = this.ExcludeSubstringsInFileNames.Select(s => s.ToLower()).ToArray();
+
                 string[] allFiles =
                     this.SearchPatterns.SelectMany(
                         f =>
                             Directory.EnumerateFiles(path, f, SearchOption.AllDirectories)
-                                .Where(fn => !this.ExcludeSubstringsInFileNames.Any(w => fn.ToLower().Contains(w)))).ToArray();
+                                .Where(fn => !excludeStrings.Any(excludeStr => fn.ToLower().Contains(excludeStr)))).ToArray();
 
                 foreach (string fn in allFiles)
                 {

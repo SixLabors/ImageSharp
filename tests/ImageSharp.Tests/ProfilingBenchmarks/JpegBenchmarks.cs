@@ -22,15 +22,19 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
         {
         }
 
-        public static readonly TheoryData<string> DecodeJpegData = new TheoryData<string>()
-        {
-            //TestImages.Jpeg.Baseline.Cmyk,
-            //TestImages.Jpeg.Baseline.Ycck,
-            TestImages.Jpeg.Baseline.Calliphora,
-            TestImages.Jpeg.Baseline.Jpeg400,
-            TestImages.Jpeg.Baseline.Jpeg420Exif,
-            TestImages.Jpeg.Baseline.Jpeg444,
-        };
+        public static readonly TheoryData<string> DecodeJpegData = new TheoryData<string>
+                                                                       {
+                                                                           // Except "Jpeg400", all images are YCbCr
+
+                                                                           TestImages.Jpeg.Baseline.Jpeg400,
+                                                                           TestImages.Jpeg.Baseline.Jpeg420Exif,
+                                                                           TestImages.Jpeg.Baseline.Lake, // 444
+
+                                                                           // Using images from the "issues" set, because they are LARGE
+                                                                           TestImages.Jpeg.Issues.MissingFF00ProgressiveBedroom159, // 420
+                                                                           TestImages.Jpeg.Issues.BadRstProgressive518, // 444
+                                                                           TestImages.Jpeg.Issues.ExifGetString750Transform, // 420
+                                                                       };
 
         [Theory(Skip = ProfilingSetup.SkipProfilingTests)]
         [MemberData(nameof(DecodeJpegData))]
@@ -38,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
         {
             this.DecodeJpegBenchmarkImpl(fileName, new JpegDecoder());
         }
-        
+
         private void DecodeJpegBenchmarkImpl(string fileName, IImageDecoder decoder)
         {
             // do not run this on CI even by accident
@@ -47,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
                 return;
             }
 
-            const int ExecutionCount = 30;
+            const int ExecutionCount = 10;
 
             if (!Vector.IsHardwareAccelerated)
             {
@@ -83,29 +87,26 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
             }
 
             string[] testFiles = TestImages.Bmp.All
-                .Concat(new[] { TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk })
-                .ToArray();
+                .Concat(new[] { TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk }).ToArray();
 
-            Image<Rgba32>[] testImages =
-                testFiles.Select(
-                        tf => TestImageProvider<Rgba32>.File(tf, pixelTypeOverride: PixelTypes.Rgba32).GetImage())
-                    .ToArray();
+            Image<Rgba32>[] testImages = testFiles.Select(
+                tf => TestImageProvider<Rgba32>.File(tf, pixelTypeOverride: PixelTypes.Rgba32).GetImage()).ToArray();
 
             using (var ms = new MemoryStream())
             {
-                this.Measure(executionCount,
+                this.Measure(
+                    executionCount,
                     () =>
-                    {
-                        foreach (Image<Rgba32> img in testImages)
                         {
-                            var options = new JpegEncoder { Quality = quality, Subsample = subsample };
-                            img.Save(ms, options);
-                            ms.Seek(0, SeekOrigin.Begin);
-                        }
-                    },
+                            foreach (Image<Rgba32> img in testImages)
+                            {
+                                var options = new JpegEncoder { Quality = quality, Subsample = subsample };
+                                img.Save(ms, options);
+                                ms.Seek(0, SeekOrigin.Begin);
+                            }
+                        },
                     // ReSharper disable once ExplicitCallerInfoArgument
-                    $@"Encode {testFiles.Length} images"
-                    );
+                    $@"Encode {testFiles.Length} images");
             }
 
             foreach (Image<Rgba32> image in testImages)
@@ -113,6 +114,5 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
                 image.Dispose();
             }
         }
-
     }
 }

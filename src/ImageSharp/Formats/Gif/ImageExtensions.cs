@@ -58,7 +58,19 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// This method pre-seeds the default FloydSteinbergDiffuser in the AoT compiler for iOS.
+        /// This method pre-seeds the WuQuantizer in the AoT compiler for iOS.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        public static void AotCompileWuQuantizer<TPixel>()
+            where TPixel : struct, IPixel<TPixel>
+        {
+            var test = new WuFrameQuantizer<TPixel>(new WuQuantizer(false));
+            test.QuantizeFrame(new ImageFrame<TPixel>(Configuration.Default, 1, 1));
+            test.AotGetPalette();
+        }
+
+        /// <summary>
+        /// This method pre-seeds the default dithering engine (FloydSteinbergDiffuser) in the AoT compiler for iOS.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         public static void AotCompileDithering<TPixel>()

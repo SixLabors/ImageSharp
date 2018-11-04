@@ -310,9 +310,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 }
                 else
                 {
-                    for (int i = 0; i < cmd[0]; i++)
+                    int max = cmd[0] + count;
+                    byte cmd1 = cmd[1];
+
+                    for (; count < max; count++)
                     {
-                        buffer[count++] = cmd[1];
+                        buffer[count] = cmd1;
                     }
                 }
             }

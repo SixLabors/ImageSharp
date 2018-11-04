@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.Memory;
@@ -89,7 +90,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 ResizeKernel ws = result.CreateKernel(i, left, right);
                 result.Kernels[i] = ws;
 
-                ref float weightsBaseRef = ref ws.GetStartReference();
+                ref float weightsBaseRef = ref MemoryMarshal.GetReference(ws.GetValues());
 
                 for (int j = left; j <= right; j++)
                 {

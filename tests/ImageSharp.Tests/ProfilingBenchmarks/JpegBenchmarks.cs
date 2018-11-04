@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
 
                                                                            // Using images from the "issues" set, because they are LARGE
                                                                            TestImages.Jpeg.Issues.MissingFF00ProgressiveBedroom159, // 420
-                                                                           TestImages.Jpeg.Issues.BadRstProgressive518, // 444
+                                                                           // TestImages.Jpeg.Issues.BadRstProgressive518, // 444
                                                                            TestImages.Jpeg.Issues.ExifGetString750Transform, // 420
                                                                        };
 

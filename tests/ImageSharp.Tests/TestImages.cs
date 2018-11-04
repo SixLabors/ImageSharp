@@ -175,7 +175,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 // Using images from the "issues" set, because they are LARGE
                 Issues.MissingFF00ProgressiveBedroom159, // 420
-                Issues.BadRstProgressive518, // 444
+                // Issues.BadRstProgressive518, // 444
                 Issues.ExifGetString750Transform, // 420
             };
         }

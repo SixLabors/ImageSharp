@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for allocations.</param>
         /// <param name="destinationSize">The size of the destination window</param>
         /// <param name="kernelRadius">The radius of the kernel</param>
-        public KernelMap(MemoryAllocator memoryAllocator, int destinationSize, float kernelRadius)
+        private KernelMap(MemoryAllocator memoryAllocator, int destinationSize, float kernelRadius)
         {
             this.DestinationSize = destinationSize;
             int width = (int)Math.Ceiling(kernelRadius * 2);
@@ -125,13 +125,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// Slices a weights value at the given positions.
         /// </summary>
-        /// <param name="destIdx">The index in destination buffer</param>
-        /// <param name="leftIdx">The local left index value</param>
-        /// <param name="rightIdx">The local right index value</param>
-        /// <returns>The weights</returns>
-        private ResizeKernel CreateKernel(int destIdx, int leftIdx, int rightIdx)
+        private ResizeKernel CreateKernel(int destIdx, int left, int rightIdx)
         {
-            return new ResizeKernel(destIdx, leftIdx, this.data, rightIdx - leftIdx + 1);
+            int flatStartIndex = destIdx * this.data.Width;
+            int length = rightIdx - left + 1;
+            Memory<float> bufferSlice = this.data.Memory.Slice(flatStartIndex, length);
+            return new ResizeKernel(left, bufferSlice);
         }
     }
 }

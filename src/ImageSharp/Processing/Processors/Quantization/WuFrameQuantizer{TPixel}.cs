@@ -173,6 +173,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
         }
 
+        internal TPixel[] AotGetPalette() => this.GetPalette();
+
         /// <inheritdoc/>
         protected override TPixel[] GetPalette()
         {

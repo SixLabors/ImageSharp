@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private GifGraphicControlExtension graphicsControlExtension;
 
         /// <summary>
-        /// The image desciptor.
+        /// The image descriptor.
         /// </summary>
         private GifImageDescriptor imageDescriptor;
 

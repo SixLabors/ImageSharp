@@ -8,6 +8,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// </summary>
     internal interface IBmpDecoderOptions
     {
-        // added this for consistancy so we can add stuff as required, no options currently availible
+        // added this for consistency so we can add stuff as required, no options currently available
     }
 }

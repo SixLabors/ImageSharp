@@ -10,7 +10,7 @@ using System.Text;
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     /// <summary>
-    /// Represents a Jpeg block with <see cref="short"/> coefficiens.
+    /// Represents a Jpeg block with <see cref="short"/> coefficients.
     /// </summary>
     // ReSharper disable once InconsistentNaming
     internal unsafe struct Block8x8 : IEquatable<Block8x8>
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Gets or sets a value in a row+coulumn of the 8x8 block
+        /// Gets or sets a value in a row+column of the 8x8 block
         /// </summary>
         /// <param name="x">The x position index in the row</param>
         /// <param name="y">The column index</param>
@@ -283,7 +283,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Calculate the total sum of absoulute differences of elements in 'a' and 'b'.
+        /// Calculate the total sum of absolute differences of elements in 'a' and 'b'.
         /// </summary>
         public static long TotalDifference(ref Block8x8 a, ref Block8x8 b)
         {

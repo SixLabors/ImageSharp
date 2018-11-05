@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 // packedRgba          = [aa bb gg rr]
                 // tmp1                = [aa 00 gg 00]
                 // tmp2                = [00 bb 00 rr]
-                // tmp3=ROTL(16, tmp2)  = [00 rr 00 bb]
+                // tmp3=ROTL(16, tmp2) = [00 rr 00 bb]
                 // tmp1 + tmp3         = [aa rr gg bb]
                 uint tmp1 = packedRgba & 0xFF00FF00;
                 uint tmp2 = packedRgba & 0x00FF00FF;

@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// This is an optional tag which specifies the laydown order in which colorants
         /// will be printed on an n-colorant device. The laydown order may be the same
         /// as the channel generation order listed in the colorantTableTag or the channel
-        /// order of a colour encoding type such as CMYK, in which case this tag is not
+        /// order of a color encoding type such as CMYK, in which case this tag is not
         /// needed. When this is not the case (for example, ink-towers sometimes use
         /// the order KCMY), this tag may be used to specify the laydown order of the
         /// colorants
@@ -59,25 +59,25 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         DateTime = 0x6474696D,
 
         /// <summary>
-        /// This structure represents a colour transform using tables with 16-bit
+        /// This structure represents a color transform using tables with 16-bit
         /// precision. This type contains four processing elements: a 3 × 3 matrix
-        /// (which shall be the identity matrix unless the input colour space is
+        /// (which shall be the identity matrix unless the input color space is
         /// PCSXYZ), a set of one-dimensional input tables, a multi-dimensional
         /// lookup table, and a set of one-dimensional output tables
         /// </summary>
         Lut16 = 0x6D667432,
 
         /// <summary>
-        /// This structure represents a colour transform using tables of 8-bit
+        /// This structure represents a color transform using tables of 8-bit
         /// precision. This type contains four processing elements: a 3 × 3 matrix
-        /// (which shall be the identity matrix unless the input colour space is
+        /// (which shall be the identity matrix unless the input color space is
         /// PCSXYZ), a set of one-dimensional input tables, a multi-dimensional
         /// lookup table, and a set of one-dimensional output tables.
         /// </summary>
         Lut8 = 0x6D667431,
 
         /// <summary>
-        /// This structure represents a colour transform. The type contains up
+        /// This structure represents a color transform. The type contains up
         /// to five processing elements which are stored in the AToBTag tag
         /// in the following order: a set of one-dimensional curves, a 3 × 3
         /// matrix with offset terms, a set of one-dimensional curves, a
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         LutAToB = 0x6D414220,
 
         /// <summary>
-        /// This structure represents a colour transform. The type contains
+        /// This structure represents a color transform. The type contains
         /// up to five processing elements which are stored in the BToATag
         /// in the following order: a set of one-dimensional curves, a 3 × 3
         /// matrix with offset terms, a set of one-dimensional curves, a
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         MultiLocalizedUnicode = 0x6D6C7563,
 
         /// <summary>
-        /// This structure represents a colour transform, containing a sequence
+        /// This structure represents a color transform, containing a sequence
         /// of processing elements. The processing elements contained in the
         /// structure are defined in the structure itself, allowing for a flexible
         /// structure. Currently supported processing elements are: a set of one
@@ -123,15 +123,15 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         MultiProcessElements = 0x6D706574,
 
         /// <summary>
-        /// This type is a count value and array of structures that provide colour
-        /// coordinates for colour names. For each named colour, a PCS and optional
-        /// device representation of the colour are given. Both representations are
+        /// This type is a count value and array of structures that provide color
+        /// coordinates for color names. For each named color, a PCS and optional
+        /// device representation of the color are given. Both representations are
         /// 16-bit values and PCS values shall be relative colorimetric. The device
-        /// representation corresponds to the header’s "data colour space" field.
+        /// representation corresponds to the header’s "data color space" field.
         /// This representation should be consistent with the "number of device
         /// coordinates" field in the namedColor2Type. If this field is 0, device
         /// coordinates are not provided. The PCS representation corresponds to the
-        /// header's PCS field. The PCS representation is always provided. Colour
+        /// header's PCS field. The PCS representation is always provided. Color
         /// names are fixed-length, 32-byte fields including null termination. In
         /// order to maintain maximum portability, it is strongly recommended that
         /// special characters of the 7-bit ASCII set not be used.
@@ -168,7 +168,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// so that corrections can be made for variation in the device without
         /// having to produce a new profile. The mechanism can be used by applications
         /// to allow users with relatively inexpensive and readily available
-        /// instrumentation to apply corrections to individual output colour
+        /// instrumentation to apply corrections to individual output color
         /// channels in order to achieve consistent results.
         /// </summary>
         ResponseCurveSet16 = 0x72637332,

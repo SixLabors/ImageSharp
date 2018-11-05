@@ -10,11 +10,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
     {
         /// <summary>
         /// In perceptual transforms the PCS values represent hypothetical
-        /// measurements of a colour reproduction on the reference reflective
+        /// measurements of a color reproduction on the reference reflective
         /// medium. By extension, for the perceptual intent, the PCS represents
         /// the appearance of that reproduction as viewed in the reference viewing
         /// environment by a human observer adapted to that environment. The exact
-        /// colour rendering of the perceptual intent is vendor specific.
+        /// color rendering of the perceptual intent is vendor specific.
         /// </summary>
         Perceptual = 0,
 
@@ -27,15 +27,15 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         MediaRelativeColorimetric = 1,
 
         /// <summary>
-        /// The exact colour rendering of the saturation intent is vendor
+        /// The exact color rendering of the saturation intent is vendor
         /// specific and involves compromises such as trading off
-        /// preservation of hue in order to preserve the vividness of pure colours.
+        /// preservation of hue in order to preserve the vividness of pure colors.
         /// </summary>
         Saturation = 2,
 
         /// <summary>
         /// Transformations for this intent shall leave the chromatically
-        /// adapted nCIEXYZ tristimulus values of the in-gamut colours unchanged.
+        /// adapted nCIEXYZ tristimulus values of the in-gamut colors unchanged.
         /// </summary>
         AbsoluteColorimetric = 3,
     }

@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     }
 
                     // Figure F.15: generate decoding tables for bit-sequential decoding.
-                    // Compute largest code + 1 for this size. preshifted as we needit later.
+                    // Compute largest code + 1 for this size. preshifted as we need it later.
                     Unsafe.Add(ref maxcodeRef, k) = code << (16 - k);
                     code <<= 1;
                 }

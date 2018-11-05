@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Chunks
 
         /// <summary>
         /// Constructs the PngPhysicalChunkData from the provided metadata.
-        /// If the resolution units are not in meters, they are automatically convereted.
+        /// If the resolution units are not in meters, they are automatically converted.
         /// </summary>
         /// <param name="meta">The metadata.</param>
         /// <returns>The constructed PngPhysicalChunkData instance.</returns>

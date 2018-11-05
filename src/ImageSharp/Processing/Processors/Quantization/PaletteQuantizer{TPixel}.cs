@@ -61,8 +61,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
 
             TPixel[] paletteRef = this.palette;
-            TPixel1[] castPalette = Unsafe.As<TPixel[], TPixel1[]>(ref paletteRef);
-
             return new PaletteFrameQuantizer<TPixel1>(this, Unsafe.As<TPixel[], TPixel1[]>(ref paletteRef));
         }
 

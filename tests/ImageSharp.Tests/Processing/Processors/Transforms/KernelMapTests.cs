@@ -20,17 +20,39 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         {
             this.Output = output;
         }
-        
+
+        /// <summary>
+        /// resamplerName, srcSize, destSize
+        /// </summary>
+        public static readonly TheoryData<string, int, int> KernelMapData = new TheoryData<string, int, int>
+        {
+            { nameof(KnownResamplers.Bicubic), 15, 10 },
+            { nameof(KnownResamplers.Bicubic), 10, 15 },
+            { nameof(KnownResamplers.Bicubic), 20, 20 },
+            { nameof(KnownResamplers.Bicubic), 50, 40 },
+            { nameof(KnownResamplers.Bicubic), 40, 50 },
+            { nameof(KnownResamplers.Bicubic), 500, 200 },
+            { nameof(KnownResamplers.Bicubic), 200, 500 },
+
+            { nameof(KnownResamplers.Lanczos3), 16, 12 },
+            { nameof(KnownResamplers.Lanczos3), 12, 16 },
+            { nameof(KnownResamplers.Lanczos3), 12, 9 },
+            { nameof(KnownResamplers.Lanczos3), 9, 12 },
+            { nameof(KnownResamplers.Lanczos3), 6, 8 },
+            { nameof(KnownResamplers.Lanczos3), 8, 6 },
+
+            // TODO: What's wrong here:
+            // { nameof(KnownResamplers.Lanczos3), 20, 12 },
+
+            {nameof(KnownResamplers.Lanczos8), 500, 200 },
+            {nameof(KnownResamplers.Lanczos8), 100, 10 },
+            {nameof(KnownResamplers.Lanczos8), 100, 80 },
+            {nameof(KnownResamplers.Lanczos8), 10, 100 },
+        };
+
         [Theory]
-        [InlineData(500, 200, nameof(KnownResamplers.Bicubic))]
-        [InlineData(50, 40, nameof(KnownResamplers.Bicubic))]
-        [InlineData(40, 30, nameof(KnownResamplers.Bicubic))]
-        [InlineData(15, 10, nameof(KnownResamplers.Bicubic))]
-        [InlineData(500, 200, nameof(KnownResamplers.Lanczos8))]
-        [InlineData(100, 80, nameof(KnownResamplers.Lanczos8))]
-        [InlineData(100, 10, nameof(KnownResamplers.Lanczos8))]
-        [InlineData(10, 100, nameof(KnownResamplers.Lanczos8))]
-        public void KernelMapContentIsCorrect(int srcSize, int destSize, string resamplerName)
+        [MemberData(nameof(KernelMapData))]
+        public void KernelMapContentIsCorrect(string resamplerName, int srcSize, int destSize)
         {
             var resampler = (IResampler)typeof(KnownResamplers).GetProperty(resamplerName).GetValue(null);
             

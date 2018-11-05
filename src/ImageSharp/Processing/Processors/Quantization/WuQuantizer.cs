@@ -15,11 +15,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     public class WuQuantizer : IQuantizer
     {
         /// <summary>
-        /// The default maximum number of colors to use when quantizing the image.
-        /// </summary>
-        public const int DefaultMaxColors = 256;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="WuQuantizer"/> class.
         /// </summary>
         public WuQuantizer()
@@ -41,7 +36,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         /// <param name="dither">Whether to apply dithering to the output image</param>
         public WuQuantizer(bool dither)
-            : this(GetDiffuser(dither), DefaultMaxColors)
+            : this(GetDiffuser(dither), QuantizerConstants.MaxColors)
         {
         }
 
@@ -50,7 +45,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         /// <param name="diffuser">The error diffusion algorithm, if any, to apply to the output image</param>
         public WuQuantizer(IErrorDiffuser diffuser)
-            : this(diffuser, DefaultMaxColors)
+            : this(diffuser, QuantizerConstants.MaxColors)
         {
         }
 
@@ -62,7 +57,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public WuQuantizer(IErrorDiffuser diffuser, int maxColors)
         {
             this.Diffuser = diffuser;
-            this.MaxColors = maxColors.Clamp(1, DefaultMaxColors);
+            this.MaxColors = maxColors.Clamp(QuantizerConstants.MinColors, QuantizerConstants.MaxColors);
         }
 
         /// <inheritdoc />
@@ -83,7 +78,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration, int maxColors)
             where TPixel : struct, IPixel<TPixel>
         {
-            maxColors = maxColors.Clamp(1, DefaultMaxColors);
+            maxColors = maxColors.Clamp(QuantizerConstants.MinColors, QuantizerConstants.MaxColors);
             return new WuFrameQuantizer<TPixel>(this, maxColors);
         }
 

@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.Memory;
@@ -88,12 +90,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 int yBuffer = y * this.blockAreaSize.Height;
 
-                for (int x = 0; x < this.SizeInBlocks.Width; x++)
-                {
-                    int xBlock = x;
-                    int xBuffer = x * this.blockAreaSize.Width;
+                Span<Block8x8> blockRow = this.Component.SpectralBlocks.GetRowSpan(yBlock);
 
-                    ref Block8x8 block = ref this.Component.GetBlockReference(xBlock, yBlock);
+                ref Block8x8 blockRowBase = ref MemoryMarshal.GetReference(blockRow);
+
+                for (int xBlock = 0; xBlock < this.SizeInBlocks.Width; xBlock++)
+                {
+                    ref Block8x8 block = ref Unsafe.Add(ref blockRowBase, xBlock);
+                    int xBuffer = xBlock * this.blockAreaSize.Width;
 
                     BufferArea<float> destArea = this.ColorBuffer.GetArea(
                         xBuffer,

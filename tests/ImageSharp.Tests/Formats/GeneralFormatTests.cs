@@ -67,7 +67,8 @@ namespace SixLabors.ImageSharp.Tests
             new TheoryData<string>
                 {
                     nameof(KnownQuantizers.Octree),
-                    nameof(KnownQuantizers.Palette),
+                    nameof(KnownQuantizers.WebSafe),
+                    nameof(KnownQuantizers.Werner),
                     nameof(KnownQuantizers.Wu)
                 };
 

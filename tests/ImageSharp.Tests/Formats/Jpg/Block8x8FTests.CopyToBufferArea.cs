@@ -7,14 +7,16 @@
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 using Xunit;
 using Xunit.Abstractions;
+// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    public partial class Block8x8FTests : JpegFixture
+    public partial class Block8x8FTests
     {
         public class CopyToBufferArea : JpegFixture
         {
@@ -37,17 +39,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 }
             }
 
-            // TODO: This test occasionally fails from the same reason certain ICC tests are failing. Should be false negative.
-            [Fact(Skip = "This test occasionally fails from the same reason certain ICC tests are failing. Should be false negative.")]
-            //[Fact]
-            public void Unscaled()
+            [Fact]
+            public void Copy1x1Scale()
             {
                 Block8x8F block = CreateRandomFloatBlock(0, 100);
 
-                using (var buffer = Configuration.Default.MemoryAllocator.Allocate2D<float>(20, 20))
+                using (Buffer2D<float> buffer = Configuration.Default.MemoryAllocator.Allocate2D<float>(20, 20, AllocationOptions.Clean))
                 {
                     BufferArea<float> area = buffer.GetArea(5, 10, 8, 8);
-                    block.CopyTo(area);
+                    block.Copy1x1Scale(area);
 
                     Assert.Equal(block[0, 0], buffer[5, 10]);
                     Assert.Equal(block[1, 0], buffer[6, 10]);
@@ -59,22 +59,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 }
             }
 
-            // TODO: This test occasionally fails from the same reason certain ICC tests are failing. Should be false negative.
-            [Theory(Skip = "This test occasionally fails from the same reason certain ICC tests are failing. Should be false negative.")]
-            //[Theory]
+            [Theory]
             [InlineData(1, 1)]
             [InlineData(1, 2)]
             [InlineData(2, 1)]
             [InlineData(2, 2)]
             [InlineData(4, 2)]
             [InlineData(4, 4)]
-            public void Scaled(int horizontalFactor, int verticalFactor)
+            public void CopyTo(int horizontalFactor, int verticalFactor)
             {
                 Block8x8F block = CreateRandomFloatBlock(0, 100);
 
                 var start = new Point(50, 50);
 
-                using (var buffer = Configuration.Default.MemoryAllocator.Allocate2D<float>(100, 100))
+                using (Buffer2D<float> buffer = Configuration.Default.MemoryAllocator.Allocate2D<float>(100, 100, AllocationOptions.Clean))
                 {
                     BufferArea<float> area = buffer.GetArea(start.X, start.Y, 8 * horizontalFactor, 8 * verticalFactor);
                     block.CopyTo(area, horizontalFactor, verticalFactor);

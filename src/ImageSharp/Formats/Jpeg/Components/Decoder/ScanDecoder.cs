@@ -1,8 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
@@ -142,7 +144,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint LRot(uint x, int y) => (x << y) | (x >> (32 - y));
 
         private void ParseBaselineData()
@@ -179,10 +181,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         int h = component.HorizontalSamplingFactor;
                         int v = component.VerticalSamplingFactor;
 
+                        int mcuRow = mcu / mcusPerLine;
+
                         // Scan out an mcu's worth of this component; that's just determined
                         // by the basic H and V specified for the component
                         for (int y = 0; y < v; y++)
                         {
+                            int blockRow = (mcuRow * v) + y;
+                            Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(blockRow);
                             for (int x = 0; x < h; x++)
                             {
                                 if (this.eof)
@@ -190,15 +196,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                                     return;
                                 }
 
-                                int mcuRow = mcu / mcusPerLine;
                                 int mcuCol = mcu % mcusPerLine;
-                                int blockRow = (mcuRow * v) + y;
                                 int blockCol = (mcuCol * h) + x;
 
                                 this.DecodeBlockBaseline(
                                     component,
-                                    blockRow,
-                                    blockCol,
+                                    ref blockSpan[blockCol],
                                     ref dcHuffmanTable,
                                     ref acHuffmanTable,
                                     ref fastACRef);
@@ -236,6 +239,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int mcu = 0;
             for (int j = 0; j < h; j++)
             {
+                // TODO: Isn't blockRow == j actually?
+                int blockRow = mcu / w;
+                Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(blockRow);
+
                 for (int i = 0; i < w; i++)
                 {
                     if (this.eof)
@@ -243,13 +250,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         return;
                     }
 
-                    int blockRow = mcu / w;
+                    // TODO: Isn't blockCol == i actually?
                     int blockCol = mcu % w;
 
                     this.DecodeBlockBaseline(
                         component,
-                        blockRow,
-                        blockCol,
+                        ref blockSpan[blockCol],
                         ref dcHuffmanTable,
                         ref acHuffmanTable,
                         ref fastACRef);
@@ -299,6 +305,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         // by the basic H and V specified for the component
                         for (int y = 0; y < v; y++)
                         {
+                            int mcuRow = mcu / mcusPerLine;
+                            int blockRow = (mcuRow * v) + y;
+                            Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(blockRow);
+
                             for (int x = 0; x < h; x++)
                             {
                                 if (this.eof)
@@ -306,15 +316,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                                     return;
                                 }
 
-                                int mcuRow = mcu / mcusPerLine;
                                 int mcuCol = mcu % mcusPerLine;
-                                int blockRow = (mcuRow * v) + y;
                                 int blockCol = (mcuCol * h) + x;
 
                                 this.DecodeBlockProgressiveDC(
                                     component,
-                                    blockRow,
-                                    blockCol,
+                                    ref blockSpan[blockCol],
                                     ref dcHuffmanTable);
                             }
                         }
@@ -351,6 +358,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int mcu = 0;
             for (int j = 0; j < h; j++)
             {
+                // TODO: isn't blockRow == j actually?
+                int blockRow = mcu / w;
+                Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(blockRow);
+
                 for (int i = 0; i < w; i++)
                 {
                     if (this.eof)
@@ -358,23 +369,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         return;
                     }
 
-                    int blockRow = mcu / w;
+                    // TODO: isn't blockCol == i actually?
                     int blockCol = mcu % w;
+
+                    ref Block8x8 block = ref blockSpan[blockCol];
 
                     if (this.spectralStart == 0)
                     {
                         this.DecodeBlockProgressiveDC(
                             component,
-                            blockRow,
-                            blockCol,
+                            ref block,
                             ref dcHuffmanTable);
                     }
                     else
                     {
                         this.DecodeBlockProgressiveAC(
-                            component,
-                            blockRow,
-                            blockCol,
+                            ref block,
                             ref acHuffmanTable,
                             ref fastACRef);
                     }
@@ -391,8 +401,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private void DecodeBlockBaseline(
             JpegComponent component,
-            int row,
-            int col,
+            ref Block8x8 block,
             ref HuffmanTable dcTable,
             ref HuffmanTable acTable,
             ref short fastACRef)
@@ -405,7 +414,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 JpegThrowHelper.ThrowBadHuffmanCode();
             }
 
-            ref short blockDataRef = ref component.GetBlockDataReference(col, row);
+            ref short blockDataRef = ref Unsafe.As<Block8x8, short>(ref block);
 
             int diff = t != 0 ? this.ExtendReceive(t) : 0;
             int dc = component.DcPredictor + diff;
@@ -470,8 +479,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private void DecodeBlockProgressiveDC(
             JpegComponent component,
-            int row,
-            int col,
+            ref Block8x8 block,
             ref HuffmanTable dcTable)
         {
             if (this.spectralEnd != 0)
@@ -481,7 +489,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             this.CheckBits();
 
-            ref short blockDataRef = ref component.GetBlockDataReference(col, row);
+            ref short blockDataRef = ref Unsafe.As<Block8x8, short>(ref block);
 
             if (this.successiveHigh == 0)
             {
@@ -505,9 +513,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         private void DecodeBlockProgressiveAC(
-            JpegComponent component,
-            int row,
-            int col,
+            ref Block8x8 block,
             ref HuffmanTable acTable,
             ref short fastACRef)
         {
@@ -516,7 +522,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 JpegThrowHelper.ThrowImageFormatException("Can't merge DC and AC.");
             }
 
-            ref short blockDataRef = ref component.GetBlockDataReference(col, row);
+            ref short blockDataRef = ref Unsafe.As<Block8x8, short>(ref block);
 
             if (this.successiveHigh == 0)
             {

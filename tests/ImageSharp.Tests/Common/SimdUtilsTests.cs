@@ -258,6 +258,27 @@ namespace SixLabors.ImageSharp.Tests.Common
         }
 
         [Theory]
+        [InlineData(1234)]
+        public void ExtendedIntrinsics_ConvertToSingle(short scale)
+        {
+            int n = Vector<float>.Count;
+            short[] sData = new Random(scale).GenerateRandomInt16Array(2 * n, (short)-scale, scale);
+            float[] fData = sData.Select(u => (float)u).ToArray();
+
+            var source = new Vector<short>(sData);
+
+            var expected1 = new Vector<float>(fData, 0);
+            var expected2 = new Vector<float>(fData, n);
+
+            // Act:
+            SimdUtils.ExtendedIntrinsics.ConvertToSingle(source, out Vector<float> actual1, out Vector<float> actual2);
+
+            // Assert:
+            Assert.Equal(expected1, actual1);
+            Assert.Equal(expected2, actual2);
+        }
+
+        [Theory]
         [MemberData(nameof(ArbitraryArraySizes))]
         public void BulkConvertNormalizedFloatToByteClampOverflows(int count)
         {

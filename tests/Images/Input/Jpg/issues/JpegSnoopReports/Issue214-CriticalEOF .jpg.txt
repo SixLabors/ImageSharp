@@ -1,0 +1,94 @@
+
+JPEGsnoop 1.8.0 by Calvin Hass
+  http://www.impulseadventure.com/photo/
+  -------------------------------------
+
+  Filename: [.\Issue214-CriticalEOF .jpg]
+  Filesize: [35601] Bytes
+
+Start Offset: 0x00000000
+*** Marker: SOI (xFFD8) ***
+  OFFSET: 0x00000000
+ 
+*** Marker: APP0 (xFFE0) ***
+  OFFSET: 0x00000002
+  Length     = 16
+  Identifier = [JFIF]
+  version    = [1.1]
+  density    = 300 x 300 DPI (dots per inch)
+  thumbnail  = 0 x 0
+ 
+*** Marker: APP1 (xFFE1) ***
+  OFFSET: 0x00000014
+  Length          = 39251
+  Identifier      = [Exif]
+  Identifier TIFF = 0x[49492A00 08000000]
+  Endian          = Intel (little)
+  TAG Mark x002A  = 0x002A
+
+  EXIF IFD0 @ Absolute 0x00000026
+    Dir Length = 0x0015
+    [Make                                ] = "NIKON CORPORATION"
+    [Model                               ] = "NIKON D40"
+    [Orientation                         ] = 1 = Row 0: top, Col 0: left
+    [XResolution                         ] = 300/1
+    [YResolution                         ] = 300/1
+    [ResolutionUnit                      ] = Inch
+    [Software                            ] = "Ver.1.10 "
+    [DateTime                            ] = "2009:02:17 08:30:16"
+    [YCbCrPositioning                    ] = Co-sited
+    [ExifOffset                          ] = @ 0x015C
+    [CustomRendered                      ] = Normal process
+    [ExposureMode                        ] = Auto exposure
+    [WhiteBalance                        ] = Auto white balance
+    [SceneCaptureType                    ] = Standard
+    Offset to Next IFD = 0x00007652
+
+  EXIF IFD1 @ Absolute 0x00007670
+    Dir Length = 0x0007
+    [Compression                         ] = JPEG
+    [XResolution                         ] = 300/1
+    [YResolution                         ] = 300/1
+    [ResolutionUnit                      ] = Inch
+    [JpegIFOffset                        ] = @ +0x76BC = @ 0x76DA
+    [JpegIFByteCount                     ] = 0x[0000228F] / 8847
+    [YCbCrPositioning                    ] = Co-sited
+    Offset to Next IFD = 0x00000000
+
+  EXIF SubIFD @ Absolute 0x0000017A
+    Dir Length = 0x001C
+    [ExposureTime                        ] = 10/1250 s
+    [FNumber                             ] = F5.6
+    [ExposureProgram                     ] = Not defined
+    [ISOSpeedRatings                     ] = 220
+    [ExifVersion                         ] = 02.21
+    [DateTimeOriginal                    ] = "2009:02:17 08:30:16"
+    [DateTimeDigitized                   ] = "2009:02:17 08:30:15"
+    [ComponentsConfiguration             ] = [Y Cb Cr .]
+    [CompressedBitsPerPixel              ] = 1/1
+    [ExposureBiasValue                   ] = 0.00 eV
+    [MaxApertureValue                    ] = 41/10
+    [MeteringMode                        ] = Pattern
+    [LightSource                         ] = unknown
+    [Flash                               ] = Flash did not fire
+    [FocalLength                         ] = 30 mm
+    [MakerNote                           ] = @ 0x030A
+    [UserComment                         ] = "                                    "
+    [SubSecTime                          ] = "60"
+    [SubSecTimeOriginal                  ] = "60"
+    [SubSecTimeDigitized                 ] = "60"
+    [FlashPixVersion                     ] = 01.00
+    [ColorSpace                          ] = sRGB
+    [ExifImageWidth                      ] = 3008
+    [ExifImageHeight                     ] = 2000
+    [SensingMethod                       ] = One-chip color area sensor
+    [FileSource                          ] = DSC
+    [SceneType                           ] = A directly photographed image
+    [CFAPattern                          ] =
+                                           = [ Blu Grn ]
+                                           = [ Grn Red ]
+
+  EXIF MakerIFD @ Absolute 0x00000328
+    Makernote decode option not enabled.
+ 
+ERROR: Early EOF - file may be missing EOI

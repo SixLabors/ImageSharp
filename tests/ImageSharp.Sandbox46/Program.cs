@@ -4,6 +4,7 @@
 // </copyright>
 
 using SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations;
+using SixLabors.ImageSharp.Tests.ProfilingBenchmarks;
 
 namespace SixLabors.ImageSharp.Sandbox46
 {
@@ -62,8 +63,8 @@ namespace SixLabors.ImageSharp.Sandbox46
         private static void RunDecodeJpegProfilingTests()
         {
             Console.WriteLine("RunDecodeJpegProfilingTests...");
-            var benchmarks = new JpegProfilingBenchmarks(new ConsoleOutput());
-            foreach (object[] data in JpegProfilingBenchmarks.DecodeJpegData)
+            var benchmarks = new JpegBenchmarks(new ConsoleOutput());
+            foreach (object[] data in JpegBenchmarks.DecodeJpegData)
             {
                 string fileName = (string)data[0];
                 benchmarks.DecodeJpeg(fileName);

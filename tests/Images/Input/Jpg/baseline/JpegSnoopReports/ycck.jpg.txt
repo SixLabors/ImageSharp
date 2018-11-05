@@ -1,0 +1,640 @@
+
+JPEGsnoop 1.8.0 by Calvin Hass
+  http://www.impulseadventure.com/photo/
+  -------------------------------------
+
+  Filename: [.\ycck.jpg]
+  Filesize: [611572] Bytes
+
+Start Offset: 0x00000000
+*** Marker: SOI (xFFD8) ***
+  OFFSET: 0x00000000
+ 
+*** Marker: APP1 (xFFE1) ***
+  OFFSET: 0x00000002
+  Length          = 4452
+  Identifier      = [Exif]
+  Identifier TIFF = 0x[4D4D002A 00000008]
+  Endian          = Motorola (big)
+  TAG Mark x002A  = 0x002A
+
+  EXIF IFD0 @ Absolute 0x00000014
+    Dir Length = 0x0007
+    [Orientation                         ] = 1 = Row 0: top, Col 0: left
+    [XResolution                         ] = 720000/10000
+    [YResolution                         ] = 720000/10000
+    [ResolutionUnit                      ] = Inch
+    [Software                            ] = "Adobe Photoshop CC 2015.5 (Windows)"
+    [DateTime                            ] = "2016:08:23 18:21:25"
+    [ExifOffset                          ] = @ 0x00AC
+    Offset to Next IFD = 0x000000D8
+
+  EXIF IFD1 @ Absolute 0x000000E4
+    Dir Length = 0x0006
+    [Compression                         ] = JPEG
+    [XResolution                         ] = 72/1
+    [YResolution                         ] = 72/1
+    [ResolutionUnit                      ] = Inch
+    [JpegIFOffset                        ] = @ +0x0136 = @ 0x0142
+    [JpegIFByteCount                     ] = 0x[00001026] / 4134
+    Offset to Next IFD = 0x00000000
+
+  EXIF SubIFD @ Absolute 0x000000B8
+    Dir Length = 0x0003
+    [ColorSpace                          ] = Uncalibrated
+    [ExifImageWidth                      ] = 0x[00000200] / 512
+    [ExifImageHeight                     ] = 0x[00000200] / 512
+ 
+*** Marker: APP13 (xFFED) ***
+  OFFSET: 0x00001168
+  Length          = 6522
+  Identifier      = [Photoshop 3.0]
+      8BIM: [0x0425] Name="" Len=[0x0010] DefinedName="Caption digest"
+        Caption digest                                     =  | 0x00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  | ................
+      8BIM: [0x043A] Name="" Len=[0x00E5] DefinedName="Print Information"
+        Print Information                                  =
+         | 0x00 00 00 10 00 00 00 01 00 00 00 00 00 0B 70 72  | ..............pr
+         | 0x69 6E 74 4F 75 74 70 75 74 00 00 00 05 00 00 00  | intOutput.......
+         | 0x00 50 73 74 53 62 6F 6F 6C 01 00 00 00 00 49 6E  | .PstSbool.....In
+         | 0x74 65 65 6E 75 6D 00 00 00 00 49 6E 74 65 00 00  | teenum....Inte..
+         | 0x00 00 43 6C 72 6D 00 00 00 0F 70 72 69 6E 74 53  | ..Clrm....printS
+         | 0x69 78 74 65 65 6E 42 69 74 62 6F 6F 6C 00 00 00  | ixteenBitbool...
+         | 0x00 0B 70 72 69 6E 74 65 72 4E 61 6D 65 54 45 58  | ..printerNameTEX
+         | 0x54 00 00 00 01 00 00 00 00 00 0F 70 72 69 6E 74  | T..........print
+         | ...
+      8BIM: [0x043B] Name="" Len=[0x022D] DefinedName="Print Style"
+        Print Style                                        =
+         | 0x00 00 00 10 00 00 00 01 00 00 00 00 00 12 70 72  | ..............pr
+         | 0x69 6E 74 4F 75 74 70 75 74 4F 70 74 69 6F 6E 73  | intOutputOptions
+         | 0x00 00 00 17 00 00 00 00 43 70 74 6E 62 6F 6F 6C  | ........Cptnbool
+         | 0x00 00 00 00 00 43 6C 62 72 62 6F 6F 6C 00 00 00  | .....Clbrbool...
+         | 0x00 00 52 67 73 4D 62 6F 6F 6C 00 00 00 00 00 43  | ..RgsMbool.....C
+         | 0x72 6E 43 62 6F 6F 6C 00 00 00 00 00 43 6E 74 43  | rnCbool.....CntC
+         | 0x62 6F 6F 6C 00 00 00 00 00 4C 62 6C 73 62 6F 6F  | bool.....Lblsboo
+         | 0x6C 00 00 00 00 00 4E 67 74 76 62 6F 6F 6C 00 00  | l.....Ngtvbool..
+         | ...
+      8BIM: [0x03ED] Name="" Len=[0x0010] DefinedName="ResolutionInfo structure"
+        Horizontal resolution                              = 72 pixels per inch
+        Width unit                                         = cm
+        Vertical resolution                                = 72 pixels per inch
+        Height unit                                        = cm
+      8BIM: [0x0426] Name="" Len=[0x000E] DefinedName="Print scale"
+        Style                                              = centered
+        X location                                         = 0.00000 
+        Y location                                         = 0.00000 
+        Scale                                              = 1.00000 
+      8BIM: [0x040D] Name="" Len=[0x0004] DefinedName="Global Angle"
+        Global Angle                                       = 30 degrees
+      8BIM: [0x0419] Name="" Len=[0x0004] DefinedName="Global Altitude"
+        Global Altitude                                    = 30 
+      8BIM: [0x03F3] Name="" Len=[0x0009] DefinedName="Print flags"
+        Labels                                             = false
+        Crop marks                                         = false
+        Color bars                                         = false
+        Registration marks                                 = false
+        Negative                                           = false
+        Flip                                               = false
+        Interpolate                                        = false
+        Caption                                            = false
+        Print flags                                        = true
+      8BIM: [0x2710] Name="" Len=[0x000A] DefinedName="Print flags information"
+        Version                                            = 1 
+        Center crop marks                                  = 0 
+        Reserved                                           = 0 
+        Bleed width value                                  = 0 
+        Bleed width scale                                  = 2 
+      8BIM: [0x03F5] Name="" Len=[0x0048] DefinedName="Color halftoning information"
+        Color halftoning information                       =
+         | 0x00 2F 66 66 00 01 00 6C 66 66 00 06 00 00 00 00  | ./ff...lff......
+         | 0x00 01 00 2F 66 66 00 01 00 A1 99 9A 00 06 00 00  | .../ff..........
+         | 0x00 00 00 01 00 32 00 00 00 01 00 5A 00 00 00 06  | .....2.....Z....
+         | 0x00 00 00 00 00 01 00 35 00 00 00 01 00 2D 00 00  | .......5.....-..
+         | 0x00 06 00 00 00 00 00 01                          | ........        
+      8BIM: [0x03F8] Name="" Len=[0x0070] DefinedName="Color transfer functions"
+        Color transfer functions                           =
+         | 0x00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF  | ................
+         | 0xFF FF FF FF FF FF FF FF 03 E8 00 00 00 00 FF FF  | ................
+         | 0xFF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF  | ................
+         | 0xFF FF FF FF 03 E8 00 00 00 00 FF FF FF FF FF FF  | ................
+         | 0xFF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF  | ................
+         | 0x03 E8 00 00 00 00 FF FF FF FF FF FF FF FF FF FF  | ................
+         | 0xFF FF FF FF FF FF FF FF FF FF FF FF 03 E8 00 00  | ................
+      8BIM: [0x0400] Name="" Len=[0x0002] DefinedName="Layer state information"
+        Target layer                                       = 0 
+      8BIM: [0x0402] Name="" Len=[0x0002] DefinedName="Layers group information"
+        Layer #0:                                         
+          Layer Group                                        = 0 
+      8BIM: [0x0430] Name="" Len=[0x0001] DefinedName="Layer Groups Enabled ID"
+        Layer #0:                                         
+          Layer Group Enabled ID                             = 1 
+      8BIM: [0x042D] Name="" Len=[0x0006] DefinedName="Layer Selection IDs"
+        Num selected                                       = 1 
+          Layer ID                                           = 3 
+      8BIM: [0x0408] Name="" Len=[0x0010] DefinedName="Grid and guides information"
+        Version                                            = 1 
+        Grid Horizontal                                    = 576 
+        Grid Vertical                                      = 576 
+        Number of Guide Resources                          = 0 
+      8BIM: [0x041E] Name="" Len=[0x0004] DefinedName="URL List"
+        URL List                                           =  | 0x00 00 00 00                                      | ....            
+      8BIM: [0x041A] Name="" Len=[0x0363] DefinedName="Slices"
+        Slice Header:                                     
+          Version                                            = 6 
+          Bound Rect (top)                                   = 0 
+          Bound Rect (left)                                  = 0 
+          Bound Rect (bottom)                                = 512 
+          Bound Rect (right)                                 = 512 
+          Name of group of slices                            = "imageprocessor-logo-512"
+          Number of slices                                   = 1 
+          -----                                             
+          Slice #0:                                         
+            Slice Resource:                                   
+              ID                                                 = 0 
+              Group ID                                           = 0 
+              Origin                                             = 0 
+              Name                                               = ""
+              Type                                               = 1 
+              Position (top)                                     = 0 
+              Position (left)                                    = 0 
+              Position (bottom)                                  = 512 
+              Position (right)                                   = 512 
+              URL                                                = ""
+              Target                                             = ""
+              Message                                            = ""
+              Alt Tag                                            = ""
+              Cell text is HTML                                  = true
+              Cell text                                          = ""
+              Horizontal alignment                               = 0 
+              Vertical alignment                                 = 0 
+              Alpha color                                        = 0 
+              Red                                                = 0 
+              Green                                              = 0 
+              Blue                                               = 0 
+              Descriptor version                                 = 16 
+              Descriptor:                                       
+                Name from classID                                  = ""
+                classID                                            = "null"
+                Num items in descriptor                            = 2 
+                -----                                             
+                Descriptor item #0:                               
+                  Key                                                = "bounds"
+                  OSType key                                         = "Objc"
+                  Descriptor:                                       
+                    Name from classID                                  = ""
+                    classID                                            = "Rct1"
+                    Num items in descriptor                            = 4 
+                    -----                                             
+                    Descriptor item #0:                               
+                      Key                                                = "Top "
+                      OSType key                                         = "long"
+                      Value                                              = 0 
+                    Descriptor item #1:                               
+                      Key                                                = "Left"
+                      OSType key                                         = "long"
+                      Value                                              = 0 
+                    Descriptor item #2:                               
+                      Key                                                = "Btom"
+                      OSType key                                         = "long"
+                      Value                                              = 512 
+                    Descriptor item #3:                               
+                      Key                                                = "Rght"
+                      OSType key                                         = "long"
+                      Value                                              = 512 
+                    -----                                             
+                Descriptor item #1:                               
+                  Key                                                = "slices"
+                  OSType key                                         = "VlLs"
+                  Num items in list                                  = 1 
+                  -----                                             
+                  Item #0:                                          
+                    OSType key                                         = ""
+                    Descriptor:                                       
+                      Name from classID                                  = ""
+                      classID                                            = "slice"
+                      Num items in descriptor                            = 18 
+                      -----                                             
+                      Descriptor item #0:                               
+                        Key                                                = "sliceID"
+                        OSType key                                         = "long"
+                        Value                                              = 0 
+                      Descriptor item #1:                               
+                        Key                                                = "groupID"
+                        OSType key                                         = "long"
+                        Value                                              = 0 
+                      Descriptor item #2:                               
+                        Key                                                = "origin"
+                        OSType key                                         = "enum"
+                        Type                                               = "ESliceOrigin"
+                        Enum                                               = "autoGenerated"
+                      Descriptor item #3:                               
+                        Key                                                = "Type"
+                        OSType key                                         = "enum"
+                        Type                                               = "ESliceType"
+                        Enum                                               = "Img "
+                      Descriptor item #4:                               
+                        Key                                                = "bounds"
+                        OSType key                                         = "Objc"
+                        Descriptor:                                       
+                          Name from classID                                  = ""
+                          classID                                            = "Rct1"
+                          Num items in descriptor                            = 4 
+                          -----                                             
+                          Descriptor item #0:                               
+                            Key                                                = "Top "
+                            OSType key                                         = "long"
+                            Value                                              = 0 
+                          Descriptor item #1:                               
+                            Key                                                = "Left"
+                            OSType key                                         = "long"
+                            Value                                              = 0 
+                          Descriptor item #2:                               
+                            Key                                                = "Btom"
+                            OSType key                                         = "long"
+                            Value                                              = 512 
+                          Descriptor item #3:                               
+                            Key                                                = "Rght"
+                            OSType key                                         = "long"
+                            Value                                              = 512 
+                          -----                                             
+                      Descriptor item #5:                               
+                        Key                                                = "url"
+                        OSType key                                         = "TEXT"
+                        String                                             = ""
+                      Descriptor item #6:                               
+                        Key                                                = "null"
+                        OSType key                                         = "TEXT"
+                        String                                             = ""
+                      Descriptor item #7:                               
+                        Key                                                = "Msge"
+                        OSType key                                         = "TEXT"
+                        String                                             = ""
+                      Descriptor item #8:                               
+                        Key                                                = "altTag"
+                        OSType key                                         = "TEXT"
+                        String                                             = ""
+                      Descriptor item #9:                               
+                        Key                                                = "cellTextIsHTML"
+                        OSType key                                         = "bool"
+                        Value                                              = true
+                      Descriptor item #10:                              
+                        Key                                                = "cellText"
+                        OSType key                                         = "TEXT"
+                        String                                             = ""
+                      Descriptor item #11:                              
+                        Key                                                = "horzAlign"
+                        OSType key                                         = "enum"
+                        Type                                               = "ESliceHorzAlign"
+                        Enum                                               = "default"
+                      Descriptor item #12:                              
+                        Key                                                = "vertAlign"
+                        OSType key                                         = "enum"
+                        Type                                               = "ESliceVertAlign"
+                        Enum                                               = "default"
+                      Descriptor item #13:                              
+                        Key                                                = "bgColorType"
+                        OSType key                                         = "enum"
+                        Type                                               = "ESliceBGColorType"
+                        Enum                                               = "None"
+                      Descriptor item #14:                              
+                        Key                                                = "topOutset"
+                        OSType key                                         = "long"
+                        Value                                              = 0 
+                      Descriptor item #15:                              
+                        Key                                                = "leftOutset"
+                        OSType key                                         = "long"
+                        Value                                              = 0 
+                      Descriptor item #16:                              
+                        Key                                                = "bottomOutset"
+                        OSType key                                         = "long"
+                        Value                                              = 0 
+                      Descriptor item #17:                              
+                        Key                                                = "rightOutset"
+                        OSType key                                         = "long"
+                        Value                                              = 0 
+                      -----                                             
+                  -----                                             
+                -----                                             
+          -----                                             
+      8BIM: [0x0428] Name="" Len=[0x000C] DefinedName="Pixel Aspect Ratio"
+        Version                                            = 2 
+        X/Y Ratio                                          = 1.00000 
+      8BIM: [0x0414] Name="" Len=[0x0004] DefinedName="Document-specific IDs seed number"
+        Base value                                         = 3 
+      8BIM: [0x040C] Name="" Len=[0x1042] DefinedName="Thumbnail resources"
+        Format                                             = 1 
+        Width of thumbnail                                 = 160 pixels
+        Height of thumbnail                                = 160 pixels
+        Widthbytes                                         = 480 bytes
+        Total size                                         = 76800 bytes
+        Size after compression                             = 4134 bytes
+        Bits per pixel                                     = 24 bits
+        Number of planes                                   = 1 
+        JFIF data                                          @ 0x00001A3C
+      8BIM: [0x0421] Name="" Len=[0x0061] DefinedName="Version Info"
+        Version                                            = 1 
+        hasRealMergedData                                  = 1 
+        Writer name                                        = "Adobe Photoshop"
+        Reader name                                        = "Adobe Photoshop CC 2015.5"
+        File version                                       = 1 
+      8BIM: [0x0406] Name="" Len=[0x0007] DefinedName="JPEG quality"
+        Photoshop Save As Quality                          = 8 
+        Photoshop Save Format                              = "Standard"
+        Photoshop Save Progressive Scans                   = "3 Scans"
+        ???                                                = 1 
+ 
+*** Marker: APP1 (xFFE1) ***
+  OFFSET: 0x00002AE4
+  Length          = 3685
+  Identifier      = [http://ns.adobe.com/xap/1.0/]
+    XMP = 
+ 
+*** Marker: APP2 (xFFE2) ***
+  OFFSET: 0x0000394B
+  Length          = 65506
+  Identifier      = [ICC_PROFILE]
+    ICC Profile:
+      Marker Number = 1 of 9
+        Profile Size                      : 557168 bytes
+        Preferred CMM Type                : 'ADBE' (0x41444245)
+        Profile Version                   : 0.2.1.0 (0x02100000)
+        Profile Device/Class              : Output Device profile ('prtr' (0x70727472))
+        Data Colour Space                 : cmykData ('CMYK' (0x434D594B))
+        Profile connection space (PCS)    : 'Lab ' (0x4C616220)
+        Profile creation date             : 2000-07-26 05:41:53
+        Profile file signature            : 'acsp' (0x61637370)
+        Primary platform                  : Apple Computer, Inc. ('APPL' (0x4150504C))
+        Profile flags                     : 0x00000000
+        Profile flags                       > Profile not embedded
+        Profile flags                       > Profile can't be used independently of embedded
+        Device Manufacturer               : 'ADBE' (0x41444245)
+        Device Model                      : '....' (0x00000000)
+        Device attributes                 : 0x00000000_00000000
+        Device attributes                   > Reflective
+        Device attributes                   > Glossy
+        Device attributes                   > Media polarity = negative
+        Device attributes                   > Black & white media
+        Rendering intent                  : Media-Relative Colorimetric
+        Profile creator                   : 'ADBE' (0x41444245)
+        Profile ID                        : 0x00000000_00000000_00000000_00000000
+ 
+*** Marker: APP2 (xFFE2) ***
+  OFFSET: 0x0001392F
+  Length          = 65506
+  Identifier      = [ICC_PROFILE]
+    ICC Profile:
+      Marker Number = 2 of 9
+      Only support decode of 1st ICC Marker
+ 
+*** Marker: APP2 (xFFE2) ***
+  OFFSET: 0x00023913
+  Length          = 65506
+  Identifier      = [ICC_PROFILE]
+    ICC Profile:
+      Marker Number = 3 of 9
+      Only support decode of 1st ICC Marker
+ 
+*** Marker: APP2 (xFFE2) ***
+  OFFSET: 0x000338F7
+  Length          = 65506
+  Identifier      = [ICC_PROFILE]
+    ICC Profile:
+      Marker Number = 4 of 9
+      Only support decode of 1st ICC Marker
+ 
+*** Marker: APP2 (xFFE2) ***
+  OFFSET: 0x000438DB
+  Length          = 65506
+  Identifier      = [ICC_PROFILE]
+    ICC Profile:
+      Marker Number = 5 of 9
+      Only support decode of 1st ICC Marker
+ 
+*** Marker: APP2 (xFFE2) ***
+  OFFSET: 0x000538BF
+  Length          = 65506
+  Identifier      = [ICC_PROFILE]
+    ICC Profile:
+      Marker Number = 6 of 9
+      Only support decode of 1st ICC Marker
+ 
+*** Marker: APP2 (xFFE2) ***
+  OFFSET: 0x000638A3
+  Length          = 65506
+  Identifier      = [ICC_PROFILE]
+    ICC Profile:
+      Marker Number = 7 of 9
+      Only support decode of 1st ICC Marker
+ 
+*** Marker: APP2 (xFFE2) ***
+  OFFSET: 0x00073887
+  Length          = 65506
+  Identifier      = [ICC_PROFILE]
+    ICC Profile:
+      Marker Number = 8 of 9
+      Only support decode of 1st ICC Marker
+ 
+*** Marker: APP2 (xFFE2) ***
+  OFFSET: 0x0008386B
+  Length          = 33264
+  Identifier      = [ICC_PROFILE]
+    ICC Profile:
+      Marker Number = 9 of 9
+      Only support decode of 1st ICC Marker
+ 
+*** Marker: APP14 (xFFEE) ***
+  OFFSET: 0x0008BA5D
+  Length            = 14
+  DCTEncodeVersion  = 100
+  APP14Flags0       = 0
+  APP14Flags1       = 0
+  ColorTransform    = 2 [YCCK]
+ 
+*** Marker: DQT (xFFDB) ***
+  Define a Quantization Table.
+  OFFSET: 0x0008BA6D
+  Table length = 132
+  ----
+  Precision=8 bits
+  Destination ID=0 (Luminance)
+    DQT, Row #0:   6   4   4   6   9  11  12  16 
+    DQT, Row #1:   4   5   5   6   8  10  12  12 
+    DQT, Row #2:   4   5   5   6  10  12  12  12 
+    DQT, Row #3:   6   6   6  11  12  12  12  12 
+    DQT, Row #4:   9   8  10  12  12  12  12  12 
+    DQT, Row #5:  11  10  12  12  12  12  12  12 
+    DQT, Row #6:  12  12  12  12  12  12  12  12 
+    DQT, Row #7:  16  12  12  12  12  12  12  12 
+    Approx quality factor = 88.28 (scaling=23.43 variance=111.68)
+  ----
+  Precision=8 bits
+  Destination ID=1 (Chrominance)
+    DQT, Row #0:   7   7  13  24  20  20  17  17 
+    DQT, Row #1:   7  12  16  14  14  12  12  12 
+    DQT, Row #2:  13  16  14  14  12  12  12  12 
+    DQT, Row #3:  24  14  14  12  12  12  12  12 
+    DQT, Row #4:  20  14  12  12  12  12  12  12 
+    DQT, Row #5:  20  12  12  12  12  12  12  12 
+    DQT, Row #6:  17  12  12  12  12  12  12  12 
+    DQT, Row #7:  17  12  12  12  12  12  12  12 
+    Approx quality factor = 90.19 (scaling=19.62 variance=201.04)
+ 
+*** Marker: SOF0 (Baseline DCT) (xFFC0) ***
+  OFFSET: 0x0008BAF3
+  Frame header length = 20
+  Precision = 8
+  Number of Lines = 512
+  Samples per Line = 512
+  Image Size = 512 x 512
+  Raw Image Orientation = Landscape
+  Number of Img components = 4
+    Component[1]: ID=0x01, Samp Fac=0x11 (Subsamp 1 x 1), Quant Tbl Sel=0x00 (Y)
+    Component[2]: ID=0x02, Samp Fac=0x11 (Subsamp 1 x 1), Quant Tbl Sel=0x01 (Cb)
+    Component[3]: ID=0x03, Samp Fac=0x11 (Subsamp 1 x 1), Quant Tbl Sel=0x01 (Cr)
+    Component[4]: ID=0x04, Samp Fac=0x11 (Subsamp 1 x 1), Quant Tbl Sel=0x00 (K)
+ 
+*** Marker: DRI (Restart Interval) (xFFDD) ***
+  OFFSET: 0x0008BB09
+  Length     = 4
+  interval   = 64
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x0008BB0F
+  Huffman table length = 418
+  ----
+  Destination ID = 0
+  Class = 0 (DC / Lossless Table)
+    Codes of length 01 bits (000 total): 
+    Codes of length 02 bits (000 total): 
+    Codes of length 03 bits (007 total): 04 05 03 02 06 01 00 
+    Codes of length 04 bits (001 total): 07 
+    Codes of length 05 bits (001 total): 08 
+    Codes of length 06 bits (001 total): 09 
+    Codes of length 07 bits (001 total): 0A 
+    Codes of length 08 bits (001 total): 0B 
+    Codes of length 09 bits (000 total): 
+    Codes of length 10 bits (000 total): 
+    Codes of length 11 bits (000 total): 
+    Codes of length 12 bits (000 total): 
+    Codes of length 13 bits (000 total): 
+    Codes of length 14 bits (000 total): 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 012
+
+  ----
+  Destination ID = 1
+  Class = 0 (DC / Lossless Table)
+    Codes of length 01 bits (000 total): 
+    Codes of length 02 bits (002 total): 01 00 
+    Codes of length 03 bits (002 total): 02 03 
+    Codes of length 04 bits (003 total): 04 05 06 
+    Codes of length 05 bits (001 total): 07 
+    Codes of length 06 bits (001 total): 08 
+    Codes of length 07 bits (001 total): 09 
+    Codes of length 08 bits (001 total): 0A 
+    Codes of length 09 bits (001 total): 0B 
+    Codes of length 10 bits (000 total): 
+    Codes of length 11 bits (000 total): 
+    Codes of length 12 bits (000 total): 
+    Codes of length 13 bits (000 total): 
+    Codes of length 14 bits (000 total): 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 012
+
+  ----
+  Destination ID = 0
+  Class = 1 (AC Table)
+    Codes of length 01 bits (000 total): 
+    Codes of length 02 bits (002 total): 01 02 
+    Codes of length 03 bits (001 total): 03 
+    Codes of length 04 bits (003 total): 11 04 00 
+    Codes of length 05 bits (003 total): 05 21 12 
+    Codes of length 06 bits (002 total): 31 41 
+    Codes of length 07 bits (004 total): 51 06 13 61 
+    Codes of length 08 bits (002 total): 22 71 
+    Codes of length 09 bits (006 total): 81 14 32 91 A1 07 
+    Codes of length 10 bits (007 total): 15 B1 42 23 C1 52 D1 
+    Codes of length 11 bits (003 total): E1 33 16 
+    Codes of length 12 bits (004 total): 62 F0 24 72 
+    Codes of length 13 bits (002 total): 82 F1 
+    Codes of length 14 bits (006 total): 25 43 34 53 92 A2 
+    Codes of length 15 bits (002 total): B2 63 
+    Codes of length 16 bits (115 total): 73 C2 35 44 27 93 A3 B3 36 17 54 64 74 C3 D2 E2 
+                                         08 26 83 09 0A 18 19 84 94 45 46 A4 B4 56 D3 55 
+                                         28 1A F2 E3 F3 C4 D4 E4 F4 65 75 85 95 A5 B5 C5 
+                                         D5 E5 F5 66 76 86 96 A6 B6 C6 D6 E6 F6 37 47 57 
+                                         67 77 87 97 A7 B7 C7 D7 E7 F7 38 48 58 68 78 88 
+                                         98 A8 B8 C8 D8 E8 F8 29 39 49 59 69 79 89 99 A9 
+                                         B9 C9 D9 E9 F9 2A 3A 4A 5A 6A 7A 8A 9A AA BA CA 
+                                         DA EA FA 
+    Total number of codes: 162
+
+  ----
+  Destination ID = 1
+  Class = 1 (AC Table)
+    Codes of length 01 bits (000 total): 
+    Codes of length 02 bits (002 total): 01 00 
+    Codes of length 03 bits (002 total): 02 11 
+    Codes of length 04 bits (001 total): 03 
+    Codes of length 05 bits (002 total): 04 21 
+    Codes of length 06 bits (003 total): 12 31 41 
+    Codes of length 07 bits (005 total): 05 51 13 61 22 
+    Codes of length 08 bits (005 total): 06 71 81 91 32 
+    Codes of length 09 bits (004 total): A1 B1 F0 14 
+    Codes of length 10 bits (005 total): C1 D1 E1 23 42 
+    Codes of length 11 bits (006 total): 15 52 62 72 F1 33 
+    Codes of length 12 bits (004 total): 24 34 43 82 
+    Codes of length 13 bits (008 total): 16 92 53 25 A2 63 B2 C2 
+    Codes of length 14 bits (003 total): 07 73 D2 
+    Codes of length 15 bits (003 total): 35 E2 44 
+    Codes of length 16 bits (109 total): 83 17 54 93 08 09 0A 18 19 26 36 45 1A 27 64 74 
+                                         55 37 F2 A3 B3 C3 28 29 D3 E3 F3 84 94 A4 B4 C4 
+                                         D4 E4 F4 65 75 85 95 A5 B5 C5 D5 E5 F5 46 56 66 
+                                         76 86 96 A6 B6 C6 D6 E6 F6 47 57 67 77 87 97 A7 
+                                         B7 C7 D7 E7 F7 38 48 58 68 78 88 98 A8 B8 C8 D8 
+                                         E8 F8 39 49 59 69 79 89 99 A9 B9 C9 D9 E9 F9 2A 
+                                         3A 4A 5A 6A 7A 8A 9A AA BA CA DA EA FA 
+    Total number of codes: 162
+
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x0008BCB3
+  Scan header length = 14
+  Number of img components = 4
+    Component[1]: selector=0x01, table=0(DC),0(AC)
+    Component[2]: selector=0x02, table=1(DC),1(AC)
+    Component[3]: selector=0x03, table=1(DC),1(AC)
+    Component[4]: selector=0x04, table=0(DC),0(AC)
+  Spectral selection = 0 .. 63
+  Successive approximation = 0x00
+
+  NOTE: Scan parsing doesn't support CMYK files yet.
+ 
+*** Marker: EOI (End of Image) (xFFD9) ***
+  OFFSET: 0x000954F2
+
+
+*** Searching Compression Signatures ***
+
+  Signature:           01180AF3DE63318828A86409EF4013DD
+  Signature (Rotated): 01180AF3DE63318828A86409EF4013DD
+  File Offset:         0 bytes
+  Chroma subsampling:  ?x?
+  EXIF Make/Model:     NONE
+  EXIF Makernotes:     NONE
+  EXIF Software:       OK   [Adobe Photoshop CC 2015.5 (Windows)]
+
+  Searching Compression Signatures: (3347 built-in, 0 user(*) )
+
+          EXIF.Make / Software        EXIF.Model                            Quality           Subsamp Match?
+          -------------------------   -----------------------------------   ----------------  --------------
+     SW :[Adobe Photoshop          ]                                       [Save As 08      ]                  
+
+  NOTE: Photoshop IRB detected
+  NOTE: EXIF Software field recognized as from editor
+  Based on the analysis of compression characteristics and EXIF metadata:
+
+  ASSESSMENT: Class 1 - Image is processed/edited
+
+

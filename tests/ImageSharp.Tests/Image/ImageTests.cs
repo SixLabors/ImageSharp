@@ -2,7 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Memory;
+
 using Xunit;
 // ReSharper disable InconsistentNaming
 
@@ -46,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
-            public void Configuration_Width_Height_BackroundColor()
+            public void Configuration_Width_Height_BackgroundColor()
             {
                 Configuration configuration = Configuration.Default.Clone();
                 Rgba32 color = Rgba32.Aquamarine;
@@ -59,6 +62,26 @@ namespace SixLabors.ImageSharp.Tests
                     image.ComparePixelBufferTo(color);
 
                     Assert.Equal(configuration, image.GetConfiguration());
+                }
+            }
+
+            [Fact]
+            public void CreateUninitialized()
+            {
+                Configuration configuration = Configuration.Default.Clone();
+
+                byte dirtyValue = 123;
+                configuration.MemoryAllocator = new TestMemoryAllocator(dirtyValue);
+                var metadata = new ImageMetaData();
+
+                using (Image<Gray8> image = Image.CreateUninitialized<Gray8>(configuration, 21, 22, metadata))
+                {
+                    Assert.Equal(21, image.Width);
+                    Assert.Equal(22, image.Height);
+                    Assert.Same(configuration, image.GetConfiguration());
+                    Assert.Same(metadata, image.MetaData);
+
+                    Assert.Equal(dirtyValue, image[5, 5].PackedValue);
                 }
             }
         }

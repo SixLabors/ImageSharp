@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Memory;
-using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
@@ -43,16 +42,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         /// <summary>
         /// Gets the <see cref="Buffer2D{Block8x8}"/> storing the "raw" frequency-domain decoded + unzigged blocks.
-        /// We need to apply IDCT and dequantiazition to transform them into color-space blocks.
+        /// We need to apply IDCT and dequantization to transform them into color-space blocks.
         /// </summary>
         Buffer2D<Block8x8> SpectralBlocks { get; }
-
-        /// <summary>
-        /// Gets a reference to the <see cref="Block8x8"/> at the given row and column index from <see cref="SpectralBlocks"/>
-        /// </summary>
-        /// <param name="column">The column</param>
-        /// <param name="row">The row</param>
-        /// <returns>The <see cref="Block8x8"/></returns>
-        ref Block8x8 GetBlockReference(int column, int row);
     }
 }

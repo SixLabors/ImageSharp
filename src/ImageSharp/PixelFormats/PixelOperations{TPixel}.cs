@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourceColors);
 
             // Gray8 and Gray16 are special implementations of IPixel in that they do not conform to the
-            // standard RGBA colorspace format and must be converted from RGBA using the special ITU BT709 alogrithm.
+            // standard RGBA colorspace format and must be converted from RGBA using the special ITU BT709 algorithm.
             // One of the requirements of FromScaledVector4/ToScaledVector4 is that it unaware of this and
             // packs/unpacks the pixel without and conversion so we employ custom methods do do this.
             if (typeof(TDestinationPixel) == typeof(Gray16))

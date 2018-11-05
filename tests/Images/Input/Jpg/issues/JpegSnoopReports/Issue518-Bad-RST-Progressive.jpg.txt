@@ -1,0 +1,759 @@
+
+JPEGsnoop 1.8.0 by Calvin Hass
+  http://www.impulseadventure.com/photo/
+  -------------------------------------
+
+  Filename: [.\Issue518-Bad-RST-Progressive.jpg]
+  Filesize: [3764739] Bytes
+
+Start Offset: 0x00000000
+*** Marker: SOI (xFFD8) ***
+  OFFSET: 0x00000000
+ 
+*** Marker: APP0 (xFFE0) ***
+  OFFSET: 0x00000002
+  Length     = 16
+  Identifier = [JFIF]
+  version    = [1.1]
+  density    = 300 x 300 DPI (dots per inch)
+  thumbnail  = 0 x 0
+ 
+*** Marker: APP1 (xFFE1) ***
+  OFFSET: 0x00000014
+  Length          = 14215
+  Identifier      = [Exif]
+  Identifier TIFF = 0x[49492A00 08000000]
+  Endian          = Intel (little)
+  TAG Mark x002A  = 0x002A
+
+  EXIF IFD0 @ Absolute 0x00000026
+    Dir Length = 0x0009
+    [Make                                ] = "OLYMPUS CORPORATION"
+    [Model                               ] = "E-1"
+    [Orientation                         ] = 1 = Row 0: top, Col 0: left
+    [XResolution                         ] = 300/1
+    [YResolution                         ] = 300/1
+    [ResolutionUnit                      ] = Inch
+    [Software                            ] = "GIMP 2.8.10"
+    [DateTime                            ] = "2017:04:18 16:37:56"
+    [ExifOffset                          ] = @ 0x00BE
+    Offset to Next IFD = 0x000001DC
+
+  EXIF IFD1 @ Absolute 0x000001FA
+    Dir Length = 0x0006
+    [Compression                         ] = JPEG
+    [XResolution                         ] = 72/1
+    [YResolution                         ] = 72/1
+    [ResolutionUnit                      ] = Inch
+    [JpegIFOffset                        ] = @ +0x023A = @ 0x0258
+    [JpegIFByteCount                     ] = 0x[00003545] / 13637
+    Offset to Next IFD = 0x00000000
+
+  EXIF SubIFD @ Absolute 0x000000DC
+    Dir Length = 0x0011
+    [ExposureTime                        ] = 1/4 s
+    [FNumber                             ] = F18.0
+    [ExposureProgram                     ] = Manual
+    [ISOSpeedRatings                     ] = 100
+    [ExifVersion                         ] = 02.21
+    [DateTimeOriginal                    ] = "2005:07:20 20:08:42"
+    [ShutterSpeedValue                   ] = 2/1
+    [ApertureValue                       ] = 833985/100000
+    [ExposureBiasValue                   ] = 0.00 eV
+    [MaxApertureValue                    ] = 2972656/1000000
+    [MeteringMode                        ] = CenterWeightedAverage
+    [Flash                               ] = Flash did not fire
+    [FocalLength                         ] = 14 mm
+    [FlashPixVersion                     ] = 01.00
+    [ColorSpace                          ] = Uncalibrated
+    [ExifImageWidth                      ] = 0x[00000BB8] / 3000
+    [ExifImageHeight                     ] = 0x[00000BB8] / 3000
+ 
+*** Marker: COM (Comment) (xFFFE) ***
+  OFFSET: 0x0000379D
+  Comment length = 3
+    Comment= 
+ 
+*** Marker: APP1 (xFFE1) ***
+  OFFSET: 0x000037A2
+  Length          = 5091
+  Identifier      = [http://ns.adobe.com/xap/1.0/]
+    XMP = 
+          |<?xpacket begin='﻿' id='W5M0MpCehiHzreSzNTczkc9d'?>
+          |<x:xmpmeta xmlns:x='adobe:ns:meta/'>
+          |<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
+          | <rdf:Description xmlns:crs='http://ns.adobe.com/camera-raw-settings/1.0/'>
+          |  <crs:Version>3.1</crs:Version>
+          |  <crs:RawFileName>_7201666.ORF</crs:RawFileName>
+          |  <crs:WhiteBalance>Custom</crs:WhiteBalance>
+          |  <crs:Temperature>7450</crs:Temperature>
+          |  <crs:Tint>-7</crs:Tint>
+          |  <crs:Exposure>-0.75</crs:Exposure>
+          |  <crs:AutoShadows>True</crs:AutoShadows>
+          |  <crs:Shadows>4</crs:Shadows>
+          |  <crs:AutoBrightness>True</crs:AutoBrightness>
+          |  <crs:Brightness>100</crs:Brightness>
+          |  <crs:AutoContrast>True</crs:AutoContrast>
+          |  <crs:Contrast>0</crs:Contrast>
+          |  <crs:Saturation>0</crs:Saturation>
+          |  <crs:Sharpness>25</crs:Sharpness>
+          |  <crs:LuminanceSmoothing>0</crs:LuminanceSmoothing>
+          |  <crs:ColorNoiseReduction>25</crs:ColorNoiseReduction>
+          |  <crs:ChromaticAberrationR>0</crs:ChromaticAberrationR>
+          |  <crs:ChromaticAberrationB>0</crs:ChromaticAberrationB>
+          |  <crs:VignetteAmount>0</crs:VignetteAmount>
+          |  <crs:ShadowTint>0</crs:ShadowTint>
+          |  <crs:RedHue>0</crs:RedHue>
+          |  <crs:RedSaturation>0</crs:RedSaturation>
+          |  <crs:GreenHue>0</crs:GreenHue>
+          |  <crs:GreenSaturation>0</crs:GreenSaturation>
+          |  <crs:BlueHue>0</crs:BlueHue>
+          |  <crs:BlueSaturation>0</crs:BlueSaturation>
+          |  <crs:ToneCurveName>Medium Contrast</crs:ToneCurveName>
+          |  <crs:CameraProfile>ACR 2.4</crs:CameraProfile>
+          |  <crs:HasSettings>True</crs:HasSettings>
+          |  <crs:HasCrop>False</crs:HasCrop>
+          |  <crs:AlreadyApplied>True</crs:AlreadyApplied>
+          |  <crs:ToneCurve>
+          |   <rdf:Seq>
+          |    <rdf:li>0, 0</rdf:li>
+          |    <rdf:li>32, 22</rdf:li>
+          |    <rdf:li>64, 56</rdf:li>
+          |    <rdf:li>128, 128</rdf:li>
+          |    <rdf:li>192, 196</rdf:li>
+          |    <rdf:li>255, 255</rdf:li>
+          |   </rdf:Seq>
+          |  </crs:ToneCurve>
+          |  <crs:Version>3.1</crs:Version>
+          |  <crs:RawFileName>_7201666.ORF</crs:RawFileName>
+          |  <crs:WhiteBalance>Custom</crs:WhiteBalance>
+          |  <crs:Temperature>7450</crs:Temperature>
+          |  <crs:Tint>-7</crs:Tint>
+          |  <crs:Exposure>-0.75</crs:Exposure>
+          |  <crs:AutoShadows>True</crs:AutoShadows>
+          |  <crs:Shadows>4</crs:Shadows>
+          |  <crs:AutoBrightness>True</crs:AutoBrightness>
+          |  <crs:Brightness>100</crs:Brightness>
+          |  <crs:AutoContrast>True</crs:AutoContrast>
+          |  <crs:Contrast>0</crs:Contrast>
+          |  <crs:Saturation>0</crs:Saturation>
+          |  <crs:Sharpness>25</crs:Sharpness>
+          |  <crs:LuminanceSmoothing>0</crs:LuminanceSmoothing>
+          |  <crs:ColorNoiseReduction>25</crs:ColorNoiseReduction>
+          |  <crs:ChromaticAberrationR>0</crs:ChromaticAberrationR>
+          |  <crs:ChromaticAberrationB>0</crs:ChromaticAberrationB>
+          |  <crs:VignetteAmount>0</crs:VignetteAmount>
+          |  <crs:ShadowTint>0</crs:ShadowTint>
+          |  <crs:RedHue>0</crs:RedHue>
+          |  <crs:RedSaturation>0</crs:RedSaturation>
+          |  <crs:GreenHue>0</crs:GreenHue>
+          |  <crs:GreenSaturation>0</crs:GreenSaturation>
+          |  <crs:BlueHue>0</crs:BlueHue>
+          |  <crs:BlueSaturation>0</crs:BlueSaturation>
+          |  <crs:ToneCurveName>Medium Contrast</crs:ToneCurveName>
+          |  <crs:CameraProfile>ACR 2.4</crs:CameraProfile>
+          |  <crs:HasSettings>True</crs:HasSettings>
+          |  <crs:HasCrop>False</crs:HasCrop>
+          |  <crs:AlreadyApplied>True</crs:AlreadyApplied>
+          |  <crs:ToneCurve>
+          |   <rdf:Bag>
+          |    <rdf:li>0, 0</rdf:li>
+          |    <rdf:li>32, 22</rdf:li>
+          |    <rdf:li>64, 56</rdf:li>
+          |    <rdf:li>128, 128</rdf:li>
+          |    <rdf:li>192, 196</rdf:li>
+          |    <rdf:li>255, 255</rdf:li>
+          |   </rdf:Bag>
+          |  </crs:ToneCurve>
+          | </rdf:Description>
+          | <rdf:Description xmlns:xmp='http://ns.adobe.com/xap/1.0/'>
+          |  <xmp:Rating>0</xmp:Rating>
+          |  <xmp:CreatorTool>Adobe Photoshop CS6 (Macintosh)</xmp:CreatorTool>
+          |  <xmp:Rating>0</xmp:Rating>
+          |  <xmp:ModifyDate>2014-06-09T12:43:59-04:00</xmp:ModifyDate>
+          |  <xmp:CreateDate>2005-07-21T18:39:06-06:00</xmp:CreateDate>
+          |  <xmp:MetadataDate>2014-06-09T12:43:59-04:00</xmp:MetadataDate>
+          | </rdf:Description>
+          | <rdf:Description xmlns:xmpMM='http://ns.adobe.com/xap/1.0/mm/'>
+          |  <xmpMM:InstanceID>xmp.iid:0A801174072068118083C9374AAA53C2</xmpMM:InstanceID>
+          |  <xmpMM:OriginalDocumentID>uuid:021303F2FBA711D98B5DCD54C315AFD0</xmpMM:OriginalDocumentID>
+          |  <xmpMM:DocumentID rdf:resource='uuid:021303F2FBA711D98B5DCD54C315AFD0' />
+          |  <xmpMM:InstanceID>xmp.iid:0A801174072068118083C9374AAA53C2</xmpMM:InstanceID>
+          |  <xmpMM:OriginalDocumentID>uuid:021303F2FBA711D98B5DCD54C315AFD0</xmpMM:OriginalDocumentID>
+          |  <xmpMM:DerivedFrom rdf:parseType='Resource'>
+          |  </xmpMM:DerivedFrom>
+          |  <xmpMM:History>
+          |   <rdf:Seq>
+          |   </rdf:Seq>
+          |  </xmpMM:History>
+          | </rdf:Description>
+          | <rdf:Description xmlns:dc='http://purl.org/dc/elements/1.1/'>
+          |  <dc:format>image/jpeg</dc:format>
+          | </rdf:Description>
+          | <rdf:Description xmlns:photoshop='http://ns.adobe.com/photoshop/1.0/'>
+          |  <photoshop:DateCreated>2005-07-20T20:08:42</photoshop:DateCreated>
+          |  <photoshop:LegacyIPTCDigest>A8D68AA81537D1C7170A5C69A46C6C94</photoshop:LegacyIPTCDigest>
+          |  <photoshop:ColorMode>3</photoshop:ColorMode>
+          |  <photoshop:ICCProfile>Adobe RGB (1998)</photoshop:ICCProfile>
+          | </rdf:Description>
+          | <rdf:Description xmlns:exifEX='http://cipa.jp/exif/1.0/'>
+          |  <exifEX:PhotographicSensitivity>100</exifEX:PhotographicSensitivity>
+          | </rdf:Description>
+          |</rdf:RDF>
+          |</x:xmpmeta>
+ 
+*** Marker: APP2 (xFFE2) ***
+  OFFSET: 0x00004B87
+  Length          = 3160
+  Identifier      = [ICC_PROFILE]
+    ICC Profile:
+      Marker Number = 1 of 1
+        Profile Size                      : 3144 bytes
+        Preferred CMM Type                : 'Lino' (0x4C696E6F)
+        Profile Version                   : 0.2.1.0 (0x02100000)
+        Profile Device/Class              : Display Device profile ('mntr' (0x6D6E7472))
+        Data Colour Space                 : rgbData ('RGB ' (0x52474220))
+        Profile connection space (PCS)    : 'XYZ ' (0x58595A20)
+        Profile creation date             : 1998-02-09 06:49:00
+        Profile file signature            : 'acsp' (0x61637370)
+        Primary platform                  : Microsoft Corporation ('MSFT' (0x4D534654))
+        Profile flags                     : 0x00000000
+        Profile flags                       > Profile not embedded
+        Profile flags                       > Profile can't be used independently of embedded
+        Device Manufacturer               : 'IEC ' (0x49454320)
+        Device Model                      : 'sRGB' (0x73524742)
+        Device attributes                 : 0x00000000_00000000
+        Device attributes                   > Reflective
+        Device attributes                   > Glossy
+        Device attributes                   > Media polarity = negative
+        Device attributes                   > Black & white media
+        Rendering intent                  : Perceptual
+        Profile creator                   : 'HP  ' (0x48502020)
+        Profile ID                        : 0x00000000_00000000_00000000_00000000
+ 
+*** Marker: DQT (xFFDB) ***
+  Define a Quantization Table.
+  OFFSET: 0x000057E1
+  Table length = 67
+  ----
+  Precision=8 bits
+  Destination ID=0 (Luminance)
+    DQT, Row #0:   3   2   2   3   5   8  10  12 
+    DQT, Row #1:   2   2   3   4   5  12  12  11 
+    DQT, Row #2:   3   3   3   5   8  11  14  11 
+    DQT, Row #3:   3   3   4   6  10  17  16  12 
+    DQT, Row #4:   4   4   7  11  14  22  21  15 
+    DQT, Row #5:   5   7  11  13  16  21  23  18 
+    DQT, Row #6:  10  13  16  17  21  24  24  20 
+    DQT, Row #7:  14  18  19  20  22  20  21  20 
+    Approx quality factor = 90.06 (scaling=19.88 variance=1.14)
+ 
+*** Marker: DQT (xFFDB) ***
+  Define a Quantization Table.
+  OFFSET: 0x00005826
+  Table length = 67
+  ----
+  Precision=8 bits
+  Destination ID=1 (Chrominance)
+    DQT, Row #0:   3   4   5   9  20  20  20  20 
+    DQT, Row #1:   4   4   5  13  20  20  20  20 
+    DQT, Row #2:   5   5  11  20  20  20  20  20 
+    DQT, Row #3:   9  13  20  20  20  20  20  20 
+    DQT, Row #4:  20  20  20  20  20  20  20  20 
+    DQT, Row #5:  20  20  20  20  20  20  20  20 
+    DQT, Row #6:  20  20  20  20  20  20  20  20 
+    DQT, Row #7:  20  20  20  20  20  20  20  20 
+    Approx quality factor = 89.93 (scaling=20.14 variance=0.34)
+ 
+*** Marker: SOF2 (Progressive DCT, Huffman) (xFFC2) ***
+  OFFSET: 0x0000586B
+  Frame header length = 17
+  Precision = 8
+  Number of Lines = 3000
+  Samples per Line = 3000
+  Image Size = 3000 x 3000
+  Raw Image Orientation = Landscape
+  Number of Img components = 3
+    Component[1]: ID=0x01, Samp Fac=0x11 (Subsamp 1 x 1), Quant Tbl Sel=0x00 (Lum: Y)
+    Component[2]: ID=0x02, Samp Fac=0x11 (Subsamp 1 x 1), Quant Tbl Sel=0x01 (Chrom: Cb)
+    Component[3]: ID=0x03, Samp Fac=0x11 (Subsamp 1 x 1), Quant Tbl Sel=0x01 (Chrom: Cr)
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x0000587E
+  Huffman table length = 28
+  ----
+  Destination ID = 0
+  Class = 0 (DC / Lossless Table)
+    Codes of length 01 bits (000 total): 
+    Codes of length 02 bits (002 total): 04 05 
+    Codes of length 03 bits (002 total): 03 06 
+    Codes of length 04 bits (003 total): 00 01 02 
+    Codes of length 05 bits (001 total): 07 
+    Codes of length 06 bits (001 total): 08 
+    Codes of length 07 bits (000 total): 
+    Codes of length 08 bits (000 total): 
+    Codes of length 09 bits (000 total): 
+    Codes of length 10 bits (000 total): 
+    Codes of length 11 bits (000 total): 
+    Codes of length 12 bits (000 total): 
+    Codes of length 13 bits (000 total): 
+    Codes of length 14 bits (000 total): 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 009
+
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x0000589C
+  Huffman table length = 27
+  ----
+  Destination ID = 1
+  Class = 0 (DC / Lossless Table)
+    Codes of length 01 bits (000 total): 
+    Codes of length 02 bits (003 total): 01 02 03 
+    Codes of length 03 bits (001 total): 00 
+    Codes of length 04 bits (001 total): 04 
+    Codes of length 05 bits (001 total): 05 
+    Codes of length 06 bits (001 total): 06 
+    Codes of length 07 bits (001 total): 07 
+    Codes of length 08 bits (000 total): 
+    Codes of length 09 bits (000 total): 
+    Codes of length 10 bits (000 total): 
+    Codes of length 11 bits (000 total): 
+    Codes of length 12 bits (000 total): 
+    Codes of length 13 bits (000 total): 
+    Codes of length 14 bits (000 total): 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 008
+
+ 
+*** Marker: DRI (Restart Interval) (xFFDD) ***
+  OFFSET: 0x000058B9
+  Length     = 4
+  interval   = 375
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x000058BF
+  Scan header length = 12
+  Number of img components = 3
+    Component[1]: selector=0x01, table=0(DC),0(AC)
+    Component[2]: selector=0x02, table=1(DC),0(AC)
+    Component[3]: selector=0x03, table=1(DC),0(AC)
+  Spectral selection = 0 .. 0
+  Successive approximation = 0x01
+
+  NOTE: Scan parsing doesn't support this SOF mode.
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x0004A3DA
+  Huffman table length = 55
+  ----
+  Destination ID = 0
+  Class = 1 (AC Table)
+    Codes of length 01 bits (000 total): 
+    Codes of length 02 bits (002 total): 02 03 
+    Codes of length 03 bits (003 total): 01 04 05 
+    Codes of length 04 bits (000 total): 
+    Codes of length 05 bits (001 total): 00 
+    Codes of length 06 bits (004 total): 06 11 12 13 
+    Codes of length 07 bits (001 total): 14 
+    Codes of length 08 bits (003 total): 15 21 22 
+    Codes of length 09 bits (003 total): 10 23 31 
+    Codes of length 10 bits (004 total): 07 20 24 41 
+    Codes of length 11 bits (002 total): 16 32 
+    Codes of length 12 bits (002 total): 30 33 
+    Codes of length 13 bits (002 total): 25 40 
+    Codes of length 14 bits (002 total): 17 42 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (007 total): 34 50 60 43 26 35 44 
+    Total number of codes: 036
+
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x0004A413
+  Scan header length = 8
+  Number of img components = 1
+    Component[1]: selector=0x01, table=0(DC),0(AC)
+  Spectral selection = 1 .. 5
+  Successive approximation = 0x02
+
+  NOTE: Scan parsing doesn't support this SOF mode.
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x000B0746
+  Huffman table length = 62
+  ----
+  Destination ID = 1
+  Class = 1 (AC Table)
+    Codes of length 01 bits (000 total): 
+    Codes of length 02 bits (002 total): 00 01 
+    Codes of length 03 bits (002 total): 02 11 
+    Codes of length 04 bits (001 total): 21 
+    Codes of length 05 bits (004 total): 03 10 12 31 
+    Codes of length 06 bits (001 total): 41 
+    Codes of length 07 bits (004 total): 13 20 22 51 
+    Codes of length 08 bits (002 total): 04 32 
+    Codes of length 09 bits (001 total): 61 
+    Codes of length 10 bits (003 total): 14 30 71 
+    Codes of length 11 bits (003 total): 23 40 42 
+    Codes of length 12 bits (003 total): 33 50 52 
+    Codes of length 13 bits (003 total): 05 81 91 
+    Codes of length 14 bits (003 total): 60 A1 B1 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (011 total): 15 24 62 43 53 C1 D1 72 F0 F1 E1 
+    Total number of codes: 043
+
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x000B0786
+  Scan header length = 8
+  Number of img components = 1
+    Component[1]: selector=0x03, table=0(DC),1(AC)
+  Spectral selection = 1 .. 63
+  Successive approximation = 0x01
+
+  NOTE: Scan parsing doesn't support this SOF mode.
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x000E3DFE
+  Huffman table length = 69
+  ----
+  Destination ID = 1
+  Class = 1 (AC Table)
+    Codes of length 01 bits (000 total): 
+    Codes of length 02 bits (002 total): 00 01 
+    Codes of length 03 bits (002 total): 02 11 
+    Codes of length 04 bits (002 total): 03 21 
+    Codes of length 05 bits (002 total): 12 31 
+    Codes of length 06 bits (000 total): 
+    Codes of length 07 bits (006 total): 04 10 13 22 41 51 
+    Codes of length 08 bits (001 total): 32 
+    Codes of length 09 bits (002 total): 20 61 
+    Codes of length 10 bits (005 total): 05 14 23 42 71 
+    Codes of length 11 bits (002 total): 30 52 
+    Codes of length 12 bits (004 total): 33 40 81 91 
+    Codes of length 13 bits (005 total): 15 50 60 A1 B1 
+    Codes of length 14 bits (002 total): 62 F0 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (015 total): 24 43 70 C1 D1 06 53 72 E1 F1 25 34 44 63 A2 
+    Total number of codes: 050
+
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x000E3E45
+  Scan header length = 8
+  Number of img components = 1
+    Component[1]: selector=0x02, table=0(DC),1(AC)
+  Spectral selection = 1 .. 63
+  Successive approximation = 0x01
+
+  NOTE: Scan parsing doesn't support this SOF mode.
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x0012926F
+  Huffman table length = 79
+  ----
+  Destination ID = 0
+  Class = 1 (AC Table)
+    Codes of length 01 bits (000 total): 
+    Codes of length 02 bits (001 total): 01 
+    Codes of length 03 bits (003 total): 00 02 03 
+    Codes of length 04 bits (002 total): 11 12 
+    Codes of length 05 bits (005 total): 04 13 21 31 41 
+    Codes of length 06 bits (003 total): 22 32 51 
+    Codes of length 07 bits (003 total): 23 42 61 
+    Codes of length 08 bits (002 total): 05 14 
+    Codes of length 09 bits (003 total): 33 52 71 
+    Codes of length 10 bits (007 total): 10 24 43 62 81 91 A1 
+    Codes of length 11 bits (001 total): B1 
+    Codes of length 12 bits (006 total): 15 20 30 53 72 C1 
+    Codes of length 13 bits (004 total): 34 40 50 82 
+    Codes of length 14 bits (003 total): 60 63 92 
+    Codes of length 15 bits (002 total): A2 D1 
+    Codes of length 16 bits (015 total): 25 44 70 E1 F0 73 83 B2 F1 06 54 16 35 C2 74 
+    Total number of codes: 060
+
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x001292C0
+  Scan header length = 8
+  Number of img components = 1
+    Component[1]: selector=0x01, table=0(DC),0(AC)
+  Spectral selection = 6 .. 63
+  Successive approximation = 0x02
+
+  NOTE: Scan parsing doesn't support this SOF mode.
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x001CCECE
+  Huffman table length = 42
+  ----
+  Destination ID = 0
+  Class = 1 (AC Table)
+    Codes of length 01 bits (001 total): 01 
+    Codes of length 02 bits (000 total): 
+    Codes of length 03 bits (002 total): 00 11 
+    Codes of length 04 bits (002 total): 21 31 
+    Codes of length 05 bits (003 total): 41 51 61 
+    Codes of length 06 bits (000 total): 
+    Codes of length 07 bits (002 total): 71 81 
+    Codes of length 08 bits (002 total): 91 A1 
+    Codes of length 09 bits (002 total): 10 B1 
+    Codes of length 10 bits (002 total): C1 D1 
+    Codes of length 11 bits (003 total): 20 E1 F0 
+    Codes of length 12 bits (001 total): F1 
+    Codes of length 13 bits (001 total): 30 
+    Codes of length 14 bits (001 total): 40 
+    Codes of length 15 bits (001 total): 50 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 023
+
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x001CCEFA
+  Scan header length = 8
+  Number of img components = 1
+    Component[1]: selector=0x01, table=0(DC),0(AC)
+  Spectral selection = 1 .. 63
+  Successive approximation = 0x21
+
+  NOTE: Scan parsing doesn't support this SOF mode.
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x0024E532
+  Scan header length = 12
+  Number of img components = 3
+    Component[1]: selector=0x01, table=0(DC),0(AC)
+    Component[2]: selector=0x02, table=0(DC),0(AC)
+    Component[3]: selector=0x03, table=0(DC),0(AC)
+  Spectral selection = 0 .. 0
+  Successive approximation = 0x10
+
+  NOTE: Scan parsing doesn't support this SOF mode.
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x0025B81A
+  Huffman table length = 42
+  ----
+  Destination ID = 1
+  Class = 1 (AC Table)
+    Codes of length 01 bits (001 total): 01 
+    Codes of length 02 bits (001 total): 00 
+    Codes of length 03 bits (001 total): 11 
+    Codes of length 04 bits (001 total): 21 
+    Codes of length 05 bits (001 total): 31 
+    Codes of length 06 bits (001 total): 41 
+    Codes of length 07 bits (000 total): 
+    Codes of length 08 bits (002 total): 10 51 
+    Codes of length 09 bits (002 total): 61 71 
+    Codes of length 10 bits (001 total): 81 
+    Codes of length 11 bits (003 total): 20 91 A1 
+    Codes of length 12 bits (005 total): 30 B1 C1 D1 F0 
+    Codes of length 13 bits (001 total): E1 
+    Codes of length 14 bits (001 total): 40 
+    Codes of length 15 bits (001 total): F1 
+    Codes of length 16 bits (001 total): 50 
+    Total number of codes: 023
+
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x0025B846
+  Scan header length = 8
+  Number of img components = 1
+    Component[1]: selector=0x03, table=0(DC),1(AC)
+  Spectral selection = 1 .. 63
+  Successive approximation = 0x10
+
+  NOTE: Scan parsing doesn't support this SOF mode.
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x0029943F
+  Huffman table length = 43
+  ----
+  Destination ID = 1
+  Class = 1 (AC Table)
+    Codes of length 01 bits (001 total): 01 
+    Codes of length 02 bits (001 total): 00 
+    Codes of length 03 bits (001 total): 11 
+    Codes of length 04 bits (001 total): 21 
+    Codes of length 05 bits (001 total): 31 
+    Codes of length 06 bits (000 total): 
+    Codes of length 07 bits (002 total): 41 51 
+    Codes of length 08 bits (002 total): 10 61 
+    Codes of length 09 bits (001 total): 71 
+    Codes of length 10 bits (003 total): 81 91 A1 
+    Codes of length 11 bits (005 total): 20 B1 C1 D1 F0 
+    Codes of length 12 bits (001 total): E1 
+    Codes of length 13 bits (001 total): 30 
+    Codes of length 14 bits (001 total): F1 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (003 total): 40 50 60 
+    Total number of codes: 024
+
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x0029946C
+  Scan header length = 8
+  Number of img components = 1
+    Component[1]: selector=0x02, table=0(DC),1(AC)
+  Spectral selection = 1 .. 63
+  Successive approximation = 0x10
+
+  NOTE: Scan parsing doesn't support this SOF mode.
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x002E23F1
+  Huffman table length = 41
+  ----
+  Destination ID = 0
+  Class = 1 (AC Table)
+    Codes of length 01 bits (001 total): 01 
+    Codes of length 02 bits (000 total): 
+    Codes of length 03 bits (002 total): 00 11 
+    Codes of length 04 bits (002 total): 21 31 
+    Codes of length 05 bits (003 total): 41 51 61 
+    Codes of length 06 bits (001 total): 71 
+    Codes of length 07 bits (000 total): 
+    Codes of length 08 bits (002 total): 81 91 
+    Codes of length 09 bits (002 total): A1 B1 
+    Codes of length 10 bits (002 total): C1 D1 
+    Codes of length 11 bits (003 total): 10 E1 F0 
+    Codes of length 12 bits (001 total): F1 
+    Codes of length 13 bits (001 total): 20 
+    Codes of length 14 bits (001 total): 30 
+    Codes of length 15 bits (001 total): 40 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 022
+
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x002E241C
+  Scan header length = 8
+  Number of img components = 1
+    Component[1]: selector=0x01, table=0(DC),0(AC)
+  Spectral selection = 1 .. 63
+  Successive approximation = 0x10
+
+  NOTE: Scan parsing doesn't support this SOF mode.
+ 
+*** Marker: EOI (End of Image) (xFFD9) ***
+  OFFSET: 0x00397201
+
+
+*** Embedded JPEG Thumbnail ***
+  Offset: 0x00000258
+  Length: 0x00003545 (13637)
+
+  * Embedded Thumb Marker: SOI
+
+  * Embedded Thumb Marker: APP0
+    Length = 16
+
+  * Embedded Thumb Marker: DQT
+    Length = 67
+    ----
+    Precision=8 bits
+    Destination ID=0 (Luminance, typically)
+      DQT, Row #0:   8   6   5   8  12  20  26  31 
+      DQT, Row #1:   6   6   7  10  13  29  30  28 
+      DQT, Row #2:   7   7   8  12  20  29  35  28 
+      DQT, Row #3:   7   9  11  15  26  44  40  31 
+      DQT, Row #4:   9  11  19  28  34  55  52  39 
+      DQT, Row #5:  12  18  28  32  41  52  57  46 
+      DQT, Row #6:  25  32  39  44  52  61  60  51 
+      DQT, Row #7:  36  46  48  49  56  50  52  50 
+
+  * Embedded Thumb Marker: DQT
+    Length = 67
+    ----
+    Precision=8 bits
+    Destination ID=1 (Chrominance, typically)
+      DQT, Row #0:   9   9  12  24  50  50  50  50 
+      DQT, Row #1:   9  11  13  33  50  50  50  50 
+      DQT, Row #2:  12  13  28  50  50  50  50  50 
+      DQT, Row #3:  24  33  50  50  50  50  50  50 
+      DQT, Row #4:  50  50  50  50  50  50  50  50 
+      DQT, Row #5:  50  50  50  50  50  50  50  50 
+      DQT, Row #6:  50  50  50  50  50  50  50  50 
+      DQT, Row #7:  50  50  50  50  50  50  50  50 
+
+  * Embedded Thumb Marker: SOF
+    Frame header length = 17
+    Precision = 8
+    Number of Lines = 196
+    Samples per Line = 196
+    Image Size = 196 x 196
+
+  * Embedded Thumb Marker: DHT
+    Length = 31
+
+  * Embedded Thumb Marker: DHT
+    Length = 181
+
+  * Embedded Thumb Marker: DHT
+    Length = 31
+
+  * Embedded Thumb Marker: DHT
+    Length = 181
+
+  * Embedded Thumb Marker: SOS
+    Skipping scan data
+    Skipped 13024 bytes
+
+  * Embedded Thumb Marker: EOI
+
+  * Embedded Thumb Signature: 0182408A81A4ABF04D4A34A8A5E98C58
+
+*** Searching Compression Signatures ***
+
+  Signature:           013BA18D5561625796E986FDBC09F846
+  Signature (Rotated): 01AC57E12793DFA7C46C704625C5AF0F
+  File Offset:         0 bytes
+  Chroma subsampling:  1x1
+  EXIF Make/Model:     OK   [OLYMPUS CORPORATION] [E-1]
+  EXIF Makernotes:     NONE
+  EXIF Software:       OK   [GIMP 2.8.10]
+
+  Searching Compression Signatures: (3347 built-in, 0 user(*) )
+
+          EXIF.Make / Software        EXIF.Model                            Quality           Subsamp Match?
+          -------------------------   -----------------------------------   ----------------  --------------
+     CAM:[???                      ] [Treo 680                           ] [                ] No               
+     CAM:[Canon                    ] [Canon PowerShot Pro1               ] [fine            ] No               
+     CAM:[NIKON                    ] [E2500                              ] [FINE            ] No               
+     CAM:[NIKON                    ] [E3100                              ] [FINE            ] No               
+     CAM:[NIKON                    ] [E4500                              ] [FINE            ] No               
+     CAM:[NIKON                    ] [E5000                              ] [FINE            ] No               
+     CAM:[NIKON                    ] [E5700                              ] [FINE            ] No               
+     CAM:[NIKON                    ] [E775                               ] [FINE            ] No               
+     CAM:[NIKON                    ] [E885                               ] [FINE            ] No               
+     CAM:[OLYMPUS OPTICAL CO.,LTD  ] [C3040Z                             ] [                ] No               
+     CAM:[PENTAX                   ] [PENTAX Optio 550                   ] [                ] No               
+     CAM:[Research In Motion       ] [BlackBerry 9530                    ] [Superfine       ] No               
+     CAM:[SEIKO EPSON CORP.        ] [PhotoPC 3000Z                      ] [                ] No               
+     CAM:[SONY                     ] [DSC-H7                             ] [                ] No               
+     CAM:[SONY                     ] [DSC-H9                             ] [                ] No               
+     CAM:[SONY                     ] [DSC-S90                            ] [                ] No               
+     CAM:[SONY                     ] [DSC-W1                             ] [                ] No               
+     CAM:[SONY                     ] [SONY                               ] [                ] No               
+     SW :[ACDSee                   ]                                       [                ]                  
+     SW :[FixFoto                  ]                                       [fine            ]                  
+     SW :[IJG Library              ]                                       [090             ]                  
+     SW :[ZoomBrowser EX           ]                                       [high            ]                  
+
+    The following IJG-based editors also match this signature:
+     SW :[GIMP                     ]                                       [090             ]                  
+     SW :[IrfanView                ]                                       [090             ]                  
+     SW :[idImager                 ]                                       [090             ]                  
+     SW :[FastStone Image Viewer   ]                                       [090             ]                  
+     SW :[NeatImage                ]                                       [090             ]                  
+     SW :[Paint.NET                ]                                       [090             ]                  
+     SW :[Photomatix               ]                                       [090             ]                  
+     SW :[XnView                   ]                                       [090             ]                  
+
+  Based on the analysis of compression characteristics and EXIF metadata:
+
+  ASSESSMENT: Class 2 - Image has high probability of being processed/edited
+
+

@@ -39,15 +39,15 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
         /// <summary>
         /// This profile provides the relevant information to perform a transformation
-        /// between colour encodings and the PCS. This type of profile is based on
-        /// modelling rather than device measurement or characterization data.
+        /// between color encodings and the PCS. This type of profile is based on
+        /// modeling rather than device measurement or characterization data.
         /// ColorSpace profiles may be embedded in images.
         /// </summary>
         ColorSpace = 0x73706163,        // spac
 
         /// <summary>
         /// This profile represents abstract transforms and does not represent any
-        /// device model. Colour transformations using Abstract profiles are performed
+        /// device model. Color transformations using Abstract profiles are performed
         /// from PCS to PCS. Abstract profiles cannot be embedded in images.
         /// </summary>
         Abstract = 0x61627374,          // abst
@@ -55,8 +55,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <summary>
         /// NamedColor profiles can be thought of as sibling profiles to device profiles.
         /// For a given device there would be one or more device profiles to handle
-        /// process colour conversions and one or more named colour profiles to handle
-        /// named colours.
+        /// process color conversions and one or more named color profiles to handle
+        /// named colors.
         /// </summary>
         NamedColor = 0x6E6D636C,        // nmcl
     }

@@ -14,9 +14,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Thread-safe backing field for <see cref="WebSafePalette"/>.
+        /// Thread-safe backing field for the constant palettes.
         /// </summary>
         private static readonly Lazy<TPixel[]> WebSafePaletteLazy = new Lazy<TPixel[]>(GetWebSafePalette, true);
+        private static readonly Lazy<TPixel[]> WernerPaletteLazy = new Lazy<TPixel[]>(GetWernerPalette, true);
 
         /// <summary>
         /// Represents a <see paramref="TPixel"/> matching the W3C definition that has an hex value of #F0F8FF.
@@ -729,22 +730,32 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static readonly TPixel YellowGreen = ColorBuilder<TPixel>.FromRGBA(154, 205, 50, 255);
 
         /// <summary>
-        /// Gets a <see cref="T:TPixel[]"/> matching the W3C definition of web safe colors.
+        /// Gets a <see cref="T:TPixel[]"/> collection of web safe, colors as defined in the CSS Color Module Level 4.
         /// </summary>
         public static TPixel[] WebSafePalette => WebSafePaletteLazy.Value;
 
-        private static TPixel[] GetWebSafePalette()
-        {
-            Rgba32[] constants = ColorConstants.WebSafeColors;
-            var safe = new TPixel[constants.Length + 1];
+        /// <summary>
+        /// Gets a <see cref="T:TPixel[]"/> collection of colors as defined in the original second edition of Werner’s Nomenclature of Colours 1821.
+        /// The hex codes were collected and defined by Nicholas Rougeux <see href="https://www.c82.net/werner"/>
+        /// </summary>
+        public static TPixel[] WernerPalette => WernerPaletteLazy.Value;
 
-            Span<byte> constantsBytes = MemoryMarshal.Cast<Rgba32, byte>(constants.AsSpan());
+        private static TPixel[] GetWebSafePalette() => GetPalette(ColorConstants.WebSafeColors);
+
+        private static TPixel[] GetWernerPalette() => GetPalette(ColorConstants.WernerColors);
+
+        private static TPixel[] GetPalette(Rgba32[] palette)
+        {
+            var converted = new TPixel[palette.Length];
+
+            Span<byte> constantsBytes = MemoryMarshal.Cast<Rgba32, byte>(palette.AsSpan());
             PixelOperations<TPixel>.Instance.FromRgba32Bytes(
                 Configuration.Default,
                 constantsBytes,
-                safe,
-                constants.Length);
-            return safe;
+                converted,
+                palette.Length);
+
+            return converted;
         }
     }
 }

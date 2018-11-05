@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.MetaData;
 namespace SixLabors.ImageSharp
 {
     /// <summary>
-    /// Encapsulates properties that descibe basic image information including dimensions, pixel type information
+    /// Encapsulates properties that describe basic image information including dimensions, pixel type information
     /// and additional metadata
     /// </summary>
     public interface IImageInfo

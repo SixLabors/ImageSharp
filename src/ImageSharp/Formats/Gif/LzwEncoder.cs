@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         };
 
         /// <summary>
-        /// The maximium number of bits/code.
+        /// The maximum number of bits/code.
         /// </summary>
         private const int MaxBits = 12;
 
@@ -210,7 +210,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// flush the packet to disk.
         /// </summary>
         /// <param name="c">The character to add.</param>
-        /// <param name="accumulatorsRef">The reference to the storage for packat accumulators</param>
+        /// <param name="accumulatorsRef">The reference to the storage for packet accumulators</param>
         /// <param name="stream">The stream to write to.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void AddCharacter(byte c, ref byte accumulatorsRef, Stream stream)

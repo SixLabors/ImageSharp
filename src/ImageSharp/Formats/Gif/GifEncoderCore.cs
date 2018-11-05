@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
     internal sealed class GifEncoderCore
     {
         /// <summary>
-        /// Used for allocating memory during procesing operations.
+        /// Used for allocating memory during processing operations.
         /// </summary>
         private readonly MemoryAllocator memoryAllocator;
 
@@ -421,7 +421,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void WriteColorTable<TPixel>(QuantizedFrame<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            // The maximium number of colors for the bit depth
+            // The maximum number of colors for the bit depth
             int colorTableLength = ImageMaths.GetColorCountForBitDepth(this.bitDepth) * 3;
             int pixelCount = image.Palette.Length;
 

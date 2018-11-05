@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 for (int i = 0; i < length; i++)
                 {
                     ref float wRef = ref Unsafe.Add(ref weightsRef, i);
-                    wRef = wRef / sum;
+                    wRef /= sum;
                 }
             }
         }
@@ -90,8 +90,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         {
             for (int x = 0, i = sourceMin; i <= sourceMax; i++, x++)
             {
-                float weight = sampler.GetValue(i - point);
-                Unsafe.Add(ref weightsRef, x) = weight;
+                Unsafe.Add(ref weightsRef, x) = sampler.GetValue(i - point);
             }
         }
 

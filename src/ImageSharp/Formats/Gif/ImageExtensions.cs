@@ -38,47 +38,5 @@ namespace SixLabors.ImageSharp
         public static void SaveAsGif<TPixel>(this Image<TPixel> source, Stream stream, GifEncoder encoder)
             where TPixel : struct, IPixel<TPixel>
             => source.Save(stream, encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(GifFormat.Instance));
-
-        /// <summary>
-        /// This method doesn't actually do anything but serves an important purpose...
-        /// If you are running ImageSharp on iOS and try to call SaveAsGif, it will throw an excepion:
-        /// "Attempting to JIT compile method... OctreeFrameQuantizer.ConstructPalette... while running in aot-only mode."
-        /// The reason this happens is the SaveAsGif method makes haevy use of generics, which are too confusing for the AoT
-        /// compiler used on Xamarin.iOS. It spins up the JIT compiler to try and figure it out, but that is an illegal op on 
-        /// iOS so it bombs out. 
-        /// If you are getting the above error, you need to call this method, which will pre-seed the AoT compiler with the 
-        /// necessary methods to complete the SaveAsGif call. That's it, otherwise you should NEVER need this method!!!
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        public static void AotCompileOctreeQuantizer<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
-        {
-            var test = new OctreeFrameQuantizer<TPixel>(new OctreeQuantizer(false));
-            test.AotGetPalette();
-        }
-
-        /// <summary>
-        /// This method pre-seeds the WuQuantizer in the AoT compiler for iOS.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        public static void AotCompileWuQuantizer<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
-        {
-            var test = new WuFrameQuantizer<TPixel>(new WuQuantizer(false));
-            test.QuantizeFrame(new ImageFrame<TPixel>(Configuration.Default, 1, 1));
-            test.AotGetPalette();
-        }
-
-        /// <summary>
-        /// This method pre-seeds the default dithering engine (FloydSteinbergDiffuser) in the AoT compiler for iOS.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        public static void AotCompileDithering<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
-        {
-            var test = new FloydSteinbergDiffuser();
-            TPixel pixel = default;
-            test.Dither<TPixel>(new ImageFrame<TPixel>(Configuration.Default, 1, 1), pixel, pixel, 0, 0, 0, 0, 0, 0);
-        }
     }
 }

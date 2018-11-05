@@ -19,16 +19,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly ResizeKernel[] kernels;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="KernelMap"/> class.
-        /// </summary>
-        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for allocations.</param>
-        /// <param name="destinationSize">The size of the destination window</param>
-        /// <param name="kernelRadius">The radius of the kernel</param>
-        private KernelMap(MemoryAllocator memoryAllocator, int destinationSize, float kernelRadius)
+        private int period;
+
+        private int radius;
+
+        private int periodicRegionMin;
+
+        private int periodicRegionMax;
+
+        private KernelMap(MemoryAllocator memoryAllocator, int destinationSize, int radius, int period)
         {
             this.DestinationSize = destinationSize;
-            int width = (int)Math.Ceiling(kernelRadius * 2);
+            this.period = period;
+            this.radius = radius;
+            this.periodicRegionMin = period + radius;
+            this.periodicRegionMax = destinationSize - radius;
+
+            int width = radius * 2;
             this.data = memoryAllocator.Allocate2D<float>(width, destinationSize, AllocationOptions.Clean);
             this.kernels = new ResizeKernel[destinationSize];
         }
@@ -71,8 +78,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 scale = 1F;
             }
 
-            float radius = MathF.Ceiling(scale * sampler.Radius);
-            var result = new KernelMap(memoryAllocator, destinationSize, radius);
+            int period = ImageMaths.LeastCommonMultiple(sourceSize, destinationSize) / sourceSize;
+
+            int radius = (int)MathF.Ceiling(scale * sampler.Radius);
+            var result = new KernelMap(memoryAllocator, destinationSize, radius, period);
 
             for (int i = 0; i < destinationSize; i++)
             {
@@ -120,6 +129,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
 
             return result;
+        }
+
+        private int ReduceIndex(int destIndex)
+        {
+            return destIndex;
         }
 
         /// <summary>

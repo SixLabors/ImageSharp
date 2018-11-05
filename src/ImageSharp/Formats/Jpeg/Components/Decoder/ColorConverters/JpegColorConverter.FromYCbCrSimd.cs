@@ -32,11 +32,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             }
 
             /// <summary>
-            /// SIMD convert using buffers of sizes divisable by 8.
+            /// SIMD convert using buffers of sizes divisible by 8.
             /// </summary>
             internal static void ConvertCore(in ComponentValues values, Span<Vector4> result)
             {
-                DebugGuard.IsTrue(result.Length % 8 == 0, nameof(result), "result.Length should be divisable by 8!");
+                DebugGuard.IsTrue(result.Length % 8 == 0, nameof(result), "result.Length should be divisible by 8!");
 
                 ref Vector4Pair yBase =
                     ref Unsafe.As<float, Vector4Pair>(ref MemoryMarshal.GetReference(values.Component0));

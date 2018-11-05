@@ -15,8 +15,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     public class PaletteQuantizer<TPixel> : IQuantizer
             where TPixel : struct, IPixel<TPixel>
     {
-        private readonly TPixel[] palette;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteQuantizer{TPixel}"/> class.
         /// </summary>
@@ -44,36 +42,56 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public PaletteQuantizer(TPixel[] palette, IErrorDiffuser diffuser)
         {
             Guard.MustBeBetweenOrEqualTo(palette.Length, QuantizerConstants.MinColors, QuantizerConstants.MaxColors, nameof(palette));
-            this.palette = palette;
+            this.Palette = palette;
             this.Diffuser = diffuser;
         }
 
         /// <inheritdoc/>
         public IErrorDiffuser Diffuser { get; }
 
+        /// <summary>
+        /// Gets the palette.
+        /// </summary>
+        public TPixel[] Palette { get; }
+
+        /// <summary>
+        /// Creates the generic frame quantizer.
+        /// </summary>
+        /// <param name="configuration">The <see cref="Configuration"/> to configure internal operations.</param>
+        /// <returns>The <see cref="IFrameQuantizer{TPixel}"/>.</returns>
+        public IFrameQuantizer<TPixel> CreateFrameQuantizer(Configuration configuration)
+            => ((IQuantizer)this).CreateFrameQuantizer<TPixel>(configuration);
+
+        /// <summary>
+        /// Creates the generic frame quantizer.
+        /// </summary>
+        /// <param name="configuration">The <see cref="Configuration"/> to configure internal operations.</param>
+        /// <param name="maxColors">The maximum number of colors to hold in the color palette.</param>
+        /// <returns>The <see cref="IFrameQuantizer{TPixel}"/>.</returns>
+        public IFrameQuantizer<TPixel> CreateFrameQuantizer(Configuration configuration, int maxColors)
+            => ((IQuantizer)this).CreateFrameQuantizer<TPixel>(configuration, maxColors);
+
         /// <inheritdoc/>
-        public IFrameQuantizer<TPixel1> CreateFrameQuantizer<TPixel1>(Configuration configuration)
-            where TPixel1 : struct, IPixel<TPixel1>
+        IFrameQuantizer<TPixel1> IQuantizer.CreateFrameQuantizer<TPixel1>(Configuration configuration)
         {
             if (!typeof(TPixel).Equals(typeof(TPixel1)))
             {
                 throw new InvalidOperationException("Generic method type must be the same as class type.");
             }
 
-            TPixel[] paletteRef = this.palette;
+            TPixel[] paletteRef = this.Palette;
             return new PaletteFrameQuantizer<TPixel1>(this, Unsafe.As<TPixel[], TPixel1[]>(ref paletteRef));
         }
 
         /// <inheritdoc/>
-        public IFrameQuantizer<TPixel1> CreateFrameQuantizer<TPixel1>(Configuration configuration, int maxColors)
-            where TPixel1 : struct, IPixel<TPixel1>
+        IFrameQuantizer<TPixel1> IQuantizer.CreateFrameQuantizer<TPixel1>(Configuration configuration, int maxColors)
         {
             if (!typeof(TPixel).Equals(typeof(TPixel1)))
             {
                 throw new InvalidOperationException("Generic method type must be the same as class type.");
             }
 
-            TPixel[] paletteRef = this.palette;
+            TPixel[] paletteRef = this.Palette;
             TPixel1[] castPalette = Unsafe.As<TPixel[], TPixel1[]>(ref paletteRef);
 
             maxColors = maxColors.Clamp(QuantizerConstants.MinColors, QuantizerConstants.MaxColors);

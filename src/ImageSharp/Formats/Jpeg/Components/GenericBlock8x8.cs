@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
         /// <summary>
         /// FOR TESTING ONLY!
-        /// Gets or sets a value in a row+coulumn of the 8x8 block
+        /// Gets or sets a value in a row+column of the 8x8 block
         /// </summary>
         /// <param name="x">The x position index in the row</param>
         /// <param name="y">The column index</param>

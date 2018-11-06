@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// A base class that provides methods to allow the automatic centering of affine transforms
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class CenteredAffineTransformProcessor<TPixel> : AffineTransformProcessor<TPixel>
+    internal abstract class CenteredAffineTransformProcessor<TPixel> : AffineTransformProcessorOld<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

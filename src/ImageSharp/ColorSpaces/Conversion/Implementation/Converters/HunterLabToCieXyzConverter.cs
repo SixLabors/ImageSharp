@@ -26,9 +26,12 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
             float ka = ComputeKa(input.WhitePoint);
             float kb = ComputeKb(input.WhitePoint);
 
-            float y = ImageMaths.Pow2(l / 100F) * yn;
-            float x = (((a / ka) * MathF.Sqrt(y / yn)) + (y / yn)) * xn;
-            float z = (((b / kb) * MathF.Sqrt(y / yn)) - (y / yn)) * (-zn);
+            float pow = ImageMaths.Pow2(l / 100F);
+            float sqrtPow = MathF.Sqrt(pow);
+            float y = pow * yn;
+
+            float x = (((a / ka) * sqrtPow) + pow) * xn;
+            float z = (((b / kb) * sqrtPow) - pow) * (-zn);
 
             return new CieXyz(x, y, z);
         }

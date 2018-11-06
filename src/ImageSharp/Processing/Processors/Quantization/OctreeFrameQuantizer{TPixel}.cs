@@ -136,7 +136,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
         }
 
-        internal TPixel[] AotGetPalette() => this.octree.Palletize(this.colors);
+        internal TPixel[] AotGetPalette() => this.GetPalette();
 
         /// <inheritdoc/>
         protected override TPixel[] GetPalette() => this.octree.Palletize(this.colors);

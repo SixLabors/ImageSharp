@@ -1,20 +1,20 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Text;
-using SixLabors.ImageSharp.Formats.Gif;
-using SixLabors.ImageSharp.PixelFormats;
-using Xunit;
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using Xunit;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Gif
 {
-    using System.Collections.Generic;
-    using SixLabors.ImageSharp.MetaData;
-    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-
     public class GifDecoderTests
     {
         private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
@@ -67,6 +67,27 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             {
                 image.DebugSaveMultiFrame(provider);
                 image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+            }
+        }
+
+        [Fact]
+        public unsafe void Decode_NonTerminatedFinalFrame()
+        {
+            var testFile = TestFile.Create(TestImages.Gif.Rings);
+
+            int length = testFile.Bytes.Length - 2;
+
+            fixed (byte* data = testFile.Bytes.AsSpan(0, length))
+            {
+                using (var stream = new UnmanagedMemoryStream(data, length))
+                {
+                    var decoder = new GifDecoder();
+
+                    using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
+                    {
+                        Assert.Equal((200, 200), (image.Width, image.Height));
+                    }
+                }
             }
         }
 

@@ -38,6 +38,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             // We want to resize the canvas here taking into account any translations.
             this.TargetDimensions = new Size(this.transformedRectangle.Right, this.transformedRectangle.Bottom);
+
+            // Handle a negative translation that exceeds the original with of the image.
+            if (this.TargetDimensions.Width <= 0 || this.TargetDimensions.Height <= 0)
+            {
+                this.TargetDimensions = sourceSize;
+            }
         }
 
         /// <summary>

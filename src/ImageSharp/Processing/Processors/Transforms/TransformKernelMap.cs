@@ -21,8 +21,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     {
         private readonly Buffer2D<float> yBuffer;
         private readonly Buffer2D<float> xBuffer;
-        private readonly float yScale;
-        private readonly float xScale;
         private readonly int yLength;
         private readonly int xLength;
         private readonly Vector2 extents;
@@ -39,12 +37,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public TransformKernelMap(Configuration configuration, Size source, Size destination, IResampler sampler)
         {
             this.sampler = sampler;
-            (float radius, float scale) yRadiusScale = this.GetSamplingRadius(source.Height, destination.Height);
-            (float radius, float scale) xRadiusScale = this.GetSamplingRadius(source.Width, destination.Width);
+            float yRadius = this.GetSamplingRadius(source.Height, destination.Height);
+            float xRadius = this.GetSamplingRadius(source.Width, destination.Width);
 
-            this.yScale = yRadiusScale.scale;
-            this.xScale = xRadiusScale.scale;
-            this.extents = new Vector2(xRadiusScale.radius, yRadiusScale.radius);
+            this.extents = new Vector2(xRadius, yRadius);
             this.xLength = (int)MathF.Ceiling((this.extents.X * 2) + 2);
             this.yLength = (int)MathF.Ceiling((this.extents.Y * 2) + 2);
 
@@ -167,7 +163,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // }
         }
 
-        private (float radius, float scale) GetSamplingRadius(int sourceSize, int destinationSize)
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private float GetSamplingRadius(int sourceSize, int destinationSize)
         {
             float scale = (float)sourceSize / destinationSize;
 
@@ -176,7 +173,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 scale = 1F;
             }
 
-            return (MathF.Ceiling(scale * this.sampler.Radius), scale);
+            return MathF.Ceiling(scale * this.sampler.Radius);
         }
 
         public void Dispose()

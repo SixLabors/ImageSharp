@@ -22,9 +22,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// Initializes a new instance of the <see cref="AffineTransformProcessor{TPixel}"/> class.
         /// </summary>
-        /// <param name="matrix">The transform matrix</param>
+        /// <param name="matrix">The transform matrix.</param>
         /// <param name="sampler">The sampler to perform the transform operation.</param>
-        /// <param name="sourceSize">The source image size</param>
+        /// <param name="sourceSize">The source image size.</param>
         public AffineTransformProcessor(Matrix3x2 matrix, IResampler sampler, Size sourceSize)
         {
             Guard.NotNull(sampler, nameof(sampler));
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Configuration configuration)
         {
             // Handle tranforms that result in output identical to the original.
-            if (this.TransformMatrix.Equals(Matrix3x2.Identity))
+            if (this.TransformMatrix.Equals(default) || this.TransformMatrix.Equals(Matrix3x2.Identity))
             {
                 // The cloned will be blank here copy all the pixel data over
                 source.GetPixelSpan().CopyTo(destination.GetPixelSpan());

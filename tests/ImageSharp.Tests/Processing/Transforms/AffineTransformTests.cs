@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 AffineTransformBuilder builder = new AffineTransformBuilder(image.Size())
-                    .AppendRotateMatrixDegrees((float)Math.PI / 4F);
+                    .AppendRotateMatrixDegrees(30);
 
                 image.Mutate(c => c.Transform(builder, resampler));
                 image.DebugSave(provider, resamplerName);

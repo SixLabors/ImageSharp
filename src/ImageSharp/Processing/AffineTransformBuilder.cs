@@ -31,6 +31,11 @@ namespace SixLabors.ImageSharp.Processing
             => this.rectangle = sourceRectangle;
 
         /// <summary>
+        /// Gets the source image size.
+        /// </summary>
+        internal Size Size { get; }
+
+        /// <summary>
         /// Prepends a centered rotation matrix using the given rotation in degrees.
         /// </summary>
         /// <param name="degrees">The amount of rotation, in degrees.</param>
@@ -40,11 +45,6 @@ namespace SixLabors.ImageSharp.Processing
             this.matrices.Insert(0, TransformUtils.CreateRotationMatrixDegrees(degrees, this.Size));
             return this;
         }
-
-        /// <summary>
-        /// Gets the source image size.
-        /// </summary>
-        internal Size Size { get; }
 
         /// <summary>
         /// Appends a centered rotation matrix using the given rotation in degrees.

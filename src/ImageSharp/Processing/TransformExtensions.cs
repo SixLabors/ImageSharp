@@ -18,65 +18,23 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to transform.</param>
-        /// <param name="matrix">The transformation matrix.</param>
+        /// <param name="builder">The affine transform builder.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix3x2 matrix)
+        public static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, AffineTransformBuilder builder)
             where TPixel : struct, IPixel<TPixel>
-            => Transform(source, matrix, KnownResamplers.Bicubic);
+            => Transform(source, builder, KnownResamplers.Bicubic);
 
         /// <summary>
         /// Transforms an image by the given matrix using the specified sampling algorithm.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to transform.</param>
-        /// <param name="matrix">The transformation matrix.</param>
+        /// <param name="builder">The affine transform builder.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix3x2 matrix, IResampler sampler)
+        public static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, AffineTransformBuilder builder, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new AffineTransformProcessorOld<TPixel>(matrix, sampler, source.GetCurrentSize()));
-
-        /// <summary>
-        /// Transforms an image by the given matrix using the specified sampling algorithm
-        /// and a rectangle defining the transform origin in the source image and the size of the result image.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The image to transform.</param>
-        /// <param name="matrix">The transformation matrix.</param>
-        /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-        /// <param name="rectangle">
-        /// The rectangle defining the transform origin in the source image, and the size of the result image.
-        /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public static IImageProcessingContext<TPixel> Transform<TPixel>(
-            this IImageProcessingContext<TPixel> source,
-            Matrix3x2 matrix,
-            IResampler sampler,
-            Rectangle rectangle)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            var t = Matrix3x2.CreateTranslation(-rectangle.Location);
-            Matrix3x2 combinedMatrix = t * matrix;
-            return source.ApplyProcessor(new AffineTransformProcessorOld<TPixel>(combinedMatrix, sampler, rectangle.Size));
-        }
-
-        /// <summary>
-        /// Transforms an image by the given matrix using the specified sampling algorithm,
-        /// cropping or extending the image according to <paramref name="destinationSize"/>.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The image to transform.</param>
-        /// <param name="matrix">The transformation matrix.</param>
-        /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-        /// <param name="destinationSize">The size of the destination image.</param>
-        /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public static IImageProcessingContext<TPixel> Transform<TPixel>(
-            this IImageProcessingContext<TPixel> source,
-            Matrix3x2 matrix,
-            IResampler sampler,
-            Size destinationSize)
-            where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new AffineTransformProcessorOld<TPixel>(matrix, sampler, destinationSize));
+            => source.ApplyProcessor(new AffineTransformProcessor<TPixel>(builder.BuildMatrix(), sampler, builder.Size));
 
         /// <summary>
         /// Transforms an image by the given matrix.

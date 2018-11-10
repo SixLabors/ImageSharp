@@ -9,20 +9,15 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
-// TODO: It would be great if we could somehow optimize this to calculate the weights once.
-// currently we cannot do that  as we are calulating the weight of the transformed point dimension
-// not the point in the original image.
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
     /// <summary>
-    /// Contains the methods required to calculate kernel sampling  weights on-the-fly.
+    /// Contains the methods required to calculate transform kernel convolution.
     /// </summary>
     internal class TransformKernelMap : IDisposable
     {
         private readonly Buffer2D<float> yBuffer;
         private readonly Buffer2D<float> xBuffer;
-        private readonly int yLength;
-        private readonly int xLength;
         private readonly Vector2 extents;
         private Vector4 maxSourceExtents;
         private readonly IResampler sampler;
@@ -41,12 +36,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             float xRadius = this.GetSamplingRadius(source.Width, destination.Width);
 
             this.extents = new Vector2(xRadius, yRadius);
-            this.xLength = (int)MathF.Ceiling((this.extents.X * 2) + 2);
-            this.yLength = (int)MathF.Ceiling((this.extents.Y * 2) + 2);
+            int xLength = (int)MathF.Ceiling((this.extents.X * 2) + 2);
+            int yLength = (int)MathF.Ceiling((this.extents.Y * 2) + 2);
 
-            // We use 2D buffers so that we can access the weight spans in parallel.
-            this.yBuffer = configuration.MemoryAllocator.Allocate2D<float>(this.yLength, destination.Height);
-            this.xBuffer = configuration.MemoryAllocator.Allocate2D<float>(this.xLength, destination.Height);
+            // We use 2D buffers so that we can access the weight spans per row in parallel.
+            this.yBuffer = configuration.MemoryAllocator.Allocate2D<float>(yLength, destination.Height);
+            this.xBuffer = configuration.MemoryAllocator.Allocate2D<float>(xLength, destination.Height);
 
             int maxX = source.Width - 1;
             int maxY = source.Height - 1;
@@ -82,42 +77,34 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Vector2 minXY = transformedPoint - this.extents;
             Vector2 maxXY = transformedPoint + this.extents;
 
-            // minX, minY, maxX, maxY
+            // left, top, right, bottom
             var extents = new Vector4(
                 MathF.Ceiling(minXY.X - .5F),
                 MathF.Ceiling(minXY.Y - .5F),
                 MathF.Floor(maxXY.X + .5F),
                 MathF.Floor(maxXY.Y + .5F));
 
+            extents = Vector4.Clamp(extents, Vector4.Zero, this.maxSourceExtents);
+
             int left = (int)extents.X;
             int top = (int)extents.Y;
             int right = (int)extents.Z;
             int bottom = (int)extents.W;
 
-            extents = Vector4.Clamp(extents, Vector4.Zero, this.maxSourceExtents);
-
-            int minX = (int)extents.X;
-            int minY = (int)extents.Y;
-            int maxX = (int)extents.Z;
-            int maxY = (int)extents.W;
-
-            if (minX == maxX || minY == maxY)
+            if (left == right || top == bottom)
             {
                 return;
             }
 
-            // TODO: Get Anton to use his superior brain on this one.
-            // It looks to me like we're calculating the same weights over and over again
-            // since min(X+Y) and max(X+Y) are the same distance apart.
-            this.CalculateWeights(minY, maxY, maxY - minY, transformedPoint.Y, ref ySpanRef);
-            this.CalculateWeights(minX, maxX, maxX - minX, transformedPoint.X, ref xSpanRef);
+            this.CalculateWeights(top, bottom, transformedPoint.Y, ref ySpanRef);
+            this.CalculateWeights(left, right, transformedPoint.X, ref xSpanRef);
 
             Vector4 sum = Vector4.Zero;
-            for (int kernelY = 0, y = minY; y <= maxY; y++, kernelY++)
+            for (int kernelY = 0, y = top; y <= bottom; y++, kernelY++)
             {
                 float yWeight = Unsafe.Add(ref ySpanRef, kernelY);
 
-                for (int kernelX = 0, x = minX; x <= maxX; x++, kernelX++)
+                for (int kernelX = 0, x = left; x <= right; x++, kernelX++)
                 {
                     float xWeight = Unsafe.Add(ref xSpanRef, kernelX);
 
@@ -138,29 +125,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         /// <param name="min">The minimum sampling offset</param>
         /// <param name="max">The maximum sampling offset</param>
-        /// <param name="length">The length of the weights collection</param>
         /// <param name="point">The transformed point dimension</param>
         /// <param name="weightsRef">The reference to the collection of weights</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void CalculateWeights(int min, int max, int length, float point, ref float weightsRef)
+        private void CalculateWeights(int min, int max, float point, ref float weightsRef)
         {
             float sum = 0;
             for (int x = 0, i = min; i <= max; i++, x++)
             {
                 float weight = this.sampler.GetValue(i - point);
                 sum += weight;
-                Unsafe.Add(ref weightsRef, x) = this.sampler.GetValue(i - point);
+                Unsafe.Add(ref weightsRef, x) = weight;
             }
-
-            // TODO: Do we need this? Check what happens when we scale an image down.
-            // if (sum > 0)
-            // {
-            //    for (int i = 0; i < length; i++)
-            //    {
-            //        ref float wRef = ref Unsafe.Add(ref weightsRef, i);
-            //        wRef /= sum;
-            //    }
-            // }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

@@ -19,8 +19,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal class AffineTransformProcessor<TPixel> : TransformProcessorBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private readonly Rectangle transformedRectangle;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="AffineTransformProcessor{TPixel}"/> class.
         /// </summary>
@@ -32,18 +30,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Guard.NotNull(sampler, nameof(sampler));
             this.Sampler = sampler;
             this.TransformMatrix = matrix;
-            this.transformedRectangle = TransformUtils.GetTransformedRectangle(
-                    new Rectangle(Point.Empty, sourceSize),
-                    matrix);
-
-            // We want to resize the canvas here taking into account any translations.
-            this.TargetDimensions = new Size(this.transformedRectangle.Right, this.transformedRectangle.Bottom);
-
-            // Handle a negative translation that exceeds the original with of the image.
-            if (this.TargetDimensions.Width <= 0 || this.TargetDimensions.Height <= 0)
-            {
-                this.TargetDimensions = sourceSize;
-            }
+            this.TargetDimensions = TransformUtils.GetTransformedSize(sourceSize, matrix);
         }
 
         /// <summary>
@@ -79,10 +66,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Rectangle sourceRectangle,
             Configuration configuration)
         {
+            // Handle tranforms that result in output identical to the original.
+            if (this.TransformMatrix.Equals(Matrix3x2.Identity))
+            {
+                // The cloned will be blank here copy all the pixel data over
+                source.GetPixelSpan().CopyTo(destination.GetPixelSpan());
+                return;
+            }
+
             int height = this.TargetDimensions.Height;
             int width = this.TargetDimensions.Width;
 
-            Rectangle sourceBounds = source.Bounds();
             var targetBounds = new Rectangle(Point.Empty, this.TargetDimensions);
 
             // Convert from screen to world space.
@@ -102,7 +96,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                             for (int x = 0; x < width; x++)
                             {
                                 var point = Point.Transform(new Point(x, y), matrix);
-                                if (sourceBounds.Contains(point.X, point.Y))
+                                if (sourceRectangle.Contains(point.X, point.Y))
                                 {
                                     destRow[x] = source[point.X, point.Y];
                                 }
@@ -113,7 +107,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return;
             }
 
-            using (var kernel = new TransformKernelMap(configuration, source.Size(), destination.Size(), this.Sampler))
+            var kernel = new TransformKernelMap(configuration, source.Size(), destination.Size(), this.Sampler);
+            try
             {
                 ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
                     targetBounds,
@@ -139,6 +134,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                             PixelOperations<TPixel>.Instance.FromVector4(configuration, vectorSpan, targetRowSpan);
                         }
                     });
+            }
+            finally
+            {
+                kernel.Dispose();
             }
         }
     }

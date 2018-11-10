@@ -6,14 +6,14 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Benchmarks.Samplers
 {
     [Config(typeof(Config.ShortClr))]
-    public class Rotate
+    public class Skew
     {
         [Benchmark]
-        public Size DoRotate()
+        public Size DoSkew()
         {
             using (var image = new Image<Rgba32>(Configuration.Default, 400, 400, Rgba32.BlanchedAlmond))
             {
-                image.Mutate(x => x.Rotate(37.5F));
+                image.Mutate(x => x.Skew(20, 10));
 
                 return image.Size();
             }
@@ -33,13 +33,13 @@ namespace SixLabors.ImageSharp.Benchmarks.Samplers
 //LaunchCount=1  TargetCount=3  WarmupCount=3
 
 // #### BEFORE ####:
-//   Method | Runtime |     Mean |     Error |    StdDev | Allocated |
-//--------- |-------- |---------:|----------:|----------:|----------:|
-// DoRotate |     Clr | 85.19 ms | 13.379 ms | 0.7560 ms |      6 KB |
-// DoRotate |    Core | 53.51 ms |  9.512 ms | 0.5375 ms |   4.29 KB |
+//Method | Runtime |     Mean |    Error |    StdDev | Allocated |
+//------- |-------- |---------:|---------:|----------:|----------:|
+// DoSkew |     Clr | 78.14 ms | 8.383 ms | 0.4736 ms |      6 KB |
+// DoSkew |    Core | 44.22 ms | 4.109 ms | 0.2322 ms |   4.28 KB |
 
 // #### AFTER ####:
-//Method | Runtime |     Mean |    Error |   StdDev | Allocated |
-//--------- |-------- |---------:|---------:|---------:|----------:|
-// DoRotate |     Clr | 77.08 ms | 23.97 ms | 1.354 ms |      6 KB |
-// DoRotate |    Core | 40.36 ms | 47.43 ms | 2.680 ms |   4.36 KB |
+//Method | Runtime |     Mean |     Error |    StdDev | Allocated |
+//------- |-------- |---------:|----------:|----------:|----------:|
+// DoSkew |     Clr | 71.63 ms | 25.589 ms | 1.4458 ms |      6 KB |
+// DoSkew |    Core | 38.99 ms |  8.640 ms | 0.4882 ms |   4.36 KB |

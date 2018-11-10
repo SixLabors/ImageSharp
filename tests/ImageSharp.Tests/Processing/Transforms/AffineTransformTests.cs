@@ -78,15 +78,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             IResampler resampler = GetResampler(resamplerName);
             using (Image<TPixel> image = provider.GetImage())
             {
-                var rotate = Matrix3x2.CreateRotation((float)Math.PI / 4F, new Vector2(5 / 2F, 5 / 2F));
-                var translate = Matrix3x2.CreateTranslation((7 - 5) / 2F, (7 - 5) / 2F);
+                AffineTransformBuilder builder = new AffineTransformBuilder(image.Size())
+                    .AppendRotateMatrixDegrees((float)Math.PI / 4F);
 
-                Rectangle sourceRectangle = image.Bounds();
-                Matrix3x2 matrix = rotate * translate;
-
-                Rectangle destRectangle = TransformHelpers.GetTransformedBoundingRectangle(sourceRectangle, matrix);
-
-                image.Mutate(c => c.Transform(matrix, resampler, destRectangle));
+                image.Mutate(c => c.Transform(builder, resampler));
                 image.DebugSave(provider, resamplerName);
 
                 VerifyAllPixelsAreWhiteOrTransparent(image);
@@ -104,14 +99,15 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                Matrix3x2 rotate = Matrix3x2Extensions.CreateRotationDegrees(angleDeg);
-                var translate = Matrix3x2.CreateTranslation(tx, ty);
-                var scale = Matrix3x2.CreateScale(sx, sy);
-                Matrix3x2 m = rotate * scale * translate;
+                image.DebugSave(provider, $"_original");
+                AffineTransformBuilder builder = new AffineTransformBuilder(image.Size())
+                    .AppendRotateMatrixDegrees(angleDeg)
+                    .AppendScaleMatrix(new SizeF(sx, sy))
+                    .AppendTranslationMatrix(new PointF(tx, ty));
 
-                this.PrintMatrix(m);
+                this.PrintMatrix(builder.BuildMatrix());
 
-                image.Mutate(i => i.Transform(m, KnownResamplers.Bicubic));
+                image.Mutate(i => i.Transform(builder, KnownResamplers.Bicubic));
 
                 FormattableString testOutputDetails = $"R({angleDeg})_S({sx},{sy})_T({tx},{ty})";
                 image.DebugSave(provider, testOutputDetails);
@@ -126,9 +122,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                Matrix3x2 m = this.MakeManuallyCenteredMatrix(angleDeg, s, image);
+                AffineTransformBuilder builder = new AffineTransformBuilder(image.Size())
+                    .AppendRotateMatrixDegrees(angleDeg)
+                    .AppendScaleMatrix(new SizeF(s, s));
 
-                image.Mutate(i => i.Transform(m, KnownResamplers.Bicubic));
+                image.Mutate(i => i.Transform(builder, KnownResamplers.Bicubic));
 
                 FormattableString testOutputDetails = $"R({angleDeg})_S({s})";
                 image.DebugSave(provider, testOutputDetails);
@@ -155,13 +153,15 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public void Transform_FromSourceRectangle1<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            var rectangle = new Rectangle(48, 0, 96, 36);
+            var rectangle = new Rectangle(48, 0, 48, 24);
 
             using (Image<TPixel> image = provider.GetImage())
             {
-                var m = Matrix3x2.CreateScale(2.0F, 1.5F);
+                image.DebugSave(provider, $"_original");
+                AffineTransformBuilder builder = new AffineTransformBuilder(rectangle)
+                    .AppendScaleMatrix(new SizeF(2, 1.5F));
 
-                image.Mutate(i => i.Transform(m, KnownResamplers.Spline, rectangle));
+                image.Mutate(i => i.Transform(builder, KnownResamplers.Spline));
 
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(ValidatorComparer, provider);
@@ -173,13 +173,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public void Transform_FromSourceRectangle2<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            var rectangle = new Rectangle(0, 24, 48, 48);
+            var rectangle = new Rectangle(0, 24, 48, 24);
 
             using (Image<TPixel> image = provider.GetImage())
             {
-                var m = Matrix3x2.CreateScale(1.0F, 2.0F);
+                AffineTransformBuilder builder = new AffineTransformBuilder(rectangle)
+                    .AppendScaleMatrix(new SizeF(1F, 2F));
 
-                image.Mutate(i => i.Transform(m, KnownResamplers.Spline, rectangle));
+                image.Mutate(i => i.Transform(builder, KnownResamplers.Spline));
 
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(ValidatorComparer, provider);
@@ -194,12 +195,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             IResampler sampler = GetResampler(resamplerName);
             using (Image<TPixel> image = provider.GetImage())
             {
-                Matrix3x2 m = this.MakeManuallyCenteredMatrix(50, 0.6f, image);
+                AffineTransformBuilder builder = new AffineTransformBuilder(image.Size())
+                    .AppendRotateMatrixDegrees(50)
+                    .AppendScaleMatrix(new SizeF(.6F, .6F));
 
-                image.Mutate(i =>
-                    {
-                        i.Transform(m, sampler);
-                    });
+                image.Mutate(i => i.Transform(builder, sampler));
 
                 image.DebugSave(provider, resamplerName);
                 image.CompareToReferenceOutput(ValidatorComparer, provider, resamplerName);

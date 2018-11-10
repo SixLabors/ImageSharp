@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
@@ -11,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// Provides methods that allow the skewing of images.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class SkewProcessor<TPixel> : CenteredAffineTransformProcessor<TPixel>
+    internal class SkewProcessor<TPixel> : AffineTransformProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -33,7 +32,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="sampler">The sampler to perform the skew operation.</param>
         /// <param name="sourceSize">The source image size</param>
         public SkewProcessor(float degreesX, float degreesY, IResampler sampler, Size sourceSize)
-            : base(Matrix3x2Extensions.CreateSkewDegrees(degreesX, degreesY, PointF.Empty), sampler, sourceSize)
+            : base(
+                 TransformUtils.CreateSkewMatrixDegrees(degreesX, degreesY, sourceSize),
+                 sampler,
+                 sourceSize)
         {
             this.DegreesX = degreesX;
             this.DegreesY = degreesY;

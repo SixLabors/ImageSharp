@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         private static readonly ImageComparer TolerantComparer = ImageComparer.TolerantPercentage(0.5f, 3);
 
         private ITestOutputHelper Output { get; }
-        
+
         public static readonly TheoryData<string> ResamplerNames = new TheoryData<string>
         {
             nameof(KnownResamplers.Bicubic),
@@ -60,10 +60,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
         };
 
-        public ProjectiveTransformTests(ITestOutputHelper output)
-        {
-            this.Output = output;
-        }
+        public ProjectiveTransformTests(ITestOutputHelper output) => this.Output = output;
 
         [Theory]
         [WithTestPatternImages(nameof(ResamplerNames), 150, 150, PixelTypes.Rgba32)]
@@ -73,9 +70,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             IResampler sampler = GetResampler(resamplerName);
             using (Image<TPixel> image = provider.GetImage())
             {
-                Matrix4x4 m = ProjectiveTransformHelper.CreateTaperMatrix(image.Size(), TaperSide.Right, TaperCorner.Both, .5F);
+                ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder(image.Size())
+                    .AppendTaperMatrix(TaperSide.Right, TaperCorner.Both, .5F);
 
-                image.Mutate(i => { i.Transform(m, sampler); });
+                image.Mutate(i => i.Transform(builder, sampler));
 
                 image.DebugSave(provider, resamplerName);
                 image.CompareToReferenceOutput(ValidatorComparer, provider, resamplerName);
@@ -89,8 +87,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                Matrix4x4 m = ProjectiveTransformHelper.CreateTaperMatrix(image.Size(), taperSide, taperCorner, .5F);
-                image.Mutate(i => { i.Transform(m); });
+                ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder(image.Size())
+                    .AppendTaperMatrix(taperSide, taperCorner, .5F);
+
+                image.Mutate(i => i.Transform(builder));
 
                 FormattableString testOutputDetails = $"{taperSide}-{taperCorner}";
                 image.DebugSave(provider, testOutputDetails);
@@ -110,10 +110,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             // https://docs.microsoft.com/en-us/xamarin/xamarin-forms/user-interface/graphics/skiasharp/transforms/non-affine
             using (Image<TPixel> image = provider.GetImage())
             {
-                Matrix4x4 m = Matrix4x4.Identity;
-                m.M13 = 0.01F;
+                Matrix4x4 matrix = Matrix4x4.Identity;
+                matrix.M13 = 0.01F;
 
-                image.Mutate(i => { i.Transform(m); });
+                ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder(image.Size())
+                .AppendMatrix(matrix);
+
+                image.Mutate(i => i.Transform(builder));
 
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(TolerantComparer, provider);

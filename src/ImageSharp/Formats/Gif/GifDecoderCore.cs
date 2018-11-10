@@ -142,8 +142,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                                 this.ReadApplicationExtension();
                                 break;
                             case GifConstants.PlainTextLabel:
-                                int plainLength = stream.ReadByte();
-                                this.Skip(plainLength); // Not supported by any known decoder.
+                                this.SkipBlock(); // Not supported by any known decoder.
                                 break;
                         }
                     }
@@ -190,9 +189,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                         switch (stream.ReadByte())
                         {
                             case GifConstants.GraphicControlLabel:
-
-                                // Skip graphic control extension block
-                                this.Skip(0);
+                                this.SkipBlock(); // Skip graphic control extension block
                                 break;
                             case GifConstants.CommentLabel:
                                 this.ReadComments();
@@ -201,8 +198,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                                 this.ReadApplicationExtension();
                                 break;
                             case GifConstants.PlainTextLabel:
-                                int plainLength = stream.ReadByte();
-                                this.Skip(plainLength); // Not supported by any known decoder.
+                                this.SkipBlock(); // Not supported by any known decoder.
                                 break;
                         }
                     }
@@ -288,24 +284,27 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 // Could be XMP or something else not supported yet.
                 // Back up and skip.
                 this.stream.Position -= appLength + 1;
-                this.Skip(appLength);
+                this.SkipBlock(appLength);
                 return;
             }
 
-            this.Skip(appLength); // Not supported by any known decoder.
+            this.SkipBlock(appLength); // Not supported by any known decoder.
         }
 
         /// <summary>
-        /// Skips the designated number of bytes in the stream.
+        /// Skips over a block or reads its terminator.
+        /// <param name="blockSize">The length of the block to skip.</param>
         /// </summary>
-        /// <param name="length">The number of bytes to skip.</param>
-        private void Skip(int length)
+        private void SkipBlock(int blockSize = 0)
         {
-            this.stream.Skip(length);
+            if (blockSize > 0)
+            {
+                this.stream.Skip(blockSize);
+            }
 
             int flag;
 
-            while ((flag = this.stream.ReadByte()) != 0)
+            while ((flag = this.stream.ReadByte()) > 0)
             {
                 this.stream.Skip(flag);
             }
@@ -370,7 +369,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 this.ReadFrameColors(ref image, ref previousFrame, indices.GetSpan(), colorTable, this.imageDescriptor);
 
                 // Skip any remaining blocks
-                this.Skip(0);
+                this.SkipBlock();
             }
             finally
             {

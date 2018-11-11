@@ -20,7 +20,13 @@ namespace SixLabors.ImageSharp.Processing
         /// Initializes a new instance of the <see cref="ProjectiveTransformBuilder"/> class.
         /// </summary>
         /// <param name="sourceSize">The source image size.</param>
-        public ProjectiveTransformBuilder(Size sourceSize) => this.Size = sourceSize;
+        public ProjectiveTransformBuilder(Size sourceSize)
+        {
+            Guard.MustBeGreaterThan(sourceSize.Width, 0, nameof(sourceSize));
+            Guard.MustBeGreaterThan(sourceSize.Height, 0, nameof(sourceSize));
+
+            this.Size = sourceSize;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProjectiveTransformBuilder"/> class.
@@ -43,10 +49,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="fraction">The amount to taper.</param>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
         public ProjectiveTransformBuilder PrependTaperMatrix(TaperSide side, TaperCorner corner, float fraction)
-        {
-            this.PrependMatrix(TransformUtils.CreateTaperMatrix(this.Size, side, corner, fraction));
-            return this;
-        }
+            => this.PrependMatrix(TransformUtils.CreateTaperMatrix(this.Size, side, corner, fraction));
 
         /// <summary>
         /// Appends a matrix that performs a tapering projective transform.
@@ -56,10 +59,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="fraction">The amount to taper.</param>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
         public ProjectiveTransformBuilder AppendTaperMatrix(TaperSide side, TaperCorner corner, float fraction)
-        {
-            this.AppendMatrix(TransformUtils.CreateTaperMatrix(this.Size, side, corner, fraction));
-            return this;
-        }
+            => this.AppendMatrix(TransformUtils.CreateTaperMatrix(this.Size, side, corner, fraction));
 
         /// <summary>
         /// Prepends a raw matrix.

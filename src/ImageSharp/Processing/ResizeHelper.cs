@@ -343,13 +343,15 @@ namespace SixLabors.ImageSharp.Processing
 
             if (widthDiff < heightDiff)
             {
-                destinationHeight = (int)MathF.Round(width * ((float)sourceHeight / sourceWidth));
+                float sourceRatio = (float)sourceHeight / sourceWidth;
+                destinationHeight = (int)MathF.Round(width * sourceRatio);
                 height = destinationHeight;
                 destinationWidth = width;
             }
             else if (widthDiff > heightDiff)
             {
-                destinationWidth = (int)MathF.Round(height * ((float)sourceWidth / sourceHeight));
+                float sourceRatioInverse = (float)sourceWidth / sourceHeight;
+                destinationWidth = (int)MathF.Round(height * sourceRatioInverse);
                 destinationHeight = height;
                 width = destinationWidth;
             }

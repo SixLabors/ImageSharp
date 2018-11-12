@@ -23,27 +23,27 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         }
 
         /// <inheritdoc/>
-        public override DenseMatrix<float> North => KirshKernels.KirschNorth;
+        public override DenseMatrix<float> North => KirschKernels.KirschNorth;
 
         /// <inheritdoc/>
-        public override DenseMatrix<float> NorthWest => KirshKernels.KirschNorthWest;
+        public override DenseMatrix<float> NorthWest => KirschKernels.KirschNorthWest;
 
         /// <inheritdoc/>
-        public override DenseMatrix<float> West => KirshKernels.KirschWest;
+        public override DenseMatrix<float> West => KirschKernels.KirschWest;
 
         /// <inheritdoc/>
-        public override DenseMatrix<float> SouthWest => KirshKernels.KirschSouthWest;
+        public override DenseMatrix<float> SouthWest => KirschKernels.KirschSouthWest;
 
         /// <inheritdoc/>
-        public override DenseMatrix<float> South => KirshKernels.KirschSouth;
+        public override DenseMatrix<float> South => KirschKernels.KirschSouth;
 
         /// <inheritdoc/>
-        public override DenseMatrix<float> SouthEast => KirshKernels.KirschSouthEast;
+        public override DenseMatrix<float> SouthEast => KirschKernels.KirschSouthEast;
 
         /// <inheritdoc/>
-        public override DenseMatrix<float> East => KirshKernels.KirschEast;
+        public override DenseMatrix<float> East => KirschKernels.KirschEast;
 
         /// <inheritdoc/>
-        public override DenseMatrix<float> NorthEast => KirshKernels.KirschNorthEast;
+        public override DenseMatrix<float> NorthEast => KirschKernels.KirschNorthEast;
     }
 }

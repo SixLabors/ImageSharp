@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
         [Fact]
         public void AotCompiler_NoExceptions()
         {
-            AotCompiler.Seed<Rgba32>();
+            AotCompilerTools.Seed<Rgba32>();
         }
     }
 }

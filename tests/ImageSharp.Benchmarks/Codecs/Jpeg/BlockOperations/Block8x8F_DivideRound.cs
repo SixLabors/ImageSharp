@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 // ReSharper disable InconsistentNaming
 
-namespace SixLabors.ImageSharp.Benchmarks.General
+namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
 {
     /// <summary>
     /// The goal of this benchmark is to measure the following Jpeg-related scenario:
@@ -24,8 +24,8 @@ namespace SixLabors.ImageSharp.Benchmarks.General
         private static readonly Vector4 MinusOne = new Vector4(-1);
         private static readonly Vector4 Half = new Vector4(0.5f);
 
-        private Block8x8F inputDividend = default(Block8x8F);
-        private Block8x8F inputDivisior = default(Block8x8F);
+        private Block8x8F inputDividend;
+        private Block8x8F inputDivisior;
 
         [GlobalSetup]
         public void Setup()

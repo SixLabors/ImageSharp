@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
         /// <param name="font">The font we want to render with</param>
         /// <param name="brush">The brush to source pixel colors from.</param>
         /// <param name="pen">The pen to outline text with.</param>
-        /// <param name="location">The location on the image to start drawign the text from.</param>
+        /// <param name="location">The location on the image to start drawing the text from.</param>
         public DrawTextProcessor(TextGraphicsOptions options, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, PointF location)
         {
             Guard.NotNull(text, nameof(text));
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
         {
             base.BeforeImageApply(source, sourceRectangle);
 
-            // do everythign at the image level as we are deligating the processing down to other processors
+            // do everything at the image level as we are delegating the processing down to other processors
             var style = new RendererOptions(this.Font, this.Options.DpiX, this.Options.DpiY, this.Location)
             {
                 ApplyKerning = this.Options.ApplyKerning,

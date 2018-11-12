@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// Initializes the YCbCr tables
         /// </summary>
-        /// <returns>The intialized <see cref="RgbToYCbCrTables"/></returns>
+        /// <returns>The initialized <see cref="RgbToYCbCrTables"/></returns>
         public static RgbToYCbCrTables Create()
         {
             RgbToYCbCrTables tables = default;

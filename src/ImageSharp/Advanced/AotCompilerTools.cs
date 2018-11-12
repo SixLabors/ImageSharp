@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Advanced
     /// these are caused because not every possible generic instantiation can be determined up front at compile time.
     /// The Aot Compiler is designed to overcome the limitations of this compiler.
     /// </summary>
-    public static class AotCompiler
+    public static class AotCompilerTools
     {
         /// <summary>
         /// Seeds the compiler using the given pixel format.

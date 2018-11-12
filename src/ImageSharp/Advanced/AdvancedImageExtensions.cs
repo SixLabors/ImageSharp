@@ -160,7 +160,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="source">The source.</param>
-        /// <returns>The span retuned from Pixel source</returns>
+        /// <returns>The span returned from Pixel source</returns>
         private static Span<TPixel> GetSpan<TPixel>(IPixelSource<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
             => source.PixelBuffer.GetSpan();
@@ -172,7 +172,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="source">The source.</param>
         /// <param name="row">The row.</param>
         /// <returns>
-        /// The span retuned from Pixel source
+        /// The span returned from Pixel source
         /// </returns>
         private static Span<TPixel> GetSpan<TPixel>(IPixelSource<TPixel> source, int row)
             where TPixel : struct, IPixel<TPixel>
@@ -185,7 +185,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="source">The source.</param>
         /// <param name="row">The row.</param>
         /// <returns>
-        /// The span retuned from Pixel source
+        /// The span returned from Pixel source
         /// </returns>
         private static Span<TPixel> GetSpan<TPixel>(Buffer2D<TPixel> source, int row)
             where TPixel : struct, IPixel<TPixel>

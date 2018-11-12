@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
     internal abstract partial class JpegColorConverter
     {
         /// <summary>
-        /// The avalilable converters
+        /// The available converters
         /// </summary>
         private static readonly JpegColorConverter[] Converters =
             {

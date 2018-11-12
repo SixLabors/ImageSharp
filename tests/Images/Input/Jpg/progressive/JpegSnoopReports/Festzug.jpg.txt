@@ -1,0 +1,459 @@
+
+JPEGsnoop 1.8.0 by Calvin Hass
+  http://www.impulseadventure.com/photo/
+  -------------------------------------
+
+  Filename: [.\Festzug.jpg]
+  Filesize: [49977] Bytes
+
+Start Offset: 0x00000000
+*** Marker: SOI (xFFD8) ***
+  OFFSET: 0x00000000
+ 
+*** Marker: APP0 (xFFE0) ***
+  OFFSET: 0x00000002
+  Length     = 16
+  Identifier = [JFIF]
+  version    = [1.1]
+  density    = 229 x 229 DPI (dots per inch)
+  thumbnail  = 0 x 0
+ 
+*** Marker: DQT (xFFDB) ***
+  Define a Quantization Table.
+  OFFSET: 0x00000014
+  Table length = 131
+  ----
+  Precision=16 bits
+  Destination ID=0 (Luminance)
+    DQT, Row #0:  53  37  33  53  80 133 170 203 
+    DQT, Row #1:  40  40  47  63  87 193 200 183 
+    DQT, Row #2:  47  43  53  80 133 190 230 186 
+    DQT, Row #3:  47  57  73  97 170 290 266 206 
+    DQT, Row #4:  60  73 123 186 226 363 343 256 
+    DQT, Row #5:  80 117 183 213 270 346 376 306 
+    DQT, Row #6: 163 213 260 290 343 403 400 336 
+    DQT, Row #7: 240 306 316 326 373 333 343 330 
+    Approx quality factor = 15.01 (scaling=333.00 variance=1.25)
+ 
+*** Marker: DQT (xFFDB) ***
+  Define a Quantization Table.
+  OFFSET: 0x00000099
+  Table length = 131
+  ----
+  Precision=16 bits
+  Destination ID=1 (Chrominance)
+    DQT, Row #0:  57  60  80 157 330 330 330 330 
+    DQT, Row #1:  60  70  87 220 330 330 330 330 
+    DQT, Row #2:  80  87 186 330 330 330 330 330 
+    DQT, Row #3: 157 220 330 330 330 330 330 330 
+    DQT, Row #4: 330 330 330 330 330 330 330 330 
+    DQT, Row #5: 330 330 330 330 330 330 330 330 
+    DQT, Row #6: 330 330 330 330 330 330 330 330 
+    DQT, Row #7: 330 330 330 330 330 330 330 330 
+    Approx quality factor = 15.00 (scaling=333.41 variance=0.14)
+ 
+*** Marker: SOF2 (Progressive DCT, Huffman) (xFFC2) ***
+  OFFSET: 0x0000011E
+  Frame header length = 17
+  Precision = 8
+  Number of Lines = 1071
+  Samples per Line = 1443
+  Image Size = 1443 x 1071
+  Raw Image Orientation = Landscape
+  Number of Img components = 3
+    Component[1]: ID=0x01, Samp Fac=0x22 (Subsamp 1 x 1), Quant Tbl Sel=0x00 (Lum: Y)
+    Component[2]: ID=0x02, Samp Fac=0x11 (Subsamp 2 x 2), Quant Tbl Sel=0x01 (Chrom: Cb)
+    Component[3]: ID=0x03, Samp Fac=0x11 (Subsamp 2 x 2), Quant Tbl Sel=0x01 (Chrom: Cr)
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x00000131
+  Huffman table length = 25
+  ----
+  Destination ID = 0
+  Class = 0 (DC / Lossless Table)
+    Codes of length 01 bits (001 total): 00 
+    Codes of length 02 bits (001 total): 01 
+    Codes of length 03 bits (001 total): 02 
+    Codes of length 04 bits (001 total): 03 
+    Codes of length 05 bits (001 total): 04 
+    Codes of length 06 bits (001 total): 05 
+    Codes of length 07 bits (000 total): 
+    Codes of length 08 bits (000 total): 
+    Codes of length 09 bits (000 total): 
+    Codes of length 10 bits (000 total): 
+    Codes of length 11 bits (000 total): 
+    Codes of length 12 bits (000 total): 
+    Codes of length 13 bits (000 total): 
+    Codes of length 14 bits (000 total): 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 006
+
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x0000014C
+  Huffman table length = 22
+  ----
+  Destination ID = 1
+  Class = 0 (DC / Lossless Table)
+    Codes of length 01 bits (001 total): 00 
+    Codes of length 02 bits (001 total): 01 
+    Codes of length 03 bits (001 total): 02 
+    Codes of length 04 bits (000 total): 
+    Codes of length 05 bits (000 total): 
+    Codes of length 06 bits (000 total): 
+    Codes of length 07 bits (000 total): 
+    Codes of length 08 bits (000 total): 
+    Codes of length 09 bits (000 total): 
+    Codes of length 10 bits (000 total): 
+    Codes of length 11 bits (000 total): 
+    Codes of length 12 bits (000 total): 
+    Codes of length 13 bits (000 total): 
+    Codes of length 14 bits (000 total): 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 003
+
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x00000164
+  Scan header length = 12
+  Number of img components = 3
+    Component[1]: selector=0x01, table=0(DC),0(AC)
+    Component[2]: selector=0x02, table=1(DC),0(AC)
+    Component[3]: selector=0x03, table=1(DC),0(AC)
+  Spectral selection = 0 .. 0
+  Successive approximation = 0x01
+
+  NOTE: Scan parsing doesn't support this SOF mode.
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x000028E0
+  Huffman table length = 38
+  ----
+  Destination ID = 0
+  Class = 1 (AC Table)
+    Codes of length 01 bits (000 total): 
+    Codes of length 02 bits (002 total): 00 01 
+    Codes of length 03 bits (001 total): 11 
+    Codes of length 04 bits (004 total): 02 10 20 30 
+    Codes of length 05 bits (003 total): 12 31 40 
+    Codes of length 06 bits (000 total): 
+    Codes of length 07 bits (003 total): 21 41 50 
+    Codes of length 08 bits (001 total): 60 
+    Codes of length 09 bits (001 total): 03 
+    Codes of length 10 bits (000 total): 
+    Codes of length 11 bits (003 total): 22 32 42 
+    Codes of length 12 bits (001 total): 13 
+    Codes of length 13 bits (000 total): 
+    Codes of length 14 bits (000 total): 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 019
+
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x00002908
+  Scan header length = 8
+  Number of img components = 1
+    Component[1]: selector=0x01, table=0(DC),0(AC)
+  Spectral selection = 1 .. 5
+  Successive approximation = 0x02
+
+  NOTE: Scan parsing doesn't support this SOF mode.
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x00003D97
+  Huffman table length = 29
+  ----
+  Destination ID = 1
+  Class = 1 (AC Table)
+    Codes of length 01 bits (001 total): 01 
+    Codes of length 02 bits (000 total): 
+    Codes of length 03 bits (003 total): 00 10 11 
+    Codes of length 04 bits (001 total): 20 
+    Codes of length 05 bits (000 total): 
+    Codes of length 06 bits (002 total): 30 60 
+    Codes of length 07 bits (003 total): 80 90 C0 
+    Codes of length 08 bits (000 total): 
+    Codes of length 09 bits (000 total): 
+    Codes of length 10 bits (000 total): 
+    Codes of length 11 bits (000 total): 
+    Codes of length 12 bits (000 total): 
+    Codes of length 13 bits (000 total): 
+    Codes of length 14 bits (000 total): 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 010
+
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x00003DB6
+  Scan header length = 8
+  Number of img components = 1
+    Component[1]: selector=0x03, table=0(DC),1(AC)
+  Spectral selection = 1 .. 63
+  Successive approximation = 0x01
+
+  NOTE: Scan parsing doesn't support this SOF mode.
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x00003DE1
+  Huffman table length = 28
+  ----
+  Destination ID = 1
+  Class = 1 (AC Table)
+    Codes of length 01 bits (001 total): 01 
+    Codes of length 02 bits (000 total): 
+    Codes of length 03 bits (002 total): 10 11 
+    Codes of length 04 bits (003 total): 00 20 60 
+    Codes of length 05 bits (000 total): 
+    Codes of length 06 bits (003 total): 80 90 C0 
+    Codes of length 07 bits (000 total): 
+    Codes of length 08 bits (000 total): 
+    Codes of length 09 bits (000 total): 
+    Codes of length 10 bits (000 total): 
+    Codes of length 11 bits (000 total): 
+    Codes of length 12 bits (000 total): 
+    Codes of length 13 bits (000 total): 
+    Codes of length 14 bits (000 total): 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 009
+
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x00003DFF
+  Scan header length = 8
+  Number of img components = 1
+    Component[1]: selector=0x02, table=0(DC),1(AC)
+  Spectral selection = 1 .. 63
+  Successive approximation = 0x01
+
+  NOTE: Scan parsing doesn't support this SOF mode.
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x00003E21
+  Huffman table length = 23
+  ----
+  Destination ID = 0
+  Class = 1 (AC Table)
+    Codes of length 01 bits (001 total): 21 
+    Codes of length 02 bits (001 total): D0 
+    Codes of length 03 bits (001 total): A0 
+    Codes of length 04 bits (001 total): B0 
+    Codes of length 05 bits (000 total): 
+    Codes of length 06 bits (000 total): 
+    Codes of length 07 bits (000 total): 
+    Codes of length 08 bits (000 total): 
+    Codes of length 09 bits (000 total): 
+    Codes of length 10 bits (000 total): 
+    Codes of length 11 bits (000 total): 
+    Codes of length 12 bits (000 total): 
+    Codes of length 13 bits (000 total): 
+    Codes of length 14 bits (000 total): 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 004
+
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x00003E3A
+  Scan header length = 8
+  Number of img components = 1
+    Component[1]: selector=0x01, table=0(DC),0(AC)
+  Spectral selection = 6 .. 63
+  Successive approximation = 0x02
+
+  NOTE: Scan parsing doesn't support this SOF mode.
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x00003E4C
+  Huffman table length = 36
+  ----
+  Destination ID = 0
+  Class = 1 (AC Table)
+    Codes of length 01 bits (000 total): 
+    Codes of length 02 bits (002 total): 00 01 
+    Codes of length 03 bits (002 total): 10 11 
+    Codes of length 04 bits (002 total): 21 31 
+    Codes of length 05 bits (003 total): 20 30 41 
+    Codes of length 06 bits (000 total): 
+    Codes of length 07 bits (003 total): 40 50 51 
+    Codes of length 08 bits (001 total): 61 
+    Codes of length 09 bits (001 total): 60 
+    Codes of length 10 bits (001 total): 71 
+    Codes of length 11 bits (001 total): 81 
+    Codes of length 12 bits (001 total): B1 
+    Codes of length 13 bits (000 total): 
+    Codes of length 14 bits (000 total): 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 017
+
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x00003E72
+  Scan header length = 8
+  Number of img components = 1
+    Component[1]: selector=0x01, table=0(DC),0(AC)
+  Spectral selection = 1 .. 63
+  Successive approximation = 0x21
+
+  NOTE: Scan parsing doesn't support this SOF mode.
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x00006325
+  Scan header length = 12
+  Number of img components = 3
+    Component[1]: selector=0x01, table=0(DC),0(AC)
+    Component[2]: selector=0x02, table=0(DC),0(AC)
+    Component[3]: selector=0x03, table=0(DC),0(AC)
+  Spectral selection = 0 .. 0
+  Successive approximation = 0x10
+
+  NOTE: Scan parsing doesn't support this SOF mode.
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x00007512
+  Huffman table length = 30
+  ----
+  Destination ID = 1
+  Class = 1 (AC Table)
+    Codes of length 01 bits (000 total): 
+    Codes of length 02 bits (003 total): 00 01 11 
+    Codes of length 03 bits (000 total): 
+    Codes of length 04 bits (003 total): 10 21 60 
+    Codes of length 05 bits (001 total): 31 
+    Codes of length 06 bits (000 total): 
+    Codes of length 07 bits (003 total): 20 41 80 
+    Codes of length 08 bits (001 total): C0 
+    Codes of length 09 bits (000 total): 
+    Codes of length 10 bits (000 total): 
+    Codes of length 11 bits (000 total): 
+    Codes of length 12 bits (000 total): 
+    Codes of length 13 bits (000 total): 
+    Codes of length 14 bits (000 total): 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 011
+
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x00007532
+  Scan header length = 8
+  Number of img components = 1
+    Component[1]: selector=0x03, table=0(DC),1(AC)
+  Spectral selection = 1 .. 63
+  Successive approximation = 0x10
+
+  NOTE: Scan parsing doesn't support this SOF mode.
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x000075CE
+  Huffman table length = 30
+  ----
+  Destination ID = 1
+  Class = 1 (AC Table)
+    Codes of length 01 bits (000 total): 
+    Codes of length 02 bits (003 total): 00 01 11 
+    Codes of length 03 bits (001 total): 10 
+    Codes of length 04 bits (000 total): 
+    Codes of length 05 bits (003 total): 21 31 60 
+    Codes of length 06 bits (001 total): 41 
+    Codes of length 07 bits (000 total): 
+    Codes of length 08 bits (003 total): 20 80 C0 
+    Codes of length 09 bits (000 total): 
+    Codes of length 10 bits (000 total): 
+    Codes of length 11 bits (000 total): 
+    Codes of length 12 bits (000 total): 
+    Codes of length 13 bits (000 total): 
+    Codes of length 14 bits (000 total): 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 011
+
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x000075EE
+  Scan header length = 8
+  Number of img components = 1
+    Component[1]: selector=0x02, table=0(DC),1(AC)
+  Spectral selection = 1 .. 63
+  Successive approximation = 0x10
+
+  NOTE: Scan parsing doesn't support this SOF mode.
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x00007676
+  Huffman table length = 43
+  ----
+  Destination ID = 0
+  Class = 1 (AC Table)
+    Codes of length 01 bits (001 total): 01 
+    Codes of length 02 bits (001 total): 00 
+    Codes of length 03 bits (001 total): 11 
+    Codes of length 04 bits (000 total): 
+    Codes of length 05 bits (002 total): 21 31 
+    Codes of length 06 bits (002 total): 10 41 
+    Codes of length 07 bits (002 total): 20 51 
+    Codes of length 08 bits (002 total): 30 61 
+    Codes of length 09 bits (003 total): 40 50 71 
+    Codes of length 10 bits (000 total): 
+    Codes of length 11 bits (003 total): 60 81 91 
+    Codes of length 12 bits (001 total): A1 
+    Codes of length 13 bits (001 total): B1 
+    Codes of length 14 bits (000 total): 
+    Codes of length 15 bits (002 total): C1 D1 
+    Codes of length 16 bits (003 total): E1 F0 F1 
+    Total number of codes: 024
+
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x000076A3
+  Scan header length = 8
+  Number of img components = 1
+    Component[1]: selector=0x01, table=0(DC),0(AC)
+  Spectral selection = 1 .. 63
+  Successive approximation = 0x10
+
+  NOTE: Scan parsing doesn't support this SOF mode.
+ 
+*** Marker: EOI (End of Image) (xFFD9) ***
+  OFFSET: 0x0000C337
+
+
+*** Searching Compression Signatures ***
+
+  Signature:           0105A3D95D2D36DE9351313E30D8E945
+  Signature (Rotated): 013C3A43642D2E8325A76C3818B3C324
+  File Offset:         0 bytes
+  Chroma subsampling:  2x2
+  EXIF Make/Model:     NONE
+  EXIF Makernotes:     NONE
+  EXIF Software:       NONE
+
+  Searching Compression Signatures: (3347 built-in, 0 user(*) )
+
+          EXIF.Make / Software        EXIF.Model                            Quality           Subsamp Match?
+          -------------------------   -----------------------------------   ----------------  --------------
+     SW :[IJG Library              ]                                       [015             ]                  
+
+    The following IJG-based editors also match this signature:
+     SW :[GIMP                     ]                                       [015             ]                  
+     SW :[IrfanView                ]                                       [015             ]                  
+     SW :[idImager                 ]                                       [015             ]                  
+     SW :[FastStone Image Viewer   ]                                       [015             ]                  
+     SW :[NeatImage                ]                                       [015             ]                  
+     SW :[Paint.NET                ]                                       [015             ]                  
+     SW :[Photomatix               ]                                       [015             ]                  
+     SW :[XnView                   ]                                       [015             ]                  
+
+  Based on the analysis of compression characteristics and EXIF metadata:
+
+  ASSESSMENT: Class 1 - Image is processed/edited
+
+  This may be a new software editor for the database.
+  If this file is processed, and editor doesn't appear in list above,
+  PLEASE ADD TO DATABASE with [Tools->Add Camera to DB]
+

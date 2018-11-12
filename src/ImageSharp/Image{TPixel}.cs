@@ -186,7 +186,7 @@ namespace SixLabors.ImageSharp
         public Image<TPixel> Clone() => this.Clone(this.configuration);
 
         /// <summary>
-        /// Clones the current image with the given configueation.
+        /// Clones the current image with the given configuration.
         /// </summary>
         /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
         /// <returns>Returns a new <see cref="Image{TPixel}"/> with all the same pixel data as the original.</returns>

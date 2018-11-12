@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 Span<Rgba32> lastQuarterOfDestBuffer = MemoryMarshal.Cast<Vector4, Rgba32>(destVectors).Slice((3 * count) + 1, countWithoutLastItem);
                 pixelOperations.ToRgba32(configuration, reducedSource, lastQuarterOfDestBuffer);
 
-                // 'destVectors' and 'lastQuarterOfDestBuffer' are ovelapping buffers,
+                // 'destVectors' and 'lastQuarterOfDestBuffer' are overlapping buffers,
                 // but we are always reading/writing at different positions:
                 SimdUtils.BulkConvertByteToNormalizedFloat(
                     MemoryMarshal.Cast<Rgba32, byte>(lastQuarterOfDestBuffer),

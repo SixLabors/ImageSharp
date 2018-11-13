@@ -207,21 +207,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             }
         }
 
-        private Matrix3x2 MakeManuallyCenteredMatrix<TPixel>(float angleDeg, float s, Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            Matrix3x2 rotate = Matrix3x2Extensions.CreateRotationDegrees(angleDeg);
-            Vector2 toCenter = 0.5f * new Vector2(image.Width, image.Height);
-            var translate = Matrix3x2.CreateTranslation(-toCenter);
-            var translateBack = Matrix3x2.CreateTranslation(toCenter);
-            var scale = Matrix3x2.CreateScale(s);
-
-            Matrix3x2 m = translate * rotate * scale * translateBack;
-
-            this.PrintMatrix(m);
-            return m;
-        }
-
         private static IResampler GetResampler(string name)
         {
             PropertyInfo property = typeof(KnownResamplers).GetTypeInfo().GetProperty(name);

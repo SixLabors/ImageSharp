@@ -107,6 +107,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                     Span<float> buffer = bBuffer.GetSpan();
                     Span<float> scanline = bScanline.GetSpan();
 
+                    bool isSolidBrushWithoutBlending = this.IsSolidBrushWithoutBlending(out SolidBrush<TPixel> solidBrush);
+
                     for (int y = minY; y < maxY; y++)
                     {
                         if (scanlineDirty)
@@ -184,7 +186,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                                     }
                                 }
 
-                                if (hasOnes != hasZeros && this.IsSolidBrushWithoutBlending(out SolidBrush<TPixel> solidBrush))
+                                if (isSolidBrushWithoutBlending && hasOnes != hasZeros)
                                 {
                                     if (hasOnes)
                                     {

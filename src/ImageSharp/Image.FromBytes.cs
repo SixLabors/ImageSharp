@@ -198,18 +198,17 @@ namespace SixLabors.ImageSharp
                 return null;
             }
 
-            IImageFormat format = default;
             foreach (IImageFormatDetector detector in config.ImageFormatsManager.FormatDetectors)
             {
                 IImageFormat f = detector.DetectFormat(data);
 
                 if (f != null)
                 {
-                    format = f;
+                    return f;
                 }
             }
 
-            return format;
+            return default;
         }
 
         /// <summary>

@@ -309,10 +309,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 // Non-empty slot
                 if (Unsafe.Add(ref hashTableRef, i) >= 0)
                 {
-                    int disp = hsizeReg - i;
-                    if (i == 0)
+                    int disp = 1;
+                    if (i != 0)
                     {
-                        disp = 1;
+                        disp = hsizeReg - i;
                     }
 
                     do

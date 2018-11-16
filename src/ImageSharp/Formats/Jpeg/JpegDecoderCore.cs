@@ -856,10 +856,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private void ProcessStartOfScanMarker()
         {
             int selectorsCount = this.InputStream.ReadByte();
-            int componentIndex = -1;
             for (int i = 0; i < selectorsCount; i++)
             {
-                componentIndex = -1;
+                int componentIndex = -1;
                 int selector = this.InputStream.ReadByte();
 
                 for (int j = 0; j < this.Frame.ComponentIds.Length; j++)

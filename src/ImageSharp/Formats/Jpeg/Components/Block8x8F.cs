@@ -543,14 +543,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         {
             var sb = new StringBuilder();
             sb.Append('[');
-            for (int i = 0; i < Size; i++)
+            for (int i = 0; i < Size - 1; i++)
             {
                 sb.Append(this[i]);
-                if (i < Size - 1)
-                {
-                    sb.Append(',');
-                }
+                sb.Append(',');
             }
+
+            sb.Append(this[Size - 1]);
 
             sb.Append(']');
             return sb.ToString();

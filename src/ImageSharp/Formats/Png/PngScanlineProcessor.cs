@@ -190,12 +190,11 @@ namespace SixLabors.ImageSharp.Formats.Png
             else
             {
                 Rgba32 rgba32 = default;
-                int bps = bytesPerSample;
                 for (int x = 0; x < header.Width; x++)
                 {
                     int offset = x * bytesPerPixel;
                     byte luminance = Unsafe.Add(ref scanlineSpanRef, offset);
-                    byte alpha = Unsafe.Add(ref scanlineSpanRef, offset + bps);
+                    byte alpha = Unsafe.Add(ref scanlineSpanRef, offset + bytesPerSample);
 
                     rgba32.R = luminance;
                     rgba32.G = luminance;

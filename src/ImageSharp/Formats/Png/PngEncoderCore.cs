@@ -953,9 +953,9 @@ namespace SixLabors.ImageSharp.Formats.Png
             ref byte sourceRef = ref MemoryMarshal.GetReference(source);
             ref byte resultRef = ref MemoryMarshal.GetReference(result);
 
-            byte mask = (byte)(0xFF >> (8 - bits));
-            byte shift0 = (byte)(8 - bits);
             int shift = 8 - bits;
+            byte mask = (byte)(0xFF >> shift);
+            byte shift0 = (byte)shift;
             int v = 0;
             int resultOffset = 0;
 

@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 Buffer.BlockCopy(chunk.Data.Array, 0, pal, 0, chunk.Length);
                                 this.palette = pal;
                                 break;
-                            case PngChunkType.PaletteAlpha:
+                            case PngChunkType.Transparency:
                                 byte[] alpha = new byte[chunk.Length];
                                 Buffer.BlockCopy(chunk.Data.Array, 0, alpha, 0, chunk.Length);
                                 this.paletteAlpha = alpha;
@@ -306,9 +306,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <returns>The <see cref="int"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static byte ReadByteLittleEndian(ReadOnlySpan<byte> buffer, int offset)
-        {
-            return (byte)(((buffer[offset] & 0xFF) << 16) | (buffer[offset + 1] & 0xFF));
-        }
+            => (byte)(((buffer[offset] & 0xFF) << 16) | (buffer[offset + 1] & 0xFF));
 
         /// <summary>
         /// Attempts to convert a byte array to a new array where each value in the original array is represented by the

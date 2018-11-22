@@ -785,7 +785,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             else if (pngMetaData.ColorType.Equals(PngColorType.Grayscale))
             {
                 Span<byte> alpha = this.buffer.AsSpan();
-                if (pngMetaData.TransparentGray16.HasValue && this.bitDepth == 16)
+                if (pngMetaData.TransparentGray16.HasValue && this.use16Bit)
                 {
                     BinaryPrimitives.WriteUInt16LittleEndian(alpha, pngMetaData.TransparentGray16.Value.PackedValue);
                     this.WriteChunk(stream, PngChunkType.Transparency, this.buffer, 0, 2);

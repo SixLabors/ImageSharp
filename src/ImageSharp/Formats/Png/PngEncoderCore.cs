@@ -760,9 +760,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="pngMetaData">The image meta data.</param>
         private void WriteTransparencyChunk(Stream stream, PngMetaData pngMetaData)
         {
+            Span<byte> alpha = this.chunkDataBuffer.AsSpan();
             if (pngMetaData.ColorType.Equals(PngColorType.Rgb))
             {
-                Span<byte> alpha = this.buffer.AsSpan();
                 if (pngMetaData.TransparentRgb48.HasValue && this.use16Bit)
                 {
                     Rgb48 rgb = pngMetaData.TransparentRgb48.Value;
@@ -770,7 +770,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     BinaryPrimitives.WriteUInt16LittleEndian(alpha.Slice(2, 2), rgb.G);
                     BinaryPrimitives.WriteUInt16LittleEndian(alpha.Slice(4, 2), rgb.B);
 
-                    this.WriteChunk(stream, PngChunkType.Transparency, this.buffer, 0, 6);
+                    this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 6);
                 }
                 else if (pngMetaData.TransparentRgb24.HasValue)
                 {
@@ -779,22 +779,21 @@ namespace SixLabors.ImageSharp.Formats.Png
                     alpha[1] = rgb.R;
                     alpha[3] = rgb.G;
                     alpha[5] = rgb.B;
-                    this.WriteChunk(stream, PngChunkType.Transparency, this.buffer, 0, 6);
+                    this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 6);
                 }
             }
             else if (pngMetaData.ColorType.Equals(PngColorType.Grayscale))
             {
-                Span<byte> alpha = this.buffer.AsSpan();
                 if (pngMetaData.TransparentGray16.HasValue && this.use16Bit)
                 {
                     BinaryPrimitives.WriteUInt16LittleEndian(alpha, pngMetaData.TransparentGray16.Value.PackedValue);
-                    this.WriteChunk(stream, PngChunkType.Transparency, this.buffer, 0, 2);
+                    this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 2);
                 }
                 else if (pngMetaData.TransparentGray8.HasValue)
                 {
                     alpha.Clear();
                     alpha[1] = pngMetaData.TransparentGray8.Value.PackedValue;
-                    this.WriteChunk(stream, PngChunkType.Transparency, this.buffer, 0, 2);
+                    this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 2);
                 }
             }
         }

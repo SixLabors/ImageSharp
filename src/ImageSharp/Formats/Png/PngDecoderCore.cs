@@ -125,31 +125,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         private PngColorType pngColorType;
 
         /// <summary>
-        /// Represents any color in an 8 bit Rgb24 encoded png that should be transparent
-        /// </summary>
-        private Rgb24 rgb24Trans;
-
-        /// <summary>
-        /// Represents any color in a 16 bit Rgb24 encoded png that should be transparent
-        /// </summary>
-        private Rgb48 rgb48Trans;
-
-        /// <summary>
-        /// Represents any color in an 8 bit grayscale encoded png that should be transparent
-        /// </summary>
-        private byte luminanceTrans;
-
-        /// <summary>
-        /// Represents any color in a 16 bit grayscale encoded png that should be transparent
-        /// </summary>
-        private ushort luminance16Trans;
-
-        /// <summary>
-        /// Whether the image has transparency chunk and markers were decoded
-        /// </summary>
-        private bool hasTrans;
-
-        /// <summary>
         /// The next chunk of data to return
         /// </summary>
         private PngChunk? nextChunk;
@@ -213,7 +188,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 using (var deframeStream = new ZlibInflateStream(this.currentStream, this.ReadNextDataChunk))
                                 {
                                     deframeStream.AllocateNewBytes(chunk.Length);
-                                    this.ReadScanlines(deframeStream.CompressedStream, image.Frames.RootFrame);
+                                    this.ReadScanlines(deframeStream.CompressedStream, image.Frames.RootFrame, pngMetaData);
                                 }
 
                                 break;
@@ -222,11 +197,11 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 Buffer.BlockCopy(chunk.Data.Array, 0, pal, 0, chunk.Length);
                                 this.palette = pal;
                                 break;
-                            case PngChunkType.PaletteAlpha:
+                            case PngChunkType.Transparency:
                                 byte[] alpha = new byte[chunk.Length];
                                 Buffer.BlockCopy(chunk.Data.Array, 0, alpha, 0, chunk.Length);
                                 this.paletteAlpha = alpha;
-                                this.AssignTransparentMarkers(alpha);
+                                this.AssignTransparentMarkers(alpha, pngMetaData);
                                 break;
                             case PngChunkType.Text:
                                 this.ReadTextChunk(metaData, chunk.Data.Array.AsSpan(0, chunk.Length));
@@ -496,16 +471,17 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="dataStream">The <see cref="MemoryStream"/> containing data.</param>
         /// <param name="image"> The pixel data.</param>
-        private void ReadScanlines<TPixel>(Stream dataStream, ImageFrame<TPixel> image)
+        /// <param name="pngMetaData">The png meta data</param>
+        private void ReadScanlines<TPixel>(Stream dataStream, ImageFrame<TPixel> image, PngMetaData pngMetaData)
             where TPixel : struct, IPixel<TPixel>
         {
             if (this.header.InterlaceMethod == PngInterlaceMode.Adam7)
             {
-                this.DecodeInterlacedPixelData(dataStream, image);
+                this.DecodeInterlacedPixelData(dataStream, image, pngMetaData);
             }
             else
             {
-                this.DecodePixelData(dataStream, image);
+                this.DecodePixelData(dataStream, image, pngMetaData);
             }
         }
 
@@ -515,7 +491,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="compressedStream">The compressed pixel data stream.</param>
         /// <param name="image">The image to decode to.</param>
-        private void DecodePixelData<TPixel>(Stream compressedStream, ImageFrame<TPixel> image)
+        /// <param name="pngMetaData">The png meta data</param>
+        private void DecodePixelData<TPixel>(Stream compressedStream, ImageFrame<TPixel> image, PngMetaData pngMetaData)
             where TPixel : struct, IPixel<TPixel>
         {
             while (this.currentRow < this.header.Height)
@@ -555,7 +532,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         throw new ImageFormatException("Unknown filter type.");
                 }
 
-                this.ProcessDefilteredScanline(scanlineSpan, image);
+                this.ProcessDefilteredScanline(scanlineSpan, image, pngMetaData);
 
                 this.SwapBuffers();
                 this.currentRow++;
@@ -569,7 +546,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="compressedStream">The compressed pixel data stream.</param>
         /// <param name="image">The current image.</param>
-        private void DecodeInterlacedPixelData<TPixel>(Stream compressedStream, ImageFrame<TPixel> image)
+        /// <param name="pngMetaData">The png meta data</param>
+        private void DecodeInterlacedPixelData<TPixel>(Stream compressedStream, ImageFrame<TPixel> image, PngMetaData pngMetaData)
             where TPixel : struct, IPixel<TPixel>
         {
             while (true)
@@ -626,7 +604,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     }
 
                     Span<TPixel> rowSpan = image.GetPixelRowSpan(this.currentRow);
-                    this.ProcessInterlacedDefilteredScanline(this.scanline.GetSpan(), rowSpan, Adam7.FirstColumn[this.pass], Adam7.ColumnIncrement[this.pass]);
+                    this.ProcessInterlacedDefilteredScanline(this.scanline.GetSpan(), rowSpan, pngMetaData, Adam7.FirstColumn[this.pass], Adam7.ColumnIncrement[this.pass]);
 
                     this.SwapBuffers();
 
@@ -654,7 +632,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="defilteredScanline">The de-filtered scanline</param>
         /// <param name="pixels">The image</param>
-        private void ProcessDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, ImageFrame<TPixel> pixels)
+        /// <param name="pngMetaData">The png meta data</param>
+        private void ProcessDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, ImageFrame<TPixel> pixels, PngMetaData pngMetaData)
             where TPixel : struct, IPixel<TPixel>
         {
             Span<TPixel> rowSpan = pixels.GetPixelRowSpan(this.currentRow);
@@ -674,9 +653,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                         this.header,
                         scanlineSpan,
                         rowSpan,
-                        this.hasTrans,
-                        this.luminance16Trans,
-                        this.luminanceTrans);
+                        pngMetaData.HasTrans,
+                        pngMetaData.TransparentGray16.GetValueOrDefault(),
+                        pngMetaData.TransparentGray8.GetValueOrDefault());
 
                     break;
 
@@ -708,9 +687,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                         rowSpan,
                         this.bytesPerPixel,
                         this.bytesPerSample,
-                        this.hasTrans,
-                        this.rgb48Trans,
-                        this.rgb24Trans);
+                        pngMetaData.HasTrans,
+                        pngMetaData.TransparentRgb48.GetValueOrDefault(),
+                        pngMetaData.TransparentRgb24.GetValueOrDefault());
 
                     break;
 
@@ -735,9 +714,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="defilteredScanline">The de-filtered scanline</param>
         /// <param name="rowSpan">The current image row.</param>
+        /// <param name="pngMetaData">The png meta data</param>
         /// <param name="pixelOffset">The column start index. Always 0 for none interlaced images.</param>
         /// <param name="increment">The column increment. Always 1 for none interlaced images.</param>
-        private void ProcessInterlacedDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, Span<TPixel> rowSpan, int pixelOffset = 0, int increment = 1)
+        private void ProcessInterlacedDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, Span<TPixel> rowSpan, PngMetaData pngMetaData, int pixelOffset = 0, int increment = 1)
             where TPixel : struct, IPixel<TPixel>
         {
             // Trim the first marker byte from the buffer
@@ -757,9 +737,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                         rowSpan,
                         pixelOffset,
                         increment,
-                        this.hasTrans,
-                        this.luminance16Trans,
-                        this.luminanceTrans);
+                        pngMetaData.HasTrans,
+                        pngMetaData.TransparentGray16.GetValueOrDefault(),
+                        pngMetaData.TransparentGray8.GetValueOrDefault());
 
                     break;
 
@@ -796,9 +776,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                         increment,
                         this.bytesPerPixel,
                         this.bytesPerSample,
-                        this.hasTrans,
-                        this.rgb48Trans,
-                        this.rgb24Trans);
+                        pngMetaData.HasTrans,
+                        pngMetaData.TransparentRgb48.GetValueOrDefault(),
+                        pngMetaData.TransparentRgb24.GetValueOrDefault());
 
                     break;
 
@@ -822,7 +802,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Decodes and assigns marker colors that identify transparent pixels in non indexed images
         /// </summary>
         /// <param name="alpha">The alpha tRNS array</param>
-        private void AssignTransparentMarkers(ReadOnlySpan<byte> alpha)
+        /// <param name="pngMetaData">The png meta data</param>
+        private void AssignTransparentMarkers(ReadOnlySpan<byte> alpha, PngMetaData pngMetaData)
         {
             if (this.pngColorType == PngColorType.Rgb)
             {
@@ -834,16 +815,16 @@ namespace SixLabors.ImageSharp.Formats.Png
                         ushort gc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(2, 2));
                         ushort bc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(4, 2));
 
-                        this.rgb48Trans = new Rgb48(rc, gc, bc);
-                        this.hasTrans = true;
+                        pngMetaData.TransparentRgb48 = new Rgb48(rc, gc, bc);
+                        pngMetaData.HasTrans = true;
                         return;
                     }
 
                     byte r = ReadByteLittleEndian(alpha, 0);
                     byte g = ReadByteLittleEndian(alpha, 2);
                     byte b = ReadByteLittleEndian(alpha, 4);
-                    this.rgb24Trans = new Rgb24(r, g, b);
-                    this.hasTrans = true;
+                    pngMetaData.TransparentRgb24 = new Rgb24(r, g, b);
+                    pngMetaData.HasTrans = true;
                 }
             }
             else if (this.pngColorType == PngColorType.Grayscale)
@@ -852,14 +833,14 @@ namespace SixLabors.ImageSharp.Formats.Png
                 {
                     if (this.header.BitDepth == 16)
                     {
-                        this.luminance16Trans = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(0, 2));
+                        pngMetaData.TransparentGray16 = new Gray16(BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(0, 2)));
                     }
                     else
                     {
-                        this.luminanceTrans = ReadByteLittleEndian(alpha, 0);
+                        pngMetaData.TransparentGray8 = new Gray8(ReadByteLittleEndian(alpha, 0));
                     }
 
-                    this.hasTrans = true;
+                    pngMetaData.HasTrans = true;
                 }
             }
         }

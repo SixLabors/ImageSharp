@@ -3,7 +3,7 @@
 
 using System;
 using System.Buffers;
-
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
@@ -107,6 +107,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                     Span<float> buffer = bBuffer.GetSpan();
                     Span<float> scanline = bScanline.GetSpan();
 
+                    bool isSolidBrushWithoutBlending = this.IsSolidBrushWithoutBlending(out SolidBrush<TPixel> solidBrush);
+
                     for (int y = minY; y < maxY; y++)
                     {
                         if (scanlineDirty)
@@ -168,16 +170,30 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                         {
                             if (!this.Options.Antialias)
                             {
+                                bool hasOnes = false;
+                                bool hasZeros = false;
                                 for (int x = 0; x < scanlineWidth; x++)
                                 {
                                     if (scanline[x] >= 0.5)
                                     {
                                         scanline[x] = 1;
+                                        hasOnes = true;
                                     }
                                     else
                                     {
                                         scanline[x] = 0;
+                                        hasZeros = true;
                                     }
+                                }
+
+                                if (isSolidBrushWithoutBlending && hasOnes != hasZeros)
+                                {
+                                    if (hasOnes)
+                                    {
+                                        source.GetPixelRowSpan(y).Slice(minX, scanlineWidth).Fill(solidBrush.Color);
+                                    }
+
+                                    continue;
                                 }
                             }
 
@@ -186,6 +202,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                     }
                 }
             }
+        }
+
+        private bool IsSolidBrushWithoutBlending(out SolidBrush<TPixel> solidBrush)
+        {
+            solidBrush = this.Brush as SolidBrush<TPixel>;
+
+            if (solidBrush == null)
+            {
+                return false;
+            }
+
+            return this.Options.IsOpaqueColorWithoutBlending(solidBrush.Color);
         }
     }
 }

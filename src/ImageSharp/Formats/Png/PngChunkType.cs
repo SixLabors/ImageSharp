@@ -56,10 +56,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         Text = 0x74455874U,
 
         /// <summary>
-        /// This chunk specifies that the image uses simple transparency:
+        /// The tRNS chunk specifies that the image uses simple transparency:
         /// either alpha values associated with palette entries (for indexed-color images)
         /// or a single transparent color (for grayscale and true color images).
         /// </summary>
-        PaletteAlpha = 0x74524E53U
+        Transparency = 0x74524E53U
     }
 }

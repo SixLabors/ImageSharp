@@ -26,6 +26,11 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.BitDepth = other.BitDepth;
             this.ColorType = other.ColorType;
             this.Gamma = other.Gamma;
+            this.HasTrans = other.HasTrans;
+            this.TransparentGray8 = other.TransparentGray8;
+            this.TransparentGray16 = other.TransparentGray16;
+            this.TransparentRgb24 = other.TransparentRgb24;
+            this.TransparentRgb48 = other.TransparentRgb48;
         }
 
         /// <summary>

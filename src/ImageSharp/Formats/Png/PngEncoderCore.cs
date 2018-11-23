@@ -290,6 +290,11 @@ namespace SixLabors.ImageSharp.Formats.Png
                 this.WritePaletteChunk(stream, quantized);
             }
 
+            if (pngMetaData.HasTrans)
+            {
+                this.WriteTransparencyChunk(stream, pngMetaData);
+            }
+
             this.WritePhysicalChunk(stream, metaData);
             this.WriteGammaChunk(stream);
             this.WriteExifChunk(stream, metaData);
@@ -326,7 +331,6 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             if (this.pngColorType.Equals(PngColorType.Grayscale))
             {
-                // TODO: Research and add support for grayscale plus tRNS
                 if (this.use16Bit)
                 {
                     // 16 bit grayscale
@@ -701,7 +705,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 // Write the transparency data
                 if (anyAlpha)
                 {
-                    this.WriteChunk(stream, PngChunkType.PaletteAlpha, alphaTable.Array, 0, paletteLength);
+                    this.WriteChunk(stream, PngChunkType.Transparency, alphaTable.Array, 0, paletteLength);
                 }
             }
         }
@@ -746,6 +750,51 @@ namespace SixLabors.ImageSharp.Formats.Png
                 BinaryPrimitives.WriteUInt32BigEndian(this.chunkDataBuffer.AsSpan(0, 4), gammaValue);
 
                 this.WriteChunk(stream, PngChunkType.Gamma, this.chunkDataBuffer, 0, 4);
+            }
+        }
+
+        /// <summary>
+        /// Writes the transparency chunk to the stream
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <param name="pngMetaData">The image meta data.</param>
+        private void WriteTransparencyChunk(Stream stream, PngMetaData pngMetaData)
+        {
+            Span<byte> alpha = this.chunkDataBuffer.AsSpan();
+            if (pngMetaData.ColorType.Equals(PngColorType.Rgb))
+            {
+                if (pngMetaData.TransparentRgb48.HasValue && this.use16Bit)
+                {
+                    Rgb48 rgb = pngMetaData.TransparentRgb48.Value;
+                    BinaryPrimitives.WriteUInt16LittleEndian(alpha, rgb.R);
+                    BinaryPrimitives.WriteUInt16LittleEndian(alpha.Slice(2, 2), rgb.G);
+                    BinaryPrimitives.WriteUInt16LittleEndian(alpha.Slice(4, 2), rgb.B);
+
+                    this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 6);
+                }
+                else if (pngMetaData.TransparentRgb24.HasValue)
+                {
+                    alpha.Clear();
+                    Rgb24 rgb = pngMetaData.TransparentRgb24.Value;
+                    alpha[1] = rgb.R;
+                    alpha[3] = rgb.G;
+                    alpha[5] = rgb.B;
+                    this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 6);
+                }
+            }
+            else if (pngMetaData.ColorType.Equals(PngColorType.Grayscale))
+            {
+                if (pngMetaData.TransparentGray16.HasValue && this.use16Bit)
+                {
+                    BinaryPrimitives.WriteUInt16LittleEndian(alpha, pngMetaData.TransparentGray16.Value.PackedValue);
+                    this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 2);
+                }
+                else if (pngMetaData.TransparentGray8.HasValue)
+                {
+                    alpha.Clear();
+                    alpha[1] = pngMetaData.TransparentGray8.Value.PackedValue;
+                    this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 2);
+                }
             }
         }
 

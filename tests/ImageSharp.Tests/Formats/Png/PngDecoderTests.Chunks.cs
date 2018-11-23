@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
         [Theory]
         [InlineData((uint)PngChunkType.Gamma)] // gAMA
-        [InlineData((uint)PngChunkType.PaletteAlpha)] // tRNS
+        [InlineData((uint)PngChunkType.Transparency)] // tRNS
         [InlineData((uint)PngChunkType.Physical)] // pHYs: It's ok to test physical as we don't throw for duplicate chunks.
         //[InlineData(PngChunkTypes.Text)] //TODO: Figure out how to test this
         public void Decode_IncorrectCRCForNonCriticalChunk_ExceptionIsThrown(uint chunkType)

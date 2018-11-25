@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 AffineTransformBuilder builder = new AffineTransformBuilder(image.Size())
-                    .AppendRotateMatrixDegrees(30);
+                    .AppendRotationDegrees(30);
 
                 image.Mutate(c => c.Transform(builder, resampler));
                 image.DebugSave(provider, resamplerName);
@@ -102,9 +102,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             {
                 image.DebugSave(provider, $"_original");
                 AffineTransformBuilder builder = new AffineTransformBuilder(image.Size())
-                    .AppendRotateMatrixDegrees(angleDeg)
-                    .AppendScaleMatrix(new SizeF(sx, sy))
-                    .AppendTranslationMatrix(new PointF(tx, ty));
+                    .AppendRotationDegrees(angleDeg)
+                    .AppendScale(new SizeF(sx, sy))
+                    .AppendTranslation(new PointF(tx, ty));
 
                 this.PrintMatrix(builder.BuildMatrix());
 
@@ -124,8 +124,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 AffineTransformBuilder builder = new AffineTransformBuilder(image.Size())
-                    .AppendRotateMatrixDegrees(angleDeg)
-                    .AppendScaleMatrix(new SizeF(s, s));
+                    .AppendRotationDegrees(angleDeg)
+                    .AppendScale(new SizeF(s, s));
 
                 image.Mutate(i => i.Transform(builder, KnownResamplers.Bicubic));
 
@@ -160,7 +160,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             {
                 image.DebugSave(provider, $"_original");
                 AffineTransformBuilder builder = new AffineTransformBuilder(rectangle)
-                    .AppendScaleMatrix(new SizeF(2, 1.5F));
+                    .AppendScale(new SizeF(2, 1.5F));
 
                 image.Mutate(i => i.Transform(builder, KnownResamplers.Spline));
 
@@ -179,7 +179,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 AffineTransformBuilder builder = new AffineTransformBuilder(rectangle)
-                    .AppendScaleMatrix(new SizeF(1F, 2F));
+                    .AppendScale(new SizeF(1F, 2F));
 
                 image.Mutate(i => i.Transform(builder, KnownResamplers.Spline));
 
@@ -197,8 +197,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 AffineTransformBuilder builder = new AffineTransformBuilder(image.Size())
-                    .AppendRotateMatrixDegrees(50)
-                    .AppendScaleMatrix(new SizeF(.6F, .6F));
+                    .AppendRotationDegrees(50)
+                    .AppendScale(new SizeF(.6F, .6F));
 
                 image.Mutate(i => i.Transform(builder, sampler));
 

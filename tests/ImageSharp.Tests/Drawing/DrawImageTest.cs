@@ -74,9 +74,9 @@ namespace SixLabors.ImageSharp.Tests
             using (var blend = Image.Load<TPixel>(TestFile.Create(TestImages.Bmp.Car).Bytes))
             {
                 AffineTransformBuilder builder = new AffineTransformBuilder(blend.Size())
-                    .AppendRotateMatrixDegrees(45F)
-                    .AppendScaleMatrix(new SizeF(.25F, .25F))
-                    .AppendTranslationMatrix(new PointF(10, 10));
+                    .AppendRotationDegrees(45F)
+                    .AppendScale(new SizeF(.25F, .25F))
+                    .AppendTranslation(new PointF(10, 10));
 
                 // Apply a background color so we can see the translation.
                 blend.Mutate(x => x.Transform(builder).BackgroundColor(NamedColors<TPixel>.HotPink));

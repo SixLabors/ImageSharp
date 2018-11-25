@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="degrees">The amount of rotation, in degrees.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
-        public AffineTransformBuilder PrependRotateMatrixDegrees(float degrees)
+        public AffineTransformBuilder PrependRotationDegrees(float degrees)
             => this.PrependMatrix(TransformUtils.CreateRotationMatrixDegrees(degrees, this.Size));
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="radians">The amount of rotation, in radians.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
-        public AffineTransformBuilder PrependRotateMatrixRadians(float radians)
+        public AffineTransformBuilder PrependRotationRadians(float radians)
             => this.PrependMatrix(TransformUtils.CreateRotationMatrixRadians(radians, this.Size));
 
         /// <summary>
@@ -63,32 +63,64 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="degrees">The amount of rotation, in degrees.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
-        public AffineTransformBuilder AppendRotateMatrixDegrees(float degrees)
-            => this.AppendRotateMatrixRadians(ImageMaths.ToRadian(degrees));
+        public AffineTransformBuilder AppendRotationDegrees(float degrees)
+            => this.AppendRotationRadians(ImageMaths.ToRadian(degrees));
 
         /// <summary>
         /// Appends a centered rotation matrix using the given rotation in radians.
         /// </summary>
         /// <param name="radians">The amount of rotation, in radians.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
-        public AffineTransformBuilder AppendRotateMatrixRadians(float radians)
+        public AffineTransformBuilder AppendRotationRadians(float radians)
             => this.AppendMatrix(TransformUtils.CreateRotationMatrixRadians(radians, this.Size));
+
+        /// <summary>
+        /// Prepends a scale matrix from the given uniform scale.
+        /// </summary>
+        /// <param name="scale">The uniform scale.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public AffineTransformBuilder PrependScale(float scale)
+            => this.PrependMatrix(Matrix3x2.CreateScale(scale));
+
+        /// <summary>
+        /// Appends a scale matrix from the given uniform scale.
+        /// </summary>
+        /// <param name="scale">The uniform scale.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public AffineTransformBuilder AppendScale(float scale)
+            => this.AppendMatrix(Matrix3x2.CreateScale(scale));
 
         /// <summary>
         /// Prepends a scale matrix from the given vector scale.
         /// </summary>
         /// <param name="scales">The horizontal and vertical scale.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
-        public AffineTransformBuilder PrependScaleMatrix(SizeF scales)
-            => this.PrependMatrix(Matrix3x2Extensions.CreateScale(scales));
+        public AffineTransformBuilder PrependScale(Vector2 scales)
+            => this.PrependMatrix(Matrix3x2.CreateScale(scales));
 
         /// <summary>
         /// Appends a scale matrix from the given vector scale.
         /// </summary>
         /// <param name="scales">The horizontal and vertical scale.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
-        public AffineTransformBuilder AppendScaleMatrix(SizeF scales)
-            => this.AppendMatrix(Matrix3x2Extensions.CreateScale(scales));
+        public AffineTransformBuilder AppendScale(Vector2 scales)
+            => this.AppendMatrix(Matrix3x2.CreateScale(scales));
+
+        /// <summary>
+        /// Prepends a scale matrix from the given vector scale.
+        /// </summary>
+        /// <param name="scale">The horizontal and vertical scale.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public AffineTransformBuilder PrependScale(SizeF scale)
+            => this.PrependScale((Vector2)scale);
+
+        /// <summary>
+        /// Appends a scale matrix from the given vector scale.
+        /// </summary>
+        /// <param name="scales">The horizontal and vertical scale.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public AffineTransformBuilder AppendScale(SizeF scales)
+            => this.AppendScale((Vector2)scales);
 
         /// <summary>
         /// Prepends a centered skew matrix from the give angles in degrees.
@@ -96,7 +128,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="degreesX">The X angle, in degrees.</param>
         /// <param name="degreesY">The Y angle, in degrees.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
-        public AffineTransformBuilder PrependSkewMatrixDegrees(float degreesX, float degreesY)
+        public AffineTransformBuilder PrependSkewDegrees(float degreesX, float degreesY)
             => this.PrependMatrix(TransformUtils.CreateSkewMatrixDegrees(degreesX, degreesY, this.Size));
 
         /// <summary>
@@ -105,7 +137,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="degreesX">The X angle, in degrees.</param>
         /// <param name="degreesY">The Y angle, in degrees.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
-        public AffineTransformBuilder AppendSkewMatrixDegrees(float degreesX, float degreesY)
+        public AffineTransformBuilder AppendSkewDegrees(float degreesX, float degreesY)
             => this.AppendMatrix(TransformUtils.CreateSkewMatrixDegrees(degreesX, degreesY, this.Size));
 
         /// <summary>
@@ -113,16 +145,32 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="position">The translation position.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
-        public AffineTransformBuilder PrependTranslationMatrix(PointF position)
-            => this.PrependMatrix(Matrix3x2Extensions.CreateTranslation(position));
+        public AffineTransformBuilder PrependTranslation(PointF position)
+            => this.PrependTranslation((Vector2)position);
 
         /// <summary>
         /// Appends a translation matrix from the given vector.
         /// </summary>
         /// <param name="position">The translation position.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
-        public AffineTransformBuilder AppendTranslationMatrix(PointF position)
-            => this.AppendMatrix(Matrix3x2Extensions.CreateTranslation(position));
+        public AffineTransformBuilder AppendTranslation(PointF position)
+            => this.AppendTranslation((Vector2)position);
+
+        /// <summary>
+        /// Prepends a translation matrix from the given vector.
+        /// </summary>
+        /// <param name="position">The translation position.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public AffineTransformBuilder PrependTranslation(Vector2 position)
+            => this.PrependMatrix(Matrix3x2.CreateTranslation(position));
+
+        /// <summary>
+        /// Appends a translation matrix from the given vector.
+        /// </summary>
+        /// <param name="position">The translation position.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public AffineTransformBuilder AppendTranslation(Vector2 position)
+            => this.AppendMatrix(Matrix3x2.CreateTranslation(position));
 
         /// <summary>
         /// Prepends a raw matrix.

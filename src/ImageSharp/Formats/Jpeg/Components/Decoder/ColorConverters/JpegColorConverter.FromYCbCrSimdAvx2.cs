@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             }
 
             /// <summary>
-            /// SIMD convert using buffers of sizes divisable by 8.
+            /// SIMD convert using buffers of sizes divisible by 8.
             /// </summary>
             internal static void ConvertCore(in ComponentValues values, Span<Vector4> result)
             {

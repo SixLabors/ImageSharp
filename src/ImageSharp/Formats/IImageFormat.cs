@@ -16,12 +16,12 @@ namespace SixLabors.ImageSharp.Formats
         string Name { get; }
 
         /// <summary>
-        /// Gets the default mimetype that the image foramt uses
+        /// Gets the default mimetype that the image format uses
         /// </summary>
         string DefaultMimeType { get; }
 
         /// <summary>
-        /// Gets all the mimetypes that have been used by this image foramt.
+        /// Gets all the mimetypes that have been used by this image format.
         /// </summary>
         IEnumerable<string> MimeTypes { get; }
 

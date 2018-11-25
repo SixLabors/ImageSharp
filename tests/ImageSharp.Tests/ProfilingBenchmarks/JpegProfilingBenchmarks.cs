@@ -28,6 +28,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
             TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr,
             TestImages.Jpeg.BenchmarkSuite.Lake_Small444YCbCr,
             TestImages.Jpeg.BenchmarkSuite.MissingFF00ProgressiveBedroom159_MidSize420YCbCr,
+            TestImages.Jpeg.BenchmarkSuite.BadRstProgressive518_Large444YCbCr,
             TestImages.Jpeg.BenchmarkSuite.ExifGetString750Transform_Huge420YCbCr,
         };
 
@@ -46,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
                 return;
             }
 
-            const int ExecutionCount = 10;
+            const int ExecutionCount = 20;
 
             if (!Vector.IsHardwareAccelerated)
             {

@@ -384,7 +384,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     else
                     {
                         this.DecodeBlockProgressiveAC(
-                            component,
                             ref block,
                             ref acHuffmanTable,
                             ref fastACRef);
@@ -514,7 +513,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         private void DecodeBlockProgressiveAC(
-            JpegComponent component,
             ref Block8x8 block,
             ref HuffmanTable acTable,
             ref short fastACRef)
@@ -757,7 +755,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         [MethodImpl(InliningOptions.ColdPath)]
         private void FillBuffer()
         {
-            // Attempt to load at least the minimum nbumber of required bits into the buffer.
+            // Attempt to load at least the minimum number of required bits into the buffer.
             // We fail to do so only if we hit a marker or reach the end of the input stream.
             do
             {
@@ -914,7 +912,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
 
             // If it's NOT a restart, then just bail, so we get corrupt data rather than no data.
-            // Reset the stream to before any bad markers to ensure we can read sucessive segments.
+            // Reset the stream to before any bad markers to ensure we can read successive segments.
             if (this.badMarker)
             {
                 this.stream.Position = this.markerPosition;

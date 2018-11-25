@@ -11,7 +11,7 @@
     <Authors>James Jackson-South and contributors</Authors>
     <Company>James Jackson-South</Company>
     <RootNamespace>SixLabors.ImageSharp.Sandbox46</RootNamespace>
-    <LangVersion>7.2</LangVersion>
+    <LangVersion>7.3</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\ImageSharp.Drawing\ImageSharp.Drawing.csproj" />

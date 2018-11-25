@@ -6,9 +6,9 @@ using SixLabors.ImageSharp.Primitives;
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 {
     /// <summary>
-    /// Contains the eight matrices used for Kirsh edge detection
+    /// Contains the eight matrices used for Kirsch edge detection
     /// </summary>
-    internal static class KirshKernels
+    internal static class KirschKernels
     {
         /// <summary>
         /// Gets the North gradient operator

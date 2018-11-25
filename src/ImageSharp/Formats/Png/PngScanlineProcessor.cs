@@ -20,8 +20,8 @@ namespace SixLabors.ImageSharp.Formats.Png
             ReadOnlySpan<byte> scanlineSpan,
             Span<TPixel> rowSpan,
             bool hasTrans,
-            ushort luminance16Trans,
-            byte luminanceTrans)
+            Gray16 luminance16Trans,
+            Gray8 luminanceTrans)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel pixel = default;
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     rgba64.R = luminance;
                     rgba64.G = luminance;
                     rgba64.B = luminance;
-                    rgba64.A = luminance.Equals(luminance16Trans) ? ushort.MinValue : ushort.MaxValue;
+                    rgba64.A = luminance.Equals(luminance16Trans.PackedValue) ? ushort.MinValue : ushort.MaxValue;
 
                     pixel.FromRgba64(rgba64);
                     Unsafe.Add(ref rowSpanRef, x) = pixel;
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else
             {
-                byte scaledLuminanceTrans = (byte)(luminanceTrans * scaleFactor);
+                byte scaledLuminanceTrans = (byte)(luminanceTrans.PackedValue * scaleFactor);
                 Rgba32 rgba32 = default;
                 for (int x = 0; x < header.Width; x++)
                 {
@@ -93,8 +93,8 @@ namespace SixLabors.ImageSharp.Formats.Png
             int pixelOffset,
             int increment,
             bool hasTrans,
-            ushort luminance16Trans,
-            byte luminanceTrans)
+            Gray16 luminance16Trans,
+            Gray8 luminanceTrans)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel pixel = default;
@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     rgba64.R = luminance;
                     rgba64.G = luminance;
                     rgba64.B = luminance;
-                    rgba64.A = luminance.Equals(luminance16Trans) ? ushort.MinValue : ushort.MaxValue;
+                    rgba64.A = luminance.Equals(luminance16Trans.PackedValue) ? ushort.MinValue : ushort.MaxValue;
 
                     pixel.FromRgba64(rgba64);
                     Unsafe.Add(ref rowSpanRef, x) = pixel;
@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else
             {
-                byte scaledLuminanceTrans = (byte)(luminanceTrans * scaleFactor);
+                byte scaledLuminanceTrans = (byte)(luminanceTrans.PackedValue * scaleFactor);
                 Rgba32 rgba32 = default;
                 for (int x = pixelOffset; x < header.Width; x += increment)
                 {
@@ -190,12 +190,11 @@ namespace SixLabors.ImageSharp.Formats.Png
             else
             {
                 Rgba32 rgba32 = default;
-                int bps = bytesPerSample;
                 for (int x = 0; x < header.Width; x++)
                 {
                     int offset = x * bytesPerPixel;
                     byte luminance = Unsafe.Add(ref scanlineSpanRef, offset);
-                    byte alpha = Unsafe.Add(ref scanlineSpanRef, offset + bps);
+                    byte alpha = Unsafe.Add(ref scanlineSpanRef, offset + bytesPerSample);
 
                     rgba32.R = luminance;
                     rgba32.G = luminance;

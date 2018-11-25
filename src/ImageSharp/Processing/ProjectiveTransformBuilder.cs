@@ -14,18 +14,15 @@ namespace SixLabors.ImageSharp.Processing
     public class ProjectiveTransformBuilder
     {
         private readonly List<Matrix4x4> matrices = new List<Matrix4x4>();
-        private Rectangle rectangle;
+        private Rectangle sourceRectangle;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProjectiveTransformBuilder"/> class.
         /// </summary>
         /// <param name="sourceSize">The source image size.</param>
         public ProjectiveTransformBuilder(Size sourceSize)
+            : this(new Rectangle(Point.Empty, sourceSize))
         {
-            Guard.MustBeGreaterThan(sourceSize.Width, 0, nameof(sourceSize));
-            Guard.MustBeGreaterThan(sourceSize.Height, 0, nameof(sourceSize));
-
-            this.Size = sourceSize;
         }
 
         /// <summary>
@@ -33,13 +30,18 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="sourceRectangle">The source rectangle.</param>
         public ProjectiveTransformBuilder(Rectangle sourceRectangle)
-            : this(sourceRectangle.Size)
-            => this.rectangle = sourceRectangle;
+        {
+            Guard.MustBeGreaterThan(sourceRectangle.Width, 0, nameof(sourceRectangle));
+            Guard.MustBeGreaterThan(sourceRectangle.Height, 0, nameof(sourceRectangle));
+
+            this.sourceRectangle = sourceRectangle;
+        } 
 
         /// <summary>
         /// Gets the source image size.
         /// </summary>
-        internal Size Size { get; }
+        internal Size Size => this.sourceRectangle.Size;
+
 
         /// <summary>
         /// Prepends a matrix that performs a tapering projective transform.
@@ -60,6 +62,96 @@ namespace SixLabors.ImageSharp.Processing
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
         public ProjectiveTransformBuilder AppendTaperMatrix(TaperSide side, TaperCorner corner, float fraction)
             => this.AppendMatrix(TransformUtils.CreateTaperMatrix(this.Size, side, corner, fraction));
+
+        public void AppendRotationRadians(float radians)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void PrependRotationRadians(float radians)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        /// <summary>
+        /// Prepends a scale matrix from the given uniform scale.
+        /// </summary>
+        /// <param name="scale">The uniform scale.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public ProjectiveTransformBuilder PrependScale(float scale)
+            => this.PrependMatrix(Matrix4x4.CreateScale(scale));
+
+        /// <summary>
+        /// Appends a scale matrix from the given uniform scale.
+        /// </summary>
+        /// <param name="scale">The uniform scale.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public ProjectiveTransformBuilder AppendScale(float scale)
+            => this.AppendMatrix(Matrix4x4.CreateScale(scale));
+
+        /// <summary>
+        /// Prepends a scale matrix from the given vector scale.
+        /// </summary>
+        /// <param name="scales">The horizontal and vertical scale.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public ProjectiveTransformBuilder PrependScale(Vector2 scales)
+            => this.PrependMatrix(Matrix4x4.CreateScale(new Vector3(scales, 1f)));
+
+        /// <summary>
+        /// Appends a scale matrix from the given vector scale.
+        /// </summary>
+        /// <param name="scales">The horizontal and vertical scale.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public ProjectiveTransformBuilder AppendScale(Vector2 scales)
+            => this.AppendMatrix(Matrix4x4.CreateScale(new Vector3(scales, 1f)));
+
+        /// <summary>
+        /// Prepends a scale matrix from the given vector scale.
+        /// </summary>
+        /// <param name="scale">The horizontal and vertical scale.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public ProjectiveTransformBuilder PrependScale(SizeF scale)
+            => this.PrependScale((Vector2)scale);
+
+        /// <summary>
+        /// Appends a scale matrix from the given vector scale.
+        /// </summary>
+        /// <param name="scales">The horizontal and vertical scale.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public ProjectiveTransformBuilder AppendScale(SizeF scales)
+            => this.AppendScale((Vector2)scales);
+
+        /// <summary>
+        /// Prepends a translation matrix from the given vector.
+        /// </summary>
+        /// <param name="position">The translation position.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public ProjectiveTransformBuilder PrependTranslation(Vector2 position)
+            => this.PrependMatrix(Matrix4x4.CreateTranslation(new Vector3(position, 0)));
+
+        /// <summary>
+        /// Appends a translation matrix from the given vector.
+        /// </summary>
+        /// <param name="position">The translation position.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public ProjectiveTransformBuilder AppendTranslation(Vector2 position)
+            => this.AppendMatrix(Matrix4x4.CreateTranslation(new Vector3(position, 0)));
+
+        /// <summary>
+        /// Prepends a translation matrix from the given vector.
+        /// </summary>
+        /// <param name="position">The translation position.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public ProjectiveTransformBuilder PrependTranslation(PointF position)
+            => this.PrependTranslation((Vector2)position);
+
+        /// <summary>
+        /// Appends a translation matrix from the given vector.
+        /// </summary>
+        /// <param name="position">The translation position.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public ProjectiveTransformBuilder AppendTranslation(PointF position)
+            => this.AppendTranslation((Vector2)position);
 
         /// <summary>
         /// Prepends a raw matrix.
@@ -92,9 +184,9 @@ namespace SixLabors.ImageSharp.Processing
             Matrix4x4 matrix = Matrix4x4.Identity;
 
             // Translate the origin matrix to cater for source rectangle offsets.
-            if (!this.rectangle.Equals(default))
+            if (!this.sourceRectangle.Equals(default))
             {
-                matrix *= Matrix4x4.CreateTranslation(new Vector3(-this.rectangle.Location, 0));
+                matrix *= Matrix4x4.CreateTranslation(new Vector3(-this.sourceRectangle.Location, 0));
             }
 
             foreach (Matrix4x4 m in this.matrices)
@@ -109,5 +201,6 @@ namespace SixLabors.ImageSharp.Processing
         /// Removes all matrices from the builder.
         /// </summary>
         public void Clear() => this.matrices.Clear();
+
     }
 }

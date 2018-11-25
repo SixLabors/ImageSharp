@@ -42,7 +42,6 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         internal Size Size => this.sourceRectangle.Size;
 
-
         /// <summary>
         /// Prepends a matrix that performs a tapering projective transform.
         /// </summary>
@@ -229,6 +228,5 @@ namespace SixLabors.ImageSharp.Processing
         /// Removes all matrices from the builder.
         /// </summary>
         public void Clear() => this.matrices.Clear();
-
     }
 }

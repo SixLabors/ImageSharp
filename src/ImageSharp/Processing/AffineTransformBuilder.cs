@@ -42,7 +42,6 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         internal Size Size => this.sourceRectangle.Size;
 
-
         /// <summary>
         /// Prepends a centered rotation matrix using the given rotation in radians.
         /// </summary>

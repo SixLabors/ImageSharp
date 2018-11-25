@@ -24,6 +24,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 Matrix3x2Extensions.CreateRotationDegrees(degrees, PointF.Empty));
 
         /// <summary>
+        /// Creates a centered rotation matrix using the given rotation in radians and the source size.
+        /// </summary>
+        /// <param name="radians">The amount of rotation, in radians.</param>
+        /// <param name="size">The source image size.</param>
+        /// <returns>The <see cref="Matrix3x2"/>.</returns>
+        public static Matrix3x2 CreateRotationMatrixRadians(float radians, Size size)
+            => CreateCenteredTransformMatrix(
+                new Rectangle(Point.Empty, size),
+                Matrix3x2Extensions.CreateRotation(radians, PointF.Empty));
+
+        /// <summary>
         /// Creates a centered skew matrix from the give angles in degrees and the source size.
         /// </summary>
         /// <param name="degreesX">The X angle, in degrees.</param>

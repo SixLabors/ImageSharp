@@ -567,7 +567,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             [MethodImpl(InliningOptions.ShortMethod)]
             public static bool IsDefined(int value)
             {
-                return Array.BinarySearch(Values, 0, Values.Length, value) > 0;
+                return Array.BinarySearch(Values, value) >= 0;
             }
         }
     }

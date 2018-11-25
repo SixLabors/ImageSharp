@@ -51,12 +51,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private readonly byte[] markerBuffer = new byte[2];
 
         /// <summary>
-        /// The DC HUffman tables
+        /// The DC Huffman tables
         /// </summary>
         private HuffmanTables dcHuffmanTables;
 
         /// <summary>
-        /// The AC HUffman tables
+        /// The AC Huffman tables
         /// </summary>
         private HuffmanTables acHuffmanTables;
 
@@ -856,10 +856,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private void ProcessStartOfScanMarker()
         {
             int selectorsCount = this.InputStream.ReadByte();
-            int componentIndex = -1;
             for (int i = 0; i < selectorsCount; i++)
             {
-                componentIndex = -1;
+                int componentIndex = -1;
                 int selector = this.InputStream.ReadByte();
 
                 for (int j = 0; j < this.Frame.ComponentIds.Length; j++)

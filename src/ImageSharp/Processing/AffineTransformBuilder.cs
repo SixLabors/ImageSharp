@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Processing
     public class AffineTransformBuilder
     {
         private readonly List<Matrix3x2> matrices = new List<Matrix3x2>();
-        private readonly Rectangle rectangle;
+        private readonly Rectangle sourceRectangle;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AffineTransformBuilder"/> class.
@@ -34,13 +34,13 @@ namespace SixLabors.ImageSharp.Processing
             Guard.MustBeGreaterThan(sourceRectangle.Width, 0, nameof(sourceRectangle));
             Guard.MustBeGreaterThan(sourceRectangle.Height, 0, nameof(sourceRectangle));
 
-            this.rectangle = sourceRectangle;
+            this.sourceRectangle = sourceRectangle;
         }
 
         /// <summary>
         /// Gets the source image size.
         /// </summary>
-        internal Size Size => this.rectangle.Size;
+        internal Size Size => this.sourceRectangle.Size;
 
         /// <summary>
         /// Prepends a centered rotation matrix using the given rotation in degrees.
@@ -145,22 +145,6 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="position">The translation position.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
-        public AffineTransformBuilder PrependTranslation(PointF position)
-            => this.PrependTranslation((Vector2)position);
-
-        /// <summary>
-        /// Appends a translation matrix from the given vector.
-        /// </summary>
-        /// <param name="position">The translation position.</param>
-        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
-        public AffineTransformBuilder AppendTranslation(PointF position)
-            => this.AppendTranslation((Vector2)position);
-
-        /// <summary>
-        /// Prepends a translation matrix from the given vector.
-        /// </summary>
-        /// <param name="position">The translation position.</param>
-        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder PrependTranslation(Vector2 position)
             => this.PrependMatrix(Matrix3x2.CreateTranslation(position));
 
@@ -171,6 +155,22 @@ namespace SixLabors.ImageSharp.Processing
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder AppendTranslation(Vector2 position)
             => this.AppendMatrix(Matrix3x2.CreateTranslation(position));
+
+        /// <summary>
+        /// Prepends a translation matrix from the given vector.
+        /// </summary>
+        /// <param name="position">The translation position.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public AffineTransformBuilder PrependTranslation(PointF position)
+            => this.PrependTranslation((Vector2)position);
+
+        /// <summary>
+        /// Appends a translation matrix from the given vector.
+        /// </summary>
+        /// <param name="position">The translation position.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public AffineTransformBuilder AppendTranslation(PointF position)
+            => this.AppendTranslation((Vector2)position);
 
         /// <summary>
         /// Prepends a raw matrix.
@@ -203,9 +203,9 @@ namespace SixLabors.ImageSharp.Processing
             Matrix3x2 matrix = Matrix3x2.Identity;
 
             // Translate the origin matrix to cater for source rectangle offsets.
-            if (!this.rectangle.Equals(default))
+            if (!this.sourceRectangle.Equals(default))
             {
-                matrix *= Matrix3x2.CreateTranslation(-this.rectangle.Location);
+                matrix *= Matrix3x2.CreateTranslation(-this.sourceRectangle.Location);
             }
 
             foreach (Matrix3x2 m in this.matrices)

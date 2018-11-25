@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp
         /// Converts degrees to radians
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static float ToRadian(float degrees)
+        public static float DegreesToRadians(float degrees)
         {
             return degrees * ((float)Math.PI / 180f);
         }

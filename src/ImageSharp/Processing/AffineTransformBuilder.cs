@@ -42,37 +42,38 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         internal Size Size => this.sourceRectangle.Size;
 
-        /// <summary>
-        /// Prepends a centered rotation matrix using the given rotation in degrees.
-        /// </summary>
-        /// <param name="degrees">The amount of rotation, in degrees.</param>
-        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
-        public AffineTransformBuilder PrependRotationDegrees(float degrees)
-            => this.PrependMatrix(TransformUtils.CreateRotationMatrixDegrees(degrees, this.Size));
 
         /// <summary>
         /// Prepends a centered rotation matrix using the given rotation in radians.
         /// </summary>
         /// <param name="radians">The amount of rotation, in radians.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
-        public AffineTransformBuilder PrependRotationRadians(float radians)
+        public AffineTransformBuilder PrependCenteredRotationRadians(float radians)
             => this.PrependMatrix(TransformUtils.CreateRotationMatrixRadians(radians, this.Size));
-
-        /// <summary>
-        /// Appends a centered rotation matrix using the given rotation in degrees.
-        /// </summary>
-        /// <param name="degrees">The amount of rotation, in degrees.</param>
-        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
-        public AffineTransformBuilder AppendRotationDegrees(float degrees)
-            => this.AppendRotationRadians(ImageMaths.ToRadian(degrees));
 
         /// <summary>
         /// Appends a centered rotation matrix using the given rotation in radians.
         /// </summary>
         /// <param name="radians">The amount of rotation, in radians.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
-        public AffineTransformBuilder AppendRotationRadians(float radians)
+        public AffineTransformBuilder AppendCenteredRotationRadians(float radians)
             => this.AppendMatrix(TransformUtils.CreateRotationMatrixRadians(radians, this.Size));
+
+        /// <summary>
+        /// Prepends a centered rotation matrix using the given rotation in degrees.
+        /// </summary>
+        /// <param name="degrees">The amount of rotation, in degrees.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public AffineTransformBuilder PrependCenteredRotationDegrees(float degrees)
+            => this.PrependCenteredRotationRadians(ImageMaths.DegreesToRadians(degrees));
+
+        /// <summary>
+        /// Appends a centered rotation matrix using the given rotation in degrees.
+        /// </summary>
+        /// <param name="degrees">The amount of rotation, in degrees.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public AffineTransformBuilder AppendCenteredRotationDegrees(float degrees)
+            => this.AppendCenteredRotationRadians(ImageMaths.DegreesToRadians(degrees));
 
         /// <summary>
         /// Prepends a scale matrix from the given uniform scale.

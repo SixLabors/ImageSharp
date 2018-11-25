@@ -142,7 +142,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         protected abstract void PrependRotationRadians(TBuilder builder, float radians);
 
         protected virtual void AppendRotationDegrees(TBuilder builder, float degrees) =>
-            this.AppendRotationRadians(builder, ImageMaths.ToRadian(degrees));
+            this.AppendRotationRadians(builder, ImageMaths.DegreesToRadians(degrees));
 
         protected abstract Vector2 Execute(TBuilder builder, Rectangle rectangle, Vector2 sourcePoint);
         

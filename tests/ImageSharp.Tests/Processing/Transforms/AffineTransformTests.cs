@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 AffineTransformBuilder builder = new AffineTransformBuilder(image.Size())
-                    .AppendRotationDegrees(30);
+                    .AppendCenteredRotationDegrees(30);
 
                 image.Mutate(c => c.Transform(builder, resampler));
                 image.DebugSave(provider, resamplerName);
@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             {
                 image.DebugSave(provider, $"_original");
                 AffineTransformBuilder builder = new AffineTransformBuilder(image.Size())
-                    .AppendRotationDegrees(angleDeg)
+                    .AppendCenteredRotationDegrees(angleDeg)
                     .AppendScale(new SizeF(sx, sy))
                     .AppendTranslation(new PointF(tx, ty));
 
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 AffineTransformBuilder builder = new AffineTransformBuilder(image.Size())
-                    .AppendRotationDegrees(angleDeg)
+                    .AppendCenteredRotationDegrees(angleDeg)
                     .AppendScale(new SizeF(s, s));
 
                 image.Mutate(i => i.Transform(builder, KnownResamplers.Bicubic));
@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 AffineTransformBuilder builder = new AffineTransformBuilder(image.Size())
-                    .AppendRotationDegrees(50)
+                    .AppendCenteredRotationDegrees(50)
                     .AppendScale(new SizeF(.6F, .6F));
 
                 image.Mutate(i => i.Transform(builder, sampler));

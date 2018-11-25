@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Processing
             Guard.MustBeGreaterThan(sourceRectangle.Height, 0, nameof(sourceRectangle));
 
             this.sourceRectangle = sourceRectangle;
-        } 
+        }
 
         /// <summary>
         /// Gets the source image size.
@@ -63,15 +63,43 @@ namespace SixLabors.ImageSharp.Processing
         public ProjectiveTransformBuilder AppendTaperMatrix(TaperSide side, TaperCorner corner, float fraction)
             => this.AppendMatrix(TransformUtils.CreateTaperMatrix(this.Size, side, corner, fraction));
 
-        public void AppendRotationRadians(float radians)
+        /// <summary>
+        /// Prepends a centered rotation matrix using the given rotation in radians.
+        /// </summary>
+        /// <param name="radians">The amount of rotation, in radians.</param>
+        /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
+        public ProjectiveTransformBuilder PrependCenteredRotationRadians(float radians)
         {
-            throw new System.NotImplementedException();
+            var m = new Matrix4x4(TransformUtils.CreateRotationMatrixRadians(radians, this.Size));
+            return this.PrependMatrix(m);
         }
 
-        public void PrependRotationRadians(float radians)
+        /// <summary>
+        /// Appends a centered rotation matrix using the given rotation in radians.
+        /// </summary>
+        /// <param name="radians">The amount of rotation, in radians.</param>
+        /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
+        public ProjectiveTransformBuilder AppendCenteredRotationRadians(float radians)
         {
-            throw new System.NotImplementedException();
+            var m = new Matrix4x4(TransformUtils.CreateRotationMatrixRadians(radians, this.Size));
+            return this.AppendMatrix(m);
         }
+
+        /// <summary>
+        /// Prepends a centered rotation matrix using the given rotation in degrees.
+        /// </summary>
+        /// <param name="degrees">The amount of rotation, in degrees.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public ProjectiveTransformBuilder PrependCenteredRotationDegrees(float degrees)
+            => this.PrependCenteredRotationRadians(ImageMaths.DegreesToRadians(degrees));
+
+        /// <summary>
+        /// Appends a centered rotation matrix using the given rotation in degrees.
+        /// </summary>
+        /// <param name="degrees">The amount of rotation, in degrees.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public ProjectiveTransformBuilder AppendCenteredRotationDegrees(float degrees)
+            => this.AppendCenteredRotationRadians(ImageMaths.DegreesToRadians(degrees));
 
         /// <summary>
         /// Prepends a scale matrix from the given uniform scale.

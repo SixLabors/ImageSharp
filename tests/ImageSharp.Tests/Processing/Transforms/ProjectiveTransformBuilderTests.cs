@@ -34,13 +34,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                 var builder = new ProjectiveTransformBuilder(new Rectangle(Point.Empty, s));
             });
         }
+
         protected override void AppendTranslation(ProjectiveTransformBuilder builder, PointF translate) => builder.AppendTranslation(translate);
         protected override void AppendScale(ProjectiveTransformBuilder builder, SizeF scale) => builder.AppendScale(scale);
-        protected override void AppendRotationRadians(ProjectiveTransformBuilder builder, float radians) => builder.AppendRotationRadians(radians);
+        protected override void AppendRotationRadians(ProjectiveTransformBuilder builder, float radians) => builder.AppendCenteredRotationRadians(radians);
 
         protected override void PrependTranslation(ProjectiveTransformBuilder builder, PointF translate) => builder.PrependTranslation(translate);
         protected override void PrependScale(ProjectiveTransformBuilder builder, SizeF scale) => builder.PrependScale(scale);
-        protected override void PrependRotationRadians(ProjectiveTransformBuilder builder, float radians) => builder.PrependRotationRadians(radians);
+        protected override void PrependRotationRadians(ProjectiveTransformBuilder builder, float radians) => builder.PrependCenteredRotationRadians(radians);
 
         protected override Vector2 Execute(
             ProjectiveTransformBuilder builder,

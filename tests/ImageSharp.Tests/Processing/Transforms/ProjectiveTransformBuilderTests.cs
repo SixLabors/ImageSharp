@@ -9,7 +9,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
-    public class ProjectiveTransformBuilderTests
+    public class ProjectiveTransformBuilderTests : TransformBuilderTestBase<ProjectiveTransformBuilder>
     {
         [Fact]
         public void ConstructorAssignsProperties()
@@ -34,45 +34,21 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                 var builder = new ProjectiveTransformBuilder(new Rectangle(Point.Empty, s));
             });
         }
+        protected override void AppendTranslation(ProjectiveTransformBuilder builder, PointF translate) => builder.AppendTranslation(translate);
+        protected override void AppendScale(ProjectiveTransformBuilder builder, SizeF scale) => builder.AppendScale(scale);
+        protected override void AppendRotationRadians(ProjectiveTransformBuilder builder, float radians) => builder.AppendRotationRadians(radians);
 
-        [Fact]
-        public void AppendPrependOpposite()
+        protected override void PrependTranslation(ProjectiveTransformBuilder builder, PointF translate) => builder.PrependTranslation(translate);
+        protected override void PrependScale(ProjectiveTransformBuilder builder, SizeF scale) => builder.PrependScale(scale);
+        protected override void PrependRotationRadians(ProjectiveTransformBuilder builder, float radians) => builder.PrependRotationRadians(radians);
+
+        protected override Vector2 Execute(
+            ProjectiveTransformBuilder builder,
+            Rectangle rectangle,
+            Vector2 sourcePoint)
         {
-            var rectangle = new Rectangle(-1, -1, 3, 3);
-            var b1 = new ProjectiveTransformBuilder(rectangle);
-            var b2 = new ProjectiveTransformBuilder(rectangle);
-
-            const float pi = (float)Math.PI;
-
-            Matrix4x4 m4 = Matrix4x4.Identity;
-            m4.M31 = pi;
-
-            // Forwards
-            b1.AppendMatrix(m4)
-              .AppendTaperMatrix(TaperSide.Left, TaperCorner.LeftOrTop, pi);
-
-            // Backwards
-            b2.PrependTaperMatrix(TaperSide.Left, TaperCorner.LeftOrTop, pi)
-              .PrependMatrix(m4);
-
-            Assert.Equal(b1.BuildMatrix(), b2.BuildMatrix());
-        }
-
-        [Fact]
-        public void BuilderCanClear()
-        {
-            var rectangle = new Rectangle(0, 0, 3, 3);
-            var builder = new ProjectiveTransformBuilder(rectangle);
-            Matrix4x4 matrix = Matrix4x4.Identity;
-            matrix.M31 = (float)Math.PI;
-
-            Assert.Equal(Matrix4x4.Identity, builder.BuildMatrix());
-
-            builder.AppendMatrix(matrix);
-            Assert.NotEqual(Matrix4x4.Identity, builder.BuildMatrix());
-
-            builder.Clear();
-            Assert.Equal(Matrix4x4.Identity, builder.BuildMatrix());
+            Matrix4x4 matrix = builder.BuildMatrix();
+            return Vector2.Transform(sourcePoint, matrix);
         }
     }
 }

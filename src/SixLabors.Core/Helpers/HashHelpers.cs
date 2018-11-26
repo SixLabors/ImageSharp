@@ -17,7 +17,6 @@ namespace SixLabors
         public static int Combine(int h1, int h2)
         {
             // Lifted from coreFX repo
-
             unchecked
             {
                 // RyuJIT optimizes this to use the ROL instruction

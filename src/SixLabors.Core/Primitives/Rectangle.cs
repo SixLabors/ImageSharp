@@ -135,7 +135,6 @@ namespace SixLabors.Primitives
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => unchecked(this.Y + this.Height);
-
         }
 
         /// <summary>

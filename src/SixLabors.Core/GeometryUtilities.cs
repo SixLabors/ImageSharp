@@ -7,9 +7,9 @@ using System.Runtime.CompilerServices;
 namespace SixLabors
 {
     /// <summary>
-    /// Provides common mathematical methods.
+    /// Utility class for common geometric functions.
     /// </summary>
-    internal static class MathFExtensions
+    public static class GeometryUtilities
     {
         /// <summary>
         /// Converts a degree (360-periodic) angle to a radian (2*Pi-periodic) angle.
@@ -19,10 +19,7 @@ namespace SixLabors
         /// The <see cref="float"/> representing the degree as radians.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float DegreeToRadian(float degree)
-        {
-            return degree * (MathF.PI / 180F);
-        }
+        public static float DegreeToRadian(float degree) => degree * (MathF.PI / 180F);
 
         /// <summary>
         /// Converts a radian (2*Pi-periodic) angle to a degree (360-periodic) angle.
@@ -32,9 +29,6 @@ namespace SixLabors
         /// The <see cref="float"/> representing the degree as radians.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float RadianToDegree(float radian)
-        {
-            return radian / (MathF.PI / 180F);
-        }
+        public static float RadianToDegree(float radian) => radian / (MathF.PI / 180F);
     }
 }

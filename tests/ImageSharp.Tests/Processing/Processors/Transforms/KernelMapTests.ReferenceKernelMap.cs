@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         /// <summary>
         /// Simplified reference implementation for <see cref="KernelMap"/> functionality.
         /// </summary>
-        public class ReferenceKernelMap
+        internal class ReferenceKernelMap
         {
             private readonly ReferenceKernel[] kernels;
 
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             }
         }
 
-        public struct ReferenceKernel
+        internal struct ReferenceKernel
         {
             public ReferenceKernel(int left, float[] values)
             {
@@ -94,6 +94,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             public float[] Values { get; }
 
             public int Length => this.Values.Length;
+
+            public static implicit operator ReferenceKernel(ResizeKernel orig)
+            {
+                return new ReferenceKernel(orig.Left, orig.GetValues().ToArray());
+            }
         }
     }
 }

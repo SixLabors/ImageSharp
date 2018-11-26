@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             { nameof(KnownResamplers.Lanczos3), 8, 6 },
 
             // TODO: What's wrong here:
-            // { nameof(KnownResamplers.Lanczos3), 20, 12 },
+            { nameof(KnownResamplers.Lanczos3), 20, 12 },
 
             {nameof(KnownResamplers.Lanczos8), 500, 200 },
             {nameof(KnownResamplers.Lanczos8), 100, 10 },
@@ -61,8 +61,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             var referenceMap = ReferenceKernelMap.Calculate(resampler, destSize, srcSize);
 
 #if DEBUG
-            string text = PrintKernelMap(kernelMap);
-            this.Output.WriteLine(text);
+            this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");
+            this.Output.WriteLine($"Reference KernelMap:\n{PrintKernelMap(referenceMap)}\n");
 #endif
 
             for (int i = 0; i < kernelMap.DestinationSize; i++)
@@ -73,19 +73,42 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
                 Assert.Equal(referenceKernel.Length, kernel.Length);
                 Assert.Equal(referenceKernel.Left, kernel.Left);
-                Assert.True(kernel.GetValues().SequenceEqual(referenceKernel.Values));
+                float[] expectedValues = referenceKernel.Values;
+                Span<float> actualValues = kernel.GetValues();
+                
+                Assert.Equal(expectedValues.Length, actualValues.Length);
+
+                var comparer = new ApproximateFloatComparer(1e-6f);
+
+                for (int x = 0; x < expectedValues.Length; x++)
+                {
+                    Assert.True(
+                        comparer.Equals(expectedValues[x], actualValues[x]),
+                        $"{expectedValues[x]} != {actualValues[x]} @ (Row:{i}, Col:{x})");
+                }
             }
         }
 
-        private static string PrintKernelMap(KernelMap kernelMap)
+        private static string PrintKernelMap(KernelMap kernelMap) =>
+            PrintKernelMap(kernelMap, km => km.DestinationSize, (km, i) => km.GetKernel(i));
+
+        private static string PrintKernelMap(ReferenceKernelMap kernelMap) =>
+            PrintKernelMap(kernelMap, km => km.DestinationSize, (km, i) => km.GetKernel(i));
+
+        private static string PrintKernelMap<TKernelMap>(
+            TKernelMap kernelMap,
+            Func<TKernelMap, int> getDestinationSize,
+            Func<TKernelMap, int, ReferenceKernel> getKernel)
         {
             var bld = new StringBuilder();
 
-            for (int i = 0; i < kernelMap.DestinationSize; i++)
+            int destinationSize = getDestinationSize(kernelMap);
+
+            for (int i = 0; i < destinationSize; i++)
             {
-                ResizeKernel kernel = kernelMap.GetKernel(i);
+                ReferenceKernel kernel = getKernel(kernelMap, i);
                 bld.Append($"({kernel.Left:D3}) || ");
-                Span<float> span = kernel.GetValues();
+                Span<float> span = kernel.Values;
 
                 for (int j = 0; j < kernel.Length; j++)
                 {

@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder(image.Size())
-                    .AppendTaperMatrix(TaperSide.Right, TaperCorner.Both, .5F);
+                    .AppendTaper(TaperSide.Right, TaperCorner.Both, .5F);
 
                 image.Mutate(i => i.Transform(builder, sampler));
 
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder(image.Size())
-                    .AppendTaperMatrix(taperSide, taperCorner, .5F);
+                    .AppendTaper(taperSide, taperCorner, .5F);
 
                 image.Mutate(i => i.Transform(builder));
 

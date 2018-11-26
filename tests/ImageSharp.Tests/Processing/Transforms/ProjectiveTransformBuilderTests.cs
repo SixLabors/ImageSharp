@@ -35,6 +35,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             });
         }
 
+        protected override ProjectiveTransformBuilder CreateBuilder(Rectangle rectangle) => new ProjectiveTransformBuilder(rectangle);
+
         protected override void AppendTranslation(ProjectiveTransformBuilder builder, PointF translate) => builder.AppendTranslation(translate);
         protected override void AppendScale(ProjectiveTransformBuilder builder, SizeF scale) => builder.AppendScale(scale);
         protected override void AppendRotationRadians(ProjectiveTransformBuilder builder, float radians) => builder.AppendCenteredRotationRadians(radians);

@@ -129,9 +129,25 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             Assert.Equal(p1, p2, Comparer);
         }
 
+        [Theory]
+        [InlineData(0, 1)]
+        [InlineData(1, 0)]
+        [InlineData(-1, 0)]
+        public void ThrowsForInvalidSizes(int width, int height)
+        {
+            var size = new Size(width, height);
+
+            Assert.ThrowsAny<ArgumentOutOfRangeException>(
+                () =>
+                    {
+                        TBuilder builder = this.CreateBuilder(size);
+                        this.Execute(builder, new Rectangle(Point.Empty, size), Vector2.Zero);
+                    });
+        }
+
         protected TBuilder CreateBuilder(Size size) => this.CreateBuilder(new Rectangle(Point.Empty, size));
 
-        protected virtual TBuilder CreateBuilder(Rectangle rectangle) => (TBuilder)Activator.CreateInstance(typeof(TBuilder), rectangle);
+        protected abstract TBuilder CreateBuilder(Rectangle rectangle);
 
         protected abstract void AppendTranslation(TBuilder builder, PointF translate);
         protected abstract void AppendScale(TBuilder builder, SizeF scale);

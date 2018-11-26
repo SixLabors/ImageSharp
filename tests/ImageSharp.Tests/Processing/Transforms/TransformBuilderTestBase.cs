@@ -87,7 +87,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         [InlineData(200, 100, 10, 42, 84)]
         [InlineData(200, 100, 100, 42, 84)]
         [InlineData(100, 200, -10, 42, 84)]
-        public void RotateDegrees_ShouldCreateCenteredMatrix(int width, int height, float deg, float x, float y)
+        public void AppendRotationDegrees_WithoutSpecificRotationCenter_RotationIsCenteredAroundImageCenter(
+            int width,
+            int height,
+            float deg,
+            float x,
+            float y)
         {
             var size = new Size(width, height);
             TBuilder builder = this.CreateBuilder(size);
@@ -97,13 +102,41 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             // TODO: We should also test CreateRotationMatrixDegrees() (and all TransformUtils stuff!) for correctness
             Matrix3x2 matrix = TransformUtils.CreateRotationMatrixDegrees(deg, size);
 
-            var position = new Vector2(x,  y);
+            var position = new Vector2(x, y);
             var expected = Vector2.Transform(position, matrix);
             Vector2 actual = this.Execute(builder, new Rectangle(Point.Empty, size), position);
 
             Assert.Equal(actual, expected, Comparer);
         }
-        
+
+        [Theory]
+        [InlineData(200, 100, 10, 30, 61, 42, 84)]
+        [InlineData(200, 100, 100, 30, 10, 20, 84)]
+        [InlineData(100, 200, -10, 30, 20, 11, 84)]
+        public void AppendRotationDegrees_WithRotationCenter(
+            int width,
+            int height,
+            float deg,
+            float cx,
+            float cy,
+            float x,
+            float y)
+        {
+            var size = new Size(width, height);
+            TBuilder builder = this.CreateBuilder(size);
+
+            var centerPoint = new Vector2(cx, cy);
+            this.AppendRotationDegrees(builder, deg, centerPoint);
+
+            var matrix = Matrix3x2.CreateRotation(ImageMaths.DegreesToRadians(deg), centerPoint);
+
+            var position = new Vector2(x, y);
+            var expected = Vector2.Transform(position, matrix);
+            Vector2 actual = this.Execute(builder, new Rectangle(Point.Empty, size), position);
+
+            Assert.Equal(actual, expected, Comparer);
+        }
+
         [Fact]
         public void AppendPrependOpposite()
         {
@@ -116,10 +149,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             // Forwards
             this.AppendRotationRadians(b1, pi);
             this.AppendScale(b1, new SizeF(2, 0.5f));
+            this.AppendRotationRadians(b1, pi / 2, new Vector2(-0.5f, -0.1f));
             this.AppendTranslation(b1, new PointF(123, 321));
 
             // Backwards
             this.PrependTranslation(b2, new PointF(123, 321));
+            this.PrependRotationRadians(b2, pi / 2, new Vector2(-0.5f, -0.1f));
             this.PrependScale(b2, new SizeF(2, 0.5f));
             this.PrependRotationRadians(b2, pi);
 
@@ -152,13 +187,18 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         protected abstract void AppendTranslation(TBuilder builder, PointF translate);
         protected abstract void AppendScale(TBuilder builder, SizeF scale);
         protected abstract void AppendRotationRadians(TBuilder builder, float radians);
+        protected abstract void AppendRotationRadians(TBuilder builder, float radians, Vector2 center);
 
         protected abstract void PrependTranslation(TBuilder builder, PointF translate);
         protected abstract void PrependScale(TBuilder builder, SizeF scale);
         protected abstract void PrependRotationRadians(TBuilder builder, float radians);
+        protected abstract void PrependRotationRadians(TBuilder b1, float v, Vector2 vector2);
 
         protected virtual void AppendRotationDegrees(TBuilder builder, float degrees) =>
             this.AppendRotationRadians(builder, ImageMaths.DegreesToRadians(degrees));
+
+        protected virtual void AppendRotationDegrees(TBuilder builder, float degrees, Vector2 center) =>
+            this.AppendRotationRadians(builder, ImageMaths.DegreesToRadians(degrees), center);
 
         protected abstract Vector2 Execute(TBuilder builder, Rectangle rectangle, Vector2 sourcePoint);
         

@@ -6,7 +6,6 @@ using Xunit;
 
 namespace SixLabors.Tests.Helpers
 {
-
     public class MathFTests
     {
         [Fact]
@@ -91,18 +90,6 @@ namespace SixLabors.Tests.Helpers
         public void MathF_Sqrt_Is_Equal()
         {
             Assert.Equal(MathF.Sqrt(2F), (float)Math.Sqrt(2F));
-        }
-
-        [Fact]
-        public void Convert_Degree_To_Radian()
-        {
-            Assert.Equal((float)(Math.PI / 2D), MathFExtensions.DegreeToRadian(90F), new FloatRoundingComparer(6));
-        }
-
-        [Fact]
-        public void Convert_Radian_To_Degree()
-        {
-            Assert.Equal(60F, MathFExtensions.RadianToDegree((float)(Math.PI / 3D)), new FloatRoundingComparer(5));
         }
     }
 }

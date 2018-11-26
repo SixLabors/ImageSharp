@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="degrees">The amount of rotation, in degrees.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder PrependRotationDegrees(float degrees)
-            => this.PrependRotationRadians(ImageMaths.DegreesToRadians(degrees));
+            => this.PrependRotationRadians(MathFExtensions.DegreeToRadian(degrees));
 
         /// <summary>
         /// Appends a rotation matrix using the given rotation angle in degrees
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="degrees">The amount of rotation, in degrees.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder AppendRotationDegrees(float degrees)
-            => this.AppendRotationRadians(ImageMaths.DegreesToRadians(degrees));
+            => this.AppendRotationRadians(MathFExtensions.DegreeToRadian(degrees));
 
         /// <summary>
         /// Prepends a scale matrix from the given uniform scale.

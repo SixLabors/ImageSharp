@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage())
             using (var blend = Image.Load<TPixel>(TestFile.Create(TestImages.Bmp.Car).Bytes))
             {
-                AffineTransformBuilder builder = new AffineTransformBuilder(blend.Size())
+                AffineTransformBuilder builder = new AffineTransformBuilder()
                     .AppendCenteredRotationDegrees(45F)
                     .AppendScale(new SizeF(.25F, .25F))
                     .AppendTranslation(new PointF(10, 10));

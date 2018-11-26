@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
@@ -13,34 +14,7 @@ namespace SixLabors.ImageSharp.Processing
     /// </summary>
     public class AffineTransformBuilder
     {
-        private readonly List<Matrix3x2> matrices = new List<Matrix3x2>();
-        private readonly Rectangle sourceRectangle;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="AffineTransformBuilder"/> class.
-        /// </summary>
-        /// <param name="sourceSize">The source image size.</param>
-        public AffineTransformBuilder(Size sourceSize)
-            : this(new Rectangle(Point.Empty, sourceSize))
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="AffineTransformBuilder"/> class.
-        /// </summary>
-        /// <param name="sourceRectangle">The source rectangle.</param>
-        public AffineTransformBuilder(Rectangle sourceRectangle)
-        {
-            Guard.MustBeGreaterThan(sourceRectangle.Width, 0, nameof(sourceRectangle));
-            Guard.MustBeGreaterThan(sourceRectangle.Height, 0, nameof(sourceRectangle));
-
-            this.sourceRectangle = sourceRectangle;
-        }
-
-        /// <summary>
-        /// Gets the source image size.
-        /// </summary>
-        internal Size Size => this.sourceRectangle.Size;
+        private readonly List<Func<Size, Matrix3x2>> matrixFactories = new List<Func<Size, Matrix3x2>>();
 
         /// <summary>
         /// Prepends a centered rotation matrix using the given rotation in radians.
@@ -48,7 +22,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="radians">The amount of rotation, in radians.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder PrependCenteredRotationRadians(float radians)
-            => this.PrependMatrix(TransformUtils.CreateRotationMatrixRadians(radians, this.Size));
+            => this.Prepend(size => TransformUtils.CreateRotationMatrixRadians(radians, size));
 
         /// <summary>
         /// Appends a centered rotation matrix using the given rotation in radians.
@@ -56,7 +30,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="radians">The amount of rotation, in radians.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder AppendCenteredRotationRadians(float radians)
-            => this.AppendMatrix(TransformUtils.CreateRotationMatrixRadians(radians, this.Size));
+            => this.Append(size => TransformUtils.CreateRotationMatrixRadians(radians, size));
 
         /// <summary>
         /// Prepends a centered rotation matrix using the given rotation in degrees.
@@ -129,7 +103,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="degreesY">The Y angle, in degrees.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder PrependSkewDegrees(float degreesX, float degreesY)
-            => this.PrependMatrix(TransformUtils.CreateSkewMatrixDegrees(degreesX, degreesY, this.Size));
+            => this.Prepend(size => TransformUtils.CreateSkewMatrixDegrees(degreesX, degreesY, size));
 
         /// <summary>
         /// Appends a centered skew matrix from the give angles in degrees.
@@ -138,7 +112,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="degreesY">The Y angle, in degrees.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder AppendSkewDegrees(float degreesX, float degreesY)
-            => this.AppendMatrix(TransformUtils.CreateSkewMatrixDegrees(degreesX, degreesY, this.Size));
+            => this.Append(size => TransformUtils.CreateSkewMatrixDegrees(degreesX, degreesY, size));
 
         /// <summary>
         /// Prepends a translation matrix from the given vector.
@@ -179,7 +153,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder PrependMatrix(Matrix3x2 matrix)
         {
-            this.matrices.Insert(0, matrix);
+            this.matrixFactories.Insert(0, _ => matrix);
             return this;
         }
 
@@ -190,35 +164,50 @@ namespace SixLabors.ImageSharp.Processing
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder AppendMatrix(Matrix3x2 matrix)
         {
-            this.matrices.Add(matrix);
+            this.matrixFactories.Add(_ => matrix);
             return this;
         }
 
         /// <summary>
-        /// Returns the combined matrix.
+        /// Returns the combined matrix for a given source size.
         /// </summary>
+        /// <param name="sourceSize">The source image size</param>
         /// <returns>The <see cref="Matrix3x2"/>.</returns>
-        public Matrix3x2 BuildMatrix()
+        public Matrix3x2 BuildMatrix(Size sourceSize) => this.BuildMatrix(new Rectangle(Point.Empty, sourceSize));
+
+        /// <summary>
+        /// Returns the combined matrix for a given source rectangle.
+        /// </summary>
+        /// <param name="sourceRectangle">The rectangle in the source image</param>
+        /// <returns>The <see cref="Matrix3x2"/>.</returns>
+        public Matrix3x2 BuildMatrix(Rectangle sourceRectangle)
         {
-            Matrix3x2 matrix = Matrix3x2.Identity;
+            Guard.MustBeGreaterThan(sourceRectangle.Width, 0, nameof(sourceRectangle));
+            Guard.MustBeGreaterThan(sourceRectangle.Height, 0, nameof(sourceRectangle));
 
             // Translate the origin matrix to cater for source rectangle offsets.
-            if (!this.sourceRectangle.Equals(default))
-            {
-                matrix *= Matrix3x2.CreateTranslation(-this.sourceRectangle.Location);
-            }
+            var matrix = Matrix3x2.CreateTranslation(-sourceRectangle.Location);
 
-            foreach (Matrix3x2 m in this.matrices)
+            Size size = sourceRectangle.Size;
+
+            foreach (Func<Size, Matrix3x2> factory in this.matrixFactories)
             {
-                matrix *= m;
+                matrix *= factory(size);
             }
 
             return matrix;
         }
 
-        /// <summary>
-        /// Removes all matrices from the builder.
-        /// </summary>
-        public void Clear() => this.matrices.Clear();
+        private AffineTransformBuilder Prepend(Func<Size, Matrix3x2> factory)
+        {
+            this.matrixFactories.Insert(0, factory);
+            return this;
+        }
+
+        private AffineTransformBuilder Append(Func<Size, Matrix3x2> factory)
+        {
+            this.matrixFactories.Add(factory);
+            return this;
+        }
     }
 }

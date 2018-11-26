@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Numerics;
+
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.ParallelUtils;
@@ -34,11 +36,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="sampler">The sampler to perform the rotating operation.</param>
         /// <param name="sourceSize">The source image size</param>
         public RotateProcessor(float degrees, IResampler sampler, Size sourceSize)
-            : base(
+            : this(
                  TransformUtils.CreateRotationMatrixDegrees(degrees, sourceSize),
                  sampler,
                  sourceSize)
             => this.Degrees = degrees;
+
+        // Helper constructor
+        private RotateProcessor(Matrix3x2 rotationMatrix, IResampler sampler, Size sourceSize)
+            : base(rotationMatrix, sampler, TransformUtils.GetTransformedSize(sourceSize, rotationMatrix))
+        {
+        }
 
         /// <summary>
         /// Gets the angle of rotation in degrees.

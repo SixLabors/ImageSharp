@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Collections.Generic;
 using System.Numerics;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
@@ -115,7 +114,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="degrees">The amount of rotation, in degrees.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public ProjectiveTransformBuilder PrependCenteredRotationDegrees(float degrees)
-            => this.PrependRotationRadians(ImageMaths.DegreesToRadians(degrees));
+            => this.PrependRotationRadians(MathFExtensions.DegreeToRadian(degrees));
 
         /// <summary>
         /// Appends a centered rotation matrix using the given rotation in degrees.
@@ -123,7 +122,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="degrees">The amount of rotation, in degrees.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public ProjectiveTransformBuilder AppendRotationDegrees(float degrees)
-            => this.AppendRotationRadians(ImageMaths.DegreesToRadians(degrees));
+            => this.AppendRotationRadians(MathFExtensions.DegreeToRadian(degrees));
 
         /// <summary>
         /// Prepends a scale matrix from the given uniform scale.

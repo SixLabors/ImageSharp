@@ -125,19 +125,7 @@ namespace SixLabors.ImageSharp
         /// <paramref name="m"/> should be power of 2.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int ModuloP2(int x, int m)
-        {
-            return x & (m - 1);
-        }
-
-        /// <summary>
-        /// Converts degrees to radians
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static float DegreesToRadians(float degrees)
-        {
-            return degrees * ((float)Math.PI / 180f);
-        }
+        public static int ModuloP2(int x, int m) => x & (m - 1);
 
         /// <summary>
         /// Returns the absolute value of a 32-bit signed integer. Uses bit shifting to speed up the operation.

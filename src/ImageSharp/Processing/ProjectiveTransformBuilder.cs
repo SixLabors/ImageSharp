@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
@@ -67,7 +68,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="radians">The amount of rotation, in radians.</param>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
-        public ProjectiveTransformBuilder PrependCenteredRotationRadians(float radians)
+        public ProjectiveTransformBuilder PrependRotationRadians(float radians)
         {
             var m = new Matrix4x4(TransformUtils.CreateRotationMatrixRadians(radians, this.Size));
             return this.PrependMatrix(m);
@@ -78,9 +79,33 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="radians">The amount of rotation, in radians.</param>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
-        public ProjectiveTransformBuilder AppendCenteredRotationRadians(float radians)
+        public ProjectiveTransformBuilder AppendRotationRadians(float radians)
         {
             var m = new Matrix4x4(TransformUtils.CreateRotationMatrixRadians(radians, this.Size));
+            return this.AppendMatrix(m);
+        }
+
+        /// <summary>
+        /// Appends a centered rotation matrix using the given rotation in radians.
+        /// </summary>
+        /// <param name="radians">The amount of rotation, in radians.</param>
+        /// <param name="centerPoint">The rotation center.</param>
+        /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
+        internal ProjectiveTransformBuilder PrependRotationRadians(float radians, Vector2 centerPoint)
+        {
+            var m = Matrix4x4.CreateRotationZ(radians, new Vector3(centerPoint, 0));
+            return this.PrependMatrix(m);
+        }
+
+        /// <summary>
+        /// Appends a centered rotation matrix using the given rotation in radians.
+        /// </summary>
+        /// <param name="radians">The amount of rotation, in radians.</param>
+        /// <param name="centerPoint">The rotation center.</param>
+        /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
+        internal ProjectiveTransformBuilder AppendRotationRadians(float radians, Vector2 centerPoint)
+        {
+            var m = Matrix4x4.CreateRotationZ(radians, new Vector3(centerPoint, 0));
             return this.AppendMatrix(m);
         }
 
@@ -90,15 +115,15 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="degrees">The amount of rotation, in degrees.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public ProjectiveTransformBuilder PrependCenteredRotationDegrees(float degrees)
-            => this.PrependCenteredRotationRadians(ImageMaths.DegreesToRadians(degrees));
+            => this.PrependRotationRadians(ImageMaths.DegreesToRadians(degrees));
 
         /// <summary>
         /// Appends a centered rotation matrix using the given rotation in degrees.
         /// </summary>
         /// <param name="degrees">The amount of rotation, in degrees.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
-        public ProjectiveTransformBuilder AppendCenteredRotationDegrees(float degrees)
-            => this.AppendCenteredRotationRadians(ImageMaths.DegreesToRadians(degrees));
+        public ProjectiveTransformBuilder AppendRotationDegrees(float degrees)
+            => this.AppendRotationRadians(ImageMaths.DegreesToRadians(degrees));
 
         /// <summary>
         /// Prepends a scale matrix from the given uniform scale.

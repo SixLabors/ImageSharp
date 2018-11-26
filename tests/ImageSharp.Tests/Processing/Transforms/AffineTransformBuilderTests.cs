@@ -12,30 +12,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
     public class AffineTransformBuilderTests : TransformBuilderTestBase<AffineTransformBuilder>
     {
-        [Fact]
-        public void ConstructorAssignsProperties()
-        {
-            var s = new Size(1, 1);
-            var builder = new AffineTransformBuilder(new Rectangle(Point.Empty, s));
-            Assert.Equal(s, builder.Size);
-        }
-
-        [Fact]
-        public void ConstructorThrowsInvalid()
-        {
-            Assert.Throws<ArgumentOutOfRangeException>(() =>
-                {
-                    var s = new Size(0, 1);
-                    var builder = new AffineTransformBuilder(new Rectangle(Point.Empty, s));
-                });
-
-            Assert.Throws<ArgumentOutOfRangeException>(() =>
-                {
-                    var s = new Size(1, 0);
-                    var builder = new AffineTransformBuilder(new Rectangle(Point.Empty, s));
-                });
-        }
-
         protected override void AppendTranslation(AffineTransformBuilder builder, PointF translate) => builder.AppendTranslation(translate);
         protected override void AppendScale(AffineTransformBuilder builder, SizeF scale) => builder.AppendScale(scale);
         protected override void AppendRotationRadians(AffineTransformBuilder builder, float radians) => builder.AppendCenteredRotationRadians(radians);
@@ -44,12 +20,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         protected override void PrependScale(AffineTransformBuilder builder, SizeF scale) => builder.PrependScale(scale);
         protected override void PrependRotationRadians(AffineTransformBuilder builder, float radians) => builder.PrependCenteredRotationRadians(radians);
 
+        protected override AffineTransformBuilder CreateBuilder(Rectangle rectangle) => new AffineTransformBuilder();
+
         protected override Vector2 Execute(
             AffineTransformBuilder builder,
             Rectangle rectangle,
             Vector2 sourcePoint)
         {
-            Matrix3x2 matrix = builder.BuildMatrix();
+            Matrix3x2 matrix = builder.BuildMatrix(rectangle);
             return Vector2.Transform(sourcePoint, matrix);
         }
     }

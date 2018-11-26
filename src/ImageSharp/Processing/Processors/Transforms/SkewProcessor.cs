@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Numerics;
+
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -32,13 +34,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="sampler">The sampler to perform the skew operation.</param>
         /// <param name="sourceSize">The source image size</param>
         public SkewProcessor(float degreesX, float degreesY, IResampler sampler, Size sourceSize)
-            : base(
+            : this(
                  TransformUtils.CreateSkewMatrixDegrees(degreesX, degreesY, sourceSize),
                  sampler,
                  sourceSize)
         {
             this.DegreesX = degreesX;
             this.DegreesY = degreesY;
+        }
+
+        // Helper constructor:
+        private SkewProcessor(Matrix3x2 skewMatrix, IResampler sampler, Size sourceSize)
+            : base(skewMatrix, sampler, TransformUtils.GetTransformedSize(sourceSize, skewMatrix))
+        {
         }
 
         /// <summary>

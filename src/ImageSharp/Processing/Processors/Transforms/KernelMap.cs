@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.periodicRegionMin = period + radius;
             this.periodicRegionMax = destinationSize - radius;
 
-            int width = radius * 2;
+            int width = (radius * 2) + 1;
             this.data = memoryAllocator.Allocate2D<float>(width, destinationSize, AllocationOptions.Clean);
             this.kernels = new ResizeKernel[destinationSize];
         }
@@ -141,8 +141,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         private ResizeKernel CreateKernel(int destIdx, int left, int rightIdx)
         {
-            int flatStartIndex = destIdx * this.data.Width;
             int length = rightIdx - left + 1;
+
+            if (length > this.data.Width)
+            {
+                throw new InvalidOperationException($"Error in KernelMap.CreateKernel({destIdx},{left},{rightIdx}): left > this.data.Width");
+            }
+
+            int flatStartIndex = destIdx * this.data.Width;
+
             Memory<float> bufferSlice = this.data.Memory.Slice(flatStartIndex, length);
             return new ResizeKernel(left, bufferSlice);
         }

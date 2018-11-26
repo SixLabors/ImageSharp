@@ -60,25 +60,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         {
             foreach (string resamplerName in ResamplerNames)
             {
-                IResampler sampler = GetResampler(resamplerName);
+                IResampler sampler = TestUtils.GetResampler(resamplerName);
                 using (Image<TPixel> image = provider.GetImage())
                 {
                     image.Mutate(i => i.Skew(x, y, sampler));
                     image.DebugSave(provider, string.Join("_", x, y, resamplerName));
                 }
             }
-        }
-
-        private static IResampler GetResampler(string name)
-        {
-            PropertyInfo property = typeof(KnownResamplers).GetTypeInfo().GetProperty(name);
-
-            if (property is null)
-            {
-                throw new Exception($"No resampler named '{name}");
-            }
-
-            return (IResampler)property.GetValue(null);
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -40,25 +41,22 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             { nameof(KnownResamplers.Lanczos3), 9, 12 },
             { nameof(KnownResamplers.Lanczos3), 6, 8 },
             { nameof(KnownResamplers.Lanczos3), 8, 6 },
-
-            // TODO: What's wrong here:
             { nameof(KnownResamplers.Lanczos3), 20, 12 },
 
-            {nameof(KnownResamplers.Lanczos8), 500, 200 },
-            {nameof(KnownResamplers.Lanczos8), 100, 10 },
-            {nameof(KnownResamplers.Lanczos8), 100, 80 },
-            {nameof(KnownResamplers.Lanczos8), 10, 100 },
+            { nameof(KnownResamplers.Lanczos8), 500, 200 },
+            { nameof(KnownResamplers.Lanczos8), 100, 10 },
+            { nameof(KnownResamplers.Lanczos8), 100, 80 },
+            { nameof(KnownResamplers.Lanczos8), 10, 100 },
         };
 
         [Theory]
         [MemberData(nameof(KernelMapData))]
         public void KernelMapContentIsCorrect(string resamplerName, int srcSize, int destSize)
         {
-            var resampler = (IResampler)typeof(KnownResamplers).GetProperty(resamplerName).GetValue(null);
-            
-            var kernelMap = KernelMap.Calculate(resampler, destSize, srcSize, Configuration.Default.MemoryAllocator);
+            IResampler resampler = TestUtils.GetResampler(resamplerName);
 
             var referenceMap = ReferenceKernelMap.Calculate(resampler, destSize, srcSize);
+            var kernelMap = KernelMap.Calculate(resampler, destSize, srcSize, Configuration.Default.MemoryAllocator);
 
 #if DEBUG
             this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");

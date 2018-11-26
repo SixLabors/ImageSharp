@@ -3,8 +3,6 @@
 
 using System;
 using System.Numerics;
-
-using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.Primitives;
 
@@ -128,7 +126,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             var centerPoint = new Vector2(cx, cy);
             this.AppendRotationDegrees(builder, deg, centerPoint);
 
-            var matrix = Matrix3x2.CreateRotation(ImageMaths.DegreesToRadians(deg), centerPoint);
+            var matrix = Matrix3x2.CreateRotation(GeometryUtilities.DegreeToRadian(deg), centerPoint);
 
             var position = new Vector2(x, y);
             var expected = Vector2.Transform(position, matrix);
@@ -195,13 +193,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         protected abstract void PrependRotationRadians(TBuilder b1, float v, Vector2 vector2);
 
         protected virtual void AppendRotationDegrees(TBuilder builder, float degrees) =>
-            this.AppendRotationRadians(builder, ImageMaths.DegreesToRadians(degrees));
+            this.AppendRotationRadians(builder, GeometryUtilities.DegreeToRadian(degrees));
 
         protected virtual void AppendRotationDegrees(TBuilder builder, float degrees, Vector2 center) =>
-            this.AppendRotationRadians(builder, ImageMaths.DegreesToRadians(degrees), center);
+            this.AppendRotationRadians(builder, GeometryUtilities.DegreeToRadian(degrees), center);
 
         protected abstract Vector2 Execute(TBuilder builder, Rectangle rectangle, Vector2 sourcePoint);
-        
+
         private static float Sqrt(float a) => (float)Math.Sqrt(a);
     }
 }

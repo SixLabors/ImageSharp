@@ -55,7 +55,7 @@ namespace SixLabors.Primitives
         /// <param name="degreesX">The X angle, in degrees.</param>
         /// <param name="degreesY">The Y angle, in degrees.</param>
         /// <returns>A skew matrix.</returns>
-        public static Matrix3x2 CreateSkewDegrees(float degreesX, float degreesY) => Matrix3x2.CreateSkew(MathFExtensions.DegreeToRadian(degreesX), MathFExtensions.DegreeToRadian(degreesY));
+        public static Matrix3x2 CreateSkewDegrees(float degreesX, float degreesY) => Matrix3x2.CreateSkew(GeometryUtilities.DegreeToRadian(degreesX), GeometryUtilities.DegreeToRadian(degreesY));
 
         /// <summary>
         /// Creates a skew matrix from the given angles in radians and a center point.
@@ -73,14 +73,14 @@ namespace SixLabors.Primitives
         /// <param name="degreesY">The Y angle, in degrees.</param>
         /// <param name="centerPoint">The center point.</param>
         /// <returns>A skew matrix.</returns>
-        public static Matrix3x2 CreateSkewDegrees(float degreesX, float degreesY, PointF centerPoint) => Matrix3x2.CreateSkew(MathFExtensions.DegreeToRadian(degreesX), MathFExtensions.DegreeToRadian(degreesY), centerPoint);
+        public static Matrix3x2 CreateSkewDegrees(float degreesX, float degreesY, PointF centerPoint) => Matrix3x2.CreateSkew(GeometryUtilities.DegreeToRadian(degreesX), GeometryUtilities.DegreeToRadian(degreesY), centerPoint);
 
         /// <summary>
         /// Creates a rotation matrix using the given rotation in degrees.
         /// </summary>
         /// <param name="degrees">The amount of rotation, in degrees.</param>
         /// <returns>A rotation matrix.</returns>
-        public static Matrix3x2 CreateRotationDegrees(float degrees) => Matrix3x2.CreateRotation(MathFExtensions.DegreeToRadian(degrees));
+        public static Matrix3x2 CreateRotationDegrees(float degrees) => Matrix3x2.CreateRotation(GeometryUtilities.DegreeToRadian(degrees));
 
         /// <summary>
         /// Creates a rotation matrix using the given rotation in radians and a center point.
@@ -96,6 +96,6 @@ namespace SixLabors.Primitives
         /// <param name="degrees">The amount of rotation, in degrees.</param>
         /// <param name="centerPoint">The center point.</param>
         /// <returns>A rotation matrix.</returns>
-        public static Matrix3x2 CreateRotationDegrees(float degrees, PointF centerPoint) => Matrix3x2.CreateRotation(MathFExtensions.DegreeToRadian(degrees), centerPoint);
+        public static Matrix3x2 CreateRotationDegrees(float degrees, PointF centerPoint) => Matrix3x2.CreateRotation(GeometryUtilities.DegreeToRadian(degrees), centerPoint);
     }
 }

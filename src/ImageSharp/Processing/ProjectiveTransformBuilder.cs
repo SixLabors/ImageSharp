@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="corner">An enumeration that indicates on which corners to taper the rectangle.</param>
         /// <param name="fraction">The amount to taper.</param>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
-        public ProjectiveTransformBuilder PrependTaperMatrix(TaperSide side, TaperCorner corner, float fraction)
+        public ProjectiveTransformBuilder PrependTaper(TaperSide side, TaperCorner corner, float fraction)
             => this.PrependMatrix(TransformUtils.CreateTaperMatrix(this.Size, side, corner, fraction));
 
         /// <summary>
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="corner">An enumeration that indicates on which corners to taper the rectangle.</param>
         /// <param name="fraction">The amount to taper.</param>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
-        public ProjectiveTransformBuilder AppendTaperMatrix(TaperSide side, TaperCorner corner, float fraction)
+        public ProjectiveTransformBuilder AppendTaper(TaperSide side, TaperCorner corner, float fraction)
             => this.AppendMatrix(TransformUtils.CreateTaperMatrix(this.Size, side, corner, fraction));
 
         /// <summary>

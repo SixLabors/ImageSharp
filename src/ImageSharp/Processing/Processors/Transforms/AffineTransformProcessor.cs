@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Guard.NotNull(sampler, nameof(sampler));
             this.Sampler = sampler;
             this.TransformMatrix = matrix;
-            this.TargetDimensions = targetDimensions;;
+            this.TargetDimensions = targetDimensions;
         }
 
         /// <summary>

@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             IResampler resampler = TestUtils.GetResampler(resamplerName);
 
             var referenceMap = ReferenceKernelMap.Calculate(resampler, destSize, srcSize);
-            var kernelMap = KernelMap.Calculate(resampler, destSize, srcSize, Configuration.Default.MemoryAllocator);
+            var kernelMap = ResizeKernelMap.Calculate(resampler, destSize, srcSize, Configuration.Default.MemoryAllocator);
 
 #if DEBUG
             this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             }
         }
 
-        private static string PrintKernelMap(KernelMap kernelMap) =>
+        private static string PrintKernelMap(ResizeKernelMap kernelMap) =>
             PrintKernelMap(kernelMap, km => km.DestinationSize, (km, i) => km.GetKernel(i));
 
         private static string PrintKernelMap(ReferenceKernelMap kernelMap) =>

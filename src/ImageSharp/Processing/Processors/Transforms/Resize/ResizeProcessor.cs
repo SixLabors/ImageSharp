@@ -27,8 +27,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         where TPixel : struct, IPixel<TPixel>
     {
         // The following fields are not immutable but are optionally created on demand.
-        private KernelMap horizontalKernelMap;
-        private KernelMap verticalKernelMap;
+        private ResizeKernelMap horizontalKernelMap;
+        private ResizeKernelMap verticalKernelMap;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ResizeProcessor{TPixel}"/> class.
@@ -165,13 +165,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 // Since all image frame dimensions have to be the same we can calculate this for all frames.
                 MemoryAllocator memoryAllocator = source.GetMemoryAllocator();
-                this.horizontalKernelMap = KernelMap.Calculate(
+                this.horizontalKernelMap = ResizeKernelMap.Calculate(
                     this.Sampler,
                     this.ResizeRectangle.Width,
                     sourceRectangle.Width,
                     memoryAllocator);
 
-                this.verticalKernelMap = KernelMap.Calculate(
+                this.verticalKernelMap = ResizeKernelMap.Calculate(
                     this.Sampler,
                     this.ResizeRectangle.Height,
                     sourceRectangle.Height,

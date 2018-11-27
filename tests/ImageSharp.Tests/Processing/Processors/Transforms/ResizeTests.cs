@@ -58,6 +58,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             }
         }
 
+        // TODO: Merge with the previous theory + add test images
         [Theory]
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32, nameof(KnownResamplers.Bicubic), 1)]
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32, nameof(KnownResamplers.Bicubic), 10)]

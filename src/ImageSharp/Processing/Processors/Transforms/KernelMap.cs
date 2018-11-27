@@ -15,28 +15,38 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// </summary>
     internal class KernelMap : IDisposable
     {
+        private readonly IResampler sampler;
+
+        private readonly int sourceSize;
+
+        private readonly float ratio;
+
+        private readonly float scale;
+
+        private readonly int radius;
+
         private readonly Buffer2D<float> data;
 
         private readonly ResizeKernel[] kernels;
 
-        private int period;
-
-        private int radius;
-
-        private int periodicRegionMin;
-
-        private int periodicRegionMax;
-
-        private KernelMap(MemoryAllocator memoryAllocator, int destinationSize, int radius, int period)
+        private KernelMap(
+            MemoryAllocator memoryAllocator,
+            IResampler sampler,
+            int sourceSize,
+            int destinationSize,
+            int bufferHeight,
+            float ratio,
+            float scale,
+            int radius)
         {
-            this.DestinationSize = destinationSize;
-            this.period = period;
+            this.sampler = sampler;
+            this.ratio = ratio;
+            this.scale = scale;
             this.radius = radius;
-            this.periodicRegionMin = period + radius;
-            this.periodicRegionMax = destinationSize - radius;
-
-            int width = (radius * 2) + 1;
-            this.data = memoryAllocator.Allocate2D<float>(width, destinationSize, AllocationOptions.Clean);
+            this.sourceSize = sourceSize;
+            this.DestinationSize = destinationSize;
+            int maxWidth = (radius * 2) + 1;
+            this.data = memoryAllocator.Allocate2D<float>(maxWidth, bufferHeight, AllocationOptions.Clean);
             this.kernels = new ResizeKernel[destinationSize];
         }
 
@@ -79,61 +89,69 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
 
             int period = ImageMaths.LeastCommonMultiple(sourceSize, destinationSize) / sourceSize;
-
             int radius = (int)MathF.Ceiling(scale * sampler.Radius);
-            var result = new KernelMap(memoryAllocator, destinationSize, radius, period);
 
-            for (int i = 0; i < destinationSize; i++)
+            var result = new KernelMap(
+                memoryAllocator,
+                sampler,
+                sourceSize,
+                destinationSize,
+                destinationSize,
+                ratio,
+                scale,
+                radius);
+
+            result.BasicInit();
+
+            return result;
+        }
+
+        private void BasicInit()
+        {
+            for (int i = 0; i < this.DestinationSize; i++)
             {
-                float center = ((i + .5F) * ratio) - .5F;
+                float center = ((i + .5F) * this.ratio) - .5F;
 
                 // Keep inside bounds.
-                int left = (int)MathF.Ceiling(center - radius);
+                int left = (int)MathF.Ceiling(center - this.radius);
                 if (left < 0)
                 {
                     left = 0;
                 }
 
-                int right = (int)MathF.Floor(center + radius);
-                if (right > sourceSize - 1)
+                int right = (int)MathF.Floor(center + this.radius);
+                if (right > this.sourceSize - 1)
                 {
-                    right = sourceSize - 1;
+                    right = this.sourceSize - 1;
                 }
 
                 float sum = 0;
 
-                ResizeKernel ws = result.CreateKernel(i, left, right);
-                result.kernels[i] = ws;
+                ResizeKernel kernel = this.CreateKernel(i, left, right);
+                this.kernels[i] = kernel;
 
-                ref float weightsBaseRef = ref MemoryMarshal.GetReference(ws.GetValues());
+                ref float kernelBaseRef = ref MemoryMarshal.GetReference(kernel.GetValues());
 
                 for (int j = left; j <= right; j++)
                 {
-                    float weight = sampler.GetValue((j - center) / scale);
-                    sum += weight;
+                    float value = this.sampler.GetValue((j - center) / this.scale);
+                    sum += value;
 
                     // weights[j - left] = weight:
-                    Unsafe.Add(ref weightsBaseRef, j - left) = weight;
+                    Unsafe.Add(ref kernelBaseRef, j - left) = value;
                 }
 
                 // Normalize, best to do it here rather than in the pixel loop later on.
                 if (sum > 0)
                 {
-                    for (int w = 0; w < ws.Length; w++)
+                    for (int w = 0; w < kernel.Length; w++)
                     {
                         // weights[w] = weights[w] / sum:
-                        ref float wRef = ref Unsafe.Add(ref weightsBaseRef, w);
-                        wRef /= sum;
+                        ref float kRef = ref Unsafe.Add(ref kernelBaseRef, w);
+                        kRef /= sum;
                     }
                 }
             }
-
-            return result;
-        }
-
-        private int ReduceIndex(int destIndex)
-        {
-            return destIndex;
         }
 
         /// <summary>

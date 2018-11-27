@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
             public ReferenceKernel GetKernel(int destinationIndex) => this.kernels[destinationIndex];
 
-            public static ReferenceKernelMap Calculate(IResampler sampler, int destinationSize, int sourceSize)
+            public static ReferenceKernelMap Calculate(IResampler sampler, int destinationSize, int sourceSize, bool normalize = true)
             {
                 float ratio = (float)sourceSize / destinationSize;
                 float scale = ratio;
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
                     result.Add(new ReferenceKernel(left, values));
 
-                    if (sum > 0)
+                    if (sum > 0 && normalize)
                     {
                         for (int w = 0; w < values.Length; w++)
                         {

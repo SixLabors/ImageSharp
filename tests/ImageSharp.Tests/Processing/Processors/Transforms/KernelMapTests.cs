@@ -35,6 +35,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             { nameof(KnownResamplers.Bicubic), 500, 200 },
             { nameof(KnownResamplers.Bicubic), 200, 500 },
 
+            { nameof(KnownResamplers.Bicubic), 10, 25 },
+
             { nameof(KnownResamplers.Lanczos3), 16, 12 },
             { nameof(KnownResamplers.Lanczos3), 12, 16 },
             { nameof(KnownResamplers.Lanczos3), 12, 9 },
@@ -43,11 +45,25 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             { nameof(KnownResamplers.Lanczos3), 8, 6 },
             { nameof(KnownResamplers.Lanczos3), 20, 12 },
 
+            { nameof(KnownResamplers.Lanczos3), 5, 25 },
+            { nameof(KnownResamplers.Lanczos3), 5, 50 },
+
             { nameof(KnownResamplers.Lanczos8), 500, 200 },
             { nameof(KnownResamplers.Lanczos8), 100, 10 },
             { nameof(KnownResamplers.Lanczos8), 100, 80 },
             { nameof(KnownResamplers.Lanczos8), 10, 100 },
         };
+
+        [Theory]
+        [MemberData(nameof(KernelMapData))]
+        public void PrintNonNormalizedKernelMap(string resamplerName, int srcSize, int destSize)
+        {
+            IResampler resampler = TestUtils.GetResampler(resamplerName);
+
+            var kernelMap = ReferenceKernelMap.Calculate(resampler, destSize, srcSize, false);
+
+            this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");
+        }
 
         [Theory]
         [MemberData(nameof(KernelMapData))]
@@ -60,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
 #if DEBUG
             this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");
-            this.Output.WriteLine($"Reference KernelMap:\n{PrintKernelMap(referenceMap)}\n");
+            // this.Output.WriteLine($"Reference KernelMap:\n{PrintKernelMap(referenceMap)}\n");
 #endif
 
             for (int i = 0; i < kernelMap.DestinationSize; i++)

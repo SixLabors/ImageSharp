@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
 
 using Xunit;
+// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
@@ -20,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.07F);
         
-        public static readonly TheoryData<string, IResampler> AllReSamplers =
+        public static readonly TheoryData<string, IResampler> AllResamplers =
             new TheoryData<string, IResampler>
             {
                 { "Bicubic", KnownResamplers.Bicubic },
@@ -40,9 +41,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             };
 
         [Theory]
-        [WithTestPatternImages(nameof(AllReSamplers), 100, 100, DefaultPixelType, 0.5f)]
-        [WithFileCollection(nameof(CommonTestImages), nameof(AllReSamplers), DefaultPixelType, 0.5f)]
-        [WithFileCollection(nameof(CommonTestImages), nameof(AllReSamplers), DefaultPixelType, 0.3f)]
+        [WithTestPatternImages(nameof(AllResamplers), 100, 100, DefaultPixelType, 0.5f)]
+        [WithFileCollection(nameof(CommonTestImages), nameof(AllResamplers), DefaultPixelType, 0.5f)]
+        [WithFileCollection(nameof(CommonTestImages), nameof(AllResamplers), DefaultPixelType, 0.3f)]
         public void Resize_WorksWithAllResamplers<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler, float ratio)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -54,6 +55,28 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
                 image.DebugSave(provider, details);
                 image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.02f), provider, details);
+            }
+        }
+
+        [Theory]
+        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, nameof(KnownResamplers.Bicubic), 1)]
+        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, nameof(KnownResamplers.Bicubic), 10)]
+        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, nameof(KnownResamplers.Lanczos3), 10)]
+        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, nameof(KnownResamplers.Lanczos8), 10)]
+        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, nameof(KnownResamplers.NearestNeighbor), 10)]
+        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, nameof(KnownResamplers.NearestNeighbor), 1)]
+        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, nameof(KnownResamplers.NearestNeighbor), 5)]
+        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, nameof(KnownResamplers.Bicubic), 5)]
+        public void ScaleUp<TPixel>(TestImageProvider<TPixel> provider, string samplerName, float ratio)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                SizeF newSize = image.Size() * ratio;
+                image.Mutate(x => x.Resize((Size)newSize, TestUtils.GetResampler(samplerName), false));
+                FormattableString details = $"{samplerName}_{ratio.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+
+                image.DebugSave(provider, details);
             }
         }
 

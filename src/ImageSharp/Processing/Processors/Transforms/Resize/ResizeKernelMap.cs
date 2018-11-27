@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -11,9 +12,10 @@ using SixLabors.Memory;
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
     /// <summary>
-    /// Holds the <see cref="ResizeKernel"/> values in an optimized contigous memory region.
+    /// Provides <see cref="ResizeKernel"/> values from an optimized,
+    /// contigous memory region.
     /// </summary>
-    internal class KernelMap : IDisposable
+    internal partial class ResizeKernelMap : IDisposable
     {
         private readonly IResampler sampler;
 
@@ -25,11 +27,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly int radius;
 
+        private readonly MemoryHandle pinHandle;
+
         private readonly Buffer2D<float> data;
 
         private readonly ResizeKernel[] kernels;
 
-        private KernelMap(
+        private ResizeKernelMap(
             MemoryAllocator memoryAllocator,
             IResampler sampler,
             int sourceSize,
@@ -47,16 +51,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.DestinationSize = destinationSize;
             int maxWidth = (radius * 2) + 1;
             this.data = memoryAllocator.Allocate2D<float>(maxWidth, bufferHeight, AllocationOptions.Clean);
+            this.pinHandle = this.data.Memory.Pin();
             this.kernels = new ResizeKernel[destinationSize];
         }
 
         public int DestinationSize { get; }
 
         /// <summary>
-        /// Disposes <see cref="KernelMap"/> instance releasing it's backing buffer.
+        /// Disposes <see cref="ResizeKernelMap"/> instance releasing it's backing buffer.
         /// </summary>
         public void Dispose()
         {
+            this.pinHandle.Dispose();
             this.data.Dispose();
         }
 
@@ -73,8 +79,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="destinationSize">The destination size</param>
         /// <param name="sourceSize">The source size</param>
         /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations</param>
-        /// <returns>The <see cref="KernelMap"/></returns>
-        public static KernelMap Calculate(
+        /// <returns>The <see cref="ResizeKernelMap"/></returns>
+        public static ResizeKernelMap Calculate(
             IResampler sampler,
             int destinationSize,
             int sourceSize,
@@ -88,25 +94,40 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 scale = 1F;
             }
 
-            int period = ImageMaths.LeastCommonMultiple(sourceSize, destinationSize) / sourceSize;
             int radius = (int)MathF.Ceiling(scale * sampler.Radius);
+            int period = ImageMaths.LeastCommonMultiple(sourceSize, destinationSize) / sourceSize;
+            float center0 = (ratio - 1) * 0.5f;
+            int cornerInterval = (int)MathF.Ceiling((radius - center0 - 1) / ratio);
 
-            var result = new KernelMap(
-                memoryAllocator,
-                sampler,
-                sourceSize,
-                destinationSize,
-                destinationSize,
-                ratio,
-                scale,
-                radius);
+            bool useMosaic = 2 * (cornerInterval + period) < destinationSize;
 
-            result.BasicInit();
+            ResizeKernelMap result = useMosaic
+                             ? new ResizeKernelMap(
+                                 memoryAllocator,
+                                 sampler,
+                                 sourceSize,
+                                 destinationSize,
+                                 destinationSize,
+                                 ratio,
+                                 scale,
+                                 radius)
+                             : new MosaicKernelMap(
+                                 memoryAllocator,
+                                 sampler,
+                                 sourceSize,
+                                 destinationSize,
+                                 ratio,
+                                 scale,
+                                 radius,
+                                 period,
+                                 cornerInterval);
+
+            result.Init();
 
             return result;
         }
 
-        private void BasicInit()
+        protected virtual void Init()
         {
             for (int i = 0; i < this.DestinationSize; i++)
             {
@@ -157,7 +178,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// Slices a weights value at the given positions.
         /// </summary>
-        private ResizeKernel CreateKernel(int destIdx, int left, int rightIdx)
+        private unsafe ResizeKernel CreateKernel(int destIdx, int left, int rightIdx)
         {
             int length = rightIdx - left + 1;
 
@@ -166,10 +187,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 throw new InvalidOperationException($"Error in KernelMap.CreateKernel({destIdx},{left},{rightIdx}): left > this.data.Width");
             }
 
-            int flatStartIndex = destIdx * this.data.Width;
+            Span<float> rowSpan = this.data.GetRowSpan(destIdx);
 
-            Memory<float> bufferSlice = this.data.Memory.Slice(flatStartIndex, length);
-            return new ResizeKernel(left, bufferSlice);
+            ref float rowReference = ref MemoryMarshal.GetReference(rowSpan);
+            float* rowPtr = (float*)Unsafe.AsPointer(ref rowReference);
+            return new ResizeKernel(left, rowPtr, length);
         }
     }
 }

@@ -186,7 +186,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
         protected abstract void AppendRotationRadians(TBuilder builder, float radians);
 
-        protected abstract void AppendRotationRadians(TBuilder builder, float radians, Vector2 center);
+        protected abstract void AppendRotationRadians(TBuilder builder, float radians, Vector2 origin);
 
         protected abstract void PrependTranslation(TBuilder builder, PointF translate);
 
@@ -196,11 +196,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
         protected abstract void PrependRotationRadians(TBuilder builder, float radians, Vector2 origin);
 
-        protected virtual void AppendRotationDegrees(TBuilder builder, float degrees) =>
-            this.AppendRotationRadians(builder, GeometryUtilities.DegreeToRadian(degrees));
+        protected abstract void AppendRotationDegrees(TBuilder builder, float degrees);
 
-        protected virtual void AppendRotationDegrees(TBuilder builder, float degrees, Vector2 center) =>
-            this.AppendRotationRadians(builder, GeometryUtilities.DegreeToRadian(degrees), center);
+        protected abstract void AppendRotationDegrees(TBuilder builder, float degrees, Vector2 origin);
 
         protected abstract Vector2 Execute(TBuilder builder, Rectangle rectangle, Vector2 sourcePoint);
     }

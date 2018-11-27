@@ -20,6 +20,11 @@
 
 * Do not open an issue on GitHub until you have collected positive feedback about the change. GitHub issues are primarily intended for bug reports and fixes.
 
+#### **Running tests and Debugging**
+
+* Expected test output is pulled in as a submodule from the [ImageSharp.Tests.Images repository](https://github.com/SixLabors/Imagesharp.Tests.Images/tree/master/ReferenceOutput). To succesfully run tests, make sure that you have updated the submodules!
+* Debugging (running tests in Debug mode) is only supported on .NET Core 2.1, because of JIT Code Generation bugs like dotnet/coreclr#16443 or dotnet/coreclr#20657
+
 #### **Do you have questions about consuming the library or the source code?**
 
 * Ask any question about how to use ImageSharp in the [ImageSharp Gitter Chat Room](https://gitter.im/ImageSharp/General).

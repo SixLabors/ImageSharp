@@ -65,14 +65,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // Handle tranforms that result in output identical to the original.
             if (this.TransformMatrix.Equals(default) || this.TransformMatrix.Equals(Matrix4x4.Identity))
             {
-                // The cloned will be blank here copy all the pixel data over
+                // The clone will be blank here copy all the pixel data over
                 source.GetPixelSpan().CopyTo(destination.GetPixelSpan());
                 return;
             }
 
-            int height = this.TargetDimensions.Height;
             int width = this.TargetDimensions.Width;
-
             var targetBounds = new Rectangle(Point.Empty, this.TargetDimensions);
 
             // Convert from screen to world space.
@@ -129,7 +127,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                             {
                                 // Use the single precision position to calculate correct bounding pixels
                                 // otherwise we get rogue pixels outside of the bounds.
-                                var v3 = Vector3.Transform(new Vector3(x, y, 1), matrix);
+                                var v3 = Vector3.Transform(new Vector3(x, y, 1F), matrix);
                                 Vector2 point = new Vector2(v3.X, v3.Y) / MathF.Max(v3.Z, Epsilon);
 
                                 kernel.Convolve(point, x, ref ySpanRef, ref xSpanRef, source.PixelBuffer, vectorSpan);

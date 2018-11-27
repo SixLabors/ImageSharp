@@ -24,13 +24,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         /// <param name="matrix">The transform matrix.</param>
         /// <param name="sampler">The sampler to perform the transform operation.</param>
-        /// <param name="sourceSize">The source image size.</param>
-        public ProjectiveTransformProcessor(Matrix4x4 matrix, IResampler sampler, Size sourceSize)
+        /// <param name="targetDimensions">The target dimensions.</param>
+        public ProjectiveTransformProcessor(Matrix4x4 matrix, IResampler sampler, Size targetDimensions)
         {
             Guard.NotNull(sampler, nameof(sampler));
             this.Sampler = sampler;
             this.TransformMatrix = matrix;
-            this.TargetDimensions = TransformUtils.GetTransformedSize(sourceSize, matrix);
+            this.TargetDimensions = targetDimensions;
         }
 
         /// <summary>

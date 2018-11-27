@@ -69,14 +69,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // Handle tranforms that result in output identical to the original.
             if (this.TransformMatrix.Equals(default) || this.TransformMatrix.Equals(Matrix3x2.Identity))
             {
-                // The cloned will be blank here copy all the pixel data over
+                // The clone will be blank here copy all the pixel data over
                 source.GetPixelSpan().CopyTo(destination.GetPixelSpan());
                 return;
             }
 
-            int height = this.TargetDimensions.Height;
             int width = this.TargetDimensions.Width;
-
             var targetBounds = new Rectangle(Point.Empty, this.TargetDimensions);
 
             // Convert from screen to world space.

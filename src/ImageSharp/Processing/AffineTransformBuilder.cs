@@ -35,7 +35,16 @@ namespace SixLabors.ImageSharp.Processing
             => this.Prepend(size => TransformUtils.CreateRotationMatrixRadians(radians, size));
 
         /// <summary>
-        /// Prepends a centered rotation matrix using the given rotation in radians.
+        /// Prepends a rotation matrix using the given rotation in degrees at the given origin.
+        /// </summary>
+        /// <param name="degrees">The amount of rotation, in degrees.</param>
+        /// <param name="origin">The rotation origin point.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public AffineTransformBuilder PrependRotationDegrees(float degrees, Vector2 origin)
+            => this.PrependRotationRadians(GeometryUtilities.DegreeToRadian(degrees), origin);
+
+        /// <summary>
+        /// Prepends a rotation matrix using the given rotation in radians at the given origin.
         /// </summary>
         /// <param name="radians">The amount of rotation, in radians.</param>
         /// <param name="origin">The rotation origin point.</param>
@@ -62,7 +71,16 @@ namespace SixLabors.ImageSharp.Processing
             => this.Append(size => TransformUtils.CreateRotationMatrixRadians(radians, size));
 
         /// <summary>
-        /// Appends a centered rotation matrix using the given rotation in radians.
+        /// Appends a rotation matrix using the given rotation in degrees at the given origin.
+        /// </summary>
+        /// <param name="degrees">The amount of rotation, in degrees.</param>
+        /// <param name="origin">The rotation origin point.</param>
+        /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+        public AffineTransformBuilder AppendRotationDegrees(float degrees, Vector2 origin)
+            => this.AppendRotationRadians(GeometryUtilities.DegreeToRadian(degrees), origin);
+
+        /// <summary>
+        /// Appends a rotation matrix using the given rotation in radians at the given origin.
         /// </summary>
         /// <param name="radians">The amount of rotation, in radians.</param>
         /// <param name="origin">The rotation origin point.</param>

@@ -53,13 +53,22 @@ namespace SixLabors.ImageSharp.Processing
             => this.Prepend(size => new Matrix4x4(TransformUtils.CreateRotationMatrixRadians(radians, size)));
 
         /// <summary>
-        /// Appends a centered rotation matrix using the given rotation in radians.
+        /// Prepends a centered rotation matrix using the given rotation in degrees at the given origin.
+        /// </summary>
+        /// <param name="degrees">The amount of rotation, in radians.</param>
+        /// <param name="origin">The rotation origin point.</param>
+        /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
+        internal ProjectiveTransformBuilder PrependRotationDegrees(float degrees, Vector2 origin)
+            => this.PrependRotationRadians(GeometryUtilities.DegreeToRadian(degrees), origin);
+
+        /// <summary>
+        /// Prepends a centered rotation matrix using the given rotation in radians at the given origin.
         /// </summary>
         /// <param name="radians">The amount of rotation, in radians.</param>
-        /// <param name="centerPoint">The rotation center.</param>
+        /// <param name="origin">The rotation origin point.</param>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
-        internal ProjectiveTransformBuilder PrependRotationRadians(float radians, Vector2 centerPoint)
-            => this.PrependMatrix(Matrix4x4.CreateRotationZ(radians, new Vector3(centerPoint, 0)));
+        internal ProjectiveTransformBuilder PrependRotationRadians(float radians, Vector2 origin)
+            => this.PrependMatrix(Matrix4x4.CreateRotationZ(radians, new Vector3(origin, 0)));
 
         /// <summary>
         /// Appends a centered rotation matrix using the given rotation in degrees.
@@ -78,13 +87,22 @@ namespace SixLabors.ImageSharp.Processing
             => this.Append(size => new Matrix4x4(TransformUtils.CreateRotationMatrixRadians(radians, size)));
 
         /// <summary>
-        /// Appends a centered rotation matrix using the given rotation in radians.
+        /// Appends a centered rotation matrix using the given rotation in degrees at the given origin.
+        /// </summary>
+        /// <param name="degrees">The amount of rotation, in radians.</param>
+        /// <param name="origin">The rotation origin point.</param>
+        /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
+        internal ProjectiveTransformBuilder AppendRotationDegrees(float degrees, Vector2 origin)
+            => this.AppendRotationRadians(GeometryUtilities.DegreeToRadian(degrees), origin);
+
+        /// <summary>
+        /// Appends a centered rotation matrix using the given rotation in radians at the given origin.
         /// </summary>
         /// <param name="radians">The amount of rotation, in radians.</param>
-        /// <param name="centerPoint">The rotation center.</param>
+        /// <param name="origin">The rotation origin point.</param>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
-        internal ProjectiveTransformBuilder AppendRotationRadians(float radians, Vector2 centerPoint)
-            => this.AppendMatrix(Matrix4x4.CreateRotationZ(radians, new Vector3(centerPoint, 0)));
+        internal ProjectiveTransformBuilder AppendRotationRadians(float radians, Vector2 origin)
+            => this.AppendMatrix(Matrix4x4.CreateRotationZ(radians, new Vector3(origin, 0)));
 
         /// <summary>
         /// Prepends a scale matrix from the given uniform scale.

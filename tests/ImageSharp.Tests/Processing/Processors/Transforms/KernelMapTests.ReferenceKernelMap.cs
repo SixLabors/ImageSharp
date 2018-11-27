@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
     public partial class KernelMapTests
     {
         /// <summary>
-        /// Simplified reference implementation for <see cref="KernelMap"/> functionality.
+        /// Simplified reference implementation for <see cref="ResizeKernelMap"/> functionality.
         /// </summary>
         internal class ReferenceKernelMap
         {

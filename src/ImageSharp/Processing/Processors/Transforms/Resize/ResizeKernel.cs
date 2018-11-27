@@ -11,18 +11,21 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
     /// <summary>
-    /// Points to a collection of of weights allocated in <see cref="KernelMap"/>.
+    /// Points to a collection of of weights allocated in <see cref="ResizeKernelMap"/>.
     /// </summary>
-    internal struct ResizeKernel
+    internal unsafe struct ResizeKernel
     {
+        private readonly float* bufferPtr;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ResizeKernel"/> struct.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        internal ResizeKernel(int left, Memory<float> bufferSlice)
+        internal ResizeKernel(int left, float* bufferPtr, int length)
         {
             this.Left = left;
-            this.BufferSlice = bufferSlice;
+            this.bufferPtr = bufferPtr;
+            this.Length = length;
         }
 
         /// <summary>
@@ -31,21 +34,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public int Left { get; }
 
         /// <summary>
-        /// Gets the slice of the buffer containing the weights values.
-        /// </summary>
-        public Memory<float> BufferSlice { get; }
-
-        /// <summary>
         /// Gets the the length of the kernel
         /// </summary>
-        public int Length => this.BufferSlice.Length;
+        public int Length { get; }
 
         /// <summary>
-        /// Gets the span representing the portion of the <see cref="KernelMap"/> that this window covers
+        /// Gets the span representing the portion of the <see cref="ResizeKernelMap"/> that this window covers
         /// </summary>
         /// <returns>The <see cref="Span{T}"/></returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Span<float> GetValues() => this.BufferSlice.Span;
+        public Span<float> GetValues() => new Span<float>(this.bufferPtr, this.Length);
 
         /// <summary>
         /// Computes the sum of vectors in 'rowSpan' weighted by weight values, pointed by this <see cref="ResizeKernel"/> instance.

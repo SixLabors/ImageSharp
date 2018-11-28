@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         }
 
         /// <summary>
-        /// Returns a <see cref="ResizeKernel"/> for an index value between 0 and destinationSize - 1.
+        /// Returns a <see cref="ResizeKernel"/> for an index value between 0 and DestinationSize - 1.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
         public ref ResizeKernel GetKernel(int destIdx) => ref this.kernels[destIdx];
@@ -101,93 +101,104 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             bool useMosaic = 2 * (cornerInterval + period) < destinationSize;
 
-            ResizeKernelMap result = useMosaic
-                             ? new ResizeKernelMap(
-                                 memoryAllocator,
-                                 sampler,
-                                 sourceSize,
-                                 destinationSize,
-                                 destinationSize,
-                                 ratio,
-                                 scale,
-                                 radius)
-                             : new MosaicKernelMap(
-                                 memoryAllocator,
-                                 sampler,
-                                 sourceSize,
-                                 destinationSize,
-                                 ratio,
-                                 scale,
-                                 radius,
-                                 period,
-                                 cornerInterval);
+            useMosaic = false;
 
-            result.Init();
+            ResizeKernelMap result = useMosaic
+                                         ? new MosaicKernelMap(
+                                             memoryAllocator,
+                                             sampler,
+                                             sourceSize,
+                                             destinationSize,
+                                             ratio,
+                                             scale,
+                                             radius,
+                                             period,
+                                             cornerInterval)
+                                         : new ResizeKernelMap(
+                                             memoryAllocator,
+                                             sampler,
+                                             sourceSize,
+                                             destinationSize,
+                                             destinationSize,
+                                             ratio,
+                                             scale,
+                                             radius);
+
+            result.Initialize();
 
             return result;
         }
 
-        protected virtual void Init()
+        protected virtual void Initialize()
         {
-            for (int i = 0; i < this.DestinationSize; i++)
+            for (int destRowIndex = 0; destRowIndex < this.DestinationSize; destRowIndex++)
             {
-                float center = ((i + .5F) * this.ratio) - .5F;
-
-                // Keep inside bounds.
-                int left = (int)MathF.Ceiling(center - this.radius);
-                if (left < 0)
-                {
-                    left = 0;
-                }
-
-                int right = (int)MathF.Floor(center + this.radius);
-                if (right > this.sourceSize - 1)
-                {
-                    right = this.sourceSize - 1;
-                }
-
-                float sum = 0;
-
-                ResizeKernel kernel = this.CreateKernel(i, left, right);
-                this.kernels[i] = kernel;
-
-                ref float kernelBaseRef = ref MemoryMarshal.GetReference(kernel.GetValues());
-
-                for (int j = left; j <= right; j++)
-                {
-                    float value = this.sampler.GetValue((j - center) / this.scale);
-                    sum += value;
-
-                    // weights[j - left] = weight:
-                    Unsafe.Add(ref kernelBaseRef, j - left) = value;
-                }
-
-                // Normalize, best to do it here rather than in the pixel loop later on.
-                if (sum > 0)
-                {
-                    for (int w = 0; w < kernel.Length; w++)
-                    {
-                        // weights[w] = weights[w] / sum:
-                        ref float kRef = ref Unsafe.Add(ref kernelBaseRef, w);
-                        kRef /= sum;
-                    }
-                }
+                ResizeKernel kernel = this.BuildKernelRow(destRowIndex, destRowIndex);
+                this.kernels[destRowIndex] = kernel;
             }
         }
 
-        /// <summary>
-        /// Slices a weights value at the given positions.
-        /// </summary>
-        private unsafe ResizeKernel CreateKernel(int destIdx, int left, int rightIdx)
+        private ResizeKernel BuildKernelRow(int destRowIndex, int dataRowIndex)
         {
-            int length = rightIdx - left + 1;
+            float center = ((destRowIndex + .5F) * this.ratio) - .5F;
+
+            // Keep inside bounds.
+            int left = (int)MathF.Ceiling(center - this.radius);
+            if (left < 0)
+            {
+                left = 0;
+            }
+
+            int right = (int)MathF.Floor(center + this.radius);
+            if (right > this.sourceSize - 1)
+            {
+                right = this.sourceSize - 1;
+            }
+
+            float sum = 0;
+
+            ResizeKernel kernel = this.GetKernel(dataRowIndex, left, right);
+
+            ref float kernelBaseRef = ref MemoryMarshal.GetReference(kernel.Values);
+
+            for (int j = left; j <= right; j++)
+            {
+                float value = this.sampler.GetValue((j - center) / this.scale);
+                sum += value;
+
+                // weights[j - left] = weight:
+                Unsafe.Add(ref kernelBaseRef, j - left) = value;
+            }
+
+            // Normalize, best to do it here rather than in the pixel loop later on.
+            if (sum > 0)
+            {
+                for (int w = 0; w < kernel.Length; w++)
+                {
+                    // weights[w] = weights[w] / sum:
+                    ref float kRef = ref Unsafe.Add(ref kernelBaseRef, w);
+                    kRef /= sum;
+                }
+            }
+
+            return kernel;
+        }
+
+        /// <summary>
+        /// Returns a <see cref="ResizeKernel"/> referencing values of <see cref="data"/>
+        /// at row <paramref name="dataRowIndex"/>.
+        /// </summary>
+        private unsafe ResizeKernel GetKernel(int dataRowIndex, int left, int right)
+        {
+            int length = right - left + 1;
 
             if (length > this.data.Width)
             {
-                throw new InvalidOperationException($"Error in KernelMap.CreateKernel({destIdx},{left},{rightIdx}): left > this.data.Width");
+                throw new InvalidOperationException(
+                    $"Error in KernelMap.CreateKernel({dataRowIndex},{left},{right}): left > this.data.Width");
             }
 
-            Span<float> rowSpan = this.data.GetRowSpan(destIdx);
+            Span<float> rowSpan = this.data.GetRowSpan(dataRowIndex);
 
             ref float rowReference = ref MemoryMarshal.GetReference(rowSpan);
             float* rowPtr = (float*)Unsafe.AsPointer(ref rowReference);

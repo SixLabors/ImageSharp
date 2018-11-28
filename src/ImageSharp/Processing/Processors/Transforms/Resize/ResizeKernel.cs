@@ -41,9 +41,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// Gets the span representing the portion of the <see cref="ResizeKernelMap"/> that this window covers
         /// </summary>
-        /// <returns>The <see cref="Span{T}"/></returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public Span<float> GetValues() => new Span<float>(this.bufferPtr, this.Length);
+        /// <value>The <see cref="Span{T}"/>
+        /// </value>
+        public Span<float> Values
+        {
+            [MethodImpl(InliningOptions.ShortMethod)]
+            get => new Span<float>(this.bufferPtr, this.Length);
+        }
 
         /// <summary>
         /// Computes the sum of vectors in 'rowSpan' weighted by weight values, pointed by this <see cref="ResizeKernel"/> instance.
@@ -53,7 +57,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         [MethodImpl(InliningOptions.ShortMethod)]
         public Vector4 Convolve(Span<Vector4> rowSpan)
         {
-            ref float horizontalValues = ref MemoryMarshal.GetReference(this.GetValues());
+            ref float horizontalValues = ref Unsafe.AsRef<float>(this.bufferPtr);
             int left = this.Left;
             ref Vector4 vecPtr = ref Unsafe.Add(ref MemoryMarshal.GetReference(rowSpan), left);
 

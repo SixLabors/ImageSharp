@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 Assert.Equal(referenceKernel.Length, kernel.Length);
                 Assert.Equal(referenceKernel.Left, kernel.Left);
                 float[] expectedValues = referenceKernel.Values;
-                Span<float> actualValues = kernel.GetValues();
+                Span<float> actualValues = kernel.Values;
                 
                 Assert.Equal(expectedValues.Length, actualValues.Length);
 

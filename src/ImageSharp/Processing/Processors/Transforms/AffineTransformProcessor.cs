@@ -5,13 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
@@ -20,29 +16,35 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// Provides the base methods to perform affine transforms on an image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class AffineTransformProcessor<TPixel> : InterpolatedTransformProcessorBase<TPixel>
+    internal class AffineTransformProcessor<TPixel> : TransformProcessorBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="AffineTransformProcessor{TPixel}"/> class.
         /// </summary>
-        /// <param name="matrix">The transform matrix</param>
+        /// <param name="matrix">The transform matrix.</param>
         /// <param name="sampler">The sampler to perform the transform operation.</param>
-        /// <param name="targetDimensions">The target dimensions to constrain the transformed image to.</param>
+        /// <param name="targetDimensions">The target dimensions.</param>
         public AffineTransformProcessor(Matrix3x2 matrix, IResampler sampler, Size targetDimensions)
-            : base(sampler)
         {
+            Guard.NotNull(sampler, nameof(sampler));
+            this.Sampler = sampler;
             this.TransformMatrix = matrix;
             this.TargetDimensions = targetDimensions;
         }
 
         /// <summary>
-        /// Gets the matrix used to supply the affine transform
+        /// Gets the sampler to perform interpolation of the transform operation.
+        /// </summary>
+        public IResampler Sampler { get; }
+
+        /// <summary>
+        /// Gets the matrix used to supply the affine transform.
         /// </summary>
         public Matrix3x2 TransformMatrix { get; }
 
         /// <summary>
-        /// Gets the target dimensions to constrain the transformed image to
+        /// Gets the target dimensions to constrain the transformed image to.
         /// </summary>
         public Size TargetDimensions { get; }
 
@@ -64,17 +66,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Rectangle sourceRectangle,
             Configuration configuration)
         {
-            int height = this.TargetDimensions.Height;
+            // Handle tranforms that result in output identical to the original.
+            if (this.TransformMatrix.Equals(default) || this.TransformMatrix.Equals(Matrix3x2.Identity))
+            {
+                // The clone will be blank here copy all the pixel data over
+                source.GetPixelSpan().CopyTo(destination.GetPixelSpan());
+                return;
+            }
+
             int width = this.TargetDimensions.Width;
-
-            Rectangle sourceBounds = source.Bounds();
-            var targetBounds = new Rectangle(0, 0, width, height);
-
-            // Since could potentially be resizing the canvas we might need to re-calculate the matrix
-            Matrix3x2 matrix = this.GetProcessingMatrix(sourceBounds, targetBounds);
+            var targetBounds = new Rectangle(Point.Empty, this.TargetDimensions);
 
             // Convert from screen to world space.
-            Matrix3x2.Invert(matrix, out matrix);
+            Matrix3x2.Invert(this.TransformMatrix, out Matrix3x2 matrix);
 
             if (this.Sampler is NearestNeighborResampler)
             {
@@ -82,158 +86,57 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     targetBounds,
                     configuration,
                     rows =>
+                    {
+                        for (int y = rows.Min; y < rows.Max; y++)
                         {
-                            for (int y = rows.Min; y < rows.Max; y++)
-                            {
-                                Span<TPixel> destRow = destination.GetPixelRowSpan(y);
+                            Span<TPixel> destRow = destination.GetPixelRowSpan(y);
 
-                                for (int x = 0; x < width; x++)
+                            for (int x = 0; x < width; x++)
+                            {
+                                var point = Point.Transform(new Point(x, y), matrix);
+                                if (sourceRectangle.Contains(point.X, point.Y))
                                 {
-                                    var point = Point.Transform(new Point(x, y), matrix);
-                                    if (sourceBounds.Contains(point.X, point.Y))
-                                    {
-                                        destRow[x] = source[point.X, point.Y];
-                                    }
+                                    destRow[x] = source[point.X, point.Y];
                                 }
                             }
-                        });
+                        }
+                    });
 
                 return;
             }
 
-            int maxSourceX = source.Width - 1;
-            int maxSourceY = source.Height - 1;
-            (float radius, float scale, float ratio) xRadiusScale = this.GetSamplingRadius(source.Width, destination.Width);
-            (float radius, float scale, float ratio) yRadiusScale = this.GetSamplingRadius(source.Height, destination.Height);
-            float xScale = xRadiusScale.scale;
-            float yScale = yRadiusScale.scale;
-            var radius = new Vector2(xRadiusScale.radius, yRadiusScale.radius);
-            IResampler sampler = this.Sampler;
-            var maxSource = new Vector4(maxSourceX, maxSourceY, maxSourceX, maxSourceY);
-            int xLength = (int)MathF.Ceiling((radius.X * 2) + 2);
-            int yLength = (int)MathF.Ceiling((radius.Y * 2) + 2);
-
-            MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
-
-            using (Buffer2D<float> yBuffer = memoryAllocator.Allocate2D<float>(yLength, height))
-            using (Buffer2D<float> xBuffer = memoryAllocator.Allocate2D<float>(xLength, height))
+            var kernel = new TransformKernelMap(configuration, source.Size(), destination.Size(), this.Sampler);
+            try
             {
-                ParallelHelper.IterateRows(
+                ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
                     targetBounds,
                     configuration,
-                    rows =>
+                    (rows, vectorBuffer) =>
+                    {
+                        Span<Vector4> vectorSpan = vectorBuffer.Span;
+                        for (int y = rows.Min; y < rows.Max; y++)
                         {
-                            for (int y = rows.Min; y < rows.Max; y++)
+                            Span<TPixel> targetRowSpan = destination.GetPixelRowSpan(y);
+                            PixelOperations<TPixel>.Instance.ToVector4(configuration, targetRowSpan, vectorSpan);
+                            ref float ySpanRef = ref kernel.GetYStartReference(y);
+                            ref float xSpanRef = ref kernel.GetXStartReference(y);
+
+                            for (int x = 0; x < width; x++)
                             {
-                                ref TPixel destRowRef = ref MemoryMarshal.GetReference(destination.GetPixelRowSpan(y));
-                                ref float ySpanRef = ref MemoryMarshal.GetReference(yBuffer.GetRowSpan(y));
-                                ref float xSpanRef = ref MemoryMarshal.GetReference(xBuffer.GetRowSpan(y));
-
-                                for (int x = 0; x < width; x++)
-                                {
-                                    // Use the single precision position to calculate correct bounding pixels
-                                    // otherwise we get rogue pixels outside of the bounds.
-                                    var point = Vector2.Transform(new Vector2(x, y), matrix);
-
-                                    // Clamp sampling pixel radial extents to the source image edges
-                                    Vector2 maxXY = point + radius;
-                                    Vector2 minXY = point - radius;
-
-                                    // max, maxY, minX, minY
-                                    var extents = new Vector4(
-                                        MathF.Floor(maxXY.X + .5F),
-                                        MathF.Floor(maxXY.Y + .5F),
-                                        MathF.Ceiling(minXY.X - .5F),
-                                        MathF.Ceiling(minXY.Y - .5F));
-
-                                    int right = (int)extents.X;
-                                    int bottom = (int)extents.Y;
-                                    int left = (int)extents.Z;
-                                    int top = (int)extents.W;
-
-                                    extents = Vector4.Clamp(extents, Vector4.Zero, maxSource);
-
-                                    int maxX = (int)extents.X;
-                                    int maxY = (int)extents.Y;
-                                    int minX = (int)extents.Z;
-                                    int minY = (int)extents.W;
-
-                                    if (minX == maxX || minY == maxY)
-                                    {
-                                        continue;
-                                    }
-
-                                    // It appears these have to be calculated on-the-fly.
-                                    // Precalculating transformed weights would require prior knowledge of every transformed pixel location
-                                    // since they can be at sub-pixel positions on both axis.
-                                    // I've optimized where I can but am always open to suggestions.
-                                    if (yScale > 1 && xScale > 1)
-                                    {
-                                        CalculateWeightsDown(
-                                            top,
-                                            bottom,
-                                            minY,
-                                            maxY,
-                                            point.Y,
-                                            sampler,
-                                            yScale,
-                                            ref ySpanRef,
-                                            yLength);
-
-                                        CalculateWeightsDown(
-                                            left,
-                                            right,
-                                            minX,
-                                            maxX,
-                                            point.X,
-                                            sampler,
-                                            xScale,
-                                            ref xSpanRef,
-                                            xLength);
-                                    }
-                                    else
-                                    {
-                                        CalculateWeightsScaleUp(minY, maxY, point.Y, sampler, ref ySpanRef);
-                                        CalculateWeightsScaleUp(minX, maxX, point.X, sampler, ref xSpanRef);
-                                    }
-
-                                    // Now multiply the results against the offsets
-                                    Vector4 sum = Vector4.Zero;
-                                    for (int yy = 0, j = minY; j <= maxY; j++, yy++)
-                                    {
-                                        float yWeight = Unsafe.Add(ref ySpanRef, yy);
-
-                                        for (int xx = 0, i = minX; i <= maxX; i++, xx++)
-                                        {
-                                            float xWeight = Unsafe.Add(ref xSpanRef, xx);
-
-                                            // Values are first premultiplied to prevent darkening of edge pixels
-                                            var current = source[i, j].ToVector4();
-                                            Vector4Utils.Premultiply(ref current);
-                                            sum += current * xWeight * yWeight;
-                                        }
-                                    }
-
-                                    ref TPixel dest = ref Unsafe.Add(ref destRowRef, x);
-
-                                    // Reverse the premultiplication
-                                    Vector4Utils.UnPremultiply(ref sum);
-                                    dest.FromVector4(sum);
-                                }
+                                // Use the single precision position to calculate correct bounding pixels
+                                // otherwise we get rogue pixels outside of the bounds.
+                                var point = Vector2.Transform(new Vector2(x, y), matrix);
+                                kernel.Convolve(point, x, ref ySpanRef, ref xSpanRef, source.PixelBuffer, vectorSpan);
                             }
-                        });
+
+                            PixelOperations<TPixel>.Instance.FromVector4(configuration, vectorSpan, targetRowSpan);
+                        }
+                    });
+            }
+            finally
+            {
+                kernel.Dispose();
             }
         }
-
-        /// <summary>
-        /// Gets a transform matrix adjusted for final processing based upon the target image bounds.
-        /// </summary>
-        /// <param name="sourceRectangle">The source image bounds.</param>
-        /// <param name="destinationRectangle">The destination image bounds.</param>
-        /// <returns>
-        /// The <see cref="Matrix3x2"/>.
-        /// </returns>
-        protected virtual Matrix3x2 GetProcessingMatrix(Rectangle sourceRectangle, Rectangle destinationRectangle)
-            => this.TransformMatrix;
     }
 }

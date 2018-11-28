@@ -86,17 +86,17 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public void AppendRotationDegrees_WithoutSpecificRotationCenter_RotationIsCenteredAroundImageCenter(
             int width,
             int height,
-            float deg,
+            float degrees,
             float x,
             float y)
         {
             var size = new Size(width, height);
             TBuilder builder = this.CreateBuilder(size);
 
-            this.AppendRotationDegrees(builder, deg);
+            this.AppendRotationDegrees(builder, degrees);
 
             // TODO: We should also test CreateRotationMatrixDegrees() (and all TransformUtils stuff!) for correctness
-            Matrix3x2 matrix = TransformUtils.CreateRotationMatrixDegrees(deg, size);
+            Matrix3x2 matrix = TransformUtils.CreateRotationMatrixDegrees(degrees, size);
 
             var position = new Vector2(x, y);
             var expected = Vector2.Transform(position, matrix);
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public void AppendRotationDegrees_WithRotationCenter(
             int width,
             int height,
-            float deg,
+            float degrees,
             float cx,
             float cy,
             float x,
@@ -122,9 +122,63 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             TBuilder builder = this.CreateBuilder(size);
 
             var centerPoint = new Vector2(cx, cy);
-            this.AppendRotationDegrees(builder, deg, centerPoint);
+            this.AppendRotationDegrees(builder, degrees, centerPoint);
 
-            var matrix = Matrix3x2.CreateRotation(GeometryUtilities.DegreeToRadian(deg), centerPoint);
+            var matrix = Matrix3x2.CreateRotation(GeometryUtilities.DegreeToRadian(degrees), centerPoint);
+
+            var position = new Vector2(x, y);
+            var expected = Vector2.Transform(position, matrix);
+            Vector2 actual = this.Execute(builder, new Rectangle(Point.Empty, size), position);
+
+            Assert.Equal(actual, expected, Comparer);
+        }
+
+        [Theory]
+        [InlineData(200, 100, 10, 10, 42, 84)]
+        [InlineData(200, 100, 100, 100, 42, 84)]
+        [InlineData(100, 200, -10, -10, 42, 84)]
+        public void AppendSkewDegrees_WithoutSpecificSkewCenter_SkewIsCenteredAroundImageCenter(
+            int width,
+            int height,
+            float degreesX,
+            float degreesY,
+            float x,
+            float y)
+        {
+            var size = new Size(width, height);
+            TBuilder builder = this.CreateBuilder(size);
+
+            this.AppendSkewDegrees(builder, degreesX, degreesY);
+
+            Matrix3x2 matrix = TransformUtils.CreateSkewMatrixDegrees(degreesX, degreesY, size);
+
+            var position = new Vector2(x, y);
+            var expected = Vector2.Transform(position, matrix);
+            Vector2 actual = this.Execute(builder, new Rectangle(Point.Empty, size), position);
+            Assert.Equal(actual, expected, Comparer);
+        }
+
+        [Theory]
+        [InlineData(200, 100, 10, 10, 30, 61, 42, 84)]
+        [InlineData(200, 100, 100, 100, 30, 10, 20, 84)]
+        [InlineData(100, 200, -10, -10, 30, 20, 11, 84)]
+        public void AppendSkewDegrees_WithSkewCenter(
+            int width,
+            int height,
+            float degreesX,
+            float degreesY,
+            float cx,
+            float cy,
+            float x,
+            float y)
+        {
+            var size = new Size(width, height);
+            TBuilder builder = this.CreateBuilder(size);
+
+            var centerPoint = new Vector2(cx, cy);
+            this.AppendSkewDegrees(builder, degreesX, degreesY, centerPoint);
+
+            var matrix = Matrix3x2.CreateSkew(GeometryUtilities.DegreeToRadian(degreesX), GeometryUtilities.DegreeToRadian(degreesY), centerPoint);
 
             var position = new Vector2(x, y);
             var expected = Vector2.Transform(position, matrix);
@@ -144,14 +198,18 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
             // Forwards
             this.AppendRotationRadians(b1, pi);
+            this.AppendSkewRadians(b1, pi, pi);
             this.AppendScale(b1, new SizeF(2, 0.5f));
             this.AppendRotationRadians(b1, pi / 2, new Vector2(-0.5f, -0.1f));
+            this.AppendSkewRadians(b1, pi, pi / 2, new Vector2(-0.5f, -0.1f));
             this.AppendTranslation(b1, new PointF(123, 321));
 
             // Backwards
             this.PrependTranslation(b2, new PointF(123, 321));
+            this.PrependSkewRadians(b2, pi, pi / 2, new Vector2(-0.5f, -0.1f));
             this.PrependRotationRadians(b2, pi / 2, new Vector2(-0.5f, -0.1f));
             this.PrependScale(b2, new SizeF(2, 0.5f));
+            this.PrependSkewRadians(b2, pi, pi);
             this.PrependRotationRadians(b2, pi);
 
             Vector2 p1 = this.Execute(b1, rectangle, new Vector2(32, 65));
@@ -180,25 +238,37 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
         protected abstract TBuilder CreateBuilder(Rectangle rectangle);
 
-        protected abstract void AppendTranslation(TBuilder builder, PointF translate);
+        protected abstract void AppendRotationDegrees(TBuilder builder, float degrees);
 
-        protected abstract void AppendScale(TBuilder builder, SizeF scale);
+        protected abstract void AppendRotationDegrees(TBuilder builder, float degrees, Vector2 origin);
 
         protected abstract void AppendRotationRadians(TBuilder builder, float radians);
 
         protected abstract void AppendRotationRadians(TBuilder builder, float radians, Vector2 origin);
 
-        protected abstract void PrependTranslation(TBuilder builder, PointF translate);
+        protected abstract void AppendScale(TBuilder builder, SizeF scale);
 
-        protected abstract void PrependScale(TBuilder builder, SizeF scale);
+        protected abstract void AppendSkewDegrees(TBuilder builder, float degreesX, float degreesY);
+
+        protected abstract void AppendSkewDegrees(TBuilder builder, float degreesX, float degreesY, Vector2 origin);
+
+        protected abstract void AppendSkewRadians(TBuilder builder, float radiansX, float radiansY);
+
+        protected abstract void AppendSkewRadians(TBuilder builder, float radiansX, float radiansY, Vector2 origin);
+
+        protected abstract void AppendTranslation(TBuilder builder, PointF translate);
 
         protected abstract void PrependRotationRadians(TBuilder builder, float radians);
 
         protected abstract void PrependRotationRadians(TBuilder builder, float radians, Vector2 origin);
 
-        protected abstract void AppendRotationDegrees(TBuilder builder, float degrees);
+        protected abstract void PrependScale(TBuilder builder, SizeF scale);
 
-        protected abstract void AppendRotationDegrees(TBuilder builder, float degrees, Vector2 origin);
+        protected abstract void PrependSkewRadians(TBuilder builder, float radiansX, float radiansY);
+
+        protected abstract void PrependSkewRadians(TBuilder builder, float radiansX, float radiansY, Vector2 origin);
+
+        protected abstract void PrependTranslation(TBuilder builder, PointF translate);
 
         protected abstract Vector2 Execute(TBuilder builder, Rectangle rectangle, Vector2 sourcePoint);
     }

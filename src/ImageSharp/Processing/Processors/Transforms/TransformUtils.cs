@@ -47,6 +47,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 Matrix3x2Extensions.CreateSkewDegrees(degreesX, degreesY, PointF.Empty));
 
         /// <summary>
+        /// Creates a centered skew matrix from the give angles in radians and the source size.
+        /// </summary>
+        /// <param name="radiansX">The X angle, in radians.</param>
+        /// <param name="radiansY">The Y angle, in radians.</param>
+        /// <param name="size">The source image size.</param>
+        /// <returns>The <see cref="Matrix3x2"/>.</returns>
+        public static Matrix3x2 CreateSkewMatrixRadians(float radiansX, float radiansY, Size size)
+            => CreateCenteredTransformMatrix(
+                new Rectangle(Point.Empty, size),
+                Matrix3x2Extensions.CreateSkew(radiansX, radiansY, PointF.Empty));
+
+        /// <summary>
         /// Gets the centered transform matrix based upon the source and destination rectangles.
         /// </summary>
         /// <param name="sourceRectangle">The source image bounds.</param>

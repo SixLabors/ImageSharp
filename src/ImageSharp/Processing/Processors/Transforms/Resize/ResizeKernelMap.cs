@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             bool useMosaic = 2 * (cornerInterval + period) < destinationSize;
 
             ResizeKernelMap result = useMosaic
-                                         ? new MosaicKernelMap(
+                                         ? new PeriodicKernelMap(
                                              memoryAllocator,
                                              sampler,
                                              sourceSize,

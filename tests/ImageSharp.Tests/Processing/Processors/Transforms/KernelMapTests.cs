@@ -2,6 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Text;
 
 using SixLabors.ImageSharp.Processing;
@@ -58,6 +61,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             { nameof(KnownResamplers.Lanczos8), 10, 100 },
         };
 
+        public static TheoryData<string, int, int> GeneratedImageResizeData =
+            GenerateImageResizeData();
+
+
         [Theory]
         [MemberData(nameof(KernelMapData))]
         public void PrintNonNormalizedKernelMap(string resamplerName, int srcSize, int destSize)
@@ -71,7 +78,21 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
         [Theory]
         [MemberData(nameof(KernelMapData))]
+        //[MemberData(nameof(GeneratedImageResizeData))]
         public void KernelMapContentIsCorrect(string resamplerName, int srcSize, int destSize)
+        {
+            VerifyKernelMapContentIsCorrect(resamplerName, srcSize, destSize);
+        }
+
+        [Theory]
+        [MemberData(nameof(GeneratedImageResizeData))]
+        public void KernelMapContentIsCorrect_ExtendedGeneratedValues(string resamplerName, int srcSize, int destSize)
+        {
+            VerifyKernelMapContentIsCorrect(resamplerName, srcSize, destSize);
+        }
+
+
+        private static void VerifyKernelMapContentIsCorrect(string resamplerName, int srcSize, int destSize)
         {
             IResampler resampler = TestUtils.GetResampler(resamplerName);
 
@@ -79,8 +100,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             var kernelMap = ResizeKernelMap.Calculate(resampler, destSize, srcSize, Configuration.Default.MemoryAllocator);
 
 #if DEBUG
-            this.Output.WriteLine($"Expected KernelMap:\n{PrintKernelMap(referenceMap)}\n");
-            this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");
+            // this.Output.WriteLine($"Expected KernelMap:\n{PrintKernelMap(referenceMap)}\n");
+            // this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");
 #endif
 
             for (int i = 0; i < kernelMap.DestinationLength; i++)
@@ -89,14 +110,18 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
                 ReferenceKernel referenceKernel = referenceMap.GetKernel(i);
 
-                Assert.Equal(referenceKernel.Length, kernel.Length);
-                Assert.Equal(referenceKernel.Left, kernel.Left);
+                Assert.True(
+                    referenceKernel.Length == kernel.Length,
+                    $"referenceKernel.Length != kernel.Length: {referenceKernel.Length} != {kernel.Length}");
+                Assert.True(
+                    referenceKernel.Left == kernel.Left,
+                    $"referenceKernel.Left != kernel.Left: {referenceKernel.Left} != {kernel.Left}");
                 float[] expectedValues = referenceKernel.Values;
                 Span<float> actualValues = kernel.Values;
-                
+
                 Assert.Equal(expectedValues.Length, actualValues.Length);
 
-                var comparer = new ApproximateFloatComparer(1e-4f);
+                var comparer = new ApproximateFloatComparer(1e-6f);
 
                 for (int x = 0; x < expectedValues.Length; x++)
                 {
@@ -144,6 +169,39 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             }
 
             return bld.ToString();
+        }
+
+
+        private static TheoryData<string, int, int> GenerateImageResizeData()
+        {
+            var result = new TheoryData<string, int, int>();
+
+            string[] resamplerNames = typeof(KnownResamplers).GetProperties(BindingFlags.Public | BindingFlags.Static)
+                .Select(p => p.Name).ToArray();
+
+            int[] dimensionVals =
+                {
+                    // Arbitrary, small dimensions:
+                    9, 10, 11, 13, 49, 50, 53, 99, 100, 199, 200, 201, 299, 300, 301,
+
+                    // Typical image sizes:
+                    640, 480, 800, 600, 1024, 768, 1280, 960, 1536, 1180, 1600, 1200, 2048, 1536, 2240, 1680, 2560,
+                    1920, 3032, 2008, 3072, 2304, 3264, 2448
+                };
+
+            IOrderedEnumerable<(int s, int d)> source2Dest = dimensionVals
+                .SelectMany(s => dimensionVals.Select(d => (s, d)))
+                .OrderBy(x => x.s + x.d);
+
+            foreach (string resampler in resamplerNames)
+            {
+                foreach ((int s, int d) x in source2Dest)
+                {
+                    result.Add(resampler, x.s, x.d);
+                }
+            }
+
+            return result;
         }
     }
 }

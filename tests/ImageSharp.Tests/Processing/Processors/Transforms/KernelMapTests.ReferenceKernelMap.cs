@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
@@ -25,21 +26,21 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
             public static ReferenceKernelMap Calculate(IResampler sampler, int destinationSize, int sourceSize, bool normalize = true)
             {
-                float ratio = (float)sourceSize / destinationSize;
-                float scale = ratio;
+                double ratio = (double)sourceSize / destinationSize;
+                double scale = ratio;
 
                 if (scale < 1F)
                 {
                     scale = 1F;
                 }
 
-                float radius = (float)Math.Ceiling(scale * sampler.Radius);
+                double radius = (double)Math.Ceiling(scale * sampler.Radius);
                 
                 var result = new List<ReferenceKernel>();
 
                 for (int i = 0; i < destinationSize; i++)
                 {
-                    float center = ((i + .5F) * ratio) - .5F;
+                    double center = ((i + .5) * ratio) - .5;
 
                     // Keep inside bounds.
                     int left = (int)Math.Ceiling(center - radius);
@@ -54,19 +55,17 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                         right = sourceSize - 1;
                     }
 
-                    float sum = 0;
+                    double sum = 0;
 
-                    float[] values = new float[right - left + 1];
+                    double[] values = new double[right - left + 1];
 
                     for (int j = left; j <= right; j++)
                     {
-                        float weight = sampler.GetValue((j - center) / scale);
+                        double weight = sampler.GetValue((float)((j - center) / scale));
                         sum += weight;
 
                         values[j - left] = weight;
                     }
-
-                    result.Add(new ReferenceKernel(left, values));
 
                     if (sum > 0 && normalize)
                     {
@@ -75,6 +74,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                             values[w] /= sum;
                         }
                     }
+
+                    float[] floatVals = values.Select(v => (float)v).ToArray();
+
+                    result.Add(new ReferenceKernel(left, floatVals));
                 }
 
                 return new ReferenceKernelMap(result.ToArray());

@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                     scale = 1F;
                 }
 
-                float radius = MathF.Ceiling(scale * sampler.Radius);
+                float radius = (float)Math.Ceiling(scale * sampler.Radius);
                 
                 var result = new List<ReferenceKernel>();
 
@@ -42,13 +42,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                     float center = ((i + .5F) * ratio) - .5F;
 
                     // Keep inside bounds.
-                    int left = (int)MathF.Ceiling(center - radius);
+                    int left = (int)Math.Ceiling(center - radius);
                     if (left < 0)
                     {
                         left = 0;
                     }
 
-                    int right = (int)MathF.Floor(center + radius);
+                    int right = (int)Math.Floor(center + radius);
                     if (right > sourceSize - 1)
                     {
                         right = sourceSize - 1;

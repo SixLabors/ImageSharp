@@ -8,20 +8,20 @@ using SixLabors.Memory;
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
     /// <content>
-    /// Contains <see cref="MosaicKernelMap"/>
+    /// Contains <see cref="PeriodicKernelMap"/>
     /// </content>
     internal partial class ResizeKernelMap
     {
         /// <summary>
         /// Memory-optimized <see cref="ResizeKernelMap"/> where repeating rows are stored only once.
         /// </summary>
-        private sealed class MosaicKernelMap : ResizeKernelMap
+        private sealed class PeriodicKernelMap : ResizeKernelMap
         {
             private readonly int period;
 
             private readonly int cornerInterval;
 
-            public MosaicKernelMap(
+            public PeriodicKernelMap(
                 MemoryAllocator memoryAllocator,
                 IResampler sampler,
                 int sourceLength,

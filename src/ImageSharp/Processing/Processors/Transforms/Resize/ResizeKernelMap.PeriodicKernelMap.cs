@@ -26,8 +26,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 IResampler sampler,
                 int sourceLength,
                 int destinationLength,
-                float ratio,
-                float scale,
+                double ratio,
+                double scale,
                 int radius,
                 int period,
                 int cornerInterval)
@@ -62,8 +62,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 int bottomStartDest = this.DestinationLength - this.cornerInterval;
                 for (int i = startOfFirstRepeatedMosaic; i < bottomStartDest; i++)
                 {
-                    float center = ((i + .5F) * this.ratio) - .5F;
-                    int left = (int)MathF.Ceiling(center - this.radius);
+                    double center = ((i + .5) * this.ratio) - .5;
+                    int left = (int)Math.Ceiling(center - this.radius);
                     ResizeKernel kernel = this.kernels[i - this.period];
                     this.kernels[i] = kernel.AlterLeftValue(left);
                 }

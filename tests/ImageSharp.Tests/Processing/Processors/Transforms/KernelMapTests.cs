@@ -48,6 +48,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             { nameof(KnownResamplers.Lanczos3), 5, 25 },
             { nameof(KnownResamplers.Lanczos3), 5, 50 },
 
+            { nameof(KnownResamplers.Lanczos3), 25, 5 },
+            { nameof(KnownResamplers.Lanczos3), 50, 5 },
+            { nameof(KnownResamplers.Lanczos3), 49, 5 },
+            { nameof(KnownResamplers.Lanczos3), 31, 5 },
+
             { nameof(KnownResamplers.Lanczos8), 500, 200 },
             { nameof(KnownResamplers.Lanczos8), 100, 10 },
             { nameof(KnownResamplers.Lanczos8), 100, 80 },
@@ -75,8 +80,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             var kernelMap = ResizeKernelMap.Calculate(resampler, destSize, srcSize, Configuration.Default.MemoryAllocator);
 
 #if DEBUG
+            this.Output.WriteLine($"Expected KernelMap:\n{PrintKernelMap(referenceMap)}\n");
             this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");
-            // this.Output.WriteLine($"Reference KernelMap:\n{PrintKernelMap(referenceMap)}\n");
 #endif
 
             for (int i = 0; i < kernelMap.DestinationSize; i++)
@@ -92,7 +97,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 
                 Assert.Equal(expectedValues.Length, actualValues.Length);
 
-                var comparer = new ApproximateFloatComparer(1e-6f);
+                var comparer = new ApproximateFloatComparer(1e-4f);
 
                 for (int x = 0; x < expectedValues.Length; x++)
                 {
@@ -116,12 +121,17 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         {
             var bld = new StringBuilder();
 
+            if (kernelMap is ResizeKernelMap actualMap)
+            {
+                bld.AppendLine(actualMap.Info);
+            }
+
             int destinationSize = getDestinationSize(kernelMap);
 
             for (int i = 0; i < destinationSize; i++)
             {
                 ReferenceKernel kernel = getKernel(kernelMap, i);
-                bld.Append($"({kernel.Left:D3}) || ");
+                bld.Append($"[{i:D3}] (L{kernel.Left:D3}) || ");
                 Span<float> span = kernel.Values;
 
                 for (int j = 0; j < kernel.Length; j++)

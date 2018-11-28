@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");
 #endif
 
-            for (int i = 0; i < kernelMap.DestinationSize; i++)
+            for (int i = 0; i < kernelMap.DestinationLength; i++)
             {
                 ResizeKernel kernel = kernelMap.GetKernel(i);
 
@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         private static string PrintKernelMap(ResizeKernelMap kernelMap) =>
-            PrintKernelMap(kernelMap, km => km.DestinationSize, (km, i) => km.GetKernel(i));
+            PrintKernelMap(kernelMap, km => km.DestinationLength, (km, i) => km.GetKernel(i));
 
         private static string PrintKernelMap(ReferenceKernelMap kernelMap) =>
             PrintKernelMap(kernelMap, km => km.DestinationSize, (km, i) => km.GetKernel(i));

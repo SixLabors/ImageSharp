@@ -24,8 +24,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             public MosaicKernelMap(
                 MemoryAllocator memoryAllocator,
                 IResampler sampler,
-                int sourceSize,
-                int destinationSize,
+                int sourceLength,
+                int destinationLength,
                 float ratio,
                 float scale,
                 int radius,
@@ -34,8 +34,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 : base(
                     memoryAllocator,
                     sampler,
-                    sourceSize,
-                    destinationSize,
+                    sourceLength,
+                    destinationLength,
                     (cornerInterval * 2) + period,
                     ratio,
                     scale,
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 }
 
                 // Copy the mosaics:
-                int bottomStartDest = this.DestinationSize - this.cornerInterval;
+                int bottomStartDest = this.DestinationLength - this.cornerInterval;
                 for (int i = startOfFirstRepeatedMosaic; i < bottomStartDest; i++)
                 {
                     float center = ((i + .5F) * this.ratio) - .5F;

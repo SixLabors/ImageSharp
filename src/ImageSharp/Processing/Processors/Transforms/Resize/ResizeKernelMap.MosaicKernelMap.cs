@@ -41,6 +41,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 this.cornerInterval = cornerInterval;
                 this.period = period;
             }
+
+            protected override void Initialize()
+            {
+                base.Initialize();
+            }
         }
     }
 }

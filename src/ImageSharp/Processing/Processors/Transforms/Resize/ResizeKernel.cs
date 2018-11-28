@@ -6,14 +6,12 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-using SixLabors.ImageSharp.Memory;
-
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
     /// <summary>
     /// Points to a collection of of weights allocated in <see cref="ResizeKernelMap"/>.
     /// </summary>
-    internal unsafe struct ResizeKernel
+    internal readonly unsafe struct ResizeKernel
     {
         private readonly float* bufferPtr;
 
@@ -72,6 +70,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
 
             return result;
+        }
+
+        internal ResizeKernel AlterLeftValue(int left)
+        {
+            return new ResizeKernel(left, this.bufferPtr, this.Length);
         }
     }
 }

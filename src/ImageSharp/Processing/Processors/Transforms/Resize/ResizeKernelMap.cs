@@ -57,6 +57,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         public int DestinationSize { get; }
 
+        internal virtual string Info =>
+            $"radius:{this.radius}|sourceSize:{this.sourceSize}|destinationSize:{this.DestinationSize}|ratio:{this.ratio}|scale:{this.scale}";
+
         /// <summary>
         /// Disposes <see cref="ResizeKernelMap"/> instance releasing it's backing buffer.
         /// </summary>
@@ -97,11 +100,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int radius = (int)MathF.Ceiling(scale * sampler.Radius);
             int period = ImageMaths.LeastCommonMultiple(sourceSize, destinationSize) / sourceSize;
             float center0 = (ratio - 1) * 0.5f;
-            int cornerInterval = (int)MathF.Ceiling((radius - center0 - 1) / ratio);
+            float firstNonNegativeLeftVal = (radius - center0 - 1) / ratio;
+            int cornerInterval = (int)MathF.Ceiling(firstNonNegativeLeftVal);
+
+            // corner case for cornerInteval:
+            if (firstNonNegativeLeftVal ==  cornerInterval)
+            {
+                cornerInterval++;
+            }
 
             bool useMosaic = 2 * (cornerInterval + period) < destinationSize;
-
-            useMosaic = false;
 
             ResizeKernelMap result = useMosaic
                                          ? new MosaicKernelMap(
@@ -131,14 +139,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         protected virtual void Initialize()
         {
-            for (int destRowIndex = 0; destRowIndex < this.DestinationSize; destRowIndex++)
+            for (int i = 0; i < this.DestinationSize; i++)
             {
-                ResizeKernel kernel = this.BuildKernelRow(destRowIndex, destRowIndex);
-                this.kernels[destRowIndex] = kernel;
+                ResizeKernel kernel = this.BuildKernel(i, i);
+                this.kernels[i] = kernel;
             }
         }
 
-        private ResizeKernel BuildKernelRow(int destRowIndex, int dataRowIndex)
+        private ResizeKernel BuildKernel(int destRowIndex, int dataRowIndex)
         {
             float center = ((destRowIndex + .5F) * this.ratio) - .5F;
 
@@ -157,7 +165,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             float sum = 0;
 
-            ResizeKernel kernel = this.GetKernel(dataRowIndex, left, right);
+            ResizeKernel kernel = this.CreateKernel(dataRowIndex, left, right);
 
             ref float kernelBaseRef = ref MemoryMarshal.GetReference(kernel.Values);
 
@@ -188,7 +196,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// Returns a <see cref="ResizeKernel"/> referencing values of <see cref="data"/>
         /// at row <paramref name="dataRowIndex"/>.
         /// </summary>
-        private unsafe ResizeKernel GetKernel(int dataRowIndex, int left, int right)
+        private unsafe ResizeKernel CreateKernel(int dataRowIndex, int left, int right)
         {
             int length = right - left + 1;
 

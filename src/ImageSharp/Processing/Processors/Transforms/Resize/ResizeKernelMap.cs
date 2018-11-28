@@ -13,13 +13,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
     /// <summary>
     /// Provides <see cref="ResizeKernel"/> values from an optimized,
-    /// contigous memory region.
+    /// contiguous memory region.
     /// </summary>
     internal partial class ResizeKernelMap : IDisposable
     {
         private readonly IResampler sampler;
 
-        private readonly int sourceSize;
+        private readonly int sourceLength;
 
         private readonly float ratio;
 
@@ -36,8 +36,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private ResizeKernelMap(
             MemoryAllocator memoryAllocator,
             IResampler sampler,
-            int sourceSize,
-            int destinationSize,
+            int sourceLength,
+            int destinationLength,
             int bufferHeight,
             float ratio,
             float scale,
@@ -47,18 +47,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.ratio = ratio;
             this.scale = scale;
             this.radius = radius;
-            this.sourceSize = sourceSize;
-            this.DestinationSize = destinationSize;
+            this.sourceLength = sourceLength;
+            this.DestinationLength = destinationLength;
             int maxWidth = (radius * 2) + 1;
             this.data = memoryAllocator.Allocate2D<float>(maxWidth, bufferHeight, AllocationOptions.Clean);
             this.pinHandle = this.data.Memory.Pin();
-            this.kernels = new ResizeKernel[destinationSize];
+            this.kernels = new ResizeKernel[destinationLength];
         }
 
-        public int DestinationSize { get; }
+        /// <summary>
+        /// Gets the length of the destination row/column
+        /// </summary>
+        public int DestinationLength { get; }
 
+        /// <summary>
+        /// Gets a string of information to help debugging
+        /// </summary>
         internal virtual string Info =>
-            $"radius:{this.radius}|sourceSize:{this.sourceSize}|destinationSize:{this.DestinationSize}|ratio:{this.ratio}|scale:{this.scale}";
+            $"radius:{this.radius}|sourceSize:{this.sourceLength}|destinationSize:{this.DestinationLength}|ratio:{this.ratio}|scale:{this.scale}";
 
         /// <summary>
         /// Disposes <see cref="ResizeKernelMap"/> instance releasing it's backing buffer.
@@ -104,7 +110,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int cornerInterval = (int)MathF.Ceiling(firstNonNegativeLeftVal);
 
             // corner case for cornerInteval:
-            if (firstNonNegativeLeftVal ==  cornerInterval)
+            if (firstNonNegativeLeftVal == cornerInterval)
             {
                 cornerInterval++;
             }
@@ -139,13 +145,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         protected virtual void Initialize()
         {
-            for (int i = 0; i < this.DestinationSize; i++)
+            for (int i = 0; i < this.DestinationLength; i++)
             {
                 ResizeKernel kernel = this.BuildKernel(i, i);
                 this.kernels[i] = kernel;
             }
         }
 
+        /// <summary>
+        /// Builds a <see cref="ResizeKernel"/> for the row <paramref name="destRowIndex"/> (in <see cref="kernels"/>)
+        /// referencing the data at row <paramref name="dataRowIndex"/> within <see cref="data"/>,
+        /// so the data reusable by other data rows.
+        /// </summary>
         private ResizeKernel BuildKernel(int destRowIndex, int dataRowIndex)
         {
             float center = ((destRowIndex + .5F) * this.ratio) - .5F;
@@ -158,9 +169,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
 
             int right = (int)MathF.Floor(center + this.radius);
-            if (right > this.sourceSize - 1)
+            if (right > this.sourceLength - 1)
             {
-                right = this.sourceSize - 1;
+                right = this.sourceLength - 1;
             }
 
             float sum = 0;

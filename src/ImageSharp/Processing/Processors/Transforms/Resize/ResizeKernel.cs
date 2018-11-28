@@ -72,6 +72,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             return result;
         }
 
+        /// <summary>
+        /// Copy the contents of <see cref="ResizeKernel"/> altering <see cref="Left"/>
+        /// to the value <paramref name="left"/>.
+        /// </summary>
         internal ResizeKernel AlterLeftValue(int left)
         {
             return new ResizeKernel(left, this.bufferPtr, this.Length);

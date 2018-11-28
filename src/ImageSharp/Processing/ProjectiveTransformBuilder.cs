@@ -153,6 +153,82 @@ namespace SixLabors.ImageSharp.Processing
             => this.AppendMatrix(Matrix4x4.CreateScale(new Vector3(scales, 1F)));
 
         /// <summary>
+        /// Prepends a centered skew matrix from the give angles in degrees.
+        /// </summary>
+        /// <param name="degreesX">The X angle, in degrees.</param>
+        /// <param name="degreesY">The Y angle, in degrees.</param>
+        /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
+        internal ProjectiveTransformBuilder PrependSkewDegrees(float degreesX, float degreesY)
+            => this.PrependSkewRadians(GeometryUtilities.DegreeToRadian(degreesX), GeometryUtilities.DegreeToRadian(degreesY));
+
+        /// <summary>
+        /// Prepends a centered skew matrix from the give angles in radians.
+        /// </summary>
+        /// <param name="radiansX">The X angle, in radians.</param>
+        /// <param name="radiansY">The Y angle, in radians.</param>
+        /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
+        public ProjectiveTransformBuilder PrependSkewRadians(float radiansX, float radiansY)
+            => this.Prepend(size => new Matrix4x4(TransformUtils.CreateSkewMatrixRadians(radiansX, radiansY, size)));
+
+        /// <summary>
+        /// Prepends a skew matrix using the given angles in degrees at the given origin.
+        /// </summary>
+        /// <param name="degreesX">The X angle, in degrees.</param>
+        /// <param name="degreesY">The Y angle, in degrees.</param>
+        /// <param name="origin">The skew origin point.</param>
+        /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
+        public ProjectiveTransformBuilder PrependSkewDegrees(float degreesX, float degreesY, Vector2 origin)
+            => this.PrependSkewRadians(GeometryUtilities.DegreeToRadian(degreesX), GeometryUtilities.DegreeToRadian(degreesY), origin);
+
+        /// <summary>
+        /// Prepends a skew matrix using the given angles in radians at the given origin.
+        /// </summary>
+        /// <param name="radiansX">The X angle, in radians.</param>
+        /// <param name="radiansY">The Y angle, in radians.</param>
+        /// <param name="origin">The skew origin point.</param>
+        /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
+        public ProjectiveTransformBuilder PrependSkewRadians(float radiansX, float radiansY, Vector2 origin)
+            => this.PrependMatrix(new Matrix4x4(Matrix3x2.CreateSkew(radiansX, radiansY, origin)));
+
+        /// <summary>
+        /// Appends a centered skew matrix from the give angles in degrees.
+        /// </summary>
+        /// <param name="degreesX">The X angle, in degrees.</param>
+        /// <param name="degreesY">The Y angle, in degrees.</param>
+        /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
+        internal ProjectiveTransformBuilder AppendSkewDegrees(float degreesX, float degreesY)
+            => this.AppendSkewRadians(GeometryUtilities.DegreeToRadian(degreesX), GeometryUtilities.DegreeToRadian(degreesY));
+
+        /// <summary>
+        /// Appends a centered skew matrix from the give angles in radians.
+        /// </summary>
+        /// <param name="radiansX">The X angle, in radians.</param>
+        /// <param name="radiansY">The Y angle, in radians.</param>
+        /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
+        public ProjectiveTransformBuilder AppendSkewRadians(float radiansX, float radiansY)
+            => this.Append(size => new Matrix4x4(TransformUtils.CreateSkewMatrixRadians(radiansX, radiansY, size)));
+
+        /// <summary>
+        /// Appends a skew matrix using the given angles in degrees at the given origin.
+        /// </summary>
+        /// <param name="degreesX">The X angle, in degrees.</param>
+        /// <param name="degreesY">The Y angle, in degrees.</param>
+        /// <param name="origin">The skew origin point.</param>
+        /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
+        public ProjectiveTransformBuilder AppendSkewDegrees(float degreesX, float degreesY, Vector2 origin)
+            => this.AppendSkewRadians(GeometryUtilities.DegreeToRadian(degreesX), GeometryUtilities.DegreeToRadian(degreesY), origin);
+
+        /// <summary>
+        /// Appends a skew matrix using the given angles in radians at the given origin.
+        /// </summary>
+        /// <param name="radiansX">The X angle, in radians.</param>
+        /// <param name="radiansY">The Y angle, in radians.</param>
+        /// <param name="origin">The skew origin point.</param>
+        /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
+        public ProjectiveTransformBuilder AppendSkewRadians(float radiansX, float radiansY, Vector2 origin)
+            => this.AppendMatrix(new Matrix4x4(Matrix3x2.CreateSkew(radiansX, radiansY, origin)));
+
+        /// <summary>
         /// Prepends a translation matrix from the given vector.
         /// </summary>
         /// <param name="position">The translation position.</param>

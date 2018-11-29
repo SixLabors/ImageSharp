@@ -15,11 +15,11 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
-    public partial class KernelMapTests
+    public partial class ResizeKernelMapTests
     {
         private ITestOutputHelper Output { get; }
 
-        public KernelMapTests(ITestOutputHelper output)
+        public ResizeKernelMapTests(ITestOutputHelper output)
         {
             this.Output = output;
         }

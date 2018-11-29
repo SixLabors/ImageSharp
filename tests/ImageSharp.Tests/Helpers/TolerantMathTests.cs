@@ -126,5 +126,43 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             Assert.False(this.tolerantMath.IsGreaterOrEqual(a, b));
             Assert.False(this.tolerantMath.IsLessOrEqual(b, a));
         }
+
+        [Theory]
+        [InlineData(3.5, 4.0)]
+        [InlineData(3.89, 4.0)]
+        [InlineData(4.09, 4.0)]
+        [InlineData(4.11, 5.0)]
+        [InlineData(0.11, 1)]
+        [InlineData(0.05, 0)]
+        [InlineData(-0.5, 0)]
+        [InlineData(-0.95, -1)]
+        [InlineData(-1.05, -1)]
+        [InlineData(-1.5, -1)]
+        public void Ceiling(double value, double expected)
+        {
+            double actual = this.tolerantMath.Ceiling(value);
+            Assert.Equal(expected, actual);
+        }
+
+        [Theory]
+        [InlineData(1, 1)]
+        [InlineData(0.99, 1)]
+        [InlineData(0.5, 0)]
+        [InlineData(0.01, 0)]
+        [InlineData(-0.09, 0)]
+        [InlineData(-0.11, -1)]
+        [InlineData(-100.11, -101)]
+        [InlineData(-100.09, -100)]
+        public void Floor(double value, double expected)
+        {
+            double plz1 = Math.IEEERemainder(1.1, 1);
+            double plz2 = Math.IEEERemainder(0.9, 1);
+
+            double plz3 = Math.IEEERemainder(-1.1, 1);
+            double plz4 = Math.IEEERemainder(-0.9, 1);
+
+            double actual = this.tolerantMath.Floor(value);
+            Assert.Equal(expected, actual);
+        }
     }
 }

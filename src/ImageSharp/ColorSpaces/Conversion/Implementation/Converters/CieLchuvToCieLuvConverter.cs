@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
             // Conversion algorithm described here:
             // https://en.wikipedia.org/wiki/CIELUV#Cylindrical_representation_.28CIELCH.29
             float l = input.L, c = input.C, hDegrees = input.H;
-            float hRadians = MathFExtensions.DegreeToRadian(hDegrees);
+            float hRadians = GeometryUtilities.DegreeToRadian(hDegrees);
 
             float u = c * MathF.Cos(hRadians);
             float v = c * MathF.Sin(hRadians);

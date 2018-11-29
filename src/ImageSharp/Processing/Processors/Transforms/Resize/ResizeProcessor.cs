@@ -27,8 +27,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         where TPixel : struct, IPixel<TPixel>
     {
         // The following fields are not immutable but are optionally created on demand.
-        private KernelMap horizontalKernelMap;
-        private KernelMap verticalKernelMap;
+        private ResizeKernelMap horizontalKernelMap;
+        private ResizeKernelMap verticalKernelMap;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ResizeProcessor{TPixel}"/> class.
@@ -165,13 +165,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 // Since all image frame dimensions have to be the same we can calculate this for all frames.
                 MemoryAllocator memoryAllocator = source.GetMemoryAllocator();
-                this.horizontalKernelMap = KernelMap.Calculate(
+                this.horizontalKernelMap = ResizeKernelMap.Calculate(
                     this.Sampler,
                     this.ResizeRectangle.Width,
                     sourceRectangle.Width,
                     memoryAllocator);
 
-                this.verticalKernelMap = KernelMap.Calculate(
+                this.verticalKernelMap = ResizeKernelMap.Calculate(
                     this.Sampler,
                     this.ResizeRectangle.Height,
                     sourceRectangle.Height,
@@ -254,8 +254,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                         {
                             for (int y = rows.Min; y < rows.Max; y++)
                             {
-                                Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
-                                Span<Vector4> tempRowSpan = tempRowBuffer.Span;
+                                Span<TPixel> sourceRow = source.GetPixelRowSpan(y).Slice(sourceX);
+                                Span<Vector4> tempRowSpan = tempRowBuffer.Span.Slice(sourceX);
 
                                 PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, tempRowSpan);
                                 Vector4Utils.Premultiply(tempRowSpan);
@@ -269,9 +269,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                                 for (int x = minX; x < maxX; x++)
                                 {
-                                    ResizeKernel window = this.horizontalKernelMap.Kernels[x - startX];
+                                    ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - startX);
                                     Unsafe.Add(ref firstPassBaseRef, x * sourceHeight) =
-                                        window.Convolve(tempRowSpan, sourceX);
+                                        kernel.Convolve(tempRowSpan);
                                 }
                             }
                         });
@@ -289,16 +289,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                             for (int y = rows.Min; y < rows.Max; y++)
                             {
                                 // Ensure offsets are normalized for cropping and padding.
-                                ResizeKernel window = this.verticalKernelMap.Kernels[y - startY];
+                                ResizeKernel kernel = this.verticalKernelMap.GetKernel(y - startY);
 
                                 ref Vector4 tempRowBase = ref MemoryMarshal.GetReference(tempRowSpan);
 
                                 for (int x = 0; x < width; x++)
                                 {
-                                    Span<Vector4> firstPassColumn = firstPassPixelsTransposed.GetRowSpan(x);
+                                    Span<Vector4> firstPassColumn = firstPassPixelsTransposed.GetRowSpan(x).Slice(sourceY);
 
                                     // Destination color components
-                                    Unsafe.Add(ref tempRowBase, x) = window.Convolve(firstPassColumn, sourceY);
+                                    Unsafe.Add(ref tempRowBase, x) = kernel.Convolve(firstPassColumn);
                                 }
 
                                 Vector4Utils.UnPremultiply(tempRowSpan);

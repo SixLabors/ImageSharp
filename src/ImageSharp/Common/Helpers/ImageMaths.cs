@@ -5,6 +5,7 @@ using System;
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
@@ -100,7 +101,6 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Determine the Least Common Multiple (LCM) of two numbers.
-        /// TODO: This method might be useful for building a more compact <see cref="Processing.Processors.Transforms.KernelMap"/>
         /// </summary>
         public static int LeastCommonMultiple(int a, int b)
         {

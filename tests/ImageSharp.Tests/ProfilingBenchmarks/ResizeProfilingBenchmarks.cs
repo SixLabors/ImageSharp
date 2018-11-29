@@ -7,17 +7,10 @@ using SixLabors.ImageSharp.Processing;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
+namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
 {
     public class ResizeProfilingBenchmarks : MeasureFixture
     {
-        public const string SkipText =
-#if false
-            null;
-#else
-            "Benchmark, enable manually!";
-#endif
-
         private readonly Configuration configuration = Configuration.CreateDefaultInstance();
 
         public ResizeProfilingBenchmarks(ITestOutputHelper output)
@@ -28,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
         public int ExecutionCount { get; set; } = 50;
         
-        [Theory(Skip = SkipText)]
+        [Theory(Skip = ProfilingSetup.SkipProfilingTests)]
         [InlineData(100, 100)]
         [InlineData(2000, 2000)]
         public void ResizeBicubic(int width, int height)

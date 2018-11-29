@@ -104,9 +104,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             double ratio = (double)sourceSize / destinationSize;
             double scale = ratio;
 
-            if (scale < 1F)
+            if (scale < 1)
             {
-                scale = 1F;
+                scale = 1;
             }
 
             int radius = (int)TolerantMath.Ceiling(scale * sampler.Radius);
@@ -126,7 +126,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // however, it's just simpler to calculate them separately.
             int cornerInterval = (int)TolerantMath.Ceiling(firstNonNegativeLeftVal);
 
-            // If firstNonNegativeLeftVal was an integral value, we don't need Ceiling:
+            // If firstNonNegativeLeftVal was an integral value, we need firstNonNegativeLeftVal+1
+            // instead of Ceiling:
             if (TolerantMath.AreEqual(firstNonNegativeLeftVal, cornerInterval))
             {
                 cornerInterval++;

@@ -58,29 +58,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             }
         }
 
-        // TODO: Merge with the previous theory + add test images
-        [Theory]
-        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, nameof(KnownResamplers.Bicubic), 1)]
-        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, nameof(KnownResamplers.Bicubic), 10)]
-        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, nameof(KnownResamplers.Lanczos3), 10)]
-        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, nameof(KnownResamplers.Lanczos8), 10)]
-        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, nameof(KnownResamplers.NearestNeighbor), 10)]
-        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, nameof(KnownResamplers.NearestNeighbor), 1)]
-        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, nameof(KnownResamplers.NearestNeighbor), 5)]
-        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, nameof(KnownResamplers.Bicubic), 5)]
-        public void ScaleUp<TPixel>(TestImageProvider<TPixel> provider, string samplerName, float ratio)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                SizeF newSize = image.Size() * ratio;
-                image.Mutate(x => x.Resize((Size)newSize, TestUtils.GetResampler(samplerName), false));
-                FormattableString details = $"{samplerName}_{ratio.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
-
-                image.DebugSave(provider, details);
-            }
-        }
-
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), DefaultPixelType, 1)]
         [WithFileCollection(nameof(CommonTestImages), DefaultPixelType, 4)]

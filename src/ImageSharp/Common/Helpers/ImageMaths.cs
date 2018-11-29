@@ -99,7 +99,6 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Determine the Least Common Multiple (LCM) of two numbers.
-        /// TODO: This method might be useful for building a more compact <see cref="ResizeKernelMap"/>
         /// </summary>
         public static int LeastCommonMultiple(int a, int b)
         {

@@ -1,12 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp
 {
     /// <summary>
-    /// Implements math operations using tolerant comparison.
+    /// Implements basic math operations using tolerant comparison
+    /// whenever an equality check is needed.
     /// </summary>
     internal struct TolerantMath
     {
@@ -71,5 +73,29 @@ namespace SixLabors.ImageSharp
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
         public bool IsLessOrEqual(double a, double b) => b >= a - this.epsilon;
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public double Ceiling(double a)
+        {
+            double rem = Math.IEEERemainder(a, 1);
+            if (this.IsZero(rem))
+            {
+                return Math.Round(a);
+            }
+
+            return Math.Ceiling(a);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public double Floor(double a)
+        {
+            double rem = Math.IEEERemainder(a, 1);
+            if (this.IsZero(rem))
+            {
+                return Math.Round(a);
+            }
+
+            return Math.Floor(a);
+        }
     }
 }

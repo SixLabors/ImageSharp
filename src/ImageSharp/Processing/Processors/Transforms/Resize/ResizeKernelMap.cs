@@ -17,8 +17,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// </summary>
     internal partial class ResizeKernelMap : IDisposable
     {
-        private readonly MemoryAllocator memoryAllocator;
-
         private readonly IResampler sampler;
 
         private readonly int sourceLength;
@@ -35,6 +33,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly ResizeKernel[] kernels;
 
+        // To avoid both GC allocations, and MemoryAllocator ceremony:
+        private readonly double[] tempValues;
+
         private ResizeKernelMap(
             MemoryAllocator memoryAllocator,
             IResampler sampler,
@@ -45,7 +46,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             double scale,
             int radius)
         {
-            this.memoryAllocator = memoryAllocator;
             this.sampler = sampler;
             this.ratio = ratio;
             this.scale = scale;
@@ -56,6 +56,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.data = memoryAllocator.Allocate2D<float>(maxWidth, bufferHeight, AllocationOptions.Clean);
             this.pinHandle = this.data.Memory.Pin();
             this.kernels = new ResizeKernel[destinationLength];
+            this.tempValues = new double[maxWidth];
         }
 
         /// <summary>
@@ -113,7 +114,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int cornerInterval = (int)Math.Ceiling(firstNonNegativeLeftVal);
 
             // corner case for cornerInteval:
-            if (firstNonNegativeLeftVal == cornerInterval)
+            // TODO: Implement library-wide utils for tolerant comparison
+            if (Math.Abs(firstNonNegativeLeftVal - cornerInterval) < 1e-8)
             {
                 cornerInterval++;
             }
@@ -179,32 +181,29 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             ResizeKernel kernel = this.CreateKernel(dataRowIndex, left, right);
 
-            using (IMemoryOwner<double> tempBuffer = this.memoryAllocator.Allocate<double>(kernel.Length))
+            Span<double> kernelValues = this.tempValues.AsSpan().Slice(0, kernel.Length);
+            double sum = 0;
+
+            for (int j = left; j <= right; j++)
             {
-                Span<double> kernelValues = tempBuffer.GetSpan();
-                double sum = 0;
+                double value = this.sampler.GetValue((float)((j - center) / this.scale));
+                sum += value;
 
-                for (int j = left; j <= right; j++)
-                {
-                    double value = this.sampler.GetValue((float)((j - center) / this.scale));
-                    sum += value;
-
-                    kernelValues[j - left] = value;
-                }
-
-                // Normalize, best to do it here rather than in the pixel loop later on.
-                if (sum > 0)
-                {
-                    for (int j = 0; j < kernel.Length; j++)
-                    {
-                        // weights[w] = weights[w] / sum:
-                        ref double kRef = ref kernelValues[j];
-                        kRef /= sum;
-                    }
-                }
-
-                kernel.Fill(kernelValues);
+                kernelValues[j - left] = value;
             }
+
+            // Normalize, best to do it here rather than in the pixel loop later on.
+            if (sum > 0)
+            {
+                for (int j = 0; j < kernel.Length; j++)
+                {
+                    // weights[w] = weights[w] / sum:
+                    ref double kRef = ref kernelValues[j];
+                    kRef /= sum;
+                }
+            }
+
+            kernel.Fill(kernelValues);
 
             return kernel;
         }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
@@ -40,6 +41,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
                 for (int i = 0; i < destinationSize; i++)
                 {
+                    if (i == 21 || i == 64)
+                    {
+                        Debug.Print("lol");
+                    }
+
                     double center = ((i + .5) * ratio) - .5;
 
                     // Keep inside bounds.

@@ -104,22 +104,23 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [MemberData(nameof(KernelMapData))]
         public void KernelMapContentIsCorrect(string resamplerName, int srcSize, int destSize)
         {
-            VerifyKernelMapContentIsCorrect(resamplerName, srcSize, destSize);
+            this.VerifyKernelMapContentIsCorrect(resamplerName, srcSize, destSize);
         }
 
-        // Comprehensive but expensive tests, for KernelMap generation
-        // Enabling them can kill your IDE:
+        // Comprehensive but expensive tests, for ResizeKernelMap.
+        // Enabling them can kill you, but sometimes you have to wear the burden!
+        // AppVeyor will never follow you to these shadows of Mordor.
 #if false
         [Theory]
         [MemberData(nameof(GeneratedImageResizeData))]
         public void KernelMapContentIsCorrect_ExtendedGeneratedValues(string resamplerName, int srcSize, int destSize)
         {
-            VerifyKernelMapContentIsCorrect(resamplerName, srcSize, destSize);
+            this.VerifyKernelMapContentIsCorrect(resamplerName, srcSize, destSize);
         }
 #endif
 
 
-        private static void VerifyKernelMapContentIsCorrect(string resamplerName, int srcSize, int destSize)
+        private void VerifyKernelMapContentIsCorrect(string resamplerName, int srcSize, int destSize)
         {
             IResampler resampler = TestUtils.GetResampler(resamplerName);
 
@@ -127,8 +128,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             var kernelMap = ResizeKernelMap.Calculate(resampler, destSize, srcSize, Configuration.Default.MemoryAllocator);
 
 #if DEBUG
-            // this.Output.WriteLine($"Expected KernelMap:\n{PrintKernelMap(referenceMap)}\n");
-            // this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");
+            this.Output.WriteLine($"Expected KernelMap:\n{PrintKernelMap(referenceMap)}\n");
+            this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");
 #endif
             var comparer = new ApproximateFloatComparer(1e-6f);
 

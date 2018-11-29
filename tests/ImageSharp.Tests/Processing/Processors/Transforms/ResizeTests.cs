@@ -20,38 +20,23 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public static readonly string[] CommonTestImages = { TestImages.Png.CalliphoraPartial };
 
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.07F);
-        
-        public static readonly TheoryData<string, IResampler> AllResamplers =
-            new TheoryData<string, IResampler>
-            {
-                { "Bicubic", KnownResamplers.Bicubic },
-                { "Triangle", KnownResamplers.Triangle},
-                { "NearestNeighbor", KnownResamplers.NearestNeighbor },
-                { "Box", KnownResamplers.Box },
-                // { "Lanczos2", KnownResamplers.Lanczos2 }, TODO: Add expected file
-                { "Lanczos3", KnownResamplers.Lanczos3 },
-                { "Lanczos5", KnownResamplers.Lanczos5 },
-                { "MitchellNetravali", KnownResamplers.MitchellNetravali  },
-                { "Lanczos8", KnownResamplers.Lanczos8  },
-                { "Hermite", KnownResamplers.Hermite  },
-                { "Spline", KnownResamplers.Spline  },
-                { "Robidoux", KnownResamplers.Robidoux  },
-                { "RobidouxSharp", KnownResamplers.RobidouxSharp },
-                { "Welch", KnownResamplers.Welch  }
-            };
+
+        public static readonly string[] AllResamplerNames = TestUtils.GetAllResamplerNames();
 
         [Theory]
-        [WithTestPatternImages(nameof(AllResamplers), 100, 100, DefaultPixelType, 0.5f)]
-        [WithFileCollection(nameof(CommonTestImages), nameof(AllResamplers), DefaultPixelType, 0.5f)]
-        [WithFileCollection(nameof(CommonTestImages), nameof(AllResamplers), DefaultPixelType, 0.3f)]
-        public void Resize_WorksWithAllResamplers<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler, float ratio)
+        [WithTestPatternImages(nameof(AllResamplerNames), 100, 100, DefaultPixelType, 0.5f)]
+        [WithFileCollection(nameof(CommonTestImages), nameof(AllResamplerNames), DefaultPixelType, 0.5f)]
+        [WithFileCollection(nameof(CommonTestImages), nameof(AllResamplerNames), DefaultPixelType, 0.3f)]
+        public void Resize_WorksWithAllResamplers<TPixel>(TestImageProvider<TPixel> provider, string samplerName, float ratio)
             where TPixel : struct, IPixel<TPixel>
         {
+            IResampler sampler = TestUtils.GetResampler(samplerName);
+
             using (Image<TPixel> image = provider.GetImage())
             {
                 SizeF newSize = image.Size() * ratio;
                 image.Mutate(x => x.Resize((Size)newSize, sampler, false));
-                FormattableString details = $"{name}-{ratio.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+                FormattableString details = $"{samplerName}-{ratio.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
 
                 image.DebugSave(provider, details);
                 image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.02f), provider, details);

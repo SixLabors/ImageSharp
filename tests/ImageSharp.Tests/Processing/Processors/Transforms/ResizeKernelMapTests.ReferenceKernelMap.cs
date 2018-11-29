@@ -1,13 +1,14 @@
-﻿using System;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
-    public partial class KernelMapTests
+    public partial class ResizeKernelMapTests
     {
         /// <summary>
         /// Simplified reference implementation for <see cref="ResizeKernelMap"/> functionality.
@@ -43,11 +44,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
                 for (int i = 0; i < destinationSize; i++)
                 {
-                    //if (i == 21 || i == 64)
-                    //{
-                    //    Debug.Print("lol");
-                    //}
-
                     double center = ((i + .5) * ratio) - .5;
 
                     // Keep inside bounds.

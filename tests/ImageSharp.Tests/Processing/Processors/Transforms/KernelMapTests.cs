@@ -60,6 +60,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             { nameof(KnownResamplers.Lanczos8), 100, 80 },
             { nameof(KnownResamplers.Lanczos8), 10, 100 },
 
+            // Resize_WorksWithAllResamplers_Rgba32_CalliphoraPartial_Box-0.5:
+            { nameof(KnownResamplers.Box), 378, 149 },
+            { nameof(KnownResamplers.Box), 349, 174 },
+
             // Accuracy-related regression-test cases cherry-picked from GeneratedImageResizeData
             { nameof(KnownResamplers.Box), 201, 100 },
             { nameof(KnownResamplers.Box), 199, 99 },
@@ -89,7 +93,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             GenerateImageResizeData();
 
 
-        [Theory]
+        [Theory(Skip = "Only for debugging and development")]
         [MemberData(nameof(KernelMapData))]
         public void PrintNonNormalizedKernelMap(string resamplerName, int srcSize, int destSize)
         {

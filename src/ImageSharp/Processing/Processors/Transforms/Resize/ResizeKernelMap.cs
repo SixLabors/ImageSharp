@@ -110,20 +110,33 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
 
             int radius = (int)TolerantMath.Ceiling(scale * sampler.Radius);
+
+            // 'ratio' is a rational number.
+            // Multiplying it by LCM(sourceSize, destSize)/sourceSize will result in a whole number "again".
+            // This value is determining the length of the periods in repeating kernel map rows.
             int period = ImageMaths.LeastCommonMultiple(sourceSize, destinationSize) / sourceSize;
+
+            // the center position at i == 0:
             double center0 = (ratio - 1) * 0.5;
             double firstNonNegativeLeftVal = (radius - center0 - 1) / ratio;
+
+            // The number of rows building a "stairway" at the top and the bottom of the kernel map
+            // corresponding to the corners of the image.
+            // If we do not normalize the kernel values, these rows also fit the periodic logic,
+            // however, it's just simpler to calculate them separately.
             int cornerInterval = (int)TolerantMath.Ceiling(firstNonNegativeLeftVal);
 
-            // corner case for cornerInteval:
+            // If firstNonNegativeLeftVal was an integral value, we don't need Ceiling:
             if (TolerantMath.AreEqual(firstNonNegativeLeftVal, cornerInterval))
             {
                 cornerInterval++;
             }
 
-            bool useMosaic = 2 * (cornerInterval + period) < destinationSize;
+            // If 'cornerInterval' is too big compared to 'period', we can't apply the periodic optimization.
+            // If we don't have at least 2 periods, we go with the basic implementation:
+            bool hasAtLeast2Periods = 2 * (cornerInterval + period) < destinationSize;
 
-            ResizeKernelMap result = useMosaic
+            ResizeKernelMap result = hasAtLeast2Periods
                                          ? new PeriodicKernelMap(
                                              memoryAllocator,
                                              sampler,

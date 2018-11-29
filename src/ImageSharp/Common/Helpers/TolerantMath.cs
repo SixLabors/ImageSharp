@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp
     /// Implements basic math operations using tolerant comparison
     /// whenever an equality check is needed.
     /// </summary>
-    internal struct TolerantMath
+    internal readonly struct TolerantMath
     {
         private readonly double epsilon;
 

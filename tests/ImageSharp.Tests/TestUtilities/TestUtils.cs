@@ -297,5 +297,13 @@ namespace SixLabors.ImageSharp.Tests
 
             return (IResampler)property.GetValue(null);
         }
+
+        public static string[] GetAllResamplerNames(bool includeNearestNeighbour = true)
+        {
+            return typeof(KnownResamplers).GetProperties(BindingFlags.Public | BindingFlags.Static)
+                .Select(p => p.Name)
+                .Where(name => includeNearestNeighbour || name != nameof(KnownResamplers.NearestNeighbor))
+                .ToArray();
+        }
     }
 }

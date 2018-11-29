@@ -208,10 +208,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         {
             var result = new TheoryData<string, int, int>();
 
-            string[] resamplerNames = typeof(KnownResamplers).GetProperties(BindingFlags.Public | BindingFlags.Static)
-                .Select(p => p.Name)
-                .Where(name => name != nameof(KnownResamplers.NearestNeighbor))
-                .ToArray();
+            string[] resamplerNames = TestUtils.GetAllResamplerNames(false);
 
             int[] dimensionVals =
                 {

@@ -119,7 +119,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 #endif
 
-
         private void VerifyKernelMapContentIsCorrect(string resamplerName, int srcSize, int destSize)
         {
             IResampler resampler = TestUtils.GetResampler(resamplerName);

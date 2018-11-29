@@ -35,27 +35,29 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                     scale = 1F;
                 }
 
-                double radius = (double)Math.Ceiling(scale * sampler.Radius);
+                TolerantMath tolerantMath = TolerantMath.Default;
+
+                double radius = tolerantMath.Ceiling(scale * sampler.Radius);
                 
                 var result = new List<ReferenceKernel>();
 
                 for (int i = 0; i < destinationSize; i++)
                 {
-                    if (i == 21 || i == 64)
-                    {
-                        Debug.Print("lol");
-                    }
+                    //if (i == 21 || i == 64)
+                    //{
+                    //    Debug.Print("lol");
+                    //}
 
                     double center = ((i + .5) * ratio) - .5;
 
                     // Keep inside bounds.
-                    int left = (int)Math.Ceiling(center - radius);
+                    int left = (int)tolerantMath.Ceiling(center - radius);
                     if (left < 0)
                     {
                         left = 0;
                     }
 
-                    int right = (int)Math.Floor(center + radius);
+                    int right = (int)tolerantMath.Floor(center + radius);
                     if (right > sourceSize - 1)
                     {
                         right = sourceSize - 1;

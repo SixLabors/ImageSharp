@@ -17,6 +17,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// </summary>
     internal partial class ResizeKernelMap : IDisposable
     {
+        private static readonly TolerantMath TolerantMath = TolerantMath.Default;
+
         private readonly IResampler sampler;
 
         private readonly int sourceLength;
@@ -107,15 +109,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 scale = 1F;
             }
 
-            int radius = (int)Math.Ceiling(scale * sampler.Radius);
+            int radius = (int)TolerantMath.Ceiling(scale * sampler.Radius);
             int period = ImageMaths.LeastCommonMultiple(sourceSize, destinationSize) / sourceSize;
-            double center0 = (ratio - 1) * 0.5f;
+            double center0 = (ratio - 1) * 0.5;
             double firstNonNegativeLeftVal = (radius - center0 - 1) / ratio;
-            int cornerInterval = (int)Math.Ceiling(firstNonNegativeLeftVal);
+            int cornerInterval = (int)TolerantMath.Ceiling(firstNonNegativeLeftVal);
 
             // corner case for cornerInteval:
-            // TODO: Implement library-wide utils for tolerant comparison
-            if (Math.Abs(firstNonNegativeLeftVal - cornerInterval) < 1e-8)
+            if (TolerantMath.AreEqual(firstNonNegativeLeftVal, cornerInterval))
             {
                 cornerInterval++;
             }
@@ -167,13 +168,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             double center = ((destRowIndex + .5) * this.ratio) - .5;
 
             // Keep inside bounds.
-            int left = (int)Math.Ceiling(center - this.radius);
+            int left = (int)TolerantMath.Ceiling(center - this.radius);
             if (left < 0)
             {
                 left = 0;
             }
 
-            int right = (int)Math.Floor(center + this.radius);
+            int right = (int)TolerantMath.Floor(center + this.radius);
             if (right > this.sourceLength - 1)
             {
                 right = this.sourceLength - 1;

@@ -59,6 +59,30 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             { nameof(KnownResamplers.Lanczos8), 100, 10 },
             { nameof(KnownResamplers.Lanczos8), 100, 80 },
             { nameof(KnownResamplers.Lanczos8), 10, 100 },
+
+            // Accuracy-related regression-test cases cherry-picked from GeneratedImageResizeData
+            { nameof(KnownResamplers.Box), 201, 100 },
+            { nameof(KnownResamplers.Box), 199, 99 },
+            { nameof(KnownResamplers.Box), 10, 299 },
+            { nameof(KnownResamplers.Box), 299, 10 },
+            { nameof(KnownResamplers.Box), 301, 300 },
+            { nameof(KnownResamplers.Box), 1180, 480 },
+
+            { nameof(KnownResamplers.Lanczos2), 3264, 3032 },
+
+            { nameof(KnownResamplers.Bicubic), 1280, 2240 },
+            { nameof(KnownResamplers.Bicubic), 1920, 1680 },
+            { nameof(KnownResamplers.Bicubic), 3072, 2240 },
+
+            { nameof(KnownResamplers.Welch), 300, 2008 },
+
+            // ResizeKernel.Length -related regression tests cherry-picked from GeneratedImageResizeData
+            { nameof(KnownResamplers.Bicubic), 10, 50 },
+            { nameof(KnownResamplers.Bicubic), 49, 301 },
+            { nameof(KnownResamplers.Bicubic), 301, 49 },
+            { nameof(KnownResamplers.Bicubic), 1680, 1200 },
+            { nameof(KnownResamplers.Box), 13, 299 },
+            { nameof(KnownResamplers.Lanczos5), 3032, 600 },
         };
 
         public static TheoryData<string, int, int> GeneratedImageResizeData =
@@ -78,18 +102,21 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
         [Theory]
         [MemberData(nameof(KernelMapData))]
-        //[MemberData(nameof(GeneratedImageResizeData))]
         public void KernelMapContentIsCorrect(string resamplerName, int srcSize, int destSize)
         {
             VerifyKernelMapContentIsCorrect(resamplerName, srcSize, destSize);
         }
 
+        // Comprehensive but expensive tests, for KernelMap generation
+        // Enabling them can kill your IDE:
+#if false
         [Theory]
         [MemberData(nameof(GeneratedImageResizeData))]
         public void KernelMapContentIsCorrect_ExtendedGeneratedValues(string resamplerName, int srcSize, int destSize)
         {
             VerifyKernelMapContentIsCorrect(resamplerName, srcSize, destSize);
         }
+#endif
 
 
         private static void VerifyKernelMapContentIsCorrect(string resamplerName, int srcSize, int destSize)
@@ -103,6 +130,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             // this.Output.WriteLine($"Expected KernelMap:\n{PrintKernelMap(referenceMap)}\n");
             // this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");
 #endif
+            var comparer = new ApproximateFloatComparer(1e-6f);
 
             for (int i = 0; i < kernelMap.DestinationLength; i++)
             {
@@ -121,7 +149,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
                 Assert.Equal(expectedValues.Length, actualValues.Length);
 
-                var comparer = new ApproximateFloatComparer(1e-6f);
+
 
                 for (int x = 0; x < expectedValues.Length; x++)
                 {
@@ -177,7 +205,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             var result = new TheoryData<string, int, int>();
 
             string[] resamplerNames = typeof(KnownResamplers).GetProperties(BindingFlags.Public | BindingFlags.Static)
-                .Select(p => p.Name).ToArray();
+                .Select(p => p.Name)
+                .Where(name => name != nameof(KnownResamplers.NearestNeighbor))
+                .ToArray();
 
             int[] dimensionVals =
                 {

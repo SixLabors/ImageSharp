@@ -23,14 +23,24 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
         public static readonly string[] AllResamplerNames = TestUtils.GetAllResamplerNames();
 
+        public static readonly string[] SmokeTestResamplerNames =
+            {
+                nameof(KnownResamplers.NearestNeighbor),
+                nameof(KnownResamplers.Bicubic),
+                nameof(KnownResamplers.Box),
+                nameof(KnownResamplers.Lanczos5),
+            };
+
         [Theory]
-        [WithTestPatternImages(nameof(AllResamplerNames), 100, 100, DefaultPixelType, 0.5f, null, null)]
-        [WithTestPatternImages(nameof(AllResamplerNames), 50, 50, DefaultPixelType, 8f, null, null)]
-        [WithTestPatternImages(nameof(AllResamplerNames), 201, 199, DefaultPixelType, null, 100, 99)]
-        [WithTestPatternImages(nameof(AllResamplerNames), 301, 300, DefaultPixelType, null, 1180, 480)]
-        [WithTestPatternImages(nameof(AllResamplerNames), 49, 80, DefaultPixelType, null, 301, 100)]
         [WithFileCollection(nameof(CommonTestImages), nameof(AllResamplerNames), DefaultPixelType, 0.5f, null, null)]
-        [WithFileCollection(nameof(CommonTestImages), nameof(AllResamplerNames), DefaultPixelType, 0.3f, null, null)]
+        [WithFileCollection(nameof(CommonTestImages), nameof(SmokeTestResamplerNames), DefaultPixelType, 0.3f, null, null)]
+        [WithFileCollection(nameof(CommonTestImages), nameof(SmokeTestResamplerNames), DefaultPixelType, 1.8f, null, null)]
+        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 100, 100, DefaultPixelType, 0.5f, null, null)]
+        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 100, 100, DefaultPixelType, 1f, null, null)]
+        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 50, 50, DefaultPixelType, 8f, null, null)]
+        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 201, 199, DefaultPixelType, null, 100, 99)]
+        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 301, 1180, DefaultPixelType, null, 300, 480)]
+        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 49, 80, DefaultPixelType, null, 301, 100)]
         public void Resize_WorksWithAllResamplers<TPixel>(
             TestImageProvider<TPixel> provider,
             string samplerName,
@@ -41,32 +51,42 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         {
             IResampler sampler = TestUtils.GetResampler(samplerName);
 
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                SizeF newSize;
-                string destSizeInfo;
-                if (ratio.HasValue)
-                {
-                    newSize = image.Size() * ratio.Value;
-                    destSizeInfo = ratio.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                }
-                else
-                {
-                    if (!specificDestWidth.HasValue || !specificDestHeight.HasValue)
+            var comparer = ImageComparer.TolerantPercentage(0.02f);
+
+            provider.RunValidatingProcessorTest(
+                ctx =>
                     {
-                        throw new InvalidOperationException("invalid dimensional input for Resize_WorksWithAllResamplers!");
-                    }
+                        
+                        SizeF newSize;
+                        string destSizeInfo;
+                        if (ratio.HasValue)
+                        {
+                            newSize = ctx.GetCurrentSize() * ratio.Value;
+                            destSizeInfo = ratio.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        }
+                        else
+                        {
+                            if (!specificDestWidth.HasValue || !specificDestHeight.HasValue)
+                            {
+                                throw new InvalidOperationException(
+                                    "invalid dimensional input for Resize_WorksWithAllResamplers!");
+                            }
 
-                    newSize = new SizeF(specificDestWidth.Value, specificDestHeight.Value);
-                    destSizeInfo = $"{newSize.Width}x{newSize.Height}";
-                }
-                
-                image.Mutate(x => x.Resize((Size)newSize, sampler, false));
-                FormattableString details = $"{samplerName}-{destSizeInfo}";
+                            newSize = new SizeF(specificDestWidth.Value, specificDestHeight.Value);
+                            destSizeInfo = $"{newSize.Width}x{newSize.Height}";
+                        }
 
-                image.DebugSave(provider, details);
-                image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.02f), provider, details);
-            }
+                        FormattableString testOutputDetails = $"{samplerName}-{destSizeInfo}";
+                        ctx.Apply(
+                            img => img.DebugSave(
+                                provider,
+                                $"{testOutputDetails}-ORIGINAL",
+                                appendPixelTypeToFileName: false));
+                        ctx.Resize((Size)newSize, sampler, false);
+                        return testOutputDetails;
+                    },
+                comparer,
+                appendPixelTypeToFileName: false);
         }
 
         [Theory]

@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 using Xunit.Abstractions;
+// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests
 {
@@ -311,6 +312,17 @@ namespace SixLabors.ImageSharp.Tests
                 Assert.IsType<Image<Rgba32>>(img);
             }
 
+        }
+
+        [Theory]
+        [WithTestPatternImages(49,20, PixelTypes.Rgba32)]
+        public void Use_WithTestPatternImages<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> img = provider.GetImage())
+            {
+                img.DebugSave(provider);
+            }
         }
 
         public static readonly TheoryData<object> BasicData = new TheoryData<object>()

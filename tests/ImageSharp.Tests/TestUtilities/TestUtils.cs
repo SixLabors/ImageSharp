@@ -193,6 +193,45 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
+        internal static void RunValidatingProcessorTest<TPixel>(
+            this TestImageProvider<TPixel> provider,
+            Func<IImageProcessingContext<TPixel>, FormattableString> processAndGetTestOutputDetails,
+            ImageComparer comparer = null,
+            bool appendPixelTypeToFileName = true,
+            bool appendSourceFileOrDescription = true)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            if (comparer == null)
+            {
+                comparer = ImageComparer.TolerantPercentage(0.001f);
+            }
+
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                FormattableString testOutputDetails = $"";
+                image.Mutate(
+                    ctx => { testOutputDetails = processAndGetTestOutputDetails(ctx); }
+                    );
+
+                image.DebugSave(
+                    provider,
+                    testOutputDetails,
+                    appendPixelTypeToFileName: appendPixelTypeToFileName,
+                    appendSourceFileOrDescription: appendSourceFileOrDescription);
+
+                // TODO: Investigate the cause of pixel inaccuracies under Linux
+                if (TestEnvironment.IsWindows)
+                {
+                    image.CompareToReferenceOutput(
+                        comparer,
+                        provider,
+                        testOutputDetails,
+                        appendPixelTypeToFileName: appendPixelTypeToFileName,
+                        appendSourceFileOrDescription: appendSourceFileOrDescription);
+                }
+            }
+        }
+
         public static void RunValidatingProcessorTestOnWrappedMemoryImage<TPixel>(
             this TestImageProvider<TPixel> provider,
             Action<IImageProcessingContext<TPixel>> process,

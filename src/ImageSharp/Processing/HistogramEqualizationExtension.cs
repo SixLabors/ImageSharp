@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Processing
                     processor = new GlobalHistogramEqualizationProcessor<TPixel>(options.LuminanceLevels, options.ClipHistogram, options.ClipLimitPercentage);
                     break;
 
-                case HistogramEqualizationMethod.Adaptive:
+                case HistogramEqualizationMethod.AdaptiveTileInterpolation:
                     processor = new AdaptiveHistEqualizationProcessor<TPixel>(options.LuminanceLevels, options.ClipHistogram, options.ClipLimitPercentage, options.Tiles);
                     break;
 

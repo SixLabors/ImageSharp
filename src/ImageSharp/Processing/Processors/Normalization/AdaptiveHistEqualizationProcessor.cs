@@ -64,22 +64,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
                 int tileX = 0;
                 int tileY = 0;
-                for (int y = halfTileHeight; y < source.Height - tileHeight; y += tileHeight)
+                for (int y = halfTileHeight; y < source.Height - halfTileHeight; y += tileHeight)
                 {
                     tileX = 0;
-                    for (int x = halfTileWidth; x < source.Width - tileWidth; x += tileWidth)
+                    for (int x = halfTileWidth; x < source.Width - halfTileWidth; x += tileWidth)
                     {
                         int tilePosX = 0;
                         int tilePosY = 0;
-                        int ylimit = Math.Min(y + tileHeight, source.Height);
-                        int xlimit = Math.Min(x + tileWidth, source.Width);
-                        for (int dy = y; dy < ylimit; dy++)
+                        int yEnd = Math.Min(y + tileHeight, source.Height);
+                        int xEnd = Math.Min(x + tileWidth, source.Width);
+                        for (int dy = y; dy < yEnd; dy++)
                         {
                             tilePosX = 0;
                             float ty = tilePosY / (float)(tileHeight - 1);
                             int yTop = tileY;
                             int yBottom = yTop + 1;
-                            for (int dx = x; dx < xlimit; dx++)
+                            for (int dx = x; dx < xEnd; dx++)
                             {
                                 TPixel sourcePixel = source[dx, dy];
                                 int luminace = this.GetLuminance(sourcePixel, this.LuminanceLevels);
@@ -105,7 +105,119 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
                     tileY++;
                 }
+
+                // fix left column
+                tileX = 0;
+                tileY = 0;
+                for (int y = 0; y < source.Height; y += tileHeight)
+                {
+                    int yLimit = Math.Min(y + tileHeight, source.Height - 1);
+                    int tilePosY = 0;
+                    for (int dy = y; dy < yLimit; dy++)
+                    {
+                        int tilePosX = 0;
+                        for (int dx = 0; dx < halfTileWidth; dx++)
+                        {
+                            float luminanceEqualized = this.InterpolateBetweenTiles(source[dx, dy], cdfData, dx, dy, tilePosX, tilePosY, tileX, tileY, tileWidth, tileHeight, pixelsInTile);
+                            pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
+                            tilePosX++;
+                        }
+
+                        tilePosY++;
+                    }
+
+                    tileY++;
+                }
+
+                // fix right column
+                tileX = this.Tiles - 2;
+                tileY = 0;
+                for (int y = 0; y < source.Height; y += tileHeight)
+                {
+                    int yLimit = Math.Min(y + tileHeight, source.Height - 1);
+                    int tilePosY = 0;
+                    for (int dy = y; dy < yLimit; dy++)
+                    {
+                        int tilePosX = halfTileWidth;
+                        for (int dx = source.Width - halfTileWidth; dx < source.Width; dx++)
+                        {
+                            float luminanceEqualized = this.InterpolateBetweenTiles(source[dx, dy], cdfData, dx, dy, tilePosX, tilePosY, tileX, tileY, tileWidth, tileHeight, pixelsInTile);
+                            pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
+                            tilePosX++;
+                        }
+
+                        tilePosY++;
+                    }
+
+                    tileY++;
+                }
+
+                // fix top row
+                tileX = 0;
+                tileY = 0;
+                for (int x = 0; x < source.Width; x += tileWidth)
+                {
+                    int tilePosY = 0;
+                    for (int dy = 0; dy < halfTileHeight; dy++)
+                    {
+                        int tilePosX = 0;
+                        int xLimit = Math.Min(x + tileWidth, source.Width - 1);
+                        for (int dx = x; dx < xLimit; dx++)
+                        {
+                            float luminanceEqualized = this.InterpolateBetweenTiles(source[dx, dy], cdfData, dx, dy, tilePosX, tilePosY, tileX, tileY, tileWidth, tileHeight, pixelsInTile);
+                            pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
+                            tilePosX++;
+                        }
+
+                        tilePosY++;
+                    }
+
+                    tileX++;
+                }
+
+                // fix bottom row
+                tileX = 0;
+                tileY = 0;
+                for (int x = 0; x < source.Width; x += tileWidth)
+                {
+                    int tilePosY = 0;
+                    for (int dy = source.Height - halfTileHeight; dy < source.Height; dy++)
+                    {
+                        int tilePosX = 0;
+                        int xLimit = Math.Min(x + tileWidth, source.Width - 1);
+                        for (int dx = x; dx < xLimit; dx++)
+                        {
+                            float luminanceEqualized = this.InterpolateBetweenTiles(source[dx, dy], cdfData, dx, dy, tilePosX, tilePosY, tileX, tileY, tileWidth, tileHeight, pixelsInTile);
+                            pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
+                            tilePosX++;
+                        }
+
+                        tilePosY++;
+                    }
+
+                    tileX++;
+                }
             }
+        }
+
+        private float InterpolateBetweenTiles(TPixel sourcePixel, CdfData[,] cdfData, int dx, int dy, int tilePosX, int tilePosY, int tileX, int tileY, int tileWidth, int tileHeight, int pixelsInTile)
+        {
+            int luminace = this.GetLuminance(sourcePixel, this.LuminanceLevels);
+            float tx = tilePosX / (float)(tileWidth - 1);
+            float ty = tilePosY / (float)(tileHeight - 1);
+
+            int yTop = tileY;
+            int yBottom = Math.Min(this.Tiles - 1, yTop + 1);
+            int xLeft = tileX;
+            int xRight = Math.Min(this.Tiles - 1, xLeft + 1);
+
+            float cdfLeftTopLuminance = cdfData[xLeft, yTop].RemapGreyValue(luminace, pixelsInTile);
+            float cdfRightTopLuminance = cdfData[xRight, yTop].RemapGreyValue(luminace, pixelsInTile);
+            float cdfLeftBottomLuminance = cdfData[xLeft, yBottom].RemapGreyValue(luminace, pixelsInTile);
+            float cdfRightBottomLuminance = cdfData[xRight, yBottom].RemapGreyValue(luminace, pixelsInTile);
+            float luminanceEqualized = this.BilinearInterpolation(tx, ty, cdfLeftTopLuminance, cdfRightTopLuminance, cdfLeftBottomLuminance, cdfRightBottomLuminance);
+
+            return luminanceEqualized;
         }
 
         /// <summary>

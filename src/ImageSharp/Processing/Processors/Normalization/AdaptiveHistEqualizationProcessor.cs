@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                             tileX = 0;
                             for (int dx = x; dx < xEnd; dx++)
                             {
-                                float luminanceEqualized = this.InterpolateBetweenTiles(source[dx, dy], cdfData, dx, dy, tileX, tileY, cdfX, cdfY, tileWidth, tileHeight, pixelsInTile);
+                                float luminanceEqualized = this.InterpolateBetweenFourTiles(source[dx, dy], cdfData, tileX, tileY, cdfX, cdfY, tileWidth, tileHeight, pixelsInTile);
                                 pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
                                 tileX++;
                             }
@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 // fix left column
                 cdfX = 0;
                 cdfY = 0;
-                for (int y = 0; y < source.Height; y += tileHeight)
+                for (int y = halfTileWidth; y < source.Height - halfTileWidth; y += tileHeight)
                 {
                     int yLimit = Math.Min(y + tileHeight, source.Height - 1);
                     tileY = 0;
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         tileX = 0;
                         for (int dx = 0; dx < halfTileWidth; dx++)
                         {
-                            float luminanceEqualized = this.InterpolateBetweenTiles(source[dx, dy], cdfData, dx, dy, tileX, tileY, cdfX, cdfY, tileWidth, tileHeight, pixelsInTile);
+                            float luminanceEqualized = this.InterpolateBetweenTwoTiles(source[dx, dy], cdfData[cdfX, cdfY], cdfData[cdfX, cdfY + 1], tileY, tileHeight, pixelsInTile);
                             pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
                             tileX++;
                         }
@@ -117,9 +117,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 }
 
                 // fix right column
-                cdfX = this.Tiles - 2;
+                cdfX = this.Tiles - 1;
                 cdfY = 0;
-                for (int y = 0; y < source.Height; y += tileHeight)
+                for (int y = halfTileWidth; y < source.Height - halfTileWidth; y += tileHeight)
                 {
                     int yLimit = Math.Min(y + tileHeight, source.Height - 1);
                     tileY = 0;
@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         tileX = halfTileWidth;
                         for (int dx = source.Width - halfTileWidth; dx < source.Width; dx++)
                         {
-                            float luminanceEqualized = this.InterpolateBetweenTiles(source[dx, dy], cdfData, dx, dy, tileX, tileY, cdfX, cdfY, tileWidth, tileHeight, pixelsInTile);
+                            float luminanceEqualized = this.InterpolateBetweenTwoTiles(source[dx, dy], cdfData[cdfX, cdfY], cdfData[cdfX, cdfY + 1], tileY, tileHeight, pixelsInTile);
                             pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
                             tileX++;
                         }
@@ -142,7 +142,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 // fix top row
                 cdfX = 0;
                 cdfY = 0;
-                for (int x = 0; x < source.Width; x += tileWidth)
+                for (int x = halfTileWidth; x < source.Width - halfTileWidth; x += tileWidth)
                 {
                     tileY = 0;
                     for (int dy = 0; dy < halfTileHeight; dy++)
@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         int xLimit = Math.Min(x + tileWidth, source.Width - 1);
                         for (int dx = x; dx < xLimit; dx++)
                         {
-                            float luminanceEqualized = this.InterpolateBetweenTiles(source[dx, dy], cdfData, dx, dy, tileX, tileY, cdfX, cdfY, tileWidth, tileHeight, pixelsInTile);
+                            float luminanceEqualized = this.InterpolateBetweenTwoTiles(source[dx, dy], cdfData[cdfX, cdfY], cdfData[cdfX + 1, cdfY], tileX, tileWidth, pixelsInTile);
                             pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
                             tileX++;
                         }
@@ -164,8 +164,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
                 // fix bottom row
                 cdfX = 0;
-                cdfY = 0;
-                for (int x = 0; x < source.Width; x += tileWidth)
+                cdfY = this.Tiles - 1;
+                for (int x = halfTileWidth; x < source.Width - halfTileWidth; x += tileWidth)
                 {
                     tileY = 0;
                     for (int dy = source.Height - halfTileHeight; dy < source.Height; dy++)
@@ -174,7 +174,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         int xLimit = Math.Min(x + tileWidth, source.Width - 1);
                         for (int dx = x; dx < xLimit; dx++)
                         {
-                            float luminanceEqualized = this.InterpolateBetweenTiles(source[dx, dy], cdfData, dx, dy, tileX, tileY, cdfX, cdfY, tileWidth, tileHeight, pixelsInTile);
+                            float luminanceEqualized = this.InterpolateBetweenTwoTiles(source[dx, dy], cdfData[cdfX, cdfY], cdfData[cdfX + 1, cdfY], tileX, tileWidth, pixelsInTile);
                             pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
                             tileX++;
                         }
@@ -188,12 +188,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         }
 
         /// <summary>
-        /// Interpolates between four adjacent tiles.
+        /// Bilinear interpolation between four adjacent tiles.
         /// </summary>
         /// <param name="sourcePixel">The pixel to remap the grey value from.</param>
         /// <param name="cdfData">The pre-computed lookup tables to remap the grey values for each tiles.</param>
-        /// <param name="dx">X index in the image.</param>
-        /// <param name="dy">Y index in the image.</param>
         /// <param name="tileX">X position inside the tile.</param>
         /// <param name="tileY">Y position inside the tile.</param>
         /// <param name="cdfX">X index of the top left lookup table to use.</param>
@@ -202,7 +200,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="tileHeight">Height of one tile in pixels.</param>
         /// <param name="pixelsInTile">Amount of pixels in one tile.</param>
         /// <returns>A re-mapped grey value.</returns>
-        private float InterpolateBetweenTiles(TPixel sourcePixel, CdfData[,] cdfData, int dx, int dy, int tileX, int tileY, int cdfX, int cdfY, int tileWidth, int tileHeight, int pixelsInTile)
+        private float InterpolateBetweenFourTiles(TPixel sourcePixel, CdfData[,] cdfData, int tileX, int tileY, int cdfX, int cdfY, int tileWidth, int tileHeight, int pixelsInTile)
         {
             int luminace = this.GetLuminance(sourcePixel, this.LuminanceLevels);
             float tx = tileX / (float)(tileWidth - 1);
@@ -218,6 +216,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             float cdfLeftBottomLuminance = cdfData[xLeft, yBottom].RemapGreyValue(luminace, pixelsInTile);
             float cdfRightBottomLuminance = cdfData[xRight, yBottom].RemapGreyValue(luminace, pixelsInTile);
             float luminanceEqualized = this.BilinearInterpolation(tx, ty, cdfLeftTopLuminance, cdfRightTopLuminance, cdfLeftBottomLuminance, cdfRightBottomLuminance);
+
+            return luminanceEqualized;
+        }
+
+        /// <summary>
+        /// Linear interpolation between two tiles.
+        /// </summary>
+        /// <param name="sourcePixel">The pixel to remap the grey value from.</param>
+        /// <param name="cdfData1">First lookup table.</param>
+        /// <param name="cdfData2">Second lookup table.</param>
+        /// <param name="tilePos">Position inside the tile.</param>
+        /// <param name="tileWidth">Width of the tile.</param>
+        /// <param name="pixelsInTile">Pixels in one tile.</param>
+        /// <returns>A re-mapped grey value.</returns>
+        private float InterpolateBetweenTwoTiles(TPixel sourcePixel, CdfData cdfData1, CdfData cdfData2, int tilePos, int tileWidth, int pixelsInTile)
+        {
+            int luminace = this.GetLuminance(sourcePixel, this.LuminanceLevels);
+            float tx = tilePos / (float)(tileWidth - 1);
+
+            float cdfLuminance1 = cdfData1.RemapGreyValue(luminace, pixelsInTile);
+            float cdfLuminance2 = cdfData2.RemapGreyValue(luminace, pixelsInTile);
+            float luminanceEqualized = this.LinearInterpolation(cdfLuminance1, cdfLuminance2, tx);
 
             return luminanceEqualized;
         }
@@ -302,6 +322,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             return left + ((right - left) * t);
         }
 
+        /// <summary>
+        /// Lookup table for remapping the grey values of one tile.
+        /// </summary>
         private class CdfData
         {
             /// <summary>

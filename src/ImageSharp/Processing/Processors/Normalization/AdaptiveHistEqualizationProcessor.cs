@@ -94,96 +94,94 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 }
 
                 // fix left column
-                cdfX = 0;
-                cdfY = 0;
-                for (int y = halfTileWidth; y < source.Height - halfTileWidth; y += tileHeight)
-                {
-                    int yLimit = Math.Min(y + tileHeight, source.Height - 1);
-                    tileY = 0;
-                    for (int dy = y; dy < yLimit; dy++)
-                    {
-                        tileX = 0;
-                        for (int dx = 0; dx < halfTileWidth; dx++)
-                        {
-                            float luminanceEqualized = this.InterpolateBetweenTwoTiles(source[dx, dy], cdfData[cdfX, cdfY], cdfData[cdfX, cdfY + 1], tileY, tileHeight, pixelsInTile);
-                            pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
-                            tileX++;
-                        }
-
-                        tileY++;
-                    }
-
-                    cdfY++;
-                }
+                this.ProcessBorderColumn(source, pixels, cdfData, 0, tileWidth, tileHeight, xStart: 0, xEnd: halfTileWidth);
 
                 // fix right column
-                cdfX = this.Tiles - 1;
-                cdfY = 0;
-                for (int y = halfTileWidth; y < source.Height - halfTileWidth; y += tileHeight)
-                {
-                    int yLimit = Math.Min(y + tileHeight, source.Height - 1);
-                    tileY = 0;
-                    for (int dy = y; dy < yLimit; dy++)
-                    {
-                        tileX = halfTileWidth;
-                        for (int dx = source.Width - halfTileWidth; dx < source.Width; dx++)
-                        {
-                            float luminanceEqualized = this.InterpolateBetweenTwoTiles(source[dx, dy], cdfData[cdfX, cdfY], cdfData[cdfX, cdfY + 1], tileY, tileHeight, pixelsInTile);
-                            pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
-                            tileX++;
-                        }
-
-                        tileY++;
-                    }
-
-                    cdfY++;
-                }
+                this.ProcessBorderColumn(source, pixels, cdfData, this.Tiles - 1, tileWidth, tileHeight, xStart: source.Width - halfTileWidth, xEnd: source.Width);
 
                 // fix top row
-                cdfX = 0;
-                cdfY = 0;
-                for (int x = halfTileWidth; x < source.Width - halfTileWidth; x += tileWidth)
-                {
-                    tileY = 0;
-                    for (int dy = 0; dy < halfTileHeight; dy++)
-                    {
-                        tileX = 0;
-                        int xLimit = Math.Min(x + tileWidth, source.Width - 1);
-                        for (int dx = x; dx < xLimit; dx++)
-                        {
-                            float luminanceEqualized = this.InterpolateBetweenTwoTiles(source[dx, dy], cdfData[cdfX, cdfY], cdfData[cdfX + 1, cdfY], tileX, tileWidth, pixelsInTile);
-                            pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
-                            tileX++;
-                        }
-
-                        tileY++;
-                    }
-
-                    cdfX++;
-                }
+                this.ProcessBorderRow(source, pixels, cdfData, 0, tileWidth, tileHeight, yStart: 0, yEnd: halfTileHeight);
 
                 // fix bottom row
-                cdfX = 0;
-                cdfY = this.Tiles - 1;
-                for (int x = halfTileWidth; x < source.Width - halfTileWidth; x += tileWidth)
-                {
-                    tileY = 0;
-                    for (int dy = source.Height - halfTileHeight; dy < source.Height; dy++)
-                    {
-                        tileX = 0;
-                        int xLimit = Math.Min(x + tileWidth, source.Width - 1);
-                        for (int dx = x; dx < xLimit; dx++)
-                        {
-                            float luminanceEqualized = this.InterpolateBetweenTwoTiles(source[dx, dy], cdfData[cdfX, cdfY], cdfData[cdfX + 1, cdfY], tileX, tileWidth, pixelsInTile);
-                            pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
-                            tileX++;
-                        }
+                this.ProcessBorderRow(source, pixels, cdfData, this.Tiles - 1, tileWidth, tileHeight, yStart: source.Height - halfTileHeight, yEnd: source.Height);
+            }
+        }
 
-                        tileY++;
+        /// <summary>
+        /// Processes a border column of the image which is half the size of the tile width.
+        /// </summary>
+        /// <param name="source">The source image.</param>
+        /// <param name="pixels">The output pixels.</param>
+        /// <param name="cdfData">The pre-computed lookup tables to remap the grey values for each tiles.</param>
+        /// <param name="cdfX">The X index of the lookup table to use.</param>
+        /// <param name="tileWidth">The width of a tile.</param>
+        /// <param name="tileHeight">The height of a tile.</param>
+        /// <param name="xStart">X start position in the image.</param>
+        /// <param name="xEnd">X end position of the image.</param>
+        private void ProcessBorderColumn(ImageFrame<TPixel> source, Span<TPixel> pixels, CdfData[,] cdfData, int cdfX, int tileWidth, int tileHeight, int xStart, int xEnd)
+        {
+            int halfTileWidth = tileWidth / 2;
+            int halfTileHeight = tileHeight / 2;
+            int pixelsInTile = tileWidth * tileHeight;
+
+            int cdfY = 0;
+            for (int y = halfTileWidth; y < source.Height - halfTileWidth; y += tileHeight)
+            {
+                int yLimit = Math.Min(y + tileHeight, source.Height - 1);
+                int tileY = 0;
+                for (int dy = y; dy < yLimit; dy++)
+                {
+                    int tileX = halfTileWidth;
+                    for (int dx = xStart; dx < xEnd; dx++)
+                    {
+                        float luminanceEqualized = this.InterpolateBetweenTwoTiles(source[dx, dy], cdfData[cdfX, cdfY], cdfData[cdfX, cdfY + 1], tileY, tileHeight, pixelsInTile);
+                        pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
+                        tileX++;
                     }
 
-                    cdfX++;
+                    tileY++;
                 }
+
+                cdfY++;
+            }
+        }
+
+        /// <summary>
+        /// Processes a border row of the image which is half of the size of the tile height.
+        /// </summary>
+        /// <param name="source">The source image.</param>
+        /// <param name="pixels">The output pixels.</param>
+        /// <param name="cdfData">The pre-computed lookup tables to remap the grey values for each tiles.</param>
+        /// <param name="cdfY">The Y index of the lookup table to use.</param>
+        /// <param name="tileWidth">The width of a tile.</param>
+        /// <param name="tileHeight">The height of a tile.</param>
+        /// <param name="yStart">Y start position in the image.</param>
+        /// <param name="yEnd">Y end position of the image.</param>
+        private void ProcessBorderRow(ImageFrame<TPixel> source, Span<TPixel> pixels, CdfData[,] cdfData, int cdfY, int tileWidth, int tileHeight, int yStart, int yEnd)
+        {
+            int halfTileWidth = tileWidth / 2;
+            int halfTileHeight = tileHeight / 2;
+            int pixelsInTile = tileWidth * tileHeight;
+
+            int cdfX = 0;
+            for (int x = halfTileWidth; x < source.Width - halfTileWidth; x += tileWidth)
+            {
+                int tileY = 0;
+                for (int dy = yStart; dy < yEnd; dy++)
+                {
+                    int tileX = 0;
+                    int xLimit = Math.Min(x + tileWidth, source.Width - 1);
+                    for (int dx = x; dx < xLimit; dx++)
+                    {
+                        float luminanceEqualized = this.InterpolateBetweenTwoTiles(source[dx, dy], cdfData[cdfX, cdfY], cdfData[cdfX + 1, cdfY], tileX, tileWidth, pixelsInTile);
+                        pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
+                        tileX++;
+                    }
+
+                    tileY++;
+                }
+
+                cdfX++;
             }
         }
 

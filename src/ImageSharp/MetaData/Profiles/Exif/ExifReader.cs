@@ -372,7 +372,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
         private void AddInvalidTag(ExifTag tag)
         {
-            if (this.invalidTags == null)
+            if (this.invalidTags is null)
             {
                 this.invalidTags = new List<ExifTag>();
             }

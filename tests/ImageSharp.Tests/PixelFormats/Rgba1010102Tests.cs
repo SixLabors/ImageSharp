@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Rgba1010102_PackFromScaledVector4()
+        public void Rgba1010102_FromScaledVector4()
         {
             // arrange
             var rgba = new Rgba1010102(Vector4.One);
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             // act
             Vector4 scaled = rgba.ToScaledVector4();
-            actual.PackFromScaledVector4(scaled);
+            actual.FromScaledVector4(scaled);
 
             // assert
             Assert.Equal(expected, actual.PackedValue);
@@ -72,140 +72,15 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Rgba1010102_ToRgb24()
-        {
-            // arrange
-            var rgba = new Rgba1010102(0.1f, -0.3f, 0.5f, -0.7f);
-            var actual = default(Rgb24);
-            var expected = new Rgb24(25, 0, 128);
-
-            // act
-            rgba.ToRgb24(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
         public void Rgba1010102_ToRgba32()
         {
             // arrange
             var rgba = new Rgba1010102(0.1f, -0.3f, 0.5f, -0.7f);
-            var actual = default(Rgba32);
             var expected = new Rgba32(25, 0, 128, 0);
 
             // act
+            Rgba32 actual = default;
             rgba.ToRgba32(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void Rgba1010102_ToBgr24()
-        {
-            // arrange
-            var rgba = new Rgba1010102(0.1f, -0.3f, 0.5f, -0.7f);
-            var actual = default(Bgr24);
-            var expected = new Bgr24(25, 0, 128);
-
-            // act
-            rgba.ToBgr24(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void Rgba1010102_ToBgra32()
-        {
-            // arrange
-            var rgba = new Rgba1010102(0.1f, -0.3f, 0.5f, -0.7f);
-            var actual = default(Bgra32);
-            var expected = new Bgra32(25, 0, 128, 0);
-
-            // act
-            rgba.ToBgra32(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void Rgba1010102_PackFromRgba32_ToRgba32()
-        {
-            // arrange
-            var rgba = default(Rgba1010102);
-            var expected = new Rgba32(25, 0, 128, 0);
-            var actual = default(Rgba32);
-
-            // act
-            rgba.PackFromRgba32(expected);
-            rgba.ToRgba32(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void Rgba1010102_PackFromBgra32_ToBgra32()
-        {
-            // arrange
-            var rgba = default(Rgba1010102);
-            var expected = new Bgra32(25, 0, 128, 0);
-            var actual = default(Bgra32);
-
-            // act
-            rgba.PackFromBgra32(expected);
-            rgba.ToBgra32(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void Rgba1010102_PackFromArgb32_ToArgb32()
-        {
-            // arrange
-            var rgba = default(Rgba1010102);
-            var expected = new Argb32(25, 0, 128, 0);
-            var actual = default(Argb32);
-
-            // act
-            rgba.PackFromArgb32(expected);
-            rgba.ToArgb32(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void Rgba1010102_PackFromRgb48_ToRgb48()
-        {
-            // arrange
-            var input = default(Rgba1010102);
-            var actual = default(Rgb48);
-            var expected = new Rgb48(65535, 0, 65535);
-
-            // act
-            input.PackFromRgb48(expected);
-            input.ToRgb48(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void Rgba1010102_PackFromRgba64_ToRgba64()
-        {
-            // arrange
-            var input = default(Rgba1010102);
-            var actual = default(Rgba64);
-            var expected = new Rgba64(65535, 0, 65535, 65535);
-
-            // act
-            input.PackFromRgba64(expected);
-            input.ToRgba64(ref actual);
 
             // assert
             Assert.Equal(expected, actual);

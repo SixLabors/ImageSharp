@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Primitives;
@@ -19,7 +18,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
     /// </summary>
     internal sealed class ExifReader
     {
-        private readonly List<ExifTag> invalidTags = new List<ExifTag>();
+        private List<ExifTag> invalidTags;
         private readonly byte[] exifData;
         private int position;
         private Endianness endianness = Endianness.BigEndian;
@@ -38,7 +37,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <summary>
         /// Gets the invalid tags.
         /// </summary>
-        public IReadOnlyList<ExifTag> InvalidTags => this.invalidTags;
+        public IReadOnlyList<ExifTag> InvalidTags => this.invalidTags ?? (IReadOnlyList<ExifTag>)Array.Empty<ExifTag>();
 
         /// <summary>
         /// Gets the thumbnail length in the byte stream
@@ -125,27 +124,16 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
         private byte ConvertToByte(ReadOnlySpan<byte> buffer) => buffer[0];
 
-        private unsafe string ConvertToString(ReadOnlySpan<byte> buffer)
+        private string ConvertToString(ReadOnlySpan<byte> buffer)
         {
-            Span<byte> nullChar = stackalloc byte[1] { 0 };
-
-            int nullCharIndex = buffer.IndexOf(nullChar);
+            int nullCharIndex = buffer.IndexOf((byte)0);
 
             if (nullCharIndex > -1)
             {
                 buffer = buffer.Slice(0, nullCharIndex);
             }
 
-#if NETSTANDARD1_1
-            return Encoding.UTF8.GetString(buffer.ToArray(), 0, buffer.Length);
-#elif NETCOREAPP2_1
             return Encoding.UTF8.GetString(buffer);
-#else
-            fixed (byte* pointer = &MemoryMarshal.GetReference(buffer))
-            {
-                return Encoding.UTF8.GetString(pointer, buffer.Length);
-            }
-#endif
         }
 
         /// <summary>
@@ -349,7 +337,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 // Ensure that the new index does not overrun the data
                 if (newIndex > int.MaxValue)
                 {
-                    this.invalidTags.Add(tag);
+                    this.AddInvalidTag(tag);
 
                     exifValue = default;
 
@@ -360,7 +348,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
                 if (this.RemainingLength < size)
                 {
-                    this.invalidTags.Add(tag);
+                    this.AddInvalidTag(tag);
+
                     this.position = oldIndex;
 
                     exifValue = default;
@@ -383,13 +372,23 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return true;
         }
 
+        private void AddInvalidTag(ExifTag tag)
+        {
+            if (this.invalidTags == null)
+            {
+                this.invalidTags = new List<ExifTag>();
+            }
+
+            this.invalidTags.Add(tag);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
         private TEnum ToEnum<TEnum>(int value, TEnum defaultValue)
             where TEnum : struct
         {
-            var enumValue = (TEnum)(object)value;
-            if (Enum.GetValues(typeof(TEnum)).Cast<TEnum>().Any(v => v.Equals(enumValue)))
+            if (EnumHelper<TEnum>.IsDefined(value))
             {
-                return enumValue;
+                return Unsafe.As<int, TEnum>(ref value);
             }
 
             return defaultValue;
@@ -557,6 +556,19 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return this.endianness == Endianness.BigEndian
                 ? BinaryPrimitives.ReadInt16BigEndian(buffer)
                 : BinaryPrimitives.ReadInt16LittleEndian(buffer);
+        }
+
+        private class EnumHelper<TEnum>
+            where TEnum : struct
+        {
+            private static readonly int[] Values = Enum.GetValues(typeof(TEnum)).Cast<TEnum>()
+                .Select(e => Convert.ToInt32(e)).OrderBy(e => e).ToArray();
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static bool IsDefined(int value)
+            {
+                return Array.BinarySearch(Values, value) >= 0;
+            }
         }
     }
 }

@@ -10,7 +10,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public static string[] BaselineTestJpegs =
             {
                 TestImages.Jpeg.Baseline.Calliphora,
-                TestImages.Jpeg.Baseline.Cmyk, TestImages.Jpeg.Baseline.Ycck,
+                TestImages.Jpeg.Baseline.Cmyk,
+                TestImages.Jpeg.Baseline.Ycck,
                 TestImages.Jpeg.Baseline.Jpeg400,
                 TestImages.Jpeg.Baseline.Testorig420,
 
@@ -19,13 +20,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 TestImages.Jpeg.Baseline.Jpeg444,
                 TestImages.Jpeg.Baseline.Bad.BadEOF,
-                TestImages.Jpeg.Issues.MultiHuffmanBaseline394,
                 TestImages.Jpeg.Baseline.MultiScanBaselineCMYK,
                 TestImages.Jpeg.Baseline.Bad.BadRST,
                 TestImages.Jpeg.Issues.MultiHuffmanBaseline394,
                 TestImages.Jpeg.Issues.ExifDecodeOutOfRange694,
                 TestImages.Jpeg.Issues.InvalidEOI695,
-                TestImages.Jpeg.Issues.ExifResizeOutOfRange696
+                TestImages.Jpeg.Issues.ExifResizeOutOfRange696,
+                TestImages.Jpeg.Issues.InvalidAPP0721,
+                TestImages.Jpeg.Issues.ExifGetString750Load,
+                TestImages.Jpeg.Issues.ExifGetString750Transform
             };
 
         public static string[] ProgressiveTestJpegs =
@@ -41,20 +44,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Progressive.Bad.ExifUndefType,
                 TestImages.Jpeg.Issues.NoEoiProgressive517,
                 TestImages.Jpeg.Issues.BadRstProgressive518,
-                TestImages.Jpeg.Issues.MissingFF00ProgressiveBedroom159,
                 TestImages.Jpeg.Issues.DhtHasWrongLength624,
+                TestImages.Jpeg.Issues.OrderedInterleavedProgressive723A,
+                TestImages.Jpeg.Issues.OrderedInterleavedProgressive723B,
+                TestImages.Jpeg.Issues.OrderedInterleavedProgressive723C
             };
 
-        /// <summary>
-        /// Golang decoder is unable to decode these
-        /// </summary>
-        public static string[] PdfJsOnly =
-            {
-                TestImages.Jpeg.Issues.NoEoiProgressive517, TestImages.Jpeg.Issues.BadRstProgressive518,
-                TestImages.Jpeg.Issues.MissingFF00ProgressiveBedroom159
-            };
-
-        private static readonly Dictionary<string, float> CustomToleranceValues = 
+        private static readonly Dictionary<string, float> CustomToleranceValues =
             new Dictionary<string, float>
             {
                 // Baseline:

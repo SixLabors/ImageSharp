@@ -9,7 +9,6 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
@@ -19,15 +18,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
     public class PngEncoderTests
     {
-        // This is bull. Failing online for no good reason. 
-        // The images are an exact match. Maybe the submodule isn't updating?
-        private const float ToleranceThresholdForPaletteEncoder = 1.3F / 100;
-
         public static readonly TheoryData<string, PngBitDepth> PngBitDepthFiles =
         new TheoryData<string, PngBitDepth>
         {
             { TestImages.Png.Rgb48Bpp, PngBitDepth.Bit16 },
             { TestImages.Png.Bpp1, PngBitDepth.Bit1 }
+        };
+
+        public static readonly TheoryData<string, PngBitDepth, PngColorType> PngTrnsFiles =
+        new TheoryData<string, PngBitDepth, PngColorType>
+        {
+            { TestImages.Png.Gray1BitTrans, PngBitDepth.Bit1, PngColorType.Grayscale },
+            { TestImages.Png.Gray2BitTrans, PngBitDepth.Bit2, PngColorType.Grayscale },
+            { TestImages.Png.Gray4BitTrans, PngBitDepth.Bit4, PngColorType.Grayscale },
+            { TestImages.Png.Gray8BitTrans, PngBitDepth.Bit8, PngColorType.Grayscale },
+            { TestImages.Png.GrayTrns16BitInterlaced, PngBitDepth.Bit16, PngColorType.Grayscale },
+            { TestImages.Png.Rgb24BppTrans, PngBitDepth.Bit8, PngColorType.Rgb },
+            { TestImages.Png.Rgb48BppTrans, PngBitDepth.Bit16, PngColorType.Rgb }
         };
 
         /// <summary>
@@ -137,19 +144,32 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
-        [WithTestPatternImages(24, 24, PixelTypes.Rgba64, PngColorType.Rgb)]
-        [WithTestPatternImages(24, 24, PixelTypes.Rgba64, PngColorType.RgbWithAlpha)]
-        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.RgbWithAlpha)]
-        public void WorksWithBitDepth16<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType)
+        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.Rgb, PngBitDepth.Bit8)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgba64, PngColorType.Rgb, PngBitDepth.Bit16)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgba64, PngColorType.RgbWithAlpha, PngBitDepth.Bit16)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.Palette, PngBitDepth.Bit1)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.Palette, PngBitDepth.Bit2)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.Palette, PngBitDepth.Bit4)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.Palette, PngBitDepth.Bit8)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgb24, PngColorType.Grayscale, PngBitDepth.Bit1)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgb24, PngColorType.Grayscale, PngBitDepth.Bit2)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgb24, PngColorType.Grayscale, PngBitDepth.Bit4)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgb24, PngColorType.Grayscale, PngBitDepth.Bit8)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgb48, PngColorType.Grayscale, PngBitDepth.Bit16)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit8)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgba64, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit16)]
+        public void WorksWithAllBitDepths<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType, PngBitDepth pngBitDepth)
             where TPixel : struct, IPixel<TPixel>
         {
             TestPngEncoderCore(
                 provider,
                 pngColorType,
                 PngFilterMethod.Adaptive,
-                PngBitDepth.Bit16,
+                pngBitDepth,
                 appendPngColorType: true,
-                appendPixelType: true);
+                appendPixelType: true,
+                appendPngBitDepth: true);
         }
 
         [Theory]
@@ -164,87 +184,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 PngBitDepth.Bit8,
                 paletteSize: paletteSize,
                 appendPaletteSize: true);
-        }
-
-        private static bool HasAlpha(PngColorType pngColorType) =>
-            pngColorType == PngColorType.GrayscaleWithAlpha || pngColorType == PngColorType.RgbWithAlpha;
-
-        private static void TestPngEncoderCore<TPixel>(
-            TestImageProvider<TPixel> provider,
-            PngColorType pngColorType,
-            PngFilterMethod pngFilterMethod,
-            PngBitDepth bitDepth,
-            int compressionLevel = 6,
-            int paletteSize = 255,
-            bool appendPngColorType = false,
-            bool appendPngFilterMethod = false,
-            bool appendPixelType = false,
-            bool appendCompressionLevel = false,
-            bool appendPaletteSize = false)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                if (!HasAlpha(pngColorType))
-                {
-                    image.Mutate(c => c.MakeOpaque());
-                }
-
-                var encoder = new PngEncoder
-                {
-                    ColorType = pngColorType,
-                    FilterMethod = pngFilterMethod,
-                    CompressionLevel = compressionLevel,
-                    BitDepth = bitDepth,
-                    Quantizer = new WuQuantizer(paletteSize)
-                };
-
-                string pngColorTypeInfo = appendPngColorType ? pngColorType.ToString() : string.Empty;
-                string pngFilterMethodInfo = appendPngFilterMethod ? pngFilterMethod.ToString() : string.Empty;
-                string compressionLevelInfo = appendCompressionLevel ? $"_C{compressionLevel}" : string.Empty;
-                string paletteSizeInfo = appendPaletteSize ? $"_PaletteSize-{paletteSize}" : string.Empty;
-                string debugInfo = $"{pngColorTypeInfo}{pngFilterMethodInfo}{compressionLevelInfo}{paletteSizeInfo}";
-                //string referenceInfo = $"{pngColorTypeInfo}";
-
-                // Does DebugSave & load reference CompareToReferenceInput():
-                string actualOutputFile = ((ITestImageProvider)provider).Utility.SaveTestOutputFile(image, "png", encoder, debugInfo, appendPixelType);
-
-                if (TestEnvironment.IsMono)
-                {
-                    // There are bugs in mono's System.Drawing implementation, reference decoders are not always reliable!
-                    return;
-                }
-
-                IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
-                string referenceOutputFile = ((ITestImageProvider)provider).Utility.GetReferenceOutputFileName("png", debugInfo, appendPixelType, true);
-
-                bool referenceOutputFileExists = File.Exists(referenceOutputFile);
-
-                using (var actualImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
-                {
-                    // TODO: Do we still need the reference output files?
-                    Image<TPixel> referenceImage = referenceOutputFileExists
-                                               ? Image.Load<TPixel>(referenceOutputFile, referenceDecoder)
-                                               : image;
-
-                    float paletteToleranceHack = 80f / paletteSize;
-                    paletteToleranceHack *= paletteToleranceHack;
-                    ImageComparer comparer = pngColorType == PngColorType.Palette
-                                                 ? ImageComparer.Tolerant(ToleranceThresholdForPaletteEncoder * paletteToleranceHack)
-                                                 : ImageComparer.Exact;
-                    try
-                    {
-                        comparer.VerifySimilarity(referenceImage, actualImage);
-                    }
-                    finally
-                    {
-                        if (referenceOutputFileExists)
-                        {
-                            referenceImage.Dispose();
-                        }
-                    }
-                }
-            }
         }
 
         [Theory]
@@ -318,6 +257,110 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
                         Assert.Equal(pngBitDepth, meta.BitDepth);
                     }
+                }
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(PngTrnsFiles))]
+        public void Encode_PreserveTrns(string imagePath, PngBitDepth pngBitDepth, PngColorType pngColorType)
+        {
+            var options = new PngEncoder();
+
+            var testFile = TestFile.Create(imagePath);
+            using (Image<Rgba32> input = testFile.CreateImage())
+            {
+                PngMetaData inMeta = input.MetaData.GetFormatMetaData(PngFormat.Instance);
+                Assert.True(inMeta.HasTrans);
+
+                using (var memStream = new MemoryStream())
+                {
+                    input.Save(memStream, options);
+                    memStream.Position = 0;
+                    using (var output = Image.Load<Rgba32>(memStream))
+                    {
+                        PngMetaData outMeta = output.MetaData.GetFormatMetaData(PngFormat.Instance);
+                        Assert.True(outMeta.HasTrans);
+
+                        switch (pngColorType)
+                        {
+                            case PngColorType.Grayscale:
+                                if (pngBitDepth.Equals(PngBitDepth.Bit16))
+                                {
+                                    Assert.True(outMeta.TransparentGray16.HasValue);
+                                    Assert.Equal(inMeta.TransparentGray16, outMeta.TransparentGray16);
+                                }
+                                else
+                                {
+                                    Assert.True(outMeta.TransparentGray8.HasValue);
+                                    Assert.Equal(inMeta.TransparentGray8, outMeta.TransparentGray8);
+                                }
+
+                                break;
+                            case PngColorType.Rgb:
+                                if (pngBitDepth.Equals(PngBitDepth.Bit16))
+                                {
+                                    Assert.True(outMeta.TransparentRgb48.HasValue);
+                                    Assert.Equal(inMeta.TransparentRgb48, outMeta.TransparentRgb48);
+                                }
+                                else
+                                {
+                                    Assert.True(outMeta.TransparentRgb24.HasValue);
+                                    Assert.Equal(inMeta.TransparentRgb24, outMeta.TransparentRgb24);
+                                }
+
+                                break;
+                        }
+                    }
+                }
+            }
+        }
+
+        private static void TestPngEncoderCore<TPixel>(
+            TestImageProvider<TPixel> provider,
+            PngColorType pngColorType,
+            PngFilterMethod pngFilterMethod,
+            PngBitDepth bitDepth,
+            int compressionLevel = 6,
+            int paletteSize = 255,
+            bool appendPngColorType = false,
+            bool appendPngFilterMethod = false,
+            bool appendPixelType = false,
+            bool appendCompressionLevel = false,
+            bool appendPaletteSize = false,
+            bool appendPngBitDepth = false)
+        where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var encoder = new PngEncoder
+                {
+                    ColorType = pngColorType,
+                    FilterMethod = pngFilterMethod,
+                    CompressionLevel = compressionLevel,
+                    BitDepth = bitDepth,
+                    Quantizer = new WuQuantizer(paletteSize)
+                };
+
+                string pngColorTypeInfo = appendPngColorType ? pngColorType.ToString() : string.Empty;
+                string pngFilterMethodInfo = appendPngFilterMethod ? pngFilterMethod.ToString() : string.Empty;
+                string compressionLevelInfo = appendCompressionLevel ? $"_C{compressionLevel}" : string.Empty;
+                string paletteSizeInfo = appendPaletteSize ? $"_PaletteSize-{paletteSize}" : string.Empty;
+                string pngBitDepthInfo = appendPngBitDepth ? bitDepth.ToString() : string.Empty;
+                string debugInfo = $"{pngColorTypeInfo}{pngFilterMethodInfo}{compressionLevelInfo}{paletteSizeInfo}{pngBitDepthInfo}";
+
+                string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "png", encoder, debugInfo, appendPixelType);
+
+                // Compare to the Magick reference decoder.
+                IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
+
+                // We compare using both our decoder and the reference decoder as pixel transformation
+                // occurrs within the encoder itself leaving the input image unaffected.
+                // This means we are benefiting from testing our decoder also.
+                using (var imageSharpImage = Image.Load<TPixel>(actualOutputFile, new PngDecoder()))
+                using (var referenceImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
+                {
+                    ImageComparer.Exact.VerifySimilarity(referenceImage, imageSharpImage);
                 }
             }
         }

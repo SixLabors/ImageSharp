@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private GifGraphicControlExtension graphicsControlExtension;
 
         /// <summary>
-        /// The image desciptor.
+        /// The image descriptor.
         /// </summary>
         private GifImageDescriptor imageDescriptor;
 
@@ -142,8 +142,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                                 this.ReadApplicationExtension();
                                 break;
                             case GifConstants.PlainTextLabel:
-                                int plainLength = stream.ReadByte();
-                                this.Skip(plainLength); // Not supported by any known decoder.
+                                this.SkipBlock(); // Not supported by any known decoder.
                                 break;
                         }
                     }
@@ -190,9 +189,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                         switch (stream.ReadByte())
                         {
                             case GifConstants.GraphicControlLabel:
-
-                                // Skip graphic control extension block
-                                this.Skip(0);
+                                this.SkipBlock(); // Skip graphic control extension block
                                 break;
                             case GifConstants.CommentLabel:
                                 this.ReadComments();
@@ -201,8 +198,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                                 this.ReadApplicationExtension();
                                 break;
                             case GifConstants.PlainTextLabel:
-                                int plainLength = stream.ReadByte();
-                                this.Skip(plainLength); // Not supported by any known decoder.
+                                this.SkipBlock(); // Not supported by any known decoder.
                                 break;
                         }
                     }
@@ -288,24 +284,27 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 // Could be XMP or something else not supported yet.
                 // Back up and skip.
                 this.stream.Position -= appLength + 1;
-                this.Skip(appLength);
+                this.SkipBlock(appLength);
                 return;
             }
 
-            this.Skip(appLength); // Not supported by any known decoder.
+            this.SkipBlock(appLength); // Not supported by any known decoder.
         }
 
         /// <summary>
-        /// Skips the designated number of bytes in the stream.
+        /// Skips over a block or reads its terminator.
+        /// <param name="blockSize">The length of the block to skip.</param>
         /// </summary>
-        /// <param name="length">The number of bytes to skip.</param>
-        private void Skip(int length)
+        private void SkipBlock(int blockSize = 0)
         {
-            this.stream.Skip(length);
+            if (blockSize > 0)
+            {
+                this.stream.Skip(blockSize);
+            }
 
             int flag;
 
-            while ((flag = this.stream.ReadByte()) != 0)
+            while ((flag = this.stream.ReadByte()) > 0)
             {
                 this.stream.Skip(flag);
             }
@@ -370,7 +369,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 this.ReadFrameColors(ref image, ref previousFrame, indices.GetSpan(), colorTable, this.imageDescriptor);
 
                 // Skip any remaining blocks
-                this.Skip(0);
+                this.SkipBlock();
             }
             finally
             {
@@ -481,22 +480,36 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
 
                 ref TPixel rowRef = ref MemoryMarshal.GetReference(imageFrame.GetPixelRowSpan(writeY));
-                var rgba = new Rgba32(0, 0, 0, 255);
+                bool transFlag = this.graphicsControlExtension.TransparencyFlag;
 
-                // #403 The left + width value can be larger than the image width
-                for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width && x < imageWidth; x++)
+                if (!transFlag)
                 {
-                    int index = Unsafe.Add(ref indicesRef, i);
-
-                    if (!this.graphicsControlExtension.TransparencyFlag
-                        || this.graphicsControlExtension.TransparencyIndex != index)
+                    // #403 The left + width value can be larger than the image width
+                    for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width && x < imageWidth; x++)
                     {
+                        int index = Unsafe.Add(ref indicesRef, i);
                         ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
-                        rgba.Rgb = colorTable[index];
-                        pixel.PackFromRgba32(rgba);
-                    }
+                        Rgb24 rgb = colorTable[index];
+                        pixel.FromRgb24(rgb);
 
-                    i++;
+                        i++;
+                    }
+                }
+                else
+                {
+                    byte transIndex = this.graphicsControlExtension.TransparencyIndex;
+                    for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width && x < imageWidth; x++)
+                    {
+                        int index = Unsafe.Add(ref indicesRef, i);
+                        if (transIndex != index)
+                        {
+                            ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
+                            Rgb24 rgb = colorTable[index];
+                            pixel.FromRgb24(rgb);
+                        }
+
+                        i++;
+                    }
                 }
             }
 

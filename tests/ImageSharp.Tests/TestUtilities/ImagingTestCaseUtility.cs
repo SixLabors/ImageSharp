@@ -72,7 +72,10 @@ namespace SixLabors.ImageSharp.Tests
                 extension = '.' + extension;
             }
 
-            if (fn != string.Empty) fn = '_' + fn;
+            if (fn != string.Empty)
+            {
+                fn = '_' + fn;
+            }
 
             string pixName = "";
 
@@ -274,17 +277,14 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         public static void ModifyPixel<TPixel>(Image<TPixel> img, int x, int y, byte perChannelChange)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            ModifyPixel(img.Frames.RootFrame, x, y, perChannelChange);
-        }
+            where TPixel : struct, IPixel<TPixel> => ModifyPixel(img.Frames.RootFrame, x, y, perChannelChange);
 
         public static void ModifyPixel<TPixel>(ImageFrame<TPixel> img, int x, int y, byte perChannelChange)
         where TPixel : struct, IPixel<TPixel>
         {
             TPixel pixel = img[x, y];
             Rgba64 rgbaPixel = default;
-            pixel.ToRgba64(ref rgbaPixel);
+            rgbaPixel.FromScaledVector4(pixel.ToScaledVector4());
             ushort change = (ushort)Math.Round((perChannelChange / 255F) * 65535F);
 
             if (rgbaPixel.R + perChannelChange <= 255)
@@ -323,7 +323,7 @@ namespace SixLabors.ImageSharp.Tests
                 rgbaPixel.A -= perChannelChange;
             }
 
-            pixel.PackFromRgba64(rgbaPixel);
+            pixel.FromRgba64(rgbaPixel);
             img[x, y] = pixel;
         }
     }

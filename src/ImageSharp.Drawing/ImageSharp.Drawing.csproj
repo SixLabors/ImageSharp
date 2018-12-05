@@ -5,8 +5,8 @@
         <VersionPrefix Condition="$(packageversion) != ''">$(packageversion)</VersionPrefix>
         <VersionPrefix Condition="$(packageversion) == ''">0.0.1</VersionPrefix>
         <Authors>SixLabors and contributors</Authors>
-        <TargetFrameworks>netstandard1.1;netstandard2.0</TargetFrameworks>
-        <LangVersion>7.2</LangVersion>
+        <TargetFrameworks>netstandard1.3;netstandard2.0</TargetFrameworks>
+        <LangVersion>7.3</LangVersion>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <AssemblyName>SixLabors.ImageSharp.Drawing</AssemblyName>
@@ -38,8 +38,8 @@
     </ItemGroup>
     <ItemGroup>
         <AdditionalFiles Include="..\..\stylecop.json" />
-        <PackageReference Include="SixLabors.Fonts" Version="1.0.0-beta0007" />
-        <PackageReference Include="SixLabors.Shapes" Version="1.0.0-beta0007" />
+        <PackageReference Include="SixLabors.Fonts" Version="1.0.0-dev000119" />
+        <PackageReference Include="SixLabors.Shapes" Version="1.0.0-dev000102" />
         <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta007">
             <PrivateAssets>All</PrivateAssets>
         </PackageReference>

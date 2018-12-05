@@ -4,8 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -22,8 +22,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// Initializes a new instance of the <see cref="CropProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="cropRectangle">The target cropped rectangle.</param>
-        public CropProcessor(Rectangle cropRectangle)
+        /// <param name="sourceSize">The source image size.</param>
+        public CropProcessor(Rectangle cropRectangle, Size sourceSize)
         {
+            // Check bounds here and throw if we are passed a rectangle exceeding our source bounds.
+            Guard.IsTrue(new Rectangle(Point.Empty, sourceSize).Contains(cropRectangle), nameof(cropRectangle), "Crop rectangle should be smaller than the source bounds.");
             this.CropRectangle = cropRectangle;
         }
 
@@ -53,21 +56,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return;
             }
 
-            int minY = Math.Max(this.CropRectangle.Y, sourceRectangle.Y);
-            int maxY = Math.Min(this.CropRectangle.Bottom, sourceRectangle.Bottom);
-            int minX = Math.Max(this.CropRectangle.X, sourceRectangle.X);
-            int maxX = Math.Min(this.CropRectangle.Right, sourceRectangle.Right);
+            Rectangle rect = this.CropRectangle;
 
-            ParallelFor.WithConfiguration(
-                minY,
-                maxY,
-                configuration,
-                y =>
-                {
-                    Span<TPixel> sourceRow = source.GetPixelRowSpan(y).Slice(minX);
-                    Span<TPixel> targetRow = destination.GetPixelRowSpan(y - minY);
-                    sourceRow.Slice(0, maxX - minX).CopyTo(targetRow);
-                });
+            // Copying is cheap, we should process more pixels per task:
+            ParallelExecutionSettings parallelSettings = configuration.GetParallelSettings().MultiplyMinimumPixelsPerTask(4);
+
+            ParallelHelper.IterateRows(
+                rect,
+                parallelSettings,
+                rows =>
+                    {
+                        for (int y = rows.Min; y < rows.Max; y++)
+                        {
+                            Span<TPixel> sourceRow = source.GetPixelRowSpan(y).Slice(rect.Left);
+                            Span<TPixel> targetRow = destination.GetPixelRowSpan(y - rect.Top);
+                            sourceRow.Slice(0, rect.Width).CopyTo(targetRow);
+                        }
+                    });
         }
     }
 }

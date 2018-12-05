@@ -173,6 +173,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
         }
 
+        internal TPixel[] AotGetPalette() => this.GetPalette();
+
         /// <inheritdoc/>
         protected override TPixel[] GetPalette()
         {
@@ -199,7 +201,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                         float a = Volume(ref this.colorCube[k], vmaSpan);
 
                         ref TPixel color = ref this.palette[k];
-                        color.PackFromScaledVector4(new Vector4(r, g, b, a) / weight / 255F);
+                        color.FromScaledVector4(new Vector4(r, g, b, a) / weight / 255F);
                     }
                 }
             }
@@ -442,33 +444,36 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             // Build up the 3-D color histogram
             // Loop through each row
-            for (int y = 0; y < height; y++)
+            using (IMemoryOwner<Rgba32> rgbaBuffer = source.MemoryAllocator.Allocate<Rgba32>(source.Width))
             {
-                Span<TPixel> row = source.GetPixelRowSpan(y);
-                ref TPixel scanBaseRef = ref MemoryMarshal.GetReference(row);
-
-                // And loop through each column
-                Rgba32 rgba = default;
-                for (int x = 0; x < width; x++)
+                for (int y = 0; y < height; y++)
                 {
-                    ref TPixel pixel = ref Unsafe.Add(ref scanBaseRef, x);
-                    pixel.ToRgba32(ref rgba);
+                    Span<TPixel> row = source.GetPixelRowSpan(y);
+                    Span<Rgba32> rgbaSpan = rgbaBuffer.GetSpan();
+                    PixelOperations<TPixel>.Instance.ToRgba32(source.Configuration, row, rgbaSpan);
+                    ref Rgba32 scanBaseRef = ref MemoryMarshal.GetReference(rgbaSpan);
 
-                    int r = rgba.R >> (8 - IndexBits);
-                    int g = rgba.G >> (8 - IndexBits);
-                    int b = rgba.B >> (8 - IndexBits);
-                    int a = rgba.A >> (8 - IndexAlphaBits);
+                    // And loop through each column
+                    for (int x = 0; x < width; x++)
+                    {
+                        ref Rgba32 rgba = ref Unsafe.Add(ref scanBaseRef, x);
 
-                    int index = GetPaletteIndex(r + 1, g + 1, b + 1, a + 1);
+                        int r = rgba.R >> (8 - IndexBits);
+                        int g = rgba.G >> (8 - IndexBits);
+                        int b = rgba.B >> (8 - IndexBits);
+                        int a = rgba.A >> (8 - IndexAlphaBits);
 
-                    vwtSpan[index]++;
-                    vmrSpan[index] += rgba.R;
-                    vmgSpan[index] += rgba.G;
-                    vmbSpan[index] += rgba.B;
-                    vmaSpan[index] += rgba.A;
+                        int index = GetPaletteIndex(r + 1, g + 1, b + 1, a + 1);
 
-                    var vector = new Vector4(rgba.R, rgba.G, rgba.B, rgba.A);
-                    m2Span[index] += Vector4.Dot(vector, vector);
+                        vwtSpan[index]++;
+                        vmrSpan[index] += rgba.R;
+                        vmgSpan[index] += rgba.G;
+                        vmbSpan[index] += rgba.B;
+                        vmaSpan[index] += rgba.A;
+
+                        var vector = new Vector4(rgba.R, rgba.G, rgba.B, rgba.A);
+                        m2Span[index] += Vector4.Dot(vector, vector);
+                    }
                 }
             }
         }

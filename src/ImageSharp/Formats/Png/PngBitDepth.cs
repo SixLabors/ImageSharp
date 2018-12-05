@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// <summary>
     /// Provides enumeration for the available PNG bit depths.
     /// </summary>
-    public enum PngBitDepth
+    public enum PngBitDepth : byte
     {
         /// <summary>
         /// 1 bit per sample or per palette index (not per pixel).

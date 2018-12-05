@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 
@@ -15,6 +16,29 @@ namespace SixLabors.ImageSharp
     /// </content>
     public static partial class Image
     {
+        /// <summary>
+        /// Creates an <see cref="Image{TPixel}"/> instance backed by an uninitialized memory buffer.
+        /// This is an optimized creation method intended to be used by decoders.
+        /// The image might be filled with memory garbage.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type</typeparam>
+        /// <param name="configuration">The <see cref="Configuration"/></param>
+        /// <param name="width">The width of the image</param>
+        /// <param name="height">The height of the image</param>
+        /// <param name="metadata">The <see cref="ImageMetaData"/></param>
+        /// <returns>The result <see cref="Image{TPixel}"/></returns>
+        internal static Image<TPixel> CreateUninitialized<TPixel>(
+            Configuration configuration,
+            int width,
+            int height,
+            ImageMetaData metadata)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Buffer2D<TPixel> uninitializedMemoryBuffer =
+                configuration.MemoryAllocator.Allocate2D<TPixel>(width, height);
+            return new Image<TPixel>(configuration, uninitializedMemoryBuffer.MemorySource, width, height, metadata);
+        }
+
         /// <summary>
         /// By reading the header on the provided stream this calculates the images format.
         /// </summary>
@@ -30,7 +54,7 @@ namespace SixLabors.ImageSharp
                 return null;
             }
 
-            using (IManagedByteBuffer buffer = config.MemoryAllocator.AllocateManagedByteBuffer(maxHeaderSize))
+            using (IManagedByteBuffer buffer = config.MemoryAllocator.AllocateManagedByteBuffer(maxHeaderSize, AllocationOptions.Clean))
             {
                 long startPosition = stream.Position;
                 stream.Read(buffer.Array, 0, maxHeaderSize);

@@ -11,15 +11,17 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
 
 using Xunit;
+// ReSharper disable InconsistentNaming
+
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
     public class ResizeTests : FileTestBase
     {
         public static readonly string[] CommonTestImages = { TestImages.Png.CalliphoraPartial };
 
-        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.069F);
-
-        public static readonly TheoryData<string, IResampler> AllReSamplers =
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.07F);
+        
+        public static readonly TheoryData<string, IResampler> AllResamplers =
             new TheoryData<string, IResampler>
             {
                 { "Bicubic", KnownResamplers.Bicubic },
@@ -39,9 +41,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             };
 
         [Theory]
-        [WithTestPatternImages(nameof(AllReSamplers), 100, 100, DefaultPixelType, 0.5f)]
-        [WithFileCollection(nameof(CommonTestImages), nameof(AllReSamplers), DefaultPixelType, 0.5f)]
-        [WithFileCollection(nameof(CommonTestImages), nameof(AllReSamplers), DefaultPixelType, 0.3f)]
+        [WithTestPatternImages(nameof(AllResamplers), 100, 100, DefaultPixelType, 0.5f)]
+        [WithFileCollection(nameof(CommonTestImages), nameof(AllResamplers), DefaultPixelType, 0.5f)]
+        [WithFileCollection(nameof(CommonTestImages), nameof(AllResamplers), DefaultPixelType, 0.3f)]
         public void Resize_WorksWithAllResamplers<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler, float ratio)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -52,8 +54,28 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 FormattableString details = $"{name}-{ratio.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
 
                 image.DebugSave(provider, details);
-                image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.005f), provider, details);
+                image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.02f), provider, details);
             }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType, 1)]
+        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType, 4)]
+        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType, 8)]
+        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType, -1)]
+        public void Resize_WorksWithAllParallelismLevels<TPixel>(TestImageProvider<TPixel> provider, int maxDegreeOfParallelism)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            provider.Configuration.MaxDegreeOfParallelism =
+                maxDegreeOfParallelism > 0 ? maxDegreeOfParallelism : Environment.ProcessorCount;
+
+            FormattableString details = $"MDP{maxDegreeOfParallelism}";
+
+            provider.RunValidatingProcessorTest(
+                x => x.Resize(x.GetCurrentSize() / 2),
+                details,
+                appendPixelTypeToFileName: false,
+                appendSourceFileOrDescription: false);
         }
 
         [Theory]
@@ -75,15 +97,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void Resize_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2, true));
-
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
-            }
+            provider.RunValidatingProcessorTest(x => x.Resize(x.GetCurrentSize() / 2), comparer: ValidatorComparer);
         }
-
 
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
@@ -105,20 +120,21 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             }
         }
 
-
         [Theory]
-        [WithFile(TestImages.Png.Kaboom, DefaultPixelType)]
-        public void Resize_DoesNotBleedAlphaPixels<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFile(TestImages.Png.Kaboom, DefaultPixelType, false)]
+        [WithFile(TestImages.Png.Kaboom, DefaultPixelType, true)]
+        public void Resize_DoesNotBleedAlphaPixels<TPixel>(TestImageProvider<TPixel> provider, bool compand)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
-            }
-        }
+            string details = compand ? "Compand" : "";
 
+            provider.RunValidatingProcessorTest(
+                x => x.Resize(x.GetCurrentSize() / 2, compand),
+                details,
+                appendPixelTypeToFileName: false,
+                appendSourceFileOrDescription: false);
+        }
+        
         [Theory]
         [WithFile(TestImages.Gif.Giphy, DefaultPixelType)]
         public void Resize_IsAppliedToAllFrames<TPixel>(TestImageProvider<TPixel> provider)
@@ -175,6 +191,32 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(ValidatorComparer, provider);
+            }
+        }
+
+        [Theory]
+        [WithTestPatternImages(100, 10, DefaultPixelType)]
+        public void ResizeWidthCannotKeepAspectKeepsOnePixel<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(x => x.Resize(5, 0));
+                Assert.Equal(5, image.Width);
+                Assert.Equal(1, image.Height);
+            }
+        }
+
+        [Theory]
+        [WithTestPatternImages(10, 100, DefaultPixelType)]
+        public void ResizeHeightCannotKeepAspectKeepsOnePixel<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(x => x.Resize(0, 5));
+                Assert.Equal(1, image.Width);
+                Assert.Equal(5, image.Height);
             }
         }
 
@@ -324,7 +366,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [InlineData(2, 0)]
         public static void BicubicWindowOscillatesCorrectly(float x, float expected)
         {
-            var sampler = KnownResamplers.Bicubic;
+            IResampler sampler = KnownResamplers.Bicubic;
             float result = sampler.GetValue(x);
 
             Assert.Equal(result, expected);
@@ -338,7 +380,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [InlineData(2, 0)]
         public static void TriangleWindowOscillatesCorrectly(float x, float expected)
         {
-            var sampler = KnownResamplers.Triangle;
+            IResampler sampler = KnownResamplers.Triangle;
             float result = sampler.GetValue(x);
 
             Assert.Equal(result, expected);
@@ -352,7 +394,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [InlineData(2, 0)]
         public static void Lanczos3WindowOscillatesCorrectly(float x, float expected)
         {
-            var sampler = KnownResamplers.Lanczos3;
+            IResampler sampler = KnownResamplers.Lanczos3;
             float result = sampler.GetValue(x);
 
             Assert.Equal(result, expected);
@@ -366,7 +408,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [InlineData(4, 0)]
         public static void Lanczos5WindowOscillatesCorrectly(float x, float expected)
         {
-            var sampler = KnownResamplers.Lanczos5;
+            IResampler sampler = KnownResamplers.Lanczos5;
             float result = sampler.GetValue(x);
 
             Assert.Equal(result, expected);

@@ -28,14 +28,15 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             var bBuffer = new Rgba64[width];
 
             var differences = new List<PixelDifference>();
+            Configuration configuration = expected.Configuration;
 
             for (int y = 0; y < actual.Height; y++)
             {
                 Span<TPixelA> aSpan = expected.GetPixelRowSpan(y);
                 Span<TPixelB> bSpan = actual.GetPixelRowSpan(y);
 
-                PixelOperations<TPixelA>.Instance.ToRgba64(aSpan, aBuffer, width);
-                PixelOperations<TPixelB>.Instance.ToRgba64(bSpan, bBuffer, width);
+                PixelOperations<TPixelA>.Instance.ToRgba64(configuration, aSpan, aBuffer);
+                PixelOperations<TPixelB>.Instance.ToRgba64(configuration, bSpan, bBuffer);
 
                 for (int x = 0; x < width; x++)
                 {

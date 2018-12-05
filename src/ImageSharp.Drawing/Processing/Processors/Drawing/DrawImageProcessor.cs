@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -16,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
     /// Combines two images together by blending the pixels.
     /// </summary>
     /// <typeparam name="TPixelDst">The pixel format of destination image.</typeparam>
-    /// <typeparam name="TPixelSrc">The pixel format os source image.</typeparam>
+    /// <typeparam name="TPixelSrc">The pixel format of source image.</typeparam>
     internal class DrawImageProcessor<TPixelDst, TPixelSrc> : ImageProcessor<TPixelDst>
         where TPixelDst : struct, IPixel<TPixelDst>
         where TPixelSrc : struct, IPixel<TPixelSrc>
@@ -78,17 +79,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 
             int width = maxX - minX;
 
-            MemoryAllocator memoryAllocator = this.Image.GetConfiguration().MemoryAllocator;
+            var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
 
-            ParallelFor.WithConfiguration(
-                minY,
-                maxY,
+            ParallelHelper.IterateRows(
+                workingRect,
                 configuration,
-                y =>
+                rows =>
                     {
-                        Span<TPixelDst> background = source.GetPixelRowSpan(y).Slice(minX, width);
-                        Span<TPixelSrc> foreground = targetImage.GetPixelRowSpan(y - locationY).Slice(targetX, width);
-                        blender.Blend<TPixelSrc>(memoryAllocator, background, background, foreground, this.Opacity);
+                        for (int y = rows.Min; y < rows.Max; y++)
+                        {
+                            Span<TPixelDst> background = source.GetPixelRowSpan(y).Slice(minX, width);
+                            Span<TPixelSrc> foreground =
+                                targetImage.GetPixelRowSpan(y - locationY).Slice(targetX, width);
+                            blender.Blend<TPixelSrc>(configuration, background, background, foreground, this.Opacity);
+                        }
                     });
         }
     }

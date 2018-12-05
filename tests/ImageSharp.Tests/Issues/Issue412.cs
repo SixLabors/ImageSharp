@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests.Issues
         [WithBlankImages(40, 30, PixelTypes.Rgba32)]
         public void AllPixelsExpectedToBeRedWhenAntialiasedDisabled<TPixel>(TestImageProvider<TPixel> provider) where TPixel : struct, IPixel<TPixel>
         {
-            using (var image = provider.GetImage())
+            using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(
                     context =>

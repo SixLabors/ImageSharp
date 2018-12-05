@@ -51,12 +51,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private readonly byte[] markerBuffer = new byte[2];
 
         /// <summary>
-        /// The DC HUffman tables
+        /// The DC Huffman tables
         /// </summary>
         private HuffmanTables dcHuffmanTables;
 
         /// <summary>
-        /// The AC HUffman tables
+        /// The AC Huffman tables
         /// </summary>
         private HuffmanTables acHuffmanTables;
 
@@ -510,7 +510,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessApplicationHeaderMarker(int remaining)
         {
-            if (remaining < 5)
+            // We can only decode JFif identifiers.
+            if (remaining < JFifMarker.Length)
             {
                 // Skip the application header length
                 this.InputStream.Skip(remaining);
@@ -746,11 +747,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             if (!metadataOnly)
             {
                 // No need to pool this. They max out at 4
-                this.Frame.ComponentIds = new byte[this.Frame.ComponentCount];
-                this.Frame.Components = new JpegComponent[this.Frame.ComponentCount];
+                this.Frame.ComponentIds = new byte[this.ComponentCount];
+                this.Frame.ComponentOrder = new byte[this.ComponentCount];
+                this.Frame.Components = new JpegComponent[this.ComponentCount];
                 this.ColorSpace = this.DeduceJpegColorSpace();
 
-                for (int i = 0; i < this.Frame.ComponentCount; i++)
+                for (int i = 0; i < this.ComponentCount; i++)
                 {
                     byte hv = this.temp[index + 1];
                     int h = hv >> 4;
@@ -822,10 +824,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                                 codeLengths.GetSpan(),
                                 huffmanValues.GetSpan());
 
-                            if (huffmanTableSpec >> 4 != 0)
+                            if (tableType != 0)
                             {
                                 // Build a table that decodes both magnitude and value of small ACs in one go.
-                                this.fastACTables.BuildACTableLut(huffmanTableSpec & 15, this.acHuffmanTables);
+                                this.fastACTables.BuildACTableLut(tableIndex, this.acHuffmanTables);
                             }
                         }
                     }
@@ -854,10 +856,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private void ProcessStartOfScanMarker()
         {
             int selectorsCount = this.InputStream.ReadByte();
-            int componentIndex = -1;
             for (int i = 0; i < selectorsCount; i++)
             {
-                componentIndex = -1;
+                int componentIndex = -1;
                 int selector = this.InputStream.ReadByte();
 
                 for (int j = 0; j < this.Frame.ComponentIds.Length; j++)
@@ -866,6 +867,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     if (selector == id)
                     {
                         componentIndex = j;
+                        break;
                     }
                 }
 
@@ -878,6 +880,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 int tableSpec = this.InputStream.ReadByte();
                 component.DCHuffmanTableId = tableSpec >> 4;
                 component.ACHuffmanTableId = tableSpec & 15;
+                this.Frame.ComponentOrder[i] = (byte)componentIndex;
             }
 
             this.InputStream.Read(this.temp, 0, 3);
@@ -892,7 +895,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.dcHuffmanTables,
                 this.acHuffmanTables,
                 this.fastACTables,
-                componentIndex,
                 selectorsCount,
                 this.resetInterval,
                 spectralStart,
@@ -910,7 +912,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="index">The table index</param>
         /// <param name="codeLengths">The codelengths</param>
         /// <param name="values">The values</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private void BuildHuffmanTable(HuffmanTables tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
             => tables[index] = new HuffmanTable(this.configuration.MemoryAllocator, codeLengths, values);
 
@@ -918,7 +920,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Reads a <see cref="ushort"/> from the stream advancing it by two bytes
         /// </summary>
         /// <returns>The <see cref="ushort"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private ushort ReadUint16()
         {
             this.InputStream.Read(this.markerBuffer, 0, 2);
@@ -933,12 +935,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private Image<TPixel> PostProcessIntoImage<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var postProcessor = new JpegImagePostProcessor(this.configuration.MemoryAllocator, this))
+            var image = Image.CreateUninitialized<TPixel>(
+                this.configuration,
+                this.ImageWidth,
+                this.ImageHeight,
+                this.MetaData);
+
+            using (var postProcessor = new JpegImagePostProcessor(this.configuration, this))
             {
-                var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, this.MetaData);
                 postProcessor.PostProcess(image.Frames.RootFrame);
-                return image;
             }
+
+            return image;
         }
     }
 }

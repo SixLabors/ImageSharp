@@ -67,9 +67,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
                 for (int y = 0; y < result.HeightInBlocks; y++)
                 {
+                    Span<Block8x8> blockRow = c.SpectralBlocks.GetRowSpan(y);
                     for (int x = 0; x < result.WidthInBlocks; x++)
                     {
-                        short[] data = c.GetBlockReference(x, y).ToArray();
+                        short[] data = blockRow[x].ToArray();
                         result.MakeBlock(data, y, x);
                     }
                 }
@@ -103,7 +104,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
                         var v = new Vector4(val, val, val, 1);
                         Rgba32 color = default;
-                        color.PackFromVector4(v);
+                        color.FromVector4(v);
 
                         int yy = by * 8 + y;
                         int xx = bx * 8 + x;

@@ -30,27 +30,29 @@ namespace SixLabors.ImageSharp.Tests
         {
             MemoryAllocator memoryAllocator = ctx.MemoryAllocator;
 
-            ctx.Apply(img =>
-            {
-                using (Buffer2D<Vector4> temp = memoryAllocator.Allocate2D<Vector4>(img.Width, img.Height))
-                {
-                    Span<Vector4> tempSpan = temp.GetSpan();
-                    foreach (ImageFrame<TPixel> frame in img.Frames)
+            ctx.Apply(
+                img =>
                     {
-                        Span<TPixel> pixelSpan = frame.GetPixelSpan();
-
-                        PixelOperations<TPixel>.Instance.ToScaledVector4(pixelSpan, tempSpan, pixelSpan.Length);
-
-                        for (int i = 0; i < tempSpan.Length; i++)
+                        Configuration configuration = img.GetConfiguration();
+                        using (Buffer2D<Vector4> temp = memoryAllocator.Allocate2D<Vector4>(img.Width, img.Height))
                         {
-                            ref Vector4 v = ref tempSpan[i];
-                            v.W = 1F;
-                        }
+                            Span<Vector4> tempSpan = temp.GetSpan();
+                            foreach (ImageFrame<TPixel> frame in img.Frames)
+                            {
+                                Span<TPixel> pixelSpan = frame.GetPixelSpan();
 
-                        PixelOperations<TPixel>.Instance.PackFromScaledVector4(tempSpan, pixelSpan, pixelSpan.Length);
-                    }
-                }
-            });
+                                PixelOperations<TPixel>.Instance.ToScaledVector4(configuration, pixelSpan, tempSpan);
+
+                                for (int i = 0; i < tempSpan.Length; i++)
+                                {
+                                    ref Vector4 v = ref tempSpan[i];
+                                    v.W = 1F;
+                                }
+
+                                PixelOperations<TPixel>.Instance.FromScaledVector4(configuration, tempSpan, pixelSpan);
+                            }
+                        }
+                    });
         }
 
         public static Image<TPixel> DebugSave<TPixel>(
@@ -441,14 +443,23 @@ namespace SixLabors.ImageSharp.Tests
         {
             Span<TPixel> actualPixels = image.GetPixelSpan();
 
-            Assert.True(expectedPixels.Length == actualPixels.Length, "Buffer sizes are not equal!");
-
-            for (int i = 0; i < expectedPixels.Length; i++)
-            {
-                Assert.True(expectedPixels[i].Equals(actualPixels[i]), $"Pixels are different on position {i}!");
-            }
+            CompareBuffers(expectedPixels, actualPixels);
 
             return image;
+        }
+
+        public static void CompareBuffers<T>(Span<T> expected, Span<T> actual)
+            where T : struct, IEquatable<T>
+        {
+            Assert.True(expected.Length == actual.Length, "Buffer sizes are not equal!");
+
+            for (int i = 0; i < expected.Length; i++)
+            {
+                T x = expected[i];
+                T a = actual[i];
+
+                Assert.True(x.Equals(a), $"Buffers differ at position {i}! Expected: {x} | Actual: {a}");
+            }
         }
 
         /// <summary>
@@ -669,7 +680,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 float value = bufferSpan[i] * scale;
                 var v = new Vector4(value, value, value, 1f);
-                pixels[i].PackFromVector4(v);
+                pixels[i].FromVector4(v);
             }
 
             return image;

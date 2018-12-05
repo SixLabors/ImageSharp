@@ -5,6 +5,7 @@ using System;
 using System.Numerics;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -35,25 +36,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
-            int startY = interest.Y;
-            int endY = interest.Bottom;
-            int startX = interest.X;
-            int endX = interest.Right;
+
             Matrix4x4 matrix = this.Matrix;
 
-            ParallelFor.WithConfiguration(
-                startY,
-                endY,
+            ParallelHelper.IterateRows(
+                interest,
                 configuration,
-                y =>
+                rows =>
                     {
-                        Span<TPixel> row = source.GetPixelRowSpan(y);
-
-                        for (int x = startX; x < endX; x++)
+                        for (int y = rows.Min; y < rows.Max; y++)
                         {
-                            ref TPixel pixel = ref row[x];
-                            var vector = Vector4.Transform(pixel.ToVector4(), matrix);
-                            pixel.PackFromVector4(vector);
+                            Span<TPixel> row = source.GetPixelRowSpan(y);
+
+                            for (int x = interest.X; x < interest.Right; x++)
+                            {
+                                ref TPixel pixel = ref row[x];
+                                var vector = Vector4.Transform(pixel.ToVector4(), matrix);
+                                pixel.FromVector4(vector);
+                            }
                         }
                     });
         }

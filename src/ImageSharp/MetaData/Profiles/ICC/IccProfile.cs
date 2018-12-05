@@ -2,11 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
-
-#if !NETSTANDARD1_1
 using System.Security.Cryptography;
-#endif
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
@@ -23,7 +19,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <summary>
         /// The backing file for the <see cref="Entries"/> property
         /// </summary>
-        private List<IccTagDataEntry> entries;
+        private IccTagDataEntry[] entries;
 
         /// <summary>
         /// ICC profile header
@@ -49,13 +45,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// </summary>
         /// <param name="header">The profile header</param>
         /// <param name="entries">The actual profile data</param>
-        internal IccProfile(IccProfileHeader header, IEnumerable<IccTagDataEntry> entries)
+        internal IccProfile(IccProfileHeader header, IccTagDataEntry[] entries)
         {
-            Guard.NotNull(header, nameof(header));
-            Guard.NotNull(entries, nameof(entries));
-
-            this.header = header;
-            this.entries = new List<IccTagDataEntry>(entries);
+            this.header = header ?? throw new ArgumentNullException(nameof(header));
+            this.entries = entries ?? throw new ArgumentNullException(nameof(entries));
         }
 
         /// <summary>
@@ -88,7 +81,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <summary>
         /// Gets the actual profile data
         /// </summary>
-        public List<IccTagDataEntry> Entries
+        public IccTagDataEntry[] Entries
         {
             get
             {
@@ -99,8 +92,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
         /// <inheritdoc/>
         public IccProfile DeepClone() => new IccProfile(this);
-
-#if !NETSTANDARD1_1
 
         /// <summary>
         /// Calculates the MD5 hash value of an ICC profile
@@ -146,8 +137,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 }
             }
         }
-
-#endif
 
         /// <summary>
         /// Checks for signs of a corrupt profile.
@@ -219,12 +208,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
             if (this.data is null)
             {
-                this.entries = new List<IccTagDataEntry>();
+                this.entries = Array.Empty<IccTagDataEntry>();
                 return;
             }
 
             var reader = new IccReader();
-            this.entries = new List<IccTagDataEntry>(reader.ReadTagData(this.data));
+            this.entries = reader.ReadTagData(this.data);
         }
     }
 }

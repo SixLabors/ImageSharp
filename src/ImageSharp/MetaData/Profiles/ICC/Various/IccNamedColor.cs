@@ -80,27 +80,23 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <inheritdoc/>
-        public bool Equals(IccNamedColor other) =>
-            this.Name == other.Name &&
-            this.PcsCoordinates.SequenceEqual(other.PcsCoordinates) &&
-            this.DeviceCoordinates.SequenceEqual(other.DeviceCoordinates);
+        public bool Equals(IccNamedColor other)
+        {
+            return this.Name.Equals(other.Name)
+                && this.PcsCoordinates.SequenceEqual(other.PcsCoordinates)
+                && this.DeviceCoordinates.SequenceEqual(other.DeviceCoordinates);
+        }
 
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.Name.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.PcsCoordinates.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.DeviceCoordinates.GetHashCode();
-                return hashCode;
-            }
+            return HashHelpers.Combine(
+                this.Name.GetHashCode(),
+                this.PcsCoordinates.GetHashCode(),
+                this.DeviceCoordinates.GetHashCode());
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return this.Name;
-        }
+        public override string ToString() => this.Name;
     }
 }

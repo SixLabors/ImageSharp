@@ -76,8 +76,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            int hash = this.WhitePoint.GetHashCode();
-            return HashHelpers.Combine(hash, this.ChromaticityCoordinates.GetHashCode());
+            return HashHelpers.Combine(this.WhitePoint.GetHashCode(), this.ChromaticityCoordinates.GetHashCode());
         }
     }
 }

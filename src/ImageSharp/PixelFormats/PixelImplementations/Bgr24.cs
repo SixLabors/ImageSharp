@@ -191,8 +191,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public override int GetHashCode()
         {
-            int hash = HashHelpers.Combine(this.R.GetHashCode(), this.G.GetHashCode());
-            return HashHelpers.Combine(hash, this.B.GetHashCode());
+            return HashHelpers.Combine(this.R.GetHashCode(), this.B.GetHashCode(), this.G.GetHashCode());
         }
     }
 }

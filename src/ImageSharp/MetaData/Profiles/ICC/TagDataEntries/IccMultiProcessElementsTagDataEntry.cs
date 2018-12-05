@@ -90,14 +90,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = base.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.InputChannelCount;
-                hashCode = (hashCode * 397) ^ this.OutputChannelCount;
-                hashCode = (hashCode * 397) ^ (this.Data?.GetHashCode() ?? 0);
-                return hashCode;
-            }
+            return HashHelpers.Combine(
+                base.GetHashCode(),
+                this.InputChannelCount,
+                this.OutputChannelCount,
+                this.Data.GetHashCode());
         }
     }
 }

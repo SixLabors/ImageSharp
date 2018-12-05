@@ -144,11 +144,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             unchecked
             {
-                int hashCode = this.Values?.GetHashCode() ?? 0;
+                int hashCode = this.Values.GetHashCode();
                 hashCode = (hashCode * 397) ^ (int)this.DataType;
                 hashCode = (hashCode * 397) ^ this.InputChannelCount;
                 hashCode = (hashCode * 397) ^ this.OutputChannelCount;
-                hashCode = (hashCode * 397) ^ (this.GridPointCount?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ this.GridPointCount.GetHashCode();
                 return hashCode;
             }
         }

@@ -5,6 +5,7 @@ using System;
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
@@ -22,7 +23,8 @@ namespace SixLabors.ImageSharp
         /// <param name="b">The blue component.</param>
         /// <returns>The <see cref="byte"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static byte Get8BitBT709Luminance(byte r, byte g, byte b) => (byte)((r * .2126F) + (g * .7152F) + (b * .0722F) + 0.5f);
+        public static byte Get8BitBT709Luminance(byte r, byte g, byte b) =>
+            (byte)((r * .2126F) + (g * .7152F) + (b * .0722F) + 0.5f);
 
         /// <summary>
         /// Gets the luminance from the rgb components using the formula as specified by ITU-R Recommendation BT.709.
@@ -32,7 +34,8 @@ namespace SixLabors.ImageSharp
         /// <param name="b">The blue component.</param>
         /// <returns>The <see cref="ushort"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static ushort Get16BitBT709Luminance(ushort r, ushort g, ushort b) => (ushort)((r * .2126F) + (g * .7152F) + (b * .0722F));
+        public static ushort Get16BitBT709Luminance(ushort r, ushort g, ushort b) =>
+            (ushort)((r * .2126F) + (g * .7152F) + (b * .0722F));
 
         /// <summary>
         /// Scales a value from a 16 bit <see cref="ushort"/> to it's 8 bit <see cref="byte"/> equivalent.
@@ -98,7 +101,6 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Determine the Least Common Multiple (LCM) of two numbers.
-        /// TODO: This method might be useful for building a more compact <see cref="Processing.Processors.Transforms.KernelMap"/>
         /// </summary>
         public static int LeastCommonMultiple(int a, int b)
         {
@@ -123,10 +125,7 @@ namespace SixLabors.ImageSharp
         /// <paramref name="m"/> should be power of 2.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int ModuloP2(int x, int m)
-        {
-            return x & (m - 1);
-        }
+        public static int ModuloP2(int x, int m) => x & (m - 1);
 
         /// <summary>
         /// Returns the absolute value of a 32-bit signed integer. Uses bit shifting to speed up the operation.

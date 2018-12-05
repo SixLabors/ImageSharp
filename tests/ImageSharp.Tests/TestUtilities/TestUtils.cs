@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
 
@@ -284,5 +285,17 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         public static string AsInvariantString(this FormattableString formattable) => System.FormattableString.Invariant(formattable);
+
+        public static IResampler GetResampler(string name)
+        {
+            PropertyInfo property = typeof(KnownResamplers).GetTypeInfo().GetProperty(name);
+
+            if (property is null)
+            {
+                throw new Exception($"No resampler named '{name}");
+            }
+
+            return (IResampler)property.GetValue(null);
+        }
     }
 }

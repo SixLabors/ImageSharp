@@ -63,8 +63,8 @@ namespace SixLabors.ImageSharp.Sandbox46
         private static void RunDecodeJpegProfilingTests()
         {
             Console.WriteLine("RunDecodeJpegProfilingTests...");
-            var benchmarks = new JpegBenchmarks(new ConsoleOutput());
-            foreach (object[] data in JpegBenchmarks.DecodeJpegData)
+            var benchmarks = new JpegProfilingBenchmarks(new ConsoleOutput());
+            foreach (object[] data in JpegProfilingBenchmarks.DecodeJpegData)
             {
                 string fileName = (string)data[0];
                 benchmarks.DecodeJpeg(fileName);

@@ -322,7 +322,7 @@ namespace SixLabors.ImageSharp.Processing
                 degrees += 360;
             }
 
-            float radian = MathFExtensions.DegreeToRadian(degrees);
+            float radian = GeometryUtilities.DegreeToRadian(degrees);
             float cosRadian = MathF.Cos(radian);
             float sinRadian = MathF.Sin(radian);
 

@@ -2,12 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Threading.Tasks;
+using System.Numerics;
+
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// Provides methods that allow the rotating of images.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class RotateProcessor<TPixel> : CenteredAffineTransformProcessor<TPixel>
+    internal class RotateProcessor<TPixel> : AffineTransformProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -36,9 +36,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="sampler">The sampler to perform the rotating operation.</param>
         /// <param name="sourceSize">The source image size</param>
         public RotateProcessor(float degrees, IResampler sampler, Size sourceSize)
-            : base(Matrix3x2Extensions.CreateRotationDegrees(degrees, PointF.Empty), sampler, sourceSize)
+            : this(
+                 TransformUtils.CreateRotationMatrixDegrees(degrees, sourceSize),
+                 sampler,
+                 sourceSize)
+            => this.Degrees = degrees;
+
+        // Helper constructor
+        private RotateProcessor(Matrix3x2 rotationMatrix, IResampler sampler, Size sourceSize)
+            : base(rotationMatrix, sampler, TransformUtils.GetTransformedSize(sourceSize, rotationMatrix))
         {
-            this.Degrees = degrees;
         }
 
         /// <summary>
@@ -84,7 +91,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <returns>The <see cref="float"/></returns>
         private static float WrapDegrees(float degrees)
         {
-            degrees = degrees % 360;
+            degrees %= 360;
 
             while (degrees < 0)
             {
@@ -223,7 +230,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                             int newX = height - y - 1;
                             for (int x = 0; x < width; x++)
                             {
-                                // TODO: Optimize this:
                                 if (destinationBounds.Contains(newX, x))
                                 {
                                     destination[newX, x] = sourceRow[x];

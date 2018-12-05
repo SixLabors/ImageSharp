@@ -57,10 +57,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         }
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            int hash = base.GetHashCode();
-            return HashHelpers.Combine(hash, this.Gamma.GetHashCode());
-        }
+        public override int GetHashCode() => HashHelpers.Combine(base.GetHashCode(), this.Gamma.GetHashCode());
     }
 }

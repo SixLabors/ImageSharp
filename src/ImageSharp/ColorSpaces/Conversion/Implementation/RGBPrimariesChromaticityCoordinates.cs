@@ -88,12 +88,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// <inheritdoc />
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.R.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.G.GetHashCode();
-                return (hashCode * 397) ^ this.B.GetHashCode();
-            }
+            return HashHelpers.Combine(this.R.GetHashCode(), this.G.GetHashCode(), this.B.GetHashCode());
         }
     }
 }

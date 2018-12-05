@@ -102,11 +102,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             return HashHelpers.Combine(
                 this.DCTEncodeVersion.GetHashCode(),
-                HashHelpers.Combine(
-                    this.APP14Flags0.GetHashCode(),
-                    HashHelpers.Combine(
-                        this.APP14Flags1.GetHashCode(),
-                        this.ColorTransform.GetHashCode())));
+                this.APP14Flags0.GetHashCode(),
+                this.APP14Flags1.GetHashCode(),
+                this.ColorTransform.GetHashCode());
         }
     }
 }

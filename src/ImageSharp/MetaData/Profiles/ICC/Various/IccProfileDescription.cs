@@ -28,15 +28,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             IccLocalizedString[] deviceManufacturerInfo,
             IccLocalizedString[] deviceModelInfo)
         {
-            Guard.NotNull(deviceManufacturerInfo, nameof(deviceManufacturerInfo));
-            Guard.NotNull(deviceModelInfo, nameof(deviceModelInfo));
-
             this.DeviceManufacturer = deviceManufacturer;
             this.DeviceModel = deviceModel;
             this.DeviceAttributes = deviceAttributes;
             this.TechnologyInformation = technologyInformation;
-            this.DeviceManufacturerInfo = deviceManufacturerInfo;
-            this.DeviceModelInfo = deviceModelInfo;
+            this.DeviceManufacturerInfo = deviceManufacturerInfo ?? throw new ArgumentNullException(nameof(deviceManufacturerInfo));
+            this.DeviceModelInfo = deviceModelInfo ?? throw new ArgumentNullException(nameof(deviceModelInfo));
         }
 
         /// <summary>
@@ -93,8 +90,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 hashCode = (hashCode * 397) ^ (int)this.DeviceModel;
                 hashCode = (hashCode * 397) ^ this.DeviceAttributes.GetHashCode();
                 hashCode = (hashCode * 397) ^ (int)this.TechnologyInformation;
-                hashCode = (hashCode * 397) ^ (this.DeviceManufacturerInfo?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (this.DeviceModelInfo?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ this.DeviceManufacturerInfo.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.DeviceModelInfo.GetHashCode();
                 return hashCode;
             }
         }

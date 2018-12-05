@@ -46,6 +46,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string PDSrc = "Png/pd-source.png";
             public const string PDDest = "Png/pd-dest.png";
             public const string Gray1BitTrans = "Png/gray-1-trns.png";
+            public const string Gray2BitTrans = "Png/gray-2-tRNS.png";
+            public const string Gray4BitTrans = "Png/gray-4-tRNS.png";
+            public const string Gray8BitTrans = "Png/gray-8-tRNS.png";
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";

@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
 
 using Xunit;
+// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
@@ -20,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.07F);
         
-        public static readonly TheoryData<string, IResampler> AllReSamplers =
+        public static readonly TheoryData<string, IResampler> AllResamplers =
             new TheoryData<string, IResampler>
             {
                 { "Bicubic", KnownResamplers.Bicubic },
@@ -40,9 +41,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             };
 
         [Theory]
-        [WithTestPatternImages(nameof(AllReSamplers), 100, 100, DefaultPixelType, 0.5f)]
-        [WithFileCollection(nameof(CommonTestImages), nameof(AllReSamplers), DefaultPixelType, 0.5f)]
-        [WithFileCollection(nameof(CommonTestImages), nameof(AllReSamplers), DefaultPixelType, 0.3f)]
+        [WithTestPatternImages(nameof(AllResamplers), 100, 100, DefaultPixelType, 0.5f)]
+        [WithFileCollection(nameof(CommonTestImages), nameof(AllResamplers), DefaultPixelType, 0.5f)]
+        [WithFileCollection(nameof(CommonTestImages), nameof(AllResamplers), DefaultPixelType, 0.3f)]
         public void Resize_WorksWithAllResamplers<TPixel>(TestImageProvider<TPixel> provider, string name, IResampler sampler, float ratio)
             where TPixel : struct, IPixel<TPixel>
         {

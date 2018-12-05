@@ -10,9 +10,9 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
 {
-    public class LoadResizeSaveBenchmarks : MeasureFixture
+    public class LoadResizeSaveProfilingBenchmarks : MeasureFixture
     {
-        public LoadResizeSaveBenchmarks(ITestOutputHelper output)
+        public LoadResizeSaveProfilingBenchmarks(ITestOutputHelper output)
             : base(output)
         {
         }

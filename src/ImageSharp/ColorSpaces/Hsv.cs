@@ -84,9 +84,10 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(InliningOptions.ShortMethod)]
         public override int GetHashCode()
         {
-            int hash = this.H.GetHashCode();
-            hash = HashHelpers.Combine(hash, this.S.GetHashCode());
-            return HashHelpers.Combine(hash, this.V.GetHashCode());
+            return HashHelpers.Combine(
+                this.H.GetHashCode(),
+                this.S.GetHashCode(),
+                this.V.GetHashCode());
         }
 
         /// <inheritdoc/>

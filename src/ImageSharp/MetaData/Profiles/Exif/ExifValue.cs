@@ -198,7 +198,14 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         }
 
         /// <inheritdoc/>
-        public override int GetHashCode() => this.GetHashCode(this);
+        public override int GetHashCode()
+        {
+            int hashCode = HashHelpers.Combine(this.Tag.GetHashCode(), this.DataType.GetHashCode());
+
+            return this.Value != null
+                ? HashHelpers.Combine(hashCode, this.Value.GetHashCode())
+                : hashCode;
+        }
 
         /// <inheritdoc/>
         public override string ToString()
@@ -713,21 +720,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 default:
                     throw new NotSupportedException();
             }
-        }
-
-        /// <summary>
-        /// Returns the hash code for this instance.
-        /// </summary>
-        /// <param name="exif">
-        /// The instance of <see cref="ExifValue"/> to return the hash code for.
-        /// </param>
-        /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
-        /// </returns>
-        private int GetHashCode(ExifValue exif)
-        {
-            int hashCode = exif.Tag.GetHashCode() ^ exif.DataType.GetHashCode();
-            return hashCode ^ exif.Value?.GetHashCode() ?? hashCode;
         }
     }
 }

@@ -157,13 +157,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             unchecked
             {
                 int hashCode = (int)this.Type;
-                hashCode = (hashCode * 397) ^ this.G.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.A.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.B.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.C.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.D.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.E.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.F.GetHashCode();
+                hashCode = HashHelpers.Combine(hashCode, this.G.GetHashCode());
+                hashCode = HashHelpers.Combine(hashCode, this.A.GetHashCode());
+                hashCode = HashHelpers.Combine(hashCode, this.B.GetHashCode());
+                hashCode = HashHelpers.Combine(hashCode, this.C.GetHashCode());
+                hashCode = HashHelpers.Combine(hashCode, this.D.GetHashCode());
+                hashCode = HashHelpers.Combine(hashCode, this.E.GetHashCode());
+                hashCode = HashHelpers.Combine(hashCode, this.F.GetHashCode());
                 return hashCode;
             }
         }

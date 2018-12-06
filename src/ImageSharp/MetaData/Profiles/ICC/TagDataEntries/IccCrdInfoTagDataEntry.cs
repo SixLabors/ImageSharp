@@ -124,11 +124,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             unchecked
             {
                 int hashCode = base.GetHashCode();
-                hashCode = (hashCode * 397) ^ (this.PostScriptProductName?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (this.RenderingIntent0Crd?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (this.RenderingIntent1Crd?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (this.RenderingIntent2Crd?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (this.RenderingIntent3Crd?.GetHashCode() ?? 0);
+                hashCode = HashHelpers.Combine(hashCode, this.PostScriptProductName?.GetHashCode() ?? 0);
+                hashCode = HashHelpers.Combine(hashCode, this.RenderingIntent0Crd?.GetHashCode() ?? 0);
+                hashCode = HashHelpers.Combine(hashCode, this.RenderingIntent1Crd?.GetHashCode() ?? 0);
+                hashCode = HashHelpers.Combine(hashCode, this.RenderingIntent2Crd?.GetHashCode() ?? 0);
+                hashCode = HashHelpers.Combine(hashCode, this.RenderingIntent3Crd?.GetHashCode() ?? 0);
                 return hashCode;
             }
         }

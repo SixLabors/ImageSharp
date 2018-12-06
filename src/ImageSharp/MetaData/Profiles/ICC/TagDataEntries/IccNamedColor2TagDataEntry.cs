@@ -83,6 +83,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             if (colors.Length > 0)
             {
                 coordinateCount = colors[0].DeviceCoordinates?.Length ?? 0;
+
                 Guard.IsFalse(colors.Any(t => (t.DeviceCoordinates?.Length ?? 0) != coordinateCount), nameof(colors), "Device coordinate count must be the same for all colors");
             }
 
@@ -154,16 +155,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = base.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.CoordinateCount;
-                hashCode = (hashCode * 397) ^ (this.Prefix?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (this.Suffix?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ this.VendorFlags;
-                hashCode = (hashCode * 397) ^ (this.Colors?.GetHashCode() ?? 0);
-                return hashCode;
-            }
+            int hashCode = base.GetHashCode();
+            hashCode = HashHelpers.Combine(hashCode, this.CoordinateCount.GetHashCode());
+            hashCode = HashHelpers.Combine(hashCode, this.Prefix?.GetHashCode() ?? 0);
+            hashCode = HashHelpers.Combine(hashCode, this.Suffix?.GetHashCode() ?? 0);
+            hashCode = HashHelpers.Combine(hashCode, this.VendorFlags.GetHashCode());
+            hashCode = HashHelpers.Combine(hashCode, this.Colors.GetHashCode());
+            return hashCode;
         }
     }
 }

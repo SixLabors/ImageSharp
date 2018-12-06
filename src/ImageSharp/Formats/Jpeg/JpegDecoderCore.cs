@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// The only supported precision
         /// </summary>
-        public const int SupportedPrecision = 8;
+        public readonly int[] SupportedPrecisions = { 8, 12 };
 
         /// <summary>
         /// The global configuration
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Gets the color depth, in number of bits per pixel.
         /// </summary>
-        public int BitsPerPixel => this.ComponentCount * SupportedPrecision;
+        public int BitsPerPixel => this.ComponentCount * this.Frame.Precision;
 
         /// <summary>
         /// Gets the input stream.
@@ -720,10 +720,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             this.InputStream.Read(this.temp, 0, remaining);
 
-            // We only support 8-bit precision.
-            if (this.temp[0] != SupportedPrecision)
+            // We only support 8-bit and 12-bit precision.
+            if (!SupportedPrecisions.Contains(this.temp[0]))
             {
-                throw new ImageFormatException("Only 8-Bit precision supported.");
+                throw new ImageFormatException("Only 8-Bit and 12-Bit precision supported.");
             }
 
             this.Frame = new JpegFrame

@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             return HashHelpers.Combine(
                 base.GetHashCode(),
-                (int)this.ColorantType,
+                this.ColorantType.GetHashCode(),
                 this.ChannelValues.GetHashCode());
         }
 

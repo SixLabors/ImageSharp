@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public override int GetHashCode()
         {
             return HashHelpers.Combine(
-                (int)this.CurveType,
+                this.CurveType.GetHashCode(),
                 this.XyzValues.GetHashCode(),
                 this.ResponseArrays.GetHashCode());
         }

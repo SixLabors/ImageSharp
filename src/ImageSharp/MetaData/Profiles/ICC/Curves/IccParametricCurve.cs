@@ -156,7 +156,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             unchecked
             {
-                int hashCode = (int)this.Type;
+                int hashCode = this.Type.GetHashCode();
                 hashCode = HashHelpers.Combine(hashCode, this.G.GetHashCode());
                 hashCode = HashHelpers.Combine(hashCode, this.A.GetHashCode());
                 hashCode = HashHelpers.Combine(hashCode, this.B.GetHashCode());

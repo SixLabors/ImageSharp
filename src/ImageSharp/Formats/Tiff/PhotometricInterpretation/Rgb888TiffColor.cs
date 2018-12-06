@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     byte r = data[offset++];
                     byte g = data[offset++];
                     byte b = data[offset++];
-                    color.PackFromRgba32(new Rgba32(r, g, b, 255));
+                    color.FromRgba32(new Rgba32(r, g, b, 255));
                     pixels[x, y] = color;
                 }
             }

@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     {
                         int bit = (b >> (7 - shift)) & 1;
                         byte intensity = (bit == 1) ? (byte)0 : (byte)255;
-                        color.PackFromRgba32(new Rgba32(intensity, intensity, intensity, 255));
+                        color.FromRgba32(new Rgba32(intensity, intensity, intensity, 255));
                         pixels[x + shift, y] = color;
                     }
                 }

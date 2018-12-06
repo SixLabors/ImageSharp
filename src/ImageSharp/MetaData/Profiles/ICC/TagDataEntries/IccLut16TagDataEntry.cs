@@ -140,15 +140,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = base.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Matrix.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.InputValues.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.ClutValues.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.OutputValues.GetHashCode();
-                return hashCode;
-            }
+            int hashCode = base.GetHashCode();
+            hashCode = HashHelpers.Combine(hashCode, this.Matrix.GetHashCode());
+            hashCode = HashHelpers.Combine(hashCode, this.InputValues.GetHashCode());
+            hashCode = HashHelpers.Combine(hashCode, this.ClutValues.GetHashCode());
+            hashCode = HashHelpers.Combine(hashCode, this.OutputValues.GetHashCode());
+            return hashCode;
         }
 
         private Matrix4x4 CreateMatrix(float[,] matrix)

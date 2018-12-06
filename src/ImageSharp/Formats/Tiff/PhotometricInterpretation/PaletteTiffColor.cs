@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 float r = colorMap[rOffset + i] / 65535F;
                 float g = colorMap[gOffset + i] / 65535F;
                 float b = colorMap[bOffset + i] / 65535F;
-                palette[i].PackFromVector4(new Vector4(r, g, b, 1.0f));
+                palette[i].FromVector4(new Vector4(r, g, b, 1.0f));
             }
 
             return palette;

@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 {
                     int value = bitReader.ReadBits(bitsPerSample[0]);
                     float intensity = ((float)value) / factor;
-                    color.PackFromVector4(new Vector4(intensity, intensity, intensity, 1.0f));
+                    color.FromVector4(new Vector4(intensity, intensity, intensity, 1.0f));
                     pixels[x, y] = color;
                 }
 

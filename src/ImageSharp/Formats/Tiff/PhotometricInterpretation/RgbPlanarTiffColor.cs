@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     float r = ((float)rBitReader.ReadBits(bitsPerSample[0])) / rFactor;
                     float g = ((float)gBitReader.ReadBits(bitsPerSample[1])) / gFactor;
                     float b = ((float)bBitReader.ReadBits(bitsPerSample[2])) / bFactor;
-                    color.PackFromVector4(new Vector4(r, g, b, 1.0f));
+                    color.FromVector4(new Vector4(r, g, b, 1.0f));
                     pixels[x, y] = color;
                 }
 

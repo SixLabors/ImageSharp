@@ -166,16 +166,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc />
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = base.GetHashCode();
-                hashCode = (hashCode * 397) ^ (this.Ascii?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (this.Unicode?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (this.ScriptCode?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (int)this.UnicodeLanguageCode;
-                hashCode = (hashCode * 397) ^ this.ScriptCodeCode.GetHashCode();
-                return hashCode;
-            }
+            int hashCode = base.GetHashCode();
+            hashCode = HashHelpers.Combine(hashCode, this.Ascii?.GetHashCode() ?? 0);
+            hashCode = HashHelpers.Combine(hashCode, this.Unicode?.GetHashCode() ?? 0);
+            hashCode = HashHelpers.Combine(hashCode, this.ScriptCode?.GetHashCode() ?? 0);
+            hashCode = HashHelpers.Combine(hashCode, this.UnicodeLanguageCode.GetHashCode());
+            hashCode = HashHelpers.Combine(hashCode, this.ScriptCodeCode.GetHashCode());
+            return hashCode;
         }
     }
 }

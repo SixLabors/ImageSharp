@@ -183,19 +183,16 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = base.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.InputChannelCount;
-                hashCode = (hashCode * 397) ^ this.OutputChannelCount;
-                hashCode = (hashCode * 397) ^ this.Matrix3x3.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Matrix3x1.GetHashCode();
-                hashCode = (hashCode * 397) ^ (this.ClutValues?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (this.CurveB?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (this.CurveM?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (this.CurveA?.GetHashCode() ?? 0);
-                return hashCode;
-            }
+            int hashCode = base.GetHashCode();
+            hashCode = HashHelpers.Combine(hashCode, this.InputChannelCount.GetHashCode());
+            hashCode = HashHelpers.Combine(hashCode, this.OutputChannelCount.GetHashCode());
+            hashCode = HashHelpers.Combine(hashCode, this.Matrix3x3.GetHashCode());
+            hashCode = HashHelpers.Combine(hashCode, this.Matrix3x1.GetHashCode());
+            hashCode = HashHelpers.Combine(hashCode, this.ClutValues?.GetHashCode() ?? 0);
+            hashCode = HashHelpers.Combine(hashCode, this.CurveB?.GetHashCode() ?? 0);
+            hashCode = HashHelpers.Combine(hashCode, this.CurveM?.GetHashCode() ?? 0);
+            hashCode = HashHelpers.Combine(hashCode, this.CurveA?.GetHashCode() ?? 0);
+            return hashCode;
         }
 
         private bool EqualsCurve(IccTagDataEntry[] thisCurves, IccTagDataEntry[] entryCurves)

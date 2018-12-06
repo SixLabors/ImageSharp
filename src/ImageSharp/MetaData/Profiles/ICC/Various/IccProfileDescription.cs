@@ -84,16 +84,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc />
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = (int)this.DeviceManufacturer;
-                hashCode = (hashCode * 397) ^ (int)this.DeviceModel;
-                hashCode = (hashCode * 397) ^ this.DeviceAttributes.GetHashCode();
-                hashCode = (hashCode * 397) ^ (int)this.TechnologyInformation;
-                hashCode = (hashCode * 397) ^ this.DeviceManufacturerInfo.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.DeviceModelInfo.GetHashCode();
-                return hashCode;
-            }
+            int hashCode = this.DeviceManufacturer.GetHashCode();
+            hashCode = HashHelpers.Combine(hashCode, this.DeviceModel.GetHashCode());
+            hashCode = HashHelpers.Combine(hashCode, this.DeviceAttributes.GetHashCode());
+            hashCode = HashHelpers.Combine(hashCode, this.TechnologyInformation.GetHashCode());
+            hashCode = HashHelpers.Combine(hashCode, this.DeviceManufacturerInfo.GetHashCode());
+            hashCode = HashHelpers.Combine(hashCode, this.DeviceModelInfo.GetHashCode());
+            return hashCode;
         }
     }
 }

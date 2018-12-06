@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.MetaData
                 int hashCode = this.Name.GetHashCode();
                 if (this.Value != null)
                 {
-                    hashCode = (hashCode * 397) ^ this.Value.GetHashCode();
+                    hashCode = HashHelpers.Combine(hashCode, this.Value.GetHashCode());
                 }
 
                 return hashCode;

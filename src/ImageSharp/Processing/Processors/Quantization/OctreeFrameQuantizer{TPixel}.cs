@@ -73,14 +73,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 ref TPixel scanBaseRef = ref MemoryMarshal.GetReference(row);
 
                 // And loop through each column
-                Rgba32 rgba = default;
                 for (int x = 0; x < width; x++)
                 {
                     ref TPixel pixel = ref Unsafe.Add(ref scanBaseRef, x);
-                    pixel.ToRgba32(ref rgba);
 
                     // Add the color to the Octree
-                    this.octree.AddColor(ref pixel, ref rgba);
+                    this.octree.AddColor(ref pixel);
                 }
             }
         }
@@ -97,9 +95,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             // pass of the algorithm by avoiding transforming rows of identical color.
             TPixel sourcePixel = source[0, 0];
             TPixel previousPixel = sourcePixel;
-            Rgba32 rgba = default;
             this.transparentIndex = this.GetTransparentIndex();
-            byte pixelValue = this.QuantizePixel(ref sourcePixel, ref rgba);
+            byte pixelValue = this.QuantizePixel(ref sourcePixel);
             TPixel transformedPixel = palette[pixelValue];
 
             for (int y = 0; y < height; y++)
@@ -117,7 +114,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                     if (!previousPixel.Equals(sourcePixel))
                     {
                         // Quantize the pixel
-                        pixelValue = this.QuantizePixel(ref sourcePixel, ref rgba);
+                        pixelValue = this.QuantizePixel(ref sourcePixel);
 
                         // And setup the previous pointer
                         previousPixel = sourcePixel;
@@ -139,6 +136,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
         }
 
+        internal TPixel[] AotGetPalette() => this.GetPalette();
+
         /// <inheritdoc/>
         protected override TPixel[] GetPalette() => this.octree.Palletize(this.colors);
 
@@ -146,10 +145,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Process the pixel in the second pass of the algorithm.
         /// </summary>
         /// <param name="pixel">The pixel to quantize.</param>
-        /// <param name="rgba">The color to compare against.</param>
         /// <returns>The <see cref="byte"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private byte QuantizePixel(ref TPixel pixel, ref Rgba32 rgba)
+        private byte QuantizePixel(ref TPixel pixel)
         {
             if (this.Dither)
             {
@@ -158,13 +156,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 return this.GetClosestPixel(ref pixel);
             }
 
+            Rgba32 rgba = default;
             pixel.ToRgba32(ref rgba);
             if (rgba.Equals(default))
             {
                 return this.transparentIndex;
             }
 
-            return (byte)this.octree.GetPaletteIndex(ref pixel, ref rgba);
+            return (byte)this.octree.GetPaletteIndex(ref pixel);
         }
 
         /// <summary>
@@ -239,8 +238,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             /// Add a given color value to the Octree
             /// </summary>
             /// <param name="pixel">The pixel data.</param>
-            /// <param name="rgba">The color.</param>
-            public void AddColor(ref TPixel pixel, ref Rgba32 rgba)
+            public void AddColor(ref TPixel pixel)
             {
                 // Check if this request is for the same color as the last
                 if (this.previousColor.Equals(pixel))
@@ -250,18 +248,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                     if (this.previousNode is null)
                     {
                         this.previousColor = pixel;
-                        this.root.AddColor(ref pixel, this.maxColorBits, 0, this, ref rgba);
+                        this.root.AddColor(ref pixel, this.maxColorBits, 0, this);
                     }
                     else
                     {
                         // Just update the previous node
-                        this.previousNode.Increment(ref pixel, ref rgba);
+                        this.previousNode.Increment(ref pixel);
                     }
                 }
                 else
                 {
                     this.previousColor = pixel;
-                    this.root.AddColor(ref pixel, this.maxColorBits, 0, this, ref rgba);
+                    this.root.AddColor(ref pixel, this.maxColorBits, 0, this);
                 }
             }
 
@@ -294,12 +292,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             /// Get the palette index for the passed color
             /// </summary>
             /// <param name="pixel">The pixel data.</param>
-            /// <param name="rgba">The color to map to.</param>
             /// <returns>
             /// The <see cref="int"/>.
             /// </returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public int GetPaletteIndex(ref TPixel pixel, ref Rgba32 rgba) => this.root.GetPaletteIndex(ref pixel, 0, ref rgba);
+            public int GetPaletteIndex(ref TPixel pixel) => this.root.GetPaletteIndex(ref pixel, 0);
 
             /// <summary>
             /// Keep track of the previous node that was quantized
@@ -426,13 +423,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 /// <param name="colorBits">The number of significant color bits</param>
                 /// <param name="level">The level in the tree</param>
                 /// <param name="octree">The tree to which this node belongs</param>
-                /// <param name="rgba">The color to map to.</param>
-                public void AddColor(ref TPixel pixel, int colorBits, int level, Octree octree, ref Rgba32 rgba)
+                public void AddColor(ref TPixel pixel, int colorBits, int level, Octree octree)
                 {
                     // Update the color information if this is a leaf
                     if (this.leaf)
                     {
-                        this.Increment(ref pixel, ref rgba);
+                        this.Increment(ref pixel);
 
                         // Setup the previous node
                         octree.TrackPrevious(this);
@@ -441,6 +437,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                     {
                         // Go to the next level down in the tree
                         int shift = 7 - level;
+                        Rgba32 rgba = default;
                         pixel.ToRgba32(ref rgba);
 
                         int index = ((rgba.B & Mask[level]) >> (shift - 2))
@@ -456,7 +453,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                         }
 
                         // Add the color to the child node
-                        child.AddColor(ref pixel, colorBits, level + 1, octree, ref rgba);
+                        child.AddColor(ref pixel, colorBits, level + 1, octree);
                     }
                 }
 
@@ -504,7 +501,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                         // Set the color of the palette entry
                         var vector = Vector3.Clamp(new Vector3(this.red, this.green, this.blue) / this.pixelCount, Vector3.Zero, new Vector3(255));
                         TPixel pixel = default;
-                        pixel.PackFromRgba32(new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z, byte.MaxValue));
+                        pixel.FromRgba32(new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z, byte.MaxValue));
                         palette[index] = pixel;
 
                         // Consume the next palette index
@@ -525,18 +522,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 /// </summary>
                 /// <param name="pixel">The pixel data.</param>
                 /// <param name="level">The level.</param>
-                /// <param name="rgba">The color to map to.</param>
                 /// <returns>
                 /// The <see cref="int"/> representing the index of the pixel in the palette.
                 /// </returns>
                 [MethodImpl(MethodImplOptions.NoInlining)]
-                public int GetPaletteIndex(ref TPixel pixel, int level, ref Rgba32 rgba)
+                public int GetPaletteIndex(ref TPixel pixel, int level)
                 {
                     int index = this.paletteIndex;
 
                     if (!this.leaf)
                     {
                         int shift = 7 - level;
+                        Rgba32 rgba = default;
                         pixel.ToRgba32(ref rgba);
 
                         int pixelIndex = ((rgba.B & Mask[level]) >> (shift - 2))
@@ -546,7 +543,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                         OctreeNode child = this.children[pixelIndex];
                         if (child != null)
                         {
-                            index = child.GetPaletteIndex(ref pixel, level + 1, ref rgba);
+                            index = child.GetPaletteIndex(ref pixel, level + 1);
                         }
                         else
                         {
@@ -561,10 +558,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 /// Increment the pixel count and add to the color information
                 /// </summary>
                 /// <param name="pixel">The pixel to add.</param>
-                /// <param name="rgba">The color to map to.</param>
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                public void Increment(ref TPixel pixel, ref Rgba32 rgba)
+                public void Increment(ref TPixel pixel)
                 {
+                    Rgba32 rgba = default;
                     pixel.ToRgba32(ref rgba);
                     this.pixelCount++;
                     this.red += rgba.R;

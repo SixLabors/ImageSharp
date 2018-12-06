@@ -6,8 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
-using SixLabors.ImageSharp.Common.Tuples;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Tuples;
 using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
     internal abstract partial class JpegColorConverter
     {
         /// <summary>
-        /// The avalilable converters
+        /// The available converters
         /// </summary>
         private static readonly JpegColorConverter[] Converters =
             {
@@ -157,9 +157,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             public Vector4 V0, V1, V2, V3, V4, V5, V6, V7;
 
             /// <summary>
-            /// Collect (r0,r1...r8) (g0,g1...g8) (b0,b1...b8) vector values in the expected (r0,g0,g1,1), (r1,g1,g2,1) ... order.
+            /// Pack (r0,r1...r7) (g0,g1...g7) (b0,b1...b7) vector values as (r0,g0,b0,1), (r1,g1,b1,1) ...
             /// </summary>
-            public void Collect(ref Vector4Pair r, ref Vector4Pair g, ref Vector4Pair b)
+            public void Pack(ref Vector4Pair r, ref Vector4Pair g, ref Vector4Pair b)
             {
                 this.V0.X = r.A.X;
                 this.V0.Y = g.A.X;

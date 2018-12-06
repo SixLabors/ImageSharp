@@ -25,6 +25,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             { TestImages.Png.Bpp1, PngBitDepth.Bit1 }
         };
 
+        public static readonly TheoryData<string, PngBitDepth, PngColorType> PngTrnsFiles =
+        new TheoryData<string, PngBitDepth, PngColorType>
+        {
+            { TestImages.Png.Gray1BitTrans, PngBitDepth.Bit1, PngColorType.Grayscale },
+            { TestImages.Png.Gray2BitTrans, PngBitDepth.Bit2, PngColorType.Grayscale },
+            { TestImages.Png.Gray4BitTrans, PngBitDepth.Bit4, PngColorType.Grayscale },
+            { TestImages.Png.Gray8BitTrans, PngBitDepth.Bit8, PngColorType.Grayscale },
+            { TestImages.Png.GrayTrns16BitInterlaced, PngBitDepth.Bit16, PngColorType.Grayscale },
+            { TestImages.Png.Rgb24BppTrans, PngBitDepth.Bit8, PngColorType.Rgb },
+            { TestImages.Png.Rgb48BppTrans, PngBitDepth.Bit16, PngColorType.Rgb }
+        };
+
         /// <summary>
         /// All types except Palette
         /// </summary>
@@ -244,6 +256,61 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                         PngMetaData meta = output.MetaData.GetFormatMetaData(PngFormat.Instance);
 
                         Assert.Equal(pngBitDepth, meta.BitDepth);
+                    }
+                }
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(PngTrnsFiles))]
+        public void Encode_PreserveTrns(string imagePath, PngBitDepth pngBitDepth, PngColorType pngColorType)
+        {
+            var options = new PngEncoder();
+
+            var testFile = TestFile.Create(imagePath);
+            using (Image<Rgba32> input = testFile.CreateImage())
+            {
+                PngMetaData inMeta = input.MetaData.GetFormatMetaData(PngFormat.Instance);
+                Assert.True(inMeta.HasTrans);
+
+                using (var memStream = new MemoryStream())
+                {
+                    input.Save(memStream, options);
+                    memStream.Position = 0;
+                    using (var output = Image.Load<Rgba32>(memStream))
+                    {
+                        PngMetaData outMeta = output.MetaData.GetFormatMetaData(PngFormat.Instance);
+                        Assert.True(outMeta.HasTrans);
+
+                        switch (pngColorType)
+                        {
+                            case PngColorType.Grayscale:
+                                if (pngBitDepth.Equals(PngBitDepth.Bit16))
+                                {
+                                    Assert.True(outMeta.TransparentGray16.HasValue);
+                                    Assert.Equal(inMeta.TransparentGray16, outMeta.TransparentGray16);
+                                }
+                                else
+                                {
+                                    Assert.True(outMeta.TransparentGray8.HasValue);
+                                    Assert.Equal(inMeta.TransparentGray8, outMeta.TransparentGray8);
+                                }
+
+                                break;
+                            case PngColorType.Rgb:
+                                if (pngBitDepth.Equals(PngBitDepth.Bit16))
+                                {
+                                    Assert.True(outMeta.TransparentRgb48.HasValue);
+                                    Assert.Equal(inMeta.TransparentRgb48, outMeta.TransparentRgb48);
+                                }
+                                else
+                                {
+                                    Assert.True(outMeta.TransparentRgb24.HasValue);
+                                    Assert.Equal(inMeta.TransparentRgb24, outMeta.TransparentRgb24);
+                                }
+
+                                break;
+                        }
                     }
                 }
             }

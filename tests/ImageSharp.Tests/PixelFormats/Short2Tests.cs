@@ -63,32 +63,17 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Short2_PackFromScaledVector4()
+        public void Short2_FromScaledVector4()
         {
             // arrange
             var pixel = default(Short2);
             var short2 = new Short2(Vector2.One * 0x7FFF);
-            ulong expected = 0x7FFF7FFF;
+            const ulong expected = 0x7FFF7FFF;
 
             // act 
             Vector4 scaled = short2.ToScaledVector4();
-            pixel.PackFromScaledVector4(scaled);
+            pixel.FromScaledVector4(scaled);
             uint actual = pixel.PackedValue;
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void Short2_ToRgb24()
-        {
-            // arrange
-            var short2 = new Short2(127.5f, -5.3f);
-            var actual = default(Rgb24);
-            var expected = new Rgb24(128, 127, 0);
-
-            // act
-            short2.ToRgb24(ref actual);
 
             // assert
             Assert.Equal(expected, actual);
@@ -110,52 +95,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Short2_ToBgr24()
-        {
-            // arrange
-            var short2 = new Short2(127.5f, -5.3f);
-            var actual = default(Bgr24);
-            var expected = new Bgr24(128, 127, 0);
-
-            // act
-            short2.ToBgr24(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void Short2_ToArgb32()
-        {
-            // arrange
-            var short2 = new Short2(127.5f, -5.3f);
-            var actual = default(Argb32);
-            var expected = new Argb32(128, 127, 0, 255);
-
-            // act
-            short2.ToArgb32(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void Short2_ToBgra32()
-        {
-            // arrange
-            var short2 = new Short2(127.5f, -5.3f);
-            var actual = default(Bgra32);
-            var expected = new Bgra32(128, 127, 0, 255);
-
-            // act
-            short2.ToBgra32(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void Short2_PackFromRgba32_ToRgba32()
+        public void Short2_FromRgba32_ToRgba32()
         {
             // arrange
             var short2 = default(Short2);
@@ -163,7 +103,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Rgba32(20, 38, 0, 255);
 
             // act 
-            short2.PackFromRgba32(expected);
+            short2.FromRgba32(expected);
             short2.ToRgba32(ref actual);
 
             // assert
@@ -171,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Short2_PackFromRgb48_ToRgb48()
+        public void Short2_FromRgb48()
         {
             // arrange
             var input = default(Short2);
@@ -179,15 +119,15 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Rgb48(65535, 65535, 0);
 
             // act
-            input.PackFromRgb48(expected);
-            input.ToRgb48(ref actual);
+            input.FromRgb48(expected);
+            actual.FromScaledVector4(input.ToScaledVector4());
 
             // assert
             Assert.Equal(expected, actual);
         }
 
         [Fact]
-        public void Short2_PackFromRgba64_ToRgba64()
+        public void Short2_FromRgba64()
         {
             // arrange
             var input = default(Short2);
@@ -195,8 +135,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Rgba64(65535, 65535, 0, 65535);
 
             // act
-            input.PackFromRgba64(expected);
-            input.ToRgba64(ref actual);
+            input.FromRgba64(expected);
+            actual.FromScaledVector4(input.ToScaledVector4());
 
             // assert
             Assert.Equal(expected, actual);

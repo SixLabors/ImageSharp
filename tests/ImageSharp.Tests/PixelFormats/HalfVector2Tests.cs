@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void HalfVector2_PackFromScaledVector4()
+        public void HalfVector2_FromScaledVector4()
         {
             // arrange
             Vector4 scaled = new HalfVector2(Vector2.One).ToScaledVector4();
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var halfVector = default(HalfVector2);
 
             // act
-            halfVector.PackFromScaledVector4(scaled);
+            halfVector.FromScaledVector4(scaled);
             uint actual = halfVector.PackedValue;
 
             // assert
@@ -67,113 +67,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             // act
             var actual = halfVector.ToVector4();
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void HalfVector2_ToRgb24()
-        {
-            // arrange
-            var halfVector = new HalfVector2(.5F, .25F);
-            var actual = default(Rgb24);
-            var expected = new Rgb24(128, 64, 0);
-
-            // act
-            halfVector.ToRgb24(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void HalfVector2_Rgba32()
-        {
-            // arrange
-            var halfVector = new HalfVector2(.5F, .25F);
-            var actual = default(Rgba32);
-            var expected = new Rgba32(128, 64, 0, 255);
-
-            // act
-            halfVector.ToRgba32(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void HalfVector2_ToBgr24()
-        {
-            // arrange
-            var halfVector = new HalfVector2(.5F, .25F);
-            var actual = default(Bgr24);
-            var expected = new Bgr24(128, 64, 0);
-
-            // act
-            halfVector.ToBgr24(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void HalfVector2_Bgra32()
-        {
-            // arrange
-            var halfVector = new HalfVector2(.5F, .25F);
-            var actual = default(Bgra32);
-            var expected = new Bgra32(128, 64, 0, 255);
-
-            // act
-            halfVector.ToBgra32(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void HalfVector2_Argb32()
-        {
-            // arrange
-            var halfVector = new HalfVector2(.5F, .25F);
-            var actual = default(Argb32);
-            var expected = new Argb32(128, 64, 0, 255);
-
-            // act
-            halfVector.ToArgb32(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void HalfVector2_PackFromRgb48_ToRgb48()
-        {
-            // arrange
-            var input = default(HalfVector2);
-            var actual = default(Rgb48);
-            var expected = new Rgb48(65535, 65535, 0);
-
-            // act
-            input.PackFromRgb48(expected);
-            input.ToRgb48(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void HalfVector2_PackFromRgba64_ToRgba64()
-        {
-            // arrange
-            var input = default(HalfVector2);
-            var actual = default(Rgba64);
-            var expected = new Rgba64(65535, 65535, 0, 65535);
-
-            // act
-            input.PackFromRgba64(expected);
-            input.ToRgba64(ref actual);
 
             // assert
             Assert.Equal(expected, actual);

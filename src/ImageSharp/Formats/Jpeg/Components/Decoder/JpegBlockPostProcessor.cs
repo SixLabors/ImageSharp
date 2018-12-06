@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// - Dequantize
         /// - Applying IDCT
         /// - Level shift by +128, clip to [0, 255]
-        /// - Copy the resultin color values into 'destArea' scaling up the block by amount defined in <see cref="subSamplingDivisors"/>
+        /// - Copy the resulting color values into 'destArea' scaling up the block by amount defined in <see cref="subSamplingDivisors"/>
         /// </summary>
         /// <param name="sourceBlock">The source block.</param>
         /// <param name="destArea">The destination buffer area.</param>

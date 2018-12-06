@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
                     TPixel dest = default;
-                    dest.PackFromScaledVector4(PorterDuffFunctions.<#=blender_composer#>(background.ToScaledVector4(), source.ToScaledVector4(), amount.Clamp(0, 1)));
+                    dest.FromScaledVector4(PorterDuffFunctions.<#=blender_composer#>(background.ToScaledVector4(), source.ToScaledVector4(), amount.Clamp(0, 1)));
                     return dest;                    
                 }
 

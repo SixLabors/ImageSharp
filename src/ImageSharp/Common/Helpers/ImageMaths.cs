@@ -5,6 +5,7 @@ using System;
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
@@ -14,6 +15,75 @@ namespace SixLabors.ImageSharp
     /// </summary>
     internal static class ImageMaths
     {
+        /// <summary>
+        /// Gets the luminance from the rgb components using the formula as specified by ITU-R Recommendation BT.709.
+        /// </summary>
+        /// <param name="r">The red component.</param>
+        /// <param name="g">The green component.</param>
+        /// <param name="b">The blue component.</param>
+        /// <returns>The <see cref="byte"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static byte Get8BitBT709Luminance(byte r, byte g, byte b) =>
+            (byte)((r * .2126F) + (g * .7152F) + (b * .0722F) + 0.5f);
+
+        /// <summary>
+        /// Gets the luminance from the rgb components using the formula as specified by ITU-R Recommendation BT.709.
+        /// </summary>
+        /// <param name="r">The red component.</param>
+        /// <param name="g">The green component.</param>
+        /// <param name="b">The blue component.</param>
+        /// <returns>The <see cref="ushort"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static ushort Get16BitBT709Luminance(ushort r, ushort g, ushort b) =>
+            (ushort)((r * .2126F) + (g * .7152F) + (b * .0722F));
+
+        /// <summary>
+        /// Scales a value from a 16 bit <see cref="ushort"/> to it's 8 bit <see cref="byte"/> equivalent.
+        /// </summary>
+        /// <param name="component">The 8 bit component value.</param>
+        /// <returns>The <see cref="byte"/></returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static byte DownScaleFrom16BitTo8Bit(ushort component)
+        {
+            // To scale to 8 bits From a 16-bit value V the required value (from the PNG specification) is:
+            //
+            //    (V * 255) / 65535
+            //
+            // This reduces to round(V / 257), or floor((V + 128.5)/257)
+            //
+            // Represent V as the two byte value vhi.vlo.  Make a guess that the
+            // result is the top byte of V, vhi, then the correction to this value
+            // is:
+            //
+            //    error = floor(((V-vhi.vhi) + 128.5) / 257)
+            //          = floor(((vlo-vhi) + 128.5) / 257)
+            //
+            // This can be approximated using integer arithmetic (and a signed
+            // shift):
+            //
+            //    error = (vlo-vhi+128) >> 8;
+            //
+            // The approximate differs from the exact answer only when (vlo-vhi) is
+            // 128; it then gives a correction of +1 when the exact correction is
+            // 0.  This gives 128 errors.  The exact answer (correct for all 16-bit
+            // input values) is:
+            //
+            //    error = (vlo-vhi+128)*65535 >> 24;
+            //
+            // An alternative arithmetic calculation which also gives no errors is:
+            //
+            //    (V * 255 + 32895) >> 16
+            return (byte)(((component * 255) + 32895) >> 16);
+        }
+
+        /// <summary>
+        /// Scales a value from an 8 bit <see cref="byte"/> to it's 16 bit <see cref="ushort"/> equivalent.
+        /// </summary>
+        /// <param name="component">The 8 bit component value.</param>
+        /// <returns>The <see cref="ushort"/></returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static ushort UpscaleFrom8BitTo16Bit(byte component) => (ushort)(component * 257);
+
         /// <summary>
         /// Determine the Greatest CommonDivisor (GCD) of two numbers.
         /// </summary>
@@ -31,7 +101,6 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Determine the Least Common Multiple (LCM) of two numbers.
-        /// TODO: This method might be useful for building a more compact <see cref="Processing.Processors.Transforms.KernelMap"/>
         /// </summary>
         public static int LeastCommonMultiple(int a, int b)
         {
@@ -40,13 +109,32 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Calculates <paramref name="x"/> % 4
+        /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int Modulo4(int x) => x & 3;
+
+        /// <summary>
+        /// Calculates <paramref name="x"/> % 8
+        /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int Modulo8(int x) => x & 7;
+
+        /// <summary>
+        /// Fast (x mod m) calculator, with the restriction that
+        /// <paramref name="m"/> should be power of 2.
+        /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int ModuloP2(int x, int m) => x & (m - 1);
+
+        /// <summary>
         /// Returns the absolute value of a 32-bit signed integer. Uses bit shifting to speed up the operation.
         /// </summary>
         /// <param name="x">
         /// A number that is greater than <see cref="int.MinValue"/>, but less than or equal to <see cref="int.MaxValue"/>
         /// </param>
         /// <returns>The <see cref="int"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static int FastAbs(int x)
         {
             int y = x >> 31;
@@ -58,7 +146,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="x">A single-precision floating-point number</param>
         /// <returns>The number <paramref name="x" /> raised to the power of 2.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static float Pow2(float x) => x * x;
 
         /// <summary>
@@ -66,7 +154,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="x">A single-precision floating-point number</param>
         /// <returns>The number <paramref name="x" /> raised to the power of 3.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static float Pow3(float x) => x * x * x;
 
         /// <summary>
@@ -77,7 +165,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="int"/>
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static int GetBitsNeededForColorDepth(int colors) => Math.Max(1, (int)Math.Ceiling(Math.Log(colors, 2)));
 
         /// <summary>
@@ -85,7 +173,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="bitDepth">The bit depth.</param>
         /// <returns>The <see cref="int"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static int GetColorCountForBitDepth(int bitDepth) => 1 << bitDepth;
 
         /// <summary>
@@ -94,7 +182,7 @@ namespace SixLabors.ImageSharp
         /// <param name="x">The x provided to G(x).</param>
         /// <param name="sigma">The spread of the blur.</param>
         /// <returns>The Gaussian G(x)</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static float Gaussian(float x, float sigma)
         {
             const float Numerator = 1.0f;
@@ -117,7 +205,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The sine cardinal of <paramref name="f" />.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static float SinC(float f)
         {
             if (MathF.Abs(f) > Constants.Epsilon)
@@ -140,7 +228,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="float"/>.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static float GetBcValue(float x, float b, float c)
         {
             if (x < 0F)
@@ -176,7 +264,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The bounding <see cref="Rectangle"/>.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static Rectangle GetBoundingRectangle(Point topLeft, Point bottomRight) => new Rectangle(topLeft.X, topLeft.Y, bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y);
 
         /// <summary>

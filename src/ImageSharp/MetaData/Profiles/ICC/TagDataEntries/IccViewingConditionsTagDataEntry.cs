@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 base.GetHashCode(),
                 this.IlluminantXyz.GetHashCode(),
                 this.SurroundXyz.GetHashCode(),
-                (int)this.Illuminant);
+                this.Illuminant.GetHashCode());
         }
     }
 }

@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 
                                 // This switched color & destination in the 2nd and 3rd places because we are applying the target color under the current one
                                 blender.Blend(
-                                    source.MemoryAllocator,
+                                    source.Configuration,
                                     destination,
                                     colors.GetSpan(),
                                     destination,

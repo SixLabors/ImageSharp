@@ -5,7 +5,7 @@
     <VersionPrefix Condition="$(packageversion) != ''">$(packageversion)</VersionPrefix>
     <VersionPrefix Condition="$(packageversion) == ''">0.0.1</VersionPrefix>
     <Authors>Six Labors and contributors</Authors>
-    <TargetFrameworks>netstandard1.3;netstandard2.0;netcoreapp2.1</TargetFrameworks>
+    <TargetFrameworks>netstandard1.3;netstandard2.0;netcoreapp2.1;net472</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyName>SixLabors.ImageSharp</AssemblyName>
@@ -31,27 +31,32 @@
     <Features>IOperation</Features>
     <LangVersion>Latest</LangVersion>
   </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' OR '$(TargetFramework)' == 'net472' ">
+    <DefineConstants>$(DefineConstants);SUPPORTS_EXTENDED_INTRINSICS</DefineConstants>
+  </PropertyGroup>
+  
   <ItemGroup>
     <Compile Include="..\Shared\*.cs" Exclude="bin\**;obj\**;**\*.xproj;packages\**" />
   </ItemGroup>
+  
   <ItemGroup>
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.1" />
-    <PackageReference Include="SixLabors.Core" Version="1.0.0-beta0006" />
+    <PackageReference Include="SixLabors.Core" Version="1.0.0-dev000089" />
     <AdditionalFiles Include="..\..\stylecop.json" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta007">
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>
   </ItemGroup>
   
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.3' ">
-    <PackageReference Include="System.IO.UnmanagedMemoryStream" Version="4.3.0" />
-  </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.3'">
+    <PackageReference Include="System.IO.UnmanagedMemoryStream" Version="4.3.0" />
     <PackageReference Include="System.IO.Compression" Version="4.3.0" />
     <PackageReference Include="System.Threading.Tasks.Parallel" Version="4.3.0" />
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />
   </ItemGroup>
+  
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\ImageSharp.ruleset</CodeAnalysisRuleSet>
     <RootNamespace>SixLabors.ImageSharp</RootNamespace>
@@ -72,13 +77,45 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Block8x8F.Generated.cs</LastGenOutput>
     </None>
-    <None Update="PixelFormats\Generated\PixelOperations{TPixel}.Generated.tt">
+    <None Update="PixelFormats\PixelOperations{TPixel}.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>PixelOperations{TPixel}.Generated.cs</LastGenOutput>
     </None>
-    <None Update="PixelFormats\Generated\Rgba32.PixelOperations.Generated.tt">
+    <None Update="PixelFormats\PixelImplementations\Generated\Argb32.PixelOperations.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Argb32.PixelOperations.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="PixelFormats\PixelImplementations\Generated\Bgr24.PixelOperations.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Bgr24.PixelOperations.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="PixelFormats\PixelImplementations\Generated\Bgra32.PixelOperations.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Bgra32.PixelOperations.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="PixelFormats\PixelImplementations\Generated\Gray8.PixelOperations.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Gray8.PixelOperations.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="PixelFormats\PixelImplementations\Generated\Gray16.PixelOperations.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Gray16.PixelOperations.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="PixelFormats\PixelImplementations\Generated\Rgb24.PixelOperations.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Rgb24.PixelOperations.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="PixelFormats\PixelImplementations\Generated\Rgba32.PixelOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Rgba32.PixelOperations.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="PixelFormats\PixelImplementations\Generated\Rgb48.PixelOperations.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Rgb48.PixelOperations.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="PixelFormats\PixelImplementations\Generated\Rgba64.PixelOperations.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Rgba64.PixelOperations.Generated.cs</LastGenOutput>
     </None>
     <None Update="PixelFormats\PixelBlenders\PorterDuffFunctions.Generated.tt">
       <LastGenOutput>PorterDuffFunctions.Generated.cs</LastGenOutput>
@@ -105,15 +142,55 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Block8x8F.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\Generated\PixelOperations{TPixel}.Generated.cs">
+    <Compile Update="PixelFormats\PixelOperations{TPixel}.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>PixelOperations{TPixel}.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\Generated\Rgba32.PixelOperations.Generated.cs">
+    <Compile Update="PixelFormats\PixelImplementations\Generated\Argb32.PixelOperations.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Argb32.PixelOperations.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="PixelFormats\PixelImplementations\Generated\Bgr24.PixelOperations.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Bgr24.PixelOperations.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="PixelFormats\PixelImplementations\Generated\Bgra32.PixelOperations.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Bgra32.PixelOperations.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="PixelFormats\PixelImplementations\Generated\Gray8.PixelOperations.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Gray8.PixelOperations.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="PixelFormats\PixelImplementations\Generated\Gray16.PixelOperations.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Gray16.PixelOperations.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="PixelFormats\PixelImplementations\Generated\Rgb24.PixelOperations.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Rgb24.PixelOperations.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="PixelFormats\PixelImplementations\Generated\Rgba32.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Rgba32.PixelOperations.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="PixelFormats\PixelImplementations\Generated\Rgb48.PixelOperations.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Rgb48.PixelOperations.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="PixelFormats\PixelImplementations\Generated\Rgba64.PixelOperations.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Rgba64.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
     <Compile Update="PixelFormats\PixelBlenders\DefaultPixelBlenders.Generated.cs">
       <DesignTime>True</DesignTime>

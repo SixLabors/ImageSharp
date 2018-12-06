@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
                             {
                                 ref TPixel pixel = ref row[x];
                                 var vector = Vector4.Transform(pixel.ToVector4(), matrix);
-                                pixel.PackFromVector4(vector);
+                                pixel.FromVector4(vector);
                             }
                         }
                     });

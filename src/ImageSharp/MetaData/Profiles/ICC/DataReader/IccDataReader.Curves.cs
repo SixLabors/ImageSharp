@@ -41,10 +41,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccResponseCurve ReadResponseCurve(int channelCount)
         {
             var type = (IccCurveMeasurementEncodings)this.ReadUInt32();
-            uint[] measurment = new uint[channelCount];
+            uint[] measurement = new uint[channelCount];
             for (int i = 0; i < channelCount; i++)
             {
-                measurment[i] = this.ReadUInt32();
+                measurement[i] = this.ReadUInt32();
             }
 
             Vector3[] xyzValues = new Vector3[channelCount];
@@ -56,8 +56,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             IccResponseNumber[][] response = new IccResponseNumber[channelCount][];
             for (int i = 0; i < channelCount; i++)
             {
-                response[i] = new IccResponseNumber[measurment[i]];
-                for (uint j = 0; j < measurment[i]; j++)
+                response[i] = new IccResponseNumber[measurement[i]];
+                for (uint j = 0; j < measurement[i]; j++)
                 {
                     response[i][j] = this.ReadResponseNumber();
                 }

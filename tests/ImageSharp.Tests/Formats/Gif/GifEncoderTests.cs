@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
     public class GifEncoderTests
     {
         private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
-        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.001F);
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0015F);
 
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
         new TheoryData<string, int, int, PixelResolutionUnit>
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 {
                     // Use the palette quantizer without dithering to ensure results 
                     // are consistant
-                    Quantizer = new PaletteQuantizer(false)
+                    Quantizer = new WebSafePaletteQuantizer(false)
                 };
 
                 // Always save as we need to compare the encoded output.

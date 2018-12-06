@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="minorVersion">The minor version</param>
         /// <param name="densityUnits">The units for the density values</param>
         /// <param name="xDensity">The horizontal pixel density</param>
-        /// <param name="yDensity">The veritcal pixel density</param>
+        /// <param name="yDensity">The vertical pixel density</param>
         private JFifMarker(byte majorVersion, byte minorVersion, byte densityUnits, short xDensity, short yDensity)
         {
             Guard.MustBeGreaterThan(xDensity, 0, nameof(xDensity));

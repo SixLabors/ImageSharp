@@ -1,10 +1,24 @@
-﻿using System;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.Numerics;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    /// <summary>
+    /// Helper methods that allow the creation of random test data.
+    /// </summary>
     internal static class TestDataGenerator
     {
+        /// <summary>
+        /// Creates an <see cref="float[]"/> of the given length consisting of random values between the two ranges.
+        /// </summary>
+        /// <param name="rnd">The pseudo-random number generator.</param>
+        /// <param name="length">The length.</param>
+        /// <param name="minVal">The minimum value.</param>
+        /// <param name="maxVal">The maximum value.</param>
+        /// <returns>The <see cref="float[]"/>.</returns>
         public static float[] GenerateRandomFloatArray(this Random rnd, int length, float minVal, float maxVal)
         {
             float[] values = new float[length];
@@ -17,6 +31,14 @@ namespace SixLabors.ImageSharp.Tests
             return values;
         }
 
+        /// <summary>
+        /// Creates an <see cref="Vector4[]"/> of the given length consisting of random values between the two ranges.
+        /// </summary>
+        /// <param name="rnd">The pseudo-random number generator.</param>
+        /// <param name="length">The length.</param>
+        /// <param name="minVal">The minimum value.</param>
+        /// <param name="maxVal">The maximum value.</param>
+        /// <returns>The <see cref="Vector4[]"/>.</returns>
         public static Vector4[] GenerateRandomVectorArray(this Random rnd, int length, float minVal, float maxVal)
         {
             var values = new Vector4[length];
@@ -33,22 +55,50 @@ namespace SixLabors.ImageSharp.Tests
             return values;
         }
 
-        public static float[] GenerateRandomRoundedFloatArray(this Random rnd, int length, int minVal, int maxValExclusive)
+        /// <summary>
+        /// Creates an <see cref="float[]"/> of the given length consisting of rounded random values between the two ranges.
+        /// </summary>
+        /// <param name="rnd">The pseudo-random number generator.</param>
+        /// <param name="length">The length.</param>
+        /// <param name="minVal">The minimum value.</param>
+        /// <param name="maxVal">The maximum value.</param>
+        /// <returns>The <see cref="float[]"/>.</returns>
+        public static float[] GenerateRandomRoundedFloatArray(this Random rnd, int length, float minVal, float maxVal)
         {
             float[] values = new float[length];
 
             for (int i = 0; i < length; i++)
             {
-                int val = rnd.Next(minVal, maxValExclusive);
-                values[i] = (float)val;
+                values[i] = (float)Math.Round(rnd.GetRandomFloat(minVal, maxVal));
             }
 
             return values;
         }
 
-        private static float GetRandomFloat(Random rnd, float minVal, float maxVal)
+        /// <summary>
+        /// Creates an <see cref="byte[]"/> of the given length consisting of random values.
+        /// </summary>
+        /// <param name="rnd">The pseudo-random number generator.</param>
+        /// <param name="length">The length.</param>
+        /// <returns>The <see cref="byte[]"/>.</returns>
+        public static byte[] GenerateRandomByteArray(this Random rnd, int length)
         {
-            return (float)rnd.NextDouble() * (maxVal - minVal) + minVal;
+            byte[] values = new byte[length];
+            rnd.NextBytes(values);
+            return values;
         }
+
+        public static short[] GenerateRandomInt16Array(this Random rnd, int length, short minVal, short maxVal)
+        {
+            short[] values = new short[length];
+            for (int i = 0; i < values.Length; i++)
+            {
+                values[i] = (short)rnd.Next(minVal, maxVal);
+            }
+
+            return values;
+        }
+
+        private static float GetRandomFloat(this Random rnd, float minVal, float maxVal) => ((float)rnd.NextDouble() * (maxVal - minVal)) + minVal;
     }
 }

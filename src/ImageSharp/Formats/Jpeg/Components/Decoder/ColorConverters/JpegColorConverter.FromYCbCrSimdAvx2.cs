@@ -6,7 +6,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-using SixLabors.ImageSharp.Common.Tuples;
+using SixLabors.ImageSharp.Tuples;
 
 // ReSharper disable ImpureMethodCallOnReadonlyValueField
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             }
 
             /// <summary>
-            /// SIMD convert using buffers of sizes divisable by 8.
+            /// SIMD convert using buffers of sizes divisible by 8.
             /// </summary>
             internal static void ConvertCore(in ComponentValues values, Span<Vector4> result)
             {
@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 
                     // Collect (r0,r1...r8) (g0,g1...g8) (b0,b1...b8) vector values in the expected (r0,g0,g1,1), (r1,g1,g2,1) ... order:
                     ref Vector4Octet destination = ref Unsafe.Add(ref resultBase, i);
-                    destination.Collect(ref rr, ref gg, ref bb);
+                    destination.Pack(ref rr, ref gg, ref bb);
                 }
             }
         }

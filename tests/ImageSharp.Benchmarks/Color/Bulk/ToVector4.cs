@@ -17,18 +17,25 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
     public abstract class ToVector4<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private IMemoryOwner<TPixel> source;
+        protected IMemoryOwner<TPixel> source;
 
-        private IMemoryOwner<Vector4> destination;
+        protected IMemoryOwner<Vector4> destination;
 
-        [Params(64, 300, 1024)]
+        protected Configuration Configuration => Configuration.Default;
+
+        [Params(
+            64,
+            256,
+            //512,
+            //1024,
+            2048)]
         public int Count { get; set; }
 
         [GlobalSetup]
         public void Setup()
         {
-            this.source = Configuration.Default.MemoryAllocator.Allocate<TPixel>(this.Count);
-            this.destination = Configuration.Default.MemoryAllocator.Allocate<Vector4>(this.Count);
+            this.source = this.Configuration.MemoryAllocator.Allocate<TPixel>(this.Count);
+            this.destination = this.Configuration.MemoryAllocator.Allocate<Vector4>(this.Count);
         }
 
         [GlobalCleanup]
@@ -38,33 +45,26 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             this.destination.Dispose();
         }
 
-        [Benchmark(Baseline = true)]
-        public void PerElement()
+        //[Benchmark]
+        public void Naive()
         {
             Span<TPixel> s = this.source.GetSpan();
             Span<Vector4> d = this.destination.GetSpan();
 
             for (int i = 0; i < this.Count; i++)
             {
-                TPixel c = s[i];
-                d[i] = c.ToVector4();
+                d[i] = s[i].ToVector4();
             }
         }
+        
 
         [Benchmark]
-        public void CommonBulk()
+        public void PixelOperations_Specialized()
         {
-            new PixelOperations<TPixel>().ToVector4(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
+            PixelOperations<TPixel>.Instance.ToVector4(
+                this.Configuration,
+                this.source.GetSpan(),
+                this.destination.GetSpan());
         }
-
-        [Benchmark]
-        public void OptimizedBulk()
-        {
-            PixelOperations<TPixel>.Instance.ToVector4(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
-        }
-    }
-
-    public class ToVector4_Rgba32 : ToVector4<Rgba32>
-    {
     }
 }

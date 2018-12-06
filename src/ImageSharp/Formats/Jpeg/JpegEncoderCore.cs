@@ -822,11 +822,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             {
                 for (int i = 0; i < componentCount; i++)
                 {
-                    this.buffer[(3 * i) + 6] = (byte)(i + 1);
+                    int i3 = 3 * i;
+                    this.buffer[i3 + 6] = (byte)(i + 1);
 
                     // We use 4:2:0 chroma subsampling by default.
-                    this.buffer[(3 * i) + 7] = subsamples[i];
-                    this.buffer[(3 * i) + 8] = chroma[i];
+                    this.buffer[i3 + 7] = subsamples[i];
+                    this.buffer[i3 + 8] = chroma[i];
                 }
             }
 

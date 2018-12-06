@@ -11,7 +11,8 @@ namespace SixLabors.ImageSharp.Tests
     /// </summary>
     internal readonly struct ApproximateFloatComparer :
         IEqualityComparer<float>,
-        IEqualityComparer<Vector4>
+        IEqualityComparer<Vector4>,
+        IEqualityComparer<Vector2>
     {
         private readonly float Epsilon;
 
@@ -33,9 +34,17 @@ namespace SixLabors.ImageSharp.Tests
         public int GetHashCode(float obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
-        public bool Equals(Vector4 x, Vector4 y) => this.Equals(x.X, y.X) && this.Equals(x.Y, y.Y) && this.Equals(x.Z, y.Z) && this.Equals(x.W, y.W);
+        public bool Equals(Vector4 a, Vector4 b) => this.Equals(a.X, b.X) && this.Equals(a.Y, b.Y) && this.Equals(a.Z, b.Z) && this.Equals(a.W, b.W);
 
         /// <inheritdoc/>
         public int GetHashCode(Vector4 obj) => obj.GetHashCode();
+
+        /// <inheritdoc/>
+        public bool Equals(Vector2 a, Vector2 b) => this.Equals(a.X, b.X) && this.Equals(a.Y, b.Y);
+
+        public int GetHashCode(Vector2 obj)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

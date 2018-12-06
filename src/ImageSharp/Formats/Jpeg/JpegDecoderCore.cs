@@ -51,12 +51,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private readonly byte[] markerBuffer = new byte[2];
 
         /// <summary>
-        /// The DC HUffman tables
+        /// The DC Huffman tables
         /// </summary>
         private HuffmanTables dcHuffmanTables;
 
         /// <summary>
-        /// The AC HUffman tables
+        /// The AC Huffman tables
         /// </summary>
         private HuffmanTables acHuffmanTables;
 
@@ -856,10 +856,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private void ProcessStartOfScanMarker()
         {
             int selectorsCount = this.InputStream.ReadByte();
-            int componentIndex = -1;
             for (int i = 0; i < selectorsCount; i++)
             {
-                componentIndex = -1;
+                int componentIndex = -1;
                 int selector = this.InputStream.ReadByte();
 
                 for (int j = 0; j < this.Frame.ComponentIds.Length; j++)
@@ -913,7 +912,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="index">The table index</param>
         /// <param name="codeLengths">The codelengths</param>
         /// <param name="values">The values</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private void BuildHuffmanTable(HuffmanTables tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
             => tables[index] = new HuffmanTable(this.configuration.MemoryAllocator, codeLengths, values);
 
@@ -921,7 +920,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Reads a <see cref="ushort"/> from the stream advancing it by two bytes
         /// </summary>
         /// <returns>The <see cref="ushort"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private ushort ReadUint16()
         {
             this.InputStream.Read(this.markerBuffer, 0, 2);
@@ -936,12 +935,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private Image<TPixel> PostProcessIntoImage<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var postProcessor = new JpegImagePostProcessor(this.configuration.MemoryAllocator, this))
+            var image = Image.CreateUninitialized<TPixel>(
+                this.configuration,
+                this.ImageWidth,
+                this.ImageHeight,
+                this.MetaData);
+
+            using (var postProcessor = new JpegImagePostProcessor(this.configuration, this))
             {
-                var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, this.MetaData);
                 postProcessor.PostProcess(image.Frames.RootFrame);
-                return image;
             }
+
+            return image;
         }
     }
 }

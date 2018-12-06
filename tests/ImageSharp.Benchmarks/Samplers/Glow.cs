@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                                         float distance = Vector2.Distance(centre, new Vector2(offsetX, offsetY));
                                         Vector4 sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
                                         TPixel packed = default(TPixel);
-                                        packed.PackFromVector4(
+                                        packed.FromVector4(
                                             PremultipliedLerp(
                                                 sourceColor,
                                                 glowColor.ToVector4(),

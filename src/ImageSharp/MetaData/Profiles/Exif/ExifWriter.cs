@@ -17,8 +17,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <summary>
         /// Which parts will be written.
         /// </summary>
-        private ExifParts allowedParts;
-        private IList<ExifValue> values;
+        private readonly ExifParts allowedParts;
+        private readonly IList<ExifValue> values;
         private List<int> dataOffsets;
         private readonly List<int> ifdIndexes;
         private readonly List<int> exifIndexes;

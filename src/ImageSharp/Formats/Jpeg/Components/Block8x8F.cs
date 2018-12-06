@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <returns>The float value at the specified index</returns>
         public float this[int idx]
         {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            [MethodImpl(InliningOptions.ShortMethod)]
             get
             {
                 GuardBlockIndex(idx);
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 return Unsafe.Add(ref selfRef, idx);
             }
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            [MethodImpl(InliningOptions.ShortMethod)]
             set
             {
                 GuardBlockIndex(idx);
@@ -149,7 +149,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Fill the block with defaults (zeroes)
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void Clear()
         {
             // The cheapest way to do this in C#:
@@ -160,7 +160,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Load raw 32bit floating point data from source
         /// </summary>
         /// <param name="source">Source</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void LoadFrom(Span<float> source)
         {
             ref byte s = ref Unsafe.As<float, byte>(ref MemoryMarshal.GetReference(source));
@@ -174,7 +174,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </summary>
         /// <param name="blockPtr">Block pointer</param>
         /// <param name="source">Source</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static unsafe void LoadFrom(Block8x8F* blockPtr, Span<float> source)
         {
             blockPtr->LoadFrom(source);
@@ -200,7 +200,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Copy raw 32bit floating point data to dest
         /// </summary>
         /// <param name="dest">Destination</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void CopyTo(Span<float> dest)
         {
             ref byte d = ref Unsafe.As<float, byte>(ref MemoryMarshal.GetReference(dest));
@@ -214,7 +214,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </summary>
         /// <param name="blockPtr">Pointer to block</param>
         /// <param name="dest">Destination</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static unsafe void CopyTo(Block8x8F* blockPtr, Span<byte> dest)
         {
             float* fPtr = (float*)blockPtr;
@@ -230,7 +230,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </summary>
         /// <param name="blockPtr">Block pointer</param>
         /// <param name="dest">Destination</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static unsafe void CopyTo(Block8x8F* blockPtr, Span<float> dest)
         {
             blockPtr->CopyTo(dest);
@@ -240,7 +240,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Copy raw 32bit floating point data to dest
         /// </summary>
         /// <param name="dest">Destination</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public unsafe void CopyTo(float[] dest)
         {
             fixed (void* ptr = &this.V0L)
@@ -276,7 +276,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Multiply all elements of the block.
         /// </summary>
         /// <param name="value">The value to multiply by</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void MultiplyInplace(float value)
         {
             this.V0L *= value;
@@ -300,7 +300,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Multiply all elements of the block by the corresponding elements of 'other'
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void MultiplyInplace(ref Block8x8F other)
         {
             this.V0L *= other.V0L;
@@ -325,7 +325,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Adds a vector to all elements of the block.
         /// </summary>
         /// <param name="diff">The added vector</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void AddToAllInplace(Vector4 diff)
         {
             this.V0L += diff;
@@ -395,7 +395,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Scales the 16x16 region represented by the 4 source blocks to the 8x8  DST block.
+        /// Scales the 16x16 region represented by the 4 source blocks to the 8x8 DST block.
         /// </summary>
         /// <param name="destination">The destination block.</param>
         /// <param name="source">The source block.</param>
@@ -420,7 +420,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static void DivideRoundAll(ref Block8x8F a, ref Block8x8F b)
         {
             a.V0L = DivideRound(a.V0L, b.V0L);
@@ -493,25 +493,69 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             }
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void LoadFrom(ref Block8x8 source)
+        {
+#if SUPPORTS_EXTENDED_INTRINSICS
+            if (SimdUtils.IsAvx2CompatibleArchitecture)
+            {
+                this.LoadFromInt16ExtendedAvx2(ref source);
+                return;
+            }
+#endif
+            this.LoadFromInt16Scalar(ref source);
+        }
+
+        /// <summary>
+        /// Loads values from <paramref name="source"/> using extended AVX2 intrinsics.
+        /// </summary>
+        /// <param name="source">The source <see cref="Block8x8"/></param>
+        public void LoadFromInt16ExtendedAvx2(ref Block8x8 source)
+        {
+            DebugGuard.IsTrue(
+                SimdUtils.IsAvx2CompatibleArchitecture,
+                "LoadFromUInt16ExtendedAvx2 only works on AVX2 compatible architecture!");
+
+            ref Vector<short> sRef = ref Unsafe.As<Block8x8, Vector<short>>(ref source);
+            ref Vector<float> dRef = ref Unsafe.As<Block8x8F, Vector<float>>(ref this);
+
+            // Vector<ushort>.Count == 16 on AVX2
+            // We can process 2 block rows in a single step
+            SimdUtils.ExtendedIntrinsics.ConvertToSingle(sRef, out Vector<float> top, out Vector<float> bottom);
+            dRef = top;
+            Unsafe.Add(ref dRef, 1) = bottom;
+
+            SimdUtils.ExtendedIntrinsics.ConvertToSingle(Unsafe.Add(ref sRef, 1), out top, out bottom);
+            Unsafe.Add(ref dRef, 2) = top;
+            Unsafe.Add(ref dRef, 3) = bottom;
+
+            SimdUtils.ExtendedIntrinsics.ConvertToSingle(Unsafe.Add(ref sRef, 2), out top, out bottom);
+            Unsafe.Add(ref dRef, 4) = top;
+            Unsafe.Add(ref dRef, 5) = bottom;
+
+            SimdUtils.ExtendedIntrinsics.ConvertToSingle(Unsafe.Add(ref sRef, 3), out top, out bottom);
+            Unsafe.Add(ref dRef, 6) = top;
+            Unsafe.Add(ref dRef, 7) = bottom;
+        }
+
         /// <inheritdoc />
         public override string ToString()
         {
             var sb = new StringBuilder();
             sb.Append('[');
-            for (int i = 0; i < Size; i++)
+            for (int i = 0; i < Size - 1; i++)
             {
                 sb.Append(this[i]);
-                if (i < Size - 1)
-                {
-                    sb.Append(',');
-                }
+                sb.Append(',');
             }
+
+            sb.Append(this[Size - 1]);
 
             sb.Append(']');
             return sb.ToString();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static Vector<float> NormalizeAndRound(Vector<float> row, Vector<float> off, Vector<float> max)
         {
             row += off;
@@ -520,13 +564,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             return row.FastRound();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static Vector4 DivideRound(Vector4 dividend, Vector4 divisor)
         {
             // sign(dividend) = max(min(dividend, 1), -1)
             var sign = Vector4.Clamp(dividend, NegativeOne, Vector4.One);
 
-            // AlmostRound(dividend/divisor) = dividend/divisior + 0.5*sign(dividend)
+            // AlmostRound(dividend/divisor) = dividend/divisor + 0.5*sign(dividend)
             return (dividend / divisor) + (sign * Offset);
         }
 

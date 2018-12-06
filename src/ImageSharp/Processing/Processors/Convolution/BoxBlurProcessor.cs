@@ -66,36 +66,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 ? new DenseMatrix<float>(size, 1)
                 : new DenseMatrix<float>(1, size);
 
-            float sum = 0F;
-            for (int i = 0; i < size; i++)
-            {
-                float x = 1;
-                sum += x;
-                if (horizontal)
-                {
-                    kernel[0, i] = x;
-                }
-                else
-                {
-                    kernel[i, 0] = x;
-                }
-            }
-
-            // Normalize kernel so that the sum of all weights equals 1
-            if (horizontal)
-            {
-                for (int i = 0; i < size; i++)
-                {
-                    kernel[0, i] = kernel[0, i] / sum;
-                }
-            }
-            else
-            {
-                for (int i = 0; i < size; i++)
-                {
-                    kernel[i, 0] = kernel[i, 0] / sum;
-                }
-            }
+            kernel.Fill(1.0F / size);
 
             return kernel;
         }

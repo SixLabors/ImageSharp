@@ -3,6 +3,8 @@
 
 using System;
 using System.IO;
+using System.Reflection;
+using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats;

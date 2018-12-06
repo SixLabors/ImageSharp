@@ -20,6 +20,11 @@ namespace SixLabors.ImageSharp
         /// <returns>The string.</returns>
         public static string GetString(this Encoding encoding, ReadOnlySpan<byte> buffer)
         {
+            if (buffer.Length == 0)
+            {
+                return string.Empty;
+            }
+
             fixed (byte* bytes = buffer)
             {
                 return encoding.GetString(bytes, buffer.Length);

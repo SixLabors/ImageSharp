@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Rg32_PackFromScaledVector4()
+        public void Rg32_FromScaledVector4()
         {
             // arrange
             var rg32 = new Rg32(Vector2.One);
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             // act
             Vector4 scaled = rg32.ToScaledVector4();
-            pixel.PackFromScaledVector4(scaled);
+            pixel.FromScaledVector4(scaled);
             uint actual = pixel.PackedValue;
 
             // assert
@@ -67,98 +67,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
             Assert.Equal(Vector2.Zero, new Rg32(Vector2.One * -1234.0f).ToVector2());
             Assert.Equal(Vector2.One, new Rg32(Vector2.One * 1234.0f).ToVector2());
-        }
-
-        [Fact]
-        public void Rg32_ToRgb24()
-        {
-            // arrange
-            var rg32 = new Rg32(0.1f, -0.3f);
-            var actual = default(Rgb24);
-            var expected = new Rgb24(25, 0, 0);
-
-            // act
-            rg32.ToRgb24(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void Rg32_ToRgba32()
-        {
-            // arrange
-            var rg32 = new Rg32(0.1f, -0.3f);
-            var actual = default(Rgba32);
-            var expected = new Rgba32(25, 0, 0, 255);
-
-            // act
-            rg32.ToRgba32(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void Rg32_ToBgr24()
-        {
-            // arrange
-            var rg32 = new Rg32(0.1f, -0.3f);
-            var actual = default(Bgr24);
-            var expected = new Bgr24(25, 0, 0);
-
-            // act
-            rg32.ToBgr24(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void Rg32_ToArgb32()
-        {
-            // arrange
-            var rg32 = new Rg32(0.1f, -0.3f);
-            var actual = default(Argb32);
-            var expected = new Argb32(25, 0, 0, 255);
-
-            // act
-            rg32.ToArgb32(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void Rg32_PackFromRgb48_ToRgb48()
-        {
-            // arrange
-            var input = default(Rg32);
-            var actual = default(Rgb48);
-            var expected = new Rgb48(65535, 65535, 0);
-
-            // act
-            input.PackFromRgb48(expected);
-            input.ToRgb48(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void Rg32_PackFromRgba64_ToRgba64()
-        {
-            // arrange
-            var input = default(Rg32);
-            var actual = default(Rgba64);
-            var expected = new Rgba64(65535, 65535, 0, 65535);
-
-            // act
-            input.PackFromRgba64(expected);
-            input.ToRgba64(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
         }
     }
 }

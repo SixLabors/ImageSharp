@@ -56,7 +56,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            Rgba32 rgba = default;
             bool isAlphaOnly = typeof(TPixel) == typeof(Alpha8);
 
             var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
@@ -68,10 +67,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             // Collect the values before looping so we can reduce our calculation count for identical sibling pixels
             TPixel sourcePixel = source[startX, startY];
             TPixel previousPixel = sourcePixel;
+            Rgba32 rgba = default;
             sourcePixel.ToRgba32(ref rgba);
 
             // Convert to grayscale using ITU-R Recommendation BT.709 if required
-            float luminance = isAlphaOnly ? rgba.A : (.2126F * rgba.R) + (.7152F * rgba.G) + (.0722F * rgba.B);
+            byte luminance = isAlphaOnly ? rgba.A : ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
 
             for (int y = startY; y < endY; y++)
             {
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                     if (!previousPixel.Equals(sourcePixel))
                     {
                         sourcePixel.ToRgba32(ref rgba);
-                        luminance = isAlphaOnly ? rgba.A : (.2126F * rgba.R) + (.7152F * rgba.G) + (.0722F * rgba.B);
+                        luminance = isAlphaOnly ? rgba.A : ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
 
                         // Setup the previous pointer
                         previousPixel = sourcePixel;

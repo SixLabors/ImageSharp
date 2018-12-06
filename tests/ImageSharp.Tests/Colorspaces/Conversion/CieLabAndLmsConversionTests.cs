@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 
             // Act
             var actual = Converter.ToCieLab(input);
-            Converter.Convert(inputSpan, actualSpan, actualSpan.Length);
+            Converter.Convert(inputSpan, actualSpan);
 
             // Assert
             Assert.Equal(expected, actual, ColorSpaceComparer);
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 
             // Act
             var actual = Converter.ToLms(input);
-            Converter.Convert(inputSpan, actualSpan, actualSpan.Length);
+            Converter.Convert(inputSpan, actualSpan);
 
             // Assert
             Assert.Equal(expected, actual, ColorSpaceComparer);

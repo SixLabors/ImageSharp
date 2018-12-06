@@ -128,21 +128,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
             }
 
-            this.SpectralBlocks = this.memoryAllocator.Allocate2D<Block8x8>(blocksPerColumnForMcu, blocksPerLineForMcu + 1, AllocationOptions.Clean);
-        }
+            int totalNumberOfBlocks = blocksPerColumnForMcu * (blocksPerLineForMcu + 1);
+            int width = this.WidthInBlocks + 1;
+            int height = totalNumberOfBlocks / width;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref Block8x8 GetBlockReference(int column, int row)
-        {
-            int offset = ((this.WidthInBlocks + 1) * row) + column;
-            return ref Unsafe.Add(ref MemoryMarshal.GetReference(this.SpectralBlocks.GetSpan()), offset);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref short GetBlockDataReference(int column, int row)
-        {
-            ref Block8x8 blockRef = ref this.GetBlockReference(column, row);
-            return ref Unsafe.As<Block8x8, short>(ref blockRef);
+            this.SpectralBlocks = this.memoryAllocator.Allocate2D<Block8x8>(width, height, AllocationOptions.Clean);
         }
     }
 }

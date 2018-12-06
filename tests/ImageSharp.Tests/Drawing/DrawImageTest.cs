@@ -2,10 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
 using Xunit;
@@ -75,21 +73,15 @@ namespace SixLabors.ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage())
             using (var blend = Image.Load<TPixel>(TestFile.Create(TestImages.Bmp.Car).Bytes))
             {
-                Matrix3x2 rotate = Matrix3x2Extensions.CreateRotationDegrees(45F);
-                Matrix3x2 scale = Matrix3x2Extensions.CreateScale(new SizeF(.25F, .25F));
-                Matrix3x2 matrix = rotate * scale;
+                AffineTransformBuilder builder = new AffineTransformBuilder()
+                    .AppendRotationDegrees(45F)
+                    .AppendScale(new SizeF(.25F, .25F))
+                    .AppendTranslation(new PointF(10, 10));
+
+                // Apply a background color so we can see the translation.
+                blend.Mutate(x => x.Transform(builder).BackgroundColor(NamedColors<TPixel>.HotPink));
 
                 // Lets center the matrix so we can tell whether any cut-off issues we may have belong to the drawing processor
-                Rectangle srcBounds = blend.Bounds();
-                Rectangle destBounds = TransformHelpers.GetTransformedBoundingRectangle(srcBounds, matrix);
-                Matrix3x2 centeredMatrix = TransformHelpers.GetCenteredTransformMatrix(srcBounds, destBounds, matrix);
-
-                // We pass a new rectangle here based on the dest bounds since we've offset the matrix
-                blend.Mutate(x => x.Transform(
-                    centeredMatrix,
-                    KnownResamplers.Bicubic,
-                    new Rectangle(0, 0, destBounds.Width, destBounds.Height)));
-
                 var position = new Point((image.Width - blend.Width) / 2, (image.Height - blend.Height) / 2);
                 image.Mutate(x => x.DrawImage(blend, position, mode, .75F));
                 image.DebugSave(provider, new[] { "Transformed" });

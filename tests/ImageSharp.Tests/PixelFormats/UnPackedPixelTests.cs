@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
         public void Color_Types_From_Bytes_Produce_Equal_Scaled_Component_OutPut()
         {
             var color = new Rgba32(24, 48, 96, 192);
-            var colorVector = new RgbaVector(24, 48, 96, 192);
+            var colorVector = new RgbaVector(24 / 255F, 48 / 255F, 96 / 255F, 192 / 255F);
 
             Assert.Equal(color.R, (byte)(colorVector.R * 255));
             Assert.Equal(color.G, (byte)(colorVector.G * 255));
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
         public void Color_Types_From_Vector4_Produce_Equal_Scaled_Component_OutPut()
         {
             var color = new Rgba32(new Vector4(24 / 255F, 48 / 255F, 96 / 255F, 192 / 255F));
-            var colorVector = new RgbaVector(new Vector4(24 / 255F, 48 / 255F, 96 / 255F, 192 / 255F));
+            var colorVector = new RgbaVector(24 / 255F, 48 / 255F, 96 / 255F, 192 / 255F);
 
             Assert.Equal(color.R, (byte)(colorVector.R * 255));
             Assert.Equal(color.G, (byte)(colorVector.G * 255));
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
         public void Color_Types_From_Vector3_Produce_Equal_Scaled_Component_OutPut()
         {
             var color = new Rgba32(new Vector3(24 / 255F, 48 / 255F, 96 / 255F));
-            var colorVector = new RgbaVector(new Vector3(24 / 255F, 48 / 255F, 96 / 255F));
+            var colorVector = new RgbaVector(24 / 255F, 48 / 255F, 96 / 255F);
 
             Assert.Equal(color.R, (byte)(colorVector.R * 255));
             Assert.Equal(color.G, (byte)(colorVector.G * 255));
@@ -73,35 +73,19 @@ namespace SixLabors.ImageSharp.Tests.Colors
         public void Color_Types_To_Vector4_Produce_Equal_OutPut()
         {
             var color = new Rgba32(24, 48, 96, 192);
-            var colorVector = new RgbaVector(24, 48, 96, 192);
+            var colorVector = new RgbaVector(24 / 255F, 48 / 255F, 96 / 255F, 192 / 255F);
 
             Assert.Equal(color.ToVector4(), colorVector.ToVector4());
-        }
-
-        [Fact]
-        public void Color_Types_To_RgbBytes_Produce_Equal_OutPut()
-        {
-            var color = new Rgba32(24, 48, 96, 192);
-            var colorVector = new RgbaVector(24, 48, 96, 192);
-
-            var rgb = default(Rgb24);
-            var rgbVector = default(Rgb24);
-
-            color.ToRgb24(ref rgb);
-            colorVector.ToRgb24(ref rgbVector);
-
-            Assert.Equal(rgb, rgbVector);
         }
 
         [Fact]
         public void Color_Types_To_RgbaBytes_Produce_Equal_OutPut()
         {
             var color = new Rgba32(24, 48, 96, 192);
-            var colorVector = new RgbaVector(24, 48, 96, 192);
+            var colorVector = new RgbaVector(24 / 255F, 48 / 255F, 96 / 255F, 192 / 255F);
 
-            var rgba = default(Rgba32);
-            var rgbaVector = default(Rgba32);
-
+            Rgba32 rgba = default;
+            Rgba32 rgbaVector = default;
             color.ToRgba32(ref rgba);
             colorVector.ToRgba32(ref rgbaVector);
 
@@ -109,40 +93,10 @@ namespace SixLabors.ImageSharp.Tests.Colors
         }
 
         [Fact]
-        public void Color_Types_To_BgrBytes_Produce_Equal_OutPut()
-        {
-            var color = new Rgba32(24, 48, 96, 192);
-            var colorVector = new RgbaVector(24, 48, 96, 192);
-
-            var bgr = default(Bgr24);
-            var bgrVector = default(Bgr24);
-
-            color.ToBgr24(ref bgr);
-            colorVector.ToBgr24(ref bgrVector);
-
-            Assert.Equal(bgr, bgrVector);
-        }
-
-        [Fact]
-        public void Color_Types_To_BgraBytes_Produce_Equal_OutPut()
-        {
-            var color = new Rgba32(24, 48, 96, 192);
-            var colorVector = new RgbaVector(24, 48, 96, 192);
-
-            var bgra = default(Bgra32);
-            var bgraVector = default(Bgra32);
-
-            color.ToBgra32(ref bgra);
-            colorVector.ToBgra32(ref bgraVector);
-
-            Assert.Equal(bgra, bgraVector);
-        }
-
-        [Fact]
         public void Color_Types_To_Hex_Produce_Equal_OutPut()
         {
             var color = new Rgba32(24, 48, 96, 192);
-            var colorVector = new RgbaVector(24, 48, 96, 192);
+            var colorVector = new RgbaVector(24 / 255F, 48 / 255F, 96 / 255F, 192 / 255F);
 
             // 183060C0
             Assert.Equal(color.ToHex(), colorVector.ToHex());

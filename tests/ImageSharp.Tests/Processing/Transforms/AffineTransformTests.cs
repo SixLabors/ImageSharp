@@ -17,7 +17,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
     {
         private readonly ITestOutputHelper Output;
 
-        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0085f, 3);
+        // 1 byte difference on one color component.
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0134F, 3);
 
         /// <summary>
         /// angleDeg, sx, sy, tx, ty
@@ -65,10 +66,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                     nameof(KnownResamplers.Lanczos8),
                 };
 
-        public AffineTransformTests(ITestOutputHelper output)
-        {
-            this.Output = output;
-        }
+        public AffineTransformTests(ITestOutputHelper output) => this.Output = output;
 
         /// <summary>
         /// The output of an "all white" image should be "all white" or transparent, regardless of the transformation and the resampler.
@@ -81,15 +79,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             IResampler resampler = GetResampler(resamplerName);
             using (Image<TPixel> image = provider.GetImage())
             {
-                var rotate = Matrix3x2.CreateRotation((float)Math.PI / 4F, new Vector2(5 / 2F, 5 / 2F));
-                var translate = Matrix3x2.CreateTranslation((7 - 5) / 2F, (7 - 5) / 2F);
+                AffineTransformBuilder builder = new AffineTransformBuilder()
+                    .AppendRotationDegrees(30);
 
-                Rectangle sourceRectangle = image.Bounds();
-                Matrix3x2 matrix = rotate * translate;
-
-                Rectangle destRectangle = TransformHelpers.GetTransformedBoundingRectangle(sourceRectangle, matrix);
-
-                image.Mutate(c => c.Transform(matrix, resampler, destRectangle));
+                image.Mutate(c => c.Transform(builder, resampler));
                 image.DebugSave(provider, resamplerName);
 
                 VerifyAllPixelsAreWhiteOrTransparent(image);
@@ -107,14 +100,15 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                Matrix3x2 rotate = Matrix3x2Extensions.CreateRotationDegrees(angleDeg);
-                var translate = Matrix3x2.CreateTranslation(tx, ty);
-                var scale = Matrix3x2.CreateScale(sx, sy);
-                Matrix3x2 m = rotate * scale * translate;
+                image.DebugSave(provider, $"_original");
+                AffineTransformBuilder builder = new AffineTransformBuilder()
+                    .AppendRotationDegrees(angleDeg)
+                    .AppendScale(new SizeF(sx, sy))
+                    .AppendTranslation(new PointF(tx, ty));
 
-                this.PrintMatrix(m);
+                this.PrintMatrix(builder.BuildMatrix(image.Size()));
 
-                image.Mutate(i => i.Transform(m, KnownResamplers.Bicubic));
+                image.Mutate(i => i.Transform(builder, KnownResamplers.Bicubic));
 
                 FormattableString testOutputDetails = $"R({angleDeg})_S({sx},{sy})_T({tx},{ty})";
                 image.DebugSave(provider, testOutputDetails);
@@ -129,9 +123,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                Matrix3x2 m = this.MakeManuallyCenteredMatrix(angleDeg, s, image);
+                AffineTransformBuilder builder = new AffineTransformBuilder()
+                    .AppendRotationDegrees(angleDeg)
+                    .AppendScale(new SizeF(s, s));
 
-                image.Mutate(i => i.Transform(m, KnownResamplers.Bicubic));
+                image.Mutate(i => i.Transform(builder, KnownResamplers.Bicubic));
 
                 FormattableString testOutputDetails = $"R({angleDeg})_S({s})";
                 image.DebugSave(provider, testOutputDetails);
@@ -158,13 +154,15 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public void Transform_FromSourceRectangle1<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            var rectangle = new Rectangle(48, 0, 96, 36);
+            var rectangle = new Rectangle(48, 0, 48, 24);
 
             using (Image<TPixel> image = provider.GetImage())
             {
-                var m = Matrix3x2.CreateScale(2.0F, 1.5F);
+                image.DebugSave(provider, $"_original");
+                AffineTransformBuilder builder = new AffineTransformBuilder()
+                    .AppendScale(new SizeF(2, 1.5F));
 
-                image.Mutate(i => i.Transform(m, KnownResamplers.Spline, rectangle));
+                image.Mutate(i => i.Transform(rectangle, builder, KnownResamplers.Spline));
 
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(ValidatorComparer, provider);
@@ -176,13 +174,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public void Transform_FromSourceRectangle2<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            var rectangle = new Rectangle(0, 24, 48, 48);
+            var rectangle = new Rectangle(0, 24, 48, 24);
 
             using (Image<TPixel> image = provider.GetImage())
             {
-                var m = Matrix3x2.CreateScale(1.0F, 2.0F);
+                AffineTransformBuilder builder = new AffineTransformBuilder()
+                    .AppendScale(new SizeF(1F, 2F));
 
-                image.Mutate(i => i.Transform(m, KnownResamplers.Spline, rectangle));
+                image.Mutate(i => i.Transform(rectangle, builder, KnownResamplers.Spline));
 
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(ValidatorComparer, provider);
@@ -197,31 +196,15 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             IResampler sampler = GetResampler(resamplerName);
             using (Image<TPixel> image = provider.GetImage())
             {
-                Matrix3x2 m = this.MakeManuallyCenteredMatrix(50, 0.6f, image);
+                AffineTransformBuilder builder = new AffineTransformBuilder()
+                    .AppendRotationDegrees(50)
+                    .AppendScale(new SizeF(.6F, .6F));
 
-                image.Mutate(i =>
-                    {
-                        i.Transform(m, sampler);
-                    });
+                image.Mutate(i => i.Transform(builder, sampler));
 
                 image.DebugSave(provider, resamplerName);
                 image.CompareToReferenceOutput(ValidatorComparer, provider, resamplerName);
             }
-        }
-
-        private Matrix3x2 MakeManuallyCenteredMatrix<TPixel>(float angleDeg, float s, Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            Matrix3x2 rotate = Matrix3x2Extensions.CreateRotationDegrees(angleDeg);
-            Vector2 toCenter = 0.5f * new Vector2(image.Width, image.Height);
-            var translate = Matrix3x2.CreateTranslation(-toCenter);
-            var translateBack = Matrix3x2.CreateTranslation(toCenter);
-            var scale = Matrix3x2.CreateScale(s);
-
-            Matrix3x2 m = translate * rotate * scale * translateBack;
-
-            this.PrintMatrix(m);
-            return m;
         }
 
         private static IResampler GetResampler(string name)
@@ -240,12 +223,15 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             where TPixel : struct, IPixel<TPixel>
         {
             Span<TPixel> data = image.Frames.RootFrame.GetPixelSpan();
-            var rgba = default(Rgba32);
             var white = new Rgb24(255, 255, 255);
             foreach (TPixel pixel in data)
             {
+                Rgba32 rgba = default;
                 pixel.ToRgba32(ref rgba);
-                if (rgba.A == 0) continue;
+                if (rgba.A == 0)
+                {
+                    continue;
+                }
 
                 Assert.Equal(white, rgba.Rgb);
             }

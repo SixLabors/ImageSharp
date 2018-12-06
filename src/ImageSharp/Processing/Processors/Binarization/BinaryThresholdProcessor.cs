@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             Rectangle sourceRectangle,
             Configuration configuration)
         {
-            float threshold = this.Threshold * 255F;
+            byte threshold = (byte)MathF.Round(this.Threshold * 255F);
             TPixel upper = this.UpperColor;
             TPixel lower = this.LowerColor;
 
@@ -80,10 +80,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                 configuration,
                 rows =>
                     {
+                        Rgba32 rgba = default;
                         for (int y = rows.Min; y < rows.Max; y++)
                         {
                             Span<TPixel> row = source.GetPixelRowSpan(y);
-                            Rgba32 rgba = default;
 
                             for (int x = startX; x < endX; x++)
                             {
@@ -91,9 +91,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                                 color.ToRgba32(ref rgba);
 
                                 // Convert to grayscale using ITU-R Recommendation BT.709 if required
-                                float luminance = isAlphaOnly
-                                                      ? rgba.A
-                                                      : (.2126F * rgba.R) + (.7152F * rgba.G) + (.0722F * rgba.B);
+                                byte luminance = isAlphaOnly ? rgba.A : ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
                                 color = luminance >= threshold ? upper : lower;
                             }
                         }

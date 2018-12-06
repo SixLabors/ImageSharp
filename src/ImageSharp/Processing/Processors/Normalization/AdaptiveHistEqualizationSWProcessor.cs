@@ -3,8 +3,10 @@
 
 using System;
 using System.Numerics;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -46,15 +48,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int numberOfPixels = source.Width * source.Height;
             Span<TPixel> pixels = source.GetPixelSpan();
 
+            var parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism };
             int tileWidth = source.Width / this.Tiles;
             int pixeInTile = tileWidth * tileWidth;
             int halfTileWith = tileWidth / 2;
             using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Width, source.Height))
             {
-                ParallelFor.WithConfiguration(
+                Parallel.For(
                     0,
                     source.Width,
-                    configuration,
+                    parallelOptions,
                     x =>
                     {
                         using (System.Buffers.IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
@@ -93,7 +96,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                                 // Map the current pixel to the new equalized value
                                 int luminance = this.GetLuminance(source[x, y], this.LuminanceLevels);
                                 float luminanceEqualized = cdf[luminance] / numberOfPixelsMinusCdfMin;
-                                targetPixels[x, y].PackFromVector4(new Vector4(luminanceEqualized));
+                                targetPixels[x, y].FromVector4(new Vector4(luminanceEqualized));
 
                                 // Remove top most row from the histogram, mirroring rows which exceeds the borders.
                                 Span<TPixel> rowSpan = this.GetPixelRow(source, x - halfTileWith, y - halfTileWith, tileWidth);
@@ -115,13 +118,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         }
 
         /// <summary>
-        /// Get the a pixel row at a given position with a length of the grid size. Mirrors pixels which exceeds the edges.
+        /// Get the a pixel row at a given position with a length of the tile width. Mirrors pixels which exceeds the edges.
         /// </summary>
         /// <param name="source">The source image.</param>
         /// <param name="x">The x position.</param>
         /// <param name="y">The y position.</param>
         /// <param name="tileWidth">The width in pixels of a tile.</param>
-        /// <returns>A pixel row of the length of the grid size.</returns>
+        /// <returns>A pixel row of the length of the tile width.</returns>
         private Span<TPixel> GetPixelRow(ImageFrame<TPixel> source, int x, int y, int tileWidth)
         {
             if (y < 0)

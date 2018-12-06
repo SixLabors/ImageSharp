@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                             for (int dx = x; dx < xEnd; dx++)
                             {
                                 float luminanceEqualized = this.InterpolateBetweenFourTiles(source[dx, dy], cdfData, tileX, tileY, cdfX, cdfY, tileWidth, tileHeight, pixelsInTile);
-                                pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
+                                pixels[(dy * source.Width) + dx].FromVector4(new Vector4(luminanceEqualized));
                                 tileX++;
                             }
 
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 for (int dx = xStart; dx < xEnd; dx++)
                 {
                     float luminanceEqualized = cdfData.RemapGreyValue(this.GetLuminance(source[dx, dy], this.LuminanceLevels), pixelsInTile);
-                    pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
+                    pixels[(dy * source.Width) + dx].FromVector4(new Vector4(luminanceEqualized));
                 }
             }
         }
@@ -170,7 +170,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     for (int dx = xStart; dx < xEnd; dx++)
                     {
                         float luminanceEqualized = this.InterpolateBetweenTwoTiles(source[dx, dy], cdfData[cdfX, cdfY], cdfData[cdfX, cdfY + 1], tileY, tileHeight, pixelsInTile);
-                        pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
+                        pixels[(dy * source.Width) + dx].FromVector4(new Vector4(luminanceEqualized));
                         tileX++;
                     }
 
@@ -209,7 +209,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     for (int dx = x; dx < xLimit; dx++)
                     {
                         float luminanceEqualized = this.InterpolateBetweenTwoTiles(source[dx, dy], cdfData[cdfX, cdfY], cdfData[cdfX + 1, cdfY], tileX, tileWidth, pixelsInTile);
-                        pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
+                        pixels[(dy * source.Width) + dx].FromVector4(new Vector4(luminanceEqualized));
                         tileX++;
                     }
 

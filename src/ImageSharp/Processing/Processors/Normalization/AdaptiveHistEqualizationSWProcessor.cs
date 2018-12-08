@@ -178,8 +178,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <summary>
         /// Adds a row of grey values to the histogram.
         /// </summary>
-        /// <param name="greyValues">The grey values to add</param>
-        /// <param name="histogram">The histogram</param>
+        /// <param name="greyValues">The grey values to add.</param>
+        /// <param name="histogram">The histogram.</param>
         /// <param name="luminanceLevels">The number of different luminance levels.</param>
         /// <returns>The maximum index where a value was changed.</returns>
         private int AddPixelsToHistogram(Span<TPixel> greyValues, Span<int> histogram, int luminanceLevels)
@@ -201,8 +201,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <summary>
         /// Removes a row of grey values from the histogram.
         /// </summary>
-        /// <param name="greyValues">The grey values to remove</param>
-        /// <param name="histogram">The histogram</param>
+        /// <param name="greyValues">The grey values to remove.</param>
+        /// <param name="histogram">The histogram.</param>
         /// <param name="luminanceLevels">The number of different luminance levels.</param>
         /// <param name="maxHistIdx">The current maximum index of the histogram.</param>
         /// <returns>The (maybe changed) maximum index of the histogram.</returns>

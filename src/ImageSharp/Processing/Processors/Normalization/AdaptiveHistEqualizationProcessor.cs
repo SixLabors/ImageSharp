@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.Numerics;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -26,11 +28,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// or 65536 for 16-bit grayscale images.</param>
         /// <param name="clipHistogram">Indicating whether to clip the histogram bins at a specific value.</param>
         /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels in the grid. Histogram bins which exceed this limit, will be capped at this value.</param>
-        /// <param name="tiles">The number of tiles the image is split into (horizontal and vertically).</param>
+        /// <param name="tiles">The number of tiles the image is split into (horizontal and vertically). Minimum value is 2.</param>
         public AdaptiveHistEqualizationProcessor(int luminanceLevels, bool clipHistogram, float clipLimitPercentage, int tiles)
             : base(luminanceLevels, clipHistogram, clipLimitPercentage)
         {
-            Guard.MustBeGreaterThanOrEqualTo(tiles, 0, nameof(tiles));
+            Guard.MustBeGreaterThanOrEqualTo(tiles, 2, nameof(tiles));
 
             this.Tiles = tiles;
         }
@@ -45,7 +47,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         {
             MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
             int numberOfPixels = source.Width * source.Height;
-            Span<TPixel> pixels = source.GetPixelSpan();
 
             int tileWidth = Convert.ToInt32(Math.Ceiling(source.Width / (double)this.Tiles));
             int tileHeight = Convert.ToInt32(Math.Ceiling(source.Height / (double)this.Tiles));
@@ -62,12 +63,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 // The image is split up into tiles. For each tile the cumulative distribution function will be calculated.
                 CdfData[,] cdfData = this.CalculateLookupTables(source, histogram, cdf, this.Tiles, this.Tiles, tileWidth, tileHeight);
 
-                int cdfX = 0;
+                var tileYStartPositions = new List<(int y, int cdfY)>();
                 int cdfY = 0;
-                int tileX = 0;
-                int tileY = 0;
                 for (int y = halfTileHeight; y < source.Height - halfTileHeight; y += tileHeight)
                 {
+                    tileYStartPositions.Add((y, cdfY));
+                    cdfY++;
+                }
+
+                Parallel.ForEach(tileYStartPositions, new ParallelOptions() { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism }, (tileYStartPosition) =>
+                {
+                    int cdfX = 0;
+                    int tileX = 0;
+                    int tileY = 0;
+                    int y = tileYStartPosition.y;
+
                     cdfX = 0;
                     for (int x = halfTileWidth; x < source.Width - halfTileWidth; x += tileWidth)
                     {
@@ -76,11 +86,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         int xEnd = Math.Min(x + tileWidth, source.Width);
                         for (int dy = y; dy < yEnd; dy++)
                         {
+                            Span<TPixel> pixelRow = source.GetPixelRowSpan(dy);
                             tileX = 0;
                             for (int dx = x; dx < xEnd; dx++)
                             {
-                                float luminanceEqualized = this.InterpolateBetweenFourTiles(source[dx, dy], cdfData, tileX, tileY, cdfX, cdfY, tileWidth, tileHeight, pixelsInTile);
-                                pixels[(dy * source.Width) + dx].FromVector4(new Vector4(luminanceEqualized));
+                                float luminanceEqualized = this.InterpolateBetweenFourTiles(source[dx, dy], cdfData, tileX, tileY, cdfX, tileYStartPosition.cdfY, tileWidth, tileHeight, pixelsInTile);
+                                pixelRow[dx].FromVector4(new Vector4(luminanceEqualized));
                                 tileX++;
                             }
 
@@ -89,9 +100,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
                         cdfX++;
                     }
+                });
 
-                    cdfY++;
-                }
+                Span<TPixel> pixels = source.GetPixelSpan();
 
                 // fix left column
                 this.ProcessBorderColumn(source, pixels, cdfData, 0, tileWidth, tileHeight, xStart: 0, xEnd: halfTileWidth);

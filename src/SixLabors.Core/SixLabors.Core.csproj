@@ -19,16 +19,22 @@
         <Copyright>Copyright (c) Six Labors and contributors.</Copyright>
         <DebugType Condition="$(codecov) == 'true'">full</DebugType>
         <RootNamespace>SixLabors</RootNamespace>
+        <LangVersion>7.3</LangVersion>
     </PropertyGroup>
 
     <PropertyGroup>
         <CodeAnalysisRuleSet>..\SixLabors.ruleset</CodeAnalysisRuleSet>
     </PropertyGroup>
 
+    <!-- TODO: Include .NETSTANDARD2.1 when released-->
     <PropertyGroup Condition=" $(TargetFramework.StartsWith('netcoreapp2')) ">
       <DefineConstants>$(DefineConstants);SUPPORTS_MATHF</DefineConstants>
     </PropertyGroup>
-        
+
+    <PropertyGroup Condition=" $(TargetFramework.StartsWith('netcoreapp2.1')) ">
+      <DefineConstants>$(DefineConstants);SUPPORTS_HASHCODE</DefineConstants>
+    </PropertyGroup>
+  
     <ItemGroup>
        <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta004">
         <PrivateAssets>All</PrivateAssets>

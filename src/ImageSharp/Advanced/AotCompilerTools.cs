@@ -1,6 +1,9 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Numerics;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -16,6 +19,20 @@ namespace SixLabors.ImageSharp.Advanced
     public static class AotCompilerTools
     {
         /// <summary>
+        /// Seeds the <see cref="System.Runtime.CompilerServices.Unsafe"/> calls.
+        /// </summary>
+        public static void SeedUnsafe()
+        {
+            System.Runtime.CompilerServices.Unsafe.SizeOf<long>();
+            System.Runtime.CompilerServices.Unsafe.SizeOf<short>();
+            System.Runtime.CompilerServices.Unsafe.SizeOf<float>();
+            System.Runtime.CompilerServices.Unsafe.SizeOf<double>();
+            System.Runtime.CompilerServices.Unsafe.SizeOf<byte>();
+            System.Runtime.CompilerServices.Unsafe.SizeOf<Block8x8>();
+            System.Runtime.CompilerServices.Unsafe.SizeOf<Vector4>();
+        }
+
+        /// <summary>
         /// Seeds the compiler using the given pixel format.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -26,6 +43,13 @@ namespace SixLabors.ImageSharp.Advanced
             AotCompileOctreeQuantizer<TPixel>();
             AotCompileWuQuantizer<TPixel>();
             AotCompileDithering<TPixel>();
+
+            System.Runtime.CompilerServices.Unsafe.SizeOf<TPixel>();
+
+            AotDecoder<TPixel>(new Formats.Png.PngDecoder());
+            AotDecoder<TPixel>(new Formats.Bmp.BmpDecoder());
+            AotDecoder<TPixel>(new Formats.Gif.GifDecoder());
+            AotDecoder<TPixel>(new Formats.Jpeg.JpegDecoder());
 
             // TODO: Do the discovery work to figure out what works and what doesn't.
         }
@@ -98,6 +122,23 @@ namespace SixLabors.ImageSharp.Advanced
             var test = new FloydSteinbergDiffuser();
             TPixel pixel = default;
             test.Dither<TPixel>(new ImageFrame<TPixel>(Configuration.Default, 1, 1), pixel, pixel, 0, 0, 0, 0, 0, 0);
+        }
+
+        /// <summary>
+        /// This method pre-seeds the decoder for a given pixel format in the AoT compiler for iOS.
+        /// </summary>
+        /// <param name="decoder">The image decoder to seed..</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        private static void AotDecoder<TPixel>(IImageDecoder decoder)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            try
+            {
+                decoder.Decode<TPixel>(Configuration.Default, null);
+            }
+            catch
+            {
+            }
         }
     }
 }

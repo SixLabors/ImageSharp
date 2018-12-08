@@ -20,7 +20,7 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Represents a <see cref="SizeF"/> that has Width and Height values set to zero.
         /// </summary>
-        public static readonly SizeF Empty = default(SizeF);
+        public static readonly SizeF Empty = default;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SizeF"/> struct.
@@ -198,10 +198,7 @@ namespace SixLabors.Primitives
         }
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return HashHelpers.Combine(this.Width.GetHashCode(), this.Height.GetHashCode());
-        }
+        public override int GetHashCode() => HashCode.Combine(this.Width, this.Height);
 
         /// <inheritdoc/>
         public override string ToString() => $"SizeF [ Width={this.Width}, Height={this.Height} ]";

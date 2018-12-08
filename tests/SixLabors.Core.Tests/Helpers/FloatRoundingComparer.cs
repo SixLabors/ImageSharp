@@ -54,6 +54,6 @@ namespace SixLabors.Tests.Helpers
         }
 
         /// <inheritdoc />
-        public int GetHashCode(Vector4 obj) => HashHelpers.Combine(obj.GetHashCode(), this.Precision.GetHashCode());
+        public int GetHashCode(Vector4 obj) => HashCode.Combine(obj, this.Precision);
     }
 }

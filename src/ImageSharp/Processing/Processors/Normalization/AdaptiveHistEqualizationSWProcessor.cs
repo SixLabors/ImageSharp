@@ -63,16 +63,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         using (System.Buffers.IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
                         using (System.Buffers.IMemoryOwner<int> histogramBufferCopy = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
                         using (System.Buffers.IMemoryOwner<int> cdfBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
+                        using (System.Buffers.IMemoryOwner<TPixel> pixelRowBuffer = memoryAllocator.Allocate<TPixel>(tileWidth, AllocationOptions.Clean))
                         {
                             Span<int> histogram = histogramBuffer.GetSpan();
                             Span<int> histogramCopy = histogramBufferCopy.GetSpan();
                             Span<int> cdf = cdfBuffer.GetSpan();
+                            Span<TPixel> pixelRow = pixelRowBuffer.GetSpan();
                             int maxHistIdx = 0;
 
                             // Build the histogram of grayscale values for the current grid.
                             for (int dy = -halfTileWith; dy < halfTileWith; dy++)
                             {
-                                Span<TPixel> rowSpan = this.GetPixelRow(source, (int)x - halfTileWith, dy, tileWidth);
+                                Span<TPixel> rowSpan = this.GetPixelRow(source, pixelRow, (int)x - halfTileWith, dy, tileWidth);
                                 int maxIdx = this.AddPixelsToHistogram(rowSpan, histogram, this.LuminanceLevels);
                                 if (maxIdx > maxHistIdx)
                                 {
@@ -99,11 +101,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                                 targetPixels[x, y].FromVector4(new Vector4(luminanceEqualized));
 
                                 // Remove top most row from the histogram, mirroring rows which exceeds the borders.
-                                Span<TPixel> rowSpan = this.GetPixelRow(source, x - halfTileWith, y - halfTileWith, tileWidth);
+                                Span<TPixel> rowSpan = this.GetPixelRow(source, pixelRow, x - halfTileWith, y - halfTileWith, tileWidth);
                                 maxHistIdx = this.RemovePixelsFromHistogram(rowSpan, histogram, this.LuminanceLevels, maxHistIdx);
 
                                 // Add new bottom row to the histogram, mirroring rows which exceeds the borders.
-                                rowSpan = this.GetPixelRow(source, x - halfTileWith, y + halfTileWith, tileWidth);
+                                rowSpan = this.GetPixelRow(source, pixelRow, x - halfTileWith, y + halfTileWith, tileWidth);
                                 int maxIdx = this.AddPixelsToHistogram(rowSpan, histogram, this.LuminanceLevels);
                                 if (maxIdx > maxHistIdx)
                                 {
@@ -121,12 +123,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// Get the a pixel row at a given position with a length of the tile width. Mirrors pixels which exceeds the edges.
         /// </summary>
         /// <param name="source">The source image.</param>
+        /// <param name="rowPixels">Pre-allocated pixel row span of the size of a tile width.</param>
         /// <param name="x">The x position.</param>
         /// <param name="y">The y position.</param>
         /// <param name="tileWidth">The width in pixels of a tile.</param>
         /// <returns>A pixel row of the length of the tile width.</returns>
-        private Span<TPixel> GetPixelRow(ImageFrame<TPixel> source, int x, int y, int tileWidth)
+        private Span<TPixel> GetPixelRow(ImageFrame<TPixel> source, Span<TPixel> rowPixels, int x, int y, int tileWidth)
         {
+            rowPixels.Clear();
+
             if (y < 0)
             {
                 y = Math.Abs(y);
@@ -140,7 +145,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             // Special cases for the left and the right border where GetPixelRowSpan can not be used
             if (x < 0)
             {
-                var rowPixels = new TPixel[tileWidth];
                 int idx = 0;
                 for (int dx = x; dx < x + tileWidth; dx++)
                 {
@@ -152,7 +156,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             }
             else if (x + tileWidth > source.Width)
             {
-                var rowPixels = new TPixel[tileWidth];
                 int idx = 0;
                 for (int dx = x; dx < x + tileWidth; dx++)
                 {

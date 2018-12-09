@@ -130,8 +130,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <returns>A pixel row of the length of the tile width.</returns>
         private Span<TPixel> GetPixelRow(ImageFrame<TPixel> source, Span<TPixel> rowPixels, int x, int y, int tileWidth)
         {
-            rowPixels.Clear();
-
             if (y < 0)
             {
                 y = Math.Abs(y);
@@ -145,6 +143,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             // Special cases for the left and the right border where GetPixelRowSpan can not be used
             if (x < 0)
             {
+                rowPixels.Clear();
                 int idx = 0;
                 for (int dx = x; dx < x + tileWidth; dx++)
                 {
@@ -156,6 +155,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             }
             else if (x + tileWidth > source.Width)
             {
+                rowPixels.Clear();
                 int idx = 0;
                 for (int dx = x; dx < x + tileWidth; dx++)
                 {

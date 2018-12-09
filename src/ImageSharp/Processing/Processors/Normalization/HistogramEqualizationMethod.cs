@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         AdaptiveTileInterpolation,
 
         /// <summary>
-        /// Adaptive sliding window histogram equalization.
+        /// Adaptive histogram equalization using sliding window. Slower then the tile interpolation mode, but can yield to better results.
         /// </summary>
         AdaptiveSlidingWindow,
     }

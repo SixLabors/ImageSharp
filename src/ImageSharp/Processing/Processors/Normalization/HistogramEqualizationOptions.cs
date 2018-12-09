@@ -20,19 +20,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         public int LuminanceLevels { get; set; } = 256;
 
         /// <summary>
-        /// Gets or sets a value indicating whether to clip the histogram bins at a specific value. Defaults to false.
+        /// Gets or sets a value indicating whether to clip the histogram bins at a specific value. Defaults to true.
         /// </summary>
-        public bool ClipHistogram { get; set; } = false;
+        public bool ClipHistogram { get; set; } = true;
 
         /// <summary>
-        /// Gets or sets the histogram clip limit in percent of the total pixels in the grid. Histogram bins which exceed this limit, will be capped at this value.
+        /// Gets or sets the histogram clip limit in percent of the total pixels in a tile. Histogram bins which exceed this limit, will be capped at this value.
         /// Defaults to 0.35.
         /// </summary>
         public float ClipLimitPercentage { get; set; } = 0.035f;
 
         /// <summary>
-        /// Gets or sets the number of tiles the image is split into (horizontal and vertically) for the adaptive histogram equalization. Defaults to 8.
+        /// Gets or sets the number of tiles the image is split into (horizontal and vertically) for the adaptive histogram equalization. Defaults to 10.
         /// </summary>
-        public int Tiles { get; set; } = 8;
+        public int Tiles { get; set; } = 10;
     }
 }

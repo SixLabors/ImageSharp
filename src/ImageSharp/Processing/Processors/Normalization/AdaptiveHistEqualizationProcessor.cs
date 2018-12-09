@@ -100,25 +100,27 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             this.ProcessBorderColumn(source, pixels, cdfData, 0, tileWidth, tileHeight, xStart: 0, xEnd: halfTileWidth);
 
             // fix right column
-            this.ProcessBorderColumn(source, pixels, cdfData, this.Tiles - 1, tileWidth, tileHeight, xStart: source.Width - halfTileWidth, xEnd: source.Width);
+            int rightBorderStartX = ((this.Tiles - 1) * tileWidth) + halfTileWidth;
+            this.ProcessBorderColumn(source, pixels, cdfData, this.Tiles - 1, tileWidth, tileHeight, xStart: rightBorderStartX, xEnd: source.Width);
 
             // fix top row
             this.ProcessBorderRow(source, pixels, cdfData, 0, tileWidth, tileHeight, yStart: 0, yEnd: halfTileHeight);
 
             // fix bottom row
-            this.ProcessBorderRow(source, pixels, cdfData, this.Tiles - 1, tileWidth, tileHeight, yStart: source.Height - halfTileHeight, yEnd: source.Height);
+            int bottomBorderStartY = ((this.Tiles - 1) * tileHeight) + halfTileHeight;
+            this.ProcessBorderRow(source, pixels, cdfData, this.Tiles - 1, tileWidth, tileHeight, yStart: bottomBorderStartY, yEnd: source.Height);
 
             // left top corner
             this.ProcessCornerTile(source, pixels, cdfData[0, 0], xStart: 0, xEnd: halfTileWidth, yStart: 0, yEnd: halfTileHeight, pixelsInTile: pixelsInTile);
 
             // left bottom corner
-            this.ProcessCornerTile(source, pixels, cdfData[0, this.Tiles - 1], xStart: 0, xEnd: halfTileWidth, yStart: source.Height - halfTileHeight, yEnd: source.Height, pixelsInTile: pixelsInTile);
+            this.ProcessCornerTile(source, pixels, cdfData[0, this.Tiles - 1], xStart: 0, xEnd: halfTileWidth, yStart: bottomBorderStartY, yEnd: source.Height, pixelsInTile: pixelsInTile);
 
             // right top corner
-            this.ProcessCornerTile(source, pixels, cdfData[this.Tiles - 1, 0], xStart: source.Width - halfTileWidth, xEnd: source.Width, yStart: 0, yEnd: halfTileHeight, pixelsInTile: pixelsInTile);
+            this.ProcessCornerTile(source, pixels, cdfData[this.Tiles - 1, 0], xStart: rightBorderStartX, xEnd: source.Width, yStart: 0, yEnd: halfTileHeight, pixelsInTile: pixelsInTile);
 
             // right bottom corner
-            this.ProcessCornerTile(source, pixels, cdfData[this.Tiles - 1, this.Tiles - 1], xStart: source.Width - halfTileWidth, xEnd: source.Width, yStart: source.Height - halfTileHeight, yEnd: source.Height, pixelsInTile: pixelsInTile);
+            this.ProcessCornerTile(source, pixels, cdfData[this.Tiles - 1, this.Tiles - 1], xStart: rightBorderStartX, xEnd: source.Width, yStart: bottomBorderStartY, yEnd: source.Height, pixelsInTile: pixelsInTile);
         }
 
         /// <summary>
@@ -162,7 +164,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int pixelsInTile = tileWidth * tileHeight;
 
             int cdfY = 0;
-            for (int y = halfTileWidth; y < source.Height - halfTileWidth; y += tileHeight)
+            for (int y = halfTileHeight; y < source.Height - halfTileHeight; y += tileHeight)
             {
                 int yLimit = Math.Min(y + tileHeight, source.Height - 1);
                 int tileY = 0;

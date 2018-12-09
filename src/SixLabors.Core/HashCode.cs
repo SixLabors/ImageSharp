@@ -1,4 +1,4 @@
-﻿#pragma warning disable SA1636, SA1600, SA1503, SA1202, SA1101, SA1132, SA1309, SA1520, SA1108, SA1203, SA1028, SA1512
+﻿#pragma warning disable SA1636, SA1600, SA1503, SA1202, SA1101, SA1132, SA1309, SA1520, SA1108, SA1203, SA1028, SA1512, SA1308
 
 // SOURCE: https://github.com/dotnet/corefx/blob/master/src/Common/src/CoreLib/System/HashCode.cs
 
@@ -57,7 +57,9 @@ namespace System
     // https://github.com/Cyan4973/xxHash
     internal struct HashCode
     {
+#pragma warning disable SA1311 // Static readonly fields should begin with upper-case letter
         private static readonly uint s_seed = GenerateGlobalSeed();
+#pragma warning restore SA1311 // Static readonly fields should begin with upper-case letter
 
         private const uint Prime1 = 2654435761U;
         private const uint Prime2 = 2246822519U;
@@ -415,6 +417,7 @@ namespace System
         }
 
 #pragma warning disable 0809
+
         // Obsolete member 'memberA' overrides non-obsolete member 'memberB'. 
         // Disallowing GetHashCode and Equals is by design
 
@@ -440,4 +443,4 @@ namespace System
 }
 #endif
 
-#pragma warning restore SA1636, SA1600, SA1503, SA1202, SA1101, SA1132, SA1309, SA1520, SA1108, SA1203, SA1028, SA1512
+#pragma warning restore SA1636, SA1600, SA1503, SA1202, SA1101, SA1132, SA1309, SA1520, SA1108, SA1203, SA1028, SA1512, SA1308

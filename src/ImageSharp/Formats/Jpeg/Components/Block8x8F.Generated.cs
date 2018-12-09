@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -96,7 +97,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         {
             Vector4 CMin4 = new Vector4(0F);
             Vector4 CMax4 = new Vector4(maximum);
-            Vector4 COff4 = new Vector4(maximum/2 + 1);
+            Vector4 COff4 = new Vector4((float)Math.Ceiling(maximum/2));
 
             this.V0L = Vector4.Clamp(this.V0L + COff4, CMin4, CMax4);
             this.V0R = Vector4.Clamp(this.V0R + COff4, CMin4, CMax4);
@@ -122,7 +123,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         [MethodImpl(InliningOptions.ShortMethod)]
         public void NormalizeColorsAndRoundInplaceAvx2(float maximum)
         {
-            Vector<float> off = new Vector<float>(maximum/2 +1);
+            Vector<float> off = new Vector<float>((float)Math.Ceiling(maximum/2));
             Vector<float> max = new Vector<float>(maximum);
             
             ref Vector<float> row0 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V0L);

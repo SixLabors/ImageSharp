@@ -46,6 +46,7 @@ https://raw.githubusercontent.com/Cyan4973/xxHash/5c174cfa4e45a42f94082dc0d4539b
 using System.Runtime.CompilerServices;
 [assembly: TypeForwardedTo(typeof(System.HashCode))]
 #else
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -80,7 +81,7 @@ namespace System
                 rng.GetBytes(data);
             }
 
-            return Convert.ToUInt32(data);
+            return BinaryPrimitives.ReadUInt32LittleEndian(data);
         }
 
         public static int Combine<T1>(T1 value1)

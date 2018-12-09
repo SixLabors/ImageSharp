@@ -228,7 +228,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.PrintLinearData(input);
 
             Block8x8F dest = block;
-            dest.NormalizeColorsInplace();
+            dest.NormalizeColorsInplace(255);
 
             float[] array = new float[64];
             dest.CopyTo(array);
@@ -253,11 +253,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Block8x8F source = CreateRandomFloatBlock(-200, 200, seed);
 
             Block8x8F expected = source;
-            expected.NormalizeColorsInplace();
+            expected.NormalizeColorsInplace(255);
             expected.RoundInplace();
 
             Block8x8F actual = source;
-            actual.NormalizeColorsAndRoundInplaceAvx2();
+            actual.NormalizeColorsAndRoundInplaceAvx2(255);
 
             this.Output.WriteLine(expected.ToString());
             this.Output.WriteLine(actual.ToString());

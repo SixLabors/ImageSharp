@@ -160,6 +160,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <inheritdoc/>
         public JpegColorSpace ColorSpace { get; private set; }
 
+        /// <inheritdoc/>
+        public int Precision { get; private set; }
+
         /// <summary>
         /// Gets the components.
         /// </summary>
@@ -721,10 +724,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.InputStream.Read(this.temp, 0, remaining);
 
             // We only support 8-bit and 12-bit precision.
-            if (!SupportedPrecisions.Contains(this.temp[0]))
+            if (!this.SupportedPrecisions.Contains(this.temp[0]))
             {
                 throw new ImageFormatException("Only 8-Bit and 12-Bit precision supported.");
             }
+
+            this.Precision = this.temp[0];
 
             this.Frame = new JpegFrame
             {

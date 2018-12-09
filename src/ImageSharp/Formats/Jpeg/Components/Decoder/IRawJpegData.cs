@@ -30,6 +30,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         JpegColorSpace ColorSpace { get; }
 
         /// <summary>
+        /// Gets the number of bits used for precision.
+        /// </summary>
+        int Precision { get; }
+
+        /// <summary>
         /// Gets the components.
         /// </summary>
         IEnumerable<IJpegComponent> Components { get; }

@@ -10,8 +10,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
     {
         internal class FromYCbCrBasic : JpegColorConverter
         {
-            public FromYCbCrBasic()
-                : base(JpegColorSpace.YCbCr)
+            public FromYCbCrBasic(int precision)
+                : base(JpegColorSpace.YCbCr, precision)
             {
             }
 

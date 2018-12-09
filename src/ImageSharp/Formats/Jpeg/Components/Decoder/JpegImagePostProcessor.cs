@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
             this.ComponentProcessors = rawJpeg.Components.Select(c => new JpegComponentPostProcessor(memoryAllocator, this, c)).ToArray();
             this.rgbaBuffer = memoryAllocator.Allocate<Vector4>(rawJpeg.ImageSizeInPixels.Width);
-            this.colorConverter = JpegColorConverter.GetConverter(rawJpeg.ColorSpace);
+            this.colorConverter = JpegColorConverter.GetConverter(rawJpeg.ColorSpace, rawJpeg.Precision);
         }
 
         /// <summary>

@@ -20,9 +20,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         public int LuminanceLevels { get; set; } = 256;
 
         /// <summary>
-        /// Gets or sets a value indicating whether to clip the histogram bins at a specific value. Defaults to true.
+        /// Gets or sets a value indicating whether to clip the histogram bins at a specific value. Defaults to false.
         /// </summary>
-        public bool ClipHistogram { get; set; } = true;
+        public bool ClipHistogram { get; set; } = false;
 
         /// <summary>
         /// Gets or sets the histogram clip limit in percent of the total pixels in a tile. Histogram bins which exceed this limit, will be capped at this value.

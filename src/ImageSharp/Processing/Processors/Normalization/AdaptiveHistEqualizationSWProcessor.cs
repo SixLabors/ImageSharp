@@ -6,7 +6,6 @@ using System.Numerics;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -26,7 +25,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="luminanceLevels">The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
         /// or 65536 for 16-bit grayscale images.</param>
         /// <param name="clipHistogram">Indicating whether to clip the histogram bins at a specific value.</param>
-        /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels in the grid. Histogram bins which exceed this limit, will be capped at this value.</param>
+        /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels in the tile. Histogram bins which exceed this limit, will be capped at this value.</param>
         /// <param name="tiles">The number of tiles the image is split into (horizontal and vertically). Minimum value is 2.</param>
         public AdaptiveHistEqualizationSWProcessor(int luminanceLevels, bool clipHistogram, float clipLimitPercentage, int tiles)
             : base(luminanceLevels, clipHistogram, clipLimitPercentage)
@@ -71,7 +70,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                             Span<TPixel> pixelRow = pixelRowBuffer.GetSpan();
                             int maxHistIdx = 0;
 
-                            // Build the histogram of grayscale values for the current grid.
+                            // Build the histogram of grayscale values for the current tile.
                             for (int dy = -halfTileWith; dy < halfTileWith; dy++)
                             {
                                 Span<TPixel> rowSpan = this.GetPixelRow(source, pixelRow, (int)x - halfTileWith, dy, tileWidth);
@@ -91,14 +90,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                                     this.ClipHistogram(histogramCopy, this.ClipLimitPercentage, pixeInTile);
                                 }
 
-                                // Calculate the cumulative distribution function, which will map each input pixel in the current grid to a new value.
+                                // Calculate the cumulative distribution function, which will map each input pixel in the current tile to a new value.
                                 int cdfMin = this.ClipHistogramEnabled ? this.CalculateCdf(cdf, histogramCopy, maxHistIdx) : this.CalculateCdf(cdf, histogram, maxHistIdx);
                                 float numberOfPixelsMinusCdfMin = pixeInTile - cdfMin;
 
                                 // Map the current pixel to the new equalized value
                                 int luminance = this.GetLuminance(source[x, y], this.LuminanceLevels);
                                 float luminanceEqualized = cdf[luminance] / numberOfPixelsMinusCdfMin;
-                                targetPixels[x, y].FromVector4(new Vector4(luminanceEqualized));
+                                targetPixels[x, y].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, source[x, y].ToVector4().W));
 
                                 // Remove top most row from the histogram, mirroring rows which exceeds the borders.
                                 Span<TPixel> rowSpan = this.GetPixelRow(source, pixelRow, x - halfTileWith, y - halfTileWith, tileWidth);

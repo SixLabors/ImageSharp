@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="luminanceLevels">The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
         /// or 65536 for 16-bit grayscale images.</param>
         /// <param name="clipHistogram">Indicating whether to clip the histogram bins at a specific value.</param>
-        /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels in the grid. Histogram bins which exceed this limit, will be capped at this value.</param>
+        /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels in the tile. Histogram bins which exceed this limit, will be capped at this value.</param>
         /// <param name="tiles">The number of tiles the image is split into (horizontal and vertically). Minimum value is 2.</param>
         public AdaptiveHistEqualizationProcessor(int luminanceLevels, bool clipHistogram, float clipLimitPercentage, int tiles)
             : base(luminanceLevels, clipHistogram, clipLimitPercentage)
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         for (int dx = x; dx < xEnd; dx++)
                         {
                             float luminanceEqualized = this.InterpolateBetweenFourTiles(source[dx, dy], cdfData, tileX, tileY, cdfX, tileYStartPosition.cdfY, tileWidth, tileHeight, pixelsInTile);
-                            pixelRow[dx].FromVector4(new Vector4(luminanceEqualized));
+                            pixelRow[dx].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixelRow[dx].ToVector4().W));
                             tileX++;
                         }
 
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 for (int dx = xStart; dx < xEnd; dx++)
                 {
                     float luminanceEqualized = cdfData.RemapGreyValue(this.GetLuminance(source[dx, dy], this.LuminanceLevels), pixelsInTile);
-                    pixels[(dy * source.Width) + dx].FromVector4(new Vector4(luminanceEqualized));
+                    pixels[(dy * source.Width) + dx].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, source[dx, dy].ToVector4().W));
                 }
             }
         }
@@ -174,7 +174,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     for (int dx = xStart; dx < xEnd; dx++)
                     {
                         float luminanceEqualized = this.InterpolateBetweenTwoTiles(source[dx, dy], cdfData[cdfX, cdfY], cdfData[cdfX, cdfY + 1], tileY, tileHeight, pixelsInTile);
-                        pixels[(dy * source.Width) + dx].FromVector4(new Vector4(luminanceEqualized));
+                        pixels[(dy * source.Width) + dx].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, source[dx, dy].ToVector4().W));
                         tileX++;
                     }
 
@@ -213,7 +213,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     for (int dx = x; dx < xLimit; dx++)
                     {
                         float luminanceEqualized = this.InterpolateBetweenTwoTiles(source[dx, dy], cdfData[cdfX, cdfY], cdfData[cdfX + 1, cdfY], tileX, tileWidth, pixelsInTile);
-                        pixels[(dy * source.Width) + dx].FromVector4(new Vector4(luminanceEqualized));
+                        pixels[(dy * source.Width) + dx].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, source[dx, dy].ToVector4().W));
                         tileX++;
                     }
 

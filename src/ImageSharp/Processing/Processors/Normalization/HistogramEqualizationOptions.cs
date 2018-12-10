@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
         /// <summary>
         /// Gets or sets the histogram clip limit in percent of the total pixels in a tile. Histogram bins which exceed this limit, will be capped at this value.
-        /// Defaults to 0.35.
+        /// Defaults to 0.035f.
         /// </summary>
         public float ClipLimitPercentage { get; set; } = 0.035f;
 

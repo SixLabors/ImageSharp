@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     int luminance = this.GetLuminance(sourcePixel, this.LuminanceLevels);
                     float luminanceEqualized = cdf[luminance] / numberOfPixelsMinusCdfMin;
 
-                    pixels[i].FromVector4(new Vector4(luminanceEqualized));
+                    pixels[i].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, sourcePixel.ToVector4().W));
                 }
             }
         }

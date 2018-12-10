@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests
                         addedRows = memberItems.Select(x => x as object[]);
                         if (addedRows.Any(x => x == null))
                         {
-                            throw new ArgumentException($"Property {this.MemberName} on {this.MemberType ?? testMethod.DeclaringType} yielded an item that is not an object[]");
+                            addedRows = memberItems.Select(x => new[] { x });
                         }
                     }
                 }

@@ -71,7 +71,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="sourceBlock">The source block.</param>
         /// <param name="destArea">The destination buffer area.</param>
         /// <param name="maximumValue">The maximum value derived from the bitdepth.</param>
-
         public void ProcessBlockColorsInto(
             ref Block8x8 sourceBlock,
             in BufferArea<float> destArea,

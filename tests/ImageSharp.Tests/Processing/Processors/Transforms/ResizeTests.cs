@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                                        && string.IsNullOrEmpty(TestEnvironment.NetCoreVersion)
                                        && sampler is NearestNeighborResampler;
 
-            var comparer = ImageComparer.TolerantPercentage(allowHigherInaccuracy ? 0.3f : 0.01f);
+            var comparer = ImageComparer.TolerantPercentage(allowHigherInaccuracy ? 0.3f : 0.017f);
 
             provider.RunValidatingProcessorTest(
                 ctx =>

@@ -16,10 +16,9 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// A test image provider that produces test patterns.
         /// </summary>
-        /// <typeparam name="TPixel"></typeparam>
         private class TestPatternProvider : BlankProvider
         {
-            static Dictionary<string, Image<TPixel>> testImages = new Dictionary<string, Image<TPixel>>();
+            static readonly Dictionary<string, Image<TPixel>> TestImages = new Dictionary<string, Image<TPixel>>();
 
             public TestPatternProvider(int width, int height)
                 : base(width, height)
@@ -35,17 +34,17 @@ namespace SixLabors.ImageSharp.Tests
 
             public override Image<TPixel> GetImage()
             {
-                lock (testImages)
+                lock (TestImages)
                 {
-                    if (!testImages.ContainsKey(this.SourceFileOrDescription))
+                    if (!TestImages.ContainsKey(this.SourceFileOrDescription))
                     {
                         Image<TPixel> image = new Image<TPixel>(this.Width, this.Height);
                         DrawTestPattern(image);
-                        testImages.Add(this.SourceFileOrDescription, image);
+                        TestImages.Add(this.SourceFileOrDescription, image);
                     }
                 }
 
-                return testImages[this.SourceFileOrDescription].Clone();
+                return TestImages[this.SourceFileOrDescription].Clone();
             }
 
             /// <summary>
@@ -202,6 +201,7 @@ namespace SixLabors.ImageSharp.Tests
                 Rgba32 t = new Rgba32(0);
 
                 for (int x = left; x < right; x++)
+                {
                     for (int y = top; y < bottom; y++)
                     {
                         t.PackedValue += stepsPerPixel;
@@ -210,6 +210,7 @@ namespace SixLabors.ImageSharp.Tests
                         c.FromVector4(v);
                         pixels[x, y] = c;
                     }
+                }
             }
         }
     }

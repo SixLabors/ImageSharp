@@ -25,10 +25,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 
                 var v = new Vector4(0, 0, 0, 1F);
 
-                var scale = new Vector4(1 / this.MaximumValue,
-                                        1 / this.MaximumValue,
-                                        1 / this.MaximumValue,
-                                        1F);
+                var scale = new Vector4(
+                                1 / this.MaximumValue,
+                                1 / this.MaximumValue,
+                                1 / this.MaximumValue,
+                                1F);
 
                 for (int i = 0; i < result.Length; i++)
                 {

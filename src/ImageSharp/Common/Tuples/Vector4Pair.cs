@@ -37,9 +37,8 @@ namespace SixLabors.ImageSharp.Tuples
             this.B += other.B;
         }
 
-        /// <summary>. Works only if Ve
-        /// Downscale method, specific to Jpeg color conversctor{float}.Count == 4!
-        /// TODO: Move it somewhere else.
+        /// <summary>.
+        /// Downscale method, specific to Jpeg color conversion. Works only if Vector{float}.Count == 4!        /// TODO: Move it somewhere else.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void RoundAndDownscalePreAvx2(float downscaleFactor)

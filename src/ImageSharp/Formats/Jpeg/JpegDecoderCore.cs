@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// The only supported precision
         /// </summary>
-        public readonly int[] SupportedPrecisions = { 8, 12 };
+        private readonly int[] supportedPrecisions = { 8, 12 };
 
         /// <summary>
         /// The global configuration
@@ -724,7 +724,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.InputStream.Read(this.temp, 0, remaining);
 
             // We only support 8-bit and 12-bit precision.
-            if (!this.SupportedPrecisions.Contains(this.temp[0]))
+            if (!this.supportedPrecisions.Contains(this.temp[0]))
             {
                 throw new ImageFormatException("Only 8-Bit and 12-Bit precision supported.");
             }

@@ -28,12 +28,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 int simdCount = result.Length - remainder;
                 if (simdCount > 0)
                 {
-                    ConvertCore(values.Slice(0, simdCount), result.Slice(0, simdCount), 
-                        this.MaximumValue, this.HalfValue);
+                    ConvertCore(values.Slice(0, simdCount), result.Slice(0, simdCount), this.MaximumValue, this.HalfValue);
                 }
 
-                FromYCbCrBasic.ConvertCore(values.Slice(simdCount, remainder), result.Slice(simdCount, remainder), 
-                    this.MaximumValue, this.HalfValue);;
+                FromYCbCrBasic.ConvertCore(values.Slice(simdCount, remainder), result.Slice(simdCount, remainder), this.MaximumValue, this.HalfValue);
             }
 
             /// <summary>

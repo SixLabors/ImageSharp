@@ -28,6 +28,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 new FromCmyk(8),
                 new FromGrayscale(8),
                 new FromRgb(8),
+
                 // 12-bit converters
                 GetYCbCrConverter(12),
                 new FromYccK(12),
@@ -63,7 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         private float MaximumValue { get; }
 
         /// <summary>
-        /// Gets the maximum value of a sample
+        /// Gets the half of the maximum value of a sample
         /// </summary>
         private float HalfValue { get; }
 

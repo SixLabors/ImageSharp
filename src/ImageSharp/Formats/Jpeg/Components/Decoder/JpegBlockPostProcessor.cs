@@ -65,11 +65,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// Processes 'sourceBlock' producing Jpeg color channel values from spectral values:
         /// - Dequantize
         /// - Applying IDCT
-        /// - Level shift by +128, clip to [0, 255]
+        /// - Level shift by +maximumValue/2, clip to [0, maximumValue]
         /// - Copy the resulting color values into 'destArea' scaling up the block by amount defined in <see cref="subSamplingDivisors"/>
         /// </summary>
         /// <param name="sourceBlock">The source block.</param>
         /// <param name="destArea">The destination buffer area.</param>
+        /// <param name="maximumValue">The maximum value derived from the bitdepth.</param>
+
         public void ProcessBlockColorsInto(
             ref Block8x8 sourceBlock,
             in BufferArea<float> destArea,

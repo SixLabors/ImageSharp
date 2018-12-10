@@ -16,6 +16,13 @@ namespace SixLabors.ImageSharp
 
         private readonly double negEpsilon;
 
+        /// <summary>
+        /// A read-only default instance for <see cref="TolerantMath"/> using 1e-8 as epsilon.
+        /// It is a field so it can be passed as an 'in' parameter.
+        /// Does not necessarily fit all use cases!
+        /// </summary>
+        public static readonly TolerantMath Default = new TolerantMath(1e-8);
+
         public TolerantMath(double epsilon)
         {
             DebugGuard.MustBeGreaterThan(epsilon, 0, nameof(epsilon));
@@ -23,8 +30,6 @@ namespace SixLabors.ImageSharp
             this.epsilon = epsilon;
             this.negEpsilon = -epsilon;
         }
-
-        public static TolerantMath Default { get; } = new TolerantMath(1e-8);
 
         /// <summary>
         /// <paramref name="a"/> == 0

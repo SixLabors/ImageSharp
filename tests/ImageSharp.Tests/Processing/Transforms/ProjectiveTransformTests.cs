@@ -111,7 +111,32 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 Matrix4x4 matrix = Matrix4x4.Identity;
-                matrix.M13 = 0.01F;
+                matrix.M14 = 0.01F;
+
+                ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
+                .AppendMatrix(matrix);
+
+                image.Mutate(i => i.Transform(builder));
+
+                image.DebugSave(provider);
+                image.CompareToReferenceOutput(TolerantComparer, provider);
+            }
+        }
+
+        [Theory]
+        [WithSolidFilledImages(290, 154, 0, 0, 255, PixelTypes.Rgba32)]
+        public void PerspectiveTransformMatchesCSS<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            // https://jsfiddle.net/dFrHS/545/
+            // https://github.com/SixLabors/ImageSharp/issues/787
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var matrix = new Matrix4x4(
+                   0.260987f, -0.434909f, 0, -0.0022184f,
+                   0.373196f, 0.949882f, 0, -0.000312129f,
+                   0, 0, 1, 0,
+                   52, 165, 0, 1);
 
                 ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
                 .AppendMatrix(matrix);

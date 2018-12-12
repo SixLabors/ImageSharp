@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccParametricCurveTagDataEntry(IccParametricCurve curve, IccProfileTag tagSignature)
             : base(IccTypeSignature.ParametricCurve, tagSignature)
         {
-            this.Curve = curve;
+            this.Curve = curve ?? throw new ArgumentNullException(nameof(curve));
         }
 
         /// <summary>
@@ -65,12 +65,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <inheritdoc />
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                return (base.GetHashCode() * 397) ^ (this.Curve?.GetHashCode() ?? 0);
-            }
-        }
+        public override int GetHashCode() => HashCode.Combine(this.Signature, this.Curve);
     }
 }

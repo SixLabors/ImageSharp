@@ -73,13 +73,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc />
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = (int)this.CurveType;
-                hashCode = (hashCode * 397) ^ (this.XyzValues?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (this.ResponseArrays?.GetHashCode() ?? 0);
-                return hashCode;
-            }
+            return HashCode.Combine(
+                this.CurveType,
+                this.XyzValues,
+                this.ResponseArrays);
         }
 
         private bool EqualsResponseArray(IccResponseCurve other)

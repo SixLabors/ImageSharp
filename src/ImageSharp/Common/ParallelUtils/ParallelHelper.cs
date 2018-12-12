@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.ParallelUtils
             Rectangle rectangle,
             in ParallelExecutionSettings parallelSettings,
             Action<RowInterval, Memory<T>> body)
-            where T : struct
+            where T : unmanaged
         {
             int maxSteps = DivideCeil(rectangle.Width * rectangle.Height, parallelSettings.MinimumPixelsProcessedPerTask);
 
@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp.ParallelUtils
             Rectangle rectangle,
             Configuration configuration,
             Action<RowInterval, Memory<T>> body)
-            where T : struct
+            where T : unmanaged
         {
             IterateRowsWithTempBuffer(rectangle, configuration.GetParallelSettings(), body);
         }

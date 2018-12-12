@@ -76,20 +76,14 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
         /// <inheritdoc/>
         public bool Equals(IccTagTableEntry other) =>
-            this.Signature == other.Signature &&
-            this.Offset == other.Offset &&
-            this.DataSize == other.DataSize;
+            this.Signature.Equals(other.Signature) &&
+            this.Offset.Equals(other.Offset) &&
+            this.DataSize.Equals(other.DataSize);
 
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.Signature.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Offset.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.DataSize.GetHashCode();
-                return hashCode;
-            }
+            return HashCode.Combine(this.Signature, this.Offset, this.DataSize);
         }
 
         /// <inheritdoc/>

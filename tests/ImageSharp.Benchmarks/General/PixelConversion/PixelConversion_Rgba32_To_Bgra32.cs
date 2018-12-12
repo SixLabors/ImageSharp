@@ -4,7 +4,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Attributes.Jobs;
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tuples;

@@ -62,17 +62,14 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             : base(IccTypeSignature.Lut16, tagSignature)
         {
             Guard.NotNull(matrix, nameof(matrix));
-            Guard.NotNull(inputValues, nameof(inputValues));
-            Guard.NotNull(clutValues, nameof(clutValues));
-            Guard.NotNull(outputValues, nameof(outputValues));
 
             bool is3By3 = matrix.GetLength(0) == 3 && matrix.GetLength(1) == 3;
             Guard.IsTrue(is3By3, nameof(matrix), "Matrix must have a size of three by three");
 
             this.Matrix = this.CreateMatrix(matrix);
-            this.InputValues = inputValues;
-            this.ClutValues = clutValues;
-            this.OutputValues = outputValues;
+            this.InputValues = inputValues ?? throw new ArgumentNullException(nameof(inputValues));
+            this.ClutValues = clutValues ?? throw new ArgumentNullException(nameof(clutValues));
+            this.OutputValues = outputValues ?? throw new ArgumentNullException(nameof(outputValues));
 
             Guard.IsTrue(this.InputChannelCount == clutValues.InputChannelCount, nameof(clutValues), "Input channel count does not match the CLUT size");
             Guard.IsTrue(this.OutputChannelCount == clutValues.OutputChannelCount, nameof(clutValues), "Output channel count does not match the CLUT size");
@@ -143,15 +140,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = base.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Matrix.GetHashCode();
-                hashCode = (hashCode * 397) ^ (this.InputValues?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (this.ClutValues?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (this.OutputValues?.GetHashCode() ?? 0);
-                return hashCode;
-            }
+            return HashCode.Combine(
+                this.Signature,
+                this.Matrix,
+                this.InputValues,
+                this.ClutValues,
+                this.OutputValues);
         }
 
         private Matrix4x4 CreateMatrix(float[,] matrix)

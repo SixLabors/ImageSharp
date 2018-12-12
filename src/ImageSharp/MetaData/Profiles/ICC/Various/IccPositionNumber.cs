@@ -73,15 +73,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             this.Size == other.Size;
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return unchecked((int)(this.Offset ^ this.Size));
-        }
+        public override int GetHashCode() => unchecked((int)(this.Offset ^ this.Size));
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"{this.Offset}; {this.Size}";
-        }
+        public override string ToString() => $"{this.Offset}; {this.Size}";
     }
 }

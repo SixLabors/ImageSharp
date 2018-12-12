@@ -85,13 +85,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.Frequency.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Angle.GetHashCode();
-                hashCode = (hashCode * 397) ^ (int)this.SpotShape;
-                return hashCode;
-            }
+            return HashCode.Combine(this.Frequency, this.Angle, this.SpotShape);
         }
 
         /// <inheritdoc/>

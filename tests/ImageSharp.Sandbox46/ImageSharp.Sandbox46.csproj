@@ -18,19 +18,13 @@
     <ProjectReference Include="..\..\src\ImageSharp\ImageSharp.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="BitMiracle.LibJpeg.NET" Version="1.4.280" />
     <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="7.9.0.1" />
     <PackageReference Include="xunit" Version="2.3.1" />
-    <PackageReference Include="Moq" Version="4.8.3" />
-    <!--<PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.0.0" />-->
-    <!--<PackageReference Include="xunit.runner.visualstudio" Version="2.2.0" />-->
+    <PackageReference Include="Moq" Version="4.10.0" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\ImageSharp.Tests\**\*.cs" Exclude="bin\**;obj\**" Link="Tests\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Remove="..\ImageSharp.Tests\obj\**\*.cs" />
     <Compile Remove="..\ImageSharp.Tests\bin\**\*.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
 </Project>

@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override int GetHashCode() => HashHelpers.Combine(this.X.GetHashCode(), this.Y.GetHashCode());
+        public override int GetHashCode() => HashCode.Combine(this.X, this.Y);
 
         /// <inheritdoc/>
         public override string ToString() => FormattableString.Invariant($"CieXyChromaticityCoordinates({this.X:#0.##}, {this.Y:#0.##})");

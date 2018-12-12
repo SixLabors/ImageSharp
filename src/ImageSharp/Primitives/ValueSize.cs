@@ -133,9 +133,6 @@ namespace SixLabors.ImageSharp.Primitives
         }
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return HashHelpers.Combine(this.Value.GetHashCode(), this.Type.GetHashCode());
-        }
+        public override int GetHashCode() => HashCode.Combine(this.Value, this.Type);
     }
 }

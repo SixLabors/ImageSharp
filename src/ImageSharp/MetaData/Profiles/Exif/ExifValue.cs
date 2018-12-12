@@ -200,11 +200,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            int hashCode = HashHelpers.Combine(this.Tag.GetHashCode(), this.DataType.GetHashCode());
-
-            return this.Value != null
-                ? HashHelpers.Combine(hashCode, this.Value.GetHashCode())
-                : hashCode;
+            return HashCode.Combine(this.Tag, this.DataType, this.Value);
         }
 
         /// <inheritdoc/>

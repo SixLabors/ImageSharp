@@ -77,10 +77,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return HashHelpers.Combine(
-                base.GetHashCode(),
-                (int)this.Flags,
-                this.Channels.GetHashCode());
+            return HashCode.Combine(this.Signature, this.Flags, this.Channels);
         }
     }
 }

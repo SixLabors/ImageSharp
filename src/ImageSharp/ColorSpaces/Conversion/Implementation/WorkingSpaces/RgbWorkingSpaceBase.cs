@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {
     /// <summary>
@@ -76,7 +78,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return HashHelpers.Combine(this.WhitePoint.GetHashCode(), this.ChromaticityCoordinates.GetHashCode());
+            return HashCode.Combine(this.WhitePoint, this.ChromaticityCoordinates);
         }
     }
 }

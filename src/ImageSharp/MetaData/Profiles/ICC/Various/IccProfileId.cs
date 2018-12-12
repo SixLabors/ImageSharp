@@ -101,11 +101,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return HashHelpers.Combine(
-                this.Part1.GetHashCode(),
-                this.Part2.GetHashCode(),
-                this.Part3.GetHashCode(),
-                this.Part4.GetHashCode());
+            return HashCode.Combine(
+                this.Part1,
+                this.Part2,
+                this.Part3,
+                this.Part4);
         }
 
         /// <inheritdoc/>

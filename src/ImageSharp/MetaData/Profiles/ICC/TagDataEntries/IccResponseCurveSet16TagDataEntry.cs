@@ -83,10 +83,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc />
         public override int GetHashCode()
         {
-            return HashHelpers.Combine(
-                base.GetHashCode(),
-                this.ChannelCount.GetHashCode(),
-                this.Curves.GetHashCode());
+            return HashCode.Combine(
+                this.Signature,
+                this.ChannelCount,
+                this.Curves);
         }
     }
 }

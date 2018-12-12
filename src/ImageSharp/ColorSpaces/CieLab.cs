@@ -118,14 +118,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public static bool operator !=(CieLab left, CieLab right) => !left.Equals(right);
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return HashHelpers.Combine(
-                this.L.GetHashCode(),
-                this.A.GetHashCode(),
-                this.B.GetHashCode(),
-                this.WhitePoint.GetHashCode());
-        }
+        public override int GetHashCode() => HashCode.Combine(this.L, this.A, this.B, this.WhitePoint);
 
         /// <inheritdoc/>
         public override string ToString() => FormattableString.Invariant($"CieLab({this.L:#0.##}, {this.A:#0.##}, {this.B:#0.##})");

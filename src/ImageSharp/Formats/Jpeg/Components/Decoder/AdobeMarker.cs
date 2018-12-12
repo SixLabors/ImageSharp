@@ -100,11 +100,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return HashHelpers.Combine(
-                this.DCTEncodeVersion.GetHashCode(),
-                this.APP14Flags0.GetHashCode(),
-                this.APP14Flags1.GetHashCode(),
-                this.ColorTransform.GetHashCode());
+            return HashCode.Combine(
+                this.DCTEncodeVersion,
+                this.APP14Flags0,
+                this.APP14Flags1,
+                this.ColorTransform);
         }
     }
 }

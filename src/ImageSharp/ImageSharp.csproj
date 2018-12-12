@@ -38,7 +38,7 @@
   
   <ItemGroup>
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.1" />
-    <PackageReference Include="SixLabors.Core" Version="1.0.0-dev000089" />
+    <PackageReference Include="SixLabors.Core" Version="1.0.0-dev000094" />
     <AdditionalFiles Include="..\..\stylecop.json" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta007">
       <PrivateAssets>All</PrivateAssets>

@@ -122,11 +122,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return HashHelpers.Combine(
-               this.L.GetHashCode(),
-               this.C.GetHashCode(),
-               this.H.GetHashCode(),
-               this.WhitePoint.GetHashCode());
+            return HashCode.Combine(this.L, this.C, this.H, this.WhitePoint);
         }
 
         /// <inheritdoc/>

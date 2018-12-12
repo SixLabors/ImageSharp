@@ -73,17 +73,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             this.MeasurementValue == other.MeasurementValue;
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return HashHelpers.Combine(
-                this.DeviceCode.GetHashCode(),
-                this.MeasurementValue.GetHashCode());
-        }
+        public override int GetHashCode() => HashCode.Combine(this.DeviceCode, this.MeasurementValue);
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"Code: {this.DeviceCode}; Value: {this.MeasurementValue}";
-        }
+        public override string ToString() => $"Code: {this.DeviceCode}; Value: {this.MeasurementValue}";
     }
 }

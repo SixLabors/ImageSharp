@@ -87,13 +87,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public Vector3 ToVector3() => new Vector3(this.L, this.M, this.S);
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return HashHelpers.Combine(
-                this.L.GetHashCode(),
-                this.M.GetHashCode(),
-                this.S.GetHashCode());
-        }
+        public override int GetHashCode() => HashCode.Combine(this.L, this.M, this.S);
 
         /// <inheritdoc/>
         public override string ToString() => FormattableString.Invariant($"Lms({this.L:#0.##}, {this.M:#0.##}, {this.S:#0.##})");

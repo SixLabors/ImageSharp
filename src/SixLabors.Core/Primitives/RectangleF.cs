@@ -20,7 +20,7 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Represents a <see cref="RectangleF"/> that has X, Y, Width, and Height values set to zero.
         /// </summary>
-        public static readonly RectangleF Empty = default(RectangleF);
+        public static readonly RectangleF Empty = default;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RectangleF"/> struct.
@@ -358,11 +358,7 @@ namespace SixLabors.Primitives
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return HashHelpers.Combine(
-               this.X.GetHashCode(),
-               this.Y.GetHashCode(),
-               this.Width.GetHashCode(),
-               this.Height.GetHashCode());
+            return HashCode.Combine(this.X, this.Y, this.Width, this.Height);
         }
 
         /// <inheritdoc/>

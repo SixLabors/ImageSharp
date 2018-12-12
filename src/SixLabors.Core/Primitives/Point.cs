@@ -21,7 +21,7 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Represents a <see cref="Point"/> that has X and Y values set to zero.
         /// </summary>
-        public static readonly Point Empty = default(Point);
+        public static readonly Point Empty = default;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Point"/> struct.
@@ -258,7 +258,7 @@ namespace SixLabors.Primitives
         public void Offset(Point point) => this.Offset(point.X, point.Y);
 
         /// <inheritdoc/>
-        public override int GetHashCode() => HashHelpers.Combine(this.X.GetHashCode(), this.Y.GetHashCode());
+        public override int GetHashCode() => HashCode.Combine(this.X, this.Y);
 
         /// <inheritdoc/>
         public override string ToString() => $"Point [ X={this.X}, Y={this.Y} ]";

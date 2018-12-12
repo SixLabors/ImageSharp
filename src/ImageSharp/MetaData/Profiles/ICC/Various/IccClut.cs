@@ -142,12 +142,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            int hashCode = this.Values.GetHashCode();
-            hashCode = HashHelpers.Combine(hashCode, this.DataType.GetHashCode());
-            hashCode = HashHelpers.Combine(hashCode, this.InputChannelCount.GetHashCode());
-            hashCode = HashHelpers.Combine(hashCode, this.OutputChannelCount.GetHashCode());
-            hashCode = HashHelpers.Combine(hashCode, this.GridPointCount.GetHashCode());
-            return hashCode;
+            return HashCode.Combine(
+                this.Values,
+                this.DataType,
+                this.InputChannelCount,
+                this.OutputChannelCount,
+                this.GridPointCount);
         }
 
         private bool EqualsValuesArray(IccClut other)

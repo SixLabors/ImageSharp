@@ -90,10 +90,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return HashHelpers.Combine(
-                this.Name.GetHashCode(),
-                this.PcsCoordinates.GetHashCode(),
-                this.DeviceCoordinates.GetHashCode());
+            return HashCode.Combine(
+                this.Name,
+                this.PcsCoordinates,
+                this.DeviceCoordinates);
         }
 
         /// <inheritdoc/>

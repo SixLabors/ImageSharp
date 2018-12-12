@@ -106,13 +106,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            int hashCode = base.GetHashCode();
-            hashCode = HashHelpers.Combine(hashCode, this.Observer.GetHashCode());
-            hashCode = HashHelpers.Combine(hashCode, this.XyzBacking.GetHashCode());
-            hashCode = HashHelpers.Combine(hashCode, this.Geometry.GetHashCode());
-            hashCode = HashHelpers.Combine(hashCode, this.Flare.GetHashCode());
-            hashCode = HashHelpers.Combine(hashCode, this.Illuminant.GetHashCode());
-            return hashCode;
+            return HashCode.Combine(
+                this.Signature,
+                this.Observer,
+                this.XyzBacking,
+                this.Geometry,
+                this.Flare,
+                this.Illuminant);
         }
     }
 }

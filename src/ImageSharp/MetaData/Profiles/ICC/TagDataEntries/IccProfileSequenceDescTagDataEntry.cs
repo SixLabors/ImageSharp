@@ -67,9 +67,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <inheritdoc />
-        public override int GetHashCode()
-        {
-            return HashHelpers.Combine(base.GetHashCode(), this.Descriptions.GetHashCode());
-        }
+        public override int GetHashCode() => HashCode.Combine(this.Signature, this.Descriptions);
     }
 }

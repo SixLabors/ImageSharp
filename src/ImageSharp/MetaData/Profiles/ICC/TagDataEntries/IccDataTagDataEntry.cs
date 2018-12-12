@@ -91,10 +91,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return HashHelpers.Combine(
-                base.GetHashCode(),
-                this.Data.GetHashCode(),
-                this.IsAscii.GetHashCode());
+            return HashCode.Combine(
+                this.Signature,
+                this.Data,
+                this.IsAscii);
         }
     }
 }

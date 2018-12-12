@@ -18,10 +18,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <param name="description">Description of the profile</param>
         public IccProfileSequenceIdentifier(IccProfileId id, IccLocalizedString[] description)
         {
-            Guard.NotNull(description, nameof(description));
-
             this.Id = id;
-            this.Description = description;
+            this.Description = description ?? throw new ArgumentNullException(nameof(description));
         }
 
         /// <summary>
@@ -46,12 +44,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <inheritdoc />
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                return (this.Id.GetHashCode() * 397) ^ (this.Description?.GetHashCode() ?? 0);
-            }
-        }
+        public override int GetHashCode() => HashCode.Combine(this.Id, this.Description);
     }
 }

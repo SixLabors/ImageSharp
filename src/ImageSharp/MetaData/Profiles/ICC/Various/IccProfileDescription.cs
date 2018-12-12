@@ -28,15 +28,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             IccLocalizedString[] deviceManufacturerInfo,
             IccLocalizedString[] deviceModelInfo)
         {
-            Guard.NotNull(deviceManufacturerInfo, nameof(deviceManufacturerInfo));
-            Guard.NotNull(deviceModelInfo, nameof(deviceModelInfo));
-
             this.DeviceManufacturer = deviceManufacturer;
             this.DeviceModel = deviceModel;
             this.DeviceAttributes = deviceAttributes;
             this.TechnologyInformation = technologyInformation;
-            this.DeviceManufacturerInfo = deviceManufacturerInfo;
-            this.DeviceModelInfo = deviceModelInfo;
+            this.DeviceManufacturerInfo = deviceManufacturerInfo ?? throw new ArgumentNullException(nameof(deviceManufacturerInfo));
+            this.DeviceModelInfo = deviceModelInfo ?? throw new ArgumentNullException(nameof(deviceModelInfo));
         }
 
         /// <summary>
@@ -87,16 +84,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc />
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = (int)this.DeviceManufacturer;
-                hashCode = (hashCode * 397) ^ (int)this.DeviceModel;
-                hashCode = (hashCode * 397) ^ this.DeviceAttributes.GetHashCode();
-                hashCode = (hashCode * 397) ^ (int)this.TechnologyInformation;
-                hashCode = (hashCode * 397) ^ (this.DeviceManufacturerInfo?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (this.DeviceModelInfo?.GetHashCode() ?? 0);
-                return hashCode;
-            }
+            return HashCode.Combine(
+                this.DeviceManufacturer,
+                this.DeviceModel,
+                this.DeviceAttributes,
+                this.TechnologyInformation,
+                this.DeviceManufacturerInfo,
+                this.DeviceModelInfo);
         }
     }
 }

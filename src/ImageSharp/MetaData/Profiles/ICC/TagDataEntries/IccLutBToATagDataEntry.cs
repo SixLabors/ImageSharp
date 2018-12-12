@@ -183,14 +183,21 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return HashCode.Combine(
-                this.Signature,
-                this.InputChannelCount,
-                this.OutputChannelCount,
-                this.Matrix3x3,
-                this.Matrix3x1,
-                this.ClutValues,
-                HashCode.Combine(this.CurveB, this.CurveM, this.CurveA));
+#pragma warning disable SA1129 // Do not use default value type constructor
+            var hashCode = new HashCode();
+#pragma warning restore SA1129 // Do not use default value type constructor
+
+            hashCode.Add(this.Signature);
+            hashCode.Add(this.InputChannelCount);
+            hashCode.Add(this.OutputChannelCount);
+            hashCode.Add(this.Matrix3x3);
+            hashCode.Add(this.Matrix3x1);
+            hashCode.Add(this.ClutValues);
+            hashCode.Add(this.CurveB);
+            hashCode.Add(this.CurveM);
+            hashCode.Add(this.CurveA);
+
+            return hashCode.ToHashCode();
         }
 
         private bool EqualsCurve(IccTagDataEntry[] thisCurves, IccTagDataEntry[] entryCurves)

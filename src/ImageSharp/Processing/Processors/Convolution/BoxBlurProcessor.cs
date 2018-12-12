@@ -29,8 +29,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         {
             this.Radius = radius;
             this.kernelSize = (radius * 2) + 1;
-            this.KernelX = this.CreateBoxKernel(true);
-            this.KernelY = this.CreateBoxKernel(false);
+            this.KernelX = this.CreateBoxKernel();
+            this.KernelY = this.KernelX.Transpose();
         }
 
         /// <summary>
@@ -49,24 +49,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         public DenseMatrix<float> KernelY { get; }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
-        {
-            new Convolution2PassProcessor<TPixel>(this.KernelX, this.KernelY).Apply(source, sourceRectangle, configuration);
-        }
+        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration) => new Convolution2PassProcessor<TPixel>(this.KernelX, this.KernelY).Apply(source, sourceRectangle, configuration);
 
         /// <summary>
         /// Create a 1 dimensional Box kernel.
         /// </summary>
-        /// <param name="horizontal">Whether to calculate a horizontal kernel.</param>
         /// <returns>The <see cref="DenseMatrix{T}"/></returns>
-        private DenseMatrix<float> CreateBoxKernel(bool horizontal)
+        private DenseMatrix<float> CreateBoxKernel()
         {
             int size = this.kernelSize;
-            DenseMatrix<float> kernel = horizontal
-                ? new DenseMatrix<float>(size, 1)
-                : new DenseMatrix<float>(1, size);
+            var kernel = new DenseMatrix<float>(size, 1);
 
-            kernel.Fill(1.0F / size);
+            kernel.Fill(1F / size);
 
             return kernel;
         }

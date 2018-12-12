@@ -42,7 +42,6 @@ namespace SixLabors.Memory
                 DefaultNormalPoolBucketCount);
         }
 
-
         /// <summary>
         /// For environments with very limited memory capabilities, only small buffers like image rows are pooled.
         /// </summary>
@@ -60,7 +59,6 @@ namespace SixLabors.Memory
         {
             return new ArrayPoolMemoryAllocator(1024 * 1024, 32 * 1024, 16, 24);
         }
-
 
         /// <summary>
         /// For environments where memory capabilities are not an issue, the maximum amount of array requests are pooled which results in optimal throughput.

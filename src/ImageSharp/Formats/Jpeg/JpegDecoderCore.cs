@@ -553,12 +553,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 if (this.exifData is null)
                 {
                     // The first 6 bytes (Exif00) will be skipped, because this is Jpeg specific
-                    this.exifData = profile.Skip(Exif00).ToArray();
+                    this.exifData = profile.AsSpan(Exif00).ToArray();
                 }
                 else
                 {
                     // If the EXIF information exceeds 64K, it will be split over multiple APP1 markers
-                    this.ExtendProfile(ref this.exifData, profile.Skip(Exif00).ToArray());
+                    this.ExtendProfile(ref this.exifData, profile.AsSpan(Exif00).ToArray());
                 }
             }
         }

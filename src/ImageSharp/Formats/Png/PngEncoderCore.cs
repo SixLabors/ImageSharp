@@ -237,7 +237,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 }
 
                 // Use the metadata to determine what quantization depth to use if no quantizer has been set.
-                if (this.quantizer == null)
+                if (this.quantizer is null)
                 {
                     this.quantizer = new WuQuantizer(ImageMaths.GetColorCountForBitDepth(bits));
                 }

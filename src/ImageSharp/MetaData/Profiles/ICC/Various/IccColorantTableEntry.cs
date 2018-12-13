@@ -102,14 +102,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.Name.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Pcs1.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Pcs2.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Pcs3.GetHashCode();
-                return hashCode;
-            }
+            return HashCode.Combine(
+                this.Name,
+                this.Pcs1,
+                this.Pcs2,
+                this.Pcs3);
         }
 
         /// <inheritdoc/>

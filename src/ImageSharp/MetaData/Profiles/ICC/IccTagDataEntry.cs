@@ -64,12 +64,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                return (int)this.Signature * 397;
-            }
-        }
+        public override int GetHashCode() => this.Signature.GetHashCode();
     }
 }

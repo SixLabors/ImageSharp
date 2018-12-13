@@ -18,10 +18,7 @@ namespace SixLabors.ImageSharp.Advanced
     /// </summary>
     public static class AotCompilerTools
     {
-        /// <summary>
-        /// Seeds the <see cref="System.Runtime.CompilerServices.Unsafe"/> calls.
-        /// </summary>
-        public static void SeedUnsafe()
+        static AotCompilerTools()
         {
             System.Runtime.CompilerServices.Unsafe.SizeOf<long>();
             System.Runtime.CompilerServices.Unsafe.SizeOf<short>();

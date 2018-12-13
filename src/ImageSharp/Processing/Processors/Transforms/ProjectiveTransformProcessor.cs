@@ -75,7 +75,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             // Convert from screen to world space.
             Matrix4x4.Invert(this.TransformMatrix, out Matrix4x4 matrix);
-            const float Epsilon = 0.0000001F;
 
             if (this.Sampler is NearestNeighborResampler)
             {
@@ -90,11 +89,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                                 for (int x = 0; x < width; x++)
                                 {
-                                    var v3 = Vector3.Transform(new Vector3(x, y, 1), matrix);
-
-                                    float z = MathF.Max(v3.Z, Epsilon);
-                                    int px = (int)MathF.Round(v3.X / z);
-                                    int py = (int)MathF.Round(v3.Y / z);
+                                    Vector2 point = TransformUtils.ProjectiveTransform2D(x, y, matrix);
+                                    int px = (int)MathF.Round(point.X);
+                                    int py = (int)MathF.Round(point.Y);
 
                                     if (sourceRectangle.Contains(px, py))
                                     {
@@ -127,9 +124,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                             {
                                 // Use the single precision position to calculate correct bounding pixels
                                 // otherwise we get rogue pixels outside of the bounds.
-                                var v3 = Vector3.Transform(new Vector3(x, y, 1F), matrix);
-                                Vector2 point = new Vector2(v3.X, v3.Y) / MathF.Max(v3.Z, Epsilon);
-
+                                Vector2 point = TransformUtils.ProjectiveTransform2D(x, y, matrix);
                                 kernel.Convolve(point, x, ref ySpanRef, ref xSpanRef, source.PixelBuffer, vectorSpan);
                             }
 

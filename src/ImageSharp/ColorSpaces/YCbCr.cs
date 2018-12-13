@@ -83,12 +83,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override int GetHashCode()
-        {
-            int hash = this.Y.GetHashCode();
-            hash = HashHelpers.Combine(hash, this.Cb.GetHashCode());
-            return HashHelpers.Combine(hash, this.Cr.GetHashCode());
-        }
+        public override int GetHashCode() => HashCode.Combine(this.Y, this.Cb, this.Cr);
 
         /// <inheritdoc/>
         public override string ToString() => FormattableString.Invariant($"YCbCr({this.Y}, {this.Cb}, {this.Cr})");

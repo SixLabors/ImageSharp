@@ -43,10 +43,10 @@ namespace SixLabors.ImageSharp.Advanced
 
             System.Runtime.CompilerServices.Unsafe.SizeOf<TPixel>();
 
-            AotDecoder<TPixel>(new Formats.Png.PngDecoder());
-            AotDecoder<TPixel>(new Formats.Bmp.BmpDecoder());
-            AotDecoder<TPixel>(new Formats.Gif.GifDecoder());
-            AotDecoder<TPixel>(new Formats.Jpeg.JpegDecoder());
+            AotCodec<TPixel>(new Formats.Png.PngDecoder(), new Formats.Png.PngEncoder());
+            AotCodec<TPixel>(new Formats.Bmp.BmpDecoder(), new Formats.Bmp.BmpEncoder());
+            AotCodec<TPixel>(new Formats.Gif.GifDecoder(), new Formats.Gif.GifEncoder());
+            AotCodec<TPixel>(new Formats.Jpeg.JpegDecoder(), new Formats.Jpeg.JpegEncoder());
 
             // TODO: Do the discovery work to figure out what works and what doesn't.
         }
@@ -122,16 +122,24 @@ namespace SixLabors.ImageSharp.Advanced
         }
 
         /// <summary>
-        /// This method pre-seeds the decoder for a given pixel format in the AoT compiler for iOS.
+        /// This method pre-seeds the decoder and encoder for a given pixel format in the AoT compiler for iOS.
         /// </summary>
-        /// <param name="decoder">The image decoder to seed..</param>
+        /// <param name="decoder">The image decoder to seed.</param>
+        /// <param name="encoder">The image encoder to seed.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        private static void AotDecoder<TPixel>(IImageDecoder decoder)
+        private static void AotCodec<TPixel>(IImageDecoder decoder, IImageEncoder encoder)
             where TPixel : struct, IPixel<TPixel>
         {
             try
             {
                 decoder.Decode<TPixel>(Configuration.Default, null);
+            }
+            catch
+            {
+            }
+            try
+            {
+                encoder.Encode<TPixel>(null, null);
             }
             catch
             {

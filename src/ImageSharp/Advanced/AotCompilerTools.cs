@@ -137,6 +137,7 @@ namespace SixLabors.ImageSharp.Advanced
             catch
             {
             }
+
             try
             {
                 encoder.Encode<TPixel>(null, null);

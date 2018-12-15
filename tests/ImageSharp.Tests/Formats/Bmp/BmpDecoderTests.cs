@@ -88,19 +88,33 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-        [Theory]
-        [MemberData(nameof(RatioFiles))]
-        public void Identify_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
+        [Fact]
+        public void DecodeOs22XShortHeader_VeryfyDimensions()
         {
+            string imagePath = @"Bmp/pal8os2v2-16.bmp";
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
                 var decoder = new BmpDecoder();
-                IImageInfo image = decoder.Identify(Configuration.Default, stream);
-                ImageMetaData meta = image.MetaData;
-                Assert.Equal(xResolution, meta.HorizontalResolution);
-                Assert.Equal(yResolution, meta.VerticalResolution);
-                Assert.Equal(resolutionUnit, meta.ResolutionUnits);
+                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
+                {
+                    Assert.Equal(127, image.Width);
+                    Assert.Equal(64, image.Height);
+                }
+            }
+        }
+
+        [Fact]
+        public void IdentifyOs22XShortHeader_VeryfyDimensions()
+        {
+            string imagePath = @"Bmp/pal8os2v2-16.bmp";
+            var testFile = TestFile.Create(imagePath);
+            using (var stream = new MemoryStream(testFile.Bytes, false))
+            {
+                IImageInfo imageInfo = Image.Identify(stream);
+                Assert.Equal(127, imageInfo.Width);
+                Assert.Equal(64, imageInfo.Height);
+                Assert.Equal(8, imageInfo.PixelType.BitsPerPixel);
             }
         }
     }

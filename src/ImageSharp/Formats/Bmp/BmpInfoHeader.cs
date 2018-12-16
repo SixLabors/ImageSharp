@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Defines the size of the short variant of the OS22XBITMAPHEADER data structure in the bitmap file.
         /// </summary>
-        public const int Os2Short = 16;
+        public const int Os22ShortSize = 16;
 
         /// <summary>
         /// Defines the size of the biggest supported header data structure in the bitmap file.
@@ -168,7 +168,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="data">The data to parse.</param>
         /// <returns>Parsed header</returns>
         /// <seealso href="https://www.fileformat.info/format/os2bmp/egff.htm"/>
-        public static BmpInfoHeader ParseOs2Short(ReadOnlySpan<byte> data)
+        public static BmpInfoHeader ParseOs22Short(ReadOnlySpan<byte> data)
         {
             return new BmpInfoHeader(
                 headerSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4)),

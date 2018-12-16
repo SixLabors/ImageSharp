@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             try
             {
-                this.ReadImageHeaders(stream, out bool inverted, out byte[] palette);
+                int bytesPerColorMapEntry = this.ReadImageHeaders(stream, out bool inverted, out byte[] palette);
 
                 var image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height, this.metaData);
 
@@ -137,6 +137,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                                 this.infoHeader.Width,
                                 this.infoHeader.Height,
                                 this.infoHeader.BitsPerPixel,
+                                bytesPerColorMapEntry,
                                 inverted);
                         }
 
@@ -329,18 +330,20 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="colors">The <see cref="T:byte[]"/> containing the colors.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
-        /// <param name="bits">The number of bits per pixel.</param>
+        /// <param name="bitsPerPixel">The number of bits per pixel.</param>
+        /// <param name="bytesPerColorMapEntry">Usually 4 bytes, but in case of Windows 2.x bitmaps or OS/2 1.x bitmaps
+        /// the bytes per color palette entry's can be 3 bytes instead of 4.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
-        private void ReadRgbPalette<TPixel>(Buffer2D<TPixel> pixels, byte[] colors, int width, int height, int bits, bool inverted)
+        private void ReadRgbPalette<TPixel>(Buffer2D<TPixel> pixels, byte[] colors, int width, int height, int bitsPerPixel, int bytesPerColorMapEntry, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
             // Pixels per byte (bits per pixel)
-            int ppb = 8 / bits;
+            int ppb = 8 / bitsPerPixel;
 
             int arrayWidth = (width + ppb - 1) / ppb;
 
             // Bit mask
-            int mask = 0xFF >> (8 - bits);
+            int mask = 0xFF >> (8 - bitsPerPixel);
 
             // Rows are aligned on 4 byte boundaries
             int padding = arrayWidth % 4;
@@ -366,7 +369,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         int colOffset = x * ppb;
                         for (int shift = 0, newX = colOffset; shift < ppb && newX < width; shift++, newX++)
                         {
-                            int colorIndex = ((rowSpan[offset] >> (8 - bits - (shift * bits))) & mask) * 4;
+                            int colorIndex = ((rowSpan[offset] >> (8 - bitsPerPixel - (shift * bitsPerPixel))) & mask) * bytesPerColorMapEntry;
 
                             color.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIndex]));
                             pixelRow[newX] = color;
@@ -571,7 +574,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Reads the <see cref="BmpFileHeader"/> and <see cref="BmpInfoHeader"/> from the stream and sets the corresponding fields.
         /// </summary>
-        private void ReadImageHeaders(Stream stream, out bool inverted, out byte[] palette)
+        /// <returns>Bytes per color palette entry. Usually 4 bytes, but in case of Windows 2.x bitmaps or OS/2 1.x bitmaps
+        /// the bytes per color palette entry's can be 3 bytes instead of 4.</returns>
+        private int ReadImageHeaders(Stream stream, out bool inverted, out byte[] palette)
         {
             this.stream = stream;
 
@@ -591,6 +596,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
 
             int colorMapSize = -1;
+            int bytesPerColorMapEntry = 4;
 
             if (this.infoHeader.ClrUsed == 0)
             {
@@ -598,12 +604,15 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     || this.infoHeader.BitsPerPixel == 4
                     || this.infoHeader.BitsPerPixel == 8)
                 {
-                    colorMapSize = ImageMaths.GetColorCountForBitDepth(this.infoHeader.BitsPerPixel) * 4;
+                    int colorMapSizeBytes = this.fileHeader.Offset - BmpFileHeader.Size - this.infoHeader.HeaderSize;
+                    int colorCountForBitDepth = ImageMaths.GetColorCountForBitDepth(this.infoHeader.BitsPerPixel);
+                    bytesPerColorMapEntry = colorMapSizeBytes / colorCountForBitDepth;
+                    colorMapSize = colorMapSizeBytes;
                 }
             }
             else
             {
-                colorMapSize = this.infoHeader.ClrUsed * 4;
+                colorMapSize = this.infoHeader.ClrUsed * bytesPerColorMapEntry;
             }
 
             palette = null;
@@ -622,6 +631,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
 
             this.infoHeader.VerifyDimensions();
+
+            return bytesPerColorMapEntry;
         }
     }
 }

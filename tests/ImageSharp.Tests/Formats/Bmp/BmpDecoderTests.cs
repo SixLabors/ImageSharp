@@ -11,6 +11,7 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests
 {
     using SixLabors.ImageSharp.MetaData;
+    using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
     using static TestImages.Bmp;
 
     public class BmpDecoderTests
@@ -88,33 +89,15 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-        [Fact]
-        public void DecodeOs22XShortHeader_VeryfyDimensions()
+        [Theory]
+        [WithFile(Os2v2Short, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_Os2v2XShortHeader<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
         {
-            string imagePath = @"Bmp/pal8os2v2-16.bmp";
-            var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
-                var decoder = new BmpDecoder();
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
-                {
-                    Assert.Equal(127, image.Width);
-                    Assert.Equal(64, image.Height);
-                }
-            }
-        }
-
-        [Fact]
-        public void IdentifyOs22XShortHeader_VeryfyDimensions()
-        {
-            string imagePath = @"Bmp/pal8os2v2-16.bmp";
-            var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                IImageInfo imageInfo = Image.Identify(stream);
-                Assert.Equal(127, imageInfo.Width);
-                Assert.Equal(64, imageInfo.Height);
-                Assert.Equal(8, imageInfo.PixelType.BitsPerPixel);
+                image.DebugSave(provider, "png");
+                image.CompareToOriginal(provider);
             }
         }
     }

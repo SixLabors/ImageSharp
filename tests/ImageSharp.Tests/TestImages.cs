@@ -201,6 +201,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Bit16 = "Bmp/test16.bmp";
             public const string Bit16Inverted = "Bmp/test16-inverted.bmp";
             public const string Bit32Rgb = "Bmp/rgb32.bmp";
+            public const string Os2v2Short = "Bmp/pal8os2v2-16.bmp";
 
             public static readonly string[] All
             = {

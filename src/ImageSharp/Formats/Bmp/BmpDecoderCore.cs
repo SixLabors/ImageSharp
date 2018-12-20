@@ -513,6 +513,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 // 12 bytes
                 this.infoHeader = BmpInfoHeader.ParseCore(buffer);
             }
+            else if (headerSize == BmpInfoHeader.Os22ShortSize)
+            {
+                // 16 bytes
+                this.infoHeader = BmpInfoHeader.ParseOs22Short(buffer);
+            }
             else if (headerSize >= BmpInfoHeader.Size)
             {
                 // >= 40 bytes

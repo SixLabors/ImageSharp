@@ -27,6 +27,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public const int CoreSize = 12;
 
         /// <summary>
+        /// Defines the size of the short variant of the OS22XBITMAPHEADER data structure in the bitmap file.
+        /// </summary>
+        public const int Os22ShortSize = 16;
+
+        /// <summary>
         /// Defines the size of the biggest supported header data structure in the bitmap file.
         /// </summary>
         public const int MaxHeaderSize = Size;
@@ -143,7 +148,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Parses the BITMAPCOREHEADER consisting of the headerSize, width, height, planes, and bitsPerPixel fields (12 bytes).
         /// </summary>
-        /// <param name="data">The data to parse,</param>
+        /// <param name="data">The data to parse.</param>
         /// <returns>Parsed header</returns>
         /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx"/>
         public static BmpInfoHeader ParseCore(ReadOnlySpan<byte> data)
@@ -154,6 +159,23 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 height: BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(6, 2)),
                 planes: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(8, 2)),
                 bitsPerPixel: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(10, 2)));
+        }
+
+        /// <summary>
+        /// Parses a short variant of the OS22XBITMAPHEADER. It is identical to the BITMAPCOREHEADER, except that the width and height
+        /// are 4 bytes instead of 2.
+        /// </summary>
+        /// <param name="data">The data to parse.</param>
+        /// <returns>Parsed header</returns>
+        /// <seealso href="https://www.fileformat.info/format/os2bmp/egff.htm"/>
+        public static BmpInfoHeader ParseOs22Short(ReadOnlySpan<byte> data)
+        {
+            return new BmpInfoHeader(
+                headerSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4)),
+                width: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4)),
+                height: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4)),
+                planes: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(12, 2)),
+                bitsPerPixel: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(14, 2)));
         }
 
         public unsafe void WriteTo(Span<byte> buffer)

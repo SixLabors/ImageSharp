@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests
 
             cfg.ConfigureCodecs(
                 BmpFormat.Instance,
-                MagickReferenceDecoder.Instance,
+                IsWindows ? (IImageDecoder)SystemDrawingReferenceDecoder.Instance : MagickReferenceDecoder.Instance,
                 bmpEncoder,
                 new BmpImageFormatDetector());
 

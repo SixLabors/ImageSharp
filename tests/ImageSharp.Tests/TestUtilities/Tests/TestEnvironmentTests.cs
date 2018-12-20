@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Tests
 
         [Theory]
         [InlineData("lol/foo.png", typeof(MagickReferenceDecoder))]
-        [InlineData("lol/Rofl.bmp", typeof(MagickReferenceDecoder))]
+        [InlineData("lol/Rofl.bmp", typeof(SystemDrawingReferenceDecoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegDecoder))]
         [InlineData("lol/Baz.gif", typeof(GifDecoder))]
         public void GetReferenceDecoder_ReturnsCorrectDecoders_Windows(string fileName, Type expectedDecoderType)

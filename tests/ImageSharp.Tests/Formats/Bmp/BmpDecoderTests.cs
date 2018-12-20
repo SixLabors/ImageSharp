@@ -89,18 +89,17 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [MemberData(nameof(RatioFiles))]
-        public void Identify_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
+        [WithFile(Os2v2Short, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_Os2v2XShortHeader<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
         {
-            var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
-                var decoder = new BmpDecoder();
-                IImageInfo image = decoder.Identify(Configuration.Default, stream);
-                ImageMetaData meta = image.MetaData;
-                Assert.Equal(xResolution, meta.HorizontalResolution);
-                Assert.Equal(yResolution, meta.VerticalResolution);
-                Assert.Equal(resolutionUnit, meta.ResolutionUnits);
+                image.DebugSave(provider, "png");
+
+                // TODO: Neither System.Drawing not MagickReferenceDecoder 
+                // can correctly decode this file.
+                // image.CompareToOriginal(provider);
             }
         }
     }

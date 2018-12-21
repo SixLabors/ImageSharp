@@ -27,9 +27,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
         public ExifReader(byte[] exifData)
         {
-            DebugGuard.NotNull(exifData, nameof(exifData));
-
-            this.exifData = exifData;
+            this.exifData = exifData ?? throw new ArgumentNullException(nameof(exifData));
         }
 
         private delegate TDataType ConverterMethod<TDataType>(ReadOnlySpan<byte> data);
@@ -374,7 +372,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
         private void AddInvalidTag(ExifTag tag)
         {
-            if (this.invalidTags == null)
+            if (this.invalidTags is null)
             {
                 this.invalidTags = new List<ExifTag>();
             }

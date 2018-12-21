@@ -3,6 +3,7 @@
 
 using System;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
@@ -12,6 +13,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// </summary>
     internal static class TransformUtils
     {
+        /// <summary>
+        /// Applies the projective transform against the given coordinates flattened into the 2D space.
+        /// </summary>
+        /// <param name="x">The "x" vector coordinate.</param>
+        /// <param name="y">The "y" vector coordinate.</param>
+        /// <param name="matrix">The transform matrix.</param>
+        /// <returns>The <see cref="Vector2"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static Vector2 ProjectiveTransform2D(float x, float y, Matrix4x4 matrix)
+        {
+            const float Epsilon = 0.0000001F;
+            var v4 = Vector4.Transform(new Vector4(x, y, 0, 1F), matrix);
+            return new Vector2(v4.X, v4.Y) / MathF.Max(v4.W, Epsilon);
+        }
+
         /// <summary>
         /// Creates a centered rotation matrix using the given rotation in degrees and the source size.
         /// </summary>
@@ -94,12 +110,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         {
             Matrix4x4 matrix = Matrix4x4.Identity;
 
+            /*
+             * SkMatrix is layed out in the following manner:
+             *
+             * [ ScaleX  SkewY   Persp0 ]
+             * [ SkewX   ScaleY  Persp1 ]
+             * [ TransX  TransY  Persp2 ]
+             *
+             * When converting from Matrix4x4 to SkMatrix, the third row and
+             * column is dropped.  When converting from SkMatrix to Matrix4x4
+             * the third row and column remain as identity:
+             *
+             * [ a b c ]      [ a b 0 c ]
+             * [ d e f ]  ->  [ d e 0 f ]
+             * [ g h i ]      [ 0 0 1 0 ]
+             *                [ g h 0 i ]
+             */
             switch (side)
             {
                 case TaperSide.Left:
                     matrix.M11 = fraction;
                     matrix.M22 = fraction;
-                    matrix.M13 = (fraction - 1) / size.Width;
+                    matrix.M14 = (fraction - 1) / size.Width;
 
                     switch (corner)
                     {
@@ -107,13 +139,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                             break;
 
                         case TaperCorner.LeftOrTop:
-                            matrix.M12 = size.Height * matrix.M13;
-                            matrix.M32 = size.Height * (1 - fraction);
+                            matrix.M12 = size.Height * matrix.M14;
+                            matrix.M42 = size.Height * (1 - fraction);
                             break;
 
                         case TaperCorner.Both:
-                            matrix.M12 = size.Height * .5F * matrix.M13;
-                            matrix.M32 = size.Height * (1 - fraction) / 2;
+                            matrix.M12 = size.Height * .5F * matrix.M14;
+                            matrix.M42 = size.Height * (1 - fraction) / 2;
                             break;
                     }
 
@@ -122,7 +154,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 case TaperSide.Top:
                     matrix.M11 = fraction;
                     matrix.M22 = fraction;
-                    matrix.M23 = (fraction - 1) / size.Height;
+                    matrix.M24 = (fraction - 1) / size.Height;
 
                     switch (corner)
                     {
@@ -130,13 +162,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                             break;
 
                         case TaperCorner.LeftOrTop:
-                            matrix.M21 = size.Width * matrix.M23;
-                            matrix.M31 = size.Width * (1 - fraction);
+                            matrix.M21 = size.Width * matrix.M24;
+                            matrix.M41 = size.Width * (1 - fraction);
                             break;
 
                         case TaperCorner.Both:
-                            matrix.M21 = size.Width * .5F * matrix.M23;
-                            matrix.M31 = size.Width * (1 - fraction) / 2;
+                            matrix.M21 = size.Width * .5F * matrix.M24;
+                            matrix.M41 = size.Width * (1 - fraction) * .5F;
                             break;
                     }
 
@@ -144,7 +176,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                 case TaperSide.Right:
                     matrix.M11 = 1 / fraction;
-                    matrix.M13 = (1 - fraction) / (size.Width * fraction);
+                    matrix.M14 = (1 - fraction) / (size.Width * fraction);
 
                     switch (corner)
                     {
@@ -152,11 +184,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                             break;
 
                         case TaperCorner.LeftOrTop:
-                            matrix.M12 = size.Height * matrix.M13;
+                            matrix.M12 = size.Height * matrix.M14;
                             break;
 
                         case TaperCorner.Both:
-                            matrix.M12 = size.Height * .5F * matrix.M13;
+                            matrix.M12 = size.Height * .5F * matrix.M14;
                             break;
                     }
 
@@ -164,7 +196,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                 case TaperSide.Bottom:
                     matrix.M22 = 1 / fraction;
-                    matrix.M23 = (1 - fraction) / (size.Height * fraction);
+                    matrix.M24 = (1 - fraction) / (size.Height * fraction);
 
                     switch (corner)
                     {
@@ -172,11 +204,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                             break;
 
                         case TaperCorner.LeftOrTop:
-                            matrix.M21 = size.Width * matrix.M23;
+                            matrix.M21 = size.Width * matrix.M24;
                             break;
 
                         case TaperCorner.Both:
-                            matrix.M21 = size.Width * .5F * matrix.M23;
+                            matrix.M21 = size.Width * .5F * matrix.M24;
                             break;
                     }
 
@@ -260,17 +292,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return rectangle;
             }
 
-            Vector2 GetVector(float x, float y)
-            {
-                const float Epsilon = 0.0000001F;
-                var v3 = Vector3.Transform(new Vector3(x, y, 1F), matrix);
-                return new Vector2(v3.X, v3.Y) / MathF.Max(v3.Z, Epsilon);
-            }
-
-            Vector2 tl = GetVector(rectangle.Left, rectangle.Top);
-            Vector2 tr = GetVector(rectangle.Right, rectangle.Top);
-            Vector2 bl = GetVector(rectangle.Left, rectangle.Bottom);
-            Vector2 br = GetVector(rectangle.Right, rectangle.Bottom);
+            Vector2 tl = ProjectiveTransform2D(rectangle.Left, rectangle.Top, matrix);
+            Vector2 tr = ProjectiveTransform2D(rectangle.Right, rectangle.Top, matrix);
+            Vector2 bl = ProjectiveTransform2D(rectangle.Left, rectangle.Bottom, matrix);
+            Vector2 br = ProjectiveTransform2D(rectangle.Right, rectangle.Bottom, matrix);
 
             return GetBoundingRectangle(tl, tr, bl, br);
         }

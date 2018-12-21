@@ -3,12 +3,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Tuples;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
@@ -73,8 +71,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// </summary>
         public static JpegColorConverter GetConverter(JpegColorSpace colorSpace, float precision)
         {
-            JpegColorConverter converter = Converters.FirstOrDefault(c => c.ColorSpace == colorSpace &&
-                                                                          c.Precision == precision);
+            JpegColorConverter converter = Array.Find(Converters, c => c.ColorSpace == colorSpace
+                                                                    && c.Precision == precision);
 
             if (converter is null)
             {

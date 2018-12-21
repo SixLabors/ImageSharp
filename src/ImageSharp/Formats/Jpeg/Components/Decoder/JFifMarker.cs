@@ -112,13 +112,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return HashHelpers.Combine(
-                this.MajorVersion.GetHashCode(),
-                HashHelpers.Combine(
-                    this.MinorVersion.GetHashCode(),
-                    HashHelpers.Combine(
-                        this.DensityUnits.GetHashCode(),
-                        HashHelpers.Combine(this.XDensity, this.YDensity))));
+            return HashCode.Combine(
+                this.MajorVersion,
+                this.MinorVersion,
+                this.DensityUnits,
+                this.XDensity,
+                this.YDensity);
         }
     }
 }

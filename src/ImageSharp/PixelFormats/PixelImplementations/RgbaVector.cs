@@ -197,11 +197,6 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            int hash = HashHelpers.Combine(this.R.GetHashCode(), this.G.GetHashCode());
-            hash = HashHelpers.Combine(hash, this.B.GetHashCode());
-            return HashHelpers.Combine(hash, this.A.GetHashCode());
-        }
+        public override int GetHashCode() => HashCode.Combine(this.R, this.G, this.B, this.A);
     }
 }

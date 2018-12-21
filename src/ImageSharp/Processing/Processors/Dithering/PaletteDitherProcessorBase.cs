@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             base.BeforeFrameApply(source, sourceRectangle, configuration);
 
             // Lazy init paletteVector:
-            if (this.paletteVector == null)
+            if (this.paletteVector is null)
             {
                 this.paletteVector = new Vector4[this.Palette.Length];
                 PixelOperations<TPixel>.Instance.ToScaledVector4(configuration, this.Palette, this.paletteVector);

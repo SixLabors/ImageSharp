@@ -3,7 +3,6 @@
 
 using System;
 using System.Buffers.Binary;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -169,7 +168,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public JpegComponent[] Components => this.Frame.Components;
 
         /// <inheritdoc/>
-        IEnumerable<IJpegComponent> IRawJpegData.Components => this.Components;
+        IJpegComponent[] IRawJpegData.Components => this.Components;
 
         /// <inheritdoc/>
         public Block8x8F[] QuantizationTables { get; private set; }

@@ -19,6 +19,8 @@ namespace SixLabors.ImageSharp.Tests
 
         public static readonly string[] AllBmpFiles = All;
 
+        public static readonly string[] BitfieldsBmpFiles = BitFields;
+
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
         new TheoryData<string, int, int, PixelResolutionUnit>
         {
@@ -40,6 +42,18 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     image.CompareToOriginal(provider);
                 }
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(BitfieldsBmpFiles), PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecodeBitfields<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider, "bmp");
+                image.CompareToOriginal(provider);
             }
         }
 

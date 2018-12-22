@@ -213,6 +213,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Rgb16565 = "Bmp/rgb16-565.bmp";
             public const string Rgb16bfdef = "Bmp/rgb16bfdef.bmp";
             public const string Rgb16565pal = "Bmp/rgb16-565pal.bmp";
+            public const string Issue735 = "Bmp/issue735.bmp";
 
             public static readonly string[] BitFields 
             = {
@@ -220,7 +221,8 @@ namespace SixLabors.ImageSharp.Tests
                   Rgb32bf,
                   Rgb16565,
                   Rgb16bfdef,
-                  Rgb16565pal
+                  Rgb16565pal,
+                  Issue735
             };
 
             public static readonly string[] All

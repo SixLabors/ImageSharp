@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
 
             var infoHeader = new BmpInfoHeader(
-                headerSize: BmpInfoHeader.Size,
+                headerSize: BmpInfoHeader.SizeV3,
                 height: image.Height,
                 width: image.Width,
                 bitsPerPixel: bpp,
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 yPelsPerMeter: vResolution);
 
             var fileHeader = new BmpFileHeader(
-                type: 19778, // BM
+                type: BmpConstants.TypeMarkers.Bitmap,
                 fileSize: 54 + infoHeader.ImageSize,
                 reserved: 0,
                 offset: 54);
@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             stream.Write(buffer, 0, BmpFileHeader.Size);
 
-            infoHeader.WriteTo(buffer);
+            infoHeader.WriteV3Header(buffer, BmpCompression.RGB);
 
             stream.Write(buffer, 0, 40);
 

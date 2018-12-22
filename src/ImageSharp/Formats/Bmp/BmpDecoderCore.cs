@@ -214,12 +214,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void ReadBitFields<TPixel>(Buffer2D<TPixel> pixels, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
-            byte[] buffer = new byte[12];
-            this.stream.Read(buffer, 0, 12);
-            Span<byte> data = buffer.AsSpan<byte>();
-            int redMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4));
-            int greenMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4));
-            int blueMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4));
             if (this.infoHeader.BitsPerPixel == 16)
             {
                 this.ReadRgb16(
@@ -227,9 +221,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     this.infoHeader.Width,
                     this.infoHeader.Height,
                     inverted,
-                    redMask,
-                    greenMask,
-                    blueMask);
+                    this.infoHeader.RedMask,
+                    this.infoHeader.GreenMask,
+                    this.infoHeader.BlueMask);
             }
             else
             {
@@ -238,9 +232,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     this.infoHeader.Width,
                     this.infoHeader.Height,
                     inverted,
-                    redMask,
-                    greenMask,
-                    blueMask);
+                    this.infoHeader.RedMask,
+                    this.infoHeader.GreenMask,
+                    this.infoHeader.BlueMask);
             }
         }
 
@@ -601,6 +595,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             return count;
         }
 
+        /// <summary>
+        /// Counts none zero bits.
+        /// </summary>
+        /// <param name="n">A color mask.</param>
+        /// <returns>The none zero bits.</returns>
         private static int CountBits(uint n)
         {
             int count = 0;
@@ -651,10 +650,27 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 // 16 bytes
                 this.infoHeader = BmpInfoHeader.ParseOs22Short(buffer);
             }
-            else if (headerSize >= BmpInfoHeader.Size)
+            else if (headerSize == BmpInfoHeader.SizeV3)
+            {
+                // == 40 bytes
+                this.infoHeader = BmpInfoHeader.ParseV3(buffer);
+
+                // if the info header is BMP version 3 and the compression type is BITFIELDS,
+                // color masks for each color channel follow the info header.
+                if (this.infoHeader.Compression == BmpCompression.BitFields)
+                {
+                    byte[] bitfieldsBuffer = new byte[12];
+                    this.stream.Read(bitfieldsBuffer, 0, 12);
+                    Span<byte> data = bitfieldsBuffer.AsSpan<byte>();
+                    this.infoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4));
+                    this.infoHeader.GreenMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4));
+                    this.infoHeader.BlueMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4));
+                }
+            }
+            else if (headerSize >= BmpInfoHeader.SizeV3)
             {
                 // >= 40 bytes
-                this.infoHeader = BmpInfoHeader.Parse(buffer);
+                this.infoHeader = BmpInfoHeader.ParseV4(buffer);
             }
             else
             {

@@ -14,7 +14,7 @@ using SixLabors.Memory;
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
-    /// Performs the bmp decoding operation.
+    /// Performs the bitmap decoding operation.
     /// </summary>
     /// <remarks>
     /// A useful decoding source example can be found at <see href="https://dxr.mozilla.org/mozilla-central/source/image/decoders/nsBMPDecoder.cpp"/>
@@ -22,19 +22,19 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     internal sealed class BmpDecoderCore
     {
         /// <summary>
-        /// The mask for the red part of the color for 16 bit rgb bitmaps.
+        /// The default mask for the red part of the color for 16 bit rgb bitmaps.
         /// </summary>
-        private const int Rgb16RMask = 0x7C00;
+        private const int DefaultRgb16RMask = 0x7C00;
 
         /// <summary>
-        /// The mask for the green part of the color for 16 bit rgb bitmaps.
+        /// The default mask for the green part of the color for 16 bit rgb bitmaps.
         /// </summary>
-        private const int Rgb16GMask = 0x3E0;
+        private const int DefaultRgb16GMask = 0x3E0;
 
         /// <summary>
-        /// The mask for the blue part of the color for 16 bit rgb bitmaps.
+        /// The default mask for the blue part of the color for 16 bit rgb bitmaps.
         /// </summary>
-        private const int Rgb16BMask = 0x1F;
+        private const int DefaultRgb16BMask = 0x1F;
 
         /// <summary>
         /// RLE8 flag value that indicates following byte has special meaning.
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private Stream stream;
 
         /// <summary>
-        /// The metadata
+        /// The metadata.
         /// </summary>
         private ImageMetaData metaData;
 
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Initializes a new instance of the <see cref="BmpDecoderCore"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
-        /// <param name="options">The options</param>
+        /// <param name="options">The options.</param>
         public BmpDecoderCore(Configuration configuration, IBmpDecoderOptions options)
         {
             this.configuration = configuration;
@@ -146,6 +146,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         this.ReadRle8(pixels, palette, this.infoHeader.Width, this.infoHeader.Height, inverted);
 
                         break;
+
+                    case BmpCompression.BitFields:
+                        this.ReadBitFields(pixels, inverted);
+
+                        break;
+
                     default:
                         throw new NotSupportedException("Does not support this kind of bitmap files.");
                 }
@@ -199,12 +205,44 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Performs final shifting from a 5bit value to an 8bit one.
+        /// Decodes a bitmap containing BITFIELDS Compression type. For each color channel, there will be bitmask
+        /// which will be used to determine which bits belong to that channel.
         /// </summary>
-        /// <param name="value">The masked and shifted value</param>
-        /// <returns>The <see cref="byte"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static byte GetBytesFrom5BitValue(int value) => (byte)((value << 3) | (value >> 2));
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="pixels">The output pixel buffer containing the decoded image.</param>
+        /// <param name="inverted">Whether the bitmap is inverted.</param>
+        private void ReadBitFields<TPixel>(Buffer2D<TPixel> pixels, bool inverted)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            byte[] buffer = new byte[12];
+            this.stream.Read(buffer, 0, 12);
+            Span<byte> data = buffer.AsSpan<byte>();
+            int redMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4));
+            int greenMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4));
+            int blueMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4));
+            if (this.infoHeader.BitsPerPixel == 16)
+            {
+                this.ReadRgb16(
+                    pixels,
+                    this.infoHeader.Width,
+                    this.infoHeader.Height,
+                    inverted,
+                    redMask,
+                    greenMask,
+                    blueMask);
+            }
+            else
+            {
+                this.ReadRgb32BitFields(
+                    pixels,
+                    this.infoHeader.Width,
+                    this.infoHeader.Height,
+                    inverted,
+                    redMask,
+                    greenMask,
+                    blueMask);
+            }
+        }
 
         /// <summary>
         /// Looks up color values and builds the image from de-compressed RLE8 data.
@@ -240,12 +278,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Produce uncompressed bitmap data from RLE8 stream
+        /// Produce uncompressed bitmap data from RLE8 stream.
         /// </summary>
         /// <remarks>
-        /// RLE8 is a 2-byte run-length encoding
-        /// <br/>If first byte is 0, the second byte may have special meaning
-        /// <br/>Otherwise, first byte is the length of the run and second byte is the color for the run
+        /// RLE8 is a 2-byte run-length encoding.
+        /// <br/>If first byte is 0, the second byte may have special meaning.
+        /// <br/>Otherwise, first byte is the length of the run and second byte is the color for the run.
         /// </remarks>
         /// <param name="w">The width of the bitmap.</param>
         /// <param name="buffer">Buffer for uncompressed data.</param>
@@ -382,19 +420,31 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Reads the 16 bit color palette from the stream
+        /// Reads the 16 bit color palette from the stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
-        private void ReadRgb16<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted)
+        /// <param name="redMask">The bitmask for the red channel.</param>
+        /// <param name="greenMask">The bitmask for the green channel.</param>
+        /// <param name="blueMask">The bitmask for the blue channel.</param>
+        private void ReadRgb16<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted, int redMask = DefaultRgb16RMask, int greenMask = DefaultRgb16GMask, int blueMask = DefaultRgb16BMask)
             where TPixel : struct, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 2);
             int stride = (width * 2) + padding;
             TPixel color = default;
+
+            int rightShiftRedMask = CalculateRightShift((uint)redMask);
+            int rightShiftGreenMask = CalculateRightShift((uint)greenMask);
+            int rightShiftBlueMask = CalculateRightShift((uint)blueMask);
+
+            // Each color channel contains either 5 or 6 Bits. The values need to be shifted left again, so the values range from 0 to 255.
+            int leftShiftRedMask = 8 - CountBits((uint)redMask);
+            int leftShiftGreenMask = 8 - CountBits((uint)greenMask);
+            int leftShiftBlueMask = 8 - CountBits((uint)blueMask);
 
             using (IManagedByteBuffer buffer = this.memoryAllocator.AllocateManagedByteBuffer(stride))
             {
@@ -408,11 +458,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     for (int x = 0; x < width; x++)
                     {
                         short temp = BitConverter.ToInt16(buffer.Array, offset);
-
-                        var rgb = new Rgb24(
-                        GetBytesFrom5BitValue((temp & Rgb16RMask) >> 10),
-                        GetBytesFrom5BitValue((temp & Rgb16GMask) >> 5),
-                        GetBytesFrom5BitValue(temp & Rgb16BMask));
+                        int r = ((temp & redMask) >> rightShiftRedMask) << leftShiftRedMask;
+                        int g = ((temp & greenMask) >> rightShiftGreenMask) << leftShiftGreenMask;
+                        int b = ((temp & blueMask) >> rightShiftBlueMask) << leftShiftBlueMask;
+                        var rgb = new Rgb24((byte)r, (byte)g, (byte)b);
 
                         color.FromRgb24(rgb);
                         pixelRow[x] = color;
@@ -423,7 +472,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Reads the 24 bit color palette from the stream
+        /// Reads the 24 bit color palette from the stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
@@ -452,7 +501,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Reads the 32 bit color palette from the stream
+        /// Reads the 32 bit color palette from the stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
@@ -478,6 +527,90 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         width);
                 }
             }
+        }
+
+        /// <summary>
+        /// Decode an 32 Bit Bitmap containing a bitmask for each color channel.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="pixels">The output pixel buffer containing the decoded image.</param>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="inverted">Whether the bitmap is inverted.</param>
+        /// <param name="redMask">The bitmask for the red channel.</param>
+        /// <param name="greenMask">The bitmask for the green channel.</param>
+        /// <param name="blueMask">The bitmask for the blue channel.</param>
+        private void ReadRgb32BitFields<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted, int redMask, int greenMask, int blueMask)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel color = default;
+            int padding = CalculatePadding(width, 4);
+            int stride = (width * 4) + padding;
+
+            int rightShiftRedMask = CalculateRightShift((uint)redMask);
+            int rightShiftGreenMask = CalculateRightShift((uint)greenMask);
+            int rightShiftBlueMask = CalculateRightShift((uint)blueMask);
+
+            using (IManagedByteBuffer buffer = this.memoryAllocator.AllocateManagedByteBuffer(stride))
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    this.stream.Read(buffer.Array, 0, stride);
+                    int newY = Invert(y, height, inverted);
+                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+
+                    int offset = 0;
+                    for (int x = 0; x < width; x++)
+                    {
+                        int temp = BitConverter.ToInt32(buffer.Array, offset);
+                        byte r = (byte)((temp & redMask) >> rightShiftRedMask);
+                        byte g = (byte)((temp & greenMask) >> rightShiftGreenMask);
+                        byte b = (byte)((temp & blueMask) >> rightShiftBlueMask);
+                        var rgb = new Rgb24(r, g, b);
+
+                        color.FromRgb24(rgb);
+                        pixelRow[x] = color;
+                        offset += 4;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Calculates the necessary right shifts for a given color bitmask (the 0 bits to the right).
+        /// </summary>
+        /// <param name="n">The color bit mask.</param>
+        /// <returns>Number of bits to shift right.</returns>
+        private static int CalculateRightShift(uint n)
+        {
+            int count = 0;
+            while (n > 0)
+            {
+                if ((1 & n) == 0)
+                {
+                    count++;
+                }
+                else
+                {
+                    break;
+                }
+
+                n >>= 1;
+            }
+
+            return count;
+        }
+
+        private static int CountBits(uint n)
+        {
+            int count = 0;
+            while (n != 0)
+            {
+                count++;
+                n &= n - 1;
+            }
+
+            return count;
         }
 
         /// <summary>

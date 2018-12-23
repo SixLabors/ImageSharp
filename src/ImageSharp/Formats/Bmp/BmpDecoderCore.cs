@@ -4,6 +4,7 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
@@ -435,10 +436,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int rightShiftGreenMask = CalculateRightShift((uint)greenMask);
             int rightShiftBlueMask = CalculateRightShift((uint)blueMask);
 
-            // Each color channel contains either 5 or 6 Bits. The values need to be shifted left again, so the values range from 0 to 255.
-            int leftShiftRedMask = 8 - CountBits((uint)redMask);
-            int leftShiftGreenMask = 8 - CountBits((uint)greenMask);
-            int leftShiftBlueMask = 8 - CountBits((uint)blueMask);
+            // Each color channel contains either 5 or 6 Bits values.
+            int redMaskBits = CountBits((uint)redMask);
+            int greenMaskBits = CountBits((uint)greenMask);
+            int blueMaskBits = CountBits((uint)blueMask);
 
             using (IManagedByteBuffer buffer = this.memoryAllocator.AllocateManagedByteBuffer(stride))
             {
@@ -452,9 +453,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     for (int x = 0; x < width; x++)
                     {
                         short temp = BitConverter.ToInt16(buffer.Array, offset);
-                        int r = ((temp & redMask) >> rightShiftRedMask) << leftShiftRedMask;
-                        int g = ((temp & greenMask) >> rightShiftGreenMask) << leftShiftGreenMask;
-                        int b = ((temp & blueMask) >> rightShiftBlueMask) << leftShiftBlueMask;
+
+                        // Rescale values, so the values range from 0 to 255.
+                        int r = (redMaskBits == 5) ? GetBytesFrom5BitValue((temp & redMask) >> rightShiftRedMask) : GetBytesFrom6BitValue((temp & redMask) >> rightShiftRedMask);
+                        int g = (greenMaskBits == 5) ? GetBytesFrom5BitValue((temp & greenMask) >> rightShiftGreenMask) : GetBytesFrom6BitValue((temp & greenMask) >> rightShiftGreenMask);
+                        int b = (blueMaskBits == 5) ? GetBytesFrom5BitValue((temp & blueMask) >> rightShiftBlueMask) : GetBytesFrom6BitValue((temp & blueMask) >> rightShiftBlueMask);
                         var rgb = new Rgb24((byte)r, (byte)g, (byte)b);
 
                         color.FromRgb24(rgb);
@@ -464,6 +467,22 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 }
             }
         }
+
+        /// <summary>
+        /// Performs final shifting from a 5bit value to an 8bit one.
+        /// </summary>
+        /// <param name="value">The masked and shifted value.</param>
+        /// <returns>The <see cref="byte"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static byte GetBytesFrom5BitValue(int value) => (byte)((value << 3) | (value >> 2));
+
+        /// <summary>
+        /// Performs final shifting from a 6bit value to an 8bit one.
+        /// </summary>
+        /// <param name="value">The masked and shifted value.</param>
+        /// <returns>The <see cref="byte"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static byte GetBytesFrom6BitValue(int value) => (byte)((value << 2) | (value >> 4));
 
         /// <summary>
         /// Reads the 24 bit color palette from the stream.

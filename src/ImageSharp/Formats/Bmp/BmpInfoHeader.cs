@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 using System;
 using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
@@ -343,8 +344,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Writes a Bitmap V3 header to a buffer.
         /// </summary>
         /// <param name="buffer">The buffer to write to.</param>
-        /// <param name="compression">The compression value used.</param>
-        public void WriteV3Header(Span<byte> buffer, BmpCompression compression)
+        public void WriteV3Header(Span<byte> buffer)
         {
             buffer.Clear();
             BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(0, 4), SizeV3);
@@ -352,12 +352,23 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(8, 4), this.Height);
             BinaryPrimitives.WriteInt16LittleEndian(buffer.Slice(12, 2), this.Planes);
             BinaryPrimitives.WriteInt16LittleEndian(buffer.Slice(14, 2), this.BitsPerPixel);
-            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(16, 4), (int)compression);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(16, 4), (int)this.Compression);
             BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(20, 4), this.ImageSize);
             BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(24, 4), this.XPelsPerMeter);
             BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(28, 4), this.YPelsPerMeter);
             BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(32, 4), this.ClrUsed);
             BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(36, 4), this.ClrImportant);
+        }
+
+        /// <summary>
+        /// Writes a complete Bitmap V4 header to a buffer.
+        /// </summary>
+        /// <param name="buffer">The buffer to write to.</param>
+        public unsafe void WriteTo(Span<byte> buffer)
+        {
+            ref BmpInfoHeader dest = ref Unsafe.As<byte, BmpInfoHeader>(ref MemoryMarshal.GetReference(buffer));
+
+            dest = this;
         }
 
         internal void VerifyDimensions()

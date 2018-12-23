@@ -92,8 +92,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 }
             }
 
+            int infoHeaderSize = BmpInfoHeader.SizeV4;
             var infoHeader = new BmpInfoHeader(
-                headerSize: BmpInfoHeader.SizeV3,
+                headerSize: infoHeaderSize,
                 height: image.Height,
                 width: image.Width,
                 bitsPerPixel: bpp,
@@ -106,22 +107,22 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             var fileHeader = new BmpFileHeader(
                 type: BmpConstants.TypeMarkers.Bitmap,
-                fileSize: 54 + infoHeader.ImageSize,
+                fileSize: BmpFileHeader.Size + infoHeaderSize + infoHeader.ImageSize,
                 reserved: 0,
-                offset: 54);
+                offset: BmpFileHeader.Size + infoHeaderSize);
 
 #if NETCOREAPP2_1
-            Span<byte> buffer = stackalloc byte[40];
+            Span<byte> buffer = stackalloc byte[infoHeaderSize];
 #else
-            byte[] buffer = new byte[40];
+            byte[] buffer = new byte[infoHeaderSize];
 #endif
             fileHeader.WriteTo(buffer);
 
             stream.Write(buffer, 0, BmpFileHeader.Size);
 
-            infoHeader.WriteV3Header(buffer, BmpCompression.RGB);
+            infoHeader.WriteTo(buffer);
 
-            stream.Write(buffer, 0, 40);
+            stream.Write(buffer, 0, infoHeaderSize);
 
             this.WriteImage(stream, image.Frames.RootFrame);
 

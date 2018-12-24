@@ -274,7 +274,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         /// <param name="data">The data to parse.</param>
         /// <returns>Parsed header</returns>
-        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183376.aspx"/>
+        /// <seealso href="http://www.fileformat.info/format/bmp/egff.htm"/>
         public static BmpInfoHeader ParseV3(ReadOnlySpan<byte> data)
         {
             return new BmpInfoHeader(
@@ -292,35 +292,19 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Parses the full BMP Version 4 BITMAPINFOHEADER header (at least 108 bytes).
+        /// Parses the full BMP Version 4 BITMAPINFOHEADER header (108 bytes).
         /// </summary>
         /// <param name="data">The data to parse.</param>
         /// <returns>Parsed header.</returns>
-        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183376.aspx"/>
+        /// <seealso href="http://www.fileformat.info/format/bmp/egff.htm"/>
         public static BmpInfoHeader ParseV4(ReadOnlySpan<byte> data)
         {
-            BmpInfoHeader bmpInfoHeader = ParseV3(data.Slice(0, SizeV3));
+            if (data.Length != SizeV4)
+            {
+                throw new ArgumentException(nameof(data), $"Must be {SizeV4} bytes. Was {data.Length} bytes.");
+            }
 
-            int offset = SizeV3;
-            bmpInfoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset, 4));
-            bmpInfoHeader.GreenMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset + 4, 4));
-            bmpInfoHeader.BlueMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset + 8, 4));
-            bmpInfoHeader.AlphaMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset + 12, 4));
-            bmpInfoHeader.CsType = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset + 16, 4));
-            bmpInfoHeader.RedX = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset + 20, 4));
-            bmpInfoHeader.RedY = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset + 24, 4));
-            bmpInfoHeader.RedZ = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset + 28, 4));
-            bmpInfoHeader.GreenX = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset + 32, 4));
-            bmpInfoHeader.GreenY = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset + 36, 4));
-            bmpInfoHeader.GreenZ = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset + 40, 4));
-            bmpInfoHeader.BlueX = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset + 44, 4));
-            bmpInfoHeader.BlueY = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset + 48, 4));
-            bmpInfoHeader.BlueZ = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset + 52, 4));
-            bmpInfoHeader.GammaRed = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset + 56, 4));
-            bmpInfoHeader.GammaGreen = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset + 60, 4));
-            bmpInfoHeader.GammaBlue = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset + 64, 4));
-
-            return bmpInfoHeader;
+            return MemoryMarshal.Cast<byte, BmpInfoHeader>(data)[0];
         }
 
         /// <summary>
@@ -341,7 +325,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Writes a Bitmap V3 header to a buffer.
+        /// Writes a bitmap version 3 (Microsoft Windows NT) header to a buffer (40 bytes).
         /// </summary>
         /// <param name="buffer">The buffer to write to.</param>
         public void WriteV3Header(Span<byte> buffer)

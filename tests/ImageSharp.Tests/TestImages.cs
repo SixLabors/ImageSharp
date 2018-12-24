@@ -204,6 +204,9 @@ namespace SixLabors.ImageSharp.Tests
             
             // Note: This format can be called OS/2 BMPv1, or Windows BMPv2
             public const string WinBmpv2 = "Bmp/pal8os2v1_winv2.bmp";
+            public const string WinBmpv3 = "Bmp/rgb24.bmp";
+            public const string WinBmpv4 = "Bmp/pal8v4.bmp";
+            public const string WinBmpv5 = "Bmp/pal8v5.bmp";
             public const string Bit8Palette4 = "Bmp/pal8-0.bmp";
             public const string Os2v2Short = "Bmp/pal8os2v2-16.bmp";
 

@@ -686,7 +686,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     this.infoHeader.BlueMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4));
                 }
             }
-            else if (headerSize >= BmpInfoHeader.SizeV3)
+            else if (headerSize >= BmpInfoHeader.SizeV4)
             {
                 // >= 40 bytes
                 this.infoHeader = BmpInfoHeader.ParseV4(buffer);

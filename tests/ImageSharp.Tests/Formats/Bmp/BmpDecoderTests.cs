@@ -82,6 +82,42 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
+        [WithFile(WinBmpv3, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecodeBmpv3<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider, "png");
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(WinBmpv4, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecodeBmpv4<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider, "png");
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(WinBmpv5, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecodeBmpv5<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider, "png");
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
         [WithFile(Bit8Palette4, PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecode4BytePerEntryPalette<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>

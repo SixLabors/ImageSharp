@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 }
             }
 
-            int infoHeaderSize = BmpInfoHeader.SizeV4;
+            int infoHeaderSize = BmpInfoHeader.SizeV3;
             var infoHeader = new BmpInfoHeader(
                 headerSize: infoHeaderSize,
                 height: image.Height,
@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             stream.Write(buffer, 0, BmpFileHeader.Size);
 
-            infoHeader.WriteTo(buffer);
+            infoHeader.WriteV3Header(buffer);
 
             stream.Write(buffer, 0, infoHeaderSize);
 

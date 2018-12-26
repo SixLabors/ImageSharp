@@ -686,9 +686,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     this.infoHeader.BlueMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4));
                 }
             }
+            else if (headerSize == BmpInfoHeader.AdobeV3Size)
+            {
+                // == 56 bytes
+                this.infoHeader = BmpInfoHeader.ParseAdobeV3(buffer);
+            }
             else if (headerSize >= BmpInfoHeader.SizeV4)
             {
-                // >= 40 bytes
+                // >= 108 bytes
                 this.infoHeader = BmpInfoHeader.ParseV4(buffer);
             }
             else

@@ -17,16 +17,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     internal struct BmpInfoHeader
     {
         /// <summary>
-        /// Defines the size of the BITMAPINFOHEADER (BMP Version 3) data structure in the bitmap file.
-        /// </summary>
-        public const int SizeV3 = 40;
-
-        /// <summary>
-        /// Defines the size of the BITMAPINFOHEADER (BMP Version 4) data structure in the bitmap file.
-        /// </summary>
-        public const int SizeV4 = 108;
-
-        /// <summary>
         /// Defines the size of the BITMAPCOREHEADER data structure in the bitmap file.
         /// </summary>
         public const int CoreSize = 12;
@@ -35,6 +25,21 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Defines the size of the short variant of the OS22XBITMAPHEADER data structure in the bitmap file.
         /// </summary>
         public const int Os22ShortSize = 16;
+
+        /// <summary>
+        /// Defines the size of the BITMAPINFOHEADER (BMP Version 3) data structure in the bitmap file.
+        /// </summary>
+        public const int SizeV3 = 40;
+
+        /// <summary>
+        /// Special case of the BITMAPINFOHEADER V3 used by adobe where the color bitmasks are part of the info header instead of following it.
+        /// </summary>
+        public const int AdobeV3Size = 56;
+
+        /// <summary>
+        /// Defines the size of the BITMAPINFOHEADER (BMP Version 4) data structure in the bitmap file.
+        /// </summary>
+        public const int SizeV4 = 108;
 
         /// <summary>
         /// Defines the size of the biggest supported header data structure in the bitmap file.
@@ -270,10 +275,27 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Parses the full BMP Version 3 BITMAPINFOHEADER header (40 bytes).
+        /// Parses a short variant of the OS22XBITMAPHEADER. It is identical to the BITMAPCOREHEADER, except that the width and height
+        /// are 4 bytes instead of 2, resulting in 16 bytes total.
         /// </summary>
         /// <param name="data">The data to parse.</param>
         /// <returns>Parsed header</returns>
+        /// <seealso href="https://www.fileformat.info/format/os2bmp/egff.htm"/>
+        public static BmpInfoHeader ParseOs22Short(ReadOnlySpan<byte> data)
+        {
+            return new BmpInfoHeader(
+                headerSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4)),
+                width: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4)),
+                height: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4)),
+                planes: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(12, 2)),
+                bitsPerPixel: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(14, 2)));
+        }
+
+        /// <summary>
+        /// Parses the full BMP Version 3 BITMAPINFOHEADER header (40 bytes).
+        /// </summary>
+        /// <param name="data">The data to parse.</param>
+        /// <returns>The parsed header.</returns>
         /// <seealso href="http://www.fileformat.info/format/bmp/egff.htm"/>
         public static BmpInfoHeader ParseV3(ReadOnlySpan<byte> data)
         {
@@ -292,10 +314,36 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
+        /// Special case of the BITMAPINFOHEADER V3 used by adobe where the color bitmasks are part of the info header instead of following it (56 bytes).
+        /// </summary>
+        /// <param name="data">The data to parse.</param>
+        /// <returns>The parsed header.</returns>
+        /// <seealso href="https://forums.adobe.com/message/3272950#3272950"/>
+        public static BmpInfoHeader ParseAdobeV3(ReadOnlySpan<byte> data)
+        {
+            return new BmpInfoHeader(
+                headerSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4)),
+                width: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4)),
+                height: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4)),
+                planes: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(12, 2)),
+                bitsPerPixel: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(14, 2)),
+                compression: (BmpCompression)BinaryPrimitives.ReadInt32LittleEndian(data.Slice(16, 4)),
+                imageSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(20, 4)),
+                xPelsPerMeter: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(24, 4)),
+                yPelsPerMeter: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(28, 4)),
+                clrUsed: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(32, 4)),
+                clrImportant: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(36, 4)),
+                redMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(40, 4)),
+                greenMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(44, 4)),
+                blueMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(48, 4)),
+                alphaMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(52, 4)));
+        }
+
+        /// <summary>
         /// Parses the full BMP Version 4 BITMAPINFOHEADER header (108 bytes).
         /// </summary>
         /// <param name="data">The data to parse.</param>
-        /// <returns>Parsed header.</returns>
+        /// <returns>The parsed header.</returns>
         /// <seealso href="http://www.fileformat.info/format/bmp/egff.htm"/>
         public static BmpInfoHeader ParseV4(ReadOnlySpan<byte> data)
         {
@@ -305,23 +353,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
 
             return MemoryMarshal.Cast<byte, BmpInfoHeader>(data)[0];
-        }
-
-        /// <summary>
-        /// Parses a short variant of the OS22XBITMAPHEADER. It is identical to the BITMAPCOREHEADER, except that the width and height
-        /// are 4 bytes instead of 2, resulting in 16 bytes total.
-        /// </summary>
-        /// <param name="data">The data to parse.</param>
-        /// <returns>Parsed header</returns>
-        /// <seealso href="https://www.fileformat.info/format/os2bmp/egff.htm"/>
-        public static BmpInfoHeader ParseOs22Short(ReadOnlySpan<byte> data)
-        {
-            return new BmpInfoHeader(
-                headerSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4)),
-                width: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4)),
-                height: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4)),
-                planes: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(12, 2)),
-                bitsPerPixel: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(14, 2)));
         }
 
         /// <summary>

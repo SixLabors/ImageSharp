@@ -4,6 +4,8 @@
 using System.IO;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
+
 using Xunit;
 
 // ReSharper disable InconsistentNaming
@@ -101,7 +103,7 @@ namespace SixLabors.ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
                 image.DebugSave(provider, "png");
-                image.CompareToOriginal(provider);
+                image.CompareToOriginal(provider, new MagickReferenceDecoder());
             }
         }
 

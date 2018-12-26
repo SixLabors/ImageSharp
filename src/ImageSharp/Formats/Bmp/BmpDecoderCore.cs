@@ -235,7 +235,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     inverted,
                     this.infoHeader.RedMask,
                     this.infoHeader.GreenMask,
-                    this.infoHeader.BlueMask);
+                    this.infoHeader.BlueMask,
+                    this.infoHeader.AlphaMask);
             }
         }
 
@@ -553,7 +554,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="redMask">The bitmask for the red channel.</param>
         /// <param name="greenMask">The bitmask for the green channel.</param>
         /// <param name="blueMask">The bitmask for the blue channel.</param>
-        private void ReadRgb32BitFields<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted, int redMask, int greenMask, int blueMask)
+        /// <param name="alphaMask">The bitmask for the alpha channel.</param>
+        private void ReadRgb32BitFields<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted, int redMask, int greenMask, int blueMask, int alphaMask)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel color = default;
@@ -563,6 +565,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int rightShiftRedMask = CalculateRightShift((uint)redMask);
             int rightShiftGreenMask = CalculateRightShift((uint)greenMask);
             int rightShiftBlueMask = CalculateRightShift((uint)blueMask);
+            int rightShiftAlphaMask = CalculateRightShift((uint)alphaMask);
 
             using (IManagedByteBuffer buffer = this.memoryAllocator.AllocateManagedByteBuffer(stride))
             {
@@ -579,9 +582,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         byte r = (byte)((temp & redMask) >> rightShiftRedMask);
                         byte g = (byte)((temp & greenMask) >> rightShiftGreenMask);
                         byte b = (byte)((temp & blueMask) >> rightShiftBlueMask);
-                        var rgb = new Rgb24(r, g, b);
+                        byte a = rightShiftAlphaMask != 0 ? (byte)((temp & alphaMask) >> rightShiftAlphaMask) : (byte)255;
+                        var rgba = new Rgba32(r, g, b, a);
 
-                        color.FromRgb24(rgb);
+                        color.FromRgba32(rgba);
+
                         pixelRow[x] = color;
                         offset += 4;
                     }

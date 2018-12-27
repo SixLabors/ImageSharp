@@ -567,6 +567,22 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int rightShiftBlueMask = CalculateRightShift((uint)blueMask);
             int rightShiftAlphaMask = CalculateRightShift((uint)alphaMask);
 
+            int bitsRedMask = CountBits((uint)redMask);
+            int bitsGreenMask = CountBits((uint)greenMask);
+            int bitsBlueMask = CountBits((uint)blueMask);
+            int bitsAlphaMask = CountBits((uint)alphaMask);
+            float invMaxValueRed = 1.0f / (0xFFFFFFFF >> (32 - bitsRedMask));
+            float invMaxValueGreen = 1.0f / (0xFFFFFFFF >> (32 - bitsGreenMask));
+            float invMaxValueBlue = 1.0f / (0xFFFFFFFF >> (32 - bitsBlueMask));
+            uint maxValueAlpha = 0xFFFFFFFF >> (32 - bitsAlphaMask);
+            float invMaxValueAlpha = 1.0f / maxValueAlpha;
+
+            bool unusualBitMask = false;
+            if (bitsRedMask > 8 || bitsGreenMask > 8 || bitsBlueMask > 8 || invMaxValueAlpha > 8)
+            {
+                unusualBitMask = true;
+            }
+
             using (IManagedByteBuffer buffer = this.memoryAllocator.AllocateManagedByteBuffer(stride))
             {
                 for (int y = 0; y < height; y++)
@@ -579,13 +595,28 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     for (int x = 0; x < width; x++)
                     {
                         int temp = BitConverter.ToInt32(buffer.Array, offset);
-                        byte r = (byte)((temp & redMask) >> rightShiftRedMask);
-                        byte g = (byte)((temp & greenMask) >> rightShiftGreenMask);
-                        byte b = (byte)((temp & blueMask) >> rightShiftBlueMask);
-                        byte a = rightShiftAlphaMask != 0 ? (byte)((temp & alphaMask) >> rightShiftAlphaMask) : (byte)255;
-                        var rgba = new Rgba32(r, g, b, a);
 
-                        color.FromRgba32(rgba);
+                        if (unusualBitMask)
+                        {
+                            uint r = (uint)(temp & redMask) >> rightShiftRedMask;
+                            uint g = (uint)(temp & greenMask) >> rightShiftGreenMask;
+                            uint b = (uint)(temp & blueMask) >> rightShiftBlueMask;
+                            float alpha = alphaMask != 0 ? invMaxValueAlpha * ((uint)(temp & alphaMask) >> rightShiftAlphaMask) : 1.0f;
+                            var vector4 = new Vector4(
+                                r * invMaxValueRed,
+                                g * invMaxValueGreen,
+                                b * invMaxValueBlue,
+                                alpha);
+                            color.FromVector4(vector4);
+                        }
+                        else
+                        {
+                            byte r = (byte)((temp & redMask) >> rightShiftRedMask);
+                            byte g = (byte)((temp & greenMask) >> rightShiftGreenMask);
+                            byte b = (byte)((temp & blueMask) >> rightShiftBlueMask);
+                            byte a = alphaMask != 0 ? (byte)((temp & alphaMask) >> rightShiftAlphaMask) : (byte)255;
+                            color.FromRgba32(new Rgba32(r, g, b, a));
+                        }
 
                         pixelRow[x] = color;
                         offset += 4;

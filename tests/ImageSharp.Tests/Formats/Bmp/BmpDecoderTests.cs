@@ -4,6 +4,7 @@
 using System.IO;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 using Xunit;
@@ -60,14 +61,14 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [WithFile(F, CommonNonDefaultPixelTypes)]
-        public void BmpDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFile(Rgba321010102, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecodeBitfields_WithUnusualBitmasks<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
                 image.DebugSave(provider, "bmp");
-                image.CompareToOriginal(provider);
+                image.CompareToOriginal(provider, ImageComparer.TolerantPercentage(1.3f));
             }
         }
 
@@ -127,6 +128,18 @@ namespace SixLabors.ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
                 image.DebugSave(provider, "png");
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(F, CommonNonDefaultPixelTypes)]
+        public void BmpDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider, "bmp");
                 image.CompareToOriginal(provider);
             }
         }

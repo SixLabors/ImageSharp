@@ -210,7 +210,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Bit8Palette4 = "Bmp/pal8-0.bmp";
             public const string Os2v2Short = "Bmp/pal8os2v2-16.bmp";
 
-            // Bitmap images with BITFIELDS
+            // Bitmap images with compression type BITFIELDS
             public const string Rgb32bfdef = "Bmp/rgb32bfdef.bmp";
             public const string Rgb32bf = "Bmp/rgb32bf.bmp";
             public const string Rgb16565 = "Bmp/rgb16-565.bmp";
@@ -218,6 +218,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Rgb16565pal = "Bmp/rgb16-565pal.bmp";
             public const string Issue735 = "Bmp/issue735.bmp";
             public const string Rgba32bf56 = "Bmp/rgba32h56.bmp";
+            public const string Rgba321010102 = "Bmp/rgba32-1010102.bmp";
 
             public static readonly string[] BitFields 
             = {
@@ -226,7 +227,7 @@ namespace SixLabors.ImageSharp.Tests
                   Rgb16565,
                   Rgb16bfdef,
                   Rgb16565pal,
-                  Issue735
+                  Issue735,
             };
 
             public static readonly string[] All

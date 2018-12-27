@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
-                image.DebugSave(provider, "bmp");
+                image.DebugSave(provider);
 
                 if (TestEnvironment.IsWindows)
                 {
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
-                image.DebugSave(provider, "bmp");
+                image.DebugSave(provider);
                 image.CompareToOriginal(provider);
             }
         }
@@ -67,8 +67,11 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
-                image.DebugSave(provider, "bmp");
-                image.CompareToOriginal(provider, ImageComparer.TolerantPercentage(1.3f));
+                image.DebugSave(provider);
+
+                // Choosing large tolerance of 6.1 here, because for some reason with the MagickReferenceDecoder the alpha channel is always 191 instead of 255.
+                // The total difference without the alpha channel is: 0,0204%
+                image.CompareToOriginal(provider, ImageComparer.TolerantPercentage(6.1f), new MagickReferenceDecoder());                
             }
         }
 
@@ -79,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
-                image.DebugSave(provider, "png");
+                image.DebugSave(provider);
                 image.CompareToOriginal(provider);
             }
         }
@@ -91,7 +94,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
-                image.DebugSave(provider, "png");
+                image.DebugSave(provider);
                 image.CompareToOriginal(provider);
             }
         }
@@ -103,7 +106,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
-                image.DebugSave(provider, "png");
+                image.DebugSave(provider);
                 image.CompareToOriginal(provider, new MagickReferenceDecoder());
             }
         }
@@ -115,7 +118,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
-                image.DebugSave(provider, "png");
+                image.DebugSave(provider);
                 image.CompareToOriginal(provider);
             }
         }
@@ -127,7 +130,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
-                image.DebugSave(provider, "png");
+                image.DebugSave(provider);
                 image.CompareToOriginal(provider);
             }
         }
@@ -139,7 +142,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
-                image.DebugSave(provider, "bmp");
+                image.DebugSave(provider);
                 image.CompareToOriginal(provider);
             }
         }
@@ -151,7 +154,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
-                image.DebugSave(provider, "png");
+                image.DebugSave(provider);
                 image.CompareToOriginal(provider);
             }
         }

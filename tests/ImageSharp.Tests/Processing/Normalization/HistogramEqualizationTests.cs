@@ -4,12 +4,15 @@
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Normalization;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Normalization
 {
     public class HistogramEqualizationTests
     {
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0456F);
+
         [Theory]
         [InlineData(256)]
         [InlineData(65536)]
@@ -66,6 +69,46 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                     Assert.Equal(expected[y * 8 + x], actual.G);
                     Assert.Equal(expected[y * 8 + x], actual.B);
                 }
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.LowContrast, PixelTypes.Rgba32)]
+        public void Adaptive_SlidingWindow_15Tiles_WithClipping<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var options = new HistogramEqualizationOptions()
+                                  {
+                                      Method = HistogramEqualizationMethod.AdaptiveSlidingWindow,
+                                      LuminanceLevels = 256,
+                                      ClipHistogram = true,
+                                      Tiles = 15
+                                  };
+                image.Mutate(x => x.HistogramEqualization(options));
+                image.DebugSave(provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.LowContrast, PixelTypes.Rgba32)]
+        public void Adaptive_TileInterpolation_10Tiles_WithClipping<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var options = new HistogramEqualizationOptions()
+                                  {
+                                      Method = HistogramEqualizationMethod.AdaptiveTileInterpolation,
+                                      LuminanceLevels = 256,
+                                      ClipHistogram = true,
+                                      Tiles = 10
+                                  };
+                image.Mutate(x => x.HistogramEqualization(options));
+                image.DebugSave(provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
     }

@@ -594,7 +594,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     int offset = 0;
                     for (int x = 0; x < width; x++)
                     {
-                        int temp = BitConverter.ToInt32(buffer.Array, offset);
+                        uint temp = BitConverter.ToUInt32(buffer.Array, offset);
 
                         if (unusualBitMask)
                         {
@@ -728,9 +728,15 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
             else if (headerSize == BmpInfoHeader.AdobeV3Size)
             {
-                // == 56 bytes
+                // == 52 bytes
                 inofHeaderType = BmpInfoHeaderType.AdobeVersion3;
-                this.infoHeader = BmpInfoHeader.ParseAdobeV3(buffer);
+                this.infoHeader = BmpInfoHeader.ParseAdobeV3(buffer, withAlpha: false);
+            }
+            else if (headerSize == BmpInfoHeader.AdobeV3WithAlphaSize)
+            {
+                // == 56 bytes
+                inofHeaderType = BmpInfoHeaderType.AdobeVersion3WithAlpha;
+                this.infoHeader = BmpInfoHeader.ParseAdobeV3(buffer, withAlpha: true);
             }
             else if (headerSize >= BmpInfoHeader.SizeV4)
             {

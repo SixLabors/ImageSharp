@@ -34,7 +34,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Special case of the BITMAPINFOHEADER V3 used by adobe where the color bitmasks are part of the info header instead of following it.
         /// </summary>
-        public const int AdobeV3Size = 56;
+        public const int AdobeV3Size = 52;
+
+        /// <summary>
+        /// Special case of the BITMAPINFOHEADER V3 used by adobe where the color bitmasks (including the alpha channel) are part of the info header instead of following it.
+        /// </summary>
+        public const int AdobeV3WithAlphaSize = 56;
 
         /// <summary>
         /// Defines the size of the BITMAPINFOHEADER (BMP Version 4) data structure in the bitmap file.
@@ -314,12 +319,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Special case of the BITMAPINFOHEADER V3 used by adobe where the color bitmasks are part of the info header instead of following it (56 bytes).
+        /// Special case of the BITMAPINFOHEADER V3 used by adobe where the color bitmasks are part of the info header instead of following it.
+        /// 52 bytes without the alpha mask, 56 bytes with the alpha mask.
         /// </summary>
         /// <param name="data">The data to parse.</param>
+        /// <param name="withAlpha">Indicates, if the alpha bitmask is present.</param>
         /// <returns>The parsed header.</returns>
         /// <seealso href="https://forums.adobe.com/message/3272950#3272950"/>
-        public static BmpInfoHeader ParseAdobeV3(ReadOnlySpan<byte> data)
+        public static BmpInfoHeader ParseAdobeV3(ReadOnlySpan<byte> data, bool withAlpha = true)
         {
             return new BmpInfoHeader(
                 headerSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4)),
@@ -336,7 +343,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 redMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(40, 4)),
                 greenMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(44, 4)),
                 blueMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(48, 4)),
-                alphaMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(52, 4)));
+                alphaMask: withAlpha ? BinaryPrimitives.ReadInt32LittleEndian(data.Slice(52, 4)) : 0);
         }
 
         /// <summary>

@@ -21,9 +21,14 @@
         WinVersion3 = 40,
 
         /// <summary>
-        /// Adobe variant of the Bitmap version 3 header.
+        /// Adobe variant of the BMP Version 3 header.
         /// </summary>
-        AdobeVersion3 = 56,
+        AdobeVersion3 = 52,
+
+        /// <summary>
+        /// Adobe variant of the BMP Version 3 header with an alpha mask.
+        /// </summary>
+        AdobeVersion3WithAlpha = 56,
 
         /// <summary>
         /// BMP Version 2.x header (IBM OS/2 2.x).

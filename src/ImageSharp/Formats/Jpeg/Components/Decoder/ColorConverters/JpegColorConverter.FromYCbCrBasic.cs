@@ -10,17 +10,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
     {
         internal class FromYCbCrBasic : JpegColorConverter
         {
-            public FromYCbCrBasic()
-                : base(JpegColorSpace.YCbCr)
+            public FromYCbCrBasic(int precision)
+                : base(JpegColorSpace.YCbCr, precision)
             {
             }
 
             public override void ConvertToRgba(in ComponentValues values, Span<Vector4> result)
             {
-                ConvertCore(values, result);
+                ConvertCore(values, result, this.MaximumValue, this.HalfValue);
             }
 
-            internal static void ConvertCore(in ComponentValues values, Span<Vector4> result)
+            internal static void ConvertCore(in ComponentValues values, Span<Vector4> result, float maxValue, float halfValue)
             {
                 // TODO: We can optimize a lot here with Vector<float> and SRCS.Unsafe()!
                 ReadOnlySpan<float> yVals = values.Component0;
@@ -29,13 +29,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 
                 var v = new Vector4(0, 0, 0, 1);
 
-                var scale = new Vector4(1 / 255F, 1 / 255F, 1 / 255F, 1F);
+                var scale = new Vector4(1 / maxValue, 1 / maxValue, 1 / maxValue, 1F);
 
                 for (int i = 0; i < result.Length; i++)
                 {
                     float y = yVals[i];
-                    float cb = cbVals[i] - 128F;
-                    float cr = crVals[i] - 128F;
+                    float cb = cbVals[i] - halfValue;
+                    float cr = crVals[i] - halfValue;
 
                     v.X = MathF.Round(y + (1.402F * cr), MidpointRounding.AwayFromZero);
                     v.Y = MathF.Round(y - (0.344136F * cb) - (0.714136F * cr), MidpointRounding.AwayFromZero);

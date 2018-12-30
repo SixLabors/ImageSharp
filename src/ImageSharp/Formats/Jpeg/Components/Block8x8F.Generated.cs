@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -9,10 +10,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
 	internal partial struct Block8x8F
     {
-        private static readonly Vector4 CMin4 = new Vector4(0F);
-        private static readonly Vector4 CMax4 = new Vector4(255F);
-        private static readonly Vector4 COff4 = new Vector4(128F);
-
 		/// <summary>
         /// Transpose the block into the destination block.
         /// </summary>
@@ -94,10 +91,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
 		/// <summary>
-        /// Level shift by +128, clip to [0, 255]
+        /// Level shift by +maximum/2, clip to [0, maximum]
         /// </summary>
-        public void NormalizeColorsInplace()
+        public void NormalizeColorsInplace(float maximum)
         {
+            Vector4 CMin4 = new Vector4(0F);
+            Vector4 CMax4 = new Vector4(maximum);
+            Vector4 COff4 = new Vector4((float)Math.Ceiling(maximum/2));
+
             this.V0L = Vector4.Clamp(this.V0L + COff4, CMin4, CMax4);
             this.V0R = Vector4.Clamp(this.V0R + COff4, CMin4, CMax4);
             this.V1L = Vector4.Clamp(this.V1L + COff4, CMin4, CMax4);
@@ -120,10 +121,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// AVX2-only variant for executing <see cref="NormalizeColorsInplace"/> and <see cref="RoundInplace"/> in one step.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void NormalizeColorsAndRoundInplaceAvx2()
+        public void NormalizeColorsAndRoundInplaceAvx2(float maximum)
         {
-            Vector<float> off = new Vector<float>(128f);
-            Vector<float> max = new Vector<float>(255F);
+            Vector<float> off = new Vector<float>((float)Math.Ceiling(maximum/2));
+            Vector<float> max = new Vector<float>(maximum);
             
             ref Vector<float> row0 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V0L);
             row0 = NormalizeAndRound(row0, off, max);

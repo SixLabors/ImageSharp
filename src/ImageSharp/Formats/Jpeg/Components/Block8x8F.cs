@@ -467,17 +467,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Level shift by +128, clip to [0..255], and round all the values in the block.
+        /// Level shift by +maximum/2, clip to [0..maximum], and round all the values in the block.
         /// </summary>
-        public void NormalizeColorsAndRoundInplace()
+        public void NormalizeColorsAndRoundInplace(float maximum)
         {
             if (SimdUtils.IsAvx2CompatibleArchitecture)
             {
-                this.NormalizeColorsAndRoundInplaceAvx2();
+                this.NormalizeColorsAndRoundInplaceAvx2(maximum);
             }
             else
             {
-                this.NormalizeColorsInplace();
+                this.NormalizeColorsInplace(maximum);
                 this.RoundInplace();
             }
         }

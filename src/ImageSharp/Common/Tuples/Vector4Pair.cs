@@ -37,12 +37,11 @@ namespace SixLabors.ImageSharp.Tuples
             this.B += other.B;
         }
 
-        /// <summary>
-        /// Downscale method, specific to Jpeg color conversion. Works only if Vector{float}.Count == 4!
-        /// TODO: Move it somewhere else.
+        /// <summary>.
+        /// Downscale method, specific to Jpeg color conversion. Works only if Vector{float}.Count == 4!        /// TODO: Move it somewhere else.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void RoundAndDownscalePreAvx2()
+        internal void RoundAndDownscalePreAvx2(float downscaleFactor)
         {
             ref Vector<float> a = ref Unsafe.As<Vector4, Vector<float>>(ref this.A);
             a = a.FastRound();
@@ -50,8 +49,8 @@ namespace SixLabors.ImageSharp.Tuples
             ref Vector<float> b = ref Unsafe.As<Vector4, Vector<float>>(ref this.B);
             b = b.FastRound();
 
-            // Downscale by 1/255
-            var scale = new Vector4(1 / 255f);
+            // Downscale by 1/factor
+            var scale = new Vector4(1 / downscaleFactor);
             this.A *= scale;
             this.B *= scale;
         }
@@ -61,14 +60,14 @@ namespace SixLabors.ImageSharp.Tuples
         /// TODO: Move it somewhere else.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void RoundAndDownscaleAvx2()
+        internal void RoundAndDownscaleAvx2(float downscaleFactor)
         {
             ref Vector<float> self = ref Unsafe.As<Vector4Pair, Vector<float>>(ref this);
             Vector<float> v = self;
             v = v.FastRound();
 
-            // Downscale by 1/255
-            v *= new Vector<float>(1 / 255f);
+            // Downscale by 1/factor
+            v *= new Vector<float>(1 / downscaleFactor);
             self = v;
         }
 

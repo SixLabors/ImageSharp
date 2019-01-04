@@ -42,5 +42,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             // TODO: We need a public ImageDecoderException class in ImageSharp!
             Assert.ThrowsAny<Exception>(() => provider.GetImage(JpegDecoder));
         }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Issues.InvalidJpegThrowsWrongException797, PixelTypes.Rgba32)]
+        public void LoadingImage_InvalidTagLength_ShouldThrow<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Assert.Throws<ImageFormatException>(() => provider.GetImage());
+        }
     }
 }

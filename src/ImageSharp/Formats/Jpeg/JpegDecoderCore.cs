@@ -292,6 +292,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         case JpegConstants.Markers.SOS:
                             if (!metadataOnly)
                             {
+                                if (this.Frame is null)
+                                {
+                                    throw new ImageFormatException("no readable SOF marker found.");
+                                }
+
                                 this.ProcessStartOfScanMarker();
                                 break;
                             }

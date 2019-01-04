@@ -292,11 +292,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         case JpegConstants.Markers.SOS:
                             if (!metadataOnly)
                             {
-                                if (this.Frame is null)
-                                {
-                                    throw new ImageFormatException("no readable SOF marker found.");
-                                }
-
                                 this.ProcessStartOfScanMarker();
                                 break;
                             }
@@ -864,6 +859,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         private void ProcessStartOfScanMarker()
         {
+            if (this.Frame is null)
+            {
+                throw new ImageFormatException("No readable SOFn (Start Of Frame) marker found.");
+            }
+
             int selectorsCount = this.InputStream.ReadByte();
             for (int i = 0; i < selectorsCount; i++)
             {

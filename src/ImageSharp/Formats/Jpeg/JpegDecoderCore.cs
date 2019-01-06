@@ -859,6 +859,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         private void ProcessStartOfScanMarker()
         {
+            if (this.Frame is null)
+            {
+                throw new ImageFormatException("No readable SOFn (Start Of Frame) marker found.");
+            }
+
             int selectorsCount = this.InputStream.ReadByte();
             for (int i = 0; i < selectorsCount; i++)
             {

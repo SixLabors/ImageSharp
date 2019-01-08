@@ -23,6 +23,26 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private int padding;
 
+        /// <summary>
+        /// The mask for the alpha channel of the color for a 32 bit rgba bitmaps.
+        /// </summary>
+        private const int Rgba32AlphaMask = 0xFF << 24;
+
+        /// <summary>
+        /// The mask for the red part of the color for a 32 bit rgba bitmaps.
+        /// </summary>
+        private const int Rgba32RedMask = 0xFF << 16;
+
+        /// <summary>
+        /// The mask for the green part of the color for a 32 bit rgba bitmaps.
+        /// </summary>
+        private const int Rgba32GreenMask = 0xFF << 8;
+
+        /// <summary>
+        /// The mask for the blue part of the color for a 32 bit rgba bitmaps.
+        /// </summary>
+        private const int Rgba32BlueMask = 0xFF;
+
         private readonly MemoryAllocator memoryAllocator;
 
         private Configuration configuration;
@@ -92,7 +112,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 }
             }
 
-            int infoHeaderSize = BmpInfoHeader.SizeV3;
+            int infoHeaderSize = BmpInfoHeader.SizeV4;
             var infoHeader = new BmpInfoHeader(
                 headerSize: infoHeaderSize,
                 height: image.Height,
@@ -104,6 +124,15 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 clrImportant: 0,
                 xPelsPerMeter: hResolution,
                 yPelsPerMeter: vResolution);
+
+            infoHeader.RedMask = Rgba32RedMask;
+            infoHeader.GreenMask = Rgba32GreenMask;
+            infoHeader.BlueMask = Rgba32BlueMask;
+            infoHeader.Compression = BmpCompression.BitFields;
+            if (this.bitsPerPixel == BmpBitsPerPixel.Pixel32)
+            {
+                infoHeader.AlphaMask = Rgba32AlphaMask;
+            }
 
             var fileHeader = new BmpFileHeader(
                 type: BmpConstants.TypeMarkers.Bitmap,
@@ -120,7 +149,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             stream.Write(buffer, 0, BmpFileHeader.Size);
 
-            infoHeader.WriteV3Header(buffer);
+            infoHeader.WriteV4Header(buffer);
 
             stream.Write(buffer, 0, infoHeaderSize);
 

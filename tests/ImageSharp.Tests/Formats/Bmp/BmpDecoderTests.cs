@@ -61,6 +61,18 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
+        [WithFile(Bit32Rgba, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecodeBitmap_WithAlphaChannel<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, new MagickReferenceDecoder());
+            }
+        }
+
+        [Theory]
         [WithFile(Rgba321010102, PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecodeBitfields_WithUnusualBitmasks<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>

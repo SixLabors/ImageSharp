@@ -204,7 +204,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string Bit16 = "Bmp/test16.bmp";
             public const string Bit16Inverted = "Bmp/test16-inverted.bmp";
             public const string Bit32Rgb = "Bmp/rgb32.bmp";
-            
+            public const string Bit32Rgba = "Bmp/rgba32.bmp";
+
             // Note: This format can be called OS/2 BMPv1, or Windows BMPv2
             public const string WinBmpv2 = "Bmp/pal8os2v1_winv2.bmp";
             public const string WinBmpv3 = "Bmp/rgb24.bmp";
@@ -247,7 +248,8 @@ namespace SixLabors.ImageSharp.Tests
                 Bit8,
                 Bit8Inverted,
                 Bit16,
-                Bit16Inverted
+                Bit16Inverted,
+                Bit32Rgb
             };
         }
 

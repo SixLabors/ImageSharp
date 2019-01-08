@@ -46,9 +46,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [WithFile(TestImages.Jpeg.Issues.InvalidJpegThrowsWrongException797, PixelTypes.Rgba32)]
         public void LoadingImage_InvalidTagLength_ShouldThrow<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            Assert.Throws<ImageFormatException>(() => provider.GetImage());
-        }
+            where TPixel : struct, IPixel<TPixel> => Assert.Throws<ImageFormatException>(() => provider.GetImage());
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Issues.AccessViolationException798, PixelTypes.Rgba32)]
+        public void LoadingImage_BadHuffman_ShouldNotThrow<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : struct, IPixel<TPixel> => Assert.NotNull(provider.GetImage());
     }
 }

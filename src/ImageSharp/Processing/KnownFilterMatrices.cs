@@ -319,37 +319,6 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <summary>
-        /// Create a saturation filter matrix using the given amount.
-        /// </summary>
-        /// <remarks>
-        /// A value of 0 is completely un-saturated. A value of 1 leaves the input unchanged.
-        /// Other values are linear multipliers on the effect. Values of amount over 1 are allowed, providing super-saturated results
-        /// </remarks>
-        /// <param name="amount">The proportion of the conversion. Must be greater than or equal to 0.</param>
-        /// <returns>The <see cref="Matrix5x4"/></returns>
-        public static Matrix5x4 CreateSaturateFilter(float amount)
-        {
-            Guard.MustBeGreaterThanOrEqualTo(amount, 0, nameof(amount));
-
-            // See https://cs.chromium.org/chromium/src/cc/paint/render_surface_filters.cc
-            Matrix5x4 m = default;
-            m.M11 = .213F + (.787F * amount);
-            m.M21 = .715F - (.715F * amount);
-            m.M31 = 1F - (m.M11 + m.M21);
-
-            m.M12 = .213F - (.213F * amount);
-            m.M22 = .715F + (.285F * amount);
-            m.M32 = 1F - (m.M12 + m.M22);
-
-            m.M13 = .213F - (.213F * amount);
-            m.M23 = .715F - (.715F * amount);
-            m.M33 = 1F - (m.M13 + m.M23);
-            m.M44 = 1F;
-
-            return m;
-        }
-
-        /// <summary>
         /// Create a hue filter matrix using the given angle in degrees.
         /// </summary>
         /// <param name="degrees">The angle of rotation in degrees.</param>
@@ -430,6 +399,37 @@ namespace SixLabors.ImageSharp.Processing
                 M33 = 1F,
                 M44 = amount
             };
+        }
+
+        /// <summary>
+        /// Create a saturation filter matrix using the given amount.
+        /// </summary>
+        /// <remarks>
+        /// A value of 0 is completely un-saturated. A value of 1 leaves the input unchanged.
+        /// Other values are linear multipliers on the effect. Values of amount over 1 are allowed, providing super-saturated results
+        /// </remarks>
+        /// <param name="amount">The proportion of the conversion. Must be greater than or equal to 0.</param>
+        /// <returns>The <see cref="Matrix5x4"/></returns>
+        public static Matrix5x4 CreateSaturateFilter(float amount)
+        {
+            Guard.MustBeGreaterThanOrEqualTo(amount, 0, nameof(amount));
+
+            // See https://cs.chromium.org/chromium/src/cc/paint/render_surface_filters.cc
+            Matrix5x4 m = default;
+            m.M11 = .213F + (.787F * amount);
+            m.M21 = .715F - (.715F * amount);
+            m.M31 = 1F - (m.M11 + m.M21);
+
+            m.M12 = .213F - (.213F * amount);
+            m.M22 = .715F + (.285F * amount);
+            m.M32 = 1F - (m.M12 + m.M22);
+
+            m.M13 = .213F - (.213F * amount);
+            m.M23 = .715F - (.715F * amount);
+            m.M33 = 1F - (m.M13 + m.M23);
+            m.M44 = 1F;
+
+            return m;
         }
 
         /// <summary>

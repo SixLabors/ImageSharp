@@ -129,7 +129,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             infoHeader.GreenMask = Rgba32GreenMask;
             infoHeader.BlueMask = Rgba32BlueMask;
             infoHeader.Compression = BmpCompression.BitFields;
-            if (this.bitsPerPixel == BmpBitsPerPixel.Pixel32)
+
+            // TODO: workaround for issue #732: alpha channel will be ignored for V3 header, remove check for V3 header once #732 is fixed.
+            if (this.bitsPerPixel == BmpBitsPerPixel.Pixel32 &&
+                bmpMetaData.InfoHeaderType != BmpInfoHeaderType.WinVersion3)
             {
                 infoHeader.AlphaMask = Rgba32AlphaMask;
             }

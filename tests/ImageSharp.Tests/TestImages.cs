@@ -168,6 +168,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string ExifGetString750Transform = "Jpg/issues/issue750-exif-tranform.jpg";
                 public const string ExifGetString750Load = "Jpg/issues/issue750-exif-load.jpg";
                 public const string InvalidJpegThrowsWrongException797 = "Jpg/issues/Issue797-InvalidImage.jpg";
+                public const string AccessViolationException798 = "Jpg/issues/Issue798-AccessViolationException.jpg";
             }
 
             public static readonly string[] All = Baseline.All.Concat(Progressive.All).ToArray();

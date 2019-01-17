@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests
         IEqualityComparer<float>,
         IEqualityComparer<Vector2>,
         IEqualityComparer<Vector4>,
-        IEqualityComparer<Matrix5x4>
+        IEqualityComparer<ColorMatrix>
     {
         private readonly float Epsilon;
 
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests
         public int GetHashCode(Vector4 obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
-        public bool Equals(Matrix5x4 x, Matrix5x4 y)
+        public bool Equals(ColorMatrix x, ColorMatrix y)
         {
             return
             this.Equals(x.M11, y.M11) && this.Equals(x.M12, y.M12) && this.Equals(x.M13, y.M13) && this.Equals(x.M14, y.M14)
@@ -59,6 +59,6 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         /// <inheritdoc/>
-        public int GetHashCode(Matrix5x4 obj) => obj.GetHashCode();
+        public int GetHashCode(ColorMatrix obj) => obj.GetHashCode();
     }
 }

@@ -6,23 +6,23 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Primitives
 {
-    public class Matrix5x4Tests
+    public class ColorMatrixTests
     {
         private readonly ApproximateFloatComparer ApproximateFloatComparer = new ApproximateFloatComparer(1e-6f);
 
         [Fact]
-        public void Matrix5x4IdentityIsCorrect()
+        public void ColorMatrixIdentityIsCorrect()
         {
-            Matrix5x4 val = default;
+            ColorMatrix val = default;
             val.M11 = val.M22 = val.M33 = val.M44 = 1F;
 
-            Assert.Equal(val, Matrix5x4.Identity, this.ApproximateFloatComparer);
+            Assert.Equal(val, ColorMatrix.Identity, this.ApproximateFloatComparer);
         }
 
         [Fact]
-        public void Matrix5x4CanDetectIdentity()
+        public void ColorMatrixCanDetectIdentity()
         {
-            Matrix5x4 m = Matrix5x4.Identity;
+            ColorMatrix m = ColorMatrix.Identity;
             Assert.True(m.IsIdentity);
 
             m.M12 = 1F;
@@ -30,10 +30,10 @@ namespace SixLabors.ImageSharp.Tests.Primitives
         }
 
         [Fact]
-        public void Matrix5x4Equality()
+        public void ColorMatrixEquality()
         {
-            Matrix5x4 m = KnownFilterMatrices.CreateHueFilter(45F);
-            Matrix5x4 m2 = KnownFilterMatrices.CreateHueFilter(45F);
+            ColorMatrix m = KnownFilterMatrices.CreateHueFilter(45F);
+            ColorMatrix m2 = KnownFilterMatrices.CreateHueFilter(45F);
             object obj = m2;
 
             Assert.True(m.Equals(obj));
@@ -43,12 +43,12 @@ namespace SixLabors.ImageSharp.Tests.Primitives
         }
 
         [Fact]
-        public void Matrix5x4Multiply()
+        public void ColorMatrixMultiply()
         {
-            Matrix5x4 value1 = this.CreateAllTwos();
-            Matrix5x4 value2 = this.CreateAllThrees();
+            ColorMatrix value1 = this.CreateAllTwos();
+            ColorMatrix value2 = this.CreateAllThrees();
 
-            Matrix5x4 m;
+            ColorMatrix m;
 
             // First row
             m.M11 = (value1.M11 * value2.M11) + (value1.M12 * value2.M21) + (value1.M13 * value2.M31) + (value1.M14 * value2.M41);
@@ -84,38 +84,38 @@ namespace SixLabors.ImageSharp.Tests.Primitives
         }
 
         [Fact]
-        public void Matrix5x4MultiplyScalar()
+        public void ColorMatrixMultiplyScalar()
         {
-            Matrix5x4 m = this.CreateAllTwos();
+            ColorMatrix m = this.CreateAllTwos();
             Assert.Equal(this.CreateAllFours(), m * 2, this.ApproximateFloatComparer);
         }
 
         [Fact]
-        public void Matrix5x4Subtract()
+        public void ColorMatrixSubtract()
         {
-            Matrix5x4 m = this.CreateAllOnes() + this.CreateAllTwos();
+            ColorMatrix m = this.CreateAllOnes() + this.CreateAllTwos();
             Assert.Equal(this.CreateAllThrees(), m);
         }
 
         [Fact]
-        public void Matrix5x4Negate()
+        public void ColorMatrixNegate()
         {
-            Matrix5x4 m = this.CreateAllOnes() * -1F;
+            ColorMatrix m = this.CreateAllOnes() * -1F;
             Assert.Equal(m, -this.CreateAllOnes());
         }
 
         [Fact]
-        public void Matrix5x4Add()
+        public void ColorMatrixAdd()
         {
-            Matrix5x4 m = this.CreateAllOnes() + this.CreateAllTwos();
+            ColorMatrix m = this.CreateAllOnes() + this.CreateAllTwos();
             Assert.Equal(this.CreateAllThrees(), m);
         }
 
         [Fact]
-        public void Matrix5x4HashCode()
+        public void ColorMatrixHashCode()
         {
 #if NETCOREAPP2_1
-            Matrix5x4 m = KnownFilterMatrices.CreateBrightnessFilter(.5F);
+            ColorMatrix m = KnownFilterMatrices.CreateBrightnessFilter(.5F);
             HashCode hash = default;
             hash.Add(m.M11);
             hash.Add(m.M12);
@@ -143,9 +143,9 @@ namespace SixLabors.ImageSharp.Tests.Primitives
         }
 
         [Fact]
-        public void Matrix5x4ToString()
+        public void ColorMatrixToString()
         {
-            Matrix5x4 m = KnownFilterMatrices.CreateBrightnessFilter(.5F);
+            ColorMatrix m = KnownFilterMatrices.CreateBrightnessFilter(.5F);
 
             CultureInfo ci = CultureInfo.CurrentCulture;
 
@@ -159,9 +159,9 @@ namespace SixLabors.ImageSharp.Tests.Primitives
             Assert.Equal(expected, m.ToString());
         }
 
-        private Matrix5x4 CreateAllOnes()
+        private ColorMatrix CreateAllOnes()
         {
-            return new Matrix5x4
+            return new ColorMatrix
             {
                 M11 = 1F,
                 M12 = 1F,
@@ -186,9 +186,9 @@ namespace SixLabors.ImageSharp.Tests.Primitives
             };
         }
 
-        private Matrix5x4 CreateAllTwos()
+        private ColorMatrix CreateAllTwos()
         {
-            return new Matrix5x4
+            return new ColorMatrix
             {
                 M11 = 2F,
                 M12 = 2F,
@@ -213,9 +213,9 @@ namespace SixLabors.ImageSharp.Tests.Primitives
             };
         }
 
-        private Matrix5x4 CreateAllThrees()
+        private ColorMatrix CreateAllThrees()
         {
-            return new Matrix5x4
+            return new ColorMatrix
             {
                 M11 = 3F,
                 M12 = 3F,
@@ -240,9 +240,9 @@ namespace SixLabors.ImageSharp.Tests.Primitives
             };
         }
 
-        private Matrix5x4 CreateAllFours()
+        private ColorMatrix CreateAllFours()
         {
-            return new Matrix5x4
+            return new ColorMatrix
             {
                 M11 = 4F,
                 M12 = 4F,

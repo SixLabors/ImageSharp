@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image this method extends.</param>
         /// <param name="matrix">The filter color matrix</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Filter<TPixel>(this IImageProcessingContext<TPixel> source, Matrix5x4 matrix)
+        public static IImageProcessingContext<TPixel> Filter<TPixel>(this IImageProcessingContext<TPixel> source, ColorMatrix matrix)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new FilterProcessor<TPixel>(matrix));
 
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Processing
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Filter<TPixel>(this IImageProcessingContext<TPixel> source, Matrix5x4 matrix, Rectangle rectangle)
+        public static IImageProcessingContext<TPixel> Filter<TPixel>(this IImageProcessingContext<TPixel> source, ColorMatrix matrix, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new FilterProcessor<TPixel>(matrix), rectangle);
     }

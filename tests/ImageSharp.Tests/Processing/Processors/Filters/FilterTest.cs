@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         public void ApplyFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            Matrix5x4 m = CreateCombinedTestFilterMatrix();
+            ColorMatrix m = CreateCombinedTestFilterMatrix();
 
             provider.RunValidatingProcessorTest(x => x.Filter(m), comparer: ValidatorComparer);
         }
@@ -32,16 +32,16 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         public void ApplyFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            Matrix5x4 m = CreateCombinedTestFilterMatrix();
+            ColorMatrix m = CreateCombinedTestFilterMatrix();
 
             provider.RunRectangleConstrainedValidatingProcessorTest((x, b) => x.Filter(m, b), comparer: ValidatorComparer);
         }
 
-        private static Matrix5x4 CreateCombinedTestFilterMatrix()
+        private static ColorMatrix CreateCombinedTestFilterMatrix()
         {
-            Matrix5x4 brightness = KnownFilterMatrices.CreateBrightnessFilter(0.9F);
-            Matrix5x4 hue = KnownFilterMatrices.CreateHueFilter(180F);
-            Matrix5x4 saturation = KnownFilterMatrices.CreateSaturateFilter(1.5F);
+            ColorMatrix brightness = KnownFilterMatrices.CreateBrightnessFilter(0.9F);
+            ColorMatrix hue = KnownFilterMatrices.CreateHueFilter(180F);
+            ColorMatrix saturation = KnownFilterMatrices.CreateSaturateFilter(1.5F);
             return brightness * hue * saturation;
         }
 

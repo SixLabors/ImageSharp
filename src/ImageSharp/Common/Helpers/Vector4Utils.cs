@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp
         /// <param name="vector">The source vector.</param>
         /// <param name="matrix">The transformation matrix.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void Transform(ref Vector4 vector, ref Matrix5x4 matrix)
+        public static void Transform(ref Vector4 vector, ref ColorMatrix matrix)
         {
             float x = vector.X;
             float y = vector.Y;
@@ -92,12 +92,12 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Bulk variant of <see cref="Transform(ref Vector4, ref Matrix5x4)"/>
+        /// Bulk variant of <see cref="Transform(ref Vector4, ref ColorMatrix)"/>
         /// </summary>
         /// <param name="vectors">The span of vectors</param>
         /// <param name="matrix">The transformation matrix.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void Transform(Span<Vector4> vectors, ref Matrix5x4 matrix)
+        public static void Transform(Span<Vector4> vectors, ref ColorMatrix matrix)
         {
             ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
 

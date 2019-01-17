@@ -9,10 +9,10 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.Primitives
 {
     /// <summary>
-    /// A structure encapsulating a 5x4 matrix.
+    /// A structure encapsulating a 5x4 matrix used for transforming the color and alpha components of an image.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    public struct Matrix5x4 : IEquatable<Matrix5x4>
+    public struct ColorMatrix : IEquatable<ColorMatrix>
     {
         /// <summary>
         /// Value at row 1, column 1 of the matrix.
@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp.Primitives
         public float M54;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Matrix5x4"/> struct.
+        /// Initializes a new instance of the <see cref="ColorMatrix"/> struct.
         /// </summary>
         /// <param name="m11">The value at row 1, column 1 of the matrix.</param>
         /// <param name="m12">The value at row 1, column 2 of the matrix.</param>
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <param name="m52">The value at row 5, column 2 of the matrix.</param>
         /// <param name="m53">The value at row 5, column 3 of the matrix.</param>
         /// <param name="m54">The value at row 5, column 4 of the matrix.</param>
-        public Matrix5x4(float m11, float m12, float m13, float m14,
+        public ColorMatrix(float m11, float m12, float m13, float m14,
                          float m21, float m22, float m23, float m24,
                          float m31, float m32, float m33, float m34,
                          float m41, float m42, float m43, float m44,
@@ -172,8 +172,8 @@ namespace SixLabors.ImageSharp.Primitives
         /// <summary>
         /// Gets the multiplicative identity matrix.
         /// </summary>
-        public static Matrix5x4 Identity { get; } =
-            new Matrix5x4(1F, 0F, 0F, 0F,
+        public static ColorMatrix Identity { get; } =
+            new ColorMatrix(1F, 0F, 0F, 0F,
                           0F, 1F, 0F, 0F,
                           0F, 0F, 1F, 0F,
                           0F, 0F, 0F, 1F,
@@ -202,9 +202,9 @@ namespace SixLabors.ImageSharp.Primitives
         /// <param name="value1">The first source matrix.</param>
         /// <param name="value2">The second source matrix.</param>
         /// <returns>The resulting matrix.</returns>
-        public static Matrix5x4 operator +(Matrix5x4 value1, Matrix5x4 value2)
+        public static ColorMatrix operator +(ColorMatrix value1, ColorMatrix value2)
         {
-            Matrix5x4 m;
+            ColorMatrix m;
 
             m.M11 = value1.M11 + value2.M11;
             m.M12 = value1.M12 + value2.M12;
@@ -236,9 +236,9 @@ namespace SixLabors.ImageSharp.Primitives
         /// <param name="value1">The first source matrix.</param>
         /// <param name="value2">The second source matrix.</param>
         /// <returns>The result of the subtraction.</returns>
-        public static Matrix5x4 operator -(Matrix5x4 value1, Matrix5x4 value2)
+        public static ColorMatrix operator -(ColorMatrix value1, ColorMatrix value2)
         {
-            Matrix5x4 m;
+            ColorMatrix m;
 
             m.M11 = value1.M11 - value2.M11;
             m.M12 = value1.M12 - value2.M12;
@@ -269,9 +269,9 @@ namespace SixLabors.ImageSharp.Primitives
         /// </summary>
         /// <param name="value">The source matrix.</param>
         /// <returns>The negated matrix.</returns>
-        public static unsafe Matrix5x4 operator -(Matrix5x4 value)
+        public static unsafe ColorMatrix operator -(ColorMatrix value)
         {
-            Matrix5x4 m;
+            ColorMatrix m;
 
             m.M11 = -value.M11;
             m.M12 = -value.M12;
@@ -303,9 +303,9 @@ namespace SixLabors.ImageSharp.Primitives
         /// <param name="value1">The first source matrix.</param>
         /// <param name="value2">The second source matrix.</param>
         /// <returns>The result of the multiplication.</returns>
-        public static Matrix5x4 operator *(Matrix5x4 value1, Matrix5x4 value2)
+        public static ColorMatrix operator *(ColorMatrix value1, ColorMatrix value2)
         {
-            Matrix5x4 m;
+            ColorMatrix m;
 
             // First row
             m.M11 = (value1.M11 * value2.M11) + (value1.M12 * value2.M21) + (value1.M13 * value2.M31) + (value1.M14 * value2.M41);
@@ -346,9 +346,9 @@ namespace SixLabors.ImageSharp.Primitives
         /// <param name="value1">The source matrix.</param>
         /// <param name="value2">The scaling factor.</param>
         /// <returns>The scaled matrix.</returns>
-        public static Matrix5x4 operator *(Matrix5x4 value1, float value2)
+        public static ColorMatrix operator *(ColorMatrix value1, float value2)
         {
-            Matrix5x4 m;
+            ColorMatrix m;
 
             m.M11 = value1.M11 * value2;
             m.M12 = value1.M12 * value2;
@@ -380,7 +380,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <param name="value1">The first matrix to compare.</param>
         /// <param name="value2">The second matrix to compare.</param>
         /// <returns>True if the given matrices are equal; False otherwise.</returns>
-        public static bool operator ==(Matrix5x4 value1, Matrix5x4 value2) => value1.Equals(value2);
+        public static bool operator ==(ColorMatrix value1, ColorMatrix value2) => value1.Equals(value2);
 
         /// <summary>
         /// Returns a boolean indicating whether the given two matrices are not equal.
@@ -388,13 +388,13 @@ namespace SixLabors.ImageSharp.Primitives
         /// <param name="value1">The first matrix to compare.</param>
         /// <param name="value2">The second matrix to compare.</param>
         /// <returns>True if the given matrices are equal; False otherwise.</returns>
-        public static bool operator !=(Matrix5x4 value1, Matrix5x4 value2) => !value1.Equals(value2);
+        public static bool operator !=(ColorMatrix value1, ColorMatrix value2) => !value1.Equals(value2);
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => obj is Matrix5x4 matrix && this.Equals(matrix);
+        public override bool Equals(object obj) => obj is ColorMatrix matrix && this.Equals(matrix);
 
         /// <inheritdoc/>
-        public bool Equals(Matrix5x4 other) =>
+        public bool Equals(ColorMatrix other) =>
             this.M11 == other.M11
             && this.M12 == other.M12
             && this.M13 == other.M13

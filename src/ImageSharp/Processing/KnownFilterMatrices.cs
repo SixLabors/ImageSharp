@@ -16,14 +16,14 @@ using SixLabors.ImageSharp.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// A collection of known <see cref="Matrix5x4"/> values for composing filters
+    /// A collection of known <see cref="ColorMatrix"/> values for composing filters
     /// </summary>
     public static class KnownFilterMatrices
     {
         /// <summary>
         /// Gets a filter recreating Achromatomaly (Color desensitivity) color blindness
         /// </summary>
-        public static Matrix5x4 AchromatomalyFilter { get; } = new Matrix5x4
+        public static ColorMatrix AchromatomalyFilter { get; } = new ColorMatrix
         {
             M11 = .618F,
             M12 = .163F,
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets a filter recreating Achromatopsia (Monochrome) color blindness.
         /// </summary>
-        public static Matrix5x4 AchromatopsiaFilter { get; } = new Matrix5x4
+        public static ColorMatrix AchromatopsiaFilter { get; } = new ColorMatrix
         {
             M11 = .299F,
             M12 = .299F,
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets a filter recreating Deuteranomaly (Green-Weak) color blindness.
         /// </summary>
-        public static Matrix5x4 DeuteranomalyFilter { get; } = new Matrix5x4
+        public static ColorMatrix DeuteranomalyFilter { get; } = new ColorMatrix
         {
             M11 = .8F,
             M12 = .258F,
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets a filter recreating Deuteranopia (Green-Blind) color blindness.
         /// </summary>
-        public static Matrix5x4 DeuteranopiaFilter { get; } = new Matrix5x4
+        public static ColorMatrix DeuteranopiaFilter { get; } = new ColorMatrix
         {
             M11 = .625F,
             M12 = .7F,
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets a filter recreating Protanomaly (Red-Weak) color blindness.
         /// </summary>
-        public static Matrix5x4 ProtanomalyFilter { get; } = new Matrix5x4
+        public static ColorMatrix ProtanomalyFilter { get; } = new ColorMatrix
         {
             M11 = .817F,
             M12 = .333F,
@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets a filter recreating Protanopia (Red-Blind) color blindness.
         /// </summary>
-        public static Matrix5x4 ProtanopiaFilter { get; } = new Matrix5x4
+        public static ColorMatrix ProtanopiaFilter { get; } = new ColorMatrix
         {
             M11 = .567F,
             M12 = .558F,
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets a filter recreating Tritanomaly (Blue-Weak) color blindness.
         /// </summary>
-        public static Matrix5x4 TritanomalyFilter { get; } = new Matrix5x4
+        public static ColorMatrix TritanomalyFilter { get; } = new ColorMatrix
         {
             M11 = .967F,
             M21 = .33F,
@@ -127,7 +127,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets a filter recreating Tritanopia (Blue-Blind) color blindness.
         /// </summary>
-        public static Matrix5x4 TritanopiaFilter { get; } = new Matrix5x4
+        public static ColorMatrix TritanopiaFilter { get; } = new ColorMatrix
         {
             M11 = .95F,
             M21 = .05F,
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets an approximated black and white filter
         /// </summary>
-        public static Matrix5x4 BlackWhiteFilter { get; } = new Matrix5x4()
+        public static ColorMatrix BlackWhiteFilter { get; } = new ColorMatrix()
         {
             M11 = 1.5F,
             M12 = 1.5F,
@@ -161,7 +161,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets a filter recreating an old Kodachrome camera effect.
         /// </summary>
-        public static Matrix5x4 KodachromeFilter { get; } = new Matrix5x4
+        public static ColorMatrix KodachromeFilter { get; } = new ColorMatrix
         {
             M11 = .7297023F,
             M22 = .6109577F,
@@ -177,7 +177,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets a filter recreating an old Lomograph camera effect.
         /// </summary>
-        public static Matrix5x4 LomographFilter { get; } = new Matrix5x4
+        public static ColorMatrix LomographFilter { get; } = new ColorMatrix
         {
             M11 = 1.5F,
             M22 = 1.45F,
@@ -193,7 +193,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets a filter recreating an old Polaroid camera effect.
         /// </summary>
-        public static Matrix5x4 PolaroidFilter { get; } = new Matrix5x4
+        public static ColorMatrix PolaroidFilter { get; } = new ColorMatrix
         {
             M11 = 1.538F,
             M12 = -.062F,
@@ -218,13 +218,13 @@ namespace SixLabors.ImageSharp.Processing
         /// Other values are linear multipliers on the effect. Values of an amount over 1 are allowed, providing brighter results.
         /// </remarks>
         /// <param name="amount">The proportion of the conversion. Must be greater than or equal to 0.</param>
-        /// <returns>The <see cref="Matrix5x4"/></returns>
-        public static Matrix5x4 CreateBrightnessFilter(float amount)
+        /// <returns>The <see cref="ColorMatrix"/></returns>
+        public static ColorMatrix CreateBrightnessFilter(float amount)
         {
             Guard.MustBeGreaterThanOrEqualTo(amount, 0, nameof(amount));
 
             // See https://cs.chromium.org/chromium/src/cc/paint/render_surface_filters.cc
-            return new Matrix5x4
+            return new ColorMatrix
             {
                 M11 = amount,
                 M22 = amount,
@@ -241,15 +241,15 @@ namespace SixLabors.ImageSharp.Processing
         /// Other values are linear multipliers on the effect. Values of an amount over 1 are allowed, providing results with more contrast.
         /// </remarks>
         /// <param name="amount">The proportion of the conversion. Must be greater than or equal to 0.</param>
-        /// <returns>The <see cref="Matrix5x4"/></returns>
-        public static Matrix5x4 CreateContrastFilter(float amount)
+        /// <returns>The <see cref="ColorMatrix"/></returns>
+        public static ColorMatrix CreateContrastFilter(float amount)
         {
             Guard.MustBeGreaterThanOrEqualTo(amount, 0, nameof(amount));
 
             // See https://cs.chromium.org/chromium/src/cc/paint/render_surface_filters.cc
             float contrast = (-.5F * amount) + .5F;
 
-            return new Matrix5x4
+            return new ColorMatrix
             {
                 M11 = amount,
                 M22 = amount,
@@ -266,13 +266,13 @@ namespace SixLabors.ImageSharp.Processing
         /// <see href="https://en.wikipedia.org/wiki/Luma_%28video%29#Rec._601_luma_versus_Rec._709_luma_coefficients"/>
         /// </summary>
         /// <param name="amount">The proportion of the conversion. Must be between 0 and 1.</param>
-        /// <returns>The <see cref="Matrix5x4"/></returns>
-        public static Matrix5x4 CreateGrayscaleBt601Filter(float amount)
+        /// <returns>The <see cref="ColorMatrix"/></returns>
+        public static ColorMatrix CreateGrayscaleBt601Filter(float amount)
         {
             Guard.MustBeBetweenOrEqualTo(amount, 0, 1F, nameof(amount));
             amount = 1F - amount;
 
-            Matrix5x4 m = default;
+            ColorMatrix m = default;
             m.M11 = .299F + (.701F * amount);
             m.M21 = .587F - (.587F * amount);
             m.M31 = 1F - (m.M11 + m.M21);
@@ -294,14 +294,14 @@ namespace SixLabors.ImageSharp.Processing
         /// <see href="https://en.wikipedia.org/wiki/Rec._709#Luma_coefficients"/>
         /// </summary>
         /// <param name="amount">The proportion of the conversion. Must be between 0 and 1.</param>
-        /// <returns>The <see cref="Matrix5x4"/></returns>
-        public static Matrix5x4 CreateGrayscaleBt709Filter(float amount)
+        /// <returns>The <see cref="ColorMatrix"/></returns>
+        public static ColorMatrix CreateGrayscaleBt709Filter(float amount)
         {
             Guard.MustBeBetweenOrEqualTo(amount, 0, 1F, nameof(amount));
             amount = 1F - amount;
 
             // https://cs.chromium.org/chromium/src/cc/paint/render_surface_filters.cc
-            Matrix5x4 m = default;
+            ColorMatrix m = default;
             m.M11 = .2126F + (.7874F * amount);
             m.M21 = .7152F - (.7152F * amount);
             m.M31 = 1F - (m.M11 + m.M21);
@@ -322,8 +322,8 @@ namespace SixLabors.ImageSharp.Processing
         /// Create a hue filter matrix using the given angle in degrees.
         /// </summary>
         /// <param name="degrees">The angle of rotation in degrees.</param>
-        /// <returns>The <see cref="Matrix5x4"/></returns>
-        public static Matrix5x4 CreateHueFilter(float degrees)
+        /// <returns>The <see cref="ColorMatrix"/></returns>
+        public static ColorMatrix CreateHueFilter(float degrees)
         {
             // Wrap the angle round at 360.
             degrees %= 360;
@@ -341,7 +341,7 @@ namespace SixLabors.ImageSharp.Processing
             // The matrix is set up to preserve the luminance of the image.
             // See http://graficaobscura.com/matrix/index.html
             // Number are taken from https://msdn.microsoft.com/en-us/library/jj192162(v=vs.85).aspx
-            return new Matrix5x4
+            return new ColorMatrix
             {
                 M11 = .213F + (cosRadian * .787F) - (sinRadian * .213F),
                 M21 = .715F - (cosRadian * .715F) - (sinRadian * .715F),
@@ -362,15 +362,15 @@ namespace SixLabors.ImageSharp.Processing
         /// Create an invert filter matrix using the given amount.
         /// </summary>
         /// <param name="amount">The proportion of the conversion. Must be between 0 and 1.</param>
-        /// <returns>The <see cref="Matrix5x4"/></returns>
-        public static Matrix5x4 CreateInvertFilter(float amount)
+        /// <returns>The <see cref="ColorMatrix"/></returns>
+        public static ColorMatrix CreateInvertFilter(float amount)
         {
             Guard.MustBeBetweenOrEqualTo(amount, 0, 1, nameof(amount));
 
             // See https://cs.chromium.org/chromium/src/cc/paint/render_surface_filters.cc
             float invert = 1F - (2F * amount);
 
-            return new Matrix5x4
+            return new ColorMatrix
             {
                 M11 = invert,
                 M22 = invert,
@@ -386,13 +386,13 @@ namespace SixLabors.ImageSharp.Processing
         /// Create an opacity filter matrix using the given amount.
         /// </summary>
         /// <param name="amount">The proportion of the conversion. Must be between 0 and 1.</param>
-        /// <returns>The <see cref="Matrix5x4"/></returns>
-        public static Matrix5x4 CreateOpacityFilter(float amount)
+        /// <returns>The <see cref="ColorMatrix"/></returns>
+        public static ColorMatrix CreateOpacityFilter(float amount)
         {
             Guard.MustBeBetweenOrEqualTo(amount, 0, 1, nameof(amount));
 
             // See https://cs.chromium.org/chromium/src/cc/paint/render_surface_filters.cc
-            return new Matrix5x4
+            return new ColorMatrix
             {
                 M11 = 1F,
                 M22 = 1F,
@@ -409,13 +409,13 @@ namespace SixLabors.ImageSharp.Processing
         /// Other values are linear multipliers on the effect. Values of amount over 1 are allowed, providing super-saturated results
         /// </remarks>
         /// <param name="amount">The proportion of the conversion. Must be greater than or equal to 0.</param>
-        /// <returns>The <see cref="Matrix5x4"/></returns>
-        public static Matrix5x4 CreateSaturateFilter(float amount)
+        /// <returns>The <see cref="ColorMatrix"/></returns>
+        public static ColorMatrix CreateSaturateFilter(float amount)
         {
             Guard.MustBeGreaterThanOrEqualTo(amount, 0, nameof(amount));
 
             // See https://cs.chromium.org/chromium/src/cc/paint/render_surface_filters.cc
-            Matrix5x4 m = default;
+            ColorMatrix m = default;
             m.M11 = .213F + (.787F * amount);
             m.M21 = .715F - (.715F * amount);
             m.M31 = 1F - (m.M11 + m.M21);
@@ -437,14 +437,14 @@ namespace SixLabors.ImageSharp.Processing
         /// The formula used matches the svg specification. <see href="http://www.w3.org/TR/filter-effects/#sepiaEquivalent"/>
         /// </summary>
         /// <param name="amount">The proportion of the conversion. Must be between 0 and 1.</param>
-        /// <returns>The <see cref="Matrix5x4"/></returns>
-        public static Matrix5x4 CreateSepiaFilter(float amount)
+        /// <returns>The <see cref="ColorMatrix"/></returns>
+        public static ColorMatrix CreateSepiaFilter(float amount)
         {
             Guard.MustBeBetweenOrEqualTo(amount, 0, 1, nameof(amount));
             amount = 1F - amount;
 
             // See https://cs.chromium.org/chromium/src/cc/paint/render_surface_filters.cc
-            return new Matrix5x4
+            return new ColorMatrix
             {
                 M11 = .393F + (.607F * amount),
                 M21 = .769F - (.769F * amount),

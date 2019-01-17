@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing.Processors.Filters;
 using SixLabors.Primitives;
 
@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image this method extends.</param>
         /// <param name="matrix">The filter color matrix</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Filter<TPixel>(this IImageProcessingContext<TPixel> source, Matrix4x4 matrix)
+        public static IImageProcessingContext<TPixel> Filter<TPixel>(this IImageProcessingContext<TPixel> source, ColorMatrix matrix)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new FilterProcessor<TPixel>(matrix));
 
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Processing
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Filter<TPixel>(this IImageProcessingContext<TPixel> source, Matrix4x4 matrix, Rectangle rectangle)
+        public static IImageProcessingContext<TPixel> Filter<TPixel>(this IImageProcessingContext<TPixel> source, ColorMatrix matrix, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new FilterProcessor<TPixel>(matrix), rectangle);
     }

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Buffers.Binary;
 using System.IO;
 using System.Numerics;
@@ -68,6 +69,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private ImageMetaData metaData;
 
         /// <summary>
+        /// The bmp specific metadata.
+        /// </summary>
+        private BmpMetaData bmpMetaData;
+
+        /// <summary>
         /// The file header containing general information.
         /// TODO: Why is this not used? We advance the stream but do not use the values parsed.
         /// </summary>
@@ -120,7 +126,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     case BmpCompression.RGB:
                         if (this.infoHeader.BitsPerPixel == 32)
                         {
-                            this.ReadRgb32(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                            if (this.bmpMetaData.InfoHeaderType == BmpInfoHeaderType.WinVersion3)
+                            {
+                                this.ReadRgb32Slow(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                            }
+                            else
+                            {
+                                this.ReadRgb32Fast(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                            }
                         }
                         else if (this.infoHeader.BitsPerPixel == 24)
                         {
@@ -522,7 +535,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
-        private void ReadRgb32<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted)
+        private void ReadRgb32Fast<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 4);
@@ -539,6 +552,104 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         row.GetSpan(),
                         pixelSpan,
                         width);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Reads the 32 bit color palette from the stream, checking the alpha component of each pixel.
+        /// This is a special case only used for 32bpp WinBMPv3 files, which could be in either BGR0 or BGRA format.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
+        /// <param name="width">The width of the bitmap.</param>
+        /// <param name="height">The height of the bitmap.</param>
+        /// <param name="inverted">Whether the bitmap is inverted.</param>
+        private void ReadRgb32Slow<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            int padding = CalculatePadding(width, 4);
+
+            using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, padding))
+            using (IMemoryOwner<Bgra32> bgraRow = this.memoryAllocator.Allocate<Bgra32>(width))
+            {
+                Span<Bgra32> bgraRowSpan = bgraRow.GetSpan();
+                long currentPosition = this.stream.Position;
+                bool hasAlpha = false;
+
+                // Loop though the rows checking each pixel. We start by assuming it's
+                // an BGR0 image. If we hit a non-zero alpha value, then we know it's
+                // actually a BGRA image, and change tactics accordingly.
+                for (int y = 0; y < height; y++)
+                {
+                    this.stream.Read(row);
+
+                    PixelOperations<Bgra32>.Instance.FromBgra32Bytes(
+                        this.configuration,
+                        row.GetSpan(),
+                        bgraRowSpan,
+                        width);
+
+                    // Check each pixel in the row to see if it has an alpha value.
+                    for (int x = 0; x < width; x++)
+                    {
+                        Bgra32 bgra = bgraRowSpan[x];
+                        if (bgra.A > 0)
+                        {
+                            hasAlpha = true;
+                            break;
+                        }
+                    }
+
+                    if (hasAlpha)
+                    {
+                        break;
+                    }
+                }
+
+                // Reset our stream for a second pass.
+                this.stream.Position = currentPosition;
+
+                // Process the pixels in bulk taking the raw alpha component value.
+                if (hasAlpha)
+                {
+                    for (int y = 0; y < height; y++)
+                    {
+                        this.stream.Read(row);
+
+                        int newY = Invert(y, height, inverted);
+                        Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+
+                        PixelOperations<TPixel>.Instance.FromBgra32Bytes(
+                            this.configuration,
+                            row.GetSpan(),
+                            pixelSpan,
+                            width);
+                    }
+
+                    return;
+                }
+
+                // Slow path. We need to set each alpha component value to fully opaque.
+                for (int y = 0; y < height; y++)
+                {
+                    this.stream.Read(row);
+                    PixelOperations<Bgra32>.Instance.FromBgra32Bytes(
+                        this.configuration,
+                        row.GetSpan(),
+                        bgraRowSpan,
+                        width);
+
+                    int newY = Invert(y, height, inverted);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+
+                    for (int x = 0; x < width; x++)
+                    {
+                        Bgra32 bgra = bgraRowSpan[x];
+                        bgra.A = byte.MaxValue;
+                        ref TPixel pixel = ref pixelSpan[x];
+                        pixel.FromBgra32(bgra);
+                    }
                 }
             }
         }
@@ -769,14 +880,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.metaData = meta;
 
             short bitsPerPixel = this.infoHeader.BitsPerPixel;
-            BmpMetaData bmpMetaData = this.metaData.GetFormatMetaData(BmpFormat.Instance);
-            bmpMetaData.InfoHeaderType = inofHeaderType;
+            this.bmpMetaData = this.metaData.GetFormatMetaData(BmpFormat.Instance);
+            this.bmpMetaData.InfoHeaderType = inofHeaderType;
 
             // We can only encode at these bit rates so far.
             if (bitsPerPixel.Equals((short)BmpBitsPerPixel.Pixel24)
                 || bitsPerPixel.Equals((short)BmpBitsPerPixel.Pixel32))
             {
-                bmpMetaData.BitsPerPixel = (BmpBitsPerPixel)bitsPerPixel;
+                this.bmpMetaData.BitsPerPixel = (BmpBitsPerPixel)bitsPerPixel;
             }
 
             // skip the remaining header because we can't read those parts

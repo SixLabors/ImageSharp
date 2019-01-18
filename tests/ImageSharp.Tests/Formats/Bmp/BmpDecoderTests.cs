@@ -4,6 +4,9 @@
 using System.IO;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
+
 using Xunit;
 
 // ReSharper disable InconsistentNaming
@@ -18,6 +21,8 @@ namespace SixLabors.ImageSharp.Tests
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
 
         public static readonly string[] AllBmpFiles = All;
+
+        public static readonly string[] BitfieldsBmpFiles = BitFields;
 
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
         new TheoryData<string, int, int, PixelResolutionUnit>
@@ -34,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
-                image.DebugSave(provider, "bmp");
+                image.DebugSave(provider);
 
                 if (TestEnvironment.IsWindows)
                 {
@@ -44,14 +49,44 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [WithFile(F, CommonNonDefaultPixelTypes)]
-        public void BmpDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(BitfieldsBmpFiles), PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecodeBitfields<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
-                image.DebugSave(provider, "bmp");
+                image.DebugSave(provider);
                 image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit32Rgba, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecodeBitmap_WithAlphaChannel<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, new MagickReferenceDecoder());
+            }
+        }
+
+        [Theory]
+        [WithFile(Rgba321010102, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecodeBitfields_WithUnusualBitmasks<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+
+                // Choosing large tolerance of 6.1 here, because for some reason with the MagickReferenceDecoder the alpha channel
+                // seems to be wrong. This bitmap has an alpha channel of two bits. In many cases this alpha channel has a value of 3,
+                // which should be remapped to 255 for RGBA32, but the magick decoder has a value of 191 set.
+                // The total difference without the alpha channel is still: 0.0204%
+                // Exporting the image as PNG with GIMP yields to the same result as the imagesharp implementation.
+                image.CompareToOriginal(provider, ImageComparer.TolerantPercentage(6.1f), new MagickReferenceDecoder());                
             }
         }
 
@@ -62,7 +97,67 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
-                image.DebugSave(provider, "png");
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(WinBmpv3, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecodeBmpv3<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(Rgba32bf56, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecodeAdobeBmpv3<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, new MagickReferenceDecoder());
+            }
+        }
+
+        [Theory]
+        [WithFile(WinBmpv4, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecodeBmpv4<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(WinBmpv5, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecodeBmpv5<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(F, CommonNonDefaultPixelTypes)]
+        public void BmpDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
                 image.CompareToOriginal(provider);
             }
         }
@@ -74,7 +169,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
-                image.DebugSave(provider, "png");
+                image.DebugSave(provider);
                 image.CompareToOriginal(provider);
             }
         }

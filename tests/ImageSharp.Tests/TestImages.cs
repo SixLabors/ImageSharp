@@ -205,11 +205,35 @@ namespace SixLabors.ImageSharp.Tests
             public const string Bit16 = "Bmp/test16.bmp";
             public const string Bit16Inverted = "Bmp/test16-inverted.bmp";
             public const string Bit32Rgb = "Bmp/rgb32.bmp";
-            
+            public const string Bit32Rgba = "Bmp/rgba32.bmp";
+
             // Note: This format can be called OS/2 BMPv1, or Windows BMPv2
             public const string WinBmpv2 = "Bmp/pal8os2v1_winv2.bmp";
+            public const string WinBmpv3 = "Bmp/rgb24.bmp";
+            public const string WinBmpv4 = "Bmp/pal8v4.bmp";
+            public const string WinBmpv5 = "Bmp/pal8v5.bmp";
             public const string Bit8Palette4 = "Bmp/pal8-0.bmp";
             public const string Os2v2Short = "Bmp/pal8os2v2-16.bmp";
+
+            // Bitmap images with compression type BITFIELDS
+            public const string Rgb32bfdef = "Bmp/rgb32bfdef.bmp";
+            public const string Rgb32bf = "Bmp/rgb32bf.bmp";
+            public const string Rgb16565 = "Bmp/rgb16-565.bmp";
+            public const string Rgb16bfdef = "Bmp/rgb16bfdef.bmp";
+            public const string Rgb16565pal = "Bmp/rgb16-565pal.bmp";
+            public const string Issue735 = "Bmp/issue735.bmp";
+            public const string Rgba32bf56 = "Bmp/rgba32h56.bmp";
+            public const string Rgba321010102 = "Bmp/rgba32-1010102.bmp";
+
+            public static readonly string[] BitFields 
+            = {
+                  Rgb32bfdef,
+                  Rgb32bf,
+                  Rgb16565,
+                  Rgb16bfdef,
+                  Rgb16565pal,
+                  Issue735,
+            };
 
             public static readonly string[] All
             = {
@@ -225,7 +249,8 @@ namespace SixLabors.ImageSharp.Tests
                 Bit8,
                 Bit8Inverted,
                 Bit16,
-                Bit16Inverted
+                Bit16Inverted,
+                Bit32Rgb
             };
         }
 

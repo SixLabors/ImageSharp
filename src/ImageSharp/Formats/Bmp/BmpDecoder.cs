@@ -15,8 +15,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     ///    <item>JPG</item>
     ///    <item>PNG</item>
     ///    <item>RLE4</item>
-    ///    <item>RLE8</item>
-    ///    <item>BitFields</item>
     /// </list>
     /// Formats will be supported in a later releases. We advise always
     /// to use only 24 Bit Windows bitmaps.

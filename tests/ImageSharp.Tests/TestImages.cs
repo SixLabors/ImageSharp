@@ -195,7 +195,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string NegHeight = "Bmp/neg_height.bmp";
             public const string CoreHeader = "Bmp/BitmapCoreHeaderQR.bmp";
             public const string V5Header = "Bmp/BITMAPV5HEADER.bmp";
-            public const string RLE = "Bmp/RunLengthEncoded.bmp";
+            public const string RLE8 = "Bmp/RunLengthEncoded.bmp";
+            public const string RLE4 = "Bmp/pal4rle.bmp";
             public const string RLEInverted = "Bmp/RunLengthEncoded-inverted.bmp";
             public const string Bit1 = "Bmp/pal1.bmp";
             public const string Bit1Pal1 = "Bmp/pal1p1.bmp";
@@ -209,6 +210,7 @@ namespace SixLabors.ImageSharp.Tests
 
             // Note: This format can be called OS/2 BMPv1, or Windows BMPv2
             public const string WinBmpv2 = "Bmp/pal8os2v1_winv2.bmp";
+
             public const string WinBmpv3 = "Bmp/rgb24.bmp";
             public const string WinBmpv4 = "Bmp/pal8v4.bmp";
             public const string WinBmpv5 = "Bmp/pal8v5.bmp";
@@ -218,8 +220,8 @@ namespace SixLabors.ImageSharp.Tests
             // Bitmap images with compression type BITFIELDS
             public const string Rgb32bfdef = "Bmp/rgb32bfdef.bmp";
             public const string Rgb32bf = "Bmp/rgb32bf.bmp";
-            public const string Rgb16565 = "Bmp/rgb16-565.bmp";
             public const string Rgb16bfdef = "Bmp/rgb16bfdef.bmp";
+            public const string Rgb16565 = "Bmp/rgb16-565.bmp";
             public const string Rgb16565pal = "Bmp/rgb16-565pal.bmp";
             public const string Issue735 = "Bmp/issue735.bmp";
             public const string Rgba32bf56 = "Bmp/rgba32h56.bmp";
@@ -241,7 +243,9 @@ namespace SixLabors.ImageSharp.Tests
                 F,
                 NegHeight,
                 CoreHeader,
-                V5Header, RLE,
+                V5Header,
+                RLE4,
+                RLE8,
                 RLEInverted,
                 Bit1,
                 Bit1Pal1,

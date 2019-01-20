@@ -969,9 +969,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 infoHeaderType = BmpInfoHeaderType.AdobeVersion3WithAlpha;
                 this.infoHeader = BmpInfoHeader.ParseAdobeV3(buffer, withAlpha: true);
             }
-            else if (headerSize == BmpInfoHeader.Os2v2)
+            else if (headerSize == BmpInfoHeader.Os2v2Size)
             {
-                // 64 bytes
+                // == 64 bytes
                 infoHeaderType = BmpInfoHeaderType.Os2Version2;
                 this.infoHeader = BmpInfoHeader.ParseOs2Version2(buffer);
             }

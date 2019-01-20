@@ -42,9 +42,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public const int AdobeV3WithAlphaSize = 56;
 
         /// <summary>
-        /// IBM OS/2 2.x bitmap header.
+        /// Size of a IBM OS/2 2.x bitmap header.
         /// </summary>
-        public const int Os2v2 = 64;
+        public const int Os2v2Size = 64;
 
         /// <summary>
         /// Defines the size of the BITMAPINFOHEADER (BMP Version 4) data structure in the bitmap file.

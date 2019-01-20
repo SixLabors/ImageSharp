@@ -157,7 +157,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                         break;
                     case BmpCompression.RLE8:
-                        this.ReadRle8(pixels, palette, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                    case BmpCompression.RLE4:
+                        this.ReadRle(this.infoHeader.Compression, pixels, palette, this.infoHeader.Width, this.infoHeader.Height, inverted);
 
                         break;
 
@@ -254,22 +255,31 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Looks up color values and builds the image from de-compressed RLE8 data.
+        /// Looks up color values and builds the image from de-compressed RLE8 or RLE4 data.
         /// Compressed RLE8 stream is uncompressed by <see cref="UncompressRle8(int, Span{byte})"/>
+        /// Compressed RLE4 stream is uncompressed by <see cref="UncompressRle4(int, Span{byte})"/>
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="compression">The compression type. Either RLE4 or RLE8.</param>
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
         /// <param name="colors">The <see cref="T:byte[]"/> containing the colors.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
-        private void ReadRle8<TPixel>(Buffer2D<TPixel> pixels, byte[] colors, int width, int height, bool inverted)
+        private void ReadRle<TPixel>(BmpCompression compression, Buffer2D<TPixel> pixels, byte[] colors, int width, int height, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel color = default;
             using (Buffer2D<byte> buffer = this.memoryAllocator.Allocate2D<byte>(width, height, AllocationOptions.Clean))
             {
-                this.UncompressRle8(width, buffer.GetSpan());
+                if (compression == BmpCompression.RLE8)
+                {
+                    this.UncompressRle8(width, buffer.GetSpan());
+                }
+                else
+                {
+                    this.UncompressRle4(width, buffer.GetSpan());
+                }
 
                 for (int y = 0; y < height; y++)
                 {
@@ -287,12 +297,122 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Produce uncompressed bitmap data from RLE8 stream.
+        /// Produce uncompressed bitmap data from a RLE4 stream.
+        /// </summary>
+        /// <remarks>
+        /// RLE4 is a 2-byte run-length encoding.
+        /// <br/>If first byte is 0, the second byte may have special meaning.
+        /// <br/>Otherwise, the first byte is the length of the run and second byte contains two color indexes.
+        /// </remarks>
+        /// <param name="w">The width of the bitmap.</param>
+        /// <param name="buffer">Buffer for uncompressed data.</param>
+        private void UncompressRle4(int w, Span<byte> buffer)
+        {
+#if NETCOREAPP2_1
+            Span<byte> cmd = stackalloc byte[2];
+#else
+            byte[] cmd = new byte[2];
+#endif
+            int count = 0;
+
+            while (count < buffer.Length)
+            {
+                if (this.stream.Read(cmd, 0, cmd.Length) != 2)
+                {
+                    throw new Exception("Failed to read 2 bytes from the stream");
+                }
+
+                if (cmd[0] == RleCommand)
+                {
+                    switch (cmd[1])
+                    {
+                        case RleEndOfBitmap:
+                            return;
+
+                        case RleEndOfLine:
+                            int extra = count % w;
+                            if (extra > 0)
+                            {
+                                count += w - extra;
+                            }
+
+                            break;
+
+                        case RleDelta:
+                            int dx = this.stream.ReadByte();
+                            int dy = this.stream.ReadByte();
+                            count += (w * dy) + dx;
+
+                            break;
+
+                        default:
+                            // If the second byte > 2, we are in 'absolute mode'.
+                            // The second byte contains the number of color indexes that follow.
+                            int max = cmd[1];
+                            int bytesToRead = (max + 1) / 2;
+
+                            byte[] run = new byte[bytesToRead];
+
+                            this.stream.Read(run, 0, run.Length);
+
+                            int idx = 0;
+                            for (int i = 0; i < max; i++)
+                            {
+                                byte twoPixels = run[idx];
+                                if (i % 2 == 0)
+                                {
+                                    byte leftPixel = (byte)((twoPixels >> 4) & 0xF);
+                                    buffer[count++] = leftPixel;
+                                }
+                                else
+                                {
+                                    byte rightPixel = (byte)(twoPixels & 0xF);
+                                    buffer[count++] = rightPixel;
+                                    idx++;
+                                }
+                            }
+
+                            // Absolute mode data is aligned to two-byte word-boundary
+                            int padding = bytesToRead & 1;
+
+                            this.stream.Skip(padding);
+
+                            break;
+                    }
+                }
+                else
+                {
+                    int max = cmd[0];
+
+                    // The second byte contains two color indexes, one in its high-order 4 bits and one in its low-order 4 bits.
+                    byte twoPixels = cmd[1];
+                    byte rightPixel = (byte)(twoPixels & 0xF);
+                    byte leftPixel = (byte)((twoPixels >> 4) & 0xF);
+
+                    for (int idx = 0; idx < max; idx++)
+                    {
+                        if (idx % 2 == 0)
+                        {
+                            buffer[count] = leftPixel;
+                        }
+                        else
+                        {
+                            buffer[count] = rightPixel;
+                        }
+
+                        count++;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Produce uncompressed bitmap data from a RLE8 stream.
         /// </summary>
         /// <remarks>
         /// RLE8 is a 2-byte run-length encoding.
         /// <br/>If first byte is 0, the second byte may have special meaning.
-        /// <br/>Otherwise, first byte is the length of the run and second byte is the color for the run.
+        /// <br/>Otherwise, the first byte is the length of the run and second byte is the color for the run.
         /// </remarks>
         /// <param name="w">The width of the bitmap.</param>
         /// <param name="buffer">Buffer for uncompressed data.</param>

@@ -3,12 +3,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Tuples;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
@@ -22,15 +20,30 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// </summary>
         private static readonly JpegColorConverter[] Converters =
             {
-                GetYCbCrConverter(), new FromYccK(), new FromCmyk(), new FromGrayscale(), new FromRgb()
+                // 8-bit converters
+                GetYCbCrConverter(8),
+                new FromYccK(8),
+                new FromCmyk(8),
+                new FromGrayscale(8),
+                new FromRgb(8),
+
+                // 12-bit converters
+                GetYCbCrConverter(12),
+                new FromYccK(12),
+                new FromCmyk(12),
+                new FromGrayscale(12),
+                new FromRgb(12),
             };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegColorConverter"/> class.
         /// </summary>
-        protected JpegColorConverter(JpegColorSpace colorSpace)
+        protected JpegColorConverter(JpegColorSpace colorSpace, int precision)
         {
             this.ColorSpace = colorSpace;
+            this.Precision = precision;
+            this.MaximumValue = (float)Math.Pow(2, precision) - 1;
+            this.HalfValue = (float)Math.Ceiling(this.MaximumValue / 2);
         }
 
         /// <summary>
@@ -39,11 +52,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         public JpegColorSpace ColorSpace { get; }
 
         /// <summary>
+        /// Gets the Precision of this converter in bits.
+        /// </summary>
+        public int Precision { get; }
+
+        /// <summary>
+        /// Gets the maximum value of a sample
+        /// </summary>
+        private float MaximumValue { get; }
+
+        /// <summary>
+        /// Gets the half of the maximum value of a sample
+        /// </summary>
+        private float HalfValue { get; }
+
+        /// <summary>
         /// Returns the <see cref="JpegColorConverter"/> corresponding to the given <see cref="JpegColorSpace"/>
         /// </summary>
-        public static JpegColorConverter GetConverter(JpegColorSpace colorSpace)
+        public static JpegColorConverter GetConverter(JpegColorSpace colorSpace, float precision)
         {
-            JpegColorConverter converter = Converters.FirstOrDefault(c => c.ColorSpace == colorSpace);
+            JpegColorConverter converter = Array.Find(Converters, c => c.ColorSpace == colorSpace
+                                                                    && c.Precision == precision);
 
             if (converter is null)
             {
@@ -63,8 +92,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// <summary>
         /// Returns the <see cref="JpegColorConverter"/> for the YCbCr colorspace that matches the current CPU architecture.
         /// </summary>
-        private static JpegColorConverter GetYCbCrConverter() =>
-            FromYCbCrSimdAvx2.IsAvailable ? (JpegColorConverter)new FromYCbCrSimdAvx2() : new FromYCbCrSimd();
+        private static JpegColorConverter GetYCbCrConverter(int precision) =>
+            FromYCbCrSimdAvx2.IsAvailable ? (JpegColorConverter)new FromYCbCrSimdAvx2(precision) : new FromYCbCrSimd(precision);
 
         /// <summary>
         /// A stack-only struct to reference the input buffers using <see cref="ReadOnlySpan{T}"/>-s.

@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             { TestImages.Bmp.Car, 3780, 3780 , PixelResolutionUnit.PixelsPerMeter },
             { TestImages.Bmp.V5Header, 3780, 3780 , PixelResolutionUnit.PixelsPerMeter },
-            { TestImages.Bmp.RLE, 2835, 2835, PixelResolutionUnit.PixelsPerMeter }
+            { TestImages.Bmp.RLE8, 2835, 2835, PixelResolutionUnit.PixelsPerMeter }
         };
 
         public static readonly TheoryData<string, BmpBitsPerPixel> BmpBitsPerPixelFiles =

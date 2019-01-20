@@ -3,7 +3,6 @@
 
 using System;
 using System.Buffers;
-using System.Linq;
 using System.Numerics;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
@@ -57,14 +56,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             this.configuration = configuration;
             this.RawJpeg = rawJpeg;
-            IJpegComponent c0 = rawJpeg.Components.First();
+            IJpegComponent c0 = rawJpeg.Components[0];
             this.NumberOfPostProcessorSteps = c0.SizeInBlocks.Height / BlockRowsPerStep;
             this.PostProcessorBufferSize = new Size(c0.SizeInBlocks.Width * 8, PixelRowsPerStep);
 
             MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
-            this.ComponentProcessors = rawJpeg.Components.Select(c => new JpegComponentPostProcessor(memoryAllocator, this, c)).ToArray();
+
+            this.ComponentProcessors = new JpegComponentPostProcessor[rawJpeg.Components.Length];
+            for (int i = 0; i < rawJpeg.Components.Length; i++)
+            {
+                this.ComponentProcessors[i] = new JpegComponentPostProcessor(memoryAllocator, this, rawJpeg.Components[i]);
+            }
+
             this.rgbaBuffer = memoryAllocator.Allocate<Vector4>(rawJpeg.ImageSizeInPixels.Width);
-            this.colorConverter = JpegColorConverter.GetConverter(rawJpeg.ColorSpace);
+            this.colorConverter = JpegColorConverter.GetConverter(rawJpeg.ColorSpace, rawJpeg.Precision);
         }
 
         /// <summary>
@@ -152,7 +157,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             int maxY = Math.Min(destination.Height, this.PixelRowCounter + PixelRowsPerStep);
 
-            Buffer2D<float>[] buffers = this.ComponentProcessors.Select(cp => cp.ColorBuffer).ToArray();
+            var buffers = new Buffer2D<float>[this.ComponentProcessors.Length];
+            for (int i = 0; i < this.ComponentProcessors.Length; i++)
+            {
+                buffers[i] = this.ComponentProcessors[i].ColorBuffer;
+            }
 
             for (int yy = this.PixelRowCounter; yy < maxY; yy++)
             {

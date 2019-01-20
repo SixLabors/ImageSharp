@@ -3,7 +3,6 @@
 
 using System;
 using System.Buffers.Binary;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -33,7 +32,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// The only supported precision
         /// </summary>
-        public const int SupportedPrecision = 8;
+        private readonly int[] supportedPrecisions = { 8, 12 };
 
         /// <summary>
         /// The global configuration
@@ -137,7 +136,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Gets the color depth, in number of bits per pixel.
         /// </summary>
-        public int BitsPerPixel => this.ComponentCount * SupportedPrecision;
+        public int BitsPerPixel => this.ComponentCount * this.Frame.Precision;
 
         /// <summary>
         /// Gets the input stream.
@@ -160,13 +159,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <inheritdoc/>
         public JpegColorSpace ColorSpace { get; private set; }
 
+        /// <inheritdoc/>
+        public int Precision { get; private set; }
+
         /// <summary>
         /// Gets the components.
         /// </summary>
         public JpegComponent[] Components => this.Frame.Components;
 
         /// <inheritdoc/>
-        IEnumerable<IJpegComponent> IRawJpegData.Components => this.Components;
+        IJpegComponent[] IRawJpegData.Components => this.Components;
 
         /// <inheritdoc/>
         public Block8x8F[] QuantizationTables { get; private set; }
@@ -720,11 +722,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             this.InputStream.Read(this.temp, 0, remaining);
 
-            // We only support 8-bit precision.
-            if (this.temp[0] != SupportedPrecision)
+            // We only support 8-bit and 12-bit precision.
+            if (!this.supportedPrecisions.Contains(this.temp[0]))
             {
-                throw new ImageFormatException("Only 8-Bit precision supported.");
+                throw new ImageFormatException("Only 8-Bit and 12-Bit precision supported.");
             }
+
+            this.Precision = this.temp[0];
 
             this.Frame = new JpegFrame
             {
@@ -855,6 +859,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         private void ProcessStartOfScanMarker()
         {
+            if (this.Frame is null)
+            {
+                throw new ImageFormatException("No readable SOFn (Start Of Frame) marker found.");
+            }
+
             int selectorsCount = this.InputStream.ReadByte();
             for (int i = 0; i < selectorsCount; i++)
             {

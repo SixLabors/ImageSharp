@@ -10,8 +10,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
     {
         internal class FromRgb : JpegColorConverter
         {
-            public FromRgb()
-                : base(JpegColorSpace.RGB)
+            public FromRgb(int precision)
+                : base(JpegColorSpace.RGB, precision)
             {
             }
 
@@ -24,7 +24,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 
                 var v = new Vector4(0, 0, 0, 1);
 
-                var scale = new Vector4(1 / 255F, 1 / 255F, 1 / 255F, 1F);
+                var scale = new Vector4(
+                                1 / this.MaximumValue,
+                                1 / this.MaximumValue,
+                                1 / this.MaximumValue,
+                                1F);
 
                 for (int i = 0; i < result.Length; i++)
                 {

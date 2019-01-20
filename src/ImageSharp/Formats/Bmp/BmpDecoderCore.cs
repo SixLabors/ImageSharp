@@ -926,23 +926,23 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             // read the rest of the header
             this.stream.Read(buffer, BmpInfoHeader.HeaderSizeSize, headerSize - BmpInfoHeader.HeaderSizeSize);
 
-            BmpInfoHeaderType inofHeaderType = BmpInfoHeaderType.WinVersion2;
+            BmpInfoHeaderType infoHeaderType = BmpInfoHeaderType.WinVersion2;
             if (headerSize == BmpInfoHeader.CoreSize)
             {
                 // 12 bytes
-                inofHeaderType = BmpInfoHeaderType.WinVersion2;
+                infoHeaderType = BmpInfoHeaderType.WinVersion2;
                 this.infoHeader = BmpInfoHeader.ParseCore(buffer);
             }
             else if (headerSize == BmpInfoHeader.Os22ShortSize)
             {
                 // 16 bytes
-                inofHeaderType = BmpInfoHeaderType.Os2Version2Short;
+                infoHeaderType = BmpInfoHeaderType.Os2Version2Short;
                 this.infoHeader = BmpInfoHeader.ParseOs22Short(buffer);
             }
             else if (headerSize == BmpInfoHeader.SizeV3)
             {
                 // == 40 bytes
-                inofHeaderType = BmpInfoHeaderType.WinVersion3;
+                infoHeaderType = BmpInfoHeaderType.WinVersion3;
                 this.infoHeader = BmpInfoHeader.ParseV3(buffer);
 
                 // if the info header is BMP version 3 and the compression type is BITFIELDS,
@@ -960,19 +960,25 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             else if (headerSize == BmpInfoHeader.AdobeV3Size)
             {
                 // == 52 bytes
-                inofHeaderType = BmpInfoHeaderType.AdobeVersion3;
+                infoHeaderType = BmpInfoHeaderType.AdobeVersion3;
                 this.infoHeader = BmpInfoHeader.ParseAdobeV3(buffer, withAlpha: false);
             }
             else if (headerSize == BmpInfoHeader.AdobeV3WithAlphaSize)
             {
                 // == 56 bytes
-                inofHeaderType = BmpInfoHeaderType.AdobeVersion3WithAlpha;
+                infoHeaderType = BmpInfoHeaderType.AdobeVersion3WithAlpha;
                 this.infoHeader = BmpInfoHeader.ParseAdobeV3(buffer, withAlpha: true);
+            }
+            else if (headerSize == BmpInfoHeader.Os2v2)
+            {
+                // 64 bytes
+                infoHeaderType = BmpInfoHeaderType.Os2Version2;
+                this.infoHeader = BmpInfoHeader.ParseOs2Version2(buffer);
             }
             else if (headerSize >= BmpInfoHeader.SizeV4)
             {
                 // >= 108 bytes
-                inofHeaderType = headerSize == BmpInfoHeader.SizeV4 ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion5;
+                infoHeaderType = headerSize == BmpInfoHeader.SizeV4 ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion5;
                 this.infoHeader = BmpInfoHeader.ParseV4(buffer);
             }
             else
@@ -1001,7 +1007,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             short bitsPerPixel = this.infoHeader.BitsPerPixel;
             this.bmpMetaData = this.metaData.GetFormatMetaData(BmpFormat.Instance);
-            this.bmpMetaData.InfoHeaderType = inofHeaderType;
+            this.bmpMetaData.InfoHeaderType = infoHeaderType;
 
             // We can only encode at these bit rates so far.
             if (bitsPerPixel.Equals((short)BmpBitsPerPixel.Pixel24)

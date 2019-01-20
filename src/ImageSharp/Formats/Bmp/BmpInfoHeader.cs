@@ -42,6 +42,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public const int AdobeV3WithAlphaSize = 56;
 
         /// <summary>
+        /// IBM OS/2 2.x bitmap header.
+        /// </summary>
+        public const int Os2v2 = 64;
+
+        /// <summary>
         /// Defines the size of the BITMAPINFOHEADER (BMP Version 4) data structure in the bitmap file.
         /// </summary>
         public const int SizeV4 = 108;
@@ -344,6 +349,52 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 greenMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(44, 4)),
                 blueMask: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(48, 4)),
                 alphaMask: withAlpha ? BinaryPrimitives.ReadInt32LittleEndian(data.Slice(52, 4)) : 0);
+        }
+
+        /// <summary>
+        /// Parses a OS/2 version 2 bitmap header (64 bytes). Only the first 40 bytes are parsed which are
+        /// very similar to the Bitmap v3 header. The other 24 bytes are ignored, but they do not hold any
+        /// useful information for decoding the image.
+        /// </summary>
+        /// <param name="data">The data to parse.</param>
+        /// <returns>The parsed header.</returns>
+        /// <seealso href="https://www.fileformat.info/format/os2bmp/egff.htm"/>
+        public static BmpInfoHeader ParseOs2Version2(ReadOnlySpan<byte> data)
+        {
+            var infoHeader = new BmpInfoHeader(
+                headerSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4)),
+                width: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4)),
+                height: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4)),
+                planes: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(12, 2)),
+                bitsPerPixel: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(14, 2)));
+
+            int compression = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(16, 4));
+
+            // The compression value in OS/2 bitmap has a different meaning than in windows bitmaps.
+            // Map the OS/2 value to the windows values.
+            switch (compression)
+            {
+                case 0:
+                    infoHeader.Compression = BmpCompression.RGB;
+                    break;
+                case 1:
+                    infoHeader.Compression = BmpCompression.RLE8;
+                    break;
+                case 2:
+                    infoHeader.Compression = BmpCompression.RLE4;
+                    break;
+                default:
+                    throw new NotSupportedException($"Compression type is not supported. ImageSharp only supports uncompressed, RLE4 and RLE8.");
+            }
+
+            infoHeader.ImageSize = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(20, 4));
+            infoHeader.XPelsPerMeter = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(24, 4));
+            infoHeader.YPelsPerMeter = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(28, 4));
+            infoHeader.ClrUsed = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(32, 4));
+            infoHeader.ClrImportant = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(36, 4));
+
+            // The following 24 bytes of the header are omitted.
+            return infoHeader;
         }
 
         /// <summary>

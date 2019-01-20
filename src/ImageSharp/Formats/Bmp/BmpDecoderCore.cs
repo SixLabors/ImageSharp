@@ -1033,6 +1033,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.stream.Read(buffer, 0, BmpFileHeader.Size);
 
             this.fileHeader = BmpFileHeader.Parse(buffer);
+
+            if (this.fileHeader.Type != BmpConstants.TypeMarkers.Bitmap)
+            {
+                throw new NotSupportedException($"ImageSharp does not support this BMP file. File header type: {this.fileHeader.Type}.");
+            }
         }
 
         /// <summary>

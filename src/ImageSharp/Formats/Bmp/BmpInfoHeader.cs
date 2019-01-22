@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Gets or sets the size of this header
+        /// Gets or sets the size of this header.
         /// </summary>
         public int HeaderSize { get; set; }
 
@@ -384,7 +384,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     infoHeader.Compression = BmpCompression.RLE4;
                     break;
                 default:
-                    throw new NotSupportedException($"Compression type is not supported. ImageSharp only supports uncompressed, RLE4 and RLE8.");
+                    BmpThrowHelper.ThrowImageFormatException($"Compression type is not supported. ImageSharp only supports uncompressed, RLE4 and RLE8.");
+                    break;
             }
 
             infoHeader.ImageSize = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(20, 4));

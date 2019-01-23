@@ -214,11 +214,27 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
-                image.DebugSave(provider, "png");
+                image.DebugSave(provider);
 
                 // TODO: Neither System.Drawing not MagickReferenceDecoder 
                 // can correctly decode this file.
                 // image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(Os2v2, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_Os2v2Header<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+
+                // TODO: System.Drawing can not decode this image. MagickReferenceDecoder can decode it,
+                // but i think incorrectly. I have loaded the image with GIMP and exported as PNG.
+                // The results are the same as the image sharp implementation.
+                // image.CompareToOriginal(provider, new MagickReferenceDecoder());
             }
         }
     }

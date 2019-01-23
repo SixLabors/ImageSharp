@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                 {
                     for (int x = 0; x < 8; x++)
                     {
-                        byte luminance = pixels[y * 8 + x];
+                        byte luminance = pixels[(y * 8) + x];
                         image[x, y] = new Rgba32(luminance, luminance, luminance);
                     }
                 }
@@ -66,9 +66,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                     for (int x = 0; x < 8; x++)
                     {
                         Rgba32 actual = image[x, y];
-                        Assert.Equal(expected[y * 8 + x], actual.R);
-                        Assert.Equal(expected[y * 8 + x], actual.G);
-                        Assert.Equal(expected[y * 8 + x], actual.B);
+                        Assert.Equal(expected[(y * 8) + x], actual.R);
+                        Assert.Equal(expected[(y * 8) + x], actual.G);
+                        Assert.Equal(expected[(y * 8) + x], actual.B);
                     }
                 }
             }

@@ -53,17 +53,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <summary>
         /// Calculates the cumulative distribution function.
         /// </summary>
-        /// <param name="cdf">The array holding the cdf.</param>
-        /// <param name="histogram">The histogram of the input image.</param>
+        /// <param name="cdfBase">The reference to the array holding the cdf.</param>
+        /// <param name="histogramBase">The reference to the histogram of the input image.</param>
         /// <param name="maxIdx">Index of the maximum of the histogram.</param>
         /// <returns>The first none zero value of the cdf.</returns>
-        public int CalculateCdf(Span<int> cdf, Span<int> histogram, int maxIdx)
+        public int CalculateCdf(ref int cdfBase, ref int histogramBase, int maxIdx)
         {
             int histSum = 0;
             int cdfMin = 0;
             bool cdfMinFound = false;
-            ref int cdfBase = ref MemoryMarshal.GetReference(cdf);
-            ref int histogramBase = ref MemoryMarshal.GetReference(histogram);
 
             for (int i = 0; i <= maxIdx; i++)
             {

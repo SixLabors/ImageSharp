@@ -484,11 +484,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     using (IMemoryOwner<int> histogramBuffer = this.memoryAllocator.Allocate<int>(luminanceLevels))
                     {
                         Span<int> histogram = histogramBuffer.GetSpan();
+                        ref int histogramBase = ref MemoryMarshal.GetReference(histogram);
 
                         for (int x = 0; x < sourceWidth; x += tileWidth)
                         {
                             histogram.Clear();
-                            Span<int> cdf = this.GetCdfLutSpan(cdfX, index);
+                            ref int cdfBase = ref MemoryMarshal.GetReference(this.GetCdfLutSpan(cdfX, index));
 
                             int xlimit = Math.Min(x + tileWidth, sourceWidth);
                             for (int dy = y; dy < endY; dy++)
@@ -506,7 +507,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                                 processor.ClipHistogram(histogram, processor.ClipLimitPercentage, this.pixelsInTile);
                             }
 
-                            Unsafe.Add(ref cdfMinBase, cdfX) = processor.CalculateCdf(cdf, histogram, histogram.Length - 1);
+                            Unsafe.Add(ref cdfMinBase, cdfX) = processor.CalculateCdf(ref cdfBase, ref histogramBase, histogram.Length - 1);
 
                             cdfX++;
                         }

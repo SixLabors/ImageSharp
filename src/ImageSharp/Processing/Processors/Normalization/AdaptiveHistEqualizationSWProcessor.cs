@@ -2,7 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
@@ -59,21 +62,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     parallelOptions,
                     x =>
                     {
-                        using (System.Buffers.IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
-                        using (System.Buffers.IMemoryOwner<int> histogramBufferCopy = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
-                        using (System.Buffers.IMemoryOwner<int> cdfBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
-                        using (System.Buffers.IMemoryOwner<TPixel> pixelRowBuffer = memoryAllocator.Allocate<TPixel>(tileWidth, AllocationOptions.Clean))
+                        using (IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
+                        using (IMemoryOwner<int> histogramBufferCopy = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
+                        using (IMemoryOwner<int> cdfBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
+                        using (IMemoryOwner<TPixel> pixelRowBuffer = memoryAllocator.Allocate<TPixel>(tileWidth, AllocationOptions.Clean))
                         {
                             Span<int> histogram = histogramBuffer.GetSpan();
+                            ref int histogramBase = ref MemoryMarshal.GetReference(histogram);
                             Span<int> histogramCopy = histogramBufferCopy.GetSpan();
-                            Span<int> cdf = cdfBuffer.GetSpan();
+                            ref int histogramCopyBase = ref MemoryMarshal.GetReference(histogramCopy);
+                            ref int cdfBase = ref MemoryMarshal.GetReference(cdfBuffer.GetSpan());
+
                             Span<TPixel> pixelRow = pixelRowBuffer.GetSpan();
                             int maxHistIdx = 0;
 
                             // Build the histogram of grayscale values for the current tile.
                             for (int dy = -halfTileWith; dy < halfTileWith; dy++)
                             {
-                                Span<TPixel> rowSpan = this.GetPixelRow(source, pixelRow, (int)x - halfTileWith, dy, tileWidth);
+                                Span<TPixel> rowSpan = this.GetPixelRow(source, pixelRow, x - halfTileWith, dy, tileWidth);
                                 int maxIdx = this.AddPixelsToHistogram(rowSpan, histogram, this.LuminanceLevels);
                                 if (maxIdx > maxHistIdx)
                                 {
@@ -91,12 +97,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                                 }
 
                                 // Calculate the cumulative distribution function, which will map each input pixel in the current tile to a new value.
-                                int cdfMin = this.ClipHistogramEnabled ? this.CalculateCdf(cdf, histogramCopy, maxHistIdx) : this.CalculateCdf(cdf, histogram, maxHistIdx);
+                                int cdfMin = this.ClipHistogramEnabled
+                                ? this.CalculateCdf(ref cdfBase, ref histogramCopyBase, maxHistIdx)
+                                : this.CalculateCdf(ref cdfBase, ref histogramBase, maxHistIdx);
+
                                 float numberOfPixelsMinusCdfMin = pixeInTile - cdfMin;
 
                                 // Map the current pixel to the new equalized value
                                 int luminance = GetLuminance(source[x, y], this.LuminanceLevels);
-                                float luminanceEqualized = cdf[luminance] / numberOfPixelsMinusCdfMin;
+                                float luminanceEqualized = Unsafe.Add(ref cdfBase, luminance) / numberOfPixelsMinusCdfMin;
                                 targetPixels[x, y].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, source[x, y].ToVector4().W));
 
                                 // Remove top most row from the histogram, mirroring rows which exceeds the borders.
@@ -218,7 +227,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 // If the histogram at the maximum index has changed to 0, search for the next smaller value.
                 if (luminance == maxHistIdx && histogram[luminance] == 0)
                 {
-                    for (int j = luminance; j >= 0;  j--)
+                    for (int j = luminance; j >= 0; j--)
                     {
                         maxHistIdx = j;
                         if (histogram[j] != 0)

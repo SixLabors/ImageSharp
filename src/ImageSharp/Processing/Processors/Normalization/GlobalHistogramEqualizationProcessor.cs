@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -37,11 +39,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int numberOfPixels = source.Width * source.Height;
             Span<TPixel> pixels = source.GetPixelSpan();
 
-            using (System.Buffers.IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
-            using (System.Buffers.IMemoryOwner<int> cdfBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
+            using (IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
+            using (IMemoryOwner<int> cdfBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
             {
                 // Build the histogram of the grayscale levels.
                 Span<int> histogram = histogramBuffer.GetSpan();
+                ref int histogramBase = ref MemoryMarshal.GetReference(histogram);
+
                 for (int i = 0; i < pixels.Length; i++)
                 {
                     TPixel sourcePixel = pixels[i];
@@ -56,7 +60,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
                 // Calculate the cumulative distribution function, which will map each input pixel to a new value.
                 Span<int> cdf = cdfBuffer.GetSpan();
-                int cdfMin = this.CalculateCdf(cdf, histogram, histogram.Length - 1);
+                ref int cdfBase = ref MemoryMarshal.GetReference(cdf);
+                int cdfMin = this.CalculateCdf(ref cdfBase, ref histogramBase, histogram.Length - 1);
 
                 // Apply the cdf to each pixel of the image
                 float numberOfPixelsMinusCdfMin = numberOfPixels - cdfMin;

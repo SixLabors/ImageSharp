@@ -168,7 +168,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         break;
 
                     default:
-                        throw new NotSupportedException("Does not support this kind of bitmap files.");
+                        BmpThrowHelper.ThrowNotSupportedException("Does not support this kind of bitmap files.");
+
+                        break;
                 }
 
                 return image;
@@ -319,7 +321,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 if (this.stream.Read(cmd, 0, cmd.Length) != 2)
                 {
-                    throw new Exception("Failed to read 2 bytes from the stream");
+                    BmpThrowHelper.ThrowImageFormatException("Failed to read 2 bytes from the stream while uncompressing RLE4 bitmap.");
                 }
 
                 if (cmd[0] == RleCommand)
@@ -429,7 +431,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 if (this.stream.Read(cmd, 0, cmd.Length) != 2)
                 {
-                    throw new Exception("Failed to read 2 bytes from stream");
+                    BmpThrowHelper.ThrowImageFormatException("Failed to read 2 bytes from stream while uncompressing RLE8 bitmap.");
                 }
 
                 if (cmd[0] == RleCommand)
@@ -913,7 +915,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int headerSize = BinaryPrimitives.ReadInt32LittleEndian(buffer);
             if (headerSize < BmpInfoHeader.CoreSize)
             {
-                throw new NotSupportedException($"ImageSharp does not support this BMP file. HeaderSize: {headerSize}.");
+                BmpThrowHelper.ThrowNotSupportedException($"ImageSharp does not support this BMP file. HeaderSize is '{headerSize}'.");
             }
 
             int skipAmount = 0;
@@ -926,23 +928,23 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             // read the rest of the header
             this.stream.Read(buffer, BmpInfoHeader.HeaderSizeSize, headerSize - BmpInfoHeader.HeaderSizeSize);
 
-            BmpInfoHeaderType inofHeaderType = BmpInfoHeaderType.WinVersion2;
+            BmpInfoHeaderType infoHeaderType = BmpInfoHeaderType.WinVersion2;
             if (headerSize == BmpInfoHeader.CoreSize)
             {
                 // 12 bytes
-                inofHeaderType = BmpInfoHeaderType.WinVersion2;
+                infoHeaderType = BmpInfoHeaderType.WinVersion2;
                 this.infoHeader = BmpInfoHeader.ParseCore(buffer);
             }
             else if (headerSize == BmpInfoHeader.Os22ShortSize)
             {
                 // 16 bytes
-                inofHeaderType = BmpInfoHeaderType.Os2Version2Short;
+                infoHeaderType = BmpInfoHeaderType.Os2Version2Short;
                 this.infoHeader = BmpInfoHeader.ParseOs22Short(buffer);
             }
             else if (headerSize == BmpInfoHeader.SizeV3)
             {
                 // == 40 bytes
-                inofHeaderType = BmpInfoHeaderType.WinVersion3;
+                infoHeaderType = BmpInfoHeaderType.WinVersion3;
                 this.infoHeader = BmpInfoHeader.ParseV3(buffer);
 
                 // if the info header is BMP version 3 and the compression type is BITFIELDS,
@@ -960,24 +962,30 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             else if (headerSize == BmpInfoHeader.AdobeV3Size)
             {
                 // == 52 bytes
-                inofHeaderType = BmpInfoHeaderType.AdobeVersion3;
+                infoHeaderType = BmpInfoHeaderType.AdobeVersion3;
                 this.infoHeader = BmpInfoHeader.ParseAdobeV3(buffer, withAlpha: false);
             }
             else if (headerSize == BmpInfoHeader.AdobeV3WithAlphaSize)
             {
                 // == 56 bytes
-                inofHeaderType = BmpInfoHeaderType.AdobeVersion3WithAlpha;
+                infoHeaderType = BmpInfoHeaderType.AdobeVersion3WithAlpha;
                 this.infoHeader = BmpInfoHeader.ParseAdobeV3(buffer, withAlpha: true);
+            }
+            else if (headerSize == BmpInfoHeader.Os2v2Size)
+            {
+                // == 64 bytes
+                infoHeaderType = BmpInfoHeaderType.Os2Version2;
+                this.infoHeader = BmpInfoHeader.ParseOs2Version2(buffer);
             }
             else if (headerSize >= BmpInfoHeader.SizeV4)
             {
                 // >= 108 bytes
-                inofHeaderType = headerSize == BmpInfoHeader.SizeV4 ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion5;
+                infoHeaderType = headerSize == BmpInfoHeader.SizeV4 ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion5;
                 this.infoHeader = BmpInfoHeader.ParseV4(buffer);
             }
             else
             {
-                throw new NotSupportedException($"ImageSharp does not support this BMP file. HeaderSize: {headerSize}.");
+                BmpThrowHelper.ThrowNotSupportedException($"ImageSharp does not support this BMP file. HeaderSize '{headerSize}'.");
             }
 
             // Resolution is stored in PPM.
@@ -1001,7 +1009,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             short bitsPerPixel = this.infoHeader.BitsPerPixel;
             this.bmpMetaData = this.metaData.GetFormatMetaData(BmpFormat.Instance);
-            this.bmpMetaData.InfoHeaderType = inofHeaderType;
+            this.bmpMetaData.InfoHeaderType = infoHeaderType;
 
             // We can only encode at these bit rates so far.
             if (bitsPerPixel.Equals((short)BmpBitsPerPixel.Pixel24)
@@ -1027,6 +1035,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.stream.Read(buffer, 0, BmpFileHeader.Size);
 
             this.fileHeader = BmpFileHeader.Parse(buffer);
+
+            if (this.fileHeader.Type != BmpConstants.TypeMarkers.Bitmap)
+            {
+                BmpThrowHelper.ThrowNotSupportedException($"ImageSharp does not support this BMP file. File header bitmap type marker '{this.fileHeader.Type}'.");
+            }
         }
 
         /// <summary>
@@ -1080,7 +1093,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 // 256 * 4
                 if (colorMapSize > 1024)
                 {
-                    throw new ImageFormatException($"Invalid bmp colormap size '{colorMapSize}'");
+                    BmpThrowHelper.ThrowImageFormatException($"Invalid bmp colormap size '{colorMapSize}'");
                 }
 
                 palette = new byte[colorMapSize];

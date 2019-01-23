@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Normalization
@@ -13,6 +15,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
     internal abstract class HistogramEqualizationProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        private readonly float luminanceLevelsFloat;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="HistogramEqualizationProcessor{TPixel}"/> class.
         /// </summary>
@@ -23,9 +27,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         protected HistogramEqualizationProcessor(int luminanceLevels, bool clipHistogram, float clipLimitPercentage)
         {
             Guard.MustBeGreaterThan(luminanceLevels, 0, nameof(luminanceLevels));
-            Guard.MustBeGreaterThan(clipLimitPercentage, 0.0f, nameof(clipLimitPercentage));
+            Guard.MustBeGreaterThan(clipLimitPercentage, 0F, nameof(clipLimitPercentage));
 
             this.LuminanceLevels = luminanceLevels;
+            this.luminanceLevelsFloat = luminanceLevels;
             this.ClipHistogramEnabled = clipHistogram;
             this.ClipLimitPercentage = clipLimitPercentage;
         }
@@ -52,14 +57,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="histogram">The histogram of the input image.</param>
         /// <param name="maxIdx">Index of the maximum of the histogram.</param>
         /// <returns>The first none zero value of the cdf.</returns>
-        protected int CalculateCdf(Span<int> cdf, Span<int> histogram, int maxIdx)
+        public int CalculateCdf(Span<int> cdf, Span<int> histogram, int maxIdx)
         {
             int histSum = 0;
             int cdfMin = 0;
             bool cdfMinFound = false;
+            ref int cdfBase = ref MemoryMarshal.GetReference(cdf);
+            ref int histogramBase = ref MemoryMarshal.GetReference(histogram);
+
             for (int i = 0; i <= maxIdx; i++)
             {
-                histSum += histogram[i];
+                histSum += Unsafe.Add(ref histogramBase, i);
                 if (!cdfMinFound && histSum != 0)
                 {
                     cdfMin = histSum;
@@ -67,7 +75,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 }
 
                 // Creating the lookup table: subtracting cdf min, so we do not need to do that inside the for loop
-                cdf[i] = Math.Max(0, histSum - cdfMin);
+                Unsafe.Add(ref cdfBase, i) = Math.Max(0, histSum - cdfMin);
             }
 
             return cdfMin;
@@ -81,25 +89,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="histogram">The histogram to apply the clipping.</param>
         /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels in the tile. Histogram bins which exceed this limit, will be capped at this value.</param>
         /// <param name="pixelCount">The numbers of pixels inside the tile.</param>
-        protected void ClipHistogram(Span<int> histogram, float clipLimitPercentage, int pixelCount)
+        public void ClipHistogram(Span<int> histogram, float clipLimitPercentage, int pixelCount)
         {
-            int clipLimit = Convert.ToInt32(pixelCount * clipLimitPercentage);
+            int clipLimit = (int)MathF.Round(pixelCount * clipLimitPercentage);
             int sumOverClip = 0;
+            ref int histogramBase = ref MemoryMarshal.GetReference(histogram);
+
             for (int i = 0; i < histogram.Length; i++)
             {
-                if (histogram[i] > clipLimit)
+                ref int histogramLevel = ref Unsafe.Add(ref histogramBase, i);
+                if (histogramLevel > clipLimit)
                 {
-                    sumOverClip += histogram[i] - clipLimit;
-                    histogram[i] = clipLimit;
+                    sumOverClip += histogramLevel - clipLimit;
+                    histogramLevel = clipLimit;
                 }
             }
 
-            int addToEachBin = sumOverClip > 0 ? (int)Math.Floor(sumOverClip / (double)this.LuminanceLevels) : 0;
+            int addToEachBin = sumOverClip > 0 ? (int)MathF.Floor(sumOverClip / this.luminanceLevelsFloat) : 0;
             if (addToEachBin > 0)
             {
                 for (int i = 0; i < histogram.Length; i++)
                 {
-                    histogram[i] += addToEachBin;
+                    Unsafe.Add(ref histogramBase, i) += addToEachBin;
                 }
             }
         }
@@ -109,14 +120,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// </summary>
         /// <param name="sourcePixel">The pixel to get the luminance from</param>
         /// <param name="luminanceLevels">The number of luminance levels (256 for 8 bit, 65536 for 16 bit grayscale images)</param>
-        [System.Runtime.CompilerServices.MethodImpl(InliningOptions.ShortMethod)]
-        protected int GetLuminance(TPixel sourcePixel, int luminanceLevels)
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int GetLuminance(TPixel sourcePixel, int luminanceLevels)
         {
             // Convert to grayscale using ITU-R Recommendation BT.709
             var vector = sourcePixel.ToVector4();
-            int luminance = Convert.ToInt32(((.2126F * vector.X) + (.7152F * vector.Y) + (.0722F * vector.Y)) * (luminanceLevels - 1));
-
-            return luminance;
+            return (int)MathF.Round(((.2126F * vector.X) + (.7152F * vector.Y) + (.0722F * vector.Y)) * (luminanceLevels - 1));
         }
     }
 }

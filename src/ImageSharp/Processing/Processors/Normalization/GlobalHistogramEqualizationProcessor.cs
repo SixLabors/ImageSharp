@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 for (int i = 0; i < pixels.Length; i++)
                 {
                     TPixel sourcePixel = pixels[i];
-                    int luminance = this.GetLuminance(sourcePixel, this.LuminanceLevels);
+                    int luminance = GetLuminance(sourcePixel, this.LuminanceLevels);
                     histogram[luminance]++;
                 }
 
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 {
                     TPixel sourcePixel = pixels[i];
 
-                    int luminance = this.GetLuminance(sourcePixel, this.LuminanceLevels);
+                    int luminance = GetLuminance(sourcePixel, this.LuminanceLevels);
                     float luminanceEqualized = cdf[luminance] / numberOfPixelsMinusCdfMin;
 
                     pixels[i].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, sourcePixel.ToVector4().W));

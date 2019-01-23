@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                                 float numberOfPixelsMinusCdfMin = pixeInTile - cdfMin;
 
                                 // Map the current pixel to the new equalized value
-                                int luminance = this.GetLuminance(source[x, y], this.LuminanceLevels);
+                                int luminance = GetLuminance(source[x, y], this.LuminanceLevels);
                                 float luminanceEqualized = cdf[luminance] / numberOfPixelsMinusCdfMin;
                                 targetPixels[x, y].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, source[x, y].ToVector4().W));
 
@@ -189,7 +189,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int maxIdx = 0;
             for (int idx = 0; idx < greyValues.Length; idx++)
             {
-                int luminance = this.GetLuminance(greyValues[idx], luminanceLevels);
+                int luminance = GetLuminance(greyValues[idx], luminanceLevels);
                 histogram[luminance]++;
                 if (luminance > maxIdx)
                 {
@@ -212,7 +212,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         {
             for (int idx = 0; idx < greyValues.Length; idx++)
             {
-                int luminance = this.GetLuminance(greyValues[idx], luminanceLevels);
+                int luminance = GetLuminance(greyValues[idx], luminanceLevels);
                 histogram[luminance]--;
 
                 // If the histogram at the maximum index has changed to 0, search for the next smaller value.

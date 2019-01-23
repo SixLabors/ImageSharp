@@ -2,11 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
@@ -46,63 +47,71 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            int numberOfPixels = source.Width * source.Height;
-            int tileWidth = (int)MathF.Ceiling(source.Width / (float)this.Tiles);
-            int tileHeight = (int)MathF.Ceiling(source.Height / (float)this.Tiles);
+            int sourceWidth = source.Width;
+            int sourceHeight = source.Height;
+            int numberOfPixels = sourceWidth * sourceHeight;
+            int tileWidth = (int)MathF.Ceiling(sourceWidth / (float)this.Tiles);
+            int tileHeight = (int)MathF.Ceiling(sourceHeight / (float)this.Tiles);
             int pixelsInTile = tileWidth * tileHeight;
             int halfTileWidth = tileWidth / 2;
             int halfTileHeight = tileHeight / 2;
             int luminanceLevels = this.LuminanceLevels;
 
             // The image is split up into tiles. For each tile the cumulative distribution function will be calculated.
-            using (var cdfData = new CdfTileData(configuration, sourceRectangle.Height, this.Tiles, this.Tiles, tileWidth, tileHeight, luminanceLevels))
+            using (var cdfData = new CdfTileData(configuration, sourceWidth, sourceHeight, this.Tiles, this.Tiles, tileWidth, tileHeight, luminanceLevels))
             {
                 cdfData.CalculateLookupTables(source, this);
 
                 var tileYStartPositions = new List<(int y, int cdfY)>();
                 int cdfY = 0;
-                for (int y = halfTileHeight; y < source.Height - halfTileHeight; y += tileHeight)
+                for (int y = halfTileHeight; y < sourceHeight - halfTileHeight; y += tileHeight)
                 {
                     tileYStartPositions.Add((y, cdfY));
                     cdfY++;
                 }
 
-                Parallel.ForEach(
-                    tileYStartPositions,
+                Parallel.For(
+                    0,
+                    tileYStartPositions.Count,
                     new ParallelOptions() { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism },
-                    tileYStartPosition =>
+                    index =>
                 {
                     int cdfX = 0;
                     int tileX = 0;
                     int tileY = 0;
-                    int y = tileYStartPosition.y;
+                    int y = tileYStartPositions[index].y;
+                    int cdfYY = tileYStartPositions[index].cdfY;
+
+                    // It's unfortunate that we have to do this per iteration.
+                    ref TPixel sourceBase = ref source.GetPixelReference(0, 0);
 
                     cdfX = 0;
-                    for (int x = halfTileWidth; x < source.Width - halfTileWidth; x += tileWidth)
+                    for (int x = halfTileWidth; x < sourceWidth - halfTileWidth; x += tileWidth)
                     {
                         tileY = 0;
-                        int yEnd = Math.Min(y + tileHeight, source.Height);
-                        int xEnd = Math.Min(x + tileWidth, source.Width);
+                        int yEnd = Math.Min(y + tileHeight, sourceHeight);
+                        int xEnd = Math.Min(x + tileWidth, sourceWidth);
                         for (int dy = y; dy < yEnd; dy++)
                         {
-                            Span<TPixel> pixelRow = source.GetPixelRowSpan(dy);
+                            int dyOffSet = dy * sourceWidth;
                             tileX = 0;
                             for (int dx = x; dx < xEnd; dx++)
                             {
+                                ref TPixel pixel = ref Unsafe.Add(ref sourceBase, dyOffSet + dx);
                                 float luminanceEqualized = InterpolateBetweenFourTiles(
-                                    source[dx, dy],
+                                    pixel,
                                     cdfData,
                                     this.Tiles,
                                     this.Tiles,
                                     tileX,
                                     tileY,
                                     cdfX,
-                                    tileYStartPosition.cdfY,
+                                    cdfYY,
                                     tileWidth,
                                     tileHeight,
                                     luminanceLevels);
 
-                                pixelRow[dx].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixelRow[dx].ToVector4().W));
+                                pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
                                 tileX++;
                             }
 
@@ -113,42 +122,42 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     }
                 });
 
-                Span<TPixel> pixels = source.GetPixelSpan();
+                ref TPixel pixelsBase = ref source.GetPixelReference(0, 0);
 
                 // Fix left column
-                ProcessBorderColumn(source, pixels, cdfData, 0, tileWidth, tileHeight, xStart: 0, xEnd: halfTileWidth, luminanceLevels);
+                ProcessBorderColumn(ref pixelsBase, cdfData, 0, sourceWidth, sourceHeight, tileWidth, tileHeight, xStart: 0, xEnd: halfTileWidth, luminanceLevels);
 
                 // Fix right column
                 int rightBorderStartX = ((this.Tiles - 1) * tileWidth) + halfTileWidth;
-                ProcessBorderColumn(source, pixels, cdfData, this.Tiles - 1, tileWidth, tileHeight, xStart: rightBorderStartX, xEnd: source.Width, luminanceLevels);
+                ProcessBorderColumn(ref pixelsBase, cdfData, this.Tiles - 1, sourceWidth, sourceHeight, tileWidth, tileHeight, xStart: rightBorderStartX, xEnd: sourceWidth, luminanceLevels);
 
                 // Fix top row
-                ProcessBorderRow(source, pixels, cdfData, 0, tileWidth, tileHeight, yStart: 0, yEnd: halfTileHeight, luminanceLevels);
+                ProcessBorderRow(ref pixelsBase, cdfData, 0, sourceWidth, tileWidth, tileHeight, yStart: 0, yEnd: halfTileHeight, luminanceLevels);
 
                 // Fix bottom row
                 int bottomBorderStartY = ((this.Tiles - 1) * tileHeight) + halfTileHeight;
-                ProcessBorderRow(source, pixels, cdfData, this.Tiles - 1, tileWidth, tileHeight, yStart: bottomBorderStartY, yEnd: source.Height, luminanceLevels);
+                ProcessBorderRow(ref pixelsBase, cdfData, this.Tiles - 1, sourceWidth, tileWidth, tileHeight, yStart: bottomBorderStartY, yEnd: sourceHeight, luminanceLevels);
 
                 // Left top corner
-                ProcessCornerTile(source, pixels, cdfData, 0, 0, xStart: 0, xEnd: halfTileWidth, yStart: 0, yEnd: halfTileHeight, luminanceLevels);
+                ProcessCornerTile(ref pixelsBase, cdfData, sourceWidth, 0, 0, xStart: 0, xEnd: halfTileWidth, yStart: 0, yEnd: halfTileHeight, luminanceLevels);
 
                 // Left bottom corner
-                ProcessCornerTile(source, pixels, cdfData, 0, this.Tiles - 1, xStart: 0, xEnd: halfTileWidth, yStart: bottomBorderStartY, yEnd: source.Height, luminanceLevels);
+                ProcessCornerTile(ref pixelsBase, cdfData, sourceWidth, 0, this.Tiles - 1, xStart: 0, xEnd: halfTileWidth, yStart: bottomBorderStartY, yEnd: sourceHeight, luminanceLevels);
 
                 // Right top corner
-                ProcessCornerTile(source, pixels, cdfData, this.Tiles - 1, 0, xStart: rightBorderStartX, xEnd: source.Width, yStart: 0, yEnd: halfTileHeight, luminanceLevels);
+                ProcessCornerTile(ref pixelsBase, cdfData, sourceWidth, this.Tiles - 1, 0, xStart: rightBorderStartX, xEnd: sourceWidth, yStart: 0, yEnd: halfTileHeight, luminanceLevels);
 
                 // Right bottom corner
-                ProcessCornerTile(source, pixels, cdfData, this.Tiles - 1, this.Tiles - 1, xStart: rightBorderStartX, xEnd: source.Width, yStart: bottomBorderStartY, yEnd: source.Height, luminanceLevels);
+                ProcessCornerTile(ref pixelsBase, cdfData, sourceWidth, this.Tiles - 1, this.Tiles - 1, xStart: rightBorderStartX, xEnd: sourceWidth, yStart: bottomBorderStartY, yEnd: sourceHeight, luminanceLevels);
             }
         }
 
         /// <summary>
         /// Processes the part of a corner tile which was previously left out. It consists of 1 / 4 of a tile and does not need interpolation.
         /// </summary>
-        /// <param name="source">The source image.</param>
-        /// <param name="pixels">The output pixels.</param>
+        /// <param name="pixelsBase">The output pixels base reference.</param>
         /// <param name="cdfData">The lookup table to remap the grey values.</param>
+        /// <param name="sourceWidth">The source image width.</param>
         /// <param name="cdfX">The x-position in the CDF lookup map.</param>
         /// <param name="cdfY">The y-position in the CDF lookup map.</param>
         /// <param name="xStart">X start position.</param>
@@ -160,9 +169,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// or 65536 for 16-bit grayscale images.
         /// </param>
         private static void ProcessCornerTile(
-            ImageFrame<TPixel> source,
-            Span<TPixel> pixels,
+            ref TPixel pixelsBase,
             CdfTileData cdfData,
+            int sourceWidth,
             int cdfX,
             int cdfY,
             int xStart,
@@ -173,10 +182,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         {
             for (int dy = yStart; dy < yEnd; dy++)
             {
+                int dyOffSet = dy * sourceWidth;
                 for (int dx = xStart; dx < xEnd; dx++)
                 {
-                    float luminanceEqualized = cdfData.RemapGreyValue(cdfX, cdfY, GetLuminance(source[dx, dy], luminanceLevels));
-                    pixels[(dy * source.Width) + dx].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, source[dx, dy].ToVector4().W));
+                    ref TPixel pixel = ref Unsafe.Add(ref pixelsBase, dyOffSet + dx);
+                    float luminanceEqualized = cdfData.RemapGreyValue(cdfX, cdfY, GetLuminance(pixel, luminanceLevels));
+                    pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
                 }
             }
         }
@@ -184,10 +195,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <summary>
         /// Processes a border column of the image which is half the size of the tile width.
         /// </summary>
-        /// <param name="source">The source image.</param>
-        /// <param name="pixels">The output pixels.</param>
+        /// <param name="pixelBase">The output pixels reference.</param>
         /// <param name="cdfData">The pre-computed lookup tables to remap the grey values for each tiles.</param>
         /// <param name="cdfX">The X index of the lookup table to use.</param>
+        /// <param name="sourceWidth">The source image width.</param>
+        /// <param name="sourceHeight">The source image height.</param>
         /// <param name="tileWidth">The width of a tile.</param>
         /// <param name="tileHeight">The height of a tile.</param>
         /// <param name="xStart">X start position in the image.</param>
@@ -197,10 +209,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// or 65536 for 16-bit grayscale images.
         /// </param>
         private static void ProcessBorderColumn(
-            ImageFrame<TPixel> source,
-            Span<TPixel> pixels,
+            ref TPixel pixelBase,
             CdfTileData cdfData,
             int cdfX,
+            int sourceWidth,
+            int sourceHeight,
             int tileWidth,
             int tileHeight,
             int xStart,
@@ -211,17 +224,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int halfTileHeight = tileHeight / 2;
 
             int cdfY = 0;
-            for (int y = halfTileHeight; y < source.Height - halfTileHeight; y += tileHeight)
+            for (int y = halfTileHeight; y < sourceHeight - halfTileHeight; y += tileHeight)
             {
-                int yLimit = Math.Min(y + tileHeight, source.Height - 1);
+                int yLimit = Math.Min(y + tileHeight, sourceHeight - 1);
                 int tileY = 0;
                 for (int dy = y; dy < yLimit; dy++)
                 {
+                    int dyOffSet = dy * sourceWidth;
                     int tileX = halfTileWidth;
                     for (int dx = xStart; dx < xEnd; dx++)
                     {
-                        float luminanceEqualized = InterpolateBetweenTwoTiles(source[dx, dy], cdfData, cdfX, cdfY, cdfX, cdfY + 1, tileY, tileHeight, luminanceLevels);
-                        pixels[(dy * source.Width) + dx].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, source[dx, dy].ToVector4().W));
+                        ref TPixel pixel = ref Unsafe.Add(ref pixelBase, dyOffSet + dx);
+                        float luminanceEqualized = InterpolateBetweenTwoTiles(pixel, cdfData, cdfX, cdfY, cdfX, cdfY + 1, tileY, tileHeight, luminanceLevels);
+                        pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
                         tileX++;
                     }
 
@@ -235,10 +250,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <summary>
         /// Processes a border row of the image which is half of the size of the tile height.
         /// </summary>
-        /// <param name="source">The source image.</param>
-        /// <param name="pixels">The output pixels.</param>
+        /// <param name="pixelBase">The output pixels base reference.</param>
         /// <param name="cdfData">The pre-computed lookup tables to remap the grey values for each tiles.</param>
         /// <param name="cdfY">The Y index of the lookup table to use.</param>
+        /// <param name="sourceWidth">The source image width.</param>
         /// <param name="tileWidth">The width of a tile.</param>
         /// <param name="tileHeight">The height of a tile.</param>
         /// <param name="yStart">Y start position in the image.</param>
@@ -248,10 +263,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// or 65536 for 16-bit grayscale images.
         /// </param>
         private static void ProcessBorderRow(
-            ImageFrame<TPixel> source,
-            Span<TPixel> pixels,
+            ref TPixel pixelBase,
             CdfTileData cdfData,
             int cdfY,
+            int sourceWidth,
             int tileWidth,
             int tileHeight,
             int yStart,
@@ -262,17 +277,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int halfTileHeight = tileHeight / 2;
 
             int cdfX = 0;
-            for (int x = halfTileWidth; x < source.Width - halfTileWidth; x += tileWidth)
+            for (int x = halfTileWidth; x < sourceWidth - halfTileWidth; x += tileWidth)
             {
                 int tileY = 0;
                 for (int dy = yStart; dy < yEnd; dy++)
                 {
+                    int dyOffSet = dy * sourceWidth;
                     int tileX = 0;
-                    int xLimit = Math.Min(x + tileWidth, source.Width - 1);
+                    int xLimit = Math.Min(x + tileWidth, sourceWidth - 1);
                     for (int dx = x; dx < xLimit; dx++)
                     {
-                        float luminanceEqualized = InterpolateBetweenTwoTiles(source[dx, dy], cdfData, cdfX, cdfY, cdfX + 1, cdfY, tileX, tileWidth, luminanceLevels);
-                        pixels[(dy * source.Width) + dx].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, source[dx, dy].ToVector4().W));
+                        ref TPixel pixel = ref Unsafe.Add(ref pixelBase, dyOffSet + dx);
+                        float luminanceEqualized = InterpolateBetweenTwoTiles(pixel, cdfData, cdfX, cdfY, cdfX + 1, cdfY, tileX, tileWidth, luminanceLevels);
+                        pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
                         tileX++;
                     }
 
@@ -396,10 +413,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         private sealed class CdfTileData : IDisposable
         {
             private readonly Configuration configuration;
+            private readonly MemoryAllocator memoryAllocator;
+
+            // Used for storing the minimum value for each CDF entry.
             private readonly Buffer2D<int> cdfMinBuffer2D;
+
+            // Used for storing the LUT for each CDF entry.
             private readonly Buffer2D<int> cdfLutBuffer2D;
-            private readonly Buffer2D<int> histogramBuffer2D;
             private readonly int pixelsInTile;
+            private readonly int sourceWidth;
+            private readonly int sourceHeight;
             private readonly int tileWidth;
             private readonly int tileHeight;
             private readonly int luminanceLevels;
@@ -407,6 +430,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
             public CdfTileData(
                 Configuration configuration,
+                int sourceWidth,
                 int sourceHeight,
                 int tileCountX,
                 int tileCountY,
@@ -415,10 +439,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 int luminanceLevels)
             {
                 this.configuration = configuration;
-                MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
+                this.memoryAllocator = configuration.MemoryAllocator;
                 this.luminanceLevels = luminanceLevels;
-                this.cdfMinBuffer2D = memoryAllocator.Allocate2D<int>(tileCountX, tileCountY);
-                this.cdfLutBuffer2D = memoryAllocator.Allocate2D<int>(tileCountX * luminanceLevels, tileCountY);
+                this.cdfMinBuffer2D = this.memoryAllocator.Allocate2D<int>(tileCountX, tileCountY);
+                this.cdfLutBuffer2D = this.memoryAllocator.Allocate2D<int>(tileCountX * luminanceLevels, tileCountY);
+                this.sourceWidth = sourceWidth;
+                this.sourceHeight = sourceHeight;
                 this.tileWidth = tileWidth;
                 this.tileHeight = tileHeight;
                 this.pixelsInTile = tileWidth * tileHeight;
@@ -431,51 +457,59 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     this.tileYStartPositions.Add((y, cdfY));
                     cdfY++;
                 }
-
-                // Use 2D to avoid rent/return per iteration.
-                this.histogramBuffer2D = memoryAllocator.Allocate2D<int>(luminanceLevels, this.tileYStartPositions.Count);
             }
 
             public void CalculateLookupTables(ImageFrame<TPixel> source, HistogramEqualizationProcessor<TPixel> processor)
             {
+                int sourceWidth = this.sourceWidth;
+                int sourceHeight = this.sourceHeight;
+                int tileWidth = this.tileWidth;
+                int tileHeight = this.tileHeight;
+                int luminanceLevels = this.luminanceLevels;
+                MemoryAllocator memoryAllocator = this.memoryAllocator;
+
                 Parallel.For(
                     0,
                     this.tileYStartPositions.Count,
                     new ParallelOptions() { MaxDegreeOfParallelism = this.configuration.MaxDegreeOfParallelism },
                     index =>
                 {
-                    Span<int> histogram = this.histogramBuffer2D.GetRowSpan(index);
-
                     int cdfX = 0;
                     int cdfY = this.tileYStartPositions[index].cdfY;
                     int y = this.tileYStartPositions[index].y;
-                    int endY = Math.Min(y + this.tileHeight, source.Height);
+                    int endY = Math.Min(y + tileHeight, sourceHeight);
+                    ref TPixel sourceBase = ref source.GetPixelReference(0, 0);
+                    ref int cdfMinBase = ref MemoryMarshal.GetReference(this.cdfMinBuffer2D.GetRowSpan(cdfY));
 
-                    for (int x = 0; x < source.Width; x += this.tileWidth)
+                    using (IMemoryOwner<int> histogramBuffer = this.memoryAllocator.Allocate<int>(luminanceLevels))
                     {
-                        histogram.Clear();
-                        Span<int> cdf = this.GetCdfLutSpan(cdfX, index);
+                        Span<int> histogram = histogramBuffer.GetSpan();
 
-                        int xlimit = Math.Min(x + this.tileWidth, source.Width);
-                        for (int dy = y; dy < endY; dy++)
+                        for (int x = 0; x < sourceWidth; x += tileWidth)
                         {
-                            Span<TPixel> sourceRowSpan = source.GetPixelRowSpan(dy);
+                            histogram.Clear();
+                            Span<int> cdf = this.GetCdfLutSpan(cdfX, index);
 
-                            for (int dx = x; dx < xlimit; dx++)
+                            int xlimit = Math.Min(x + tileWidth, sourceWidth);
+                            for (int dy = y; dy < endY; dy++)
                             {
-                                int luminace = GetLuminance(sourceRowSpan[dx], this.luminanceLevels);
-                                histogram[luminace]++;
+                                int dyOffset = dy * sourceWidth;
+                                for (int dx = x; dx < xlimit; dx++)
+                                {
+                                    int luminace = GetLuminance(Unsafe.Add(ref sourceBase, dyOffset + dx), luminanceLevels);
+                                    histogram[luminace]++;
+                                }
                             }
+
+                            if (processor.ClipHistogramEnabled)
+                            {
+                                processor.ClipHistogram(histogram, processor.ClipLimitPercentage, this.pixelsInTile);
+                            }
+
+                            Unsafe.Add(ref cdfMinBase, cdfX) = processor.CalculateCdf(cdf, histogram, histogram.Length - 1);
+
+                            cdfX++;
                         }
-
-                        if (processor.ClipHistogramEnabled)
-                        {
-                            processor.ClipHistogram(histogram, processor.ClipLimitPercentage, this.pixelsInTile);
-                        }
-
-                        this.cdfMinBuffer2D[cdfX, cdfY] = processor.CalculateCdf(cdf, histogram, histogram.Length - 1);
-
-                        cdfX++;
                     }
                 });
             }
@@ -503,7 +537,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             public void Dispose()
             {
                 this.cdfMinBuffer2D.Dispose();
-                this.histogramBuffer2D.Dispose();
                 this.cdfLutBuffer2D.Dispose();
             }
         }

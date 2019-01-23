@@ -4,9 +4,11 @@
 using System;
 using System.Buffers;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -23,8 +25,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <summary>
         /// Initializes a new instance of the <see cref="GlobalHistogramEqualizationProcessor{TPixel}"/> class.
         /// </summary>
-        /// <param name="luminanceLevels">The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
-        /// or 65536 for 16-bit grayscale images.</param>
+        /// <param name="luminanceLevels">
+        /// The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
+        /// or 65536 for 16-bit grayscale images.
+        /// </param>
         /// <param name="clipHistogram">Indicating whether to clip the histogram bins at a specific value.</param>
         /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels. Histogram bins which exceed this limit, will be capped at this value.</param>
         public GlobalHistogramEqualizationProcessor(int luminanceLevels, bool clipHistogram, float clipLimitPercentage)
@@ -38,42 +42,64 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
             int numberOfPixels = source.Width * source.Height;
             Span<TPixel> pixels = source.GetPixelSpan();
+            var workingRect = new Rectangle(0, 0, source.Width, source.Height);
 
             using (IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
             using (IMemoryOwner<int> cdfBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
             {
                 // Build the histogram of the grayscale levels.
+                ParallelHelper.IterateRows(
+                    workingRect,
+                    configuration,
+                    rows =>
+                    {
+                        ref int histogramBase = ref MemoryMarshal.GetReference(histogramBuffer.GetSpan());
+                        for (int y = rows.Min; y < rows.Max; y++)
+                        {
+                            ref TPixel pixelBase = ref MemoryMarshal.GetReference(source.GetPixelRowSpan(y));
+
+                            for (int x = 0; x < workingRect.Width; x++)
+                            {
+                                int luminance = GetLuminance(Unsafe.Add(ref pixelBase, x), this.LuminanceLevels);
+                                Unsafe.Add(ref histogramBase, luminance)++;
+                            }
+                        }
+                    });
+
                 Span<int> histogram = histogramBuffer.GetSpan();
-                ref int histogramBase = ref MemoryMarshal.GetReference(histogram);
-
-                for (int i = 0; i < pixels.Length; i++)
-                {
-                    TPixel sourcePixel = pixels[i];
-                    int luminance = GetLuminance(sourcePixel, this.LuminanceLevels);
-                    histogram[luminance]++;
-                }
-
                 if (this.ClipHistogramEnabled)
                 {
                     this.ClipHistogram(histogram, this.ClipLimitPercentage, numberOfPixels);
                 }
 
                 // Calculate the cumulative distribution function, which will map each input pixel to a new value.
-                Span<int> cdf = cdfBuffer.GetSpan();
-                ref int cdfBase = ref MemoryMarshal.GetReference(cdf);
-                int cdfMin = this.CalculateCdf(ref cdfBase, ref histogramBase, histogram.Length - 1);
+                int cdfMin = this.CalculateCdf(
+                    ref MemoryMarshal.GetReference(cdfBuffer.GetSpan()),
+                    ref MemoryMarshal.GetReference(histogram),
+                    histogram.Length - 1);
+
+                float numberOfPixelsMinusCdfMin = numberOfPixels - cdfMin;
 
                 // Apply the cdf to each pixel of the image
-                float numberOfPixelsMinusCdfMin = numberOfPixels - cdfMin;
-                for (int i = 0; i < pixels.Length; i++)
-                {
-                    TPixel sourcePixel = pixels[i];
+                ParallelHelper.IterateRows(
+                    workingRect,
+                    configuration,
+                    rows =>
+                    {
+                        ref int cdfBase = ref MemoryMarshal.GetReference(cdfBuffer.GetSpan());
+                        for (int y = rows.Min; y < rows.Max; y++)
+                        {
+                            ref TPixel pixelBase = ref MemoryMarshal.GetReference(source.GetPixelRowSpan(y));
 
-                    int luminance = GetLuminance(sourcePixel, this.LuminanceLevels);
-                    float luminanceEqualized = cdf[luminance] / numberOfPixelsMinusCdfMin;
-
-                    pixels[i].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, sourcePixel.ToVector4().W));
-                }
+                            for (int x = 0; x < workingRect.Width; x++)
+                            {
+                                ref TPixel pixel = ref Unsafe.Add(ref pixelBase, x);
+                                int luminance = GetLuminance(pixel, this.LuminanceLevels);
+                                float luminanceEqualized = Unsafe.Add(ref cdfBase, luminance) / numberOfPixelsMinusCdfMin;
+                                pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
+                            }
+                        }
+                    });
             }
         }
     }

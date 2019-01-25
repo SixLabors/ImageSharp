@@ -1103,6 +1103,17 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             this.infoHeader.VerifyDimensions();
 
+            int skipAmount = this.fileHeader.Offset - (int)this.stream.Position;
+            if ((skipAmount + (int)this.stream.Position) > this.stream.Length)
+            {
+                BmpThrowHelper.ThrowImageFormatException($"Invalid fileheader offset found. Offset is greater than the stream length.");
+            }
+
+            if (skipAmount > 0)
+            {
+                this.stream.Skip(skipAmount);
+            }
+
             return bytesPerColorMapEntry;
         }
     }

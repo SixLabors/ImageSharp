@@ -26,7 +26,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         public static readonly IEnumerable<string> FileExtensions = new[] { "png" };
 
-        public static readonly byte[] HeaderBytes = {
+        public static readonly byte[] HeaderBytes =
+        {
              0x89, // Set the high bit.
              0x50, // P
              0x4E, // N

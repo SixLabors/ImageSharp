@@ -13,7 +13,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
     /// </summary>
     internal sealed class IccLut8TagDataEntry : IccTagDataEntry, IEquatable<IccLut8TagDataEntry>
     {
-        private static readonly float[,] IdentityMatrix = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } };
+        private static readonly float[,] IdentityMatrix =
+        {
+            { 1, 0, 0 },
+            { 0, 1, 0 },
+            { 0, 0, 1 }
+        };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IccLut8TagDataEntry"/> class.

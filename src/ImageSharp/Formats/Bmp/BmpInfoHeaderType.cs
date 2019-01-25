@@ -1,4 +1,7 @@
-﻿namespace SixLabors.ImageSharp.Formats.Bmp
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
     /// Enum value for the different bitmap info header types. The enum value is the number of bytes for the specific bitmap header.

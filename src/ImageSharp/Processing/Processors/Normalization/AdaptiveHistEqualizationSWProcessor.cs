@@ -51,21 +51,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             Span<TPixel> pixels = source.GetPixelSpan();
 
             var parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism };
-            int tileWidth = source.Width / this.Tiles;
-            int pixeInTile = tileWidth * tileWidth;
-            int halfTileWith = tileWidth / 2;
+            int tileHeight = source.Height / this.Tiles;
+            int pixeInTile = tileHeight * tileHeight;
+            int halfTileHeight = tileHeight / 2;
+            int halfTileWidth = halfTileHeight;
             using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Width, source.Height))
             {
                 Parallel.For(
                     0,
-                    source.Width,
+                    source.Height,
                     parallelOptions,
-                    x =>
+                    y =>
                     {
                         using (IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
                         using (IMemoryOwner<int> histogramBufferCopy = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
                         using (IMemoryOwner<int> cdfBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
-                        using (IMemoryOwner<TPixel> pixelRowBuffer = memoryAllocator.Allocate<TPixel>(tileWidth, AllocationOptions.Clean))
+                        using (IMemoryOwner<TPixel> pixelColumnBuffer = memoryAllocator.Allocate<TPixel>(tileHeight, AllocationOptions.Clean))
                         {
                             Span<int> histogram = histogramBuffer.GetSpan();
                             ref int histogramBase = ref MemoryMarshal.GetReference(histogram);
@@ -73,21 +74,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                             ref int histogramCopyBase = ref MemoryMarshal.GetReference(histogramCopy);
                             ref int cdfBase = ref MemoryMarshal.GetReference(cdfBuffer.GetSpan());
 
-                            Span<TPixel> pixelRow = pixelRowBuffer.GetSpan();
+                            Span<TPixel> pixelColumn = pixelColumnBuffer.GetSpan();
                             int maxHistIdx = 0;
 
                             // Build the histogram of grayscale values for the current tile.
-                            for (int dy = -halfTileWith; dy < halfTileWith; dy++)
+                            for (int dx = -halfTileWidth; dx < halfTileWidth; dx++)
                             {
-                                Span<TPixel> rowSpan = this.GetPixelRow(source, pixelRow, x - halfTileWith, dy, tileWidth);
-                                int maxIdx = this.AddPixelsToHistogram(rowSpan, histogram, this.LuminanceLevels);
+                                Span<TPixel> columnSpan = this.GetPixelColumn(source, pixelColumn, dx, y - halfTileHeight, tileHeight);
+                                int maxIdx = this.AddPixelsToHistogram(columnSpan, histogram, this.LuminanceLevels);
                                 if (maxIdx > maxHistIdx)
                                 {
                                     maxHistIdx = maxIdx;
                                 }
                             }
 
-                            for (int y = 0; y < source.Height; y++)
+                            for (int x = 0; x < source.Width; x++)
                             {
                                 if (this.ClipHistogramEnabled)
                                 {
@@ -103,18 +104,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
                                 float numberOfPixelsMinusCdfMin = pixeInTile - cdfMin;
 
-                                // Map the current pixel to the new equalized value
+                                // Map the current pixel to the new equalized value.
                                 int luminance = GetLuminance(source[x, y], this.LuminanceLevels);
                                 float luminanceEqualized = Unsafe.Add(ref cdfBase, luminance) / numberOfPixelsMinusCdfMin;
                                 targetPixels[x, y].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, source[x, y].ToVector4().W));
 
-                                // Remove top most row from the histogram, mirroring rows which exceeds the borders.
-                                Span<TPixel> rowSpan = this.GetPixelRow(source, pixelRow, x - halfTileWith, y - halfTileWith, tileWidth);
-                                maxHistIdx = this.RemovePixelsFromHistogram(rowSpan, histogram, this.LuminanceLevels, maxHistIdx);
+                                // Remove left most column from the histogram, mirroring columns which exceeds the borders of the image.
+                                Span<TPixel> columnSpan = this.GetPixelColumn(source, pixelColumn, x - halfTileWidth, y - halfTileHeight, tileHeight);
+                                maxHistIdx = this.RemovePixelsFromHistogram(columnSpan, histogram, this.LuminanceLevels, maxHistIdx);
 
-                                // Add new bottom row to the histogram, mirroring rows which exceeds the borders.
-                                rowSpan = this.GetPixelRow(source, pixelRow, x - halfTileWith, y + halfTileWith, tileWidth);
-                                int maxIdx = this.AddPixelsToHistogram(rowSpan, histogram, this.LuminanceLevels);
+                                // Add new right column to the histogram, mirroring columns which exceeds the borders of the image.
+                                columnSpan = this.GetPixelColumn(source, pixelColumn, x + halfTileWidth, y - halfTileHeight, tileHeight);
+                                int maxIdx = this.AddPixelsToHistogram(columnSpan, histogram, this.LuminanceLevels);
                                 if (maxIdx > maxHistIdx)
                                 {
                                     maxHistIdx = maxIdx;
@@ -128,62 +129,64 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         }
 
         /// <summary>
-        /// Get the a pixel row at a given position with a length of the tile width. Mirrors pixels which exceeds the edges.
+        /// Get the a pixel column at a given position with the size of the tile height. Mirrors pixels which exceeds the edges of the image.
         /// </summary>
         /// <param name="source">The source image.</param>
-        /// <param name="rowPixels">Pre-allocated pixel row span of the size of a tile width.</param>
+        /// <param name="columnPixels">Pre-allocated pixel row span of the size of a tile height.</param>
         /// <param name="x">The x position.</param>
         /// <param name="y">The y position.</param>
-        /// <param name="tileWidth">The width in pixels of a tile.</param>
+        /// <param name="tileHeight">The height in pixels of a tile.</param>
         /// <returns>A pixel row of the length of the tile width.</returns>
-        private Span<TPixel> GetPixelRow(ImageFrame<TPixel> source, Span<TPixel> rowPixels, int x, int y, int tileWidth)
+        private Span<TPixel> GetPixelColumn(ImageFrame<TPixel> source, Span<TPixel> columnPixels, int x, int y, int tileHeight)
         {
-            if (y < 0)
-            {
-                y = Math.Abs(y);
-            }
-            else if (y >= source.Height)
-            {
-                int diff = y - source.Height;
-                y = source.Height - diff - 1;
-            }
-
-            // Special cases for the left and the right border where GetPixelRowSpan can not be used
             if (x < 0)
             {
-                rowPixels.Clear();
-                int idx = 0;
-                for (int dx = x; dx < x + tileWidth; dx++)
+                x = Math.Abs(x);
+            }
+            else if (x >= source.Width)
+            {
+                int diff = x - source.Width;
+                x = source.Width - diff - 1;
+            }
+
+            int idx = 0;
+            columnPixels.Clear();
+            if (y < 0)
+            {
+                columnPixels.Clear();
+                for (int dy = y; dy < y + tileHeight; dy++)
                 {
-                    rowPixels[idx] = source[Math.Abs(dx), y];
+                    columnPixels[idx] = source[x, Math.Abs(dy)];
                     idx++;
                 }
-
-                return rowPixels;
             }
-            else if (x + tileWidth > source.Width)
+            else if (y + tileHeight > source.Height)
             {
-                rowPixels.Clear();
-                int idx = 0;
-                for (int dx = x; dx < x + tileWidth; dx++)
+                for (int dy = y; dy < y + tileHeight; dy++)
                 {
-                    if (dx >= source.Width)
+                    if (dy >= source.Height)
                     {
-                        int diff = dx - source.Width;
-                        rowPixels[idx] = source[dx - diff - 1, y];
+                        int diff = dy - source.Height;
+                        columnPixels[idx] = source[x, dy - diff - 1];
                     }
                     else
                     {
-                        rowPixels[idx] = source[dx, y];
+                        columnPixels[idx] = source[x, dy];
                     }
 
                     idx++;
                 }
-
-                return rowPixels;
+            }
+            else
+            {
+                for (int dy = y; dy < y + tileHeight; dy++)
+                {
+                    columnPixels[idx] = source[x, dy];
+                    idx++;
+                }
             }
 
-            return source.GetPixelRowSpan(y).Slice(start: x, length: tileWidth);
+            return columnPixels;
         }
 
         /// <summary>

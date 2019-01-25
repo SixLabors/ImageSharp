@@ -474,7 +474,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         Unsafe.Add(ref blockDataRef, zig) = (short)this.ExtendReceive(s);
                     }
                 }
-            } while (k < 64);
+            }
+            while (k < 64);
         }
 
         private void DecodeBlockProgressiveDC(

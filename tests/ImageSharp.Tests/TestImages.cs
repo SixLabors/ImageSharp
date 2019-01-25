@@ -227,6 +227,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Issue735 = "Bmp/issue735.bmp";
             public const string Rgba32bf56 = "Bmp/rgba32h56.bmp";
             public const string Rgba321010102 = "Bmp/rgba32-1010102.bmp";
+            public const string RgbaAlphaBitfields = "Bmp/rgba32abf.bmp";
 
             public static readonly string[] BitFields 
             = {

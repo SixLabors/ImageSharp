@@ -167,6 +167,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                         break;
 
+                    case BmpCompression.BI_ALPHABITFIELDS:
+                        this.ReadBitFields(pixels, inverted);
+
+                        break;
+
                     default:
                         BmpThrowHelper.ThrowNotSupportedException("Does not support this kind of bitmap files.");
 
@@ -947,7 +952,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 infoHeaderType = BmpInfoHeaderType.WinVersion3;
                 this.infoHeader = BmpInfoHeader.ParseV3(buffer);
 
-                // if the info header is BMP version 3 and the compression type is BITFIELDS,
+                // If the info header is BMP version 3 and the compression type is BITFIELDS,
                 // color masks for each color channel follow the info header.
                 if (this.infoHeader.Compression == BmpCompression.BitFields)
                 {
@@ -957,6 +962,16 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     this.infoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4));
                     this.infoHeader.GreenMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4));
                     this.infoHeader.BlueMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4));
+                }
+                else if (this.infoHeader.Compression == BmpCompression.BI_ALPHABITFIELDS)
+                {
+                    byte[] bitfieldsBuffer = new byte[16];
+                    this.stream.Read(bitfieldsBuffer, 0, 16);
+                    Span<byte> data = bitfieldsBuffer.AsSpan<byte>();
+                    this.infoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4));
+                    this.infoHeader.GreenMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4));
+                    this.infoHeader.BlueMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4));
+                    this.infoHeader.AlphaMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(12, 4));
                 }
             }
             else if (headerSize == BmpInfoHeader.AdobeV3Size)

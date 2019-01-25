@@ -547,7 +547,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private void WriteDefineHuffmanTables(int componentCount)
         {
             // Table identifiers.
-            Span<byte> headers = stackalloc byte[] { 0x00, 0x10, 0x01, 0x11 };
+            Span<byte> headers = stackalloc byte[]
+            {
+                0x00,
+                0x10,
+                0x01,
+                0x11
+            };
 
             int markerlen = 2;
             HuffmanSpec[] specs = HuffmanSpec.TheHuffmanSpecs;
@@ -786,16 +792,37 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private void WriteStartOfFrame(int width, int height, int componentCount)
         {
             // "default" to 4:2:0
-            Span<byte> subsamples = stackalloc byte[] { 0x22, 0x11, 0x11 };
-            Span<byte> chroma = stackalloc byte[] { 0x00, 0x01, 0x01 };
+            Span<byte> subsamples = stackalloc byte[]
+            {
+                0x22,
+                0x11,
+                0x11
+            };
+
+            Span<byte> chroma = stackalloc byte[]
+            {
+                0x00,
+                0x01,
+                0x01
+            };
 
             switch (this.subsample)
             {
                 case JpegSubsample.Ratio444:
-                    subsamples = stackalloc byte[] { 0x11, 0x11, 0x11 };
+                    subsamples = stackalloc byte[]
+                    {
+                        0x11,
+                        0x11,
+                        0x11
+                    };
                     break;
                 case JpegSubsample.Ratio420:
-                    subsamples = stackalloc byte[] { 0x22, 0x11, 0x11 };
+                    subsamples = stackalloc byte[]
+                    {
+                        0x22,
+                        0x11,
+                        0x11
+                    };
                     break;
             }
 

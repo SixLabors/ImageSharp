@@ -51,8 +51,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             Span<TPixel> pixels = source.GetPixelSpan();
 
             var parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism };
-            int tileHeight = source.Height / this.Tiles;
-            int pixeInTile = tileHeight * tileHeight;
+            int tileWidth = source.Width / this.Tiles;
+            int tileHeight = tileWidth;
+            int pixeInTile = tileWidth * tileHeight;
             int halfTileHeight = tileHeight / 2;
             int halfTileWidth = halfTileHeight;
             using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Width, source.Height))
@@ -132,7 +133,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// Get the a pixel column at a given position with the size of the tile height. Mirrors pixels which exceeds the edges of the image.
         /// </summary>
         /// <param name="source">The source image.</param>
-        /// <param name="columnPixels">Pre-allocated pixel row span of the size of a tile height.</param>
+        /// <param name="columnPixels">Pre-allocated pixel span of the size of a tile height.</param>
         /// <param name="x">The x position.</param>
         /// <param name="y">The y position.</param>
         /// <param name="tileHeight">The height in pixels of a tile.</param>
@@ -190,7 +191,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         }
 
         /// <summary>
-        /// Adds a row of grey values to the histogram.
+        /// Adds a column of grey values to the histogram.
         /// </summary>
         /// <param name="greyValues">The grey values to add.</param>
         /// <param name="histogram">The histogram.</param>
@@ -213,7 +214,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         }
 
         /// <summary>
-        /// Removes a row of grey values from the histogram.
+        /// Removes a column of grey values from the histogram.
         /// </summary>
         /// <param name="greyValues">The grey values to remove.</param>
         /// <param name="histogram">The histogram.</param>

@@ -42,6 +42,7 @@ namespace SixLabors.ImageSharp.IO
         public DoubleBufferedStreamReader(MemoryAllocator memoryAllocator, Stream stream)
         {
             this.stream = stream;
+            this.Position = (int)stream.Position;
             this.length = (int)stream.Length;
             this.managedBuffer = memoryAllocator.AllocateManagedByteBuffer(ChunkLength, AllocationOptions.Clean);
             this.bufferChunk = this.managedBuffer.Array;

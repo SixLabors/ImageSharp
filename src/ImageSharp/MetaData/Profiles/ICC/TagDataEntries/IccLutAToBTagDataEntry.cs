@@ -183,19 +183,21 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = base.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.InputChannelCount;
-                hashCode = (hashCode * 397) ^ this.OutputChannelCount;
-                hashCode = (hashCode * 397) ^ this.Matrix3x3.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Matrix3x1.GetHashCode();
-                hashCode = (hashCode * 397) ^ (this.ClutValues?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (this.CurveB?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (this.CurveM?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (this.CurveA?.GetHashCode() ?? 0);
-                return hashCode;
-            }
+#pragma warning disable SA1129 // Do not use default value type constructor
+            var hashCode = new HashCode();
+#pragma warning restore SA1129 // Do not use default value type constructor
+
+            hashCode.Add(this.Signature);
+            hashCode.Add(this.InputChannelCount);
+            hashCode.Add(this.OutputChannelCount);
+            hashCode.Add(this.Matrix3x3);
+            hashCode.Add(this.Matrix3x1);
+            hashCode.Add(this.ClutValues);
+            hashCode.Add(this.CurveB);
+            hashCode.Add(this.CurveM);
+            hashCode.Add(this.CurveA);
+
+            return hashCode.ToHashCode();
         }
 
         private bool EqualsCurve(IccTagDataEntry[] thisCurves, IccTagDataEntry[] entryCurves)

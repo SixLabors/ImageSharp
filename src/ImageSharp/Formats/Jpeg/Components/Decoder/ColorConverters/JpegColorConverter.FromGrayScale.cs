@@ -12,14 +12,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
     {
         internal class FromGrayscale : JpegColorConverter
         {
-            public FromGrayscale()
-                : base(JpegColorSpace.Grayscale)
+            public FromGrayscale(int precision)
+                : base(JpegColorSpace.Grayscale, precision)
             {
             }
 
             public override void ConvertToRgba(in ComponentValues values, Span<Vector4> result)
             {
-                var scale = new Vector4(1 / 255F, 1 / 255F, 1 / 255F, 1F);
+                var scale = new Vector4(
+                                1 / this.MaximumValue,
+                                1 / this.MaximumValue,
+                                1 / this.MaximumValue,
+                                1F);
 
                 ref float sBase = ref MemoryMarshal.GetReference(values.Component0);
                 ref Vector4 dBase = ref MemoryMarshal.GetReference(result);

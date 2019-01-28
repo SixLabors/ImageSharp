@@ -19,7 +19,16 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Initializes a new instance of the <see cref="BmpMetaData"/> class.
         /// </summary>
         /// <param name="other">The metadata to create an instance from.</param>
-        private BmpMetaData(BmpMetaData other) => this.BitsPerPixel = other.BitsPerPixel;
+        private BmpMetaData(BmpMetaData other)
+        {
+            this.BitsPerPixel = other.BitsPerPixel;
+            this.InfoHeaderType = other.InfoHeaderType;
+        }
+
+        /// <summary>
+        /// Gets or sets the bitmap info header type.
+        /// </summary>
+        public BmpInfoHeaderType InfoHeaderType { get; set; }
 
         /// <summary>
         /// Gets or sets the number of bits per pixel.

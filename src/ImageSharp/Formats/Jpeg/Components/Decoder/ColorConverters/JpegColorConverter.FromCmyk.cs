@@ -10,8 +10,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
     {
         internal class FromCmyk : JpegColorConverter
         {
-            public FromCmyk()
-                : base(JpegColorSpace.Cmyk)
+            public FromCmyk(int precision)
+                : base(JpegColorSpace.Cmyk, precision)
             {
             }
 
@@ -25,14 +25,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 
                 var v = new Vector4(0, 0, 0, 1F);
 
-                var scale = new Vector4(1 / 255F, 1 / 255F, 1 / 255F, 1F);
+                var scale = new Vector4(
+                                1 / this.MaximumValue,
+                                1 / this.MaximumValue,
+                                1 / this.MaximumValue,
+                                1F);
 
                 for (int i = 0; i < result.Length; i++)
                 {
                     float c = cVals[i];
                     float m = mVals[i];
                     float y = yVals[i];
-                    float k = kVals[i] / 255F;
+                    float k = kVals[i] / this.MaximumValue;
 
                     v.X = c * k;
                     v.Y = m * k;

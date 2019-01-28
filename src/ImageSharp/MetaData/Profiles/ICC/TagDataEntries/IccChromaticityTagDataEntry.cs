@@ -110,13 +110,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = base.GetHashCode();
-                hashCode = (hashCode * 397) ^ (int)this.ColorantType;
-                hashCode = (hashCode * 397) ^ (this.ChannelValues?.GetHashCode() ?? 0);
-                return hashCode;
-            }
+            return HashCode.Combine(
+                this.Signature,
+                this.ColorantType,
+                this.ChannelValues);
         }
 
         private static double[][] GetColorantArray(IccColorantEncoding colorantType)

@@ -10,8 +10,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
     {
         internal class FromYccK : JpegColorConverter
         {
-            public FromYccK()
-                : base(JpegColorSpace.Ycck)
+            public FromYccK(int precision)
+                : base(JpegColorSpace.Ycck, precision)
             {
             }
 
@@ -25,18 +25,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 
                 var v = new Vector4(0, 0, 0, 1F);
 
-                var scale = new Vector4(1 / 255F, 1 / 255F, 1 / 255F, 1F);
+                var scale = new Vector4(
+                                1 / this.MaximumValue,
+                                1 / this.MaximumValue,
+                                1 / this.MaximumValue,
+                                1F);
 
                 for (int i = 0; i < result.Length; i++)
                 {
                     float y = yVals[i];
-                    float cb = cbVals[i] - 128F;
-                    float cr = crVals[i] - 128F;
-                    float k = kVals[i] / 255F;
+                    float cb = cbVals[i] - this.HalfValue;
+                    float cr = crVals[i] - this.HalfValue;
+                    float k = kVals[i] / this.MaximumValue;
 
-                    v.X = (255F - MathF.Round(y + (1.402F * cr), MidpointRounding.AwayFromZero)) * k;
-                    v.Y = (255F - MathF.Round(y - (0.344136F * cb) - (0.714136F * cr), MidpointRounding.AwayFromZero)) * k;
-                    v.Z = (255F - MathF.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero)) * k;
+                    v.X = (this.MaximumValue - MathF.Round(y + (1.402F * cr), MidpointRounding.AwayFromZero)) * k;
+                    v.Y = (this.MaximumValue - MathF.Round(y - (0.344136F * cb) - (0.714136F * cr), MidpointRounding.AwayFromZero)) * k;
+                    v.Z = (this.MaximumValue - MathF.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero)) * k;
                     v.W = 1F;
 
                     v *= scale;

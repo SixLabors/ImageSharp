@@ -57,8 +57,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 using (Image<Rgba32> image = file.CreateImage())
                 {
-                    var encoder = new PngEncoder { Quantizer = new WuQuantizer(KnownDiffusers.JarvisJudiceNinke, 256), ColorType = PngColorType.Palette };
-                    image.Save($"{path}/{file.FileName}.png", encoder);
+                    image.Save($"{path}/{file.FileName}");
                 }
             }
         }

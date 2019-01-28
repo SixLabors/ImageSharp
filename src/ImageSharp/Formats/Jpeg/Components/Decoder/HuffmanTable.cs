@@ -50,8 +50,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="values">The huffman values</param>
         public HuffmanTable(MemoryAllocator memoryAllocator, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
         {
-            const int Length = 257;
-            using (IMemoryOwner<short> huffcode = memoryAllocator.Allocate<short>(Length))
+            // We do some bounds checks in the code here to protect against AccessViolationExceptions
+            const int HuffCodeLength = 257;
+            const int MaxSizeLength = HuffCodeLength - 1;
+            using (IMemoryOwner<short> huffcode = memoryAllocator.Allocate<short>(HuffCodeLength))
             {
                 ref short huffcodeRef = ref MemoryMarshal.GetReference(huffcode.GetSpan());
                 ref byte codeLengthsRef = ref MemoryMarshal.GetReference(codeLengths);
@@ -63,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 for (short i = 1; i < 17; i++)
                 {
                     byte length = Unsafe.Add(ref codeLengthsRef, i);
-                    for (short j = 0; j < length; j++)
+                    for (short j = 0; j < length && x < MaxSizeLength; j++)
                     {
                         Unsafe.Add(ref sizesRef, x++) = i;
                     }
@@ -84,7 +86,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     Unsafe.Add(ref valOffsetRef, k) = (int)(si - code);
                     if (Unsafe.Add(ref sizesRef, si) == k)
                     {
-                        while (Unsafe.Add(ref sizesRef, si) == k)
+                        while (Unsafe.Add(ref sizesRef, si) == k && si < HuffCodeLength)
                         {
                             Unsafe.Add(ref huffcodeRef, si++) = (short)code++;
                         }
@@ -100,19 +102,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 // Generate non-spec lookup tables to speed up decoding.
                 const int FastBits = ScanDecoder.FastBits;
-                ref byte fastRef = ref this.Lookahead[0];
-                Unsafe.InitBlockUnaligned(ref fastRef, 0xFF, 1 << FastBits); // Flag for non-accelerated
+                ref byte lookaheadRef = ref this.Lookahead[0];
+                const uint MaxFastLength = 1 << FastBits;
+                Unsafe.InitBlockUnaligned(ref lookaheadRef, 0xFF, MaxFastLength); // Flag for non-accelerated
 
                 for (int i = 0; i < si; i++)
                 {
                     int size = Unsafe.Add(ref sizesRef, i);
                     if (size <= FastBits)
                     {
-                        int c = Unsafe.Add(ref huffcodeRef, i) << (FastBits - size);
-                        int m = 1 << (FastBits - size);
-                        for (int l = 0; l < m; l++)
+                        int huffCode = Unsafe.Add(ref huffcodeRef, i) << (FastBits - size);
+                        int max = 1 << (FastBits - size);
+                        for (int left = 0; left < max; left++)
                         {
-                            Unsafe.Add(ref fastRef, c + l) = (byte)i;
+                            Unsafe.Add(ref lookaheadRef, huffCode + left) = (byte)i;
                         }
                     }
                 }

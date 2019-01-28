@@ -23,6 +23,26 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private int padding;
 
+        /// <summary>
+        /// The mask for the alpha channel of the color for a 32 bit rgba bitmaps.
+        /// </summary>
+        private const int Rgba32AlphaMask = 0xFF << 24;
+
+        /// <summary>
+        /// The mask for the red part of the color for a 32 bit rgba bitmaps.
+        /// </summary>
+        private const int Rgba32RedMask = 0xFF << 16;
+
+        /// <summary>
+        /// The mask for the green part of the color for a 32 bit rgba bitmaps.
+        /// </summary>
+        private const int Rgba32GreenMask = 0xFF << 8;
+
+        /// <summary>
+        /// The mask for the blue part of the color for a 32 bit rgba bitmaps.
+        /// </summary>
+        private const int Rgba32BlueMask = 0xFF;
+
         private readonly MemoryAllocator memoryAllocator;
 
         private Configuration configuration;
@@ -92,8 +112,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 }
             }
 
+            int infoHeaderSize = BmpInfoHeader.SizeV4;
             var infoHeader = new BmpInfoHeader(
-                headerSize: BmpInfoHeader.Size,
+                headerSize: infoHeaderSize,
                 height: image.Height,
                 width: image.Width,
                 bitsPerPixel: bpp,
@@ -102,26 +123,37 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 clrUsed: 0,
                 clrImportant: 0,
                 xPelsPerMeter: hResolution,
-                yPelsPerMeter: vResolution);
+                yPelsPerMeter: vResolution)
+            {
+                RedMask = Rgba32RedMask,
+                GreenMask = Rgba32GreenMask,
+                BlueMask = Rgba32BlueMask,
+                Compression = BmpCompression.BitFields
+            };
+
+            if (this.bitsPerPixel == BmpBitsPerPixel.Pixel32)
+            {
+                infoHeader.AlphaMask = Rgba32AlphaMask;
+            }
 
             var fileHeader = new BmpFileHeader(
-                type: 19778, // BM
-                fileSize: 54 + infoHeader.ImageSize,
+                type: BmpConstants.TypeMarkers.Bitmap,
+                fileSize: BmpFileHeader.Size + infoHeaderSize + infoHeader.ImageSize,
                 reserved: 0,
-                offset: 54);
+                offset: BmpFileHeader.Size + infoHeaderSize);
 
 #if NETCOREAPP2_1
-            Span<byte> buffer = stackalloc byte[40];
+            Span<byte> buffer = stackalloc byte[infoHeaderSize];
 #else
-            byte[] buffer = new byte[40];
+            byte[] buffer = new byte[infoHeaderSize];
 #endif
             fileHeader.WriteTo(buffer);
 
             stream.Write(buffer, 0, BmpFileHeader.Size);
 
-            infoHeader.WriteTo(buffer);
+            infoHeader.WriteV4Header(buffer);
 
-            stream.Write(buffer, 0, 40);
+            stream.Write(buffer, 0, infoHeaderSize);
 
             this.WriteImage(stream, image.Frames.RootFrame);
 

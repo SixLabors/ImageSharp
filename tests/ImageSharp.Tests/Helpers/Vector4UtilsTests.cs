@@ -11,6 +11,8 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 {
     public class Vector4UtilsTests
     {
+        private readonly ApproximateFloatComparer ApproximateFloatComparer = new ApproximateFloatComparer(1e-6f);
+
         [Theory]
         [InlineData(0)]
         [InlineData(1)]
@@ -23,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 
             Vector4Utils.Premultiply(source);
 
-            Assert.Equal(expected, source, new ApproximateFloatComparer(1e-6f));
+            Assert.Equal(expected, source, this.ApproximateFloatComparer);
         }
 
         [Theory]
@@ -38,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 
             Vector4Utils.UnPremultiply(source);
 
-            Assert.Equal(expected, source, new ApproximateFloatComparer(1e-6f));
+            Assert.Equal(expected, source, this.ApproximateFloatComparer);
         }
     }
 }

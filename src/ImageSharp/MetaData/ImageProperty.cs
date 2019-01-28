@@ -99,19 +99,7 @@ namespace SixLabors.ImageSharp.MetaData
         /// <returns>
         /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                int hashCode = this.Name.GetHashCode();
-                if (this.Value != null)
-                {
-                    hashCode = (hashCode * 397) ^ this.Value.GetHashCode();
-                }
-
-                return hashCode;
-            }
-        }
+        public override int GetHashCode() => HashCode.Combine(this.Name, this.Value);
 
         /// <summary>
         /// Returns the fully qualified type name of this instance.

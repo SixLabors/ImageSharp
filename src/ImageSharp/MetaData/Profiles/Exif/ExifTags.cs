@@ -238,7 +238,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             LensMake,
             LensModel,
             LensSerialNumber
-          };
+        };
 
         /// <summary>
         /// The collection of GPS tags

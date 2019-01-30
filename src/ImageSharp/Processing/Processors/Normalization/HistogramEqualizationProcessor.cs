@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     cdfMinFound = true;
                 }
 
-                // Creating the lookup table: subtracting cdf min, so we do not need to do that inside the for loop
+                // Creating the lookup table: subtracting cdf min, so we do not need to do that inside the for loop.
                 Unsafe.Add(ref cdfBase, i) = Math.Max(0, histSum - cdfMin);
             }
 

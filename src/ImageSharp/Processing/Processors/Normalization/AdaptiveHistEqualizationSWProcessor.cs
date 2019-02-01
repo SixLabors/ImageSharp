@@ -142,10 +142,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             }
 
             int idx = 0;
-            columnPixels.Clear();
             if (y < 0)
             {
-                columnPixels.Clear();
                 for (int dy = y; dy < y + tileHeight; dy++)
                 {
                     columnPixels[idx] = source[x, Math.Abs(dy)];

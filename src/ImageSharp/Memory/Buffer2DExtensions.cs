@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Memory
     /// <summary>
     /// Defines extension methods for <see cref="Buffer2D{T}"/>.
     /// </summary>
-    internal static class Buffer2DExtensions
+    public static class Buffer2DExtensions
     {
         /// <summary>
         /// Gets a <see cref="Span{T}"/> to the backing buffer of <paramref name="buffer"/>.

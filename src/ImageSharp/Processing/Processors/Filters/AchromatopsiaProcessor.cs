@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// Converts the colors of the image recreating Achromatopsia (Monochrome) color blindness.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class AchromatopsiaProcessor<TPixel> : FilterProcessor<TPixel>
+    public class AchromatopsiaProcessor<TPixel> : FilterProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

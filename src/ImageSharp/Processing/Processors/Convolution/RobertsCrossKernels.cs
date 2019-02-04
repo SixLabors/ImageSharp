@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// <summary>
     /// Contains the kernels used for RobertsCross edge detection
     /// </summary>
-    internal static class RobertsCrossKernels
+    public static class RobertsCrossKernels
     {
         /// <summary>
         /// Gets the horizontal gradient operator.

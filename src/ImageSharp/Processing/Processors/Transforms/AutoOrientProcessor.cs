@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// Adjusts an image so that its orientation is suitable for viewing. Adjustments are based on EXIF metadata embedded in the image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class AutoOrientProcessor<TPixel> : ImageProcessor<TPixel>
+    public class AutoOrientProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <inheritdoc/>

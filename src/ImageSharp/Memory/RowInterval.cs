@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Memory
     /// <summary>
     /// Represents an interval of rows in a <see cref="Rectangle"/> and/or <see cref="Buffer2D{T}"/>
     /// </summary>
-    internal readonly struct RowInterval
+    public readonly struct RowInterval
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RowInterval"/> struct.

@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// <summary>
     /// Contains the kernels used for Kayyali edge detection
     /// </summary>
-    internal static class KayyaliKernels
+    public static class KayyaliKernels
     {
         /// <summary>
         /// Gets the horizontal gradient operator.

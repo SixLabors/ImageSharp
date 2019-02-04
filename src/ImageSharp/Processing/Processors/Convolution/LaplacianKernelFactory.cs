@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// <summary>
     /// A factory for creating Laplacian kernel matrices.
     /// </summary>
-    internal static class LaplacianKernelFactory
+    public static class LaplacianKernelFactory
     {
         /// <summary>
         /// Creates a Laplacian matrix, 2nd derivative, of an arbitrary length.

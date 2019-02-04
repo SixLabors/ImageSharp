@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
     /// Performs simple binary threshold filtering against an image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class BinaryThresholdProcessor<TPixel> : ImageProcessor<TPixel>
+    public class BinaryThresholdProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

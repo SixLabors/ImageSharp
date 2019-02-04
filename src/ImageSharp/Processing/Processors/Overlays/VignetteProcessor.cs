@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
     /// An <see cref="IImageProcessor{TPixel}"/> that applies a radial vignette effect to an <see cref="Image{TPixel}"/>.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class VignetteProcessor<TPixel> : ImageProcessor<TPixel>
+    public class VignetteProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly PixelBlender<TPixel> blender;

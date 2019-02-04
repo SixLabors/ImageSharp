@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// <see href="http://en.wikipedia.org/wiki/Sobel_operator"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class SobelProcessor<TPixel> : EdgeDetector2DProcessor<TPixel>
+    public class SobelProcessor<TPixel> : EdgeDetector2DProcessor<TPixel>
          where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

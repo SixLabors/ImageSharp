@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// An <see cref="IImageProcessor{TPixel}"/> that dithers an image using error diffusion.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class ErrorDiffusionPaletteProcessor<TPixel> : PaletteDitherProcessorBase<TPixel>
+    public class ErrorDiffusionPaletteProcessor<TPixel> : PaletteDitherProcessorBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

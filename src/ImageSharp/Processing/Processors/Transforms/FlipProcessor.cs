@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// Provides methods that allow the flipping of an image around its center point.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class FlipProcessor<TPixel> : ImageProcessor<TPixel>
+    public class FlipProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

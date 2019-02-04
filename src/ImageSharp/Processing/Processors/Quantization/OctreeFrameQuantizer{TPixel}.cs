@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal sealed class OctreeFrameQuantizer<TPixel> : FrameQuantizerBase<TPixel>
+    public sealed class OctreeFrameQuantizer<TPixel> : FrameQuantizerBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

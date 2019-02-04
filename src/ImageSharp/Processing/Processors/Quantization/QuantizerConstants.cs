@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// <summary>
     /// Contains color quantization specific constants.
     /// </summary>
-    internal static class QuantizerConstants
+    public static class QuantizerConstants
     {
         /// <summary>
         /// The minimum number of colors to use when quantizing an image.

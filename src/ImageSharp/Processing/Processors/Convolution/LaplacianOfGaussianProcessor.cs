@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// <see href="http://fourier.eng.hmc.edu/e161/lectures/gradient/node8.html"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class LaplacianOfGaussianProcessor<TPixel> : EdgeDetectorProcessor<TPixel>
+    public class LaplacianOfGaussianProcessor<TPixel> : EdgeDetectorProcessor<TPixel>
           where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

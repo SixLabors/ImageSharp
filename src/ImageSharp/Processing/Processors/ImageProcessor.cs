@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
     /// Allows the application of processors to images.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class ImageProcessor<TPixel> : IImageProcessor<TPixel>
+    public abstract class ImageProcessor<TPixel> : IImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <inheritdoc/>

@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// <summary>
     /// Contains the kernels used for Robinson edge detection
     /// </summary>
-    internal static class RobinsonKernels
+    public static class RobinsonKernels
     {
         /// <summary>
         /// Gets the North gradient operator

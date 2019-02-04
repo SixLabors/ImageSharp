@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
     /// Performs binary threshold filtering against an image using error diffusion.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class BinaryErrorDiffusionProcessor<TPixel> : ImageProcessor<TPixel>
+    public class BinaryErrorDiffusionProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

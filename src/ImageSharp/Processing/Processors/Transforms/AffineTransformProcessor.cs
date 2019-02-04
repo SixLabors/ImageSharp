@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// Provides the base methods to perform affine transforms on an image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class AffineTransformProcessor<TPixel> : TransformProcessorBase<TPixel>
+    public class AffineTransformProcessor<TPixel> : TransformProcessorBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// Applies Gaussian sharpening processing to the image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class GaussianSharpenProcessor<TPixel> : ImageProcessor<TPixel>
+    public class GaussianSharpenProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

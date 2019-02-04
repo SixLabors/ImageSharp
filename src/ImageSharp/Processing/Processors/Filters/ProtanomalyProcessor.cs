@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// Converts the colors of the image recreating Protanomaly (Red-Weak) color blindness.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class ProtanomalyProcessor<TPixel> : FilterProcessor<TPixel>
+    public class ProtanomalyProcessor<TPixel> : FilterProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

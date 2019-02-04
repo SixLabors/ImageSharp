@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// Applies an opacity filter matrix using the given amount.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class OpacityProcessor<TPixel> : FilterProcessor<TPixel>
+    public class OpacityProcessor<TPixel> : FilterProcessor<TPixel>
          where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

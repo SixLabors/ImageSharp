@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// <summary>
     /// Contains utility methods for working with transforms.
     /// </summary>
-    internal static class TransformUtils
+    public static class TransformUtils
     {
         /// <summary>
         /// Applies the projective transform against the given coordinates flattened into the 2D space.

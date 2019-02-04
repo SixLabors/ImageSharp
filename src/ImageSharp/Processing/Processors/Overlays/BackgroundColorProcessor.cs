@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
     /// Sets the background color of the image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class BackgroundColorProcessor<TPixel> : ImageProcessor<TPixel>
+    public class BackgroundColorProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

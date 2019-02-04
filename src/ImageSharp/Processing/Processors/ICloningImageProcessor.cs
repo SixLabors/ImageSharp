@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
     /// Encapsulates methods to alter the pixels of a new image, cloned from the original image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal interface ICloningImageProcessor<TPixel> : IImageProcessor<TPixel>
+    public interface ICloningImageProcessor<TPixel> : IImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

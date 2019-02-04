@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// Applies box blur processing to the image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class BoxBlurProcessor<TPixel> : ImageProcessor<TPixel>
+    public class BoxBlurProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

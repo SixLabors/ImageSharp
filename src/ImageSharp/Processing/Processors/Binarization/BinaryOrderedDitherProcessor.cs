@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
     /// Performs binary threshold filtering against an image using ordered dithering.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class BinaryOrderedDitherProcessor<TPixel> : ImageProcessor<TPixel>
+    public class BinaryOrderedDitherProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// Converts the colors of the image recreating Deuteranomaly (Green-Weak) color blindness.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class DeuteranomalyProcessor<TPixel> : FilterProcessor<TPixel>
+    public class DeuteranomalyProcessor<TPixel> : FilterProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

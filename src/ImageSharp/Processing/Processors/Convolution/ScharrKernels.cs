@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// <summary>
     /// Contains the kernels used for Scharr edge detection
     /// </summary>
-    internal static class ScharrKernels
+    public static class ScharrKernels
     {
         /// <summary>
         /// Gets the horizontal gradient operator.

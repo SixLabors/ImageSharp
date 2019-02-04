@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// Provides methods to allow the cropping of an image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class CropProcessor<TPixel> : TransformProcessorBase<TPixel>
+    public class CropProcessor<TPixel> : TransformProcessorBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

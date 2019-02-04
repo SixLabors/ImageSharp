@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
     /// Applies a global histogram equalization to the image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class HistogramEqualizationProcessor<TPixel> : ImageProcessor<TPixel>
+    public class HistogramEqualizationProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

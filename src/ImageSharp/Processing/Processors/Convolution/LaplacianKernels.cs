@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// <summary>
     /// Contains Laplacian kernels of different sizes
     /// </summary>
-    internal static class LaplacianKernels
+    public static class LaplacianKernels
     {
         /// <summary>
         /// Gets the 3x3 Laplacian kernel

@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// Applies a saturation filter matrix using the given amount.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class SaturateProcessor<TPixel> : FilterProcessor<TPixel>
+    public class SaturateProcessor<TPixel> : FilterProcessor<TPixel>
          where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

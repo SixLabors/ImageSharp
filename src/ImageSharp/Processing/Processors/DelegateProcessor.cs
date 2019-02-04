@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
     /// Allows the application of processing algorithms to images via an action delegate
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class DelegateProcessor<TPixel> : ImageProcessor<TPixel>
+    public class DelegateProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

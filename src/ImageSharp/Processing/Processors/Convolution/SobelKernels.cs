@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// <summary>
     /// Contains the kernels used for Sobel edge detection
     /// </summary>
-    internal static class SobelKernels
+    public static class SobelKernels
     {
         /// <summary>
         /// Gets the horizontal gradient operator.

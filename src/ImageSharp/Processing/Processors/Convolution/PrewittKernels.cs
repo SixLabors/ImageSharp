@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// <summary>
     /// Contains the kernels used for Prewitt edge detection
     /// </summary>
-    internal static class PrewittKernels
+    public static class PrewittKernels
     {
         /// <summary>
         /// Gets the horizontal gradient operator.

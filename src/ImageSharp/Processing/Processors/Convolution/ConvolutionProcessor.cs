@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// Defines a processor that uses a 2 dimensional matrix to perform convolution against an image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
+    public class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

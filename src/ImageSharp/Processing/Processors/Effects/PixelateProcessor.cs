@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
     /// Applies a pixelation effect processing to the image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class PixelateProcessor<TPixel> : ImageProcessor<TPixel>
+    public class PixelateProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

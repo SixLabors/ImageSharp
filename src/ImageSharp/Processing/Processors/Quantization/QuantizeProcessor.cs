@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// Enables the quantization of images to reduce the number of colors used in the image palette.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class QuantizeProcessor<TPixel> : ImageProcessor<TPixel>
+    public class QuantizeProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

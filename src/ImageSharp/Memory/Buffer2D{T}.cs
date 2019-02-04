@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Memory
     /// interpreted as a 2D region of <see cref="Width"/> x <see cref="Height"/> elements.
     /// </summary>
     /// <typeparam name="T">The value type.</typeparam>
-    internal sealed class Buffer2D<T> : IDisposable
+    public sealed class Buffer2D<T> : IDisposable
         where T : struct
     {
         private MemorySource<T> memorySource;

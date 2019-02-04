@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
     /// </summary>
     /// <remarks>Adapted from <see href="https://softwarebydefault.com/2013/06/29/oil-painting-cartoon-filter/"/> by Dewald Esterhuizen.</remarks>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
+    public class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

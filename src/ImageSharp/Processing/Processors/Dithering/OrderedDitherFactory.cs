@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// <summary>
     /// A factory for creating ordered dither matrices.
     /// </summary>
-    internal static class OrderedDitherFactory
+    public static class OrderedDitherFactory
     {
         /// <summary>
         /// Creates an ordered dithering matrix with equal sides of arbitrary length.

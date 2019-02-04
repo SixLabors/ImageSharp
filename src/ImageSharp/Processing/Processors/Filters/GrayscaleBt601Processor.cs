@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// Applies a grayscale filter matrix using the given amount and the formula as specified by ITU-R Recommendation BT.601
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class GrayscaleBt601Processor<TPixel> : FilterProcessor<TPixel>
+    public class GrayscaleBt601Processor<TPixel> : FilterProcessor<TPixel>
          where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

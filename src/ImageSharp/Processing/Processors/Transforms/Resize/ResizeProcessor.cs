@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// Adapted from <see href="http://www.realtimerendering.com/resources/GraphicsGems/gemsiii/filter_rcg.c"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class ResizeProcessor<TPixel> : TransformProcessorBase<TPixel>
+    public class ResizeProcessor<TPixel> : TransformProcessorBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         // The following fields are not immutable but are optionally created on demand.

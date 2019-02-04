@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Primitives
     /// <remarks>
     /// This is a very simplified implementation of a rational number designed for use with metadata only.
     /// </remarks>
-    internal readonly struct LongRational : IEquatable<LongRational>
+    public readonly struct LongRational : IEquatable<LongRational>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="LongRational"/> struct.

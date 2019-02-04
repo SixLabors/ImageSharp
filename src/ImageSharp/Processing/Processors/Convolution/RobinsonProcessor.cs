@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// <see href="http://www.tutorialspoint.com/dip/Robinson_Compass_Mask.htm"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class RobinsonProcessor<TPixel> : EdgeDetectorCompassProcessor<TPixel>
+    public class RobinsonProcessor<TPixel> : EdgeDetectorCompassProcessor<TPixel>
          where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

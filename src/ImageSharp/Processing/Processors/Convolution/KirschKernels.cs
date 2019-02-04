@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// <summary>
     /// Contains the eight matrices used for Kirsch edge detection
     /// </summary>
-    internal static class KirschKernels
+    public static class KirschKernels
     {
         /// <summary>
         /// Gets the North gradient operator

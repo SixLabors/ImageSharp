@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// <summary>
     /// Points to a collection of of weights allocated in <see cref="ResizeKernelMap"/>.
     /// </summary>
-    internal readonly unsafe struct ResizeKernel
+    public readonly unsafe struct ResizeKernel
     {
         private readonly float* bufferPtr;
 

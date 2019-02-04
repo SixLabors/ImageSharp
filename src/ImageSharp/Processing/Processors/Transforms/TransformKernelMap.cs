@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// <summary>
     /// Contains the methods required to calculate transform kernel convolution.
     /// </summary>
-    internal class TransformKernelMap : IDisposable
+    public class TransformKernelMap : IDisposable
     {
         private readonly Buffer2D<float> yBuffer;
         private readonly Buffer2D<float> xBuffer;

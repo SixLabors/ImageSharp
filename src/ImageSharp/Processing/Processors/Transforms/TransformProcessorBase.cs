@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// The base class for all transform processors. Any processor that changes the dimensions of the image should inherit from this.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class TransformProcessorBase<TPixel> : CloningImageProcessor<TPixel>
+    public abstract class TransformProcessorBase<TPixel> : CloningImageProcessor<TPixel>
          where TPixel : struct, IPixel<TPixel>
     {
         /// <inheritdoc/>

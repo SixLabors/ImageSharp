@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// Applies edge detection processing to the image using the Kayyali operator filter. <see href="http://edgedetection.webs.com/"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class KayyaliProcessor<TPixel> : EdgeDetector2DProcessor<TPixel>
+    public class KayyaliProcessor<TPixel> : EdgeDetector2DProcessor<TPixel>
          where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// <see href="http://en.wikipedia.org/wiki/Discrete_Laplace_operator"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class Laplacian5x5Processor<TPixel> : EdgeDetectorProcessor<TPixel>
+    public class Laplacian5x5Processor<TPixel> : EdgeDetectorProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// Applies Gaussian blur processing to the image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class GaussianBlurProcessor<TPixel> : ImageProcessor<TPixel>
+    public class GaussianBlurProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

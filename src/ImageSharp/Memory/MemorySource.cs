@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Memory
     /// https://gist.github.com/GrabYourPitchforks/4c3e1935fd4d9fa2831dbfcab35dffc6
     /// https://www.codemag.com/Article/1807051/Introducing-.NET-Core-2.1-Flagship-Types-Span-T-and-Memory-T
     /// </remarks>
-    internal struct MemorySource<T> : IDisposable
+    public struct MemorySource<T> : IDisposable
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="MemorySource{T}"/> struct

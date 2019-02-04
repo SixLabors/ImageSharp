@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// <summary>
     /// Contains helper methods for working with transforms.
     /// </summary>
-    internal static class TransformProcessorHelpers
+    public static class TransformProcessorHelpers
     {
         /// <summary>
         /// Updates the dimensional metadata of a transformed image

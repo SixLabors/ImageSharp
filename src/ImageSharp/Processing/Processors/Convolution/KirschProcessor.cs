@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// Applies edge detection processing to the image using the Kirsch operator filter. <see href="http://en.wikipedia.org/wiki/Kirsch_operator"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class KirschProcessor<TPixel> : EdgeDetectorCompassProcessor<TPixel>
+    public class KirschProcessor<TPixel> : EdgeDetectorCompassProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

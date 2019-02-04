@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// If no palette is given this will default to the web safe colors defined in the CSS Color Module Level 4.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class OrderedDitherPaletteProcessor<TPixel> : PaletteDitherProcessorBase<TPixel>
+    public class OrderedDitherPaletteProcessor<TPixel> : PaletteDitherProcessorBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

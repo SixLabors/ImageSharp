@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// Applies a contrast filter matrix using the given amount.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class ContrastProcessor<TPixel> : FilterProcessor<TPixel>
+    public class ContrastProcessor<TPixel> : FilterProcessor<TPixel>
          where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

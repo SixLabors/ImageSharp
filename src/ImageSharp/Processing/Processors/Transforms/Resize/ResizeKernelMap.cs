@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// Provides <see cref="ResizeKernel"/> values from an optimized,
     /// contiguous memory region.
     /// </summary>
-    internal partial class ResizeKernelMap : IDisposable
+    public partial class ResizeKernelMap : IDisposable
     {
         private static readonly TolerantMath TolerantMath = TolerantMath.Default;
 

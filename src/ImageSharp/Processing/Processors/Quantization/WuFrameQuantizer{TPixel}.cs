@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </para>
     /// </remarks>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal sealed class WuFrameQuantizer<TPixel> : FrameQuantizerBase<TPixel>
+    public sealed class WuFrameQuantizer<TPixel> : FrameQuantizerBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         // TODO: The WuFrameQuantizer<TPixel> code is rising several questions:

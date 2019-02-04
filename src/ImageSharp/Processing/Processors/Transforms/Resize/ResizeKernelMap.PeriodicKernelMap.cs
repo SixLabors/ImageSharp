@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// <content>
     /// Contains <see cref="PeriodicKernelMap"/>
     /// </content>
-    internal partial class ResizeKernelMap
+    public partial class ResizeKernelMap
     {
         /// <summary>
         /// Memory-optimized <see cref="ResizeKernelMap"/> where repeating rows are stored only once.

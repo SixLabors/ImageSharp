@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Memory
     /// <summary>
     /// Extension methods for <see cref="MemoryAllocator"/>.
     /// </summary>
-    internal static class MemoryAllocatorExtensions
+    public static class MemoryAllocatorExtensions
     {
         public static Buffer2D<T> Allocate2D<T>(
             this MemoryAllocator memoryAllocator,

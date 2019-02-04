@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// Provides methods to allow the cropping of an image to preserve areas of highest entropy.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class EntropyCropProcessor<TPixel> : ImageProcessor<TPixel>
+    public class EntropyCropProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

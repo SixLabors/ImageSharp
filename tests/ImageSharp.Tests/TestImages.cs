@@ -218,6 +218,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Bit8Palette4 = "Bmp/pal8-0.bmp";
             public const string Os2v2Short = "Bmp/pal8os2v2-16.bmp";
             public const string Os2v2 = "Bmp/pal8os2v2.bmp";
+            public const string Pal8Offset = "Bmp/pal8offs.bmp";
 
             // Bitmap images with compression type BITFIELDS
             public const string Rgb32bfdef = "Bmp/rgb32bfdef.bmp";

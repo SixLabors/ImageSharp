@@ -29,7 +29,10 @@ namespace SixLabors.ImageSharp.Tests
             public const string Gray4Bpp = "Png/gray_4bpp.png";
             public const string Gray16Bit = "Png/gray-16.png";
             public const string GrayAlpha8Bit = "Png/gray-alpha-8.png";
-            public const string GrayAlpha8Bit2 = "Png/rollsroyce.png";
+            public const string GrayAlpha8BitInterlaced = "Png/rollsroyce.png";
+            public const string GrayAlpha1BitInterlaced = "Png/iftbbn0g01.png";
+            public const string GrayAlpha2BitInterlaced = "Png/iftbbn0g02.png";
+            public const string Gray4BitInterlaced = "Png/iftbbn0g04.png";
             public const string GrayAlpha16Bit = "Png/gray-alpha-16.png";
             public const string GrayTrns16BitInterlaced = "Png/gray-16-tRNS-interlaced.png";
             public const string Rgb24BppTrans = "Png/rgb-8-tRNS.png";

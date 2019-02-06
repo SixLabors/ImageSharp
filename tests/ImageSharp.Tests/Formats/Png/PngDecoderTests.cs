@@ -67,10 +67,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             TestImages.Png.GrayTrns16BitInterlaced
         };
 
-        public static readonly string[] TestImagesGrayAlpha8Bit =
+        public static readonly string[] TestImagesGray8BitInterlaced =
             {
-                TestImages.Png.GrayAlpha8Bit,
-                TestImages.Png.GrayAlpha8Bit2
+                TestImages.Png.GrayAlpha1BitInterlaced,
+                TestImages.Png.GrayAlpha2BitInterlaced,
+                TestImages.Png.Gray4BitInterlaced,
+                TestImages.Png.GrayAlpha8BitInterlaced
             };
 
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
@@ -130,8 +132,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
-        [WithFileCollection(nameof(TestImagesGrayAlpha8Bit), PixelTypes.Rgba32)]
-        public void Decoder_Gray8bitWithAlpha<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(TestImagesGray8BitInterlaced), PixelTypes.Rgba32)]
+        public void Decoder_Gray8bitInterlaced<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
@@ -166,8 +168,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
-        [WithFile(TestImages.Png.Splash, PixelTypes)]
-        public void Decoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFile(TestImages.Png.GrayAlpha8BitInterlaced, PixelTypes)]
+        public void Decoder_CanDecodeGrey8bitWithAlpha<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
@@ -178,8 +180,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
-        [WithFile(TestImages.Png.GrayAlpha8Bit2, PixelTypes)]
-        public void Decoder_CanDecodeGrey8bitWithAlpha<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFile(TestImages.Png.Splash, PixelTypes)]
+        public void Decoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))

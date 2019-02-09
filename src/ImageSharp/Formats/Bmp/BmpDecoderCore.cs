@@ -75,7 +75,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// The file header containing general information.
-        /// TODO: Why is this not used? We advance the stream but do not use the values parsed.
         /// </summary>
         private BmpFileHeader fileHeader;
 
@@ -163,10 +162,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         break;
 
                     case BmpCompression.BitFields:
-                        this.ReadBitFields(pixels, inverted);
-
-                        break;
-
                     case BmpCompression.BI_ALPHABITFIELDS:
                         this.ReadBitFields(pixels, inverted);
 
@@ -1093,6 +1088,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     int colorMapSizeBytes = this.fileHeader.Offset - BmpFileHeader.Size - this.infoHeader.HeaderSize;
                     int colorCountForBitDepth = ImageMaths.GetColorCountForBitDepth(this.infoHeader.BitsPerPixel);
                     bytesPerColorMapEntry = colorMapSizeBytes / colorCountForBitDepth;
+
+                    // Edge case for less-than-full-sized palette: bytesPerColorMapEntry should be at least 3.
+                    bytesPerColorMapEntry = Math.Max(bytesPerColorMapEntry, 3);
                     colorMapSize = colorMapSizeBytes;
                 }
             }

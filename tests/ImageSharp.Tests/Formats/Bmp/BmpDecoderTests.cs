@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 image.DebugSave(provider);
 
-                // TODO: Neither System.Drawing not MagickReferenceDecoder decode this file.
+                // TODO: Neither System.Drawing nor MagickReferenceDecoder decode this file.
                 // image.CompareToOriginal(provider);
             }
         }
@@ -125,6 +125,18 @@ namespace SixLabors.ImageSharp.Tests
             {
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(LessThanFullSizedPalette, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecodeLessThanFullPalete<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, new MagickReferenceDecoder());
             }
         }
 

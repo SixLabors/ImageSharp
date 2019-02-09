@@ -165,6 +165,18 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
+        [WithFile(Pal8Offset, PixelTypes.Rgba32)]
+        public void BmpDecoder_RespectsFileHeaderOffset<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
         [WithFile(F, CommonNonDefaultPixelTypes)]
         public void BmpDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>

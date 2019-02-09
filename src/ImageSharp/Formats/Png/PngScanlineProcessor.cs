@@ -145,9 +145,9 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 byte scaledLuminanceTrans = (byte)(luminanceTrans.PackedValue * scaleFactor);
                 Rgba32 rgba32 = default;
-                for (int x = pixelOffset; x < header.Width; x += increment)
+                for (int x = pixelOffset, o = 0; x < header.Width; x += increment, o++)
                 {
-                    byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, x) * scaleFactor);
+                    byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, o) * scaleFactor);
                     rgba32.R = luminance;
                     rgba32.G = luminance;
                     rgba32.B = luminance;
@@ -240,9 +240,9 @@ namespace SixLabors.ImageSharp.Formats.Png
             else
             {
                 Rgba32 rgba32 = default;
+                int offset = 0;
                 for (int x = pixelOffset; x < header.Width; x += increment)
                 {
-                    int offset = x * bytesPerPixel;
                     byte luminance = Unsafe.Add(ref scanlineSpanRef, offset);
                     byte alpha = Unsafe.Add(ref scanlineSpanRef, offset + bytesPerSample);
                     rgba32.R = luminance;
@@ -252,6 +252,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                     pixel.FromRgba32(rgba32);
                     Unsafe.Add(ref rowSpanRef, x) = pixel;
+                    offset += bytesPerPixel;
                 }
             }
         }

@@ -75,7 +75,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// The file header containing general information.
-        /// TODO: Why is this not used? We advance the stream but do not use the values parsed.
         /// </summary>
         private BmpFileHeader fileHeader;
 
@@ -163,6 +162,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         break;
 
                     case BmpCompression.BitFields:
+                    case BmpCompression.BI_ALPHABITFIELDS:
                         this.ReadBitFields(pixels, inverted);
 
                         break;
@@ -947,7 +947,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 infoHeaderType = BmpInfoHeaderType.WinVersion3;
                 this.infoHeader = BmpInfoHeader.ParseV3(buffer);
 
-                // if the info header is BMP version 3 and the compression type is BITFIELDS,
+                // If the info header is BMP version 3 and the compression type is BITFIELDS,
                 // color masks for each color channel follow the info header.
                 if (this.infoHeader.Compression == BmpCompression.BitFields)
                 {
@@ -957,6 +957,16 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     this.infoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4));
                     this.infoHeader.GreenMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4));
                     this.infoHeader.BlueMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4));
+                }
+                else if (this.infoHeader.Compression == BmpCompression.BI_ALPHABITFIELDS)
+                {
+                    byte[] bitfieldsBuffer = new byte[16];
+                    this.stream.Read(bitfieldsBuffer, 0, 16);
+                    Span<byte> data = bitfieldsBuffer.AsSpan<byte>();
+                    this.infoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4));
+                    this.infoHeader.GreenMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4));
+                    this.infoHeader.BlueMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4));
+                    this.infoHeader.AlphaMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(12, 4));
                 }
             }
             else if (headerSize == BmpInfoHeader.AdobeV3Size)
@@ -1078,6 +1088,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     int colorMapSizeBytes = this.fileHeader.Offset - BmpFileHeader.Size - this.infoHeader.HeaderSize;
                     int colorCountForBitDepth = ImageMaths.GetColorCountForBitDepth(this.infoHeader.BitsPerPixel);
                     bytesPerColorMapEntry = colorMapSizeBytes / colorCountForBitDepth;
+
+                    // Edge case for less-than-full-sized palette: bytesPerColorMapEntry should be at least 3.
+                    bytesPerColorMapEntry = Math.Max(bytesPerColorMapEntry, 3);
                     colorMapSize = colorMapSizeBytes;
                 }
             }

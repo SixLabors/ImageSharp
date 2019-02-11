@@ -61,6 +61,20 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
+        [WithFile(RgbaAlphaBitfields, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecodeAlphaBitfields<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+
+                // TODO: Neither System.Drawing nor MagickReferenceDecoder decode this file.
+                // image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
         [WithFile(Bit32Rgba, PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecodeBitmap_WithAlphaChannel<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
@@ -111,6 +125,18 @@ namespace SixLabors.ImageSharp.Tests
             {
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(LessThanFullSizedPalette, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecodeLessThanFullPalete<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, new MagickReferenceDecoder());
             }
         }
 

@@ -140,13 +140,14 @@ namespace SixLabors.ImageSharp.Tests
                 public const string MultiScanBaselineCMYK = "Jpg/baseline/MultiScanBaselineCMYK.jpg";
                 public const string Ratio1x1 = "Jpg/baseline/ratio-1x1.jpg";
                 public const string Testorig12bit = "Jpg/baseline/testorig12.jpg";
+                public const string YcckSubsample1222 = "Jpg/baseline/ycck-subsample-1222.jpg";
 
                 public static readonly string[] All =
                 {
                     Cmyk, Ycck, Exif, Floorplan,
                     Calliphora, Turtle, GammaDalaiLamaGray,
                     Hiyamugi, Jpeg400, Jpeg420Exif, Jpeg444,
-                    Ratio1x1, Testorig12bit
+                    Ratio1x1, Testorig12bit, YcckSubsample1222
                 };
             }
 

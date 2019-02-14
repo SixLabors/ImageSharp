@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.Memory;
@@ -12,9 +10,9 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <summary>
-    /// Represents a single frame component
+    /// Represents a single frame component.
     /// </summary>
-    internal class JpegComponent : IDisposable, IJpegComponent
+    internal sealed class JpegComponent : IDisposable, IJpegComponent
     {
         private readonly MemoryAllocator memoryAllocator;
 
@@ -31,12 +29,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         /// <summary>
-        /// Gets the component Id
+        /// Gets the component Id.
         /// </summary>
         public byte Id { get; }
 
         /// <summary>
-        /// Gets or sets DC coefficient predictor
+        /// Gets or sets DC coefficient predictor.
         /// </summary>
         public int DcPredictor { get; set; }
 
@@ -69,22 +67,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public Size SamplingFactors { get; set; }
 
         /// <summary>
-        /// Gets the number of blocks per line
+        /// Gets the number of blocks per line.
         /// </summary>
         public int WidthInBlocks { get; private set; }
 
         /// <summary>
-        /// Gets the number of blocks per column
+        /// Gets the number of blocks per column.
         /// </summary>
         public int HeightInBlocks { get; private set; }
 
         /// <summary>
-        /// Gets or sets the index for the DC Huffman table
+        /// Gets or sets the index for the DC Huffman table.
         /// </summary>
         public int DCHuffmanTableId { get; set; }
 
         /// <summary>
-        /// Gets or sets the index for the AC Huffman table
+        /// Gets or sets the index for the AC Huffman table.
         /// </summary>
         public int ACHuffmanTableId { get; set; }
 
@@ -109,24 +107,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int blocksPerColumnForMcu = this.Frame.McusPerColumn * this.VerticalSamplingFactor;
             this.SizeInBlocks = new Size(blocksPerLineForMcu, blocksPerColumnForMcu);
 
-            // For 4-component images (either CMYK or YCbCrK), we only support two
-            // hv vectors: [0x11 0x11 0x11 0x11] and [0x22 0x11 0x11 0x22].
-            // Theoretically, 4-component JPEG images could mix and match hv values
-            // but in practice, those two combinations are the only ones in use,
-            // and it simplifies the applyBlack code below if we can assume that:
-            // - for CMYK, the C and K channels have full samples, and if the M
-            // and Y channels subsample, they subsample both horizontally and
-            // vertically.
-            // - for YCbCrK, the Y and K channels have full samples.
-            if (this.Index == 0 || this.Index == 3)
-            {
-                this.SubSamplingDivisors = new Size(1, 1);
-            }
-            else
-            {
-                JpegComponent c0 = this.Frame.Components[0];
-                this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
-            }
+            JpegComponent c0 = this.Frame.Components[0];
+            this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
 
             int totalNumberOfBlocks = blocksPerColumnForMcu * (blocksPerLineForMcu + 1);
             int width = this.WidthInBlocks + 1;

@@ -67,6 +67,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             TestImages.Png.GrayTrns16BitInterlaced
         };
 
+        public static readonly string[] TestImagesGrayAlpha8Bit =
+            {
+                TestImages.Png.GrayAlpha8Bit,
+                TestImages.Png.GrayAlpha8Bit2
+            };
+
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
         new TheoryData<string, int, int, PixelResolutionUnit>
         {
@@ -124,6 +130,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
+        [WithFileCollection(nameof(TestImagesGrayAlpha8Bit), PixelTypes.Rgba32)]
+        public void Decoder_Gray8bitWithAlpha<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ImageComparer.Exact);
+            }
+        }
+
+        [Theory]
         [WithFileCollection(nameof(TestImagesGray16Bit), PixelTypes.Rgb48)]
         public void Decode_Gray16Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
@@ -150,6 +168,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithFile(TestImages.Png.Splash, PixelTypes)]
         public void Decoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ImageComparer.Exact);
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.GrayAlpha8Bit2, PixelTypes)]
+        public void Decoder_CanDecodeGrey8bitWithAlpha<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))

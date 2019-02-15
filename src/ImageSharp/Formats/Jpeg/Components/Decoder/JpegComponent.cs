@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             if (horizontalFactor == 0 || verticalFactor == 0)
             {
-                JpegThrowHelper.ThrowImageFormatException("Bad Sampling factor.");
+                JpegThrowHelper.ThrowBadSampling();
             }
 
             this.HorizontalSamplingFactor = horizontalFactor;
@@ -115,6 +115,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             JpegComponent c0 = this.Frame.Components[0];
             this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
+
+            if (this.SubSamplingDivisors.Width == 0 || this.SubSamplingDivisors.Height == 0)
+            {
+                JpegThrowHelper.ThrowBadSampling();
+            }
 
             int totalNumberOfBlocks = blocksPerColumnForMcu * (blocksPerLineForMcu + 1);
             int width = this.WidthInBlocks + 1;

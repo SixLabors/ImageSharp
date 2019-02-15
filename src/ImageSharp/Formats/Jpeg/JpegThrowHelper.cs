@@ -21,6 +21,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public static void ThrowNoMergeDcAc() => throw new ImageFormatException("Can't merge DC and AC.");
 
         [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowBadSampling() => throw new ImageFormatException("Bad sampling factor.");
+
+        [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowInvalidImageDimensions(int width, int height) => throw new ImageFormatException($"Invalid image dimensions: {width}x{height}.");
     }
 }

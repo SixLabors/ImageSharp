@@ -26,12 +26,14 @@ namespace SixLabors.ImageSharp.Benchmarks
                 {
                     graphics.InterpolationMode = InterpolationMode.Default;
                     graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    Pen pen = new Pen(System.Drawing.Color.HotPink, 10);
-                    graphics.DrawPolygon(pen, new[] {
-                        new PointF(10, 10),
-                        new PointF(550, 50),
-                        new PointF(200, 400)
-                    });
+                    using (var pen = new Pen(System.Drawing.Color.HotPink, 10))
+                    {
+                        graphics.DrawPolygon(pen, new[] {
+                                                                new PointF(10, 10),
+                                                                new PointF(550, 50),
+                                                                new PointF(200, 400)
+                                                            });
+                    }
                 }
 
                 using (MemoryStream ms = new MemoryStream())

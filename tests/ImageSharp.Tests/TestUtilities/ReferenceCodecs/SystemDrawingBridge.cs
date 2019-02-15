@@ -39,31 +39,38 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             }
 
             BitmapData data = bmp.LockBits(fullRect, ImageLockMode.ReadWrite, bmp.PixelFormat);
-            byte* sourcePtrBase = (byte*)data.Scan0;
-
-            long sourceRowByteCount = data.Stride;
-            long destRowByteCount = w * sizeof(Bgra32);
-
             var image = new Image<TPixel>(w, h);
-            Configuration configuration = image.GetConfiguration();
-
-            using (IMemoryOwner<Bgra32> workBuffer = Configuration.Default.MemoryAllocator.Allocate<Bgra32>(w))
+            try
             {
-                fixed (Bgra32* destPtr = &workBuffer.GetReference())
+                byte* sourcePtrBase = (byte*)data.Scan0;
+
+                long sourceRowByteCount = data.Stride;
+                long destRowByteCount = w * sizeof(Bgra32);
+
+                Configuration configuration = image.GetConfiguration();
+
+                using (IMemoryOwner<Bgra32> workBuffer = Configuration.Default.MemoryAllocator.Allocate<Bgra32>(w))
                 {
-                    for (int y = 0; y < h; y++)
+                    fixed (Bgra32* destPtr = &workBuffer.GetReference())
                     {
-                        Span<TPixel> row = image.Frames.RootFrame.GetPixelRowSpan(y);
+                        for (int y = 0; y < h; y++)
+                        {
+                            Span<TPixel> row = image.Frames.RootFrame.GetPixelRowSpan(y);
 
-                        byte* sourcePtr = sourcePtrBase + (data.Stride * y);
+                            byte* sourcePtr = sourcePtrBase + (data.Stride * y);
 
-                        Buffer.MemoryCopy(sourcePtr, destPtr, destRowByteCount, sourceRowByteCount);
-                        PixelOperations<TPixel>.Instance.FromBgra32(
-                            configuration,
-                            workBuffer.GetSpan().Slice(0, w),
-                            row);
+                            Buffer.MemoryCopy(sourcePtr, destPtr, destRowByteCount, sourceRowByteCount);
+                            PixelOperations<TPixel>.Instance.FromBgra32(
+                                configuration,
+                                workBuffer.GetSpan().Slice(0, w),
+                                row);
+                        }
                     }
                 }
+            }
+            finally
+            {
+                bmp.UnlockBits(data);
             }
 
             return image;
@@ -91,33 +98,36 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             }
 
             BitmapData data = bmp.LockBits(fullRect, ImageLockMode.ReadWrite, bmp.PixelFormat);
-            byte* sourcePtrBase = (byte*)data.Scan0;
-
-            long sourceRowByteCount = data.Stride;
-            long destRowByteCount = w * sizeof(Bgr24);
-
             var image = new Image<TPixel>(w, h);
-            Configuration configuration = image.GetConfiguration();
-
-            using (IMemoryOwner<Bgr24> workBuffer = Configuration.Default.MemoryAllocator.Allocate<Bgr24>(w))
+            try
             {
-                fixed (Bgr24* destPtr = &workBuffer.GetReference())
+                byte* sourcePtrBase = (byte*)data.Scan0;
+
+                long sourceRowByteCount = data.Stride;
+                long destRowByteCount = w * sizeof(Bgr24);
+
+                Configuration configuration = image.GetConfiguration();
+
+                using (IMemoryOwner<Bgr24> workBuffer = Configuration.Default.MemoryAllocator.Allocate<Bgr24>(w))
                 {
-                    for (int y = 0; y < h; y++)
+                    fixed (Bgr24* destPtr = &workBuffer.GetReference())
                     {
-                        Span<TPixel> row = image.Frames.RootFrame.GetPixelRowSpan(y);
+                        for (int y = 0; y < h; y++)
+                        {
+                            Span<TPixel> row = image.Frames.RootFrame.GetPixelRowSpan(y);
 
-                        byte* sourcePtr = sourcePtrBase + (data.Stride * y);
+                            byte* sourcePtr = sourcePtrBase + (data.Stride * y);
 
-                        Buffer.MemoryCopy(sourcePtr, destPtr, destRowByteCount, sourceRowByteCount);
-                        PixelOperations<TPixel>.Instance.FromBgr24(
-                            configuration,
-                            workBuffer.GetSpan().Slice(0, w),
-                            row);
+                            Buffer.MemoryCopy(sourcePtr, destPtr, destRowByteCount, sourceRowByteCount);
+                            PixelOperations<TPixel>.Instance.FromBgr24(configuration, workBuffer.GetSpan().Slice(0, w), row);
+                        }
                     }
                 }
             }
-
+            finally
+            {
+                bmp.UnlockBits(data);
+            }
             return image;
         }
 
@@ -131,27 +141,32 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             var resultBitmap = new Bitmap(w, h, PixelFormat.Format32bppArgb);
             var fullRect = new Rectangle(0, 0, w, h);
             BitmapData data = resultBitmap.LockBits(fullRect, ImageLockMode.ReadWrite, resultBitmap.PixelFormat);
-            byte* destPtrBase = (byte*)data.Scan0;
-
-            long destRowByteCount = data.Stride;
-            long sourceRowByteCount = w * sizeof(Bgra32);
-
-            using (IMemoryOwner<Bgra32> workBuffer = image.GetConfiguration().MemoryAllocator.Allocate<Bgra32>(w))
+            try
             {
-                fixed (Bgra32* sourcePtr = &workBuffer.GetReference())
-                {
-                    for (int y = 0; y < h; y++)
-                    {
-                        Span<TPixel> row = image.Frames.RootFrame.GetPixelRowSpan(y);
-                        PixelOperations<TPixel>.Instance.ToBgra32(configuration, row, workBuffer.GetSpan());
-                        byte* destPtr = destPtrBase + (data.Stride * y);
+                byte* destPtrBase = (byte*)data.Scan0;
 
-                        Buffer.MemoryCopy(sourcePtr, destPtr, destRowByteCount, sourceRowByteCount);
+                long destRowByteCount = data.Stride;
+                long sourceRowByteCount = w * sizeof(Bgra32);
+
+                using (IMemoryOwner<Bgra32> workBuffer = image.GetConfiguration().MemoryAllocator.Allocate<Bgra32>(w))
+                {
+                    fixed (Bgra32* sourcePtr = &workBuffer.GetReference())
+                    {
+                        for (int y = 0; y < h; y++)
+                        {
+                            Span<TPixel> row = image.Frames.RootFrame.GetPixelRowSpan(y);
+                            PixelOperations<TPixel>.Instance.ToBgra32(configuration, row, workBuffer.GetSpan());
+                            byte* destPtr = destPtrBase + (data.Stride * y);
+
+                            Buffer.MemoryCopy(sourcePtr, destPtr, destRowByteCount, sourceRowByteCount);
+                        }
                     }
                 }
             }
-
-            resultBitmap.UnlockBits(data);
+            finally
+            {
+                resultBitmap.UnlockBits(data);
+            }
 
             return resultBitmap;
         }

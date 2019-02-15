@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.Memory;
@@ -23,6 +21,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.memoryAllocator = memoryAllocator;
             this.Frame = frame;
             this.Id = id;
+
+            if (horizontalFactor == 0 || verticalFactor == 0)
+            {
+                JpegThrowHelper.ThrowImageFormatException("Bad Sampling factor.");
+            }
+
             this.HorizontalSamplingFactor = horizontalFactor;
             this.VerticalSamplingFactor = verticalFactor;
             this.SamplingFactors = new Size(this.HorizontalSamplingFactor, this.VerticalSamplingFactor);

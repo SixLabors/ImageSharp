@@ -53,6 +53,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Issues.OrderedInterleavedProgressive723C
             };
 
+        public static string[] UnrecoverableTestJpegs = {
+
+            TestImages.Jpeg.Issues.CriticalEOF214,
+            TestImages.Jpeg.Issues.Fuzz.NullReferenceException797,
+            // TestImages.Jpeg.Issues.Fuzz.AccessViolationException798,
+            TestImages.Jpeg.Issues.Fuzz.DivideByZeroException821
+        };
+
         private static readonly Dictionary<string, float> CustomToleranceValues =
             new Dictionary<string, float>
             {

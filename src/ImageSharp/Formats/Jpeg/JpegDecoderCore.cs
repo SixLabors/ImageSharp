@@ -255,7 +255,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             var fileMarker = new JpegFileMarker(this.markerBuffer[1], 0);
             if (fileMarker.Marker != JpegConstants.Markers.SOI)
             {
-                throw new ImageFormatException("Missing SOI marker.");
+                JpegThrowHelper.ThrowImageFormatException("Missing SOI marker.");
             }
 
             this.InputStream.Read(this.markerBuffer, 0, 2);
@@ -419,7 +419,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     : JpegColorSpace.Cmyk;
             }
 
-            throw new ImageFormatException($"Unsupported color mode. Max components 4; found {this.ComponentCount}");
+            JpegThrowHelper.ThrowImageFormatException($"Unsupported color mode. Max components 4; found {this.ComponentCount}");
+            return default;
         }
 
         /// <summary>
@@ -690,7 +691,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                         break;
                     default:
-                        throw new ImageFormatException("Bad Tq index value");
+                        JpegThrowHelper.ThrowImageFormatException("Bad Tq index value");
+                        break;
                 }
 
                 if (done)
@@ -701,7 +703,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             if (remaining != 0)
             {
-                throw new ImageFormatException("DQT has wrong length");
+                JpegThrowHelper.ThrowImageFormatException("DQT has wrong length");
             }
 
             this.MetaData.GetFormatMetaData(JpegFormat.Instance).Quality = QualityEvaluator.EstimateQuality(this.QuantizationTables);
@@ -717,7 +719,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             if (this.Frame != null)
             {
-                throw new ImageFormatException("Multiple SOF markers. Only single frame jpegs supported.");
+                JpegThrowHelper.ThrowImageFormatException("Multiple SOF markers. Only single frame jpegs supported.");
             }
 
             this.InputStream.Read(this.temp, 0, remaining);
@@ -725,7 +727,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // We only support 8-bit and 12-bit precision.
             if (!this.supportedPrecisions.Contains(this.temp[0]))
             {
-                throw new ImageFormatException("Only 8-Bit and 12-Bit precision supported.");
+                JpegThrowHelper.ThrowImageFormatException("Only 8-Bit and 12-Bit precision supported.");
             }
 
             this.Precision = this.temp[0];
@@ -739,6 +741,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 SamplesPerLine = (short)((this.temp[3] << 8) | this.temp[4]),
                 ComponentCount = this.temp[5]
             };
+
+            if (this.Frame.SamplesPerLine == 0 || this.Frame.Scanlines == 0)
+            {
+                JpegThrowHelper.ThrowInvalidImageDimensions(this.Frame.SamplesPerLine, this.Frame.Scanlines);
+            }
 
             this.ImageSizeInPixels = new Size(this.Frame.SamplesPerLine, this.Frame.Scanlines);
 
@@ -848,7 +855,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             if (remaining != 2)
             {
-                throw new ImageFormatException($"DRI has wrong length: {remaining}");
+                JpegThrowHelper.ThrowImageFormatException($"DRI has wrong length: {remaining}");
             }
 
             this.resetInterval = this.ReadUint16();
@@ -861,7 +868,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             if (this.Frame is null)
             {
-                throw new ImageFormatException("No readable SOFn (Start Of Frame) marker found.");
+                JpegThrowHelper.ThrowImageFormatException("No readable SOFn (Start Of Frame) marker found.");
             }
 
             int selectorsCount = this.InputStream.ReadByte();
@@ -882,7 +889,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                 if (componentIndex < 0)
                 {
-                    throw new ImageFormatException("Unknown component selector");
+                    JpegThrowHelper.ThrowImageFormatException($"Unknown component selector {componentIndex}.");
                 }
 
                 ref JpegComponent component = ref this.Frame.Components[componentIndex];
@@ -944,6 +951,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private Image<TPixel> PostProcessIntoImage<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
+            if (this.ImageWidth == 0 || this.ImageHeight == 0)
+            {
+                JpegThrowHelper.ThrowInvalidImageDimensions(this.ImageWidth, this.ImageHeight);
+            }
+
             var image = Image.CreateUninitialized<TPixel>(
                 this.configuration,
                 this.ImageWidth,

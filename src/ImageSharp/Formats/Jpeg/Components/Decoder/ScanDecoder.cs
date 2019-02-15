@@ -485,7 +485,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             if (this.spectralEnd != 0)
             {
-                JpegThrowHelper.ThrowImageFormatException("Can't merge DC and AC.");
+                JpegThrowHelper.ThrowNoMergeDcAc();
             }
 
             this.CheckBits();
@@ -520,7 +520,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             if (this.spectralStart == 0)
             {
-                JpegThrowHelper.ThrowImageFormatException("Can't merge DC and AC.");
+                JpegThrowHelper.ThrowNoMergeDcAc();
             }
 
             ref short blockDataRef = ref Unsafe.As<Block8x8, short>(ref block);

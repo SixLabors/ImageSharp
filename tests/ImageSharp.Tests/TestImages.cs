@@ -171,8 +171,13 @@ namespace SixLabors.ImageSharp.Tests
                 public const string OrderedInterleavedProgressive723C = "Jpg/issues/Issue723-Ordered-Interleaved-Progressive-C.jpg";
                 public const string ExifGetString750Transform = "Jpg/issues/issue750-exif-tranform.jpg";
                 public const string ExifGetString750Load = "Jpg/issues/issue750-exif-load.jpg";
-                public const string InvalidJpegThrowsWrongException797 = "Jpg/issues/Issue797-InvalidImage.jpg";
-                public const string AccessViolationException798 = "Jpg/issues/Issue798-AccessViolationException.jpg";
+
+                public static class Fuzz
+                {
+                    public const string NullReferenceException797 = "Jpg/issues/fuzz/Issue797-NullReferenceException.jpg";
+                    public const string AccessViolationException798 = "Jpg/issues/fuzz/Issue798-AccessViolationException.jpg";
+                    public const string DivideByZeroException821 = "Jpg/issues/fuzz/Issue821-DivideByZeroException.jpg";
+                }
             }
 
             public static readonly string[] All = Baseline.All.Concat(Progressive.All).ToArray();
@@ -235,7 +240,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Rgba321010102 = "Bmp/rgba32-1010102.bmp";
             public const string RgbaAlphaBitfields = "Bmp/rgba32abf.bmp";
 
-            public static readonly string[] BitFields 
+            public static readonly string[] BitFields
             = {
                   Rgb32bfdef,
                   Rgb32bf,

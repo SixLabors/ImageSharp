@@ -8,19 +8,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     internal static class JpegThrowHelper
     {
         /// <summary>
-        /// Cold path optimization for throwing <see cref="ImageFormatException"/>-s
+        /// Cold path optimization for throwing <see cref="ImageFormatException"/>'s.
         /// </summary>
-        /// <param name="errorMessage">The error message for the exception</param>
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static void ThrowImageFormatException(string errorMessage)
-        {
-            throw new ImageFormatException(errorMessage);
-        }
+        /// <param name="errorMessage">The error message for the exception.</param>
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowImageFormatException(string errorMessage) => throw new ImageFormatException(errorMessage);
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static void ThrowBadHuffmanCode()
-        {
-            throw new ImageFormatException("Bad Huffman code.");
-        }
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowBadHuffmanCode() => throw new ImageFormatException("Bad Huffman code.");
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowNoMergeDcAc() => throw new ImageFormatException("Can't merge DC and AC.");
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowInvalidImageDimensions(int width, int height) => throw new ImageFormatException($"Invalid image dimensions: {width}x{height}.");
     }
 }

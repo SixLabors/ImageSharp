@@ -21,6 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Baseline.Jpeg444,
                 TestImages.Jpeg.Baseline.Bad.BadEOF,
                 TestImages.Jpeg.Baseline.MultiScanBaselineCMYK,
+                TestImages.Jpeg.Baseline.YcckSubsample1222,
                 TestImages.Jpeg.Baseline.Bad.BadRST,
                 TestImages.Jpeg.Issues.MultiHuffmanBaseline394,
                 TestImages.Jpeg.Issues.ExifDecodeOutOfRange694,

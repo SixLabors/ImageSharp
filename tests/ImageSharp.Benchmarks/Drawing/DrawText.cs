@@ -35,9 +35,10 @@ namespace SixLabors.ImageSharp.Benchmarks
                 {
                     graphics.InterpolationMode = InterpolationMode.Default;
                     graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    Pen pen = new Pen(System.Drawing.Color.HotPink, 10);
-                    var font = new Font("Arial", 12, GraphicsUnit.Point);
-                    graphics.DrawString(TextToRender, font, System.Drawing.Brushes.HotPink, new RectangleF(10, 10, 780, 780));
+                    using (var font = new Font("Arial", 12, GraphicsUnit.Point))
+                    {
+                        graphics.DrawString(TextToRender, font, System.Drawing.Brushes.HotPink, new RectangleF(10, 10, 780, 780));
+                    }
                 }
             }
         }

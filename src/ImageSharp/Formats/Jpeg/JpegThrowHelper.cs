@@ -21,9 +21,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public static void ThrowBadHuffmanCode() => throw new ImageFormatException("Bad Huffman code.");
 
         [MethodImpl(InliningOptions.ColdPath)]
-        public static void ThrowNoMergeDcAc() => throw new ImageFormatException("Can't merge DC and AC.");
-
-        [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowBadSampling() => throw new ImageFormatException("Bad sampling factor.");
 
         [MethodImpl(InliningOptions.ColdPath)]

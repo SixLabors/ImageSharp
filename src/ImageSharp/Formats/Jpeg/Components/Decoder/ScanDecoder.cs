@@ -535,11 +535,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             ref Block8x8 block,
             ref HuffmanTable dcTable)
         {
-            if (this.spectralEnd != 0)
-            {
-                JpegThrowHelper.ThrowNoMergeDcAc();
-            }
-
             this.CheckBits();
 
             ref short blockDataRef = ref Unsafe.As<Block8x8, short>(ref block);
@@ -570,11 +565,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             ref HuffmanTable acTable,
             ref short fastACRef)
         {
-            if (this.spectralStart == 0)
-            {
-                JpegThrowHelper.ThrowNoMergeDcAc();
-            }
-
             ref short blockDataRef = ref Unsafe.As<Block8x8, short>(ref block);
 
             if (this.successiveHigh == 0)

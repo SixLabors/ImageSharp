@@ -22,7 +22,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.Frame = frame;
             this.Id = id;
 
-            if (horizontalFactor == 0 || verticalFactor == 0)
+            // Valid sampling factors are 1..2
+            if (horizontalFactor == 0
+                || verticalFactor == 0
+                || horizontalFactor > 2
+                || verticalFactor > 2)
             {
                 JpegThrowHelper.ThrowBadSampling();
             }

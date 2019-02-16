@@ -815,6 +815,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 for (int i = 2; i < remaining;)
                 {
                     byte huffmanTableSpec = (byte)this.InputStream.ReadByte();
+                    int tableType = huffmanTableSpec >> 4;
+                    int tableIndex = huffmanTableSpec & 15;
+
+                    // Types 0..1 DC..AC
+                    if (tableType > 1)
+                    {
+                        JpegThrowHelper.ThrowImageFormatException("Bad Huffman Table type.");
+                    }
+
+                    // Max tables of each type
+                    if (tableIndex > 3)
+                    {
+                        JpegThrowHelper.ThrowImageFormatException("Bad Huffman Table index.");
+                    }
+
                     this.InputStream.Read(huffmanData.Array, 0, 16);
 
                     using (IManagedByteBuffer codeLengths = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(17, AllocationOptions.Clean))
@@ -832,9 +847,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             this.InputStream.Read(huffmanValues.Array, 0, codeLengthSum);
 
                             i += 17 + codeLengthSum;
-
-                            int tableType = huffmanTableSpec >> 4;
-                            int tableIndex = huffmanTableSpec & 15;
 
                             this.BuildHuffmanTable(
                                 tableType == 0 ? this.dcHuffmanTables : this.acHuffmanTables,

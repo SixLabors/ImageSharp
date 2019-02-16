@@ -179,6 +179,7 @@ namespace SixLabors.ImageSharp.Tests
                     public const string AccessViolationException798 = "Jpg/issues/fuzz/Issue798-AccessViolationException.jpg";
                     public const string DivideByZeroException821 = "Jpg/issues/fuzz/Issue821-DivideByZeroException.jpg";
                     public const string DivideByZeroException822 = "Jpg/issues/fuzz/Issue822-DivideByZeroException.jpg";
+                    public const string NullReferenceException823 = "Jpg/issues/fuzz/Issue823-NullReferenceException.jpg";
                 }
             }
 

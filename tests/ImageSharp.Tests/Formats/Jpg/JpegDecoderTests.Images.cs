@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             TestImages.Jpeg.Issues.CriticalEOF214,
             TestImages.Jpeg.Issues.Fuzz.NullReferenceException797,
-            // TestImages.Jpeg.Issues.Fuzz.AccessViolationException798,
+            TestImages.Jpeg.Issues.Fuzz.AccessViolationException798,
             TestImages.Jpeg.Issues.Fuzz.DivideByZeroException821,
             TestImages.Jpeg.Issues.Fuzz.DivideByZeroException822,
             TestImages.Jpeg.Issues.Fuzz.NullReferenceException823,
@@ -67,7 +67,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException824C,
             TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException824D,
             TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException824E,
-            TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException824F
+            TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException824F,
+            TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException824G
         };
 
         private static readonly Dictionary<string, float> CustomToleranceValues =

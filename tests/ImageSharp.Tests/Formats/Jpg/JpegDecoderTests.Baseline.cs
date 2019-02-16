@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -38,11 +37,5 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [WithFileCollection(nameof(UnrecoverableTestJpegs), PixelTypes.Rgba32)]
         public void UnrecoverableImagesShouldThrowCorrectError<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel> => Assert.Throws<ImageFormatException>(() => provider.GetImage());
-
-        // TODO: This should actually throw.
-        [Theory]
-        [WithFile(TestImages.Jpeg.Issues.Fuzz.AccessViolationException798, PixelTypes.Rgba32)]
-        public void LoadingImage_BadHuffman_ShouldNotThrow<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel> => Assert.NotNull(provider.GetImage());
     }
 }

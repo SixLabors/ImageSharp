@@ -809,6 +809,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessDefineHuffmanTablesMarker(int remaining)
         {
+            int length = remaining;
+
             using (IManagedByteBuffer huffmanData = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(256, AllocationOptions.Clean))
             {
                 ref byte huffmanDataRef = ref MemoryMarshal.GetReference(huffmanData.GetSpan());
@@ -840,6 +842,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         for (int j = 1; j < 17; j++)
                         {
                             codeLengthSum += Unsafe.Add(ref codeLengthsRef, j) = Unsafe.Add(ref huffmanDataRef, j - 1);
+                        }
+
+                        length -= 17;
+
+                        if (codeLengthSum > 256 || codeLengthSum > length)
+                        {
+                            JpegThrowHelper.ThrowImageFormatException("Huffman table has excessive length.");
                         }
 
                         using (IManagedByteBuffer huffmanValues = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(256, AllocationOptions.Clean))

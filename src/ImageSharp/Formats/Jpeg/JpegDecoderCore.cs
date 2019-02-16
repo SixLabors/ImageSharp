@@ -647,6 +647,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 bool done = false;
                 remaining--;
                 int quantizationTableSpec = this.InputStream.ReadByte();
+                int tableIndex = quantizationTableSpec & 15;
+
+                // Max index. 4 Tables max.
+                if (tableIndex > 3)
+                {
+                    JpegThrowHelper.ThrowBadQuantizationTable();
+                }
 
                 switch (quantizationTableSpec >> 4)
                 {
@@ -662,7 +669,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             this.InputStream.Read(this.temp, 0, 64);
                             remaining -= 64;
 
-                            ref Block8x8F table = ref this.QuantizationTables[quantizationTableSpec & 15];
+                            ref Block8x8F table = ref this.QuantizationTables[tableIndex];
                             for (int j = 0; j < 64; j++)
                             {
                                 table[j] = this.temp[j];
@@ -682,7 +689,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             this.InputStream.Read(this.temp, 0, 128);
                             remaining -= 128;
 
-                            ref Block8x8F table = ref this.QuantizationTables[quantizationTableSpec & 15];
+                            ref Block8x8F table = ref this.QuantizationTables[tableIndex];
                             for (int j = 0; j < 64; j++)
                             {
                                 table[j] = (this.temp[2 * j] << 8) | this.temp[(2 * j) + 1];
@@ -691,7 +698,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                         break;
                     default:
-                        JpegThrowHelper.ThrowImageFormatException("Bad Tq index value");
+                        JpegThrowHelper.ThrowBadQuantizationTable();
                         break;
                 }
 

@@ -15,6 +15,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public static void ThrowImageFormatException(string errorMessage) => throw new ImageFormatException(errorMessage);
 
         [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowBadQuantizationTable() => throw new ImageFormatException("Bad Quantization Table index.");
+
+        [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowBadHuffmanCode() => throw new ImageFormatException("Bad Huffman code.");
 
         [MethodImpl(InliningOptions.ColdPath)]

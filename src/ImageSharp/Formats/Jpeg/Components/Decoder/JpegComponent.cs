@@ -30,6 +30,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.HorizontalSamplingFactor = horizontalFactor;
             this.VerticalSamplingFactor = verticalFactor;
             this.SamplingFactors = new Size(this.HorizontalSamplingFactor, this.VerticalSamplingFactor);
+
+            if (quantizationTableIndex > 3)
+            {
+                JpegThrowHelper.ThrowBadQuantizationTable();
+            }
+
             this.QuantizationTableIndex = quantizationTableIndex;
             this.Index = index;
         }

@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 for (int i = 0; i < this.Components.Length; i++)
                 {
-                    this.Components[i].Dispose();
+                    this.Components[i]?.Dispose();
                 }
 
                 this.Components = null;

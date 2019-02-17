@@ -26,8 +26,10 @@ namespace SixLabors.ImageSharp.Benchmarks
                 using (Graphics graphics = Graphics.FromImage(destination))
                 {
                     graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    HatchBrush brush = new HatchBrush(HatchStyle.BackwardDiagonal, Color.HotPink);
-                    graphics.FillRectangle(brush, new Rectangle(0, 0, 800, 800)); // can't find a way to flood fill with a brush
+                    using (var brush = new HatchBrush(HatchStyle.BackwardDiagonal, Color.HotPink))
+                    {
+                        graphics.FillRectangle(brush, new Rectangle(0, 0, 800, 800)); // can't find a way to flood fill with a brush
+                    }
                 }
                 using (MemoryStream ms = new MemoryStream())
                 {

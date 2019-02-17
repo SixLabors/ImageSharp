@@ -34,11 +34,13 @@ namespace SixLabors.ImageSharp.Benchmarks
                 {
                     graphics.InterpolationMode = InterpolationMode.Default;
                     graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    Pen pen = new Pen(System.Drawing.Color.HotPink, 10);
-                    var font = new Font("Arial", 12, GraphicsUnit.Point);
-                    var gp = new GraphicsPath();
-                    gp.AddString(TextToRender, font.FontFamily, (int)font.Style, font.Size, new RectangleF(10, 10, 780, 780), new StringFormat());
-                    graphics.DrawPath(pen, gp);
+                    using (var pen = new Pen(System.Drawing.Color.HotPink, 10))
+                    using (var font = new Font("Arial", 12, GraphicsUnit.Point))
+                    using (var gp = new GraphicsPath())
+                    {
+                        gp.AddString(TextToRender, font.FontFamily, (int)font.Style, font.Size, new RectangleF(10, 10, 780, 780), new StringFormat());
+                        graphics.DrawPath(pen, gp);
+                    }
                 }
             }
         }

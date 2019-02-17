@@ -21,6 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Baseline.Jpeg444,
                 TestImages.Jpeg.Baseline.Bad.BadEOF,
                 TestImages.Jpeg.Baseline.MultiScanBaselineCMYK,
+                TestImages.Jpeg.Baseline.YcckSubsample1222,
                 TestImages.Jpeg.Baseline.Bad.BadRST,
                 TestImages.Jpeg.Issues.MultiHuffmanBaseline394,
                 TestImages.Jpeg.Issues.ExifDecodeOutOfRange694,
@@ -29,6 +30,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Issues.InvalidAPP0721,
                 TestImages.Jpeg.Issues.ExifGetString750Load,
                 TestImages.Jpeg.Issues.ExifGetString750Transform,
+
+                // LibJpeg can open this despite the invalid desity units.
+                TestImages.Jpeg.Issues.Fuzz.ArgumentOutOfRangeException825B,
 
                 // High depth images
                 TestImages.Jpeg.Baseline.Testorig12bit,
@@ -52,6 +56,31 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Issues.OrderedInterleavedProgressive723B,
                 TestImages.Jpeg.Issues.OrderedInterleavedProgressive723C
             };
+
+        public static string[] UnrecoverableTestJpegs = {
+
+            TestImages.Jpeg.Issues.CriticalEOF214,
+            TestImages.Jpeg.Issues.Fuzz.NullReferenceException797,
+            TestImages.Jpeg.Issues.Fuzz.AccessViolationException798,
+            TestImages.Jpeg.Issues.Fuzz.DivideByZeroException821,
+            TestImages.Jpeg.Issues.Fuzz.DivideByZeroException822,
+            TestImages.Jpeg.Issues.Fuzz.NullReferenceException823,
+            TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException824A,
+            TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException824B,
+            TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException824C,
+            TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException824D,
+            TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException824E,
+            TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException824F,
+            TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException824G,
+            TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException824H,
+            TestImages.Jpeg.Issues.Fuzz.ArgumentOutOfRangeException825A,
+            TestImages.Jpeg.Issues.Fuzz.ArgumentOutOfRangeException825C,
+            TestImages.Jpeg.Issues.Fuzz.ArgumentOutOfRangeException825D,
+            TestImages.Jpeg.Issues.Fuzz.ArgumentException826A,
+            TestImages.Jpeg.Issues.Fuzz.ArgumentException826B,
+            TestImages.Jpeg.Issues.Fuzz.ArgumentException826C,
+            TestImages.Jpeg.Issues.Fuzz.AccessViolationException827
+        };
 
         private static readonly Dictionary<string, float> CustomToleranceValues =
             new Dictionary<string, float>

@@ -193,6 +193,7 @@ namespace SixLabors.ImageSharp.Tests
                     public const string ArgumentOutOfRangeException825C = "Jpg/issues/fuzz/Issue825-ArgumentOutOfRangeException-C.jpg";
                     public const string ArgumentOutOfRangeException825D = "Jpg/issues/fuzz/Issue825-ArgumentOutOfRangeException-D.jpg";
                     public const string ArgumentException826A = "Jpg/issues/fuzz/Issue826-ArgumentException-A.jpg";
+                    public const string ArgumentException826B = "Jpg/issues/fuzz/Issue826-ArgumentException-B.jpg";
                 }
             }
 

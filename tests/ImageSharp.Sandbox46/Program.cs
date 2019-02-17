@@ -3,17 +3,15 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations;
+using SixLabors.ImageSharp.Tests.ProfilingBenchmarks;
+
 namespace SixLabors.ImageSharp.Sandbox46
 {
     using System;
-    using System.Runtime.DesignerServices;
-
-    using SixLabors.ImageSharp.Tests;
-    using SixLabors.ImageSharp.Tests.Colors;
     using SixLabors.ImageSharp.Tests.Formats.Jpg;
     using SixLabors.ImageSharp.Tests.PixelFormats;
     using SixLabors.ImageSharp.Tests.Processing.Processors.Transforms;
-    using SixLabors.ImageSharp.Tests.Processing.Transforms;
 
     using Xunit.Abstractions;
 
@@ -21,15 +19,9 @@ namespace SixLabors.ImageSharp.Sandbox46
     {
         private class ConsoleOutput : ITestOutputHelper
         {
-            public void WriteLine(string message)
-            {
-                Console.WriteLine(message);
-            }
+            public void WriteLine(string message) => Console.WriteLine(message);
 
-            public void WriteLine(string format, params object[] args)
-            {
-                Console.WriteLine(format, args);
-            }
+            public void WriteLine(string format, params object[] args) => Console.WriteLine(format, args);
         }
 
         /// <summary>
@@ -58,20 +50,20 @@ namespace SixLabors.ImageSharp.Sandbox46
 
         private static void RunResizeProfilingTest()
         {
-            ResizeProfilingBenchmarks test = new ResizeProfilingBenchmarks(new ConsoleOutput());
+            var test = new ResizeProfilingBenchmarks(new ConsoleOutput());
             test.ResizeBicubic(2000, 2000);
         }
 
         private static void RunToVector4ProfilingTest()
         {
-            PixelOperationsTests.Rgba32 tests = new PixelOperationsTests.Rgba32(new ConsoleOutput());
+            var tests = new PixelOperationsTests.Rgba32OperationsTests(new ConsoleOutput());
             tests.Benchmark_ToVector4();
         }
 
         private static void RunDecodeJpegProfilingTests()
         {
             Console.WriteLine("RunDecodeJpegProfilingTests...");
-            JpegProfilingBenchmarks benchmarks = new JpegProfilingBenchmarks(new ConsoleOutput());
+            var benchmarks = new JpegProfilingBenchmarks(new ConsoleOutput());
             foreach (object[] data in JpegProfilingBenchmarks.DecodeJpegData)
             {
                 string fileName = (string)data[0];

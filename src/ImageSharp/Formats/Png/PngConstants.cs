@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// The default encoding for text metadata.
         /// </summary>
-        public static readonly Encoding DefaultEncoding = Encoding.GetEncoding("ASCII");
+        public static readonly Encoding DefaultEncoding = Encoding.ASCII;
 
         /// <summary>
         /// The list of mimetypes that equate to a png.
@@ -26,7 +26,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         public static readonly IEnumerable<string> FileExtensions = new[] { "png" };
 
-        public static readonly byte[] HeaderBytes = {
+        public static readonly byte[] HeaderBytes =
+        {
              0x89, // Set the high bit.
              0x50, // P
              0x4E, // N
@@ -41,5 +42,17 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// The header bytes as a big endian coded ulong.
         /// </summary>
         public const ulong HeaderValue = 0x89504E470D0A1A0AUL;
+
+        /// <summary>
+        /// The dictionary of available color types.
+        /// </summary>
+        public static readonly Dictionary<PngColorType, byte[]> ColorTypes = new Dictionary<PngColorType, byte[]>()
+        {
+            [PngColorType.Grayscale] = new byte[] { 1, 2, 4, 8, 16 },
+            [PngColorType.Rgb] = new byte[] { 8, 16 },
+            [PngColorType.Palette] = new byte[] { 1, 2, 4, 8 },
+            [PngColorType.GrayscaleWithAlpha] = new byte[] { 8, 16 },
+            [PngColorType.RgbWithAlpha] = new byte[] { 8, 16 }
+        };
     }
 }

@@ -3,11 +3,11 @@
 
 using System;
 using System.Numerics;
-using System.Threading.Tasks;
+
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Effects
@@ -49,7 +49,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         public int BrushSize { get; }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(
+            ImageFrame<TPixel> source,
+            Rectangle sourceRectangle,
+            Configuration configuration)
         {
             if (this.BrushSize <= 0 || this.BrushSize > source.Height || this.BrushSize > source.Width)
             {
@@ -70,69 +73,74 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
             {
                 source.CopyTo(targetPixels);
 
-                ParallelFor.WithConfiguration(
-                    startY,
-                    maxY,
+                var workingRect = Rectangle.FromLTRB(startX, startY, endX, endY);
+                ParallelHelper.IterateRows(
+                    workingRect,
                     configuration,
-                    y =>
-                    {
-                        Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
-                        Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
-
-                        for (int x = startX; x < endX; x++)
+                    rows =>
                         {
-                            int maxIntensity = 0;
-                            int maxIndex = 0;
-
-                            int[] intensityBin = new int[levels];
-                            float[] redBin = new float[levels];
-                            float[] blueBin = new float[levels];
-                            float[] greenBin = new float[levels];
-
-                            for (int fy = 0; fy <= radius; fy++)
+                            for (int y = rows.Min; y < rows.Max; y++)
                             {
-                                int fyr = fy - radius;
-                                int offsetY = y + fyr;
+                                Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
+                                Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
 
-                                offsetY = offsetY.Clamp(0, maxY);
-
-                                Span<TPixel> sourceOffsetRow = source.GetPixelRowSpan(offsetY);
-
-                                for (int fx = 0; fx <= radius; fx++)
+                                for (int x = startX; x < endX; x++)
                                 {
-                                    int fxr = fx - radius;
-                                    int offsetX = x + fxr;
-                                    offsetX = offsetX.Clamp(0, maxX);
+                                    int maxIntensity = 0;
+                                    int maxIndex = 0;
 
-                                    var vector = sourceOffsetRow[offsetX].ToVector4();
+                                    int[] intensityBin = new int[levels];
+                                    float[] redBin = new float[levels];
+                                    float[] blueBin = new float[levels];
+                                    float[] greenBin = new float[levels];
 
-                                    float sourceRed = vector.X;
-                                    float sourceBlue = vector.Z;
-                                    float sourceGreen = vector.Y;
-
-                                    int currentIntensity = (int)MathF.Round((sourceBlue + sourceGreen + sourceRed) / 3F * (levels - 1));
-
-                                    intensityBin[currentIntensity]++;
-                                    blueBin[currentIntensity] += sourceBlue;
-                                    greenBin[currentIntensity] += sourceGreen;
-                                    redBin[currentIntensity] += sourceRed;
-
-                                    if (intensityBin[currentIntensity] > maxIntensity)
+                                    for (int fy = 0; fy <= radius; fy++)
                                     {
-                                        maxIntensity = intensityBin[currentIntensity];
-                                        maxIndex = currentIntensity;
+                                        int fyr = fy - radius;
+                                        int offsetY = y + fyr;
+
+                                        offsetY = offsetY.Clamp(0, maxY);
+
+                                        Span<TPixel> sourceOffsetRow = source.GetPixelRowSpan(offsetY);
+
+                                        for (int fx = 0; fx <= radius; fx++)
+                                        {
+                                            int fxr = fx - radius;
+                                            int offsetX = x + fxr;
+                                            offsetX = offsetX.Clamp(0, maxX);
+
+                                            var vector = sourceOffsetRow[offsetX].ToVector4();
+
+                                            float sourceRed = vector.X;
+                                            float sourceBlue = vector.Z;
+                                            float sourceGreen = vector.Y;
+
+                                            int currentIntensity = (int)MathF.Round(
+                                                (sourceBlue + sourceGreen + sourceRed) / 3F * (levels - 1));
+
+                                            intensityBin[currentIntensity]++;
+                                            blueBin[currentIntensity] += sourceBlue;
+                                            greenBin[currentIntensity] += sourceGreen;
+                                            redBin[currentIntensity] += sourceRed;
+
+                                            if (intensityBin[currentIntensity] > maxIntensity)
+                                            {
+                                                maxIntensity = intensityBin[currentIntensity];
+                                                maxIndex = currentIntensity;
+                                            }
+                                        }
+
+                                        float red = MathF.Abs(redBin[maxIndex] / maxIntensity);
+                                        float green = MathF.Abs(greenBin[maxIndex] / maxIntensity);
+                                        float blue = MathF.Abs(blueBin[maxIndex] / maxIntensity);
+
+                                        ref TPixel pixel = ref targetRow[x];
+                                        pixel.FromVector4(
+                                            new Vector4(red, green, blue, sourceRow[x].ToVector4().W));
                                     }
                                 }
-
-                                float red = MathF.Abs(redBin[maxIndex] / maxIntensity);
-                                float green = MathF.Abs(greenBin[maxIndex] / maxIntensity);
-                                float blue = MathF.Abs(blueBin[maxIndex] / maxIntensity);
-
-                                ref TPixel pixel = ref targetRow[x];
-                                pixel.PackFromVector4(new Vector4(red, green, blue, sourceRow[x].ToVector4().W));
                             }
-                        }
-                    });
+                        });
 
                 Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
             }

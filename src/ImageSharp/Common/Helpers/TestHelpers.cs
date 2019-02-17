@@ -1,4 +1,4 @@
-﻿// Copyright(c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Common.Helpers
@@ -13,10 +13,12 @@ namespace SixLabors.ImageSharp.Common.Helpers
         /// Only intended to be used in tests!
         /// </summary>
         internal const string ImageSharpBuiltAgainst =
-#if NETSTANDARD1_1
-            "netstandard1.1";
+#if NET472
+            "netfx4.7.2";
 #elif NETCOREAPP2_1
             "netcoreapp2.1";
+#elif NETSTANDARD1_3
+            "netstandard1.3";
 #else
             "netstandard2.0";
 #endif

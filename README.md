@@ -22,7 +22,7 @@ Designed to democratize image processing, ImageSharp brings you an incredibly po
 
 Compared to `System.Drawing` we have been able to develop something much more flexible, easier to code against, and much, much less prone to memory leaks. Gone are system-wide process-locks; ImageSharp images are thread-safe and fully supported in web environments.
 
-Built against .Net Standard 1.1 ImageSharp can be used in device, cloud, and embedded/IoT scenarios. 
+Built against .NET Standard 1.3 ImageSharp can be used in device, cloud, and embedded/IoT scenarios. 
 
 ### Documentation
 For all SixLabors projects, including ImageSharp:
@@ -70,6 +70,9 @@ Our API is designed to be simple to consume. Here's an example of the code requi
 On platforms supporting netstandard 1.3+
 
 ```csharp
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+
 // Image.Load(string path) is a shortcut for our default type. 
 // Other pixel formats use Image.Load<TPixel>(string path))
 using (Image<Rgba32> image = Image.Load("foo.jpg"))
@@ -80,25 +83,13 @@ using (Image<Rgba32> image = Image.Load("foo.jpg"))
     image.Save("bar.jpg"); // Automatic encoder selected based on extension.
 }
 ```
-On netstandard 1.1 - 1.2
-
-```csharp
-// Image.Load(Stream stream) is a shortcut for our default type.
-// Other pixel formats use Image.Load<TPixel>(Stream stream))
-using (FileStream stream = File.OpenRead("foo.jpg"))
-using (FileStream output = File.OpenWrite("bar.jpg"))
-using (Image<Rgba32> image = Image.Load(stream))
-{
-    image.Mutate(x => x
-         .Resize(image.Width / 2, image.Height / 2)
-         .Grayscale());
-    image.Save(output);
-}
-```
 
 Setting individual pixel values can be performed as follows:
 
 ```csharp
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+
 // Individual pixels
 using (Image<Rgba32> image = new Image<Rgba32>(400, 400))
 {
@@ -124,7 +115,7 @@ If you prefer, you can compile ImageSharp yourself (please do and help!)
 Alternatively, you can work from command line and/or with a lightweight editor on **both Linux/Unix and Windows**:
 
 - [Visual Studio Code](https://code.visualstudio.com/) with [C# Extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode.csharp)
-- [.Net Core](https://www.microsoft.com/net/core#linuxubuntu)
+- [.NET Core](https://www.microsoft.com/net/core#linuxubuntu)
 
 To clone ImageSharp locally click the "Clone in Windows" button above or run the following git commands.
 

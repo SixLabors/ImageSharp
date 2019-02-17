@@ -5,6 +5,7 @@ using System;
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
@@ -19,12 +20,12 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [Fact]
         public void AreEqual()
         {
-            Rgba32 color1 = new Rgba32(0, 0, 0);
-            Rgba32 color2 = new Rgba32(0, 0, 0, 1F);
-            Rgba32 color3 = Rgba32.FromHex("#000");
-            Rgba32 color4 = Rgba32.FromHex("#000F");
-            Rgba32 color5 = Rgba32.FromHex("#000000");
-            Rgba32 color6 = Rgba32.FromHex("#000000FF");
+            var color1 = new Rgba32(0, 0, 0);
+            var color2 = new Rgba32(0, 0, 0, 1F);
+            var color3 = Rgba32.FromHex("#000");
+            var color4 = Rgba32.FromHex("#000F");
+            var color5 = Rgba32.FromHex("#000000");
+            var color6 = Rgba32.FromHex("#000000FF");
 
             Assert.Equal(color1, color2);
             Assert.Equal(color1, color3);
@@ -39,11 +40,11 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [Fact]
         public void AreNotEqual()
         {
-            Rgba32 color1 = new Rgba32(255, 0, 0, 255);
-            Rgba32 color2 = new Rgba32(0, 0, 0, 255);
-            Rgba32 color3 = Rgba32.FromHex("#000");
-            Rgba32 color4 = Rgba32.FromHex("#000000");
-            Rgba32 color5 = Rgba32.FromHex("#FF000000");
+            var color1 = new Rgba32(255, 0, 0, 255);
+            var color2 = new Rgba32(0, 0, 0, 255);
+            var color3 = Rgba32.FromHex("#000");
+            var color4 = Rgba32.FromHex("#000000");
+            var color5 = Rgba32.FromHex("#FF000000");
 
             Assert.NotEqual(color1, color2);
             Assert.NotEqual(color1, color3);
@@ -57,25 +58,25 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [Fact]
         public void ConstructorAssignsProperties()
         {
-            Rgba32 color1 = new Rgba32(1, .1f, .133f, .864f);
+            var color1 = new Rgba32(1, .1f, .133f, .864f);
             Assert.Equal(255, color1.R);
             Assert.Equal((byte)Math.Round(.1f * 255), color1.G);
             Assert.Equal((byte)Math.Round(.133f * 255), color1.B);
             Assert.Equal((byte)Math.Round(.864f * 255), color1.A);
 
-            Rgba32 color2 = new Rgba32(1, .1f, .133f);
+            var color2 = new Rgba32(1, .1f, .133f);
             Assert.Equal(255, color2.R);
             Assert.Equal(Math.Round(.1f * 255), color2.G);
             Assert.Equal(Math.Round(.133f * 255), color2.B);
             Assert.Equal(255, color2.A);
 
-            Rgba32 color4 = new Rgba32(new Vector3(1, .1f, .133f));
+            var color4 = new Rgba32(new Vector3(1, .1f, .133f));
             Assert.Equal(255, color4.R);
             Assert.Equal(Math.Round(.1f * 255), color4.G);
             Assert.Equal(Math.Round(.133f * 255), color4.B);
             Assert.Equal(255, color4.A);
 
-            Rgba32 color5 = new Rgba32(new Vector4(1, .1f, .133f, .5f));
+            var color5 = new Rgba32(new Vector4(1, .1f, .133f, .5f));
             Assert.Equal(255, color5.R);
             Assert.Equal(Math.Round(.1f * 255), color5.G);
             Assert.Equal(Math.Round(.133f * 255), color5.B);
@@ -112,7 +113,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [Fact]
         public unsafe void ByteLayout()
         {
-            Rgba32 color = new Rgba32(1, 2, 3, 4);
+            var color = new Rgba32(1, 2, 3, 4);
             byte* colorBase = (byte*)&color;
             Assert.Equal(1, colorBase[0]);
             Assert.Equal(2, colorBase[1]);
@@ -159,7 +160,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Rgba32_PackFromScaledVector4()
+        public void Rgba32_FromScaledVector4()
         {
             // arrange
             var rgba = new Rgba32(Vector4.One);
@@ -168,7 +169,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             // act
             Vector4 scaled = rgba.ToScaledVector4();
-            actual.PackFromScaledVector4(scaled);
+            actual.FromScaledVector4(scaled);
 
             // assert
             Assert.Equal(expected, actual.PackedValue);
@@ -182,23 +183,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Rgba32_ToRgb24()
-        {
-            // arrange
-            var rgba = new Rgba32(+0.1f, -0.3f, +0.5f, -0.7f);
-            var actual = default(Rgb24);
-            var expected = new Rgb24(0x1a, 0, 0x80);
-
-            // act
-            rgba.ToRgb24(ref actual);
-
-            // assert
-            Assert.Equal(expected.R, actual.R);
-            Assert.Equal(expected.G, actual.G);
-            Assert.Equal(expected.B, actual.B);
-        }
-
-        [Fact]
         public void Rgba32_ToRgba32()
         {
             // arrange
@@ -207,59 +191,14 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Rgba32(0x1a, 0, 0x80, 0);
 
             // act
-            rgba.ToRgba32(ref actual);
+            actual.FromRgba32(rgba);
 
             // assert
             Assert.Equal(expected, actual);
         }
 
         [Fact]
-        public void Rgba32_ToBgr24()
-        {
-            // arrange
-            var rgba = new Rgba32(+0.1f, -0.3f, +0.5f, -0.7f);
-            var actual = default(Bgr24);
-            var expected = new Bgr24(0x1a, 0, 0x80);
-
-            // act
-            rgba.ToBgr24(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void Rgba32_ToBgra32()
-        {
-            // arrange
-            var rgba = new Rgba32(+0.1f, -0.3f, +0.5f, -0.7f);
-            var actual = default(Bgra32);
-            var expected = new Bgra32(0x1a, 0, 0x80, 0);
-
-            // act
-            rgba.ToBgra32(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void Rgba32_ToArgb32()
-        {
-            // arrange
-            var rgba = new Rgba32(+0.1f, -0.3f, +0.5f, -0.7f);
-            var actual = default(Argb32);
-            var expected = new Argb32(0x1a, 0, 0x80, 0);
-
-            // act
-            rgba.ToArgb32(ref actual);
-
-            // assert
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void Rgba32_PackFromRgba32_ToRgba32()
+        public void Rgba32_FromRgba32_ToRgba32()
         {
             // arrange
             var rgba = default(Rgba32);
@@ -267,15 +206,15 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Rgba32(0x1a, 0, 0x80, 0);
 
             // act 
-            rgba.PackFromRgba32(expected);
-            rgba.ToRgba32(ref actual);
+            rgba.FromRgba32(expected);
+            actual.FromRgba32(rgba);
 
             // assert
             Assert.Equal(expected, actual);
         }
 
         [Fact]
-        public void Rgba32_PackFromBgra32_ToRgba32()
+        public void Rgba32_FromBgra32_ToRgba32()
         {
             // arrange
             var rgba = default(Rgba32);
@@ -283,15 +222,15 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Bgra32(0x1a, 0, 0x80, 0);
 
             // act 
-            rgba.PackFromBgra32(expected);
-            rgba.ToBgra32(ref actual);
+            rgba.FromBgra32(expected);
+            actual.FromRgba32(rgba);
 
             // assert
             Assert.Equal(expected, actual);
         }
 
         [Fact]
-        public void Rgba32_PackFromArgb32_ToArgb32()
+        public void Rgba32_FromArgb32_ToArgb32()
         {
             // arrange
             var rgba = default(Rgba32);
@@ -299,15 +238,15 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Argb32(0x1a, 0, 0x80, 0);
 
             // act 
-            rgba.PackFromArgb32(expected);
-            rgba.ToArgb32(ref actual);
+            rgba.FromArgb32(expected);
+            actual.FromRgba32(rgba);
 
             // assert
             Assert.Equal(expected, actual);
         }
 
         [Fact]
-        public void Rgba32_PackFromRgb48_ToRgb48()
+        public void Rgba32_FromRgb48()
         {
             // arrange
             var input = default(Rgba32);
@@ -315,15 +254,15 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Rgb48(65535, 0, 65535);
 
             // act
-            input.PackFromRgb48(expected);
-            input.ToRgb48(ref actual);
+            input.FromRgb48(expected);
+            actual.FromScaledVector4(input.ToScaledVector4());
 
             // assert
             Assert.Equal(expected, actual);
         }
 
         [Fact]
-        public void Rgba32_PackFromRgba64_ToRgba64()
+        public void Rgba32_FromRgba64()
         {
             // arrange
             var input = default(Rgba32);
@@ -331,8 +270,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var expected = new Rgba64(65535, 0, 65535, 0);
 
             // act
-            input.PackFromRgba64(expected);
-            input.ToRgba64(ref actual);
+            input.FromRgba64(expected);
+            actual.FromScaledVector4(input.ToScaledVector4());
 
             // assert
             Assert.Equal(expected, actual);

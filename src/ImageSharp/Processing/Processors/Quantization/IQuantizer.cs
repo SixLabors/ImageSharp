@@ -19,9 +19,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Creates the generic frame quantizer
         /// </summary>
+        /// <param name="configuration">The <see cref="Configuration"/> to configure internal operations.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>The <see cref="IFrameQuantizer{TPixel}"/></returns>
-        IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>()
+        IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration)
+            where TPixel : struct, IPixel<TPixel>;
+
+        /// <summary>
+        /// Creates the generic frame quantizer
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="configuration">The <see cref="Configuration"/> to configure internal operations.</param>
+        /// <param name="maxColors">The maximum number of colors to hold in the color palette.</param>
+        /// <returns>The <see cref="IFrameQuantizer{TPixel}"/></returns>
+        IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration, int maxColors)
             where TPixel : struct, IPixel<TPixel>;
     }
 }

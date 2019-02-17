@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.Memory;
@@ -20,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private int currentComponentRowInBlocks;
 
         /// <summary>
-        /// The size of the area in <see cref="ColorBuffer"/> corrsponding to one 8x8 Jpeg block
+        /// The size of the area in <see cref="ColorBuffer"/> corresponding to one 8x8 Jpeg block
         /// </summary>
         private readonly Size blockAreaSize;
 
@@ -76,6 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public void CopyBlocksToColorBuffer()
         {
             var blockPp = new JpegBlockPostProcessor(this.ImagePostProcessor.RawJpeg, this.Component);
+            float maximumValue = (float)Math.Pow(2, this.ImagePostProcessor.RawJpeg.Precision) - 1;
 
             for (int y = 0; y < this.BlockRowsPerStep; y++)
             {
@@ -88,12 +91,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 int yBuffer = y * this.blockAreaSize.Height;
 
-                for (int x = 0; x < this.SizeInBlocks.Width; x++)
-                {
-                    int xBlock = x;
-                    int xBuffer = x * this.blockAreaSize.Width;
+                Span<Block8x8> blockRow = this.Component.SpectralBlocks.GetRowSpan(yBlock);
 
-                    ref Block8x8 block = ref this.Component.GetBlockReference(xBlock, yBlock);
+                ref Block8x8 blockRowBase = ref MemoryMarshal.GetReference(blockRow);
+
+                for (int xBlock = 0; xBlock < this.SizeInBlocks.Width; xBlock++)
+                {
+                    ref Block8x8 block = ref Unsafe.Add(ref blockRowBase, xBlock);
+                    int xBuffer = xBlock * this.blockAreaSize.Width;
 
                     BufferArea<float> destArea = this.ColorBuffer.GetArea(
                         xBuffer,
@@ -101,7 +106,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         this.blockAreaSize.Width,
                         this.blockAreaSize.Height);
 
-                    blockPp.ProcessBlockColorsInto(ref block, destArea);
+                    blockPp.ProcessBlockColorsInto(ref block, destArea, maximumValue);
                 }
             }
 

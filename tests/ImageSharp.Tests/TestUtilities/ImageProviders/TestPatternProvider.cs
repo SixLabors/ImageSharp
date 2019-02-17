@@ -16,10 +16,9 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// A test image provider that produces test patterns.
         /// </summary>
-        /// <typeparam name="TPixel"></typeparam>
         private class TestPatternProvider : BlankProvider
         {
-            static Dictionary<string, Image<TPixel>> testImages = new Dictionary<string, Image<TPixel>>();
+            static readonly Dictionary<string, Image<TPixel>> TestImages = new Dictionary<string, Image<TPixel>>();
 
             public TestPatternProvider(int width, int height)
                 : base(width, height)
@@ -35,17 +34,17 @@ namespace SixLabors.ImageSharp.Tests
 
             public override Image<TPixel> GetImage()
             {
-                lock (testImages)
+                lock (TestImages)
                 {
-                    if (!testImages.ContainsKey(this.SourceFileOrDescription))
+                    if (!TestImages.ContainsKey(this.SourceFileOrDescription))
                     {
                         Image<TPixel> image = new Image<TPixel>(this.Width, this.Height);
                         DrawTestPattern(image);
-                        testImages.Add(this.SourceFileOrDescription, image);
+                        TestImages.Add(this.SourceFileOrDescription, image);
                     }
                 }
 
-                return testImages[this.SourceFileOrDescription].Clone();
+                return TestImages[this.SourceFileOrDescription].Clone();
             }
 
             /// <summary>
@@ -163,20 +162,20 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     blue.W = red.W = green.W = (float)x / (float)right;
 
-                    c.PackFromVector4(red);
+                    c.FromVector4(red);
                     int topBand = top;
                     for (int y = topBand; y < top + height; y++)
                     {
                         pixels[x, y] = c;
                     }
                     topBand = topBand + height;
-                    c.PackFromVector4(green);
+                    c.FromVector4(green);
                     for (int y = topBand; y < topBand + height; y++)
                     {
                         pixels[x, y] = c;
                     }
                     topBand = topBand + height;
-                    c.PackFromVector4(blue);
+                    c.FromVector4(blue);
                     for (int y = topBand; y < bottom; y++)
                     {
                         pixels[x, y] = c;
@@ -202,14 +201,16 @@ namespace SixLabors.ImageSharp.Tests
                 Rgba32 t = new Rgba32(0);
 
                 for (int x = left; x < right; x++)
+                {
                     for (int y = top; y < bottom; y++)
                     {
                         t.PackedValue += stepsPerPixel;
                         Vector4 v = t.ToVector4();
                         //v.W = (x - left) / (float)left;
-                        c.PackFromVector4(v);
+                        c.FromVector4(v);
                         pixels[x, y] = c;
                     }
+                }
             }
         }
     }

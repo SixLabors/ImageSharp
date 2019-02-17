@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
@@ -17,7 +16,6 @@ namespace SixLabors.ImageSharp
     /// </summary>
     public static partial class ImageExtensions
     {
-#if !NETSTANDARD1_1
         /// <summary>
         /// Writes the image to the given stream using the currently loaded image format.
         /// </summary>
@@ -35,7 +33,7 @@ namespace SixLabors.ImageSharp
             if (format is null)
             {
                 var sb = new StringBuilder();
-                sb.AppendLine($"Can't find a format that is associated with the file extention '{ext}'. Registered formats with there extensions include:");
+                sb.AppendLine($"Can't find a format that is associated with the file extension '{ext}'. Registered formats with there extensions include:");
                 foreach (IImageFormat fmt in source.GetConfiguration().ImageFormats)
                 {
                     sb.AppendLine($" - {fmt.Name} : {string.Join(", ", fmt.FileExtensions)}");
@@ -49,7 +47,7 @@ namespace SixLabors.ImageSharp
             if (encoder is null)
             {
                 var sb = new StringBuilder();
-                sb.AppendLine($"Can't find encoder for file extention '{ext}' using image format '{format.Name}'. Registered encoders include:");
+                sb.AppendLine($"Can't find encoder for file extension '{ext}' using image format '{format.Name}'. Registered encoders include:");
                 foreach (KeyValuePair<IImageFormat, IImageEncoder> enc in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
                 {
                     sb.AppendLine($" - {enc.Key} : {enc.Value.GetType().Name}");
@@ -78,7 +76,6 @@ namespace SixLabors.ImageSharp
                 source.Save(fs, encoder);
             }
         }
-#endif
 
         /// <summary>
         /// Writes the image to the given stream using the currently loaded image format.

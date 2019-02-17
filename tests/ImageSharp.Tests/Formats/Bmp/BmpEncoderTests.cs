@@ -25,13 +25,17 @@ namespace SixLabors.ImageSharp.Tests
         {
             { TestImages.Bmp.Car, 3780, 3780 , PixelResolutionUnit.PixelsPerMeter },
             { TestImages.Bmp.V5Header, 3780, 3780 , PixelResolutionUnit.PixelsPerMeter },
-            { TestImages.Bmp.RLE, 2835, 2835, PixelResolutionUnit.PixelsPerMeter }
+            { TestImages.Bmp.RLE8, 2835, 2835, PixelResolutionUnit.PixelsPerMeter }
         };
 
-        public BmpEncoderTests(ITestOutputHelper output)
+        public static readonly TheoryData<string, BmpBitsPerPixel> BmpBitsPerPixelFiles =
+        new TheoryData<string, BmpBitsPerPixel>
         {
-            this.Output = output;
-        }
+            { TestImages.Bmp.Car, BmpBitsPerPixel.Pixel24 },
+            { TestImages.Bmp.Bit32Rgb, BmpBitsPerPixel.Pixel32 }
+        };
+
+        public BmpEncoderTests(ITestOutputHelper output) => this.Output = output;
 
         private ITestOutputHelper Output { get; }
 
@@ -61,12 +65,33 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
+        [MemberData(nameof(BmpBitsPerPixelFiles))]
+        public void Encode_PreserveBitsPerPixel(string imagePath, BmpBitsPerPixel bmpBitsPerPixel)
+        {
+            var options = new BmpEncoder();
+
+            var testFile = TestFile.Create(imagePath);
+            using (Image<Rgba32> input = testFile.CreateImage())
+            {
+                using (var memStream = new MemoryStream())
+                {
+                    input.Save(memStream, options);
+
+                    memStream.Position = 0;
+                    using (var output = Image.Load<Rgba32>(memStream))
+                    {
+                        BmpMetaData meta = output.MetaData.GetFormatMetaData(BmpFormat.Instance);
+
+                        Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
+                    }
+                }
+            }
+        }
+
+        [Theory]
         [WithTestPatternImages(nameof(BitsPerPixel), 24, 24, PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Rgb24)]
         public void Encode_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            TestBmpEncoderCore(provider, bitsPerPixel);
-        }
+            where TPixel : struct, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel);
 
         [Theory]
         [WithTestPatternImages(nameof(BitsPerPixel), 48, 24, PixelTypes.Rgba32)]
@@ -75,10 +100,7 @@ namespace SixLabors.ImageSharp.Tests
         [WithSolidFilledImages(nameof(BitsPerPixel), 1, 1, 255, 100, 50, 255, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(BitsPerPixel), 7, 5, PixelTypes.Rgba32)]
         public void Encode_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            TestBmpEncoderCore(provider, bitsPerPixel);
-        }
+            where TPixel : struct, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel);
 
         private static void TestBmpEncoderCore<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             where TPixel : struct, IPixel<TPixel>

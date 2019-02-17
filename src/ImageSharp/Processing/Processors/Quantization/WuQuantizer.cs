@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         /// <param name="dither">Whether to apply dithering to the output image</param>
         public WuQuantizer(bool dither)
-            : this(GetDiffuser(dither), 255)
+            : this(GetDiffuser(dither), QuantizerConstants.MaxColors)
         {
         }
 
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         /// <param name="diffuser">The error diffusion algorithm, if any, to apply to the output image</param>
         public WuQuantizer(IErrorDiffuser diffuser)
-            : this(diffuser, 255)
+            : this(diffuser, QuantizerConstants.MaxColors)
         {
         }
 
@@ -56,10 +56,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <param name="maxColors">The maximum number of colors to hold in the color palette</param>
         public WuQuantizer(IErrorDiffuser diffuser, int maxColors)
         {
-            Guard.MustBeBetweenOrEqualTo(maxColors, 1, 255, nameof(maxColors));
-
             this.Diffuser = diffuser;
-            this.MaxColors = maxColors;
+            this.MaxColors = maxColors.Clamp(QuantizerConstants.MinColors, QuantizerConstants.MaxColors);
         }
 
         /// <inheritdoc />
@@ -70,10 +68,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         public int MaxColors { get; }
 
+        /// <param name="configuration"></param>
         /// <inheritdoc />
-        public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>()
+        public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration)
             where TPixel : struct, IPixel<TPixel>
             => new WuFrameQuantizer<TPixel>(this);
+
+        /// <inheritdoc/>
+        public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration, int maxColors)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            maxColors = maxColors.Clamp(QuantizerConstants.MinColors, QuantizerConstants.MaxColors);
+            return new WuFrameQuantizer<TPixel>(this, maxColors);
+        }
 
         private static IErrorDiffuser GetDiffuser(bool dither) => dither ? KnownDiffusers.FloydSteinberg : null;
     }

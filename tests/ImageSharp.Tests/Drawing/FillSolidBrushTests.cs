@@ -1,20 +1,21 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Primitives;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using SixLabors.Primitives;
 using SixLabors.Shapes;
+
 using Xunit;
+
 // ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using System;
-
-    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-    using SixLabors.Primitives;
-
     [GroupOutput("Drawing")]
     public class FillSolidBrushTests
     {
@@ -55,7 +56,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Theory]
         [WithSolidFilledImages(16, 16, "Red", PixelTypes.Rgba32, "Blue")]
         [WithSolidFilledImages(16, 16, "Yellow", PixelTypes.Rgba32, "Khaki")]
-        public void WhenColorIsOpaque_OverridePreviousColor<TPixel>(TestImageProvider<TPixel> provider, string newColorName)
+        public void WhenColorIsOpaque_OverridePreviousColor<TPixel>(
+            TestImageProvider<TPixel> provider,
+            string newColorName)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -63,7 +66,11 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 TPixel color = TestUtils.GetPixelOfNamedColor<TPixel>(newColorName);
                 image.Mutate(c => c.Fill(color));
 
-                image.DebugSave(provider, newColorName, appendPixelTypeToFileName: false, appendSourceFileOrDescription: false);
+                image.DebugSave(
+                    provider,
+                    newColorName,
+                    appendPixelTypeToFileName: false,
+                    appendSourceFileOrDescription: false);
                 image.ComparePixelBufferTo(color);
             }
         }
@@ -84,7 +91,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Theory]
         [WithSolidFilledImages(16, 16, "Red", PixelTypes.Rgba32, 5, 7, 3, 8)]
         [WithSolidFilledImages(16, 16, "Red", PixelTypes.Rgba32, 8, 5, 6, 4)]
-        public void FillRegion_WorksOnWrappedMemoryImage<TPixel>(TestImageProvider<TPixel> provider, int x0, int y0, int w, int h)
+        public void FillRegion_WorksOnWrappedMemoryImage<TPixel>(
+            TestImageProvider<TPixel> provider,
+            int x0,
+            int y0,
+            int w,
+            int h)
             where TPixel : struct, IPixel<TPixel>
         {
             FormattableString testDetails = $"(x{x0},y{y0},w{w},h{h})";
@@ -105,27 +117,22 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     { false, "Blue", 1.0f, PixelColorBlendingMode.Normal, 0.5f },
                     { false, "Green", 0.5f, PixelColorBlendingMode.Normal, 0.3f },
                     { false, "HotPink", 0.8f, PixelColorBlendingMode.Normal, 0.8f },
-
                     { false, "Blue", 0.5f, PixelColorBlendingMode.Multiply, 1.0f },
                     { false, "Blue", 1.0f, PixelColorBlendingMode.Multiply, 0.5f },
                     { false, "Green", 0.5f, PixelColorBlendingMode.Multiply, 0.3f },
                     { false, "HotPink", 0.8f, PixelColorBlendingMode.Multiply, 0.8f },
-
                     { false, "Blue", 0.5f, PixelColorBlendingMode.Add, 1.0f },
                     { false, "Blue", 1.0f, PixelColorBlendingMode.Add, 0.5f },
                     { false, "Green", 0.5f, PixelColorBlendingMode.Add, 0.3f },
                     { false, "HotPink", 0.8f, PixelColorBlendingMode.Add, 0.8f },
-
                     { true, "Blue", 0.5f, PixelColorBlendingMode.Normal, 1.0f },
                     { true, "Blue", 1.0f, PixelColorBlendingMode.Normal, 0.5f },
                     { true, "Green", 0.5f, PixelColorBlendingMode.Normal, 0.3f },
                     { true, "HotPink", 0.8f, PixelColorBlendingMode.Normal, 0.8f },
-
                     { true, "Blue", 0.5f, PixelColorBlendingMode.Multiply, 1.0f },
                     { true, "Blue", 1.0f, PixelColorBlendingMode.Multiply, 0.5f },
                     { true, "Green", 0.5f, PixelColorBlendingMode.Multiply, 0.3f },
                     { true, "HotPink", 0.8f, PixelColorBlendingMode.Multiply, 0.8f },
-
                     { true, "Blue", 0.5f, PixelColorBlendingMode.Add, 1.0f },
                     { true, "Blue", 1.0f, PixelColorBlendingMode.Add, 0.5f },
                     { true, "Green", 0.5f, PixelColorBlendingMode.Add, 0.3f },
@@ -147,7 +154,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             vec.W = alpha;
 
             TPixel fillColor = default;
-            fillColor.PackFromVector4(vec);
+            fillColor.FromVector4(vec);
 
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -155,8 +162,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
                 var options = new GraphicsOptions(false)
                                   {
-                                      ColorBlendingMode = blenderMode,
-                                      BlendPercentage = blendPercentage
+                                      ColorBlendingMode = blenderMode, BlendPercentage = blendPercentage
                                   };
 
                 if (triggerFillRegion)
@@ -185,7 +191,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     appendPixelTypeToFileName: false,
                     appendSourceFileOrDescription: false);
 
-                PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(blenderMode, PixelAlphaCompositionMode.SrcOver);
+                PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(
+                    blenderMode,
+                    PixelAlphaCompositionMode.SrcOver);
                 TPixel expectedPixel = blender.Blend(bgColor, fillColor, blendPercentage);
 
                 image.ComparePixelBufferTo(expectedPixel);

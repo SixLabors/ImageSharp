@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
 
@@ -80,10 +81,13 @@ namespace SixLabors.ImageSharp.Tests
                     }
                     else
                     {
-                        ca.ToRgb24(ref rgb1);
-                        cb.ToRgb24(ref rgb2);
+                        Rgba32 rgba = default;
+                        ca.ToRgba32(ref rgba);
+                        rgb1 = rgba.Rgb;
+                        cb.ToRgba32(ref rgba);
+                        rgb2 = rgba.Rgb;
 
-                        if (rgb1.R != rgb2.R || rgb1.G != rgb2.G || rgb1.B != rgb2.B)
+                        if (!rgb1.Equals(rgb2))
                         {
                             return false;
                         }
@@ -94,10 +98,7 @@ namespace SixLabors.ImageSharp.Tests
             return true;
         }
 
-        public static string ToCsv<T>(this IEnumerable<T> items, string separator = ",")
-        {
-            return String.Join(separator, items.Select(o => String.Format(CultureInfo.InvariantCulture, "{0}", o)));
-        }
+        public static string ToCsv<T>(this IEnumerable<T> items, string separator = ",") => string.Join(separator, items.Select(o => string.Format(CultureInfo.InvariantCulture, "{0}", o)));
 
         public static Type GetClrType(this PixelTypes pixelType) => PixelTypes2ClrTypes[pixelType];
 
@@ -141,10 +142,7 @@ namespace SixLabors.ImageSharp.Tests
         internal static PixelTypes[] GetAllPixelTypes() => (PixelTypes[])Enum.GetValues(typeof(PixelTypes));
 
         internal static TPixel GetPixelOfNamedColor<TPixel>(string colorName)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            return (TPixel)typeof(NamedColors<TPixel>).GetTypeInfo().GetField(colorName).GetValue(null);
-        }
+            where TPixel : struct, IPixel<TPixel> => (TPixel)typeof(NamedColors<TPixel>).GetTypeInfo().GetField(colorName).GetValue(null);
 
         /// <summary>
         /// Utility for testing image processor extension methods:
@@ -175,6 +173,45 @@ namespace SixLabors.ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(process);
+
+                image.DebugSave(
+                    provider,
+                    testOutputDetails,
+                    appendPixelTypeToFileName: appendPixelTypeToFileName,
+                    appendSourceFileOrDescription: appendSourceFileOrDescription);
+
+                // TODO: Investigate the cause of pixel inaccuracies under Linux
+                if (TestEnvironment.IsWindows)
+                {
+                    image.CompareToReferenceOutput(
+                        comparer,
+                        provider,
+                        testOutputDetails,
+                        appendPixelTypeToFileName: appendPixelTypeToFileName,
+                        appendSourceFileOrDescription: appendSourceFileOrDescription);
+                }
+            }
+        }
+
+        internal static void RunValidatingProcessorTest<TPixel>(
+            this TestImageProvider<TPixel> provider,
+            Func<IImageProcessingContext<TPixel>, FormattableString> processAndGetTestOutputDetails,
+            ImageComparer comparer = null,
+            bool appendPixelTypeToFileName = true,
+            bool appendSourceFileOrDescription = true)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            if (comparer == null)
+            {
+                comparer = ImageComparer.TolerantPercentage(0.001f);
+            }
+
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                FormattableString testOutputDetails = $"";
+                image.Mutate(
+                    ctx => { testOutputDetails = processAndGetTestOutputDetails(ctx); }
+                    );
 
                 image.DebugSave(
                     provider,
@@ -287,5 +324,25 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         public static string AsInvariantString(this FormattableString formattable) => System.FormattableString.Invariant(formattable);
+
+        public static IResampler GetResampler(string name)
+        {
+            PropertyInfo property = typeof(KnownResamplers).GetTypeInfo().GetProperty(name);
+
+            if (property is null)
+            {
+                throw new Exception($"No resampler named '{name}");
+            }
+
+            return (IResampler)property.GetValue(null);
+        }
+
+        public static string[] GetAllResamplerNames(bool includeNearestNeighbour = true)
+        {
+            return typeof(KnownResamplers).GetProperties(BindingFlags.Public | BindingFlags.Static)
+                .Select(p => p.Name)
+                .Where(name => includeNearestNeighbour || name != nameof(KnownResamplers.NearestNeighbor))
+                .ToArray();
+        }
     }
 }

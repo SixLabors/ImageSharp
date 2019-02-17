@@ -15,6 +15,8 @@
 using System;
 using System.Numerics;
 using System.Buffers;
+
+using SixLabors.ImageSharp.Memory;
 using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
@@ -78,32 +80,28 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.<#=blender_composer#>(background, source, amount);
+                    TPixel dest = default;
+                    dest.FromScaledVector4(PorterDuffFunctions.<#=blender_composer#>(background.ToScaledVector4(), source.ToScaledVector4(), amount.Clamp(0, 1)));
+                    return dest;                    
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)                
                 {
-                    Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
-                    Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
-                    Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
-
-                    using (IMemoryOwner<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
+                    amount = amount.Clamp(0, 1);
+                    for (int i = 0; i < destination.Length; i++)
                     {
-                        Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
-                        Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
-                        Span<Vector4> sourceSpan = buffer.Slice(destination.Length * 2, destination.Length);
+                        destination[i] = PorterDuffFunctions.<#=blender_composer#>(background[i], source[i], amount);
+                    }                    
+                }
 
-                        PixelOperations<TPixel>.Instance.ToVector4(background, backgroundSpan, destination.Length);
-                        PixelOperations<TPixel>.Instance.ToVector4(source, sourceSpan, destination.Length);
-
-                        for (int i = 0; i < destination.Length; i++)
-                        {
-                            destinationSpan[i] = PorterDuffFunctions.<#=blender_composer#>(backgroundSpan[i], sourceSpan[i], amount[i]);
-                        }
-
-                        PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
-                    }
+                /// <inheritdoc />
+                protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)                
+                {
+                    for (int i = 0; i < destination.Length; i++)
+                    {
+                        destination[i] = PorterDuffFunctions.<#=blender_composer#>(background[i], source[i], amount[i].Clamp(0, 1));
+                    }                    
                 }
             }
 

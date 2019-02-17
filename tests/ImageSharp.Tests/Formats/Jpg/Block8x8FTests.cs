@@ -228,7 +228,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.PrintLinearData(input);
 
             Block8x8F dest = block;
-            dest.NormalizeColorsInplace();
+            dest.NormalizeColorsInplace(255);
 
             float[] array = new float[64];
             dest.CopyTo(array);
@@ -253,11 +253,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Block8x8F source = CreateRandomFloatBlock(-200, 200, seed);
 
             Block8x8F expected = source;
-            expected.NormalizeColorsInplace();
+            expected.NormalizeColorsInplace(255);
             expected.RoundInplace();
 
             Block8x8F actual = source;
-            actual.NormalizeColorsAndRoundInplaceAvx2();
+            actual.NormalizeColorsAndRoundInplaceAvx2(255);
 
             this.Output.WriteLine(expected.ToString());
             this.Output.WriteLine(actual.ToString());
@@ -406,6 +406,48 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             for (int i = 0; i < 64; i++)
             {
                 Assert.Equal(original[i] * 42f, actual[i]);
+            }
+        }
+
+        [Fact]
+        public void LoadFromUInt16Scalar()
+        {
+            if (this.SkipOnNonAvx2Runner())
+            {
+                return;
+            }
+
+            short[] data = Create8x8ShortData();
+
+            var source = new Block8x8(data);
+
+            Block8x8F dest = default;
+            dest.LoadFromInt16Scalar(ref source);
+
+            for (int i = 0; i < Block8x8F.Size; i++)
+            {
+                Assert.Equal((float)data[i], dest[i]);
+            }
+        }
+
+        [Fact]
+        public void LoadFromUInt16ExtendedAvx2()
+        {
+            if (this.SkipOnNonAvx2Runner())
+            {
+                return;
+            }
+
+            short[] data = Create8x8ShortData();
+
+            var source = new Block8x8(data);
+            
+            Block8x8F dest = default;
+            dest.LoadFromInt16ExtendedAvx2(ref source);
+
+            for (int i = 0; i < Block8x8F.Size; i++)
+            {
+                Assert.Equal((float)data[i], dest[i]);
             }
         }
     }

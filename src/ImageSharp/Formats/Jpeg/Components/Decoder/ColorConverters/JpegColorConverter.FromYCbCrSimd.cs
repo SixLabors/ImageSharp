@@ -6,7 +6,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-using SixLabors.ImageSharp.Common.Tuples;
+using SixLabors.ImageSharp.Tuples;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
@@ -14,29 +14,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
     {
         internal class FromYCbCrSimd : JpegColorConverter
         {
-            public FromYCbCrSimd()
-                : base(JpegColorSpace.YCbCr)
+            public FromYCbCrSimd(int precision)
+                : base(JpegColorSpace.YCbCr, precision)
             {
             }
 
-            public override void ConvertToRgba(ComponentValues values, Span<Vector4> result)
+            public override void ConvertToRgba(in ComponentValues values, Span<Vector4> result)
             {
                 int remainder = result.Length % 8;
                 int simdCount = result.Length - remainder;
                 if (simdCount > 0)
                 {
-                    ConvertCore(values.Slice(0, simdCount), result.Slice(0, simdCount));
+                    ConvertCore(values.Slice(0, simdCount), result.Slice(0, simdCount), this.MaximumValue, this.HalfValue);
                 }
 
-                FromYCbCrBasic.ConvertCore(values.Slice(simdCount, remainder), result.Slice(simdCount, remainder));
+                FromYCbCrBasic.ConvertCore(values.Slice(simdCount, remainder), result.Slice(simdCount, remainder), this.MaximumValue, this.HalfValue);
             }
 
             /// <summary>
-            /// SIMD convert using buffers of sizes divisable by 8.
+            /// SIMD convert using buffers of sizes divisible by 8.
             /// </summary>
-            internal static void ConvertCore(ComponentValues values, Span<Vector4> result)
+            internal static void ConvertCore(in ComponentValues values, Span<Vector4> result, float maxValue, float halfValue)
             {
-                DebugGuard.IsTrue(result.Length % 8 == 0, nameof(result), "result.Length should be divisable by 8!");
+                DebugGuard.IsTrue(result.Length % 8 == 0, nameof(result), "result.Length should be divisible by 8!");
 
                 ref Vector4Pair yBase =
                     ref Unsafe.As<float, Vector4Pair>(ref MemoryMarshal.GetReference(values.Component0));
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 ref Vector4Octet resultBase =
                     ref Unsafe.As<Vector4, Vector4Octet>(ref MemoryMarshal.GetReference(result));
 
-                var chromaOffset = new Vector4(-128f);
+                var chromaOffset = new Vector4(-halfValue);
 
                 // Walking 8 elements at one step:
                 int n = result.Length / 8;
@@ -58,11 +58,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     // y = yVals[i];
                     Vector4Pair y = Unsafe.Add(ref yBase, i);
 
-                    // cb = cbVals[i] - 128F;
+                    // cb = cbVals[i] - halfValue);
                     Vector4Pair cb = Unsafe.Add(ref cbBase, i);
                     cb.AddInplace(chromaOffset);
 
-                    // cr = crVals[i] - 128F;
+                    // cr = crVals[i] - halfValue;
                     Vector4Pair cr = Unsafe.Add(ref crBase, i);
                     cr.AddInplace(chromaOffset);
 
@@ -90,15 +90,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     if (Vector<float>.Count == 4)
                     {
                         // TODO: Find a way to properly run & test this path on AVX2 PC-s! (Have I already mentioned that Vector<T> is terrible?)
-                        r.RoundAndDownscalePreAvx2();
-                        g.RoundAndDownscalePreAvx2();
-                        b.RoundAndDownscalePreAvx2();
+                        r.RoundAndDownscalePreAvx2(maxValue);
+                        g.RoundAndDownscalePreAvx2(maxValue);
+                        b.RoundAndDownscalePreAvx2(maxValue);
                     }
                     else if (SimdUtils.IsAvx2CompatibleArchitecture)
                     {
-                        r.RoundAndDownscaleAvx2();
-                        g.RoundAndDownscaleAvx2();
-                        b.RoundAndDownscaleAvx2();
+                        r.RoundAndDownscaleAvx2(maxValue);
+                        g.RoundAndDownscaleAvx2(maxValue);
+                        b.RoundAndDownscaleAvx2(maxValue);
                     }
                     else
                     {
@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 
                     // Collect (r0,r1...r8) (g0,g1...g8) (b0,b1...b8) vector values in the expected (r0,g0,g1,1), (r1,g1,g2,1) ... order:
                     ref Vector4Octet destination = ref Unsafe.Add(ref resultBase, i);
-                    destination.Collect(ref r, ref g, ref b);
+                    destination.Pack(ref r, ref g, ref b);
                 }
             }
         }

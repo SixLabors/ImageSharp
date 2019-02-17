@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
 
             // Paeth(x) + PaethPredictor(Raw(x-bpp), Prior(x), Prior(x-bpp))
-            int offset = bytesPerPixel + 1; // Add one bcause x starts at one.
+            int offset = bytesPerPixel + 1; // Add one because x starts at one.
             int x = 1;
             for (; x < offset; x++)
             {
@@ -72,7 +72,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             resultBaseRef = 4;
 
             int x = 0;
-            for (; x < bytesPerPixel; /* Note: ++x happens in the body to avoid one add operation */) {
+            for (; x < bytesPerPixel; /* Note: ++x happens in the body to avoid one add operation */)
+            {
                 byte scan = Unsafe.Add(ref scanBaseRef, x);
                 byte above = Unsafe.Add(ref prevBaseRef, x);
                 ++x;
@@ -81,7 +82,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 sum += ImageMaths.FastAbs(unchecked((sbyte)res));
             }
 
-            for (int xLeft = x - bytesPerPixel; x < scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */) {
+            for (int xLeft = x - bytesPerPixel; x < scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
+            {
                 byte scan = Unsafe.Add(ref scanBaseRef, x);
                 byte left = Unsafe.Add(ref scanBaseRef, xLeft);
                 byte above = Unsafe.Add(ref prevBaseRef, x);

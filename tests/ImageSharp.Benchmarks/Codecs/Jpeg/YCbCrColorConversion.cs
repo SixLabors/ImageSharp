@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             var values = new JpegColorConverter.ComponentValues(this.input, 0);
 
-            JpegColorConverter.FromYCbCrBasic.ConvertCore(values, this.output);
+            JpegColorConverter.FromYCbCrBasic.ConvertCore(values, this.output, 255F, 128F);
         }
 
         [Benchmark]
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             var values = new JpegColorConverter.ComponentValues(this.input, 0);
 
-            JpegColorConverter.FromYCbCrSimd.ConvertCore(values, this.output);
+            JpegColorConverter.FromYCbCrSimd.ConvertCore(values, this.output, 255F, 128F);
         }
 
         [Benchmark]
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             var values = new JpegColorConverter.ComponentValues(this.input, 0);
 
-            JpegColorConverter.FromYCbCrSimdAvx2.ConvertCore(values, this.output);
+            JpegColorConverter.FromYCbCrSimdAvx2.ConvertCore(values, this.output, 255F, 128F);
         }
 
         private static Buffer2D<float>[] CreateRandomValues(

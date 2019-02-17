@@ -43,7 +43,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             => obj is PixelPair<TPixel> other && this.First.Equals(other.First) && this.Second.Equals(other.Second);
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-            => HashHelpers.Combine(this.First.GetHashCode(), this.Second.GetHashCode());
+        public override int GetHashCode() => HashCode.Combine(this.First, this.Second);
     }
 }

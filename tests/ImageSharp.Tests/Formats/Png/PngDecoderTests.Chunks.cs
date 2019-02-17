@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
         [Theory]
         [InlineData((uint)PngChunkType.Gamma)] // gAMA
-        [InlineData((uint)PngChunkType.PaletteAlpha)] // tRNS
+        [InlineData((uint)PngChunkType.Transparency)] // tRNS
         [InlineData((uint)PngChunkType.Physical)] // pHYs: It's ok to test physical as we don't throw for duplicate chunks.
         //[InlineData(PngChunkTypes.Text)] //TODO: Figure out how to test this
         public void Decode_IncorrectCRCForNonCriticalChunk_ExceptionIsThrown(uint chunkType)
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         {
             // Needs a minimum length of 9 for pHYs chunk.
             memStream.Write(new byte[] { 0, 0, 0, 9 }, 0, 4);
-            memStream.Write(Encoding.GetEncoding("ASCII").GetBytes(chunkName), 0, 4); // 4 bytes chunk header
+            memStream.Write(Encoding.ASCII.GetBytes(chunkName), 0, 4); // 4 bytes chunk header
             memStream.Write(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 0, 9); // 9 bytes of chunk data
             memStream.Write(new byte[] { 0, 0, 0, 0 }, 0, 4); // Junk Crc
         }

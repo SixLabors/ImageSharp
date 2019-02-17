@@ -24,15 +24,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="minorVersion">The minor version</param>
         /// <param name="densityUnits">The units for the density values</param>
         /// <param name="xDensity">The horizontal pixel density</param>
-        /// <param name="yDensity">The veritcal pixel density</param>
+        /// <param name="yDensity">The vertical pixel density</param>
         private JFifMarker(byte majorVersion, byte minorVersion, byte densityUnits, short xDensity, short yDensity)
         {
-            Guard.MustBeGreaterThan(xDensity, 0, nameof(xDensity));
-            Guard.MustBeGreaterThan(yDensity, 0, nameof(yDensity));
-            Guard.MustBeBetweenOrEqualTo(densityUnits, 0, 2, nameof(densityUnits));
+            if (xDensity <= 0)
+            {
+                JpegThrowHelper.ThrowImageFormatException($"X-Density {xDensity} must be greater than 0.");
+            }
+
+            if (yDensity <= 0)
+            {
+                JpegThrowHelper.ThrowImageFormatException($"Y-Density {yDensity} must be greater than 0.");
+            }
 
             this.MajorVersion = majorVersion;
             this.MinorVersion = minorVersion;
+
+            // LibJpeg and co will simply cast and not try to enforce a range.
             this.DensityUnits = (PixelResolutionUnit)densityUnits;
             this.XDensity = xDensity;
             this.YDensity = yDensity;
@@ -104,21 +112,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is JFifMarker other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is JFifMarker other && this.Equals(other);
 
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return HashHelpers.Combine(
-                this.MajorVersion.GetHashCode(),
-                HashHelpers.Combine(
-                    this.MinorVersion.GetHashCode(),
-                    HashHelpers.Combine(
-                        this.DensityUnits.GetHashCode(),
-                        HashHelpers.Combine(this.XDensity, this.YDensity))));
+            return HashCode.Combine(
+                this.MajorVersion,
+                this.MinorVersion,
+                this.DensityUnits,
+                this.XDensity,
+                this.YDensity);
         }
     }
 }

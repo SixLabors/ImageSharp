@@ -95,9 +95,9 @@ namespace SixLabors.ImageSharp.Processing
 
                 // Lets hack a min max extremes for a color space by letting the IPackedPixel clamp our values to something in the correct spaces :)
                 var maxColor = default(TPixel);
-                maxColor.PackFromVector4(new Vector4(float.MaxValue));
+                maxColor.FromVector4(new Vector4(float.MaxValue));
                 var minColor = default(TPixel);
-                minColor.PackFromVector4(new Vector4(float.MinValue));
+                minColor.FromVector4(new Vector4(float.MinValue));
                 this.threshold = Vector4.DistanceSquared(maxColor.ToVector4(), minColor.ToVector4()) * threshold;
             }
 
@@ -158,7 +158,12 @@ namespace SixLabors.ImageSharp.Processing
                     }
 
                     Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
-                    this.Blender.Blend(memoryAllocator, destinationRow, destinationRow, overlaySpan, amountSpan);
+                    this.Blender.Blend(
+                        this.Target.Configuration,
+                        destinationRow,
+                        destinationRow,
+                        overlaySpan,
+                        amountSpan);
                 }
             }
         }

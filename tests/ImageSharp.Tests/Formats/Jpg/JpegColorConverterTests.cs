@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
+using SixLabors.ImageSharp.Tests.Colorspaces.Conversion;
 using SixLabors.ImageSharp.Memory;
 
 using Xunit;
@@ -17,7 +18,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     public class JpegColorConverterTests
     {
-        private const float Precision = 0.1f / 255;
+        private const float Precision = 0.1F / 255;
+
+        private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(Precision);
 
         public static readonly TheoryData<int, int, int> CommonConversionData =
             new TheoryData<int, int, int>
@@ -41,14 +44,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void ConvertFromYCbCrBasic(int inputBufferLength, int resultBufferLength, int seed)
         {
             ValidateRgbToYCbCrConversion(
-                new JpegColorConverter.FromYCbCrBasic(),
+                new JpegColorConverter.FromYCbCrBasic(8),
                 3,
                 inputBufferLength,
                 resultBufferLength,
                 seed);
         }
 
-        private static void ValidateYCbCr(JpegColorConverter.ComponentValues values, Vector4[] result, int i)
+        private static void ValidateYCbCr(in JpegColorConverter.ComponentValues values, Vector4[] result, int i)
         {
             float y = values.Component0[i];
             float cb = values.Component1[i];
@@ -59,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var actual = new Rgb(rgba.X, rgba.Y, rgba.Z);
             var expected = ColorSpaceConverter.ToRgb(ycbcr);
 
-            Assert.True(actual.AlmostEquals(expected, Precision), $"{actual} != {expected}");
+            Assert.Equal(expected, actual, ColorSpaceComparer);
             Assert.Equal(1, rgba.W);
         }
 
@@ -72,7 +75,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             JpegColorConverter.ComponentValues values = CreateRandomValues(3, size, seed);
             var result = new Vector4[size];
 
-            JpegColorConverter.FromYCbCrSimd.ConvertCore(values, result);
+            JpegColorConverter.FromYCbCrSimd.ConvertCore(values, result, 255, 128);
 
             for (int i = 0; i < size; i++)
             {
@@ -85,7 +88,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void FromYCbCrSimd(int inputBufferLength, int resultBufferLength, int seed)
         {
             ValidateRgbToYCbCrConversion(
-                new JpegColorConverter.FromYCbCrSimd(),
+                new JpegColorConverter.FromYCbCrSimd(8),
                 3,
                 inputBufferLength,
                 resultBufferLength,
@@ -105,7 +108,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             //JpegColorConverter.FromYCbCrSimdAvx2.LogPlz = s => this.Output.WriteLine(s);
 
             ValidateRgbToYCbCrConversion(
-                new JpegColorConverter.FromYCbCrSimdAvx2(),
+                new JpegColorConverter.FromYCbCrSimdAvx2(8),
                 3,
                 inputBufferLength,
                 resultBufferLength,
@@ -137,7 +140,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             JpegColorConverter.ComponentValues values = CreateRandomValues(3, count, 1);
             var result = new Vector4[count];
 
-            JpegColorConverter converter = simd ? (JpegColorConverter)new JpegColorConverter.FromYCbCrSimd() : new JpegColorConverter.FromYCbCrBasic();
+            JpegColorConverter converter = simd ? (JpegColorConverter)new JpegColorConverter.FromYCbCrSimd(8) : new JpegColorConverter.FromYCbCrBasic(8);
 
             // Warm up:
             converter.ConvertToRgba(values, result);
@@ -158,7 +161,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var v = new Vector4(0, 0, 0, 1F);
             var scale = new Vector4(1 / 255F, 1 / 255F, 1 / 255F, 1F);
 
-            var converter = JpegColorConverter.GetConverter(JpegColorSpace.Cmyk);
+            var converter = JpegColorConverter.GetConverter(JpegColorSpace.Cmyk, 8);
             JpegColorConverter.ComponentValues values = CreateRandomValues(4, inputBufferLength, seed);
             var result = new Vector4[resultBufferLength];
 
@@ -182,7 +185,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 var actual = new Rgb(rgba.X, rgba.Y, rgba.Z);
                 var expected = new Rgb(v.X, v.Y, v.Z);
 
-                Assert.True(actual.AlmostEquals(expected, Precision));
+                Assert.Equal(expected, actual);
                 Assert.Equal(1, rgba.W);
             }
         }
@@ -191,7 +194,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [MemberData(nameof(CommonConversionData))]
         public void ConvertFromGrayScale(int inputBufferLength, int resultBufferLength, int seed)
         {
-            var converter = JpegColorConverter.GetConverter(JpegColorSpace.Grayscale);
+            var converter = JpegColorConverter.GetConverter(JpegColorSpace.Grayscale, 8);
             JpegColorConverter.ComponentValues values = CreateRandomValues(1, inputBufferLength, seed);
             var result = new Vector4[resultBufferLength];
 
@@ -204,7 +207,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 var actual = new Rgb(rgba.X, rgba.Y, rgba.Z);
                 var expected = new Rgb(y / 255F, y / 255F, y / 255F);
 
-                Assert.True(actual.AlmostEquals(expected, Precision));
+                Assert.Equal(expected, actual, ColorSpaceComparer);
                 Assert.Equal(1, rgba.W);
             }
         }
@@ -213,7 +216,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [MemberData(nameof(CommonConversionData))]
         public void ConvertFromRgb(int inputBufferLength, int resultBufferLength, int seed)
         {
-            var converter = JpegColorConverter.GetConverter(JpegColorSpace.RGB);
+            var converter = JpegColorConverter.GetConverter(JpegColorSpace.RGB, 8);
             JpegColorConverter.ComponentValues values = CreateRandomValues(3, inputBufferLength, seed);
             var result = new Vector4[resultBufferLength];
 
@@ -228,7 +231,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 var actual = new Rgb(rgba.X, rgba.Y, rgba.Z);
                 var expected = new Rgb(r / 255F, g / 255F, b / 255F);
 
-                Assert.True(actual.AlmostEquals(expected, Precision));
+                Assert.Equal(expected, actual, ColorSpaceComparer);
                 Assert.Equal(1, rgba.W);
             }
         }
@@ -240,7 +243,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var v = new Vector4(0, 0, 0, 1F);
             var scale = new Vector4(1 / 255F, 1 / 255F, 1 / 255F, 1F);
 
-            var converter = JpegColorConverter.GetConverter(JpegColorSpace.Ycck);
+            var converter = JpegColorConverter.GetConverter(JpegColorSpace.Ycck, 8);
             JpegColorConverter.ComponentValues values = CreateRandomValues(4, inputBufferLength, seed);
             var result = new Vector4[resultBufferLength];
 
@@ -266,7 +269,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 var actual = new Rgb(rgba.X, rgba.Y, rgba.Z);
                 var expected = new Rgb(v.X, v.Y, v.Z);
 
-                Assert.True(actual.AlmostEquals(expected, Precision));
+                Assert.Equal(expected, actual, ColorSpaceComparer);
                 Assert.Equal(1, rgba.W);
             }
         }
@@ -305,7 +308,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             int seed)
         {
             ValidateRgbToYCbCrConversion(
-                JpegColorConverter.GetConverter(colorSpace),
+                JpegColorConverter.GetConverter(colorSpace,8),
                 componentCount,
                 inputBufferLength,
                 resultBufferLength,

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 using System;
 using System.Collections.Generic;
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 var c = NamedColors<TPixel>.Red.ToVector4();
                 c.W *= 0.5f;
                 var pixel = default(TPixel);
-                pixel.PackFromVector4(c);
+                pixel.FromVector4(c);
 
                 img.Mutate(
                     x => x.Fill(

@@ -3,6 +3,8 @@
 
 using System;
 using System.IO;
+
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
@@ -21,9 +23,31 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private int padding;
 
-        private readonly BmpBitsPerPixel bitsPerPixel;
+        /// <summary>
+        /// The mask for the alpha channel of the color for a 32 bit rgba bitmaps.
+        /// </summary>
+        private const int Rgba32AlphaMask = 0xFF << 24;
+
+        /// <summary>
+        /// The mask for the red part of the color for a 32 bit rgba bitmaps.
+        /// </summary>
+        private const int Rgba32RedMask = 0xFF << 16;
+
+        /// <summary>
+        /// The mask for the green part of the color for a 32 bit rgba bitmaps.
+        /// </summary>
+        private const int Rgba32GreenMask = 0xFF << 8;
+
+        /// <summary>
+        /// The mask for the blue part of the color for a 32 bit rgba bitmaps.
+        /// </summary>
+        private const int Rgba32BlueMask = 0xFF;
 
         private readonly MemoryAllocator memoryAllocator;
+
+        private Configuration configuration;
+
+        private BmpBitsPerPixel? bitsPerPixel;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BmpEncoderCore"/> class.
@@ -48,45 +72,49 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            // Cast to int will get the bytes per pixel
-            short bpp = (short)(8 * (int)this.bitsPerPixel);
+            this.configuration = image.GetConfiguration();
+            ImageMetaData metaData = image.MetaData;
+            BmpMetaData bmpMetaData = metaData.GetFormatMetaData(BmpFormat.Instance);
+            this.bitsPerPixel = this.bitsPerPixel ?? bmpMetaData.BitsPerPixel;
+
+            short bpp = (short)this.bitsPerPixel;
             int bytesPerLine = 4 * (((image.Width * bpp) + 31) / 32);
-            this.padding = bytesPerLine - (image.Width * (int)this.bitsPerPixel);
+            this.padding = bytesPerLine - (int)(image.Width * (bpp / 8F));
 
             // Set Resolution.
-            ImageMetaData meta = image.MetaData;
             int hResolution = 0;
             int vResolution = 0;
 
-            if (meta.ResolutionUnits != PixelResolutionUnit.AspectRatio)
+            if (metaData.ResolutionUnits != PixelResolutionUnit.AspectRatio)
             {
-                if (meta.HorizontalResolution > 0 && meta.VerticalResolution > 0)
+                if (metaData.HorizontalResolution > 0 && metaData.VerticalResolution > 0)
                 {
-                    switch (meta.ResolutionUnits)
+                    switch (metaData.ResolutionUnits)
                     {
                         case PixelResolutionUnit.PixelsPerInch:
 
-                            hResolution = (int)Math.Round(UnitConverter.InchToMeter(meta.HorizontalResolution));
-                            vResolution = (int)Math.Round(UnitConverter.InchToMeter(meta.VerticalResolution));
+                            hResolution = (int)Math.Round(UnitConverter.InchToMeter(metaData.HorizontalResolution));
+                            vResolution = (int)Math.Round(UnitConverter.InchToMeter(metaData.VerticalResolution));
                             break;
 
                         case PixelResolutionUnit.PixelsPerCentimeter:
 
-                            hResolution = (int)Math.Round(UnitConverter.CmToMeter(meta.HorizontalResolution));
-                            vResolution = (int)Math.Round(UnitConverter.CmToMeter(meta.VerticalResolution));
+                            hResolution = (int)Math.Round(UnitConverter.CmToMeter(metaData.HorizontalResolution));
+                            vResolution = (int)Math.Round(UnitConverter.CmToMeter(metaData.VerticalResolution));
                             break;
 
                         case PixelResolutionUnit.PixelsPerMeter:
-                            hResolution = (int)Math.Round(meta.HorizontalResolution);
-                            vResolution = (int)Math.Round(meta.VerticalResolution);
+                            hResolution = (int)Math.Round(metaData.HorizontalResolution);
+                            vResolution = (int)Math.Round(metaData.VerticalResolution);
 
                             break;
                     }
                 }
             }
 
+            int infoHeaderSize = BmpInfoHeader.SizeV4;
             var infoHeader = new BmpInfoHeader(
-                headerSize: BmpInfoHeader.Size,
+                headerSize: infoHeaderSize,
                 height: image.Height,
                 width: image.Width,
                 bitsPerPixel: bpp,
@@ -95,26 +123,37 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 clrUsed: 0,
                 clrImportant: 0,
                 xPelsPerMeter: hResolution,
-                yPelsPerMeter: vResolution);
+                yPelsPerMeter: vResolution)
+            {
+                RedMask = Rgba32RedMask,
+                GreenMask = Rgba32GreenMask,
+                BlueMask = Rgba32BlueMask,
+                Compression = BmpCompression.BitFields
+            };
+
+            if (this.bitsPerPixel == BmpBitsPerPixel.Pixel32)
+            {
+                infoHeader.AlphaMask = Rgba32AlphaMask;
+            }
 
             var fileHeader = new BmpFileHeader(
-                type: 19778, // BM
-                offset: 54,
+                type: BmpConstants.TypeMarkers.Bitmap,
+                fileSize: BmpFileHeader.Size + infoHeaderSize + infoHeader.ImageSize,
                 reserved: 0,
-                fileSize: 54 + infoHeader.ImageSize);
+                offset: BmpFileHeader.Size + infoHeaderSize);
 
 #if NETCOREAPP2_1
-            Span<byte> buffer = stackalloc byte[40];
+            Span<byte> buffer = stackalloc byte[infoHeaderSize];
 #else
-            byte[] buffer = new byte[40];
+            byte[] buffer = new byte[infoHeaderSize];
 #endif
             fileHeader.WriteTo(buffer);
 
             stream.Write(buffer, 0, BmpFileHeader.Size);
 
-            infoHeader.WriteTo(buffer);
+            infoHeader.WriteV4Header(buffer);
 
-            stream.Write(buffer, 0, 40);
+            stream.Write(buffer, 0, infoHeaderSize);
 
             this.WriteImage(stream, image.Frames.RootFrame);
 
@@ -145,10 +184,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
         }
 
-        private IManagedByteBuffer AllocateRow(int width, int bytesPerPixel)
-        {
-            return this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, this.padding);
-        }
+        private IManagedByteBuffer AllocateRow(int width, int bytesPerPixel) => this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, this.padding);
 
         /// <summary>
         /// Writes the 32bit color palette to the stream.
@@ -164,7 +200,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToBgra32Bytes(pixelSpan, row.GetSpan(), pixelSpan.Length);
+                    PixelOperations<TPixel>.Instance.ToBgra32Bytes(
+                        this.configuration,
+                        pixelSpan,
+                        row.GetSpan(),
+                        pixelSpan.Length);
                     stream.Write(row.Array, 0, row.Length());
                 }
             }
@@ -184,7 +224,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToBgr24Bytes(pixelSpan, row.GetSpan(), pixelSpan.Length);
+                    PixelOperations<TPixel>.Instance.ToBgr24Bytes(
+                        this.configuration,
+                        pixelSpan,
+                        row.GetSpan(),
+                        pixelSpan.Length);
                     stream.Write(row.Array, 0, row.Length());
                 }
             }

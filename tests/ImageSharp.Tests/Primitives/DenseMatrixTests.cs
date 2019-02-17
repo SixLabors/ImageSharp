@@ -3,6 +3,7 @@
 
 using System;
 using SixLabors.ImageSharp.Primitives;
+using SixLabors.Primitives;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Primitives
@@ -59,6 +60,7 @@ namespace SixLabors.ImageSharp.Tests.Primitives
             Assert.True(dense.Rows == FloydSteinbergMatrix.GetLength(0));
             Assert.Equal(3, dense.Columns);
             Assert.Equal(2, dense.Rows);
+            Assert.Equal(new Size(3, 2), dense.Size);
         }
 
         [Fact]
@@ -103,6 +105,30 @@ namespace SixLabors.ImageSharp.Tests.Primitives
             {
                 Assert.Equal(0, dense.Data[i]);
             }
+        }
+
+        [Fact]
+        public void DenseMatrixCorrectlyCasts()
+        {
+            float[,] actual = new DenseMatrix<float>(FloydSteinbergMatrix);
+            Assert.Equal(FloydSteinbergMatrix, actual);
+        }
+
+        [Fact]
+        public void DenseMatrixCanTranspose()
+        {
+            var dense = new DenseMatrix<int>(3, 1);
+            dense[0, 0] = 1;
+            dense[0, 1] = 2;
+            dense[0, 2] = 3;
+
+            DenseMatrix<int> transposed = dense.Transpose();
+
+            Assert.Equal(dense.Columns, transposed.Rows);
+            Assert.Equal(dense.Rows, transposed.Columns);
+            Assert.Equal(1, transposed[0, 0]);
+            Assert.Equal(2, transposed[1, 0]);
+            Assert.Equal(3, transposed[2, 0]);
         }
     }
 }

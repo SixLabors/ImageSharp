@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -52,17 +53,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 
             int width = maxX - minX;
 
+            var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
+
             // If there's no reason for blending, then avoid it.
             if (this.IsSolidBrushWithoutBlending(out SolidBrush<TPixel> solidBrush))
             {
-                ParallelFor.WithConfiguration(
-                    minY,
-                    maxY,
-                    configuration,
-                    y =>
-                    {
-                        source.GetPixelRowSpan(y).Slice(minX, width).Fill(solidBrush.Color);
-                    });
+                ParallelExecutionSettings parallelSettings = configuration.GetParallelSettings().MultiplyMinimumPixelsPerTask(4);
+
+                ParallelHelper.IterateRows(
+                    workingRect,
+                    parallelSettings,
+                    rows =>
+                        {
+                            for (int y = rows.Min; y < rows.Max; y++)
+                            {
+                                source.GetPixelRowSpan(y).Slice(minX, width).Fill(solidBrush.Color);
+                            }
+                        });
             }
             else
             {
@@ -85,16 +92,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                 {
                     amount.GetSpan().Fill(1f);
 
-                    ParallelFor.WithConfiguration(
-                        minY,
-                        maxY,
+                    ParallelHelper.IterateRows(
+                        workingRect,
                         configuration,
-                        y =>
+                        rows =>
                             {
-                                int offsetY = y - startY;
-                                int offsetX = minX - startX;
+                                for (int y = rows.Min; y < rows.Max; y++)
+                                {
+                                    int offsetY = y - startY;
+                                    int offsetX = minX - startX;
 
-                                applicator.Apply(amount.GetSpan(), offsetX, offsetY);
+                                    applicator.Apply(amount.GetSpan(), offsetX, offsetY);
+                                }
                             });
                 }
             }

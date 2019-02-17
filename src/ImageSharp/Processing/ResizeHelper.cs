@@ -333,25 +333,21 @@ namespace SixLabors.ImageSharp.Processing
                 return (new Size(sourceWidth, sourceWidth), new Rectangle(0, 0, sourceWidth, sourceHeight));
             }
 
-            // Fractional variants for preserving aspect ratio.
-            float percentHeight = MathF.Abs(height / (float)sourceHeight);
-            float percentWidth = MathF.Abs(width / (float)sourceWidth);
-
-            float sourceRatio = (float)sourceHeight / sourceWidth;
-
             // Find the shortest distance to go.
             int widthDiff = sourceWidth - width;
             int heightDiff = sourceHeight - height;
 
             if (widthDiff < heightDiff)
             {
+                float sourceRatio = (float)sourceHeight / sourceWidth;
                 destinationHeight = (int)MathF.Round(width * sourceRatio);
                 height = destinationHeight;
                 destinationWidth = width;
             }
             else if (widthDiff > heightDiff)
             {
-                destinationWidth = (int)MathF.Round(height / sourceRatio);
+                float sourceRatioInverse = (float)sourceWidth / sourceHeight;
+                destinationWidth = (int)MathF.Round(height * sourceRatioInverse);
                 destinationHeight = height;
                 width = destinationWidth;
             }
@@ -360,12 +356,14 @@ namespace SixLabors.ImageSharp.Processing
                 if (height > width)
                 {
                     destinationWidth = width;
+                    float percentWidth = MathF.Abs(width / (float)sourceWidth);
                     destinationHeight = (int)MathF.Round(sourceHeight * percentWidth);
                     height = destinationHeight;
                 }
                 else
                 {
                     destinationHeight = height;
+                    float percentHeight = MathF.Abs(height / (float)sourceHeight);
                     destinationWidth = (int)MathF.Round(sourceWidth * percentHeight);
                     width = destinationWidth;
                 }

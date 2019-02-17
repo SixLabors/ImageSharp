@@ -46,6 +46,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public byte[] ComponentIds { get; set; }
 
         /// <summary>
+        /// Gets or sets the order in which to process the components
+        /// in interleaved mode.
+        /// </summary>
+        public byte[] ComponentOrder { get; set; }
+
+        /// <summary>
         /// Gets or sets the frame component collection
         /// </summary>
         public JpegComponent[] Components { get; set; }
@@ -77,7 +83,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 for (int i = 0; i < this.Components.Length; i++)
                 {
-                    this.Components[i].Dispose();
+                    this.Components[i]?.Dispose();
                 }
 
                 this.Components = null;

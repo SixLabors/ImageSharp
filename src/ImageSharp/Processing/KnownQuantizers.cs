@@ -12,20 +12,23 @@ namespace SixLabors.ImageSharp.Processing
     {
         /// <summary>
         /// Gets the adaptive Octree quantizer. Fast with good quality.
-        /// The quantizer only supports a single alpha value.
         /// </summary>
         public static IQuantizer Octree { get; } = new OctreeQuantizer();
 
         /// <summary>
         /// Gets the Xiaolin Wu's Color Quantizer which generates high quality output.
-        /// The quantizer supports multiple alpha values.
         /// </summary>
         public static IQuantizer Wu { get; } = new WuQuantizer();
 
         /// <summary>
-        /// Gets the palette based, Using the collection of web-safe colors.
-        /// The quantizer supports multiple alpha values.
+        /// Gets the palette based quantizer consisting of web safe colors as defined in the CSS Color Module Level 4.
         /// </summary>
-        public static IQuantizer Palette { get; } = new PaletteQuantizer();
+        public static IQuantizer WebSafe { get; } = new WebSafePaletteQuantizer();
+
+        /// <summary>
+        /// Gets the palette based quantizer consisting of colors as defined in the original second edition of Werner’s Nomenclature of Colours 1821.
+        /// The hex codes were collected and defined by Nicholas Rougeux <see href="https://www.c82.net/werner"/>
+        /// </summary>
+        public static IQuantizer Werner { get; } = new WernerPaletteQuantizer();
     }
 }

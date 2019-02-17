@@ -48,6 +48,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     TestImages.Jpeg.Issues.BadZigZagProgressive385,
                     TestImages.Jpeg.Issues.NoEoiProgressive517,
                     TestImages.Jpeg.Issues.BadRstProgressive518,
+                    TestImages.Jpeg.Issues.InvalidEOI695,
+                    TestImages.Jpeg.Issues.ExifResizeOutOfRange696,
+                    TestImages.Jpeg.Issues.ExifGetString750Transform
                 };
 
             return !TestEnvironment.Is64BitProcess && largeImagesToSkipOn32Bit.Contains(provider.SourceFileOrDescription);

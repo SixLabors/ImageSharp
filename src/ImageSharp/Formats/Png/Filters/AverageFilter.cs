@@ -30,7 +30,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
 
             // Average(x) + floor((Raw(x-bpp)+Prior(x))/2)
             int x = 1;
-            for (; x <= bytesPerPixel /* Note the <= because x starts at 1 */; ++x) {
+            for (; x <= bytesPerPixel /* Note the <= because x starts at 1 */; ++x)
+            {
                 ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
                 byte above = Unsafe.Add(ref prevBaseRef, x);
                 scan = (byte)(scan + (above >> 1));
@@ -68,7 +69,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             resultBaseRef = 3;
 
             int x = 0;
-            for (; x < bytesPerPixel; /* Note: ++x happens in the body to avoid one add operation */) {
+            for (; x < bytesPerPixel; /* Note: ++x happens in the body to avoid one add operation */)
+            {
                 byte scan = Unsafe.Add(ref scanBaseRef, x);
                 byte above = Unsafe.Add(ref prevBaseRef, x);
                 ++x;
@@ -77,7 +79,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 sum += ImageMaths.FastAbs(unchecked((sbyte)res));
             }
 
-            for (int xLeft = x - bytesPerPixel; x < scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */) {
+            for (int xLeft = x - bytesPerPixel; x < scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
+            {
                 byte scan = Unsafe.Add(ref scanBaseRef, x);
                 byte left = Unsafe.Add(ref scanBaseRef, xLeft);
                 byte above = Unsafe.Add(ref prevBaseRef, x);
@@ -97,9 +100,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         /// <param name="above">The above byte</param>
         /// <returns>The <see cref="int"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int Average(byte left, byte above)
-        {
-            return (left + above) >> 1;
-        }
+        private static int Average(byte left, byte above) => (left + above) >> 1;
     }
 }

@@ -2,36 +2,27 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
+using System.IO;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 using Xunit.Abstractions;
-
-using System.Collections.Concurrent;
-using System.IO;
-
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Memory;
+// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using SixLabors.Memory;
-
     public class TestImageProviderTests
     {
-        public TestImageProviderTests(ITestOutputHelper output)
-        {
-            this.Output = output;
-        }
+        public TestImageProviderTests(ITestOutputHelper output) => this.Output = output;
 
         private ITestOutputHelper Output { get; }
 
         [Theory]
         [WithBlankImages(1, 1, PixelTypes.Rgba32)]
         public void NoOutputSubfolderIsPresentByDefault<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            Assert.Empty(provider.Utility.OutputSubfolderName);
-        }
+            where TPixel : struct, IPixel<TPixel> => Assert.Empty(provider.Utility.OutputSubfolderName);
 
         [Theory]
         [WithBlankImages(42, 666, PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.HalfSingle, "hello")]
@@ -64,10 +55,7 @@ namespace SixLabors.ImageSharp.Tests
         [WithBlankImages(1, 1, PixelTypes.Alpha8, PixelTypes.Alpha8)]
         [WithBlankImages(1, 1, PixelTypes.Argb32, PixelTypes.Argb32)]
         public void PixelType_PropertyValueIsCorrect<TPixel>(TestImageProvider<TPixel> provider, PixelTypes expected)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            Assert.Equal(expected, provider.PixelType);
-        }
+            where TPixel : struct, IPixel<TPixel> => Assert.Equal(expected, provider.PixelType);
 
         [Theory]
         [WithFile(TestImages.Bmp.Car, PixelTypes.All, 88)]
@@ -96,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests
 
             // Couldn't make xUnit happy without this hackery:
 
-            private static ConcurrentDictionary<string, int> invocationCounts = new ConcurrentDictionary<string, int>();
+            private static readonly ConcurrentDictionary<string, int> invocationCounts = new ConcurrentDictionary<string, int>();
 
             private string callerName = null;
 
@@ -160,7 +148,7 @@ namespace SixLabors.ImageSharp.Tests
                 return new Image<TPixel>(42, 42);
             }
 
-            private static ConcurrentDictionary<string, int> invocationCounts = new ConcurrentDictionary<string, int>();
+            private static readonly ConcurrentDictionary<string, int> invocationCounts = new ConcurrentDictionary<string, int>();
 
             private string callerName = null;
 
@@ -287,9 +275,8 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(10, img.Width);
             Assert.Equal(20, img.Height);
 
-            var rgba = default(Rgba32);
-
             Buffer2D<TPixel> pixels = img.GetRootFramePixelBuffer();
+            Rgba32 rgba = default;
             for (int y = 0; y < pixels.Height; y++)
             {
                 for (int x = 0; x < pixels.Width; x++)
@@ -311,10 +298,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <param name="factory"></param>
         /// <returns></returns>
         public static Image<TPixel> CreateTestImage<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
-        {
-            return new Image<TPixel>(3, 3);
-        }
+            where TPixel : struct, IPixel<TPixel> => new Image<TPixel>(3, 3);
 
         [Theory]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All)]
@@ -328,6 +312,17 @@ namespace SixLabors.ImageSharp.Tests
                 Assert.IsType<Image<Rgba32>>(img);
             }
 
+        }
+
+        [Theory]
+        [WithTestPatternImages(49,20, PixelTypes.Rgba32)]
+        public void Use_WithTestPatternImages<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> img = provider.GetImage())
+            {
+                img.DebugSave(provider);
+            }
         }
 
         public static readonly TheoryData<object> BasicData = new TheoryData<object>()

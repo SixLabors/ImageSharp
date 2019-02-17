@@ -174,8 +174,6 @@ namespace SixLabors.ImageSharp
             }
         }
 
-#if !NETSTANDARD1_1
-
         /// <summary>
         /// By reading the header on the provided byte array this calculates the images format.
         /// </summary>
@@ -200,18 +198,17 @@ namespace SixLabors.ImageSharp
                 return null;
             }
 
-            IImageFormat format = default;
             foreach (IImageFormatDetector detector in config.ImageFormatsManager.FormatDetectors)
             {
                 IImageFormat f = detector.DetectFormat(data);
 
                 if (f != null)
                 {
-                    format = f;
+                    return f;
                 }
             }
 
-            return format;
+            return default;
         }
 
         /// <summary>
@@ -303,6 +300,5 @@ namespace SixLabors.ImageSharp
                 }
             }
         }
-#endif
     }
 }

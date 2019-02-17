@@ -1,10 +1,9 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Runtime.InteropServices;
-
 using SixLabors.ImageSharp.Memory;
-using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
@@ -41,13 +40,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private Size subSamplingDivisors;
 
         /// <summary>
+        /// Defines the maximum value derived from the bitdepth
+        /// </summary>
+        private int maximumValue;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="JpegBlockPostProcessor"/> struct.
         /// </summary>
+        /// <param name="decoder">The raw jpeg data.</param>
+        /// <param name="component">The raw component.</param>
         public JpegBlockPostProcessor(IRawJpegData decoder, IJpegComponent component)
         {
             int qtIndex = component.QuantizationTableIndex;
             this.DequantiazationTable = ZigZag.CreateDequantizationTable(ref decoder.QuantizationTables[qtIndex]);
             this.subSamplingDivisors = component.SubSamplingDivisors;
+            this.maximumValue = (int)Math.Pow(2, decoder.Precision) - 1;
 
             this.SourceBlock = default;
             this.WorkspaceBlock1 = default;
@@ -58,12 +65,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// Processes 'sourceBlock' producing Jpeg color channel values from spectral values:
         /// - Dequantize
         /// - Applying IDCT
-        /// - Level shift by +128, clip to [0, 255]
-        /// - Copy the resultin color values into 'destArea' scaling up the block by amount defined in <see cref="subSamplingDivisors"/>
+        /// - Level shift by +maximumValue/2, clip to [0, maximumValue]
+        /// - Copy the resulting color values into 'destArea' scaling up the block by amount defined in <see cref="subSamplingDivisors"/>
         /// </summary>
+        /// <param name="sourceBlock">The source block.</param>
+        /// <param name="destArea">The destination buffer area.</param>
+        /// <param name="maximumValue">The maximum value derived from the bitdepth.</param>
         public void ProcessBlockColorsInto(
             ref Block8x8 sourceBlock,
-            BufferArea<float> destArea)
+            in BufferArea<float> destArea,
+            float maximumValue)
         {
             ref Block8x8F b = ref this.SourceBlock;
             b.LoadFrom(ref sourceBlock);
@@ -76,7 +87,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             // To conform better to libjpeg we actually NEED TO loose precision here.
             // This is because they store blocks as Int16 between all the operations.
             // To be "more accurate", we need to emulate this by rounding!
-            this.WorkspaceBlock1.NormalizeColorsAndRoundInplace();
+            this.WorkspaceBlock1.NormalizeColorsAndRoundInplace(maximumValue);
 
             this.WorkspaceBlock1.CopyTo(destArea, this.subSamplingDivisors.Width, this.subSamplingDivisors.Height);
         }

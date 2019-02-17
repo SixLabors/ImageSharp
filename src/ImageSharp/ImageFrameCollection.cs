@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp
         public ImageFrame<TPixel> InsertFrame(int index, ImageFrame<TPixel> source)
         {
             this.ValidateFrame(source);
-            ImageFrame<TPixel> clonedFrame = source.Clone();
+            ImageFrame<TPixel> clonedFrame = source.Clone(this.parent.GetConfiguration());
             this.frames.Insert(index, clonedFrame);
             return clonedFrame;
         }
@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp
         public ImageFrame<TPixel> AddFrame(ImageFrame<TPixel> source)
         {
             this.ValidateFrame(source);
-            ImageFrame<TPixel> clonedFrame = source.Clone();
+            ImageFrame<TPixel> clonedFrame = source.Clone(this.parent.GetConfiguration());
             this.frames.Add(clonedFrame);
             return clonedFrame;
         }
@@ -155,10 +155,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         ///   <c>true</c> if the <seealso cref="ImageFrameCollection{TPixel}"/> contains the specified frame; otherwise, <c>false</c>.
         /// </returns>
-        public bool Contains(ImageFrame<TPixel> frame)
-        {
-            return this.frames.Contains(frame);
-        }
+        public bool Contains(ImageFrame<TPixel> frame) => this.frames.Contains(frame);
 
         /// <summary>
         /// Moves an <seealso cref="ImageFrame{TPixel}"/> from <paramref name="sourceIndex"/> to <paramref name="destinationIndex"/>.
@@ -195,7 +192,7 @@ namespace SixLabors.ImageSharp
 
             this.frames.Remove(frame);
 
-            return new Image<TPixel>(this.parent.GetConfiguration(), this.parent.MetaData.Clone(), new[] { frame });
+            return new Image<TPixel>(this.parent.GetConfiguration(), this.parent.MetaData.DeepClone(), new[] { frame });
         }
 
         /// <summary>
@@ -208,7 +205,7 @@ namespace SixLabors.ImageSharp
         {
             ImageFrame<TPixel> frame = this[index];
             ImageFrame<TPixel> clonedFrame = frame.Clone();
-            return new Image<TPixel>(this.parent.GetConfiguration(), this.parent.MetaData.Clone(), new[] { clonedFrame });
+            return new Image<TPixel>(this.parent.GetConfiguration(), this.parent.MetaData.DeepClone(), new[] { clonedFrame });
         }
 
         /// <summary>
@@ -217,10 +214,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The new <see cref="ImageFrame{TPixel}" />.
         /// </returns>
-        public ImageFrame<TPixel> CreateFrame()
-        {
-            return this.CreateFrame(default);
-        }
+        public ImageFrame<TPixel> CreateFrame() => this.CreateFrame(default);
 
         /// <summary>
         /// Creates a new <seealso cref="ImageFrame{TPixel}" /> and appends it to the end of the collection.

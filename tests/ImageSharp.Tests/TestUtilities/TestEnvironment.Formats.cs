@@ -34,8 +34,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             string extension = Path.GetExtension(filePath);
 
-            IImageFormat format = Configuration.ImageFormatsManager.FindFormatByFileExtension(extension);
-            return format;
+            return Configuration.ImageFormatsManager.FindFormatByFileExtension(extension);
         }
 
         private static void ConfigureCodecs(
@@ -62,14 +61,14 @@ namespace SixLabors.ImageSharp.Tests
             IImageEncoder bmpEncoder = IsWindows ? (IImageEncoder)SystemDrawingReferenceEncoder.Bmp : new BmpEncoder();
 
             cfg.ConfigureCodecs(
-                ImageFormats.Png,
+                PngFormat.Instance,
                 MagickReferenceDecoder.Instance,
                 pngEncoder,
                 new PngImageFormatDetector());
 
             cfg.ConfigureCodecs(
-                ImageFormats.Bmp,
-                SystemDrawingReferenceDecoder.Instance,
+                BmpFormat.Instance,
+                IsWindows ? (IImageDecoder)SystemDrawingReferenceDecoder.Instance : MagickReferenceDecoder.Instance,
                 bmpEncoder,
                 new BmpImageFormatDetector());
 

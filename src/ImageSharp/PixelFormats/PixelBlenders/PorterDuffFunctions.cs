@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 {
     /// <summary>
-    /// Collection of Porter Duff alpha blending functions applying an the 'Over' composition model.
+    /// Collection of Porter Duff Color Blending and Alpha Composition Functions.
     /// </summary>
     /// <remarks>
     /// These functions are designed to be a general solution for all color cases,
@@ -148,31 +148,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             return backdrop <= 0.5f ? (2 * backdrop * source) : 1 - ((2 * (1 - source)) * (1 - backdrop));
         }
 
-        /// <summary>
-        /// General composition function for all modes, with a general solution for alpha channel
-        /// </summary>
-        /// <param name="backdrop">Original Backdrop color</param>
-        /// <param name="source">Original source color</param>
-        /// <param name="xform">Desired transformed color, without taking Alpha channel in account</param>
-        /// <returns>The final color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector4 SrcOverReference(Vector4 backdrop, Vector4 source, Vector4 xform)
-        {
-            // calculate weights
-            float xw = backdrop.W * source.W;
-            float bw = backdrop.W - xw;
-            float sw = source.W - xw;
-
-            // calculate final alpha
-            float a = xw + bw + sw;
-
-            // calculate final value
-            xform = ((xform * xw) + (backdrop * bw) + (source * sw)) / MathF.Max(a, Constants.Epsilon);
-            xform.W = a;
-
-            return xform;
-        }
-
         public static Vector4 Over(Vector4 dst, Vector4 src, Vector4 blend)
         {
             // calculate weights
@@ -193,6 +169,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             return color;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Atop(Vector4 dst, Vector4 src, Vector4 blend)
         {
             // calculate weights
@@ -212,6 +189,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             return color;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 In(Vector4 dst, Vector4 src, Vector4 blend)
         {
             float alpha = dst.W * src.W;
@@ -223,6 +201,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             return color;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Out(Vector4 dst, Vector4 src)
         {
             float alpha = (1 - dst.W) * src.W;
@@ -234,6 +213,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             return color;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Xor(Vector4 dst, Vector4 src)
         {
             float srcW = 1 - dst.W;
@@ -249,6 +229,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             return color;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector4 Clear(Vector4 backdrop, Vector4 source)
         {
             return Vector4.Zero;

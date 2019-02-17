@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The ASCII encoded bytes used to identify the GIF file.
         /// </summary>
-        internal static readonly byte[] MagicNumber = Encoding.UTF8.GetBytes(FileType + FileVersion);
+        internal static readonly byte[] MagicNumber = Encoding.ASCII.GetBytes(FileType + FileVersion);
 
         /// <summary>
         /// The extension block introducer <value>!</value>.
@@ -42,19 +42,24 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public const byte ApplicationExtensionLabel = 0xFF;
 
         /// <summary>
+        /// The application block size.
+        /// </summary>
+        public const byte ApplicationBlockSize = 11;
+
+        /// <summary>
         /// The application identification.
         /// </summary>
-        public const string ApplicationIdentification = "NETSCAPE2.0";
+        public const string NetscapeApplicationIdentification = "NETSCAPE2.0";
 
         /// <summary>
         /// The ASCII encoded application identification bytes.
         /// </summary>
-        internal static readonly byte[] ApplicationIdentificationBytes = Encoding.UTF8.GetBytes(ApplicationIdentification);
+        internal static readonly byte[] NetscapeApplicationIdentificationBytes = Encoding.ASCII.GetBytes(NetscapeApplicationIdentification);
 
         /// <summary>
-        /// The application block size.
+        /// The Netscape looping application sub block size.
         /// </summary>
-        public const byte ApplicationBlockSize = 11;
+        public const byte NetscapeLoopingSubBlockSize = 3;
 
         /// <summary>
         /// The comment label.
@@ -99,7 +104,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Gets the default encoding to use when reading comments.
         /// </summary>
-        public static readonly Encoding DefaultEncoding = Encoding.GetEncoding("ASCII");
+        public static readonly Encoding DefaultEncoding = Encoding.ASCII;
 
         /// <summary>
         /// The list of mimetypes that equate to a gif.

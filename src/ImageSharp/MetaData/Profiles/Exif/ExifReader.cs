@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Primitives;
@@ -19,7 +18,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
     /// </summary>
     internal sealed class ExifReader
     {
-        private readonly List<ExifTag> invalidTags = new List<ExifTag>();
+        private List<ExifTag> invalidTags;
         private readonly byte[] exifData;
         private int position;
         private Endianness endianness = Endianness.BigEndian;
@@ -28,9 +27,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
         public ExifReader(byte[] exifData)
         {
-            DebugGuard.NotNull(exifData, nameof(exifData));
-
-            this.exifData = exifData;
+            this.exifData = exifData ?? throw new ArgumentNullException(nameof(exifData));
         }
 
         private delegate TDataType ConverterMethod<TDataType>(ReadOnlySpan<byte> data);
@@ -38,7 +35,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <summary>
         /// Gets the invalid tags.
         /// </summary>
-        public IReadOnlyList<ExifTag> InvalidTags => this.invalidTags;
+        public IReadOnlyList<ExifTag> InvalidTags => this.invalidTags ?? (IReadOnlyList<ExifTag>)Array.Empty<ExifTag>();
 
         /// <summary>
         /// Gets the thumbnail length in the byte stream
@@ -88,19 +85,19 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             }
 
             uint ifdOffset = this.ReadUInt32();
-            this.AddValues(values, (int)ifdOffset);
+            this.AddValues(values, ifdOffset);
 
             uint thumbnailOffset = this.ReadUInt32();
-            this.GetThumbnail((int)thumbnailOffset);
+            this.GetThumbnail(thumbnailOffset);
 
             if (this.exifOffset != 0)
             {
-                this.AddValues(values, (int)this.exifOffset);
+                this.AddValues(values, this.exifOffset);
             }
 
             if (this.gpsOffset != 0)
             {
-                this.AddValues(values, (int)this.gpsOffset);
+                this.AddValues(values, this.gpsOffset);
             }
 
             return values;
@@ -125,27 +122,16 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
         private byte ConvertToByte(ReadOnlySpan<byte> buffer) => buffer[0];
 
-        private unsafe string ConvertToString(ReadOnlySpan<byte> buffer)
+        private string ConvertToString(ReadOnlySpan<byte> buffer)
         {
-            Span<byte> nullChar = stackalloc byte[1] { 0 };
-
-            int nullCharIndex = buffer.IndexOf(nullChar);
+            int nullCharIndex = buffer.IndexOf((byte)0);
 
             if (nullCharIndex > -1)
             {
                 buffer = buffer.Slice(0, nullCharIndex);
             }
 
-#if NETSTANDARD1_1
-            return Encoding.UTF8.GetString(buffer.ToArray(), 0, buffer.Length);
-#elif NETCOREAPP2_1
             return Encoding.UTF8.GetString(buffer);
-#else
-            fixed (byte* pointer = &MemoryMarshal.GetReference(buffer))
-            {
-                return Encoding.UTF8.GetString(pointer, buffer.Length);
-            }
-#endif
         }
 
         /// <summary>
@@ -153,9 +139,14 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// </summary>
         /// <param name="values">The values.</param>
         /// <param name="index">The index.</param>
-        private void AddValues(List<ExifValue> values, int index)
+        private void AddValues(List<ExifValue> values, uint index)
         {
-            this.position = index;
+            if (index > (uint)this.exifData.Length)
+            {
+                return;
+            }
+
+            this.position = (int)index;
             int count = this.ReadUInt16();
 
             for (int i = 0; i < count; i++)
@@ -344,7 +335,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 // Ensure that the new index does not overrun the data
                 if (newIndex > int.MaxValue)
                 {
-                    this.invalidTags.Add(tag);
+                    this.AddInvalidTag(tag);
 
                     exifValue = default;
 
@@ -355,7 +346,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
                 if (this.RemainingLength < size)
                 {
-                    this.invalidTags.Add(tag);
+                    this.AddInvalidTag(tag);
+
                     this.position = oldIndex;
 
                     exifValue = default;
@@ -378,13 +370,23 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return true;
         }
 
+        private void AddInvalidTag(ExifTag tag)
+        {
+            if (this.invalidTags is null)
+            {
+                this.invalidTags = new List<ExifTag>();
+            }
+
+            this.invalidTags.Add(tag);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
         private TEnum ToEnum<TEnum>(int value, TEnum defaultValue)
             where TEnum : struct
         {
-            var enumValue = (TEnum)(object)value;
-            if (Enum.GetValues(typeof(TEnum)).Cast<TEnum>().Any(v => v.Equals(enumValue)))
+            if (EnumHelper<TEnum>.IsDefined(value))
             {
-                return enumValue;
+                return Unsafe.As<int, TEnum>(ref value);
             }
 
             return defaultValue;
@@ -431,7 +433,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return null;
         }
 
-        private void GetThumbnail(int offset)
+        private void GetThumbnail(uint offset)
         {
             var values = new List<ExifValue>();
             this.AddValues(values, offset);
@@ -515,10 +517,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return new Rational(numerator, denominator, false);
         }
 
-        private sbyte ConvertToSignedByte(ReadOnlySpan<byte> buffer)
-        {
-            return unchecked((sbyte)buffer[0]);
-        }
+        private sbyte ConvertToSignedByte(ReadOnlySpan<byte> buffer) => unchecked((sbyte)buffer[0]);
 
         private int ConvertToInt32(ReadOnlySpan<byte> buffer) // SignedLong in Exif Specification
         {
@@ -555,6 +554,19 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return this.endianness == Endianness.BigEndian
                 ? BinaryPrimitives.ReadInt16BigEndian(buffer)
                 : BinaryPrimitives.ReadInt16LittleEndian(buffer);
+        }
+
+        private class EnumHelper<TEnum>
+            where TEnum : struct
+        {
+            private static readonly int[] Values = Enum.GetValues(typeof(TEnum)).Cast<TEnum>()
+                .Select(e => Convert.ToInt32(e)).OrderBy(e => e).ToArray();
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static bool IsDefined(int value)
+            {
+                return Array.BinarySearch(Values, value) >= 0;
+            }
         }
     }
 }

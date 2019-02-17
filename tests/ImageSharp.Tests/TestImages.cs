@@ -189,6 +189,7 @@ namespace SixLabors.ImageSharp.Tests
                     public const string IndexOutOfRangeException824G = "Jpg/issues/fuzz/Issue824-IndexOutOfRangeException-G.jpg";
                     public const string IndexOutOfRangeException824H = "Jpg/issues/fuzz/Issue824-IndexOutOfRangeException-H.jpg";
                     public const string ArgumentOutOfRangeException825A = "Jpg/issues/fuzz/Issue825-ArgumentOutOfRangeException-A.jpg";
+                    public const string ArgumentOutOfRangeException825B = "Jpg/issues/fuzz/Issue825-ArgumentOutOfRangeException-B.jpg";
                 }
             }
 

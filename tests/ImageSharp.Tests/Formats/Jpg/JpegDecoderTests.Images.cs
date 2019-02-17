@@ -31,6 +31,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Issues.ExifGetString750Load,
                 TestImages.Jpeg.Issues.ExifGetString750Transform,
 
+                // LibJpeg can open this despite the invalid desity units.
+                TestImages.Jpeg.Issues.Fuzz.ArgumentOutOfRangeException825B,
+
                 // High depth images
                 TestImages.Jpeg.Baseline.Testorig12bit,
             };

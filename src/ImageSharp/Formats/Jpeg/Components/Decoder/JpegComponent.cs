@@ -21,9 +21,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.memoryAllocator = memoryAllocator;
             this.Frame = frame;
             this.Id = id;
+
+            // Valid sampling factors are 1..2
+            if (horizontalFactor == 0
+                || verticalFactor == 0
+                || horizontalFactor > 2
+                || verticalFactor > 2)
+            {
+                JpegThrowHelper.ThrowBadSampling();
+            }
+
             this.HorizontalSamplingFactor = horizontalFactor;
             this.VerticalSamplingFactor = verticalFactor;
             this.SamplingFactors = new Size(this.HorizontalSamplingFactor, this.VerticalSamplingFactor);
+
+            if (quantizationTableIndex > 3)
+            {
+                JpegThrowHelper.ThrowBadQuantizationTable();
+            }
+
             this.QuantizationTableIndex = quantizationTableIndex;
             this.Index = index;
         }
@@ -109,6 +125,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             JpegComponent c0 = this.Frame.Components[0];
             this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
+
+            if (this.SubSamplingDivisors.Width == 0 || this.SubSamplingDivisors.Height == 0)
+            {
+                JpegThrowHelper.ThrowBadSampling();
+            }
 
             int totalNumberOfBlocks = blocksPerColumnForMcu * (blocksPerLineForMcu + 1);
             int width = this.WidthInBlocks + 1;

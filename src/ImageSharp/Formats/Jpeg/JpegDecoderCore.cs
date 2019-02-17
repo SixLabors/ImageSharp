@@ -255,7 +255,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             var fileMarker = new JpegFileMarker(this.markerBuffer[1], 0);
             if (fileMarker.Marker != JpegConstants.Markers.SOI)
             {
-                throw new ImageFormatException("Missing SOI marker.");
+                JpegThrowHelper.ThrowImageFormatException("Missing SOI marker.");
             }
 
             this.InputStream.Read(this.markerBuffer, 0, 2);
@@ -419,7 +419,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     : JpegColorSpace.Cmyk;
             }
 
-            throw new ImageFormatException($"Unsupported color mode. Max components 4; found {this.ComponentCount}");
+            JpegThrowHelper.ThrowImageFormatException($"Unsupported color mode. Max components 4; found {this.ComponentCount}");
+            return default;
         }
 
         /// <summary>
@@ -646,6 +647,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 bool done = false;
                 remaining--;
                 int quantizationTableSpec = this.InputStream.ReadByte();
+                int tableIndex = quantizationTableSpec & 15;
+
+                // Max index. 4 Tables max.
+                if (tableIndex > 3)
+                {
+                    JpegThrowHelper.ThrowBadQuantizationTable();
+                }
 
                 switch (quantizationTableSpec >> 4)
                 {
@@ -661,7 +669,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             this.InputStream.Read(this.temp, 0, 64);
                             remaining -= 64;
 
-                            ref Block8x8F table = ref this.QuantizationTables[quantizationTableSpec & 15];
+                            ref Block8x8F table = ref this.QuantizationTables[tableIndex];
                             for (int j = 0; j < 64; j++)
                             {
                                 table[j] = this.temp[j];
@@ -681,7 +689,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             this.InputStream.Read(this.temp, 0, 128);
                             remaining -= 128;
 
-                            ref Block8x8F table = ref this.QuantizationTables[quantizationTableSpec & 15];
+                            ref Block8x8F table = ref this.QuantizationTables[tableIndex];
                             for (int j = 0; j < 64; j++)
                             {
                                 table[j] = (this.temp[2 * j] << 8) | this.temp[(2 * j) + 1];
@@ -690,7 +698,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                         break;
                     default:
-                        throw new ImageFormatException("Bad Tq index value");
+                        JpegThrowHelper.ThrowBadQuantizationTable();
+                        break;
                 }
 
                 if (done)
@@ -701,7 +710,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             if (remaining != 0)
             {
-                throw new ImageFormatException("DQT has wrong length");
+                JpegThrowHelper.ThrowBadMarker(nameof(JpegConstants.Markers.DQT), remaining);
             }
 
             this.MetaData.GetFormatMetaData(JpegFormat.Instance).Quality = QualityEvaluator.EstimateQuality(this.QuantizationTables);
@@ -717,15 +726,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             if (this.Frame != null)
             {
-                throw new ImageFormatException("Multiple SOF markers. Only single frame jpegs supported.");
+                JpegThrowHelper.ThrowImageFormatException("Multiple SOF markers. Only single frame jpegs supported.");
             }
 
-            this.InputStream.Read(this.temp, 0, remaining);
+            // Read initial marker definitions.
+            const int length = 6;
+            this.InputStream.Read(this.temp, 0, length);
 
             // We only support 8-bit and 12-bit precision.
             if (!this.supportedPrecisions.Contains(this.temp[0]))
             {
-                throw new ImageFormatException("Only 8-Bit and 12-Bit precision supported.");
+                JpegThrowHelper.ThrowImageFormatException("Only 8-Bit and 12-Bit precision supported.");
             }
 
             this.Precision = this.temp[0];
@@ -740,22 +751,35 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 ComponentCount = this.temp[5]
             };
 
+            if (this.Frame.SamplesPerLine == 0 || this.Frame.Scanlines == 0)
+            {
+                JpegThrowHelper.ThrowInvalidImageDimensions(this.Frame.SamplesPerLine, this.Frame.Scanlines);
+            }
+
             this.ImageSizeInPixels = new Size(this.Frame.SamplesPerLine, this.Frame.Scanlines);
-
-            int maxH = 0;
-            int maxV = 0;
-            int index = 6;
-
             this.ComponentCount = this.Frame.ComponentCount;
 
             if (!metadataOnly)
             {
+                remaining -= length;
+
+                const int componentBytes = 3;
+                if (remaining > this.ComponentCount * componentBytes)
+                {
+                    JpegThrowHelper.ThrowBadMarker("SOFn", remaining);
+                }
+
+                this.InputStream.Read(this.temp, 0, remaining);
+
                 // No need to pool this. They max out at 4
                 this.Frame.ComponentIds = new byte[this.ComponentCount];
                 this.Frame.ComponentOrder = new byte[this.ComponentCount];
                 this.Frame.Components = new JpegComponent[this.ComponentCount];
                 this.ColorSpace = this.DeduceJpegColorSpace();
 
+                int maxH = 0;
+                int maxV = 0;
+                int index = 0;
                 for (int i = 0; i < this.ComponentCount; i++)
                 {
                     byte hv = this.temp[index + 1];
@@ -777,7 +801,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     this.Frame.Components[i] = component;
                     this.Frame.ComponentIds[i] = component.Id;
 
-                    index += 3;
+                    index += componentBytes;
                 }
 
                 this.Frame.MaxHorizontalFactor = maxH;
@@ -795,12 +819,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessDefineHuffmanTablesMarker(int remaining)
         {
+            int length = remaining;
+
             using (IManagedByteBuffer huffmanData = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(256, AllocationOptions.Clean))
             {
                 ref byte huffmanDataRef = ref MemoryMarshal.GetReference(huffmanData.GetSpan());
                 for (int i = 2; i < remaining;)
                 {
                     byte huffmanTableSpec = (byte)this.InputStream.ReadByte();
+                    int tableType = huffmanTableSpec >> 4;
+                    int tableIndex = huffmanTableSpec & 15;
+
+                    // Types 0..1 DC..AC
+                    if (tableType > 1)
+                    {
+                        JpegThrowHelper.ThrowImageFormatException("Bad Huffman Table type.");
+                    }
+
+                    // Max tables of each type
+                    if (tableIndex > 3)
+                    {
+                        JpegThrowHelper.ThrowImageFormatException("Bad Huffman Table index.");
+                    }
+
                     this.InputStream.Read(huffmanData.Array, 0, 16);
 
                     using (IManagedByteBuffer codeLengths = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(17, AllocationOptions.Clean))
@@ -813,14 +854,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             codeLengthSum += Unsafe.Add(ref codeLengthsRef, j) = Unsafe.Add(ref huffmanDataRef, j - 1);
                         }
 
+                        length -= 17;
+
+                        if (codeLengthSum > 256 || codeLengthSum > length)
+                        {
+                            JpegThrowHelper.ThrowImageFormatException("Huffman table has excessive length.");
+                        }
+
                         using (IManagedByteBuffer huffmanValues = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(256, AllocationOptions.Clean))
                         {
                             this.InputStream.Read(huffmanValues.Array, 0, codeLengthSum);
 
                             i += 17 + codeLengthSum;
-
-                            int tableType = huffmanTableSpec >> 4;
-                            int tableIndex = huffmanTableSpec & 15;
 
                             this.BuildHuffmanTable(
                                 tableType == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
@@ -848,7 +893,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             if (remaining != 2)
             {
-                throw new ImageFormatException($"DRI has wrong length: {remaining}");
+                JpegThrowHelper.ThrowBadMarker(nameof(JpegConstants.Markers.DRI), remaining);
             }
 
             this.resetInterval = this.ReadUint16();
@@ -861,7 +906,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             if (this.Frame is null)
             {
-                throw new ImageFormatException("No readable SOFn (Start Of Frame) marker found.");
+                JpegThrowHelper.ThrowImageFormatException("No readable SOFn (Start Of Frame) marker found.");
             }
 
             int selectorsCount = this.InputStream.ReadByte();
@@ -882,7 +927,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                 if (componentIndex < 0)
                 {
-                    throw new ImageFormatException("Unknown component selector");
+                    JpegThrowHelper.ThrowImageFormatException($"Unknown component selector {componentIndex}.");
                 }
 
                 ref JpegComponent component = ref this.Frame.Components[componentIndex];
@@ -944,6 +989,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private Image<TPixel> PostProcessIntoImage<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
+            if (this.ImageWidth == 0 || this.ImageHeight == 0)
+            {
+                JpegThrowHelper.ThrowInvalidImageDimensions(this.ImageWidth, this.ImageHeight);
+            }
+
             var image = Image.CreateUninitialized<TPixel>(
                 this.configuration,
                 this.ImageWidth,

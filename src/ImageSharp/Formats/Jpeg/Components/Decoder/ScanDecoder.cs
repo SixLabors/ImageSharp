@@ -270,8 +270,60 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
+        private void CheckProgressiveData()
+        {
+            // Validate successive scan parameters.
+            // Logic has been adapted from libjpeg.
+            // See Table B.3 – Scan header parameter size and values. itu-t81.pdf
+            bool invalid = false;
+            if (this.spectralStart == 0)
+            {
+                if (this.spectralEnd != 0)
+                {
+                    invalid = true;
+                }
+            }
+            else
+            {
+                // Need not check Ss/Se < 0 since they came from unsigned bytes.
+                if (this.spectralEnd < this.spectralStart || this.spectralEnd > 63)
+                {
+                    invalid = true;
+                }
+
+                // AC scans may have only one component.
+                if (this.componentsLength != 1)
+                {
+                    invalid = true;
+                }
+            }
+
+            if (this.successiveHigh != 0)
+            {
+                // Successive approximation refinement scan: must have Al = Ah-1.
+                if (this.successiveHigh - 1 != this.successiveLow)
+                {
+                    invalid = true;
+                }
+            }
+
+            // TODO: How does this affect 12bit jpegs.
+            // According to libjpeg the range covers 8bit only?
+            if (this.successiveLow > 13)
+            {
+                invalid = true;
+            }
+
+            if (invalid)
+            {
+                JpegThrowHelper.ThrowBadProgressiveScan(this.spectralStart, this.spectralEnd, this.successiveHigh, this.successiveLow);
+            }
+        }
+
         private void ParseProgressiveData()
         {
+            this.CheckProgressiveData();
+
             if (this.componentsLength == 1)
             {
                 this.ParseProgressiveDataNonInterleaved();
@@ -483,11 +535,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             ref Block8x8 block,
             ref HuffmanTable dcTable)
         {
-            if (this.spectralEnd != 0)
-            {
-                JpegThrowHelper.ThrowImageFormatException("Can't merge DC and AC.");
-            }
-
             this.CheckBits();
 
             ref short blockDataRef = ref Unsafe.As<Block8x8, short>(ref block);
@@ -518,11 +565,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             ref HuffmanTable acTable,
             ref short fastACRef)
         {
-            if (this.spectralStart == 0)
-            {
-                JpegThrowHelper.ThrowImageFormatException("Can't merge DC and AC.");
-            }
-
             ref short blockDataRef = ref Unsafe.As<Block8x8, short>(ref block);
 
             if (this.successiveHigh == 0)

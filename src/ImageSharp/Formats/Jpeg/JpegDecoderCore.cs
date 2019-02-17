@@ -710,7 +710,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             if (remaining != 0)
             {
-                JpegThrowHelper.ThrowImageFormatException("DQT has wrong length");
+                JpegThrowHelper.ThrowBadMarker(nameof(JpegConstants.Markers.DQT), remaining);
             }
 
             this.MetaData.GetFormatMetaData(JpegFormat.Instance).Quality = QualityEvaluator.EstimateQuality(this.QuantizationTables);
@@ -729,7 +729,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 JpegThrowHelper.ThrowImageFormatException("Multiple SOF markers. Only single frame jpegs supported.");
             }
 
-            this.InputStream.Read(this.temp, 0, remaining);
+            // Read initial marker definitions.
+            const int length = 6;
+            this.InputStream.Read(this.temp, 0, length);
 
             // We only support 8-bit and 12-bit precision.
             if (!this.supportedPrecisions.Contains(this.temp[0]))
@@ -755,21 +757,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
 
             this.ImageSizeInPixels = new Size(this.Frame.SamplesPerLine, this.Frame.Scanlines);
-
-            int maxH = 0;
-            int maxV = 0;
-            int index = 6;
-
             this.ComponentCount = this.Frame.ComponentCount;
 
             if (!metadataOnly)
             {
+                remaining -= length;
+
+                const int componentBytes = 3;
+                if (remaining > this.ComponentCount * componentBytes)
+                {
+                    JpegThrowHelper.ThrowBadMarker("SOFn", remaining);
+                }
+
+                this.InputStream.Read(this.temp, 0, remaining);
+
                 // No need to pool this. They max out at 4
                 this.Frame.ComponentIds = new byte[this.ComponentCount];
                 this.Frame.ComponentOrder = new byte[this.ComponentCount];
                 this.Frame.Components = new JpegComponent[this.ComponentCount];
                 this.ColorSpace = this.DeduceJpegColorSpace();
 
+                int maxH = 0;
+                int maxV = 0;
+                int index = 0;
                 for (int i = 0; i < this.ComponentCount; i++)
                 {
                     byte hv = this.temp[index + 1];
@@ -791,7 +801,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     this.Frame.Components[i] = component;
                     this.Frame.ComponentIds[i] = component.Id;
 
-                    index += 3;
+                    index += componentBytes;
                 }
 
                 this.Frame.MaxHorizontalFactor = maxH;
@@ -883,7 +893,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             if (remaining != 2)
             {
-                JpegThrowHelper.ThrowImageFormatException($"DRI has wrong length: {remaining}");
+                JpegThrowHelper.ThrowBadMarker(nameof(JpegConstants.Markers.DRI), remaining);
             }
 
             this.resetInterval = this.ReadUint16();

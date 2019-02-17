@@ -15,6 +15,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public static void ThrowImageFormatException(string errorMessage) => throw new ImageFormatException(errorMessage);
 
         [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowBadMarker(string marker, int length) => throw new ImageFormatException($"Marker {marker} has bad length {length}.");
+
+        [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowBadQuantizationTable() => throw new ImageFormatException("Bad Quantization Table index.");
 
         [MethodImpl(InliningOptions.ColdPath)]

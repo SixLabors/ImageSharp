@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// The kernel components to use for the current instance
         /// </summary>
-        private readonly IReadOnlyList<IReadOnlyDictionary<char, float>> kernelComponents;
+        private readonly IReadOnlyList<IReadOnlyDictionary<char, float>> kernelParameters;
 
         /// <summary>
         /// The scaling factor for kernel values
@@ -57,10 +57,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             this.kernelSize = (radius * 2) + 1;
             this.componentsCount = components;
 
-            (this.kernelComponents, this.kernelsScale) = this.GetParameters();
+            (this.kernelParameters, this.kernelsScale) = this.GetParameters();
             this.complexKernels = (
-                from component in this.kernelComponents
+                from component in this.kernelParameters
                 select this.CreateComplex1DKernel(component['a'], component['b'])).ToArray();
+            this.NormalizeKernels();
         }
 
         /// <summary>
@@ -76,7 +77,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// Gets the available bokeh blur kernel parameters
         /// </summary>
-        private static IReadOnlyList<float[,]> KernelParameters { get; } = new[]
+        private static IReadOnlyList<float[,]> KernelComponents { get; } = new[]
         {
             // 1 component
             new[,] { { 0.862325f, 1.624835f, 0.767583f, 1.862321f } },
@@ -130,11 +131,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// Gets the kernel parameters and scaling factor for the current count value in the current instance
         /// </summary>
-        private (IReadOnlyList<IReadOnlyDictionary<char, float>> Components, float Scale) GetParameters()
+        private (IReadOnlyList<IReadOnlyDictionary<char, float>> Parameters, float Scale) GetParameters()
         {
             // Prepare the kernel components
-            int index = Math.Max(0, Math.Min(this.componentsCount - 1, KernelParameters.Count));
-            float[,] parameters = KernelParameters[index];
+            int index = Math.Max(0, Math.Min(this.componentsCount - 1, KernelComponents.Count));
+            float[,] parameters = KernelComponents[index];
             var mapping = new IReadOnlyDictionary<char, float>[parameters.GetLength(0)];
             for (int i = 0; i < parameters.GetLength(0); i++)
             {
@@ -177,6 +178,37 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             }
 
             return kernel;
+        }
+
+        /// <summary>
+        /// Normalizes the kernels with respect to A * real + B * imaginary
+        /// </summary>
+        private void NormalizeKernels()
+        {
+            // Calculate the complex weighted sum
+            double total = 0;
+            foreach ((Complex[] kernel, IReadOnlyDictionary<char, float> param) in this.complexKernels.Zip(this.kernelParameters, (k, p) => (k, p)))
+            {
+                for (int i = 0; i < kernel.Length; i++)
+                {
+                    for (int j = 0; j < kernel.Length; j++)
+                    {
+                        total +=
+                            (param['A'] * ((kernel[i].Real * kernel[j].Real) - (kernel[i].Imaginary * kernel[j].Imaginary))) +
+                            (param['B'] * ((kernel[i].Real * kernel[j].Imaginary) + (kernel[i].Imaginary * kernel[j].Real)));
+                    }
+                }
+            }
+
+            // Normalize the kernels
+            float scalar = (float)(1f / Math.Sqrt(total));
+            foreach (Complex[] kernel in this.complexKernels)
+            {
+                for (int i = 0; i < kernel.Length; i++)
+                {
+                    kernel[i] = kernel[i] * scalar;
+                }
+            }
         }
 
         /// <inheritdoc/>

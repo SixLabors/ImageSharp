@@ -22,10 +22,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         private readonly int kernelSize;
 
         /// <summary>
+        /// The number of components to use when applying the bokeh blur
+        /// </summary>
+        private readonly int componentsCount;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="SixLabors.ImageSharp.Processing.Processors.Convolution.BokehBlurProcessor{TPixel}"/> class.
         /// </summary>
-        public BokehBlurProcessor()
+        public BokehBlurProcessor(int components = 2)
         {
+            this.componentsCount = components;
         }
 
         /// <summary>
@@ -101,6 +107,30 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 { 2.201904, 19.032909, -0.152784, -0.107988 }
             }
         };
+
+        /// <summary>
+        /// Gets the kernel parameters and scaling factor for the current count value in the current instance
+        /// </summary>
+        private (IReadOnlyList<IReadOnlyDictionary<char, double>> Components, double Scale) GetParameters()
+        {
+            // Prepare the kernel components
+            int index = Math.Max(0, Math.Min(this.componentsCount - 1, KernelParameters.Count));
+            double[,] parameters = KernelParameters[index];
+            var mapping = new IReadOnlyDictionary<char, double>[parameters.GetLength(0)];
+            for (int i = 0; i < parameters.GetLength(0); i++)
+            {
+                mapping[i] = new Dictionary<char, double>
+                {
+                    ['a'] = parameters[i, 0],
+                    ['b'] = parameters[i, 1],
+                    ['A'] = parameters[i, 2],
+                    ['B'] = parameters[i, 3]
+                };
+            }
+
+            // Return the components and the adjustment scale
+            return (mapping, KernelScales[index]);
+        }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration) => throw new NotImplementedException();

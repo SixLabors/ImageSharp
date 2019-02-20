@@ -4,8 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// The complex kernels to use to apply the blur for the current instance
         /// </summary>
-        private readonly IReadOnlyList<Complex[]> complexKernels;
+        private readonly IReadOnlyList<Complex64[]> complexKernels;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SixLabors.ImageSharp.Processing.Processors.Convolution.BokehBlurProcessor{TPixel}"/> class.
@@ -157,7 +157,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </summary>
         /// <param name="a">The exponential parameter for each complex component</param>
         /// <param name="b">The angle component for each complex component</param>
-        private Complex[] CreateComplex1DKernel(float a, float b)
+        private Complex64[] CreateComplex1DKernel(float a, float b)
         {
             // Precompute the range values
             float[] ax = Enumerable.Range(-this.Radius, this.Radius + 1).Select(
@@ -168,13 +168,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     }).ToArray();
 
             // Compute the complex kernels
-            var kernel = new Complex[this.kernelSize];
+            var kernel = new Complex64[this.kernelSize];
             for (int i = 0; i < this.kernelSize; i++)
             {
-                double
-                    real = Math.Exp(-a * ax[i]) * Math.Cos(b * ax[i]),
-                    imaginary = Math.Exp(-a * ax[i]) * Math.Sin(b * ax[i]);
-                kernel[i] = new Complex(real, imaginary);
+                float
+                    real = (float)(Math.Exp(-a * ax[i]) * Math.Cos(b * ax[i])),
+                    imaginary = (float)(Math.Exp(-a * ax[i]) * Math.Sin(b * ax[i]));
+                kernel[i] = new Complex64(real, imaginary);
             }
 
             return kernel;
@@ -187,7 +187,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         {
             // Calculate the complex weighted sum
             double total = 0;
-            foreach ((Complex[] kernel, IReadOnlyDictionary<char, float> param) in this.complexKernels.Zip(this.kernelParameters, (k, p) => (k, p)))
+            foreach ((Complex64[] kernel, IReadOnlyDictionary<char, float> param) in this.complexKernels.Zip(this.kernelParameters, (k, p) => (k, p)))
             {
                 for (int i = 0; i < kernel.Length; i++)
                 {
@@ -202,7 +202,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             // Normalize the kernels
             float scalar = (float)(1f / Math.Sqrt(total));
-            foreach (Complex[] kernel in this.complexKernels)
+            foreach (Complex64[] kernel in this.complexKernels)
             {
                 for (int i = 0; i < kernel.Length; i++)
                 {

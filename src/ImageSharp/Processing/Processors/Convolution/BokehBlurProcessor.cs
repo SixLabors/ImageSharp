@@ -43,6 +43,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         private readonly IReadOnlyList<Complex64[]> complexKernels;
 
         /// <summary>
+        /// The mapping of initialized complex kernels and parameters, to speed up the initialization of new <see cref="BokehBlurProcessor{TPixel}"/> instances
+        /// </summary>
+        private static readonly Dictionary<(int, int), (IReadOnlyList<IReadOnlyDictionary<char, float>>, float, IReadOnlyList<Complex64[]>)> Cache =
+            new Dictionary<(int, int), (IReadOnlyList<IReadOnlyDictionary<char, float>>, float, IReadOnlyList<Complex64[]>)>();
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="SixLabors.ImageSharp.Processing.Processors.Convolution.BokehBlurProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="radius">
@@ -57,11 +63,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             this.kernelSize = (radius * 2) + 1;
             this.componentsCount = components;
 
-            (this.kernelParameters, this.kernelsScale) = this.GetParameters();
-            this.complexKernels = (
-                from component in this.kernelParameters
-                select this.CreateComplex1DKernel(component['a'], component['b'])).ToArray();
-            this.NormalizeKernels();
+            // Reuse the initialized values from the cache, if possible
+            if (Cache.TryGetValue((radius, components), out (IReadOnlyList<IReadOnlyDictionary<char, float>>, float, IReadOnlyList<Complex64[]>) info))
+            {
+                this.kernelParameters = info.Item1;
+                this.kernelsScale = info.Item2;
+                this.complexKernels = info.Item3;
+            }
+            else
+            {
+                // Initialize the complex kernels and parameters with the current arguments
+                (this.kernelParameters, this.kernelsScale) = this.GetParameters();
+                this.complexKernels = (
+                                          from component in this.kernelParameters
+                                          select this.CreateComplex1DKernel(component['a'], component['b'])).ToArray();
+                this.NormalizeKernels();
+
+                // Store them in the cache for future use
+                Cache.Add((radius, components), (this.kernelParameters, this.kernelsScale, this.complexKernels));
+            }
         }
 
         /// <summary>

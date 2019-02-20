@@ -3,12 +3,10 @@
 
 using System;
 using System.Buffers;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Drawing
@@ -20,22 +18,26 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
     internal class FillProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        /// <summary>
-        /// The brush.
-        /// </summary>
-        private readonly IBrush<TPixel> brush;
-        private readonly GraphicsOptions options;
-
-        /// <summary>
+ /// <summary>
         /// Initializes a new instance of the <see cref="FillProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="brush">The brush to source pixel colors from.</param>
         /// <param name="options">The options</param>
         public FillProcessor(IBrush<TPixel> brush, GraphicsOptions options)
         {
-            this.brush = brush;
-            this.options = options;
+            this.Brush = brush;
+            this.Options = options;
         }
+
+        /// <summary>
+        /// Gets the brush.
+        /// </summary>
+        public IBrush<TPixel> Brush { get; }
+
+        /// <summary>
+        /// Gets the options.
+        /// </summary>
+        public GraphicsOptions Options { get; }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
@@ -85,10 +87,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                 }
 
                 using (IMemoryOwner<float> amount = source.MemoryAllocator.Allocate<float>(width))
-                using (BrushApplicator<TPixel> applicator = this.brush.CreateApplicator(
+                using (BrushApplicator<TPixel> applicator = this.Brush.CreateApplicator(
                     source,
                     sourceRectangle,
-                    this.options))
+                    this.Options))
                 {
                     amount.GetSpan().Fill(1f);
 
@@ -111,14 +113,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 
         private bool IsSolidBrushWithoutBlending(out SolidBrush<TPixel> solidBrush)
         {
-            solidBrush = this.brush as SolidBrush<TPixel>;
+            solidBrush = this.Brush as SolidBrush<TPixel>;
 
             if (solidBrush == null)
             {
                 return false;
             }
 
-            return this.options.IsOpaqueColorWithoutBlending(solidBrush.Color);
+            return this.Options.IsOpaqueColorWithoutBlending(solidBrush.Color);
         }
     }
 }

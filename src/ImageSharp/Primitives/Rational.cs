@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// Determines whether the specified <see cref="Rational"/> instances are not considered equal.
         /// </summary>
         /// <param name="left">The first <see cref="Rational"/> to compare.</param>
-        /// <param name="right"> The second <see cref="Rational"/> to compare.</param>
+        /// <param name="right">The second <see cref="Rational"/> to compare.</param>
         /// <returns>The <see cref="bool"/></returns>
         public static bool operator !=(Rational left, Rational right)
         {

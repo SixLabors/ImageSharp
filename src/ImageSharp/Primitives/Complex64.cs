@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.CompilerServices;
+
 namespace SixLabors.ImageSharp.Primitives
 {
     /// <summary>
@@ -38,6 +40,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <param name="value">The <see cref="Complex64"/> value to multiply.</param>
         /// <param name="scalar">The <see cref="float"/> scalar to use to multiply the <see cref="Complex64"/> value.</param>
         /// <returns>The <see cref="Complex64"/> result</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static Complex64 operator *(Complex64 value, float scalar) => new Complex64(value.Real * scalar, value.Imaginary * scalar);
 
         /// <summary>
@@ -46,6 +49,16 @@ namespace SixLabors.ImageSharp.Primitives
         /// <param name="left">The first <see cref="Complex64"/> value to sum.</param>
         /// <param name="right">The second <see cref="Complex64"/> value to sum.</param>
         /// <returns>The <see cref="Complex64"/> result</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static Complex64 operator +(Complex64 left, Complex64 right) => new Complex64(left.Real + right.Real, left.Imaginary + right.Imaginary);
+
+        /// <summary>
+        /// Performs a weighted sum on the current instance according to the given parameters
+        /// </summary>
+        /// <param name="a">The 'a' parameter, for the real component</param>
+        /// <param name="b">The 'b' parameter, for the imaginary component</param>
+        /// <returns>The resulting <see cref="float"/> value</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public float WeightedSum(float a, float b) => (this.Real * a) + (this.Imaginary * b);
     }
 }

@@ -177,6 +177,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                         ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
                         ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
+                        dcHuffmanTable.Derive();
+                        acHuffmanTable.Derive();
+
                         ref short fastACRef = ref this.fastACTables.GetAcTableReference(component);
                         int h = component.HorizontalSamplingFactor;
                         int v = component.VerticalSamplingFactor;
@@ -234,6 +237,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
             ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
+            dcHuffmanTable.Derive();
+            acHuffmanTable.Derive();
+
             ref short fastACRef = ref this.fastACTables.GetAcTableReference(component);
 
             int mcu = 0;
@@ -350,6 +356,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         int order = this.frame.ComponentOrder[k];
                         JpegComponent component = this.components[order];
                         ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
+                        dcHuffmanTable.Derive();
+
                         int h = component.HorizontalSamplingFactor;
                         int v = component.VerticalSamplingFactor;
 
@@ -405,6 +413,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
             ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
+            dcHuffmanTable.Derive();
+            acHuffmanTable.Derive();
+
             ref short fastACRef = ref this.fastACTables.GetAcTableReference(component);
 
             int mcu = 0;

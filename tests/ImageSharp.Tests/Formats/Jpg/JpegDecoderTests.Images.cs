@@ -79,7 +79,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             TestImages.Jpeg.Issues.Fuzz.ArgumentException826A,
             TestImages.Jpeg.Issues.Fuzz.ArgumentException826B,
             TestImages.Jpeg.Issues.Fuzz.ArgumentException826C,
-            TestImages.Jpeg.Issues.Fuzz.AccessViolationException827
+            TestImages.Jpeg.Issues.Fuzz.AccessViolationException827,
+            TestImages.Jpeg.Issues.Fuzz.ExecutionEngineException839
         };
 
         private static readonly Dictionary<string, float> CustomToleranceValues =

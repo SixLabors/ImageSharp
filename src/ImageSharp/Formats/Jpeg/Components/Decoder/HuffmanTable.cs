@@ -17,6 +17,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     [StructLayout(LayoutKind.Sequential)]
     internal unsafe struct HuffmanTable
     {
+        private bool isDerived;
+
+        private readonly MemoryAllocator memoryAllocator;
+
+#pragma warning disable IDE0044 // Add readonly modifier
+        private fixed byte codeLengths[17];
+#pragma warning restore IDE0044 // Add readonly modifier
+
         /// <summary>
         /// Gets the max code array
         /// </summary>
@@ -50,16 +58,32 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="values">The huffman values</param>
         public HuffmanTable(MemoryAllocator memoryAllocator, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
         {
+            this.isDerived = false;
+            this.memoryAllocator = memoryAllocator;
+            Unsafe.CopyBlockUnaligned(ref this.codeLengths[0], ref MemoryMarshal.GetReference(codeLengths), 17);
+            Unsafe.CopyBlockUnaligned(ref this.Values[0], ref MemoryMarshal.GetReference(values), 256);
+        }
+
+        /// <summary>
+        /// Expands the HuffmanTable into its derived form.
+        /// </summary>
+        /// <returns>The <see cref="HuffmanTable"/></returns>
+        public HuffmanTable Derive()
+        {
+            if (this.isDerived)
+            {
+                return this;
+            }
+
             const int Length = 257;
-            using (IMemoryOwner<short> huffcode = memoryAllocator.Allocate<short>(Length))
+            using (IMemoryOwner<short> huffcode = this.memoryAllocator.Allocate<short>(Length))
             {
                 ref short huffcodeRef = ref MemoryMarshal.GetReference(huffcode.GetSpan());
-                ref byte codeLengthsRef = ref MemoryMarshal.GetReference(codeLengths);
+                ref byte codeLengthsRef = ref this.codeLengths[0];
 
                 // Figure C.1: make table of Huffman code length for each symbol
                 ref short sizesRef = ref this.Sizes[0];
                 short x = 0;
-
                 for (short i = 1; i < 17; i++)
                 {
                     byte length = Unsafe.Add(ref codeLengthsRef, i);
@@ -119,7 +143,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
             }
 
-            Unsafe.CopyBlockUnaligned(ref this.Values[0], ref MemoryMarshal.GetReference(values), 256);
+            this.isDerived = true;
+            return this;
         }
     }
 }

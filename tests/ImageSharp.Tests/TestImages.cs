@@ -196,6 +196,7 @@ namespace SixLabors.ImageSharp.Tests
                     public const string ArgumentException826B = "Jpg/issues/fuzz/Issue826-ArgumentException-B.jpg";
                     public const string ArgumentException826C = "Jpg/issues/fuzz/Issue826-ArgumentException-C.jpg";
                     public const string AccessViolationException827 = "Jpg/issues/fuzz/Issue827-AccessViolationException.jpg";
+                    public const string ExecutionEngineException839 = "Jpg/issues/fuzz/Issue839-ExecutionEngineException.jpg";
                 }
             }
 

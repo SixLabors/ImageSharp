@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Primitives
@@ -11,7 +12,7 @@ namespace SixLabors.ImageSharp.Primitives
     /// <remarks>
     /// This is a more efficient version of the <see cref="System.Numerics.Complex"/> type.
     /// </remarks>
-    internal readonly struct Complex64
+    internal readonly struct Complex64 : IEquatable<Complex64>
     {
         /// <summary>
         /// The real part of the complex number
@@ -60,5 +61,23 @@ namespace SixLabors.ImageSharp.Primitives
         /// <returns>The resulting <see cref="float"/> value</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public float WeightedSum(float a, float b) => (this.Real * a) + (this.Imaginary * b);
+
+        /// <inheritdoc/>
+        public bool Equals(Complex64 other)
+        {
+            return this.Real.Equals(other.Real) && this.Imaginary.Equals(other.Imaginary);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj) => obj is Complex64 other && this.Equals(other);
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (this.Real.GetHashCode() * 397) ^ this.Imaginary.GetHashCode();
+            }
+        }
     }
 }

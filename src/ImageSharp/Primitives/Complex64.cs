@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Primitives
@@ -45,31 +46,31 @@ namespace SixLabors.ImageSharp.Primitives
         public static Complex64 operator *(Complex64 value, float scalar) => new Complex64(value.Real * scalar, value.Imaginary * scalar);
 
         /// <summary>
-        /// Performs the addition operation between two <see cref="Complex64"/> intances.
+        /// Performs the multiplication operation between a <see cref="Complex64"/> intance and a <see cref="Vector4"/>.
         /// </summary>
-        /// <param name="left">The first <see cref="Complex64"/> value to sum.</param>
-        /// <param name="right">The second <see cref="Complex64"/> value to sum.</param>
+        /// <param name="value">The <see cref="Complex64"/> value to multiply.</param>
+        /// <param name="vector">The <see cref="Vector4"/> instance to use to multiply the <see cref="Complex64"/> value.</param>
         /// <returns>The <see cref="Complex64"/> result</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static Complex64 operator +(Complex64 left, Complex64 right) => new Complex64(left.Real + right.Real, left.Imaginary + right.Imaginary);
+        public static ComplexVector4 operator *(Complex64 value, Vector4 vector)
+        {
+            return new ComplexVector4 { Real = vector * value.Real, Imaginary = vector * value.Imaginary };
+        }
 
         /// <summary>
-        /// Performs the multiplication operation between two <see cref="Complex64"/> intances.
+        /// Performs the multiplication operation between a <see cref="Complex64"/> intance and a <see cref="ComplexVector4"/>.
         /// </summary>
-        /// <param name="left">The first <see cref="Complex64"/> value to multiply.</param>
-        /// <param name="right">The second <see cref="Complex64"/> value to multiply.</param>
+        /// <param name="value">The <see cref="Complex64"/> value to multiply.</param>
+        /// <param name="vector">The <see cref="ComplexVector4"/> instance to use to multiply the <see cref="Complex64"/> value.</param>
         /// <returns>The <see cref="Complex64"/> result</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static Complex64 operator *(Complex64 left, Complex64 right) => new Complex64((left.Real * right.Real) - (left.Imaginary * right.Imaginary), (left.Real * right.Imaginary) + (left.Imaginary * right.Real));
-
-        /// <summary>
-        /// Performs a weighted sum on the current instance according to the given parameters
-        /// </summary>
-        /// <param name="a">The 'a' parameter, for the real component</param>
-        /// <param name="b">The 'b' parameter, for the imaginary component</param>
-        /// <returns>The resulting <see cref="float"/> value</returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public float WeightedSum(float a, float b) => (this.Real * a) + (this.Imaginary * b);
+        public static ComplexVector4 operator *(Complex64 value, ComplexVector4 vector)
+        {
+            Vector4
+                real = (value.Real * vector.Real) - (value.Imaginary * vector.Imaginary),
+                imaginary = (value.Real * vector.Imaginary) + (value.Imaginary * vector.Real);
+            return new ComplexVector4 { Real = real, Imaginary = imaginary };
+        }
 
         /// <inheritdoc/>
         public bool Equals(Complex64 other)

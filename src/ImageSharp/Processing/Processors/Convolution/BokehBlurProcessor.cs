@@ -261,12 +261,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         Span<ComplexVector4> partialSpan = partialValues.Span;
                         for (int i = 0; i < processingSpan.Length; i++)
                         {
-                            var vector = new Vector4(
-                                partialSpan[i].X.WeightedSum(parameters['A'], parameters['B']),
-                                partialSpan[i].Y.WeightedSum(parameters['A'], parameters['B']),
-                                partialSpan[i].Z.WeightedSum(parameters['A'], parameters['B']),
-                                partialSpan[i].W.WeightedSum(parameters['A'], parameters['B']));
-                            processingSpan[i] += vector;
+                            processingSpan[i] += partialSpan[i].WeightedSum(parameters['A'], parameters['B']);
                         }
                     }
                 }

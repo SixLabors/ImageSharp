@@ -240,23 +240,45 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             // Create a 0-filled buffer to use to store the result of the component convolutions
-            using (Buffer2D<TPixel> processing = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
+            using (Buffer2D<Vector4> processing = configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size()))
             {
+                Span<Vector4> processingSpan = processing.Span;
+
                 // Perform two 1D convolutions for each component in the current instance
                 foreach ((DenseMatrix<Complex64> kernel, IReadOnlyDictionary<char, float> parameters) in this.complexKernels.Zip(this.kernelParameters, (k, p) => (k, p)))
                 {
-                    using (Buffer2D<ComplexVector4> 
-                        firstPassValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()),
-                        partialValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
+                    using (Buffer2D<ComplexVector4> partialValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
                     {
-                        var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
-                        this.ApplyConvolution(firstPassValues, source.PixelBuffer, interest, kernel, configuration);
-                        this.ApplyConvolution(partialValues, firstPassValues, interest, kernel.Reshape(1, kernel.Count), configuration);
+                        // Compute the resulting complex buffer for the current component
+                        using (Buffer2D<ComplexVector4> firstPassValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
+                        {
+                            var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+                            this.ApplyConvolution(firstPassValues, source.PixelBuffer, interest, kernel, configuration);
+                            this.ApplyConvolution(partialValues, firstPassValues, interest, kernel.Reshape(1, kernel.Count), configuration);
+                        }
+
+                        // Add the results of the convolution with the current kernel
+                        Span<ComplexVector4> partialSpan = partialValues.Span;
+                        for (int i = 0; i < processingSpan.Length; i++)
+                        {
+                            var vector = new Vector4(
+                                partialSpan[i].X.WeightedSum(parameters['A'], parameters['B']),
+                                partialSpan[i].Y.WeightedSum(parameters['A'], parameters['B']),
+                                partialSpan[i].Z.WeightedSum(parameters['A'], parameters['B']),
+                                partialSpan[i].W.WeightedSum(parameters['A'], parameters['B']));
+                            processingSpan[i] += vector;
+                        }
                     }
                 }
 
                 // Copy the processed buffer back to the source image
-                processing.GetSpan().CopyTo(source.GetPixelSpan());
+                Span<TPixel> sourceSpan = source.GetPixelSpan();
+                for (int i = 0; i < sourceSpan.Length; i++)
+                {
+                    TPixel pixel = default;
+                    pixel.FromVector4(processingSpan[i]);
+                    sourceSpan[i] = pixel;
+                }
             }
         }
 

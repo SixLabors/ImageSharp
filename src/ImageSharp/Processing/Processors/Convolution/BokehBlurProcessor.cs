@@ -242,13 +242,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             // Create a 0-filled buffer to use to store the result of the component convolutions
             using (Buffer2D<TPixel> processing = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
             {
-                // Perform two 1D convolutions for each component in the current insttance
+                // Perform two 1D convolutions for each component in the current instance
                 foreach ((DenseMatrix<Complex64> kernel, IReadOnlyDictionary<char, float> parameters) in this.complexKernels.Zip(this.kernelParameters, (k, p) => (k, p)))
                 {
-                    using (Buffer2D<ComplexVector4> firstPassValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
+                    using (Buffer2D<ComplexVector4> 
+                        firstPassValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()),
+                        partialValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
                     {
                         var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
                         this.ApplyConvolution(firstPassValues, source.PixelBuffer, interest, kernel, configuration);
+                        this.ApplyConvolution(partialValues, firstPassValues, interest, kernel.Reshape(1, kernel.Count), configuration);
                     }
                 }
 
@@ -298,6 +301,52 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         for (int x = 0; x < width; x++)
                         {
                             DenseMatrixUtils.Convolve(in matrix, sourcePixels, targetRowSpan, y, x, maxY, maxX, startX);
+                        }
+                    }
+                });
+        }
+
+        /// <summary>
+        /// Applies the process to the specified portion of the specified <see cref="ImageFrame{TPixel}"/> at the specified location
+        /// and with the specified size.
+        /// </summary>
+        /// <param name="targetValues">The target <see cref="ComplexVector4"/> values to use to store the results.</param>
+        /// <param name="sourceValues">The source complex values. Cannot be null.</param>
+        /// <param name="sourceRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
+        /// </param>
+        /// <param name="kernel">The kernel operator.</param>
+        /// <param name="configuration">The <see cref="Configuration"/></param>
+        private void ApplyConvolution(
+            Buffer2D<ComplexVector4> targetValues,
+            Buffer2D<ComplexVector4> sourceValues,
+            Rectangle sourceRectangle,
+            in DenseMatrix<Complex64> kernel,
+            Configuration configuration)
+        {
+            DenseMatrix<Complex64> matrix = kernel;
+            int startY = sourceRectangle.Y;
+            int endY = sourceRectangle.Bottom;
+            int startX = sourceRectangle.X;
+            int endX = sourceRectangle.Right;
+            int maxY = endY - 1;
+            int maxX = endX - 1;
+
+            var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
+            int width = workingRectangle.Width;
+
+            ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
+                workingRectangle,
+                configuration,
+                (rows, vectorBuffer) =>
+                {
+                    for (int y = rows.Min; y < rows.Max; y++)
+                    {
+                        Span<ComplexVector4> targetRowSpan = targetValues.GetRowSpan(y).Slice(startX);
+
+                        for (int x = 0; x < width; x++)
+                        {
+                            DenseMatrixUtils.Convolve(in matrix, sourceValues, targetRowSpan, y, x, maxY, maxX, startX);
                         }
                     }
                 });

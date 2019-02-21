@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
@@ -186,6 +187,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 for (int i = 0; i < mcusPerLine; i++)
                 {
                     // Scan an interleaved mcu... process components in order
+                    int mcuRow = mcu / mcusPerLine;
+                    int mcuCol = mcu % mcusPerLine;
                     for (int k = 0; k < this.componentsLength; k++)
                     {
                         int order = this.frame.ComponentOrder[k];
@@ -199,14 +202,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         int h = component.HorizontalSamplingFactor;
                         int v = component.VerticalSamplingFactor;
 
-                        int mcuRow = mcu / mcusPerLine;
-
                         // Scan out an mcu's worth of this component; that's just determined
                         // by the basic H and V specified for the component
                         for (int y = 0; y < v; y++)
                         {
                             int blockRow = (mcuRow * v) + y;
                             Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(blockRow);
+                            ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
+
                             for (int x = 0; x < h; x++)
                             {
                                 if (this.eof)
@@ -214,12 +217,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                                     return;
                                 }
 
-                                int mcuCol = mcu % mcusPerLine;
                                 int blockCol = (mcuCol * h) + x;
 
                                 this.DecodeBlockBaseline(
                                     component,
-                                    ref blockSpan[blockCol],
+                                    ref Unsafe.Add(ref blockRef, blockCol),
                                     ref dcHuffmanTable,
                                     ref acHuffmanTable,
                                     ref fastACRef);
@@ -262,9 +264,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int mcu = 0;
             for (int j = 0; j < h; j++)
             {
-                // TODO: Isn't blockRow == j actually?
-                int blockRow = mcu / w;
-                Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(blockRow);
+                int blockRow = j;
+                Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(j);
+                ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                 for (int i = 0; i < w; i++)
                 {
@@ -273,12 +275,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         return;
                     }
 
-                    // TODO: Isn't blockCol == i actually?
-                    int blockCol = mcu % w;
-
                     this.DecodeBlockBaseline(
                         component,
-                        ref blockSpan[blockCol],
+                        ref Unsafe.Add(ref blockRef, i),
                         ref dcHuffmanTable,
                         ref acHuffmanTable,
                         ref fastACRef);
@@ -378,6 +377,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 for (int i = 0; i < mcusPerLine; i++)
                 {
                     // Scan an interleaved mcu... process components in order
+                    int mcuRow = mcu / mcusPerLine;
+                    int mcuCol = mcu % mcusPerLine;
                     for (int k = 0; k < this.componentsLength; k++)
                     {
                         int order = this.frame.ComponentOrder[k];
@@ -391,9 +392,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         // by the basic H and V specified for the component
                         for (int y = 0; y < v; y++)
                         {
-                            int mcuRow = mcu / mcusPerLine;
                             int blockRow = (mcuRow * v) + y;
                             Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(blockRow);
+                            ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                             for (int x = 0; x < h; x++)
                             {
@@ -402,12 +403,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                                     return;
                                 }
 
-                                int mcuCol = mcu % mcusPerLine;
                                 int blockCol = (mcuCol * h) + x;
 
                                 this.DecodeBlockProgressiveDC(
                                     component,
-                                    ref blockSpan[blockCol],
+                                    ref Unsafe.Add(ref blockRef, blockCol),
                                     ref dcHuffmanTable);
                             }
                         }
@@ -445,9 +445,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 int mcu = 0;
                 for (int j = 0; j < h; j++)
                 {
-                    // TODO: isn't blockRow == j actually?
-                    int blockRow = mcu / w;
-                    Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(blockRow);
+                    Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(j);
+                    ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                     for (int i = 0; i < w; i++)
                     {
@@ -456,13 +455,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                             return;
                         }
 
-                        // TODO: isn't blockCol == i actually?
-                        int blockCol = mcu % w;
-                        ref Block8x8 block = ref blockSpan[blockCol];
-
                         this.DecodeBlockProgressiveDC(
                             component,
-                            ref block,
+                            ref Unsafe.Add(ref blockRef, i),
                             ref dcHuffmanTable);
 
                         // Every data block is an MCU, so countdown the restart interval
@@ -486,9 +481,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 int mcu = 0;
                 for (int j = 0; j < h; j++)
                 {
-                    // TODO: isn't blockRow == j actually?
-                    int blockRow = mcu / w;
-                    Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(blockRow);
+                    Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(j);
+                    ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                     for (int i = 0; i < w; i++)
                     {
@@ -497,12 +491,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                             return;
                         }
 
-                        // TODO: isn't blockCol == i actually?
-                        int blockCol = mcu % w;
-                        ref Block8x8 block = ref blockSpan[blockCol];
-
                         this.DecodeBlockProgressiveAC(
-                            ref block,
+                            ref Unsafe.Add(ref blockRef, i),
                             ref acHuffmanTable,
                             ref fastACRef);
 

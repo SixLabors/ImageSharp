@@ -4,6 +4,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
+
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.Primitives;
@@ -40,13 +45,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// The complex kernels to use to apply the blur for the current instance
         /// </summary>
-        private readonly IReadOnlyList<Complex64[]> complexKernels;
+        private readonly IReadOnlyList<DenseMatrix<Complex64>> complexKernels;
 
         /// <summary>
         /// The mapping of initialized complex kernels and parameters, to speed up the initialization of new <see cref="BokehBlurProcessor{TPixel}"/> instances
         /// </summary>
-        private static readonly Dictionary<(int, int), (IReadOnlyList<IReadOnlyDictionary<char, float>>, float, IReadOnlyList<Complex64[]>)> Cache =
-            new Dictionary<(int, int), (IReadOnlyList<IReadOnlyDictionary<char, float>>, float, IReadOnlyList<Complex64[]>)>();
+        private static readonly Dictionary<(int, int), (IReadOnlyList<IReadOnlyDictionary<char, float>>, float, IReadOnlyList<DenseMatrix<Complex64>>)> Cache =
+            new Dictionary<(int, int), (IReadOnlyList<IReadOnlyDictionary<char, float>>, float, IReadOnlyList<DenseMatrix<Complex64>>)>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SixLabors.ImageSharp.Processing.Processors.Convolution.BokehBlurProcessor{TPixel}"/> class.
@@ -64,7 +69,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             this.componentsCount = components;
 
             // Reuse the initialized values from the cache, if possible
-            if (Cache.TryGetValue((radius, components), out (IReadOnlyList<IReadOnlyDictionary<char, float>>, float, IReadOnlyList<Complex64[]>) info))
+            if (Cache.TryGetValue((radius, components), out (IReadOnlyList<IReadOnlyDictionary<char, float>>, float, IReadOnlyList<DenseMatrix<Complex64>>) info))
             {
                 this.kernelParameters = info.Item1;
                 this.kernelsScale = info.Item2;
@@ -177,7 +182,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </summary>
         /// <param name="a">The exponential parameter for each complex component</param>
         /// <param name="b">The angle component for each complex component</param>
-        private Complex64[] CreateComplex1DKernel(float a, float b)
+        private DenseMatrix<Complex64> CreateComplex1DKernel(float a, float b)
         {
             // Precompute the range values
             float[] ax = Enumerable.Range(-this.Radius, this.Radius + 1).Select(
@@ -188,13 +193,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     }).ToArray();
 
             // Compute the complex kernels
-            var kernel = new Complex64[this.kernelSize];
+            var kernel = new DenseMatrix<Complex64>(this.kernelSize, 1);
             for (int i = 0; i < this.kernelSize; i++)
             {
                 float
                     real = (float)(Math.Exp(-a * ax[i]) * Math.Cos(b * ax[i])),
                     imaginary = (float)(Math.Exp(-a * ax[i]) * Math.Sin(b * ax[i]));
-                kernel[i] = new Complex64(real, imaginary);
+                kernel[i, 0] = new Complex64(real, imaginary);
             }
 
             return kernel;
@@ -207,31 +212,95 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         {
             // Calculate the complex weighted sum
             double total = 0;
-            foreach ((Complex64[] kernel, IReadOnlyDictionary<char, float> param) in this.complexKernels.Zip(this.kernelParameters, (k, p) => (k, p)))
+            foreach ((DenseMatrix<Complex64> kernel, IReadOnlyDictionary<char, float> param) in this.complexKernels.Zip(this.kernelParameters, (k, p) => (k, p)))
             {
-                for (int i = 0; i < kernel.Length; i++)
+                for (int i = 0; i < kernel.Count; i++)
                 {
-                    for (int j = 0; j < kernel.Length; j++)
+                    for (int j = 0; j < kernel.Count; j++)
                     {
                         total +=
-                            (param['A'] * ((kernel[i].Real * kernel[j].Real) - (kernel[i].Imaginary * kernel[j].Imaginary))) +
-                            (param['B'] * ((kernel[i].Real * kernel[j].Imaginary) + (kernel[i].Imaginary * kernel[j].Real)));
+                            (param['A'] * ((kernel[i, 0].Real * kernel[j, 0].Real) - (kernel[i, 0].Imaginary * kernel[j, 0].Imaginary))) +
+                            (param['B'] * ((kernel[i, 0].Real * kernel[j, 0].Imaginary) + (kernel[i, 0].Imaginary * kernel[j, 0].Real)));
                     }
                 }
             }
 
             // Normalize the kernels
             float scalar = (float)(1f / Math.Sqrt(total));
-            foreach (Complex64[] kernel in this.complexKernels)
+            foreach (DenseMatrix<Complex64> kernel in this.complexKernels)
             {
-                for (int i = 0; i < kernel.Length; i++)
+                for (int i = 0; i < kernel.Count; i++)
                 {
-                    kernel[i] = kernel[i] * scalar;
+                    kernel[i, 0] *= scalar;
                 }
             }
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration) => throw new NotImplementedException();
+        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        {
+            // Create a 0-filled buffer to use to store the result of the component convolutions
+            using (Buffer2D<TPixel> processing = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
+            {
+                // Perform two 1D convolutions for each component in the current insttance
+                foreach ((DenseMatrix<Complex64> kernel, IReadOnlyDictionary<char, float> parameters) in this.complexKernels.Zip(this.kernelParameters, (k, p) => (k, p)))
+                {
+                    using (Buffer2D<ComplexVector4> firstPassValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
+                    {
+                        var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+                        this.ApplyConvolution(firstPassValues, source.PixelBuffer, interest, kernel, configuration);
+                    }
+                }
+
+                // Copy the processed buffer back to the source image
+                processing.GetSpan().CopyTo(source.GetPixelSpan());
+            }
+        }
+
+        /// <summary>
+        /// Applies the process to the specified portion of the specified <see cref="ImageFrame{TPixel}"/> at the specified location
+        /// and with the specified size.
+        /// </summary>
+        /// <param name="targetValues">The target <see cref="ComplexVector4"/> values to use to store the results.</param>
+        /// <param name="sourcePixels">The source pixels. Cannot be null.</param>
+        /// <param name="sourceRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
+        /// </param>
+        /// <param name="kernel">The kernel operator.</param>
+        /// <param name="configuration">The <see cref="Configuration"/></param>
+        private void ApplyConvolution(
+            Buffer2D<ComplexVector4> targetValues,
+            Buffer2D<TPixel> sourcePixels,
+            Rectangle sourceRectangle,
+            in DenseMatrix<Complex64> kernel,
+            Configuration configuration)
+        {
+            DenseMatrix<Complex64> matrix = kernel;
+            int startY = sourceRectangle.Y;
+            int endY = sourceRectangle.Bottom;
+            int startX = sourceRectangle.X;
+            int endX = sourceRectangle.Right;
+            int maxY = endY - 1;
+            int maxX = endX - 1;
+
+            var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
+            int width = workingRectangle.Width;
+
+            ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
+                workingRectangle,
+                configuration,
+                (rows, vectorBuffer) =>
+                {
+                    for (int y = rows.Min; y < rows.Max; y++)
+                    {
+                        Span<ComplexVector4> targetRowSpan = targetValues.GetRowSpan(y).Slice(startX);
+
+                        for (int x = 0; x < width; x++)
+                        {
+                            DenseMatrixUtils.Convolve(in matrix, sourcePixels, targetRowSpan, y, x, maxY, maxX, startX);
+                        }
+                    }
+                });
+        }
     }
 }

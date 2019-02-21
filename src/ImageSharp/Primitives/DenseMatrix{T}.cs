@@ -54,6 +54,25 @@ namespace SixLabors.ImageSharp.Primitives
         /// <summary>
         /// Initializes a new instance of the <see cref=" DenseMatrix{T}" /> struct.
         /// </summary>
+        /// <param name="data">The array to provide access to.</param>
+        /// <param name="columns">The number of columns.</param>
+        /// <param name="rows">The number of rows.</param>
+        private DenseMatrix(T[] data, int columns, int rows)
+        {
+            Guard.MustBeGreaterThan(columns, 0, nameof(columns));
+            Guard.MustBeGreaterThan(rows, 0, nameof(rows));
+            Guard.MustBeLessThanOrEqualTo(rows * columns, data.Length, nameof(data));
+
+            this.Rows = rows;
+            this.Columns = columns;
+            this.Size = new Size(columns, rows);
+            this.Count = columns * rows;
+            this.Data = data;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref=" DenseMatrix{T}" /> struct.
+        /// </summary>
         /// <param name="columns">The number of columns.</param>
         /// <param name="rows">The number of rows.</param>
         public DenseMatrix(int columns, int rows)
@@ -173,6 +192,18 @@ namespace SixLabors.ImageSharp.Primitives
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Reshapes the current memory, without performing copy operations.
+        /// </summary>
+        /// <param name="columns">The new width of the instance to create.</param>
+        /// <param name="rows">The new height of the instance to create.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal DenseMatrix<T> Reshape(int columns, int rows)
+        {
+            SixLabors.DebugGuard.MustBeLessThanOrEqualTo(columns * rows, this.Columns * this.Rows, nameof(columns));
+            return new DenseMatrix<T>(this.Data, columns, rows);
         }
 
         /// <summary>

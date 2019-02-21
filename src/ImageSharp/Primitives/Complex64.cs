@@ -54,6 +54,15 @@ namespace SixLabors.ImageSharp.Primitives
         public static Complex64 operator +(Complex64 left, Complex64 right) => new Complex64(left.Real + right.Real, left.Imaginary + right.Imaginary);
 
         /// <summary>
+        /// Performs the multiplication operation between two <see cref="Complex64"/> intances.
+        /// </summary>
+        /// <param name="left">The first <see cref="Complex64"/> value to multiply.</param>
+        /// <param name="right">The second <see cref="Complex64"/> value to multiply.</param>
+        /// <returns>The <see cref="Complex64"/> result</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static Complex64 operator *(Complex64 left, Complex64 right) => new Complex64((left.Real * right.Real) - (left.Imaginary * right.Imaginary), (left.Real * right.Imaginary) + (left.Imaginary * right.Real));
+
+        /// <summary>
         /// Performs a weighted sum on the current instance according to the given parameters
         /// </summary>
         /// <param name="a">The 'a' parameter, for the real component</param>

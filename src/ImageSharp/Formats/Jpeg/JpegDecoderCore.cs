@@ -268,7 +268,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             {
                 this.dcHuffmanTables = new HuffmanTables();
                 this.acHuffmanTables = new HuffmanTables();
-                this.fastACTables = new FastACTables(this.configuration.MemoryAllocator);
+                this.fastACTables = new FastACTables();
             }
 
             // Break only when we discover a valid EOI marker.
@@ -378,7 +378,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             this.InputStream?.Dispose();
             this.Frame?.Dispose();
-            this.fastACTables?.Dispose();
 
             // Set large fields to null.
             this.InputStream = null;
@@ -872,12 +871,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                                 tableIndex,
                                 codeLengths.GetSpan(),
                                 huffmanValues.GetSpan());
-
-                            if (tableType != 0)
-                            {
-                                // Build a table that decodes both magnitude and value of small ACs in one go.
-                                this.fastACTables.BuildACTableLut(tableIndex, this.acHuffmanTables);
-                            }
                         }
                     }
                 }

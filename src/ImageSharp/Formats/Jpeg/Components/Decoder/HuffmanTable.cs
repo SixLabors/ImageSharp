@@ -60,19 +60,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             this.isDerived = false;
             this.memoryAllocator = memoryAllocator;
-            Unsafe.CopyBlockUnaligned(ref this.codeLengths[0], ref MemoryMarshal.GetReference(codeLengths), 17);
-            Unsafe.CopyBlockUnaligned(ref this.Values[0], ref MemoryMarshal.GetReference(values), 256);
+            Unsafe.CopyBlockUnaligned(ref this.codeLengths[0], ref MemoryMarshal.GetReference(codeLengths), (uint)codeLengths.Length);
+            Unsafe.CopyBlockUnaligned(ref this.Values[0], ref MemoryMarshal.GetReference(values), (uint)values.Length);
         }
 
         /// <summary>
         /// Expands the HuffmanTable into its derived form.
         /// </summary>
-        /// <returns>The <see cref="HuffmanTable"/></returns>
-        public HuffmanTable Derive()
+        public void Derive()
         {
             if (this.isDerived)
             {
-                return this;
+                return;
             }
 
             const int Length = 257;
@@ -144,7 +143,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
 
             this.isDerived = true;
-            return this;
         }
     }
 }

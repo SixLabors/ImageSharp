@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             new Dictionary<(int, int), (IReadOnlyList<IReadOnlyDictionary<char, float>>, float, IReadOnlyList<DenseMatrix<Complex64>>)>();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SixLabors.ImageSharp.Processing.Processors.Convolution.BokehBlurProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="Convolution.BokehBlurProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="radius">
         /// The 'radius' value representing the size of the area to sample.
@@ -324,7 +324,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         }
 
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageFrame{TPixel}"/> at the specified location
+        /// Applies the process to the specified portion of the specified <see cref="Buffer2D{T}"/> buffer at the specified location
         /// and with the specified size.
         /// </summary>
         /// <param name="targetValues">The target <see cref="ComplexVector4"/> values to use to store the results.</param>

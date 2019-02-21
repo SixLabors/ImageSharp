@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Primitives
     /// Represents a complex number, where the real and imaginary parts are stored as <see cref="float"/> values.
     /// </summary>
     /// <remarks>
-    /// This is a more efficient version of the <see cref="System.Numerics.Complex"/> type.
+    /// This is a more efficient version of the <see cref="Complex64"/> type.
     /// </remarks>
     internal readonly struct Complex64 : IEquatable<Complex64>
     {

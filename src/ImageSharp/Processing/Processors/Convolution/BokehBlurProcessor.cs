@@ -185,7 +185,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         private DenseMatrix<Complex64> CreateComplex1DKernel(float a, float b)
         {
             // Precompute the range values
-            float[] ax = Enumerable.Range(-this.Radius, this.Radius + 1).Select(
+            float[] ax = Enumerable.Range(-this.Radius, (this.Radius * 2) + 1).Select(
                 i =>
                     {
                         float value = i * this.kernelsScale * (1f / this.Radius);
@@ -193,7 +193,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     }).ToArray();
 
             // Compute the complex kernels
-            var kernel = new DenseMatrix<Complex64>(this.kernelSize, 1);
+            var kernel = new DenseMatrix<Complex64>(1, this.kernelSize);
             for (int i = 0; i < this.kernelSize; i++)
             {
                 float
@@ -254,7 +254,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         {
                             var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
                             this.ApplyConvolution(firstPassValues, source.PixelBuffer, interest, kernel, configuration);
-                            this.ApplyConvolution(partialValues, firstPassValues, interest, kernel.Reshape(1, kernel.Count), configuration);
+                            this.ApplyConvolution(partialValues, firstPassValues, interest, kernel.Reshape(kernel.Count, 1), configuration);
                         }
 
                         // Add the results of the convolution with the current kernel

@@ -29,10 +29,11 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image this method extends.</param>
         /// <param name="radius">The 'radius' value representing the size of the area to sample.</param>
         /// <param name="components">The 'components' value representing the number of kernels to use to approximate the bokeh effect.</param>
+        /// <param name="gamma">The gamma highlight factor to use to emphasize bright spots in the source image</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> BokehBlur<TPixel>(this IImageProcessingContext<TPixel> source, int radius, int components)
+        public static IImageProcessingContext<TPixel> BokehBlur<TPixel>(this IImageProcessingContext<TPixel> source, int radius, int components, float gamma)
             where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new BokehBlurProcessor<TPixel>(radius, components));
+            => source.ApplyProcessor(new BokehBlurProcessor<TPixel>(radius, components, gamma));
 
         /// <summary>
         /// Applies a bokeh blur to the image.
@@ -41,12 +42,13 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image this method extends.</param>
         /// <param name="radius">The 'radius' value representing the size of the area to sample.</param>
         /// <param name="components">The 'components' value representing the number of kernels to use to approximate the bokeh effect.</param>
+        /// <param name="gamma">The gamma highlight factor to use to emphasize bright spots in the source image</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> BokehBlur<TPixel>(this IImageProcessingContext<TPixel> source, int radius, int components, Rectangle rectangle)
+        public static IImageProcessingContext<TPixel> BokehBlur<TPixel>(this IImageProcessingContext<TPixel> source, int radius, int components, float gamma, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new BokehBlurProcessor<TPixel>(radius, components), rectangle);
+            => source.ApplyProcessor(new BokehBlurProcessor<TPixel>(radius, components, gamma), rectangle);
     }
 }

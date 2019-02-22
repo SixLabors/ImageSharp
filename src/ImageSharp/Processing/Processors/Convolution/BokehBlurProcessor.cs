@@ -57,11 +57,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <param name="components">
         /// The number of components to use to approximate the original 2D bokeh blur convolution kernel.
         /// </param>
-        public BokehBlurProcessor(int radius = 32, int components = 2)
+        /// <param name="gamma">
+        /// The gamma highlight factor to use to further process the image.
+        /// </param>
+        public BokehBlurProcessor(int radius = 32, int components = 2, float gamma = 3)
         {
             this.Radius = radius;
             this.kernelSize = (radius * 2) + 1;
             this.componentsCount = components;
+
+            SixLabors.Guard.MustBeGreaterThanOrEqualTo(gamma, 1, nameof(gamma));
+            this.Gamma = gamma;
 
             // Reuse the initialized values from the cache, if possible
             if (Cache.TryGetValue((radius, components), out (IReadOnlyList<Vector4>, float, IReadOnlyList<DenseMatrix<Complex64>>) info))
@@ -93,6 +99,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// Gets the complex kernels to use to apply the blur for the current instance
         /// </summary>
         public IReadOnlyList<DenseMatrix<Complex64>> Kernels { get; }
+
+        /// <summary>
+        /// Gets the gamma highlight factor to use when applying the effect
+        /// </summary>
+        public float Gamma { get; }
 
         /// <summary>
         /// Gets the kernel scales to adjust the component values in each kernel
@@ -240,29 +251,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             // Create a 0-filled buffer to use to store the result of the component convolutions
             using (Buffer2D<Vector4> processing = configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size()))
             {
+                // Apply the complex 1D convolutions
                 Span<Vector4> processingSpan = processing.Span;
-
-                // Perform two 1D convolutions for each component in the current instance
-                foreach ((DenseMatrix<Complex64> kernel, Vector4 parameters) in this.Kernels.Zip(this.kernelParameters, (k, p) => (k, p)))
-                {
-                    using (Buffer2D<ComplexVector4> partialValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
-                    {
-                        // Compute the resulting complex buffer for the current component
-                        using (Buffer2D<ComplexVector4> firstPassValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
-                        {
-                            var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
-                            this.ApplyConvolution(firstPassValues, source.PixelBuffer, interest, kernel, configuration);
-                            this.ApplyConvolution(partialValues, firstPassValues, interest, kernel.Reshape(kernel.Count, 1), configuration);
-                        }
-
-                        // Add the results of the convolution with the current kernel
-                        Span<ComplexVector4> partialSpan = partialValues.Span;
-                        for (int i = 0; i < processingSpan.Length; i++)
-                        {
-                            processingSpan[i] += partialSpan[i].WeightedSum(parameters.Z, parameters.W);
-                        }
-                    }
-                }
+                this.OnFrameApplyCore(source, processingSpan, sourceRectangle, configuration);
 
                 // Copy the processed buffer back to the source image
                 Span<TPixel> sourceSpan = source.GetPixelSpan();
@@ -271,6 +262,38 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     TPixel pixel = default;
                     pixel.FromVector4(processingSpan[i]);
                     sourceSpan[i] = pixel;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Applies the actual bokeh blur effect on the target image frame
+        /// </summary>
+        /// <param name="source">The source image. Cannot be null.</param>
+        /// <param name="processingSpan">The target <see cref="Span{T}"/> with the buffer to write to.</param>
+        /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
+        /// <param name="configuration">The configuration.</param>
+        private void OnFrameApplyCore(ImageFrame<TPixel> source, Span<Vector4> processingSpan, Rectangle sourceRectangle, Configuration configuration)
+        {
+            // Perform two 1D convolutions for each component in the current instance
+            foreach ((DenseMatrix<Complex64> kernel, Vector4 parameters) in this.Kernels.Zip(this.kernelParameters, (k, p) => (k, p)))
+            {
+                using (Buffer2D<ComplexVector4> partialValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
+                {
+                    // Compute the resulting complex buffer for the current component
+                    using (Buffer2D<ComplexVector4> firstPassValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
+                    {
+                        var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+                        this.ApplyConvolution(firstPassValues, source.PixelBuffer, interest, kernel, configuration);
+                        this.ApplyConvolution(partialValues, firstPassValues, interest, kernel.Reshape(kernel.Count, 1), configuration);
+                    }
+
+                    // Add the results of the convolution with the current kernel
+                    Span<ComplexVector4> partialSpan = partialValues.Span;
+                    for (int i = 0; i < processingSpan.Length; i++)
+                    {
+                        processingSpan[i] += partialSpan[i].WeightedSum(parameters.Z, parameters.W);
+                    }
                 }
             }
         }

@@ -32,9 +32,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         private readonly int componentsCount;
 
         /// <summary>
-        /// The kernel components to use for the current instance (a: X, b: Y, A: Z, B: W)
+        /// The kernel parameters to use for the current instance (a: X, b: Y, A: Z, B: W)
         /// </summary>
-        private readonly IReadOnlyList<Vector4> kernelParameters;
+        private readonly Vector4[] kernelParameters;
+
+        /// <summary>
+        /// The kernel components for the current instance
+        /// </summary>
+        private readonly DenseMatrix<Complex64>[] kernels;
 
         /// <summary>
         /// The scaling factor for kernel values
@@ -44,8 +49,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// The mapping of initialized complex kernels and parameters, to speed up the initialization of new <see cref="BokehBlurProcessor{TPixel}"/> instances
         /// </summary>
-        private static readonly Dictionary<(int, int), (IReadOnlyList<Vector4>, float, IReadOnlyList<DenseMatrix<Complex64>>)> Cache =
-            new Dictionary<(int, int), (IReadOnlyList<Vector4>, float, IReadOnlyList<DenseMatrix<Complex64>>)>();
+        private static readonly Dictionary<(int, int), (Vector4[], float, DenseMatrix<Complex64>[])> Cache =
+            new Dictionary<(int, int), (Vector4[], float, DenseMatrix<Complex64>[])>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Convolution.BokehBlurProcessor{TPixel}"/> class.
@@ -69,23 +74,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             this.Gamma = gamma;
 
             // Reuse the initialized values from the cache, if possible
-            if (Cache.TryGetValue((radius, components), out (IReadOnlyList<Vector4>, float, IReadOnlyList<DenseMatrix<Complex64>>) info))
+            if (Cache.TryGetValue((radius, components), out (Vector4[], float, DenseMatrix<Complex64>[]) info))
             {
                 this.kernelParameters = info.Item1;
                 this.kernelsScale = info.Item2;
-                this.Kernels = info.Item3;
+                this.kernels = info.Item3;
             }
             else
             {
                 // Initialize the complex kernels and parameters with the current arguments
                 (this.kernelParameters, this.kernelsScale) = this.GetParameters();
-                this.Kernels = (
+                this.kernels = (
                     from parameters in this.kernelParameters
                     select this.CreateComplex1DKernel(parameters.X, parameters.Y)).ToArray();
                 this.NormalizeKernels();
 
                 // Store them in the cache for future use
-                Cache.Add((radius, components), (this.kernelParameters, this.kernelsScale, this.Kernels));
+                Cache.Add((radius, components), (this.kernelParameters, this.kernelsScale, this.kernels));
             }
         }
 
@@ -97,7 +102,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// Gets the complex kernels to use to apply the blur for the current instance
         /// </summary>
-        public IReadOnlyList<DenseMatrix<Complex64>> Kernels { get; }
+        public IReadOnlyList<DenseMatrix<Complex64>> Kernels => this.kernels;
+
+        /// <summary>
+        /// Gets the kernel parameters used to compute the pixel values from each complex pixel
+        /// </summary>
+        public IReadOnlyList<Vector4> KernelParameters => this.kernelParameters;
 
         /// <summary>
         /// Gets the gamma highlight factor to use when applying the effect
@@ -166,7 +176,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// Gets the kernel parameters and scaling factor for the current count value in the current instance
         /// </summary>
-        private (IReadOnlyList<Vector4> Parameters, float Scale) GetParameters()
+        private (Vector4[] Parameters, float Scale) GetParameters()
         {
             // Prepare the kernel components
             int index = Math.Max(0, Math.Min(this.componentsCount - 1, KernelComponents.Count));
@@ -254,8 +264,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             using (Buffer2D<Vector4> processing = configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size()))
             {
                 // Apply the complex 1D convolutions
-                Span<Vector4> processingSpan = processing.Span;
-                this.OnFrameApplyCore(source, processingSpan, sourceRectangle, configuration);
+                this.OnFrameApplyCore(source, processing, sourceRectangle, configuration);
 
                 // Apply the inverse gamma exposure pass, and write the final pixel data
                 this.ApplyInverseGammaExposure(source.PixelBuffer, processing, sourceRectangle, configuration);
@@ -266,13 +275,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// Applies the actual bokeh blur effect on the target image frame
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
-        /// <param name="processingSpan">The target <see cref="Span{T}"/> with the buffer to write to.</param>
+        /// <param name="processing">The target <see cref="Buffer2D{T}"/> to write to.</param>
         /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
         /// <param name="configuration">The configuration.</param>
-        private void OnFrameApplyCore(ImageFrame<TPixel> source, Span<Vector4> processingSpan, Rectangle sourceRectangle, Configuration configuration)
+        private void OnFrameApplyCore(ImageFrame<TPixel> source, Buffer2D<Vector4> processing, Rectangle sourceRectangle, Configuration configuration)
         {
             // Perform two 1D convolutions for each component in the current instance
-            foreach ((DenseMatrix<Complex64> kernel, Vector4 parameters) in this.Kernels.Zip(this.kernelParameters, (k, p) => (k, p)))
+            for (int i = 0; i < this.kernels.Length; i++)
             {
                 using (Buffer2D<ComplexVector4> partialValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
                 {
@@ -280,16 +289,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     using (Buffer2D<ComplexVector4> firstPassValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
                     {
                         var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+                        DenseMatrix<Complex64> kernel = this.kernels[i];
                         this.ApplyConvolution(firstPassValues, source.PixelBuffer, interest, kernel, configuration);
                         this.ApplyConvolution(partialValues, firstPassValues, interest, kernel.Reshape(kernel.Count, 1), configuration);
                     }
 
                     // Add the results of the convolution with the current kernel
-                    Span<ComplexVector4> partialSpan = partialValues.Span;
-                    for (int i = 0; i < processingSpan.Length; i++)
-                    {
-                        processingSpan[i] += partialSpan[i].WeightedSum(parameters.Z, parameters.W);
-                    }
+                    Vector4 parameters = this.kernelParameters[i];
+                    this.SumProcessingPartials(processing, partialValues, sourceRectangle, configuration, parameters.Z, parameters.W);
                 }
             }
         }
@@ -479,6 +486,52 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                             PixelOperations<TPixel>.Instance.FromVector4(configuration, targetRowSpan, targetPixelSpan);
                         }
                     });
+        }
+
+        /// <summary>
+        /// Applies the process to the specified portion of the specified <see cref="ImageFrame{TPixel}"/> at the specified location
+        /// and with the specified size.
+        /// </summary>
+        /// <param name="targetValues">The target <see cref="Buffer2D{T}"/> instance to use to store the results.</param>
+        /// <param name="sourceValues">The source complex pixels. Cannot be null.</param>
+        /// <param name="sourceRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
+        /// </param>
+        /// <param name="configuration">The <see cref="Configuration"/></param>
+        /// <param name="z">The weight factor for the real component of the complex pixel values.</param>
+        /// <param name="w">The weight factor for the imaginary component of the complex pixel values.</param>
+        private void SumProcessingPartials(
+            Buffer2D<Vector4> targetValues,
+            Buffer2D<ComplexVector4> sourceValues,
+            Rectangle sourceRectangle,
+            Configuration configuration,
+            float z,
+            float w)
+        {
+            int startY = sourceRectangle.Y;
+            int endY = sourceRectangle.Bottom;
+            int startX = sourceRectangle.X;
+            int endX = sourceRectangle.Right;
+
+            var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
+            int width = workingRectangle.Width;
+
+            ParallelHelper.IterateRows(
+                workingRectangle,
+                configuration,
+                rows =>
+                {
+                    for (int y = rows.Min; y < rows.Max; y++)
+                    {
+                        Span<Vector4> targetRowSpan = targetValues.GetRowSpan(y).Slice(startX);
+                        Span<ComplexVector4> sourceRowSpan = sourceValues.GetRowSpan(y).Slice(startX);
+
+                        for (int x = 0; x < width; x++)
+                        {
+                            targetRowSpan[x] += sourceRowSpan[x].WeightedSum(z, w);
+                        }
+                    }
+                });
         }
     }
 }

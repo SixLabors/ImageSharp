@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
@@ -248,6 +247,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
+            // Preliminary gamma highlight pass
+            this.ApplyGammaExposure(source.PixelBuffer, sourceRectangle, configuration);
+
             // Create a 0-filled buffer to use to store the result of the component convolutions
             using (Buffer2D<Vector4> processing = configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size()))
             {
@@ -255,14 +257,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Span<Vector4> processingSpan = processing.Span;
                 this.OnFrameApplyCore(source, processingSpan, sourceRectangle, configuration);
 
-                // Copy the processed buffer back to the source image
-                Span<TPixel> sourceSpan = source.GetPixelSpan();
-                for (int i = 0; i < sourceSpan.Length; i++)
-                {
-                    TPixel pixel = default;
-                    pixel.FromVector4(processingSpan[i]);
-                    sourceSpan[i] = pixel;
-                }
+                // Apply the inverse gamma exposure pass, and write the final pixel data
+                this.ApplyInverseGammaExposure(source.PixelBuffer, processing, sourceRectangle, configuration);
             }
         }
 
@@ -388,6 +384,101 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         }
                     }
                 });
+        }
+
+        /// <summary>
+        /// Applies the gamma correction/highlight to the input pixel buffer.
+        /// </summary>
+        /// <param name="targetPixels">The target pixel buffer to adjust.</param>
+        /// <param name="sourceRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
+        /// </param>
+        /// <param name="configuration">The <see cref="Configuration"/></param>
+        private void ApplyGammaExposure(
+            Buffer2D<TPixel> targetPixels,
+            Rectangle sourceRectangle,
+            Configuration configuration)
+        {
+            int startY = sourceRectangle.Y;
+            int endY = sourceRectangle.Bottom;
+            int startX = sourceRectangle.X;
+            int endX = sourceRectangle.Right;
+
+            var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
+            int width = workingRectangle.Width;
+
+            ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
+                workingRectangle,
+                configuration,
+                (rows, vectorBuffer) =>
+                    {
+                        Span<Vector4> vectorSpan = vectorBuffer.Span;
+                        int length = vectorSpan.Length;
+
+                        for (int y = rows.Min; y < rows.Max; y++)
+                        {
+                            Span<TPixel> targetRowSpan = targetPixels.GetRowSpan(y).Slice(startX);
+                            PixelOperations<TPixel>.Instance.ToVector4(configuration, targetRowSpan.Slice(0, length), vectorSpan);
+
+                            for (int x = 0; x < width; x++)
+                            {
+                                ref Vector4 vector = ref vectorSpan[x];
+                                vector.X = (float)Math.Pow(vector.X, this.Gamma);
+                                vector.Y = (float)Math.Pow(vector.Y, this.Gamma);
+                                vector.Z = (float)Math.Pow(vector.Z, this.Gamma);
+                                vector.W = (float)Math.Pow(vector.W, this.Gamma);
+                            }
+
+                            PixelOperations<TPixel>.Instance.FromVector4(configuration, vectorSpan.Slice(0, length), targetRowSpan);
+                        }
+                    });
+        }
+
+        /// <summary>
+        /// Applies the inverse gamma correction/highlight pass, and converts the input <see cref="Vector4"/> buffer into pixel values.
+        /// </summary>
+        /// <param name="targetPixels">The target pixels to apply the process to.</param>
+        /// <param name="sourceValues">The source <see cref="Vector4"/> values. Cannot be null.</param>
+        /// <param name="sourceRectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
+        /// </param>
+        /// <param name="configuration">The <see cref="Configuration"/></param>
+        private void ApplyInverseGammaExposure(
+            Buffer2D<TPixel> targetPixels,
+            Buffer2D<Vector4> sourceValues,
+            Rectangle sourceRectangle,
+            Configuration configuration)
+        {
+            int startY = sourceRectangle.Y;
+            int endY = sourceRectangle.Bottom;
+            int startX = sourceRectangle.X;
+            int endX = sourceRectangle.Right;
+
+            var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
+            int width = workingRectangle.Width;
+
+            ParallelHelper.IterateRows(
+                workingRectangle,
+                configuration,
+                rows =>
+                    {
+                        for (int y = rows.Min; y < rows.Max; y++)
+                        {
+                            Span<Vector4> targetRowSpan = sourceValues.GetRowSpan(y).Slice(startX);
+                            Span<TPixel> targetPixelSpan = targetPixels.GetRowSpan(y).Slice(startX);
+
+                            for (int x = 0; x < width; x++)
+                            {
+                                ref Vector4 vector = ref targetRowSpan[x];
+                                vector.X = (float)Math.Pow(vector.X.Clamp(0, float.PositiveInfinity), 1 / this.Gamma);
+                                vector.Y = (float)Math.Pow(vector.Y.Clamp(0, float.PositiveInfinity), 1 / this.Gamma);
+                                vector.Z = (float)Math.Pow(vector.Z.Clamp(0, float.PositiveInfinity), 1 / this.Gamma);
+                                vector.W = (float)Math.Pow(vector.W.Clamp(0, float.PositiveInfinity), 1 / this.Gamma);
+                            }
+
+                            PixelOperations<TPixel>.Instance.FromVector4(configuration, targetRowSpan, targetPixelSpan);
+                        }
+                    });
         }
     }
 }

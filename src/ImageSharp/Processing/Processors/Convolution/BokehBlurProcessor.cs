@@ -43,11 +43,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         private readonly float kernelsScale;
 
         /// <summary>
-        /// The complex kernels to use to apply the blur for the current instance
-        /// </summary>
-        private readonly IReadOnlyList<DenseMatrix<Complex64>> complexKernels;
-
-        /// <summary>
         /// The mapping of initialized complex kernels and parameters, to speed up the initialization of new <see cref="BokehBlurProcessor{TPixel}"/> instances
         /// </summary>
         private static readonly Dictionary<(int, int), (IReadOnlyList<IReadOnlyDictionary<char, float>>, float, IReadOnlyList<DenseMatrix<Complex64>>)> Cache =
@@ -73,19 +68,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             {
                 this.kernelParameters = info.Item1;
                 this.kernelsScale = info.Item2;
-                this.complexKernels = info.Item3;
+                this.Kernels = info.Item3;
             }
             else
             {
                 // Initialize the complex kernels and parameters with the current arguments
                 (this.kernelParameters, this.kernelsScale) = this.GetParameters();
-                this.complexKernels = (
-                                          from component in this.kernelParameters
-                                          select this.CreateComplex1DKernel(component['a'], component['b'])).ToArray();
+                this.Kernels = (
+                    from component in this.kernelParameters
+                    select this.CreateComplex1DKernel(component['a'], component['b'])).ToArray();
                 this.NormalizeKernels();
 
                 // Store them in the cache for future use
-                Cache.Add((radius, components), (this.kernelParameters, this.kernelsScale, this.complexKernels));
+                Cache.Add((radius, components), (this.kernelParameters, this.kernelsScale, this.Kernels));
             }
         }
 
@@ -93,6 +88,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// Gets the Radius
         /// </summary>
         public int Radius { get; }
+
+        /// <summary>
+        /// Gets the complex kernels to use to apply the blur for the current instance
+        /// </summary>
+        public IReadOnlyList<DenseMatrix<Complex64>> Kernels { get; }
 
         /// <summary>
         /// Gets the kernel scales to adjust the component values in each kernel
@@ -212,7 +212,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         {
             // Calculate the complex weighted sum
             double total = 0;
-            foreach ((DenseMatrix<Complex64> kernel, IReadOnlyDictionary<char, float> param) in this.complexKernels.Zip(this.kernelParameters, (k, p) => (k, p)))
+            foreach ((DenseMatrix<Complex64> kernel, IReadOnlyDictionary<char, float> param) in this.Kernels.Zip(this.kernelParameters, (k, p) => (k, p)))
             {
                 for (int i = 0; i < kernel.Count; i++)
                 {
@@ -227,7 +227,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             // Normalize the kernels
             float scalar = (float)(1f / Math.Sqrt(total));
-            foreach (DenseMatrix<Complex64> kernel in this.complexKernels)
+            foreach (DenseMatrix<Complex64> kernel in this.Kernels)
             {
                 for (int i = 0; i < kernel.Count; i++)
                 {
@@ -245,7 +245,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Span<Vector4> processingSpan = processing.Span;
 
                 // Perform two 1D convolutions for each component in the current instance
-                foreach ((DenseMatrix<Complex64> kernel, IReadOnlyDictionary<char, float> parameters) in this.complexKernels.Zip(this.kernelParameters, (k, p) => (k, p)))
+                foreach ((DenseMatrix<Complex64> kernel, IReadOnlyDictionary<char, float> parameters) in this.Kernels.Zip(this.kernelParameters, (k, p) => (k, p)))
                 {
                     using (Buffer2D<ComplexVector4> partialValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
                     {

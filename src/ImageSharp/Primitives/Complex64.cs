@@ -89,5 +89,8 @@ namespace SixLabors.ImageSharp.Primitives
                 return (this.Real.GetHashCode() * 397) ^ this.Imaginary.GetHashCode();
             }
         }
+
+        /// <inheritdoc/>
+        public override string ToString() => $"{this.Real}+{this.Imaginary}j";
     }
 }

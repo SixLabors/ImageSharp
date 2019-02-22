@@ -327,10 +327,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
             int width = workingRectangle.Width;
 
-            ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
+            ParallelHelper.IterateRows(
                 workingRectangle,
                 configuration,
-                (rows, vectorBuffer) =>
+                rows =>
                 {
                     for (int y = rows.Min; y < rows.Max; y++)
                     {
@@ -373,10 +373,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
             int width = workingRectangle.Width;
 
-            ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
+            ParallelHelper.IterateRows(
                 workingRectangle,
                 configuration,
-                (rows, vectorBuffer) =>
+                rows =>
                 {
                     for (int y = rows.Min; y < rows.Max; y++)
                     {

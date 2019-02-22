@@ -33,9 +33,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         private readonly int componentsCount;
 
         /// <summary>
-        /// The kernel components to use for the current instance
+        /// The kernel components to use for the current instance (a: X, b: Y, A: Z, B: W)
         /// </summary>
-        private readonly IReadOnlyList<IReadOnlyDictionary<char, float>> kernelParameters;
+        private readonly IReadOnlyList<Vector4> kernelParameters;
 
         /// <summary>
         /// The scaling factor for kernel values
@@ -45,8 +45,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// The mapping of initialized complex kernels and parameters, to speed up the initialization of new <see cref="BokehBlurProcessor{TPixel}"/> instances
         /// </summary>
-        private static readonly Dictionary<(int, int), (IReadOnlyList<IReadOnlyDictionary<char, float>>, float, IReadOnlyList<DenseMatrix<Complex64>>)> Cache =
-            new Dictionary<(int, int), (IReadOnlyList<IReadOnlyDictionary<char, float>>, float, IReadOnlyList<DenseMatrix<Complex64>>)>();
+        private static readonly Dictionary<(int, int), (IReadOnlyList<Vector4>, float, IReadOnlyList<DenseMatrix<Complex64>>)> Cache =
+            new Dictionary<(int, int), (IReadOnlyList<Vector4>, float, IReadOnlyList<DenseMatrix<Complex64>>)>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Convolution.BokehBlurProcessor{TPixel}"/> class.
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             this.componentsCount = components;
 
             // Reuse the initialized values from the cache, if possible
-            if (Cache.TryGetValue((radius, components), out (IReadOnlyList<IReadOnlyDictionary<char, float>>, float, IReadOnlyList<DenseMatrix<Complex64>>) info))
+            if (Cache.TryGetValue((radius, components), out (IReadOnlyList<Vector4>, float, IReadOnlyList<DenseMatrix<Complex64>>) info))
             {
                 this.kernelParameters = info.Item1;
                 this.kernelsScale = info.Item2;
@@ -75,8 +75,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 // Initialize the complex kernels and parameters with the current arguments
                 (this.kernelParameters, this.kernelsScale) = this.GetParameters();
                 this.Kernels = (
-                    from component in this.kernelParameters
-                    select this.CreateComplex1DKernel(component['a'], component['b'])).ToArray();
+                    from parameters in this.kernelParameters
+                    select this.CreateComplex1DKernel(parameters.X, parameters.Y)).ToArray();
                 this.NormalizeKernels();
 
                 // Store them in the cache for future use
@@ -156,21 +156,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// Gets the kernel parameters and scaling factor for the current count value in the current instance
         /// </summary>
-        private (IReadOnlyList<IReadOnlyDictionary<char, float>> Parameters, float Scale) GetParameters()
+        private (IReadOnlyList<Vector4> Parameters, float Scale) GetParameters()
         {
             // Prepare the kernel components
             int index = Math.Max(0, Math.Min(this.componentsCount - 1, KernelComponents.Count));
             float[,] parameters = KernelComponents[index];
-            var mapping = new IReadOnlyDictionary<char, float>[parameters.GetLength(0)];
+            var mapping = new Vector4[parameters.GetLength(0)];
             for (int i = 0; i < parameters.GetLength(0); i++)
             {
-                mapping[i] = new Dictionary<char, float>
-                {
-                    ['a'] = parameters[i, 0],
-                    ['b'] = parameters[i, 1],
-                    ['A'] = parameters[i, 2],
-                    ['B'] = parameters[i, 3]
-                };
+                mapping[i] = new Vector4(
+                    parameters[i, 0],
+                    parameters[i, 1],
+                    parameters[i, 2],
+                    parameters[i, 3]);
             }
 
             // Return the components and the adjustment scale
@@ -212,15 +210,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         {
             // Calculate the complex weighted sum
             double total = 0;
-            foreach ((DenseMatrix<Complex64> kernel, IReadOnlyDictionary<char, float> param) in this.Kernels.Zip(this.kernelParameters, (k, p) => (k, p)))
+            foreach ((DenseMatrix<Complex64> kernel, Vector4 param) in this.Kernels.Zip(this.kernelParameters, (k, p) => (k, p)))
             {
                 for (int i = 0; i < kernel.Count; i++)
                 {
                     for (int j = 0; j < kernel.Count; j++)
                     {
                         total +=
-                            (param['A'] * ((kernel[i, 0].Real * kernel[j, 0].Real) - (kernel[i, 0].Imaginary * kernel[j, 0].Imaginary))) +
-                            (param['B'] * ((kernel[i, 0].Real * kernel[j, 0].Imaginary) + (kernel[i, 0].Imaginary * kernel[j, 0].Real)));
+                            (param.Z * ((kernel[i, 0].Real * kernel[j, 0].Real) - (kernel[i, 0].Imaginary * kernel[j, 0].Imaginary))) +
+                            (param.W * ((kernel[i, 0].Real * kernel[j, 0].Imaginary) + (kernel[i, 0].Imaginary * kernel[j, 0].Real)));
                     }
                 }
             }
@@ -245,7 +243,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Span<Vector4> processingSpan = processing.Span;
 
                 // Perform two 1D convolutions for each component in the current instance
-                foreach ((DenseMatrix<Complex64> kernel, IReadOnlyDictionary<char, float> parameters) in this.Kernels.Zip(this.kernelParameters, (k, p) => (k, p)))
+                foreach ((DenseMatrix<Complex64> kernel, Vector4 parameters) in this.Kernels.Zip(this.kernelParameters, (k, p) => (k, p)))
                 {
                     using (Buffer2D<ComplexVector4> partialValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
                     {
@@ -261,7 +259,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         Span<ComplexVector4> partialSpan = partialValues.Span;
                         for (int i = 0; i < processingSpan.Length; i++)
                         {
-                            processingSpan[i] += partialSpan[i].WeightedSum(parameters['A'], parameters['B']);
+                            processingSpan[i] += partialSpan[i].WeightedSum(parameters.Z, parameters.W);
                         }
                     }
                 }

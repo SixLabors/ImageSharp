@@ -347,7 +347,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                         for (int x = 0; x < width; x++)
                         {
-                            DenseMatrixUtils.Convolve(in matrix, sourcePixels, targetRowSpan, y, x, maxY, maxX, startX);
+                            DenseMatrixUtils.Convolve1D(matrix.Span, sourcePixels, targetRowSpan, y, x, maxY, maxX, startX);
                         }
                     }
                 });
@@ -393,7 +393,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                         for (int x = 0; x < width; x++)
                         {
-                            DenseMatrixUtils.Convolve(in matrix, sourceValues, targetRowSpan, y, x, maxY, maxX, startX);
+                            DenseMatrixUtils.Convolve1D(matrix.Span, sourceValues, targetRowSpan, y, x, maxY, maxX, startX);
                         }
                     }
                 });

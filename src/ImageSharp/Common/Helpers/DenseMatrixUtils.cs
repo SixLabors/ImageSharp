@@ -149,7 +149,7 @@ namespace SixLabors.ImageSharp
             target = vector;
         }
 
-        public static void ConvolveFirstPass<TPixel>(
+        private static void ConvolveFirstPass<TPixel>(
             in DenseMatrix<float> matrix,
             Buffer2D<TPixel> sourcePixels,
             ref Vector4 targetRowRef,

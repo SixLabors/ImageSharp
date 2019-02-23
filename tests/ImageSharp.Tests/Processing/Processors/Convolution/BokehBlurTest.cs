@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -47,8 +48,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
                 Complex64[] component = values.Select(
                     value =>
                         {
-                            Match pair = Regex.Match(value.Replace('.', ','), @"([+-]?\d+,\d+)([+-]?\d+,\d+)j");
-                            return new Complex64(float.Parse(pair.Groups[1].Value), float.Parse(pair.Groups[2].Value));
+                            Match pair = Regex.Match(value, @"([+-]?\d+\.\d+)([+-]?\d+\.\d+)j");
+                            return new Complex64(
+                                float.Parse(pair.Groups[1].Value, CultureInfo.InvariantCulture),
+                                float.Parse(pair.Groups[2].Value, CultureInfo.InvariantCulture));
                         }).ToArray();
                 components.Add(component);
             }

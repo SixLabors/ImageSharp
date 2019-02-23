@@ -26,9 +26,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private static readonly int[] Bias = { 0, -1, -3, -7, -15, -31, -63, -127, -255, -511, -1023, -2047, -4095, -8191, -16383, -32767 };
 
         private readonly JpegFrame frame;
-        private readonly HuffmanTables dcHuffmanTables;
-        private readonly HuffmanTables acHuffmanTables;
-        private readonly FastACTables fastACTables;
+        private readonly HuffmanTable[] dcHuffmanTables;
+        private readonly HuffmanTable[] acHuffmanTables;
+        private readonly FastACTable[] fastACTables;
 
         private readonly DoubleBufferedStreamReader stream;
         private readonly JpegComponent[] components;
@@ -96,9 +96,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public ScanDecoder(
             DoubleBufferedStreamReader stream,
             JpegFrame frame,
-            HuffmanTables dcHuffmanTables,
-            HuffmanTables acHuffmanTables,
-            FastACTables fastACTables,
+            HuffmanTable[] dcHuffmanTables,
+            HuffmanTable[] acHuffmanTables,
+            FastACTable[] fastACTables,
             int componentsLength,
             int restartInterval,
             int spectralStart,

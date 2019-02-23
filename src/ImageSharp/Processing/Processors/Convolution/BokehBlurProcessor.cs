@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
@@ -426,15 +428,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         {
                             Span<TPixel> targetRowSpan = targetPixels.GetRowSpan(y).Slice(startX);
                             PixelOperations<TPixel>.Instance.ToVector4(configuration, targetRowSpan.Slice(0, length), vectorSpan);
+                            Vector4Utils.Premultiply(vectorSpan);
+                            ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectorSpan);
 
                             for (int x = 0; x < width; x++)
                             {
-                                ref Vector4 vector = ref vectorSpan[x];
-                                vector.X = (float)Math.Pow(vector.X, this.Gamma);
-                                vector.Y = (float)Math.Pow(vector.Y, this.Gamma);
-                                vector.Z = (float)Math.Pow(vector.Z, this.Gamma);
-
-                                Vector4Utils.Premultiply(ref vector);
+                                ref Vector4 v = ref Unsafe.Add(ref baseRef, x);
+                                v.X = (float)Math.Pow(v.X, this.Gamma);
+                                v.Y = (float)Math.Pow(v.Y, this.Gamma);
+                                v.Z = (float)Math.Pow(v.Z, this.Gamma);
                             }
 
                             PixelOperations<TPixel>.Instance.FromVector4(configuration, vectorSpan.Slice(0, length), targetRowSpan);
@@ -474,17 +476,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         {
                             Span<Vector4> targetRowSpan = sourceValues.GetRowSpan(y).Slice(startX);
                             Span<TPixel> targetPixelSpan = targetPixels.GetRowSpan(y).Slice(startX);
+                            ref Vector4 baseRef = ref MemoryMarshal.GetReference(targetRowSpan);
 
                             for (int x = 0; x < width; x++)
                             {
-                                ref Vector4 vector = ref targetRowSpan[x];
-                                vector.X = (float)Math.Pow(vector.X.Clamp(0, float.PositiveInfinity), 1 / this.Gamma);
-                                vector.Y = (float)Math.Pow(vector.Y.Clamp(0, float.PositiveInfinity), 1 / this.Gamma);
-                                vector.Z = (float)Math.Pow(vector.Z.Clamp(0, float.PositiveInfinity), 1 / this.Gamma);
-
-                                Vector4Utils.UnPremultiply(ref vector);
+                                ref Vector4 v = ref Unsafe.Add(ref baseRef, x);
+                                v.X = (float)Math.Pow(v.X.Clamp(0, float.PositiveInfinity), 1 / this.Gamma);
+                                v.Y = (float)Math.Pow(v.Y.Clamp(0, float.PositiveInfinity), 1 / this.Gamma);
+                                v.Z = (float)Math.Pow(v.Z.Clamp(0, float.PositiveInfinity), 1 / this.Gamma);
                             }
 
+                            Vector4Utils.UnPremultiply(targetRowSpan);
                             PixelOperations<TPixel>.Instance.FromVector4(configuration, targetRowSpan.Slice(0, width), targetPixelSpan);
                         }
                     });
@@ -527,10 +529,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     {
                         Span<Vector4> targetRowSpan = targetValues.GetRowSpan(y).Slice(startX);
                         Span<ComplexVector4> sourceRowSpan = sourceValues.GetRowSpan(y).Slice(startX);
+                        ref Vector4 baseRef = ref MemoryMarshal.GetReference(targetRowSpan);
 
                         for (int x = 0; x < width; x++)
                         {
-                            targetRowSpan[x] += sourceRowSpan[x].WeightedSum(z, w);
+                            Unsafe.Add(ref baseRef, x) += sourceRowSpan[x].WeightedSum(z, w);
                         }
                     }
                 });

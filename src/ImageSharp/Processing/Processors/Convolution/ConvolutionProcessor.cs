@@ -3,6 +3,7 @@
 
 using System;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
@@ -22,7 +23,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// Initializes a new instance of the <see cref="ConvolutionProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="kernelXY">The 2d gradient operator.</param>
-        public ConvolutionProcessor(DenseMatrix<float> kernelXY) => this.KernelXY = kernelXY;
+        public ConvolutionProcessor(in DenseMatrix<float> kernelXY) => this.KernelXY = kernelXY;
 
         /// <summary>
         /// Gets the 2d gradient operator.
@@ -55,6 +56,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         {
                             Span<Vector4> vectorSpan = vectorBuffer.Span;
                             int length = vectorSpan.Length;
+                            ref Vector4 vectorSpanRef = ref MemoryMarshal.GetReference(vectorSpan);
 
                             for (int y = rows.Min; y < rows.Max; y++)
                             {
@@ -63,10 +65,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                                 for (int x = 0; x < width; x++)
                                 {
-                                    DenseMatrixUtils.Convolve(in matrix, source.PixelBuffer, vectorSpan, y, x, maxY, maxX, startX);
+                                    DenseMatrixUtils.Convolve(
+                                        in matrix,
+                                        source.PixelBuffer,
+                                        ref vectorSpanRef,
+                                        y,
+                                        x,
+                                        maxY,
+                                        maxX,
+                                        startX,
+                                        ConvolutionPassType.Single);
                                 }
 
-                                PixelOperations<TPixel>.Instance.FromVector4(configuration, vectorSpan.Slice(0, length), targetRowSpan);
+                                PixelOperations<TPixel>.Instance.FromVector4(configuration, vectorSpan, targetRowSpan);
                             }
                         });
 

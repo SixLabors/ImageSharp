@@ -3,7 +3,7 @@
 
 using System;
 using System.Numerics;
-
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </summary>
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
-        public Convolution2PassProcessor(DenseMatrix<float> kernelX, DenseMatrix<float> kernelY)
+        public Convolution2PassProcessor(in DenseMatrix<float> kernelX, in DenseMatrix<float> kernelY)
         {
             this.KernelX = kernelX;
             this.KernelY = kernelY;
@@ -45,11 +45,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         {
             using (Buffer2D<TPixel> firstPassPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
             {
-                source.CopyTo(firstPassPixels);
-
                 var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
-                this.ApplyConvolution(firstPassPixels, source.PixelBuffer, interest, this.KernelX, configuration);
-                this.ApplyConvolution(source.PixelBuffer, firstPassPixels, interest, this.KernelY, configuration);
+                this.ApplyConvolution(firstPassPixels, source.PixelBuffer, interest, this.KernelX, configuration, ConvolutionPassType.First);
+                this.ApplyConvolution(source.PixelBuffer, firstPassPixels, interest, this.KernelY, configuration, ConvolutionPassType.Second);
             }
         }
 
@@ -64,12 +62,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </param>
         /// <param name="kernel">The kernel operator.</param>
         /// <param name="configuration">The <see cref="Configuration"/></param>
+        /// <param name="passType">The convolution pass type.</param>
         private void ApplyConvolution(
             Buffer2D<TPixel> targetPixels,
             Buffer2D<TPixel> sourcePixels,
             Rectangle sourceRectangle,
             in DenseMatrix<float> kernel,
-            Configuration configuration)
+            Configuration configuration,
+            ConvolutionPassType passType)
         {
             DenseMatrix<float> matrix = kernel;
             int startY = sourceRectangle.Y;
@@ -89,6 +89,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     {
                         Span<Vector4> vectorSpan = vectorBuffer.Span;
                         int length = vectorSpan.Length;
+                        ref Vector4 vectorSpanRef = ref MemoryMarshal.GetReference(vectorSpan);
 
                         for (int y = rows.Min; y < rows.Max; y++)
                         {
@@ -97,10 +98,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                             for (int x = 0; x < width; x++)
                             {
-                                DenseMatrixUtils.Convolve(in matrix, sourcePixels, vectorSpan, y, x, maxY, maxX, startX);
+                                DenseMatrixUtils.Convolve(
+                                    in matrix,
+                                    sourcePixels,
+                                    ref vectorSpanRef,
+                                    y,
+                                    x,
+                                    maxY,
+                                    maxX,
+                                    startX,
+                                    passType);
                             }
 
-                            PixelOperations<TPixel>.Instance.FromVector4(configuration, vectorSpan.Slice(0, length), targetRowSpan);
+                            PixelOperations<TPixel>.Instance.FromVector4(configuration, vectorSpan, targetRowSpan);
                         }
                     });
         }

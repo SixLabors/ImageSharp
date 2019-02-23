@@ -3,6 +3,7 @@
 
 using System;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
@@ -23,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </summary>
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
-        public Convolution2DProcessor(DenseMatrix<float> kernelX, DenseMatrix<float> kernelY)
+        public Convolution2DProcessor(in DenseMatrix<float> kernelX, in DenseMatrix<float> kernelY)
         {
             Guard.IsTrue(kernelX.Size.Equals(kernelY.Size), $"{nameof(kernelX)} {nameof(kernelY)}", "Kernel sizes must be the same.");
             this.KernelX = kernelX;
@@ -71,6 +72,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         {
                             Span<Vector4> vectorSpan = vectorBuffer.Span;
                             int length = vectorSpan.Length;
+                            ref Vector4 vectorSpanRef = ref MemoryMarshal.GetReference(vectorSpan);
 
                             for (int y = rows.Min; y < rows.Max; y++)
                             {
@@ -79,10 +81,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                                 for (int x = 0; x < width; x++)
                                 {
-                                    DenseMatrixUtils.Convolve2D(in matrixY, in matrixX, source.PixelBuffer, vectorSpan, y, x, maxY, maxX, startX);
+                                    DenseMatrixUtils.Convolve2D(in matrixY, in matrixX, source.PixelBuffer, ref vectorSpanRef, y, x, maxY, maxX, startX);
                                 }
 
-                                PixelOperations<TPixel>.Instance.FromVector4(configuration, vectorSpan.Slice(0, length), targetRowSpan);
+                                PixelOperations<TPixel>.Instance.FromVector4(configuration, vectorSpan, targetRowSpan);
                             }
                         });
 

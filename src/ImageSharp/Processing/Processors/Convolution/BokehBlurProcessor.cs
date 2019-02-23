@@ -283,18 +283,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         private void OnFrameApplyCore(ImageFrame<TPixel> source, Buffer2D<Vector4> processing, Rectangle sourceRectangle, Configuration configuration)
         {
             // Perform two 1D convolutions for each component in the current instance
-            for (int i = 0; i < this.kernels.Length; i++)
+            using (Buffer2D<ComplexVector4>
+                partialValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()),
+                firstPassValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
             {
-                using (Buffer2D<ComplexVector4> partialValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
+                for (int i = 0; i < this.kernels.Length; i++)
                 {
                     // Compute the resulting complex buffer for the current component
-                    using (Buffer2D<ComplexVector4> firstPassValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
-                    {
-                        var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
-                        DenseMatrix<Complex64> kernel = this.kernels[i];
-                        this.ApplyConvolution(firstPassValues, source.PixelBuffer, interest, kernel, configuration);
-                        this.ApplyConvolution(partialValues, firstPassValues, interest, kernel.Reshape(kernel.Count, 1), configuration);
-                    }
+                    var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+                    DenseMatrix<Complex64> kernel = this.kernels[i];
+                    this.ApplyConvolution(firstPassValues, source.PixelBuffer, interest, kernel, configuration);
+                    this.ApplyConvolution(partialValues, firstPassValues, interest, kernel.Reshape(kernel.Count, 1), configuration);
 
                     // Add the results of the convolution with the current kernel
                     Vector4 parameters = this.kernelParameters[i];

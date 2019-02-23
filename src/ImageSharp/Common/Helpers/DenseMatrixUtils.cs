@@ -217,7 +217,6 @@ namespace SixLabors.ImageSharp
             }
 
             ref Vector4 target = ref Unsafe.Add(ref targetRowRef, column);
-            vector.W = target.W;
             Vector4Utils.UnPremultiply(ref vector);
             target = vector;
         }

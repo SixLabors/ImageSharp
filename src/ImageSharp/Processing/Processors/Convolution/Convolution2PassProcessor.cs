@@ -94,7 +94,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         for (int y = rows.Min; y < rows.Max; y++)
                         {
                             Span<TPixel> targetRowSpan = targetPixels.GetRowSpan(y).Slice(startX);
-                            PixelOperations<TPixel>.Instance.ToVector4(configuration, targetRowSpan.Slice(0, length), vectorSpan);
+
+                            if (passType.Equals(ConvolutionPassType.Second))
+                            {
+                                PixelOperations<TPixel>.Instance.ToVector4(configuration, targetRowSpan.Slice(0, length), vectorSpan);
+                            }
 
                             for (int x = 0; x < width; x++)
                             {

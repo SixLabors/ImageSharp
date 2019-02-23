@@ -52,19 +52,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
                             PixelOperations<TPixel>.Instance.ToVector4(configuration, rowSpan, vectorSpan);
 
                             ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectorSpan);
+                            Vector4Utils.Premultiply(vectorSpan);
 
                             for (int i = 0; i < vectorSpan.Length; i++)
                             {
                                 ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
-                                Vector4Utils.Premultiply(ref v);
                                 float
                                     w = v.W,
                                     luminance = 1 - (Vector4.Dot(v, factors) * amount);
                                 v *= luminance;
                                 v.W = w;
-                                Vector4Utils.UnPremultiply(ref v);
                             }
 
+                            Vector4Utils.UnPremultiply(vectorSpan);
                             PixelOperations<TPixel>.Instance.FromVector4(configuration, vectorSpan, rowSpan);
                         }
                     });

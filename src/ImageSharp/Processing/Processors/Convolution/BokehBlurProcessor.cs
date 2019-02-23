@@ -192,22 +192,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <param name="b">The angle component for each complex component</param>
         private DenseMatrix<Complex64> CreateComplex1DKernel(float a, float b)
         {
-            // Precompute the range values
-            float[] ax = Enumerable.Range(-this.Radius, (this.Radius * 2) + 1).Select(
-                i =>
-                    {
-                        float value = i * this.kernelsScale * (1f / this.Radius);
-                        return value * value;
-                    }).ToArray();
-
-            // Compute the complex kernels
             var kernel = new DenseMatrix<Complex64>(1, this.kernelSize);
-            for (int i = 0; i < this.kernelSize; i++)
+            ref Complex64 baseRef = ref MemoryMarshal.GetReference(kernel.Span);
+            int r = this.Radius, n = -r;
+
+            for (int i = 0; i < this.kernelSize; i++, n++)
             {
-                float
-                    real = (float)(Math.Exp(-a * ax[i]) * Math.Cos(b * ax[i])),
-                    imaginary = (float)(Math.Exp(-a * ax[i]) * Math.Sin(b * ax[i]));
-                kernel[i, 0] = new Complex64(real, imaginary);
+                // Incrementally compute the range values
+                float value = n * this.kernelsScale * (1f / r);
+                value *= value;
+
+                // Fill in the complex kernel values
+                Unsafe.Add(ref baseRef, i) = new Complex64(
+                    (float)(Math.Exp(-a * value) * Math.Cos(b * value)),
+                    (float)(Math.Exp(-a * value) * Math.Sin(b * value)));
             }
 
             return kernel;
@@ -220,26 +218,40 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         {
             // Calculate the complex weighted sum
             double total = 0;
-            foreach ((DenseMatrix<Complex64> kernel, Vector4 param) in this.Kernels.Zip(this.kernelParameters, (k, p) => (k, p)))
+            Span<DenseMatrix<Complex64>> kernelsSpan = this.kernels.AsSpan();
+            ref DenseMatrix<Complex64> baseKernelsRef = ref MemoryMarshal.GetReference(kernelsSpan); 
+            ref Vector4 baseParamsRef = ref MemoryMarshal.GetReference(this.kernelParameters.AsSpan());
+
+            for (int i = 0; i < this.kernelParameters.Length; i++)
             {
-                for (int i = 0; i < kernel.Count; i++)
+                ref DenseMatrix<Complex64> matrixRef = ref Unsafe.Add(ref baseKernelsRef, i);
+                int length = matrixRef.Count;
+                ref Complex64 kernelRef = ref MemoryMarshal.GetReference(matrixRef.Span);
+                ref Vector4 paramsRef = ref Unsafe.Add(ref baseParamsRef, i);
+
+                for (int j = 0; j < length; j++)
                 {
-                    for (int j = 0; j < kernel.Count; j++)
+                    for (int k = 0; k < length; k++)
                     {
+                        ref Complex64 jRef = ref Unsafe.Add(ref kernelRef, j);
+                        ref Complex64 kRef = ref Unsafe.Add(ref kernelRef, k);
                         total +=
-                            (param.Z * ((kernel[i, 0].Real * kernel[j, 0].Real) - (kernel[i, 0].Imaginary * kernel[j, 0].Imaginary))) +
-                            (param.W * ((kernel[i, 0].Real * kernel[j, 0].Imaginary) + (kernel[i, 0].Imaginary * kernel[j, 0].Real)));
+                            (paramsRef.Z * ((jRef.Real * kRef.Real) - (jRef.Imaginary * kRef.Imaginary))) +
+                            (paramsRef.W * ((jRef.Real * kRef.Imaginary) + (jRef.Imaginary * kRef.Real)));
                     }
                 }
             }
 
             // Normalize the kernels
             float scalar = (float)(1f / Math.Sqrt(total));
-            foreach (DenseMatrix<Complex64> kernel in this.Kernels)
+            for (int i = 0; i < kernelsSpan.Length; i++)
             {
-                for (int i = 0; i < kernel.Count; i++)
+                ref DenseMatrix<Complex64> matrixRef = ref Unsafe.Add(ref baseKernelsRef, i);
+                ref Complex64 valueRef = ref MemoryMarshal.GetReference(matrixRef.Span);
+
+                for (int j = 0; j < matrixRef.Count; j++)
                 {
-                    kernel[i, 0] *= scalar;
+                    Unsafe.Add(ref valueRef, j) *= scalar;
                 }
             }
         }

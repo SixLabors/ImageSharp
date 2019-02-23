@@ -8,7 +8,10 @@ using System.Text.RegularExpressions;
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Convolution;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using SixLabors.Primitives;
 
 using Xunit;
 
@@ -16,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {
     public class BokehBlurTest : FileTestBase
     {
-        private static readonly string Components10x2 =@"
+        private static readonly string Components10x2 = @"
         [[ 0.00451261+0.0165137j   0.02161237-0.00299122j  0.00387479-0.02682816j
           -0.02752798-0.01788438j -0.03553877+0.0154543j  -0.01428268+0.04224722j
            0.01747482+0.04687464j  0.04243676+0.03451751j  0.05564306+0.01742537j
@@ -61,6 +64,51 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
                     Assert.True(Math.Abs(Math.Abs(spanA[i].Real) - Math.Abs(spanB[i].Real)) < 0.0001f);
                     Assert.True(Math.Abs(Math.Abs(spanA[i].Imaginary) - Math.Abs(spanB[i].Imaginary)) < 0.0001f);
                 }
+            }
+        }
+
+        public sealed class BokehBlurInfo
+        {
+            public int Radius { get; set; }
+
+            public int Components { get; set; }
+
+            public float Gamma { get; set; }
+        }
+
+        public static readonly TheoryData<BokehBlurInfo> BokehBlurValues = new TheoryData<BokehBlurInfo>
+        {
+            new BokehBlurInfo { Radius = 8, Components = 1, Gamma = 1 },
+            new BokehBlurInfo { Radius = 16, Components = 1, Gamma = 3 },
+            new BokehBlurInfo { Radius = 16, Components = 2, Gamma = 3 }
+        };
+
+        [Theory]
+        [WithFileCollection(nameof(DefaultFiles), nameof(BokehBlurValues), DefaultPixelType)]
+        public void ImageShouldApplyBokehBlurFilter<TPixel>(TestImageProvider<TPixel> provider, BokehBlurInfo value)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(x => x.BokehBlur(value.Radius, value.Components, value.Gamma));
+                image.DebugSave(provider, value);
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(DefaultFiles), nameof(BokehBlurValues), DefaultPixelType)]
+        public void ImageShouldApplyBokehBlurFilterInBox<TPixel>(TestImageProvider<TPixel> provider, BokehBlurInfo value)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> source = provider.GetImage())
+            using (Image<TPixel> image = source.Clone())
+            {
+                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+
+                image.Mutate(x => x.BokehBlur(value.Radius, value.Components, value.Gamma, bounds));
+                image.DebugSave(provider, value);
+
+                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
             }
         }
     }

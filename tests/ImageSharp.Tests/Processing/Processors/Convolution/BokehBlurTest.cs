@@ -58,8 +58,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
                 Assert.Equal(spanA.Length, spanB.Length);
                 for (int i = 0; i < spanA.Length; i++)
                 {
-                    Assert.True(Math.Abs(Math.Abs(spanA[i].Real) - Math.Abs(spanB[i].Real)) < 0.00000001f);
-                    Assert.True(Math.Abs(Math.Abs(spanA[i].Imaginary) - Math.Abs(spanB[i].Imaginary)) < 0.00000001f);
+                    Assert.True(Math.Abs(Math.Abs(spanA[i].Real) - Math.Abs(spanB[i].Real)) < 0.0001f);
+                    Assert.True(Math.Abs(Math.Abs(spanA[i].Imaginary) - Math.Abs(spanB[i].Imaginary)) < 0.0001f);
                 }
             }
         }

@@ -14,6 +14,7 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
 
 using Xunit;
+using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {
@@ -67,13 +68,27 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
             }
         }
 
-        public sealed class BokehBlurInfo
+        public sealed class BokehBlurInfo : IXunitSerializable
         {
             public int Radius { get; set; }
 
             public int Components { get; set; }
 
             public float Gamma { get; set; }
+
+            public void Deserialize(IXunitSerializationInfo info)
+            {
+                this.Radius = info.GetValue<int>(nameof(this.Radius));
+                this.Components = info.GetValue<int>(nameof(this.Components));
+                this.Gamma = info.GetValue<float>(nameof(this.Gamma));
+            }
+
+            public void Serialize(IXunitSerializationInfo info)
+            {
+                info.AddValue(nameof(this.Radius), this.Radius, typeof(int));
+                info.AddValue(nameof(this.Components), this.Components, typeof(int));
+                info.AddValue(nameof(this.Gamma), this.Gamma, typeof(float));
+            }
         }
 
         public static readonly TheoryData<BokehBlurInfo> BokehBlurValues = new TheoryData<BokehBlurInfo>

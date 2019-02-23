@@ -52,17 +52,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// The DC Huffman tables
         /// </summary>
-        private HuffmanTables dcHuffmanTables;
+        private HuffmanTable[] dcHuffmanTables;
 
         /// <summary>
         /// The AC Huffman tables
         /// </summary>
-        private HuffmanTables acHuffmanTables;
+        private HuffmanTable[] acHuffmanTables;
 
         /// <summary>
         /// The fast AC tables used for entropy decoding
         /// </summary>
-        private FastACTables fastACTables;
+        private FastACTable[] fastACTables;
 
         /// <summary>
         /// The reset interval determined by RST markers
@@ -266,9 +266,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Only assign what we need
             if (!metadataOnly)
             {
-                this.dcHuffmanTables = new HuffmanTables();
-                this.acHuffmanTables = new HuffmanTables();
-                this.fastACTables = new FastACTables(this.configuration.MemoryAllocator);
+                const int maxTables = 4;
+                this.dcHuffmanTables = new HuffmanTable[maxTables];
+                this.acHuffmanTables = new HuffmanTable[maxTables];
+                this.fastACTables = new FastACTable[maxTables];
             }
 
             // Break only when we discover a valid EOI marker.
@@ -378,7 +379,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             this.InputStream?.Dispose();
             this.Frame?.Dispose();
-            this.fastACTables?.Dispose();
 
             // Set large fields to null.
             this.InputStream = null;
@@ -872,12 +872,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                                 tableIndex,
                                 codeLengths.GetSpan(),
                                 huffmanValues.GetSpan());
-
-                            if (tableType != 0)
-                            {
-                                // Build a table that decodes both magnitude and value of small ACs in one go.
-                                this.fastACTables.BuildACTableLut(tableIndex, this.acHuffmanTables);
-                            }
                         }
                     }
                 }
@@ -967,7 +961,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="codeLengths">The codelengths</param>
         /// <param name="values">The values</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void BuildHuffmanTable(HuffmanTables tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
+        private void BuildHuffmanTable(HuffmanTable[] tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
             => tables[index] = new HuffmanTable(this.configuration.MemoryAllocator, codeLengths, values);
 
         /// <summary>

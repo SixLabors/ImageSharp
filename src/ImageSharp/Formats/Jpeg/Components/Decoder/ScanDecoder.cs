@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
@@ -25,9 +26,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private static readonly int[] Bias = { 0, -1, -3, -7, -15, -31, -63, -127, -255, -511, -1023, -2047, -4095, -8191, -16383, -32767 };
 
         private readonly JpegFrame frame;
-        private readonly HuffmanTables dcHuffmanTables;
-        private readonly HuffmanTables acHuffmanTables;
-        private readonly FastACTables fastACTables;
+        private readonly HuffmanTable[] dcHuffmanTables;
+        private readonly HuffmanTable[] acHuffmanTables;
+        private readonly FastACTable[] fastACTables;
 
         private readonly DoubleBufferedStreamReader stream;
         private readonly JpegComponent[] components;
@@ -95,9 +96,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public ScanDecoder(
             DoubleBufferedStreamReader stream,
             JpegFrame frame,
-            HuffmanTables dcHuffmanTables,
-            HuffmanTables acHuffmanTables,
-            FastACTables fastACTables,
+            HuffmanTable[] dcHuffmanTables,
+            HuffmanTable[] acHuffmanTables,
+            FastACTable[] fastACTables,
             int componentsLength,
             int restartInterval,
             int spectralStart,
@@ -159,17 +160,35 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        private void ParseBaselineDataInterleaved()
+        private unsafe void ParseBaselineDataInterleaved()
         {
             // Interleaved
             int mcu = 0;
             int mcusPerColumn = this.frame.McusPerColumn;
             int mcusPerLine = this.frame.McusPerLine;
+
+            // Pre-derive the huffman table to avoid in-loop checks.
+            for (int i = 0; i < this.componentsLength; i++)
+            {
+                int order = this.frame.ComponentOrder[i];
+                JpegComponent component = this.components[order];
+
+                ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
+                ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
+                dcHuffmanTable.Derive();
+                acHuffmanTable.Derive();
+
+                ref FastACTable fastAcTable = ref this.fastACTables[component.ACHuffmanTableId];
+                fastAcTable.Derive(ref acHuffmanTable);
+            }
+
             for (int j = 0; j < mcusPerColumn; j++)
             {
                 for (int i = 0; i < mcusPerLine; i++)
                 {
                     // Scan an interleaved mcu... process components in order
+                    int mcuRow = mcu / mcusPerLine;
+                    int mcuCol = mcu % mcusPerLine;
                     for (int k = 0; k < this.componentsLength; k++)
                     {
                         int order = this.frame.ComponentOrder[k];
@@ -177,11 +196,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                         ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
                         ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
-                        ref short fastACRef = ref this.fastACTables.GetAcTableReference(component);
+                        ref FastACTable fastAcTable = ref this.fastACTables[component.ACHuffmanTableId];
+                        ref short fastACRef = ref fastAcTable.Lookahead[0];
+
                         int h = component.HorizontalSamplingFactor;
                         int v = component.VerticalSamplingFactor;
-
-                        int mcuRow = mcu / mcusPerLine;
 
                         // Scan out an mcu's worth of this component; that's just determined
                         // by the basic H and V specified for the component
@@ -189,6 +208,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         {
                             int blockRow = (mcuRow * v) + y;
                             Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(blockRow);
+                            ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
+
                             for (int x = 0; x < h; x++)
                             {
                                 if (this.eof)
@@ -196,12 +217,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                                     return;
                                 }
 
-                                int mcuCol = mcu % mcusPerLine;
                                 int blockCol = (mcuCol * h) + x;
 
                                 this.DecodeBlockBaseline(
                                     component,
-                                    ref blockSpan[blockCol],
+                                    ref Unsafe.Add(ref blockRef, blockCol),
                                     ref dcHuffmanTable,
                                     ref acHuffmanTable,
                                     ref fastACRef);
@@ -225,7 +245,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// number of blocks to do just depends on how many actual "pixels" each component has,
         /// independent of interleaved MCU blocking and such.
         /// </summary>
-        private void ParseBaselineDataNonInterleaved()
+        private unsafe void ParseBaselineDataNonInterleaved()
         {
             JpegComponent component = this.components[this.frame.ComponentOrder[0]];
 
@@ -234,14 +254,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
             ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
-            ref short fastACRef = ref this.fastACTables.GetAcTableReference(component);
+            dcHuffmanTable.Derive();
+            acHuffmanTable.Derive();
+
+            ref FastACTable fastAcTable = ref this.fastACTables[component.ACHuffmanTableId];
+            fastAcTable.Derive(ref acHuffmanTable);
+            ref short fastACRef = ref fastAcTable.Lookahead[0];
 
             int mcu = 0;
             for (int j = 0; j < h; j++)
             {
-                // TODO: Isn't blockRow == j actually?
-                int blockRow = mcu / w;
-                Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(blockRow);
+                int blockRow = j;
+                Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(j);
+                ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                 for (int i = 0; i < w; i++)
                 {
@@ -250,12 +275,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         return;
                     }
 
-                    // TODO: Isn't blockCol == i actually?
-                    int blockCol = mcu % w;
-
                     this.DecodeBlockBaseline(
                         component,
-                        ref blockSpan[blockCol],
+                        ref Unsafe.Add(ref blockRef, i),
                         ref dcHuffmanTable,
                         ref acHuffmanTable,
                         ref fastACRef);
@@ -340,16 +362,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int mcu = 0;
             int mcusPerColumn = this.frame.McusPerColumn;
             int mcusPerLine = this.frame.McusPerLine;
+
+            // Pre-derive the huffman table to avoid in-loop checks.
+            for (int k = 0; k < this.componentsLength; k++)
+            {
+                int order = this.frame.ComponentOrder[k];
+                JpegComponent component = this.components[order];
+                ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
+                dcHuffmanTable.Derive();
+            }
+
             for (int j = 0; j < mcusPerColumn; j++)
             {
                 for (int i = 0; i < mcusPerLine; i++)
                 {
                     // Scan an interleaved mcu... process components in order
+                    int mcuRow = mcu / mcusPerLine;
+                    int mcuCol = mcu % mcusPerLine;
                     for (int k = 0; k < this.componentsLength; k++)
                     {
                         int order = this.frame.ComponentOrder[k];
                         JpegComponent component = this.components[order];
                         ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
+
                         int h = component.HorizontalSamplingFactor;
                         int v = component.VerticalSamplingFactor;
 
@@ -357,9 +392,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         // by the basic H and V specified for the component
                         for (int y = 0; y < v; y++)
                         {
-                            int mcuRow = mcu / mcusPerLine;
                             int blockRow = (mcuRow * v) + y;
                             Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(blockRow);
+                            ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                             for (int x = 0; x < h; x++)
                             {
@@ -368,12 +403,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                                     return;
                                 }
 
-                                int mcuCol = mcu % mcusPerLine;
                                 int blockCol = (mcuCol * h) + x;
 
                                 this.DecodeBlockProgressiveDC(
                                     component,
-                                    ref blockSpan[blockCol],
+                                    ref Unsafe.Add(ref blockRef, blockCol),
                                     ref dcHuffmanTable);
                             }
                         }
@@ -396,56 +430,78 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// number of blocks to do just depends on how many actual "pixels" this
         /// component has, independent of interleaved MCU blocking and such
         /// </summary>
-        private void ParseProgressiveDataNonInterleaved()
+        private unsafe void ParseProgressiveDataNonInterleaved()
         {
             JpegComponent component = this.components[this.frame.ComponentOrder[0]];
 
             int w = component.WidthInBlocks;
             int h = component.HeightInBlocks;
 
-            ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
-            ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
-            ref short fastACRef = ref this.fastACTables.GetAcTableReference(component);
-
-            int mcu = 0;
-            for (int j = 0; j < h; j++)
+            if (this.spectralStart == 0)
             {
-                // TODO: isn't blockRow == j actually?
-                int blockRow = mcu / w;
-                Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(blockRow);
+                ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
+                dcHuffmanTable.Derive();
 
-                for (int i = 0; i < w; i++)
+                int mcu = 0;
+                for (int j = 0; j < h; j++)
                 {
-                    if (this.eof)
+                    Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(j);
+                    ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
+
+                    for (int i = 0; i < w; i++)
                     {
-                        return;
-                    }
+                        if (this.eof)
+                        {
+                            return;
+                        }
 
-                    // TODO: isn't blockCol == i actually?
-                    int blockCol = mcu % w;
-
-                    ref Block8x8 block = ref blockSpan[blockCol];
-
-                    if (this.spectralStart == 0)
-                    {
                         this.DecodeBlockProgressiveDC(
                             component,
-                            ref block,
+                            ref Unsafe.Add(ref blockRef, i),
                             ref dcHuffmanTable);
+
+                        // Every data block is an MCU, so countdown the restart interval
+                        mcu++;
+                        if (!this.ContinueOnMcuComplete())
+                        {
+                            return;
+                        }
                     }
-                    else
+                }
+            }
+            else
+            {
+                ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
+                acHuffmanTable.Derive();
+
+                ref FastACTable fastAcTable = ref this.fastACTables[component.ACHuffmanTableId];
+                fastAcTable.Derive(ref acHuffmanTable);
+                ref short fastACRef = ref fastAcTable.Lookahead[0];
+
+                int mcu = 0;
+                for (int j = 0; j < h; j++)
+                {
+                    Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(j);
+                    ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
+
+                    for (int i = 0; i < w; i++)
                     {
+                        if (this.eof)
+                        {
+                            return;
+                        }
+
                         this.DecodeBlockProgressiveAC(
-                            ref block,
+                            ref Unsafe.Add(ref blockRef, i),
                             ref acHuffmanTable,
                             ref fastACRef);
-                    }
 
-                    // Every data block is an MCU, so countdown the restart interval
-                    mcu++;
-                    if (!this.ContinueOnMcuComplete())
-                    {
-                        return;
+                        // Every data block is an MCU, so countdown the restart interval
+                        mcu++;
+                        if (!this.ContinueOnMcuComplete())
+                        {
+                            return;
+                        }
                     }
                 }
             }

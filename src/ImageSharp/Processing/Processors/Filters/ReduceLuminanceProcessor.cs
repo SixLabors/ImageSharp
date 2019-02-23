@@ -37,6 +37,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
             var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
             int startX = interest.X;
             float amount = this.Amount;
+            var factors = new Vector4(0.2125f, 0.7154f, 0.0721f, 0);
 
             ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
                 interest,
@@ -58,8 +59,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
                                 Vector4Utils.Premultiply(ref v);
                                 float
                                     w = v.W,
-                                    luminosity = 1 - (((v.X * 0.2125f) + (v.Y * 0.7154f) + (v.Z * 0.0721f)) * amount);
-                                v *= luminosity;
+                                    luminance = 1 - (Vector4.Dot(v, factors) * amount);
+                                v *= luminance;
                                 v.W = w;
                                 Vector4Utils.UnPremultiply(ref v);
                             }

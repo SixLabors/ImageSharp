@@ -59,9 +59,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
             // Make sure the kernel components are the same
             var processor = new BokehBlurProcessor<Rgb24>(10);
             Assert.Equal(components.Count, processor.Kernels.Count);
-            foreach ((Complex64[] a, DenseMatrix<Complex64> b) in components.Zip(processor.Kernels, (a, b) => (a, b)))
+            foreach ((Complex64[] a, Complex64[] b) in components.Zip(processor.Kernels, (a, b) => (a, b)))
             {
-                Span<Complex64> spanA = a.AsSpan(), spanB = b.Span;
+                Span<Complex64> spanA = a.AsSpan(), spanB = b.AsSpan();
                 Assert.Equal(spanA.Length, spanB.Length);
                 for (int i = 0; i < spanA.Length; i++)
                 {

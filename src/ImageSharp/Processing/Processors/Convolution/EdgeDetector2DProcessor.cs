@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
         /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection.</param>
-        protected EdgeDetector2DProcessor(DenseMatrix<float> kernelX, DenseMatrix<float> kernelY, bool grayscale)
+        protected EdgeDetector2DProcessor(in DenseMatrix<float> kernelX, in DenseMatrix<float> kernelY, bool grayscale)
         {
             Guard.IsTrue(kernelX.Size.Equals(kernelY.Size), $"{nameof(kernelX)} {nameof(kernelY)}", "Kernel sizes must be the same.");
             this.KernelX = kernelX;

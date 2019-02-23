@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -86,9 +85,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             {
                 // Initialize the complex kernels and parameters with the current arguments
                 (this.kernelParameters, this.kernelsScale) = this.GetParameters();
-                this.kernels = (
-                    from parameters in this.kernelParameters
-                    select this.CreateComplex1DKernel(parameters.X, parameters.Y)).ToArray();
+
+                this.kernels = new DenseMatrix<Complex64>[this.kernelParameters.Length];
+                ref Vector4 baseRef = ref MemoryMarshal.GetReference(this.kernelParameters.AsSpan());
+                for (int i = 0; i < this.kernelParameters.Length; i++)
+                {
+                    ref Vector4 paramsRef = ref Unsafe.Add(ref baseRef, i);
+                    this.kernels[i] = this.CreateComplex1DKernel(paramsRef.X, paramsRef.Y);
+                }
+
                 this.NormalizeKernels();
 
                 // Store them in the cache for future use
@@ -219,7 +224,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             // Calculate the complex weighted sum
             double total = 0;
             Span<DenseMatrix<Complex64>> kernelsSpan = this.kernels.AsSpan();
-            ref DenseMatrix<Complex64> baseKernelsRef = ref MemoryMarshal.GetReference(kernelsSpan); 
+            ref DenseMatrix<Complex64> baseKernelsRef = ref MemoryMarshal.GetReference(kernelsSpan);
             ref Vector4 baseParamsRef = ref MemoryMarshal.GetReference(this.kernelParameters.AsSpan());
 
             for (int i = 0; i < this.kernelParameters.Length; i++)

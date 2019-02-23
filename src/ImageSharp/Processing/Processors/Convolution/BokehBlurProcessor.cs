@@ -433,7 +433,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                 vector.X = (float)Math.Pow(vector.X, this.Gamma);
                                 vector.Y = (float)Math.Pow(vector.Y, this.Gamma);
                                 vector.Z = (float)Math.Pow(vector.Z, this.Gamma);
-                                vector.W = (float)Math.Pow(vector.W, this.Gamma);
+                                Vector4Utils.Premultiply(ref vector);
                             }
 
                             PixelOperations<TPixel>.Instance.FromVector4(configuration, vectorSpan.Slice(0, length), targetRowSpan);
@@ -480,7 +480,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                 vector.X = (float)Math.Pow(vector.X.Clamp(0, float.PositiveInfinity), 1 / this.Gamma);
                                 vector.Y = (float)Math.Pow(vector.Y.Clamp(0, float.PositiveInfinity), 1 / this.Gamma);
                                 vector.Z = (float)Math.Pow(vector.Z.Clamp(0, float.PositiveInfinity), 1 / this.Gamma);
-                                vector.W = (float)Math.Pow(vector.W.Clamp(0, float.PositiveInfinity), 1 / this.Gamma);
+
+                                Vector4Utils.UnPremultiply(ref vector);
                             }
 
                             PixelOperations<TPixel>.Instance.FromVector4(configuration, targetRowSpan, targetPixelSpan);

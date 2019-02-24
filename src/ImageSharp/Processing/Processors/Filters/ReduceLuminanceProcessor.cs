@@ -57,9 +57,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
                             for (int i = 0; i < vectorSpan.Length; i++)
                             {
                                 ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
-                                float
-                                    w = v.W,
-                                    luminance = 1 - (Vector4.Dot(v, factors) * amount);
+                                float w = v.W;
+                                float luminance = 1 - (Vector4.Dot(v, factors) * amount);
                                 v *= luminance;
                                 v.W = w;
                             }

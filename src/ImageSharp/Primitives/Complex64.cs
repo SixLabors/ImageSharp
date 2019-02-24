@@ -66,9 +66,8 @@ namespace SixLabors.ImageSharp.Primitives
         [MethodImpl(InliningOptions.ShortMethod)]
         public static ComplexVector4 operator *(Complex64 value, ComplexVector4 vector)
         {
-            Vector4
-                real = (value.Real * vector.Real) - (value.Imaginary * vector.Imaginary),
-                imaginary = (value.Real * vector.Imaginary) + (value.Imaginary * vector.Real);
+            Vector4 real = (value.Real * vector.Real) - (value.Imaginary * vector.Imaginary);
+            Vector4 imaginary = (value.Real * vector.Imaginary) + (value.Imaginary * vector.Real);
             return new ComplexVector4 { Real = real, Imaginary = imaginary };
         }
 
@@ -91,6 +90,6 @@ namespace SixLabors.ImageSharp.Primitives
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"{this.Real}+{this.Imaginary}j";
+        public override string ToString() => $"{this.Real}{(this.Imaginary >= 0 ? "+" : string.Empty)}{this.Imaginary}j";
     }
 }

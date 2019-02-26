@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
@@ -268,7 +269,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             this.ApplyGammaExposure(source.PixelBuffer, sourceRectangle, configuration);
 
             // Create a 0-filled buffer to use to store the result of the component convolutions
-            using (Buffer2D<Vector4> processing = configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size()))
+            using (Buffer2D<Vector4> processing = configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size(), AllocationOptions.Clean))
             {
                 // Apply the complex 1D convolutions
                 this.OnFrameApplyCore(source, processing, sourceRectangle, configuration);

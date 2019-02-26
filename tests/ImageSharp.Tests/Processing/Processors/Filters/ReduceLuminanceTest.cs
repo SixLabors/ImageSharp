@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
+namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
 {
     [GroupOutput("Filters")]
     public class ReduceLuminanceTest : FileTestBase

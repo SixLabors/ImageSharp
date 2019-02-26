@@ -270,29 +270,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             // Create a 0-filled buffer to use to store the result of the component convolutions
             using (Buffer2D<Vector4> processing = configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size(), AllocationOptions.Clean))
-            {
-                // Apply the complex 1D convolutions
-                this.OnFrameApplyCore(source, processing, sourceRectangle, configuration);
-
-                // Apply the inverse gamma exposure pass, and write the final pixel data
-                this.ApplyInverseGammaExposure(source.PixelBuffer, processing, sourceRectangle, configuration);
-            }
-        }
-
-        /// <summary>
-        /// Applies the actual bokeh blur effect on the target image frame
-        /// </summary>
-        /// <param name="source">The source image. Cannot be null.</param>
-        /// <param name="processing">The target <see cref="Buffer2D{T}"/> to write to.</param>
-        /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
-        /// <param name="configuration">The configuration.</param>
-        private void OnFrameApplyCore(ImageFrame<TPixel> source, Buffer2D<Vector4> processing, Rectangle sourceRectangle, Configuration configuration)
-        {
-            // Perform two 1D convolutions for each component in the current instance
             using (Buffer2D<ComplexVector4>
                 partialValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()),
                 firstPassValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
             {
+                // Perform two 1D convolutions for each component in the current instance
                 ref Complex64[] baseRef = ref MemoryMarshal.GetReference(this.kernels.AsSpan());
                 for (int i = 0; i < this.kernels.Length; i++)
                 {
@@ -306,6 +288,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     Vector4 parameters = this.kernelParameters[i];
                     this.SumProcessingPartials(processing, partialValues, sourceRectangle, configuration, parameters.Z, parameters.W);
                 }
+
+                // Apply the inverse gamma exposure pass, and write the final pixel data
+                this.ApplyInverseGammaExposure(source.PixelBuffer, processing, sourceRectangle, configuration);
             }
         }
 

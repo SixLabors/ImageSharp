@@ -404,6 +404,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
             int width = workingRectangle.Width;
+            float gamma = this.Gamma;
 
             ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
                 workingRectangle,
@@ -423,9 +424,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                             for (int x = 0; x < width; x++)
                             {
                                 ref Vector4 v = ref Unsafe.Add(ref baseRef, x);
-                                v.X = (float)Math.Pow(v.X, this.Gamma);
-                                v.Y = (float)Math.Pow(v.Y, this.Gamma);
-                                v.Z = (float)Math.Pow(v.Z, this.Gamma);
+                                v.X = (float)Math.Pow(v.X, gamma);
+                                v.Y = (float)Math.Pow(v.Y, gamma);
+                                v.Z = (float)Math.Pow(v.Z, gamma);
                             }
 
                             PixelOperations<TPixel>.Instance.FromVector4(configuration, vectorSpan.Slice(0, length), targetRowSpan);
@@ -455,6 +456,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
             int width = workingRectangle.Width;
+            float expGamma = 1 / this.Gamma;
 
             ParallelHelper.IterateRows(
                 workingRectangle,
@@ -470,9 +472,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                             for (int x = 0; x < width; x++)
                             {
                                 ref Vector4 v = ref Unsafe.Add(ref baseRef, x);
-                                v.X = (float)Math.Pow(v.X.Clamp(0, float.PositiveInfinity), 1 / this.Gamma);
-                                v.Y = (float)Math.Pow(v.Y.Clamp(0, float.PositiveInfinity), 1 / this.Gamma);
-                                v.Z = (float)Math.Pow(v.Z.Clamp(0, float.PositiveInfinity), 1 / this.Gamma);
+                                v.X = (float)Math.Pow(v.X.Clamp(0, float.PositiveInfinity), expGamma);
+                                v.Y = (float)Math.Pow(v.Y.Clamp(0, float.PositiveInfinity), expGamma);
+                                v.Z = (float)Math.Pow(v.Z.Clamp(0, float.PositiveInfinity), expGamma);
                             }
 
                             Vector4Utils.UnPremultiply(targetRowSpan);

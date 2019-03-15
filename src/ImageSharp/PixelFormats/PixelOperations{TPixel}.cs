@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -88,6 +87,74 @@ namespace SixLabors.ImageSharp.PixelFormats
             Guard.DestinationShouldNotBeTooShort(sourceColors, destinationVectors, nameof(destinationVectors));
 
             Utils.Vector4Converters.Default.DangerousToScaledVector4(sourceColors, destinationVectors);
+        }
+
+        /// <summary>
+        /// Bulk version of <see cref="IPixel.FromVector4"/> converting alpha premultiplied 'sourceVectors.Length' pixels into 'destinationColors'.
+        /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
+        /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination colors.</param>
+        internal virtual void FromPremultipliedVector4(
+            Configuration configuration,
+            ReadOnlySpan<Vector4> sourceVectors,
+            Span<TPixel> destPixels)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(sourceVectors, destPixels, nameof(destPixels));
+
+            Utils.Vector4Converters.Default.DangerousFromPremultipliedVector4(sourceVectors, destPixels);
+        }
+
+        /// <summary>
+        /// Bulk version of <see cref="IPixel.ToVector4()"/> converting 'sourceColors.Length' pixels into alpha premultiplied 'destinationVectors'.
+        /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
+        /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source colors.</param>
+        /// <param name="destVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
+        internal virtual void ToPremultipliedVector4(
+            Configuration configuration,
+            ReadOnlySpan<TPixel> sourcePixels,
+            Span<Vector4> destVectors)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
+
+            Utils.Vector4Converters.Default.DangerousToPremultipliedVector4(sourcePixels, destVectors);
+        }
+
+        /// <summary>
+        /// Bulk version of <see cref="IPixel.FromScaledVector4"/> converting alpha premultiplied 'sourceVectors.Length' pixels into 'destinationColors'.
+        /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
+        /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
+        /// <param name="destinationColors">The <see cref="Span{T}"/> to the destination colors.</param>
+        internal virtual void FromPremultipliedScaledVector4(
+            Configuration configuration,
+            ReadOnlySpan<Vector4> sourceVectors,
+            Span<TPixel> destinationColors)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationColors, nameof(destinationColors));
+
+            Utils.Vector4Converters.Default.DangerousFromPremultipliedScaledVector4(sourceVectors, destinationColors);
+        }
+
+        /// <summary>
+        /// Bulk version of <see cref="IPixel.ToScaledVector4()"/> converting 'sourceColors.Length' pixels into alpha premultiplied 'destinationVectors'.
+        /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
+        /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
+        /// <param name="destinationVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
+        internal virtual void ToPremultipliedScaledVector4(
+            Configuration configuration,
+            ReadOnlySpan<TPixel> sourceColors,
+            Span<Vector4> destinationVectors)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(sourceColors, destinationVectors, nameof(destinationVectors));
+
+            Utils.Vector4Converters.Default.DangerousToPremultipliedScaledVector4(sourceColors, destinationVectors);
         }
 
         /// <summary>

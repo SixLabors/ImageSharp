@@ -4,7 +4,6 @@
 using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.PixelFormats
 {
@@ -49,22 +48,51 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
+            internal override void ToPremultipliedVector4(
+                Configuration configuration,
+                ReadOnlySpan<Rgba32> sourcePixels,
+                Span<Vector4> destVectors)
+            {
+                this.ToVector4(configuration, sourcePixels, destVectors);
+
+                // TODO: Investigate optimized 1-pass approach.
+                Vector4Utils.Premultiply(destVectors);
+            }
+
+            /// <inheritdoc />
+            internal override void FromPremultipliedVector4(
+                Configuration configuration,
+                ReadOnlySpan<Vector4> sourceVectors,
+                Span<Rgba32> destPixels)
+            {
+                // TODO: Investigate optimized 1-pass approach.
+                Vector4Utils.UnPremultiply(sourceVectors);
+                this.FromVector4(configuration, sourceVectors, destPixels);
+            }
+
+            /// <inheritdoc />
             internal override void ToScaledVector4(
                 Configuration configuration,
                 ReadOnlySpan<Rgba32> sourceColors,
-                Span<Vector4> destinationVectors)
-            {
-                this.ToVector4(configuration, sourceColors, destinationVectors);
-            }
+                Span<Vector4> destinationVectors) => this.ToVector4(configuration, sourceColors, destinationVectors);
 
             /// <inheritdoc />
             internal override void FromScaledVector4(
                 Configuration configuration,
                 ReadOnlySpan<Vector4> sourceVectors,
-                Span<Rgba32> destinationColors)
-            {
-                this.FromVector4(configuration, sourceVectors, destinationColors);
-            }
+                Span<Rgba32> destinationColors) => this.FromVector4(configuration, sourceVectors, destinationColors);
+
+            /// <inheritdoc />
+            internal override void ToPremultipliedScaledVector4(
+                Configuration configuration,
+                ReadOnlySpan<Rgba32> sourceColors,
+                Span<Vector4> destinationVectors) => this.ToPremultipliedVector4(configuration, sourceColors, destinationVectors);
+
+            /// <inheritdoc />
+            internal override void FromPremultipliedScaledVector4(
+                Configuration configuration,
+                ReadOnlySpan<Vector4> sourceVectors,
+                Span<Rgba32> destinationColors) => this.FromPremultipliedVector4(configuration, sourceVectors, destinationColors);
         }
     }
 }

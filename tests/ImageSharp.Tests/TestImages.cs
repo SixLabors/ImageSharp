@@ -172,6 +172,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string OrderedInterleavedProgressive723C = "Jpg/issues/Issue723-Ordered-Interleaved-Progressive-C.jpg";
                 public const string ExifGetString750Transform = "Jpg/issues/issue750-exif-tranform.jpg";
                 public const string ExifGetString750Load = "Jpg/issues/issue750-exif-load.jpg";
+                public const string IncorrectQuality845 = "Jpg/issues/Issue845-Incorrect-Quality99.jpg";
 
                 public static class Fuzz
                 {

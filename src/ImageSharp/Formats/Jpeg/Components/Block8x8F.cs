@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     /// <summary>
     /// Represents a Jpeg block with <see cref="float"/> coefficients.
     /// </summary>
-    internal partial struct Block8x8F
+    internal partial struct Block8x8F : IEquatable<Block8x8F>
     {
         /// <summary>
         /// A number of scalar coefficients in a <see cref="Block8x8F"/>
@@ -536,6 +536,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             SimdUtils.ExtendedIntrinsics.ConvertToSingle(Unsafe.Add(ref sRef, 3), out top, out bottom);
             Unsafe.Add(ref dRef, 6) = top;
             Unsafe.Add(ref dRef, 7) = bottom;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(Block8x8F other)
+        {
+            return this.V0L == other.V0L
+            && this.V0R == other.V0R
+            && this.V1L == other.V1L
+            && this.V1R == other.V1R
+            && this.V2L == other.V2L
+            && this.V2R == other.V2R
+            && this.V3L == other.V3L
+            && this.V3R == other.V3R
+            && this.V4L == other.V4L
+            && this.V4R == other.V4R
+            && this.V5L == other.V5L
+            && this.V5R == other.V5R
+            && this.V6L == other.V6L
+            && this.V6R == other.V6R
+            && this.V7L == other.V7L
+            && this.V7R == other.V7R;
         }
 
         /// <inheritdoc />

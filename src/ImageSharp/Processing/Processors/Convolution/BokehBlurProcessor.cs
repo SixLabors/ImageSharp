@@ -378,7 +378,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                         for (int x = 0; x < width; x++)
                         {
-                            DenseMatrixUtils.Convolve1D(kernel, sourceValues, targetRowSpan, y, x, maxY, startX, maxX);
+                            DenseMatrixUtils.Convolve1D(kernel, sourceValues, targetRowSpan, y, x, startY, maxY, startX, maxX);
                         }
                     }
                 });

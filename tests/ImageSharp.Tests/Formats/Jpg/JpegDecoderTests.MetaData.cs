@@ -52,8 +52,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public static readonly TheoryData<string, int> QualityFiles =
         new TheoryData<string, int>
         {
-            { TestImages.Jpeg.Baseline.Calliphora, 80},
-            { TestImages.Jpeg.Progressive.Fb, 75 }
+            { TestImages.Jpeg.Baseline.Calliphora, 80 },
+            { TestImages.Jpeg.Progressive.Fb, 75 },
+            { TestImages.Jpeg.Issues.IncorrectQuality845, 99 }
         };
 
         [Theory]

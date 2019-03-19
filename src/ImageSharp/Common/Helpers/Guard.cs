@@ -258,6 +258,26 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Verifies that the 'destination' span is not shorter than 'source'.
+        /// </summary>
+        /// <typeparam name="TSource">The source element type</typeparam>
+        /// <typeparam name="TDest">The destination element type</typeparam>
+        /// <param name="source">The source span</param>
+        /// <param name="destination">The destination span</param>
+        /// <param name="destinationParamName">The name of the argument for 'destination'</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void DestinationShouldNotBeTooShort<TSource, TDest>(
+            Span<TSource> source,
+            Span<TDest> destination,
+            string destinationParamName)
+        {
+            if (destination.Length < source.Length)
+            {
+                ThrowArgumentException($"Destination span is too short!", destinationParamName);
+            }
+        }
+
+        /// <summary>
         /// Verifies, that the `source` span has the length of 'minLength', or longer.
         /// </summary>
         /// <typeparam name="T">The element type of the spans</typeparam>
@@ -278,20 +298,14 @@ namespace SixLabors.ImageSharp
 
         [MethodImpl(InliningOptions.ColdPath)]
         private static void ThrowArgumentException(string message, string parameterName)
-        {
-            throw new ArgumentException(message, parameterName);
-        }
+            => throw new ArgumentException(message, parameterName);
 
         [MethodImpl(InliningOptions.ColdPath)]
         private static void ThrowArgumentOutOfRangeException(string parameterName, string message)
-        {
-            throw new ArgumentOutOfRangeException(parameterName, message);
-        }
+            => throw new ArgumentOutOfRangeException(parameterName, message);
 
         [MethodImpl(InliningOptions.ColdPath)]
         private static void ThrowArgumentNullException(string parameterName)
-        {
-            throw new ArgumentNullException(parameterName);
-        }
+            => throw new ArgumentNullException(parameterName);
     }
 }

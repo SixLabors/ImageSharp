@@ -9,7 +9,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.ColorSpaces.Companding;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
@@ -257,21 +256,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                 Span<TPixel> sourceRow = source.GetPixelRowSpan(y).Slice(sourceX);
                                 Span<Vector4> tempRowSpan = tempRowBuffer.Span.Slice(sourceX);
 
-                                PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, tempRowSpan);
-                                Vector4Utils.Premultiply(tempRowSpan);
-
-                                ref Vector4 firstPassBaseRef = ref firstPassPixelsTransposed.Span[y];
-
                                 if (this.Compand)
                                 {
-                                    SRgbCompanding.Expand(tempRowSpan);
+                                    PixelOperations<TPixel>.Instance.ToCompandedPremultipliedVector4(configuration, sourceRow, tempRowSpan);
                                 }
+                                else
+                                {
+                                    PixelOperations<TPixel>.Instance.ToPremultipliedVector4(configuration, sourceRow, tempRowSpan);
+                                }
+
+                                ref Vector4 firstPassBaseRef = ref firstPassPixelsTransposed.Span[y];
 
                                 for (int x = minX; x < maxX; x++)
                                 {
                                     ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - startX);
-                                    Unsafe.Add(ref firstPassBaseRef, x * sourceHeight) =
-                                        kernel.Convolve(tempRowSpan);
+                                    Unsafe.Add(ref firstPassBaseRef, x * sourceHeight) = kernel.Convolve(tempRowSpan);
                                 }
                             }
                         });
@@ -301,15 +300,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                     Unsafe.Add(ref tempRowBase, x) = kernel.Convolve(firstPassColumn);
                                 }
 
-                                Vector4Utils.UnPremultiply(tempRowSpan);
+                                Span<TPixel> targetRowSpan = destination.GetPixelRowSpan(y);
 
                                 if (this.Compand)
                                 {
-                                    SRgbCompanding.Compress(tempRowSpan);
+                                    PixelOperations<TPixel>.Instance.FromCompandedPremultipliedScaledVector4(configuration, tempRowSpan, targetRowSpan);
                                 }
-
-                                Span<TPixel> targetRowSpan = destination.GetPixelRowSpan(y);
-                                PixelOperations<TPixel>.Instance.FromVector4(configuration, tempRowSpan, targetRowSpan);
+                                else
+                                {
+                                    PixelOperations<TPixel>.Instance.FromPremultipliedScaledVector4(configuration, tempRowSpan, targetRowSpan);
+                                }
                             }
                         });
             }

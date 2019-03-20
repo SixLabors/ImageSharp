@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination colors.</param>
         internal virtual void FromPremultipliedVector4(
             Configuration configuration,
-            Span<Vector4> sourceVectors,
+            ReadOnlySpan<Vector4> sourceVectors,
             Span<TPixel> destPixels)
         {
             Guard.NotNull(configuration, nameof(configuration));
@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination colors.</param>
         internal virtual void FromPremultipliedScaledVector4(
             Configuration configuration,
-            Span<Vector4> sourceVectors,
+            ReadOnlySpan<Vector4> sourceVectors,
             Span<TPixel> destPixels)
         {
             Guard.NotNull(configuration, nameof(configuration));
@@ -165,7 +165,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination colors.</param>
         internal virtual void FromCompandedVector4(
             Configuration configuration,
-            Span<Vector4> sourceVectors,
+            ReadOnlySpan<Vector4> sourceVectors,
             Span<TPixel> destPixels)
         {
             Guard.NotNull(configuration, nameof(configuration));
@@ -199,7 +199,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination colors.</param>
         internal virtual void FromCompandedScaledVector4(
             Configuration configuration,
-            Span<Vector4> sourceVectors,
+            ReadOnlySpan<Vector4> sourceVectors,
             Span<TPixel> destPixels)
         {
             Guard.NotNull(configuration, nameof(configuration));
@@ -233,7 +233,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination colors.</param>
         internal virtual void FromCompandedPremultipliedVector4(
             Configuration configuration,
-            Span<Vector4> sourceVectors,
+            ReadOnlySpan<Vector4> sourceVectors,
             Span<TPixel> destPixels)
         {
             Guard.NotNull(configuration, nameof(configuration));
@@ -267,7 +267,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination colors.</param>
         internal virtual void FromCompandedPremultipliedScaledVector4(
             Configuration configuration,
-            Span<Vector4> sourceVectors,
+            ReadOnlySpan<Vector4> sourceVectors,
             Span<TPixel> destPixels)
         {
             Guard.NotNull(configuration, nameof(configuration));

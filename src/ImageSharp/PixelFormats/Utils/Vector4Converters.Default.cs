@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
 
             [MethodImpl(InliningOptions.ShortMethod)]
             internal static void DangerousFromPremultipliedVector4<TPixel>(
-                Span<Vector4> sourceVectors,
+                ReadOnlySpan<Vector4> sourceVectors,
                 Span<TPixel> destPixels)
                 where TPixel : struct, IPixel<TPixel>
             {
@@ -66,9 +66,10 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
 
                 for (int i = 0; i < sourceVectors.Length; i++)
                 {
-                    ref Vector4 sp = ref Unsafe.Add(ref sourceRef, i);
-                    ref TPixel dp = ref Unsafe.Add(ref destRef, i);
+                    Vector4 sp = Unsafe.Add(ref sourceRef, i);
                     Vector4Utils.UnPremultiply(ref sp);
+
+                    ref TPixel dp = ref Unsafe.Add(ref destRef, i);
                     dp.FromVector4(sp);
                 }
             }
@@ -127,7 +128,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
 
             [MethodImpl(InliningOptions.ShortMethod)]
             internal static void DangerousFromPremultipliedScaledVector4<TPixel>(
-                Span<Vector4> sourceVectors,
+                ReadOnlySpan<Vector4> sourceVectors,
                 Span<TPixel> destinationColors)
                 where TPixel : struct, IPixel<TPixel>
             {
@@ -136,9 +137,10 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
 
                 for (int i = 0; i < sourceVectors.Length; i++)
                 {
-                    ref Vector4 sp = ref Unsafe.Add(ref sourceRef, i);
-                    ref TPixel dp = ref Unsafe.Add(ref destRef, i);
+                    Vector4 sp = Unsafe.Add(ref sourceRef, i);
                     Vector4Utils.UnPremultiply(ref sp);
+
+                    ref TPixel dp = ref Unsafe.Add(ref destRef, i);
                     dp.FromScaledVector4(sp);
                 }
             }
@@ -156,6 +158,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 {
                     ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Vector4 dp = ref Unsafe.Add(ref destRef, i);
+
                     dp = sp.ToScaledVector4();
                     Vector4Utils.Premultiply(ref dp);
                 }
@@ -163,7 +166,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
 
             [MethodImpl(InliningOptions.ShortMethod)]
             internal static void DangerousFromCompandedVector4<TPixel>(
-                Span<Vector4> sourceVectors,
+                ReadOnlySpan<Vector4> sourceVectors,
                 Span<TPixel> destPixels)
                 where TPixel : struct, IPixel<TPixel>
             {
@@ -172,9 +175,10 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
 
                 for (int i = 0; i < sourceVectors.Length; i++)
                 {
-                    ref Vector4 sp = ref Unsafe.Add(ref sourceRef, i);
+                    Vector4 sp = Unsafe.Add(ref sourceRef, i);
+                    SRgbCompanding.Compress(ref sp);
+
                     ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                    SRgbCompanding.Compress(sp);
                     dp.FromVector4(sp);
                 }
             }
@@ -192,14 +196,15 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 {
                     ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Vector4 dp = ref Unsafe.Add(ref destRef, i);
+
                     dp = sp.ToVector4();
-                    SRgbCompanding.Expand(dp);
+                    SRgbCompanding.Expand(ref dp);
                 }
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
             internal static void DangerousFromCompandedScaledVector4<TPixel>(
-                Span<Vector4> sourceVectors,
+                ReadOnlySpan<Vector4> sourceVectors,
                 Span<TPixel> destPixels)
                 where TPixel : struct, IPixel<TPixel>
             {
@@ -208,9 +213,10 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
 
                 for (int i = 0; i < sourceVectors.Length; i++)
                 {
-                    ref Vector4 sp = ref Unsafe.Add(ref sourceRef, i);
+                    Vector4 sp = Unsafe.Add(ref sourceRef, i);
+                    SRgbCompanding.Compress(ref sp);
+
                     ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                    SRgbCompanding.Compress(sp);
                     dp.FromScaledVector4(sp);
                 }
             }
@@ -228,14 +234,15 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 {
                     ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Vector4 dp = ref Unsafe.Add(ref destRef, i);
+
                     dp = sp.ToScaledVector4();
-                    SRgbCompanding.Expand(dp);
+                    SRgbCompanding.Expand(ref dp);
                 }
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
             internal static void DangerousFromCompandedPremultipliedVector4<TPixel>(
-                Span<Vector4> sourceVectors,
+                ReadOnlySpan<Vector4> sourceVectors,
                 Span<TPixel> destinationColors)
                 where TPixel : struct, IPixel<TPixel>
             {
@@ -244,10 +251,11 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
 
                 for (int i = 0; i < sourceVectors.Length; i++)
                 {
-                    ref Vector4 sp = ref Unsafe.Add(ref sourceRef, i);
-                    ref TPixel dp = ref Unsafe.Add(ref destRef, i);
+                    Vector4 sp = Unsafe.Add(ref sourceRef, i);
                     Vector4Utils.UnPremultiply(ref sp);
-                    SRgbCompanding.Compress(sp);
+                    SRgbCompanding.Compress(ref sp);
+
+                    ref TPixel dp = ref Unsafe.Add(ref destRef, i);
                     dp.FromVector4(sp);
                 }
             }
@@ -265,15 +273,16 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 {
                     ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Vector4 dp = ref Unsafe.Add(ref destRef, i);
+
                     dp = sp.ToVector4();
-                    SRgbCompanding.Expand(dp);
+                    SRgbCompanding.Expand(ref dp);
                     Vector4Utils.Premultiply(ref dp);
                 }
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
             internal static void DangerousFromCompandedPremultipliedScaledVector4<TPixel>(
-                Span<Vector4> sourceVectors,
+                ReadOnlySpan<Vector4> sourceVectors,
                 Span<TPixel> destinationColors)
                 where TPixel : struct, IPixel<TPixel>
             {
@@ -282,10 +291,11 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
 
                 for (int i = 0; i < sourceVectors.Length; i++)
                 {
-                    ref Vector4 sp = ref Unsafe.Add(ref sourceRef, i);
-                    ref TPixel dp = ref Unsafe.Add(ref destRef, i);
+                    Vector4 sp = Unsafe.Add(ref sourceRef, i);
                     Vector4Utils.UnPremultiply(ref sp);
-                    SRgbCompanding.Compress(sp);
+                    SRgbCompanding.Compress(ref sp);
+
+                    ref TPixel dp = ref Unsafe.Add(ref destRef, i);
                     dp.FromScaledVector4(sp);
                 }
             }
@@ -303,8 +313,9 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 {
                     ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
                     ref Vector4 dp = ref Unsafe.Add(ref destRef, i);
+
                     dp = sp.ToScaledVector4();
-                    SRgbCompanding.Expand(dp);
+                    SRgbCompanding.Expand(ref dp);
                     Vector4Utils.Premultiply(ref dp);
                 }
             }

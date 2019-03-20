@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="vectors">The span of vectors</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void Premultiply(ReadOnlySpan<Vector4> vectors)
+        public static void Premultiply(Span<Vector4> vectors)
         {
             // TODO: This method can be AVX2 optimized using Vector<float>
             ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="vectors">The span of vectors</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void UnPremultiply(ReadOnlySpan<Vector4> vectors)
+        public static void UnPremultiply(Span<Vector4> vectors)
         {
             // TODO: This method can be AVX2 optimized using Vector<float>
             ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);

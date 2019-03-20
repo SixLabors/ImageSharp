@@ -61,17 +61,6 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void FromPremultipliedVector4(
-                Configuration configuration,
-                Span<Vector4> sourceVectors,
-                Span<Rgba32> destPixels)
-            {
-                // TODO: Investigate optimized 1-pass approach.
-                Vector4Utils.UnPremultiply(sourceVectors);
-                this.FromVector4(configuration, sourceVectors, destPixels);
-            }
-
-            /// <inheritdoc />
             internal override void ToScaledVector4(
                 Configuration configuration,
                 ReadOnlySpan<Rgba32> sourcePixels,
@@ -92,7 +81,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             /// <inheritdoc />q
             internal override void FromPremultipliedScaledVector4(
                 Configuration configuration,
-                Span<Vector4> sourceVectors,
+                ReadOnlySpan<Vector4> sourceVectors,
                 Span<Rgba32> destPixels) => this.FromPremultipliedVector4(configuration, sourceVectors, destPixels);
 
             /// <inheritdoc />
@@ -108,17 +97,6 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void FromCompandedVector4(
-                Configuration configuration,
-                Span<Vector4> sourceVectors,
-                Span<Rgba32> destPixels)
-            {
-                // TODO: Investigate optimized 1-pass approach.
-                SRgbCompanding.Compress(sourceVectors);
-                this.FromVector4(configuration, sourceVectors, destPixels);
-            }
-
-            /// <inheritdoc />
             internal override void ToCompandedScaledVector4(
                 Configuration configuration,
                 ReadOnlySpan<Rgba32> sourcePixels,
@@ -127,7 +105,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             /// <inheritdoc />
             internal override void FromCompandedScaledVector4(
                 Configuration configuration,
-                Span<Vector4> sourceVectors,
+                ReadOnlySpan<Vector4> sourceVectors,
                 Span<Rgba32> destPixels) => this.FromCompandedVector4(configuration, sourceVectors, destPixels);
 
             /// <inheritdoc />
@@ -144,18 +122,6 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void FromCompandedPremultipliedVector4(
-                Configuration configuration,
-                Span<Vector4> sourceVectors,
-                Span<Rgba32> destPixels)
-            {
-                // TODO: Investigate optimized 1-pass approach.
-                Vector4Utils.UnPremultiply(sourceVectors);
-                SRgbCompanding.Compress(sourceVectors);
-                this.FromVector4(configuration, sourceVectors, destPixels);
-            }
-
-            /// <inheritdoc />
             internal override void ToCompandedPremultipliedScaledVector4(
                 Configuration configuration,
                 ReadOnlySpan<Rgba32> sourcePixels,
@@ -164,7 +130,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             /// <inheritdoc />
             internal override void FromCompandedPremultipliedScaledVector4(
                 Configuration configuration,
-                Span<Vector4> sourceVectors,
+                ReadOnlySpan<Vector4> sourceVectors,
                 Span<Rgba32> destPixels) => this.FromCompandedPremultipliedVector4(configuration, sourceVectors, destPixels);
         }
     }

@@ -70,25 +70,33 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 
         internal static PixelOperations<TPixel> Operations => PixelOperations<TPixel>.Instance;
 
-        internal static TPixel[] CreateExpectedPixelData(Vector4[] source)
+        internal static TPixel[] CreateExpectedPixelData(Vector4[] source, Action<Vector4> vectorModifier = null)
         {
             var expected = new TPixel[source.Length];
 
             for (int i = 0; i < expected.Length; i++)
             {
-                expected[i].FromVector4(source[i]);
+                Vector4 v = source[i];
+                vectorModifier?.Invoke(v);
+
+                expected[i].FromVector4(v);
             }
+
             return expected;
         }
 
-        internal static TPixel[] CreateScaledExpectedPixelData(Vector4[] source)
+        internal static TPixel[] CreateScaledExpectedPixelData(Vector4[] source, Action<Vector4> vectorModifier = null)
         {
             var expected = new TPixel[source.Length];
 
             for (int i = 0; i < expected.Length; i++)
             {
-                expected[i].FromScaledVector4(source[i]);
+                Vector4 v = source[i];
+                vectorModifier?.Invoke(v);
+
+                expected[i].FromScaledVector4(v);
             }
+
             return expected;
         }
 
@@ -119,6 +127,21 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 (s, d) => Operations.FromScaledVector4(this.Configuration, s, d.GetSpan())
             );
         }
+
+        // TODO: Make tests work!!
+        //[Theory]
+        //[MemberData(nameof(ArraySizesData))]
+        //public void FromPremultipliedVector4(int count)
+        //{
+        //    Vector4[] source = CreateVector4TestData(count, v => Vector4Utils.Premultiply(ref v));
+        //    TPixel[] expected = CreateExpectedPixelData(source, v => Vector4Utils.UnPremultiply(ref v));
+
+        //    TestOperation(
+        //        source,
+        //        expected,
+        //        (s, d) => Operations.FromPremultipliedVector4(this.Configuration, s, d.GetSpan())
+        //    );
+        //}
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
@@ -477,25 +500,35 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             );
         }
 
-        internal static Vector4[] CreateExpectedVector4Data(TPixel[] source)
+        internal static Vector4[] CreateExpectedVector4Data(TPixel[] source, Action<Vector4> vectorModifier = null)
         {
             var expected = new Vector4[source.Length];
 
             for (int i = 0; i < expected.Length; i++)
             {
-                expected[i] = source[i].ToVector4();
+                var v = source[i].ToVector4();
+
+                vectorModifier?.Invoke(v);
+
+                expected[i] = v;
             }
+
             return expected;
         }
 
-        internal static Vector4[] CreateExpectedScaledVector4Data(TPixel[] source)
+        internal static Vector4[] CreateExpectedScaledVector4Data(TPixel[] source, Action<Vector4> vectorModifier = null)
         {
             var expected = new Vector4[source.Length];
 
             for (int i = 0; i < expected.Length; i++)
             {
-                expected[i] = source[i].ToScaledVector4();
+                Vector4 v = source[i].ToScaledVector4();
+
+                vectorModifier?.Invoke(v);
+
+                expected[i] = v;
             }
+
             return expected;
         }
 
@@ -513,19 +546,22 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             }
         }
 
-        internal static Vector4[] CreateVector4TestData(int length)
+        internal static Vector4[] CreateVector4TestData(int length, Action<Vector4> vectorModifier = null)
         {
             var result = new Vector4[length];
             var rnd = new Random(42); // Deterministic random values
 
             for (int i = 0; i < result.Length; i++)
             {
-                result[i] = GetVector(rnd);
+                Vector4 v = GetVector(rnd);
+                vectorModifier?.Invoke(v);
+
+                result[i] = v;
             }
             return result;
         }
 
-        internal static TPixel[] CreatePixelTestData(int length)
+        internal static TPixel[] CreatePixelTestData(int length, Action<Vector4> vectorModifier = null)
         {
             var result = new TPixel[length];
 
@@ -534,13 +570,16 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             for (int i = 0; i < result.Length; i++)
             {
                 Vector4 v = GetVector(rnd);
+
+                vectorModifier?.Invoke(v);
+
                 result[i].FromVector4(v);
             }
 
             return result;
         }
 
-        internal static TPixel[] CreateScaledPixelTestData(int length)
+        internal static TPixel[] CreateScaledPixelTestData(int length, Action<Vector4> vectorModifier = null)
         {
             var result = new TPixel[length];
 
@@ -549,6 +588,9 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             for (int i = 0; i < result.Length; i++)
             {
                 Vector4 v = GetVector(rnd);
+
+                vectorModifier?.Invoke(v);
+
                 result[i].FromScaledVector4(v);
             }
 

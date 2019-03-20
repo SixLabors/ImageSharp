@@ -30,9 +30,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
             for (int i = 0; i < vectors.Length; i++)
             {
                 ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
-                v.X = Expand(v.X);
-                v.Y = Expand(v.Y);
-                v.Z = Expand(v.Z);
+                Expand(ref v);
             }
         }
 
@@ -48,9 +46,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
             for (int i = 0; i < vectors.Length; i++)
             {
                 ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
-                v.X = Compress(v.X);
-                v.Y = Compress(v.Y);
-                v.Z = Compress(v.Z);
+                Compress(ref v);
             }
         }
 
@@ -60,7 +56,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
         /// <param name="vector">The vector.</param>
         /// <returns>The <see cref="Vector4"/> representing the linear channel values.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static Vector4 Expand(Vector4 vector) => new Vector4(Expand(vector.X), Expand(vector.Y), Expand(vector.Z), vector.W);
+        public static Vector4 Expand(ref Vector4 vector) => vector = new Vector4(Expand(vector.X), Expand(vector.Y), Expand(vector.Z), vector.W);
 
         /// <summary>
         /// Compresses an uncompanded vector (linear) to its nonlinear equivalent.
@@ -68,7 +64,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
         /// <param name="vector">The vector.</param>
         /// <returns>The <see cref="Vector4"/> representing the nonlinear channel values.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static Vector4 Compress(Vector4 vector) => new Vector4(Compress(vector.X), Compress(vector.Y), Compress(vector.Z), vector.W);
+        public static Vector4 Compress(ref Vector4 vector) => vector = new Vector4(Compress(vector.X), Compress(vector.Y), Compress(vector.Z), vector.W);
 
         /// <summary>
         /// Expands a companded channel to its linear equivalent with respect to the energy.

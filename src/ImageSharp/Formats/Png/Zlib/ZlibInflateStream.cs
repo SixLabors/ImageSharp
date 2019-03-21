@@ -126,8 +126,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             int bytesToRead = Math.Min(count, this.currentDataRemaining);
             this.currentDataRemaining -= bytesToRead;
             int bytesRead = this.innerStream.Read(buffer, offset, bytesToRead);
+            long length = this.innerStream.Length;
 
-            // keep reading data until we've reached the end of the stream or filled the buffer
+            // Keep reading data until we've reached the end of the stream or filled the buffer
             while (this.currentDataRemaining == 0 && bytesRead < count)
             {
                 this.currentDataRemaining = this.getData();
@@ -138,6 +139,12 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 }
 
                 offset += bytesRead;
+
+                if (offset >= length)
+                {
+                    return bytesRead;
+                }
+
                 bytesToRead = Math.Min(count - bytesRead, this.currentDataRemaining);
                 this.currentDataRemaining -= bytesToRead;
                 bytesRead += this.innerStream.Read(buffer, offset, bytesToRead);

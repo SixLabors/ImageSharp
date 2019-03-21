@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image to mutate.</param>
         /// <param name="operation">The operation to perform on the source.</param>
         /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
-        public static IImageProcessingContext<TPixel> Apply<TPixel>(this IImageProcessingContext<TPixel> source, Action<Image<TPixel>> operation)
+        public static IImageProcessingContext<TPixel> Apply<TPixel>(this IImageProcessingContext<TPixel> source, Action<Image<TPixel>, Configuration> operation)
             where TPixel : struct, IPixel<TPixel> => source.ApplyProcessor(new DelegateProcessor<TPixel>(operation));
 
         /// <summary>
@@ -31,13 +31,15 @@ namespace SixLabors.ImageSharp.Processing
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to mutate.</param>
         /// <param name="operation">The operation to perform on the source.</param>
-        public static void Mutate<TPixel>(this Image<TPixel> source, Action<IImageProcessingContext<TPixel>> operation)
+        /// <param name="configuration">Overrides default configuration for the image.</param>
+        public static void Mutate<TPixel>(this Image<TPixel> source, Action<IImageProcessingContext<TPixel>> operation, Configuration configuration = null)
             where TPixel : struct, IPixel<TPixel>
         {
             Guard.NotNull(operation, nameof(operation));
             Guard.NotNull(source, nameof(source));
 
-            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider.CreateImageProcessingContext(source, true);
+            configuration = configuration ?? source.GetConfiguration();
+            IInternalImageProcessingContext<TPixel> operationsRunner = configuration.ImageOperationsProvider.CreateImageProcessingContext(source, true);
             operation(operationsRunner);
             operationsRunner.Apply();
         }

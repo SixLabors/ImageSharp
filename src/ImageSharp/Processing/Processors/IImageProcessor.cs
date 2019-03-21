@@ -20,12 +20,13 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
+        /// <param name="configuration">Overrides default configuration for the image.</param>
         /// <exception cref="System.ArgumentNullException">
         /// <paramref name="source"/> is null.
         /// </exception>
         /// <exception cref="System.ArgumentException">
         /// <paramref name="sourceRectangle"/> doesn't fit the dimension of the image.
         /// </exception>
-        void Apply(Image<TPixel> source, Rectangle sourceRectangle);
+        void Apply(Image<TPixel> source, Rectangle sourceRectangle, Configuration configuration = null);
     }
 }

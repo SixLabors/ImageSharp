@@ -16,8 +16,9 @@ namespace SixLabors.ImageSharp.Processing
         /// <typeparam name="TPixel">The pixel format</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="mutate">A flag to determine whether image operations are allowed to mutate the source image.</param>
+        /// <param name="configuration">Overrides default configuration for the image.</param>
         /// <returns>A new <see cref="IInternalImageProcessingContext{TPixel}"/></returns>
-        IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Image<TPixel> source, bool mutate)
+        IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Image<TPixel> source, bool mutate, Configuration configuration = null)
             where TPixel : struct, IPixel<TPixel>;
     }
 
@@ -27,10 +28,10 @@ namespace SixLabors.ImageSharp.Processing
     internal class DefaultImageOperationsProviderFactory : IImageProcessingContextFactory
     {
         /// <inheritdoc/>
-        public IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Image<TPixel> source, bool mutate)
+        public IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Image<TPixel> source, bool mutate, Configuration configuration = null)
             where TPixel : struct, IPixel<TPixel>
         {
-            return new DefaultInternalImageProcessorContext<TPixel>(source, mutate);
+            return new DefaultInternalImageProcessorContext<TPixel>(source, mutate, configuration);
         }
     }
 }

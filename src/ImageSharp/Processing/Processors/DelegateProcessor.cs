@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// Initializes a new instance of the <see cref="DelegateProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="action">The action.</param>
-        public DelegateProcessor(Action<Image<TPixel>> action)
+        public DelegateProcessor(Action<Image<TPixel>, Configuration> action)
         {
             this.Action = action;
         }
@@ -26,12 +26,12 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Gets the action that will be applied to the image.
         /// </summary>
-        internal Action<Image<TPixel>> Action { get; }
+        internal Action<Image<TPixel>, Configuration> Action { get; }
 
         /// <inheritdoc/>
-        protected override void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            this.Action?.Invoke(source);
+            this.Action?.Invoke(source, configuration);
         }
 
         /// <inheritdoc/>

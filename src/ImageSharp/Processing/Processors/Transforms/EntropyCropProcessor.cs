@@ -43,14 +43,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public float Threshold { get; }
 
         /// <inheritdoc/>
-        protected override void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             Rectangle rectangle;
 
             // All frames have be the same size so we only need to calculate the correct dimensions for the first frame
             using (ImageFrame<TPixel> temp = source.Frames.RootFrame.Clone())
             {
-                Configuration configuration = source.GetConfiguration();
+                configuration = configuration ?? source.GetConfiguration();
 
                 // Detect the edges.
                 new SobelProcessor<TPixel>(false).Apply(temp, sourceRectangle, configuration);
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);
             }
 
-            new CropProcessor<TPixel>(rectangle, source.Size()).Apply(source, sourceRectangle);
+            new CropProcessor<TPixel>(rectangle, source.Size()).Apply(source, sourceRectangle, configuration);
         }
 
         /// <inheritdoc/>

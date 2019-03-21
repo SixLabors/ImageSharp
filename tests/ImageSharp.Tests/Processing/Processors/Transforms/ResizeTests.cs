@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
                         FormattableString testOutputDetails = $"{samplerName}-{destSizeInfo}";
                         ctx.Apply(
-                            img => img.DebugSave(
+                            (img, cfg) => img.DebugSave(
                                 provider,
                                 $"{testOutputDetails}-ORIGINAL",
                                 appendPixelTypeToFileName: false));

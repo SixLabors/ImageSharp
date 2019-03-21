@@ -16,10 +16,9 @@ namespace SixLabors.ImageSharp.Processing
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Gets a reference to the <see cref="MemoryAllocator" /> used to allocate buffers
-        /// for this context.
+        /// Gets a reference to the <see cref="Configuration" /> for this context.
         /// </summary>
-        MemoryAllocator MemoryAllocator { get; }
+        Configuration Configuration { get; }
 
         /// <summary>
         /// Gets the image dimensions at the current point in the processing pipeline.

@@ -81,9 +81,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
         /// </summary>
         public PointF Location { get; }
 
-        protected override void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeImageApply(
+            Image<TPixel> source,
+            Rectangle sourceRectangle,
+            Configuration configuration)
         {
-            base.BeforeImageApply(source, sourceRectangle);
+            base.BeforeImageApply(source, sourceRectangle, configuration);
 
             // do everything at the image level as we are delegating the processing down to other processors
             var style = new RendererOptions(this.Font, this.Options.DpiX, this.Options.DpiY, this.Location)

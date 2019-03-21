@@ -33,9 +33,9 @@ namespace SixLabors.ImageSharp.Tests
                 .SelectMany(x => x.Applied);
         }
 
-        public IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Image<TPixel> source, bool mutate) where TPixel : struct, IPixel<TPixel>
+        public IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Image<TPixel> source, bool mutate, Configuration configuration) where TPixel : struct, IPixel<TPixel>
         {
-            var op = new FakeImageOperations<TPixel>(source, mutate);
+            var op = new FakeImageOperations<TPixel>(source, mutate, configuration);
             this.ImageOperators.Add(op);
             return op;
         }
@@ -45,17 +45,19 @@ namespace SixLabors.ImageSharp.Tests
         {
             private bool mutate;
 
-            public FakeImageOperations(Image<TPixel> source, bool mutate)
+            public FakeImageOperations(Image<TPixel> source, bool mutate, Configuration configuration = null)
             {
                 this.mutate = mutate;
                 this.Source = mutate ? source : source?.Clone();
+                this.Configuration = configuration ?? this.Source.GetConfiguration();
             }
 
             public Image<TPixel> Source { get; }
 
             public List<AppliedOperation> Applied { get; } = new List<AppliedOperation>();
 
-            public MemoryAllocator MemoryAllocator => this.Source.GetConfiguration().MemoryAllocator;
+            //public MemoryAllocator MemoryAllocator => this.Source.GetConfiguration().MemoryAllocator;
+            public Configuration Configuration { get; }
 
             public Image<TPixel> Apply()
             {
@@ -72,7 +74,8 @@ namespace SixLabors.ImageSharp.Tests
                 this.Applied.Add(new AppliedOperation
                 {
                     Processor = processor,
-                    Rectangle = rectangle
+                    Rectangle = rectangle,
+                    Configuration = this.Configuration
                 });
                 return this;
             }
@@ -90,6 +93,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 public Rectangle? Rectangle { get; set; }
                 public IImageProcessor<TPixel> Processor { get; set; }
+                public Configuration Configuration { get; set; }
             }
         }
     }

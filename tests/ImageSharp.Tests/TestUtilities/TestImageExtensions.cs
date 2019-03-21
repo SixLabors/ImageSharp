@@ -28,10 +28,10 @@ namespace SixLabors.ImageSharp.Tests
         public static void MakeOpaque<TPixel>(this IImageProcessingContext<TPixel> ctx)
             where TPixel : struct, IPixel<TPixel>
         {
-            MemoryAllocator memoryAllocator = ctx.MemoryAllocator;
+            MemoryAllocator memoryAllocator = ctx.Configuration?.MemoryAllocator;
 
             ctx.Apply(
-                img =>
+                (img, cfg) =>
                     {
                         Configuration configuration = img.GetConfiguration();
                         using (Buffer2D<Vector4> temp = memoryAllocator.Allocate2D<Vector4>(img.Width, img.Height))

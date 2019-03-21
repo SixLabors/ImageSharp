@@ -16,16 +16,16 @@ namespace SixLabors.ImageSharp.Processing.Processors
         where TPixel : struct, IPixel<TPixel>
     {
         /// <inheritdoc/>
-        public void Apply(Image<TPixel> source, Rectangle sourceRectangle)
+        public void Apply(Image<TPixel> source, Rectangle sourceRectangle, Configuration configuration = null)
         {
             try
             {
-                Configuration config = source.GetConfiguration();
-                this.BeforeImageApply(source, sourceRectangle);
+                configuration = configuration ?? source.GetConfiguration();
+                this.BeforeImageApply(source, sourceRectangle, configuration);
 
                 foreach (ImageFrame<TPixel> sourceFrame in source.Frames)
                 {
-                    this.Apply(sourceFrame, sourceRectangle, config);
+                    this.Apply(sourceFrame, sourceRectangle, configuration);
                 }
 
                 this.AfterImageApply(source, sourceRectangle);
@@ -73,7 +73,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
-        protected virtual void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
+        /// <param name="configuration">Overrides default configuration for the image.</param>
+        protected virtual void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
         }
 

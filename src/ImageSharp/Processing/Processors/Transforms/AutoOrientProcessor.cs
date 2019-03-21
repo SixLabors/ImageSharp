@@ -17,40 +17,43 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         where TPixel : struct, IPixel<TPixel>
     {
         /// <inheritdoc/>
-        protected override void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeImageApply(
+            Image<TPixel> source,
+            Rectangle sourceRectangle,
+            Configuration configuration)
         {
             OrientationMode orientation = GetExifOrientation(source);
             Size size = sourceRectangle.Size;
             switch (orientation)
             {
                 case OrientationMode.TopRight:
-                    new FlipProcessor<TPixel>(FlipMode.Horizontal).Apply(source, sourceRectangle);
+                    new FlipProcessor<TPixel>(FlipMode.Horizontal).Apply(source, sourceRectangle, configuration);
                     break;
 
                 case OrientationMode.BottomRight:
-                    new RotateProcessor<TPixel>((int)RotateMode.Rotate180, size).Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>((int)RotateMode.Rotate180, size).Apply(source, sourceRectangle, configuration);
                     break;
 
                 case OrientationMode.BottomLeft:
-                    new FlipProcessor<TPixel>(FlipMode.Vertical).Apply(source, sourceRectangle);
+                    new FlipProcessor<TPixel>(FlipMode.Vertical).Apply(source, sourceRectangle, configuration);
                     break;
 
                 case OrientationMode.LeftTop:
-                    new RotateProcessor<TPixel>((int)RotateMode.Rotate90, size).Apply(source, sourceRectangle);
-                    new FlipProcessor<TPixel>(FlipMode.Horizontal).Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>((int)RotateMode.Rotate90, size).Apply(source, sourceRectangle, configuration);
+                    new FlipProcessor<TPixel>(FlipMode.Horizontal).Apply(source, sourceRectangle, configuration);
                     break;
 
                 case OrientationMode.RightTop:
-                    new RotateProcessor<TPixel>((int)RotateMode.Rotate90, size).Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>((int)RotateMode.Rotate90, size).Apply(source, sourceRectangle, configuration);
                     break;
 
                 case OrientationMode.RightBottom:
                     new FlipProcessor<TPixel>(FlipMode.Vertical).Apply(source, sourceRectangle);
-                    new RotateProcessor<TPixel>((int)RotateMode.Rotate270, size).Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>((int)RotateMode.Rotate270, size).Apply(source, sourceRectangle, configuration);
                     break;
 
                 case OrientationMode.LeftBottom:
-                    new RotateProcessor<TPixel>((int)RotateMode.Rotate270, size).Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>((int)RotateMode.Rotate270, size).Apply(source, sourceRectangle, configuration);
                     break;
 
                 case OrientationMode.Unknown:

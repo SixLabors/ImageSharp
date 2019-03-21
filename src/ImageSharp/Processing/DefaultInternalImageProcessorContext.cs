@@ -25,10 +25,12 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="source">The image.</param>
         /// <param name="mutate">The mutate.</param>
-        public DefaultInternalImageProcessorContext(Image<TPixel> source, bool mutate)
+        /// <param name="configuration">Overrides default configuration for the image.</param>
+        public DefaultInternalImageProcessorContext(Image<TPixel> source, bool mutate, Configuration configuration = null)
         {
             this.mutate = mutate;
             this.source = source;
+            this.Configuration = configuration ?? source.GetConfiguration();
             if (this.mutate)
             {
                 this.destination = source;
@@ -36,7 +38,7 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <inheritdoc/>
-        public MemoryAllocator MemoryAllocator => this.source.GetConfiguration().MemoryAllocator;
+        public Configuration Configuration { get; }
 
         /// <inheritdoc/>
         public Image<TPixel> Apply()
@@ -70,7 +72,7 @@ namespace SixLabors.ImageSharp.Processing
                 this.destination = this.source.Clone();
             }
 
-            processor.Apply(this.destination, rectangle);
+            processor.Apply(this.destination, rectangle, this.Configuration);
             return this;
         }
 

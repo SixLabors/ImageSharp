@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc/>
-        public void Apply(Image<TPixel> source, Rectangle sourceRectangle)
+        public void Apply(Image<TPixel> source, Rectangle sourceRectangle, Configuration configuration = null)
         {
             using (Image<TPixel> cloned = this.CloneAndApply(source, sourceRectangle))
             {

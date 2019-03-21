@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests.Processing
         [Fact]
         public void Run_CreatedDelegateProcessor()
         {
-            Action<Image<Rgba32>> action = (i) => { };
+            Action<Image<Rgba32>, Configuration> action = (i,c) => { };
             this.operations.Apply(action);
 
             DelegateProcessor<Rgba32> processor = this.Verify<DelegateProcessor<Rgba32>>();

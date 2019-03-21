@@ -125,7 +125,7 @@ git clone https://github.com/SixLabors/ImageSharp
 
 ### Submodules
 
-This repository contains [git submodule](https://blog.github.com/2016-02-01-working-with-submodules/). To add the submodules to the project, navigate to the repository root and type:
+This repository contains [git submodules](https://blog.github.com/2016-02-01-working-with-submodules/). To add the submodules to the project, navigate to the repository root and type:
 
 ``` bash
 git submodule update --init --recursive

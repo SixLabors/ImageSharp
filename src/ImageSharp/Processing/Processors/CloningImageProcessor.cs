@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         where TPixel : struct, IPixel<TPixel>
     {
         /// <inheritdoc/>
-        public Image<TPixel> CloneAndApply(Image<TPixel> source, Rectangle sourceRectangle)
+        public Image<TPixel> CloneAndApply(Image<TPixel> source, Rectangle sourceRectangle, Configuration configuration = null)
         {
             try
             {
@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     throw new ImageProcessingException($"An error occurred when processing the image using {this.GetType().Name}. The processor changed the number of frames.");
                 }
 
-                Configuration configuration = source.GetConfiguration();
+                configuration = configuration ?? source.GetConfiguration();
                 this.BeforeImageApply(source, clone, sourceRectangle);
 
                 for (int i = 0; i < source.Frames.Count; i++)
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         public void Apply(Image<TPixel> source, Rectangle sourceRectangle, Configuration configuration = null)
         {
-            using (Image<TPixel> cloned = this.CloneAndApply(source, sourceRectangle))
+            using (Image<TPixel> cloned = this.CloneAndApply(source, sourceRectangle, configuration))
             {
                 // we now need to move the pixel data/size data from one image base to another
                 if (cloned.Frames.Count != source.Frames.Count)

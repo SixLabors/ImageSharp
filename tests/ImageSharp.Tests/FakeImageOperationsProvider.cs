@@ -56,7 +56,6 @@ namespace SixLabors.ImageSharp.Tests
 
             public List<AppliedOperation> Applied { get; } = new List<AppliedOperation>();
 
-            //public MemoryAllocator MemoryAllocator => this.Source.GetConfiguration().MemoryAllocator;
             public Configuration Configuration { get; }
 
             public Image<TPixel> Apply()
@@ -84,7 +83,8 @@ namespace SixLabors.ImageSharp.Tests
             {
                 this.Applied.Add(new AppliedOperation
                 {
-                    Processor = processor
+                    Processor = processor,
+                    Configuration = this.Configuration
                 });
                 return this;
             }

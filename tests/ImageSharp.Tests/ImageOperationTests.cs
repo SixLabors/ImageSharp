@@ -23,8 +23,6 @@ namespace SixLabors.ImageSharp.Tests
         private readonly FakeImageOperationsProvider provider;
         private readonly IImageProcessor<Rgba32> processor;
 
-        public Configuration Configuration { get; private set; }
-
         public ImageOperationTests()
         {
             this.provider = new FakeImageOperationsProvider();
@@ -69,6 +67,17 @@ namespace SixLabors.ImageSharp.Tests
 
             Assert.True(this.provider.HasCreated(returned));
             Assert.Contains(this.processor, this.provider.AppliedOperations(returned).Select(x => x.Processor));
+        }
+
+        [Fact]
+        public void CloneCallsImageOperationsProvider_ListOfProcessors_WithCustomConfiguration()
+        {
+            var configuration = new Configuration { ImageOperationsProvider = this.provider };
+
+            Image<Rgba32> returned = this.image.Clone(configuration, this.processor);
+
+            Assert.True(this.provider.HasCreated(returned));
+            Assert.Equal(configuration, this.provider.AppliedOperations(returned).Select(x => x.Configuration).First());
         }
 
         [Fact]

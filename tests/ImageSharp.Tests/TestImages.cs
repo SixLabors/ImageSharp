@@ -85,6 +85,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string ChunkLength1 = "Png/chunklength1.png";
                 public const string ChunkLength2 = "Png/chunklength2.png";
                 public const string CorruptedChunk = "Png/big-corrupted-chunk.png";
+                public const string ZlibOverflow = "Png/zlib-overflow.png";
             }
 
             public static readonly string[] All =

@@ -59,7 +59,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Companding
             {
                 Vector4 s = source[i];
                 ref Vector4 e = ref expected[i];
-                e = SRgbCompanding.Expand(ref s);
+                SRgbCompanding.Expand(ref s);
+                e = s;
             }
 
             SRgbCompanding.Expand(source);
@@ -81,7 +82,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Companding
             {
                 Vector4 s = source[i];
                 ref Vector4 e = ref expected[i];
-                e = SRgbCompanding.Compress(ref s);
+                SRgbCompanding.Compress(ref s);
+                e = s;
             }
 
             SRgbCompanding.Compress(source);

@@ -158,40 +158,6 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Bulk version of <see cref="IPixel.FromVector4"/> converting companded 'sourceVectors.Length' pixels into 'destinationColors'.
-        /// </summary>
-        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-        /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
-        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination colors.</param>
-        internal virtual void FromCompandedVector4(
-            Configuration configuration,
-            ReadOnlySpan<Vector4> sourceVectors,
-            Span<TPixel> destPixels)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destPixels, nameof(destPixels));
-
-            Utils.Vector4Converters.Default.DangerousFromCompandedVector4(sourceVectors, destPixels);
-        }
-
-        /// <summary>
-        /// Bulk version of <see cref="IPixel.ToVector4()"/> converting 'sourceColors.Length' pixels into companded 'destinationVectors'.
-        /// </summary>
-        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-        /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
-        internal virtual void ToCompandedVector4(
-            Configuration configuration,
-            ReadOnlySpan<TPixel> sourcePixels,
-            Span<Vector4> destVectors)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
-
-            Utils.Vector4Converters.Default.DangerousToCompandedVector4(sourcePixels, destVectors);
-        }
-
-        /// <summary>
         /// Bulk version of <see cref="IPixel.FromScaledVector4"/> converting companded 'sourceVectors.Length' pixels into 'destinationColors'.
         /// </summary>
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
@@ -223,40 +189,6 @@ namespace SixLabors.ImageSharp.PixelFormats
             Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
 
             Utils.Vector4Converters.Default.DangerousToCompandedScaledVector4(sourcePixels, destVectors);
-        }
-
-        /// <summary>
-        /// Bulk version of <see cref="IPixel.FromVector4"/> converting companded, alpha premultiplied 'sourceVectors.Length' pixels into 'destinationColors'.
-        /// </summary>
-        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-        /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
-        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination colors.</param>
-        internal virtual void FromCompandedPremultipliedVector4(
-            Configuration configuration,
-            ReadOnlySpan<Vector4> sourceVectors,
-            Span<TPixel> destPixels)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destPixels, nameof(destPixels));
-
-            Utils.Vector4Converters.Default.DangerousFromCompandedPremultipliedVector4(sourceVectors, destPixels);
-        }
-
-        /// <summary>
-        /// Bulk version of <see cref="IPixel.ToVector4()"/> converting 'sourceColors.Length' pixels into companded, alpha premultiplied 'destinationVectors'.
-        /// </summary>
-        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-        /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
-        internal virtual void ToCompandedPremultipliedVector4(
-            Configuration configuration,
-            ReadOnlySpan<TPixel> sourcePixels,
-            Span<Vector4> destVectors)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
-
-            Utils.Vector4Converters.Default.DangerousToCompandedPremultipliedVector4(sourcePixels, destVectors);
         }
 
         /// <summary>

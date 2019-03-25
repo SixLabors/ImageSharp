@@ -258,7 +258,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                                 if (this.Compand)
                                 {
-                                    PixelOperations<TPixel>.Instance.ToCompandedPremultipliedVector4(configuration, sourceRow, tempRowSpan);
+                                    PixelOperations<TPixel>.Instance.ToCompandedPremultipliedScaledVector4(configuration, sourceRow, tempRowSpan);
                                 }
                                 else
                                 {
@@ -308,7 +308,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                 }
                                 else
                                 {
-                                    PixelOperations<TPixel>.Instance.FromPremultipliedScaledVector4(configuration, tempRowSpan, targetRowSpan);
+                                    PixelOperations<TPixel>.Instance.FromPremultipliedVector4(configuration, tempRowSpan, targetRowSpan);
                                 }
                             }
                         });

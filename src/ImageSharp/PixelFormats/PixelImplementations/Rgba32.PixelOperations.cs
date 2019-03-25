@@ -49,18 +49,6 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void ToPremultipliedVector4(
-                Configuration configuration,
-                ReadOnlySpan<Rgba32> sourcePixels,
-                Span<Vector4> destVectors)
-            {
-                this.ToVector4(configuration, sourcePixels, destVectors);
-
-                // TODO: Investigate optimized 1-pass approach.
-                Vector4Utils.Premultiply(destVectors);
-            }
-
-            /// <inheritdoc />
             internal override void ToScaledVector4(
                 Configuration configuration,
                 ReadOnlySpan<Rgba32> sourcePixels,
@@ -73,65 +61,46 @@ namespace SixLabors.ImageSharp.PixelFormats
                 Span<Rgba32> destPixels) => this.FromVector4(configuration, sourceVectors, destPixels);
 
             /// <inheritdoc />
+            internal override void ToPremultipliedVector4(
+                Configuration configuration,
+                ReadOnlySpan<Rgba32> sourcePixels,
+                Span<Vector4> destVectors)
+            {
+                this.ToVector4(configuration, sourcePixels, destVectors);
+
+                // TODO: Investigate optimized 1-pass approach.
+                Vector4Utils.Premultiply(destVectors);
+            }
+
+            /// <inheritdoc />
             internal override void ToPremultipliedScaledVector4(
                 Configuration configuration,
                 ReadOnlySpan<Rgba32> sourcePixels,
                 Span<Vector4> destVectors) => this.ToPremultipliedVector4(configuration, sourcePixels, destVectors);
 
-            /// <inheritdoc />q
-            internal override void FromPremultipliedScaledVector4(
-                Configuration configuration,
-                ReadOnlySpan<Vector4> sourceVectors,
-                Span<Rgba32> destPixels) => this.FromPremultipliedVector4(configuration, sourceVectors, destPixels);
-
-            /// <inheritdoc />
-            internal override void ToCompandedVector4(
-                Configuration configuration,
-                ReadOnlySpan<Rgba32> sourcePixels,
-                Span<Vector4> destVectors)
-            {
-                this.ToVector4(configuration, sourcePixels, destVectors);
-
-                // TODO: Investigate optimized 1-pass approach.
-                SRgbCompanding.Expand(destVectors);
-            }
-
             /// <inheritdoc />
             internal override void ToCompandedScaledVector4(
                 Configuration configuration,
                 ReadOnlySpan<Rgba32> sourcePixels,
-                Span<Vector4> destVectors) => this.ToCompandedVector4(configuration, sourcePixels, destVectors);
-
-            /// <inheritdoc />
-            internal override void FromCompandedScaledVector4(
-                Configuration configuration,
-                ReadOnlySpan<Vector4> sourceVectors,
-                Span<Rgba32> destPixels) => this.FromCompandedVector4(configuration, sourceVectors, destPixels);
-
-            /// <inheritdoc />
-            internal override void ToCompandedPremultipliedVector4(
-                Configuration configuration,
-                ReadOnlySpan<Rgba32> sourcePixels,
                 Span<Vector4> destVectors)
             {
                 this.ToVector4(configuration, sourcePixels, destVectors);
 
                 // TODO: Investigate optimized 1-pass approach.
                 SRgbCompanding.Expand(destVectors);
-                Vector4Utils.Premultiply(destVectors);
             }
 
             /// <inheritdoc />
             internal override void ToCompandedPremultipliedScaledVector4(
                 Configuration configuration,
                 ReadOnlySpan<Rgba32> sourcePixels,
-                Span<Vector4> destVectors) => this.ToCompandedPremultipliedVector4(configuration, sourcePixels, destVectors);
+                Span<Vector4> destVectors)
+            {
+                this.ToCompandedScaledVector4(configuration, sourcePixels, destVectors);
 
-            /// <inheritdoc />
-            internal override void FromCompandedPremultipliedScaledVector4(
-                Configuration configuration,
-                ReadOnlySpan<Vector4> sourceVectors,
-                Span<Rgba32> destPixels) => this.FromCompandedPremultipliedVector4(configuration, sourceVectors, destPixels);
+                // TODO: Investigate optimized 1-pass approach.
+                Vector4Utils.Premultiply(destVectors);
+            }
         }
     }
 }

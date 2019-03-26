@@ -55,14 +55,24 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
         /// </summary>
         /// <param name="vector">The vector.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void Expand(ref Vector4 vector) => vector = new Vector4(Expand(vector.X), Expand(vector.Y), Expand(vector.Z), vector.W);
+        public static void Expand(ref Vector4 vector)
+        {
+            vector.X = Expand(vector.X);
+            vector.Y = Expand(vector.Y);
+            vector.Z = Expand(vector.Z);
+        }
 
         /// <summary>
         /// Compresses an uncompanded vector (linear) to its nonlinear equivalent.
         /// </summary>
         /// <param name="vector">The vector.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void Compress(ref Vector4 vector) => vector = new Vector4(Compress(vector.X), Compress(vector.Y), Compress(vector.Z), vector.W);
+        public static void Compress(ref Vector4 vector)
+        {
+            vector.X = Compress(vector.X);
+            vector.Y = Compress(vector.Y);
+            vector.Z = Compress(vector.Z);
+        }
 
         /// <summary>
         /// Expands a companded channel to its linear equivalent with respect to the energy.

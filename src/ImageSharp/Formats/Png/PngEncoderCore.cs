@@ -185,7 +185,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.pngColorType = options.ColorType;
 
             // Specification recommends default filter method None for paletted images and Paeth for others.
-            this.pngFilterMethod = options.FilterMethod ?? (options.ColorType.Equals(PngColorType.Palette)
+            this.pngFilterMethod = options.FilterMethod ?? (options.ColorType == PngColorType.Palette
                 ? PngFilterMethod.None
                 : PngFilterMethod.Paeth);
             this.compressionLevel = options.CompressionLevel;
@@ -217,7 +217,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.writeGamma = this.gamma > 0;
             this.pngColorType = this.pngColorType ?? pngMetaData.ColorType;
             this.pngBitDepth = this.pngBitDepth ?? pngMetaData.BitDepth;
-            this.use16Bit = this.pngBitDepth.Equals(PngBitDepth.Bit16);
+            this.use16Bit = this.pngBitDepth == PngBitDepth.Bit16;
 
             // Ensure we are not allowing impossible combinations.
             if (!ColorTypes.ContainsKey(this.pngColorType.Value))
@@ -329,7 +329,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             Span<byte> rawScanlineSpan = this.rawScanline.GetSpan();
             ref byte rawScanlineSpanRef = ref MemoryMarshal.GetReference(rawScanlineSpan);
 
-            if (this.pngColorType.Equals(PngColorType.Grayscale))
+            if (this.pngColorType == PngColorType.Grayscale)
             {
                 if (this.use16Bit)
                 {
@@ -761,7 +761,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void WriteTransparencyChunk(Stream stream, PngMetaData pngMetaData)
         {
             Span<byte> alpha = this.chunkDataBuffer.AsSpan();
-            if (pngMetaData.ColorType.Equals(PngColorType.Rgb))
+            if (pngMetaData.ColorType == PngColorType.Rgb)
             {
                 if (pngMetaData.TransparentRgb48.HasValue && this.use16Bit)
                 {
@@ -782,7 +782,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 6);
                 }
             }
-            else if (pngMetaData.ColorType.Equals(PngColorType.Grayscale))
+            else if (pngMetaData.ColorType == PngColorType.Grayscale)
             {
                 if (pngMetaData.TransparentGray16.HasValue && this.use16Bit)
                 {

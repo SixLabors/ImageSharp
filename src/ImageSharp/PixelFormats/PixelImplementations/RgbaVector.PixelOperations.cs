@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.ColorSpaces.Companding;
 
 namespace SixLabors.ImageSharp.PixelFormats
 {
@@ -44,6 +45,42 @@ namespace SixLabors.ImageSharp.PixelFormats
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
 
                 MemoryMarshal.Cast<RgbaVector, Vector4>(sourcePixels).CopyTo(destVectors);
+            }
+
+            /// <inheritdoc />
+            internal override void ToPremultipliedVector4(
+                Configuration configuration,
+                ReadOnlySpan<RgbaVector> sourcePixels,
+                Span<Vector4> destVectors)
+            {
+                this.ToVector4(configuration, sourcePixels, destVectors);
+
+                // TODO: Investigate optimized 1-pass approach.
+                Vector4Utils.Premultiply(destVectors);
+            }
+
+            /// <inheritdoc />
+            internal override void ToCompandedScaledVector4(
+                Configuration configuration,
+                ReadOnlySpan<RgbaVector> sourcePixels,
+                Span<Vector4> destVectors)
+            {
+                this.ToVector4(configuration, sourcePixels, destVectors);
+
+                // TODO: Investigate optimized 1-pass approach.
+                SRgbCompanding.Expand(destVectors);
+            }
+
+            /// <inheritdoc />
+            internal override void ToCompandedPremultipliedScaledVector4(
+                Configuration configuration,
+                ReadOnlySpan<RgbaVector> sourcePixels,
+                Span<Vector4> destVectors)
+            {
+                this.ToCompandedScaledVector4(configuration, sourcePixels, destVectors);
+
+                // TODO: Investigate optimized 1-pass approach.
+                Vector4Utils.Premultiply(destVectors);
             }
         }
     }

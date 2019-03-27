@@ -44,25 +44,49 @@ namespace SixLabors.ImageSharp.PixelFormats
             /// <inheritdoc />
             internal override void FromVector4(Configuration configuration, ReadOnlySpan<Vector4> sourceVectors, Span<Bgra32> destPixels)
             {
-                Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, false);
+                Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels);
             }
 
             /// <inheritdoc />
             internal override void ToVector4(Configuration configuration, ReadOnlySpan<Bgra32> sourcePixels, Span<Vector4> destVectors)
             {
-                Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, false);
+                Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors);
             }
 
             /// <inheritdoc />
             internal override void FromScaledVector4(Configuration configuration, ReadOnlySpan<Vector4> sourceVectors, Span<Bgra32> destPixels)
             {
-                Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, true);
+                Vector4Converters.RgbaCompatible.FromScaledVector4(configuration, this, sourceVectors, destPixels);
             }
 
             /// <inheritdoc />
             internal override void ToScaledVector4(Configuration configuration, ReadOnlySpan<Bgra32> sourcePixels, Span<Vector4> destVectors)
             {
-                Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, true);
+                Vector4Converters.RgbaCompatible.ToScaledVector4(configuration, this, sourcePixels, destVectors);
+            }
+
+            /// <inheritdoc />
+            internal override void ToPremultipliedVector4(Configuration configuration, ReadOnlySpan<Bgra32> sourcePixels, Span<Vector4> destVectors)
+            {
+                Vector4Converters.RgbaCompatible.ToPremultipliedVector4(configuration, this, sourcePixels, destVectors);
+            }
+
+            /// <inheritdoc />
+            internal override void ToPremultipliedScaledVector4(Configuration configuration, ReadOnlySpan<Bgra32> sourcePixels, Span<Vector4> destVectors)
+            {
+                Vector4Converters.RgbaCompatible.ToPremultipliedScaledVector4(configuration, this, sourcePixels, destVectors);
+            }
+
+            /// <inheritdoc />
+            internal override void ToCompandedScaledVector4(Configuration configuration, ReadOnlySpan<Bgra32> sourcePixels, Span<Vector4> destVectors)
+            {
+                Vector4Converters.RgbaCompatible.ToCompandedScaledVector4(configuration, this, sourcePixels, destVectors);
+            }
+
+            /// <inheritdoc />
+            internal override void ToCompandedPremultipliedScaledVector4(Configuration configuration, ReadOnlySpan<Bgra32> sourcePixels, Span<Vector4> destVectors)
+            {
+                Vector4Converters.RgbaCompatible.ToCompandedPremultipliedScaledVector4(configuration, this, sourcePixels, destVectors);
             }
 
             /// <inheritdoc />

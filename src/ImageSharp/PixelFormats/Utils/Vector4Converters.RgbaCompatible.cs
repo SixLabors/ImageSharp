@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.ColorSpaces.Companding;
 
 namespace SixLabors.ImageSharp.PixelFormats.Utils
 {
@@ -30,13 +31,146 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
 
             /// <summary>
             /// Provides an efficient default implementation for <see cref="PixelOperations{TPixel}.ToVector4"/>
-            /// and <see cref="PixelOperations{TPixel}.ToScaledVector4"/>
             /// which is applicable for <see cref="Rgba32"/>-compatible pixel types where <see cref="IPixel.ToVector4"/>
             /// returns the same scaled result as <see cref="IPixel.ToScaledVector4"/>.
             /// The method is works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]
             internal static void ToVector4<TPixel>(
+                Configuration configuration,
+                PixelOperations<TPixel> pixelOperations,
+                ReadOnlySpan<TPixel> sourcePixels,
+                Span<Vector4> destVectors)
+                where TPixel : struct, IPixel<TPixel>
+                => ToVector4Impl(configuration, pixelOperations, sourcePixels, destVectors, false);
+
+            /// <summary>
+            /// Provides an efficient default implementation for <see cref="PixelOperations{TPixel}.FromVector4"/>
+            /// which is applicable for <see cref="Rgba32"/>-compatible pixel types where <see cref="IPixel.ToVector4"/>
+            /// returns the same scaled result as <see cref="IPixel.ToScaledVector4"/>.
+            /// The method is works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
+            /// </summary>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            internal static void FromVector4<TPixel>(
+                Configuration configuration,
+                PixelOperations<TPixel> pixelOperations,
+                ReadOnlySpan<Vector4> sourceVectors,
+                Span<TPixel> destPixels)
+                where TPixel : struct, IPixel<TPixel>
+                => FromVector4Impl(configuration, pixelOperations, sourceVectors, destPixels, false);
+
+            /// <summary>
+            /// Provides an efficient default implementation for <see cref="PixelOperations{TPixel}.ToScaledVector4"/>
+            /// which is applicable for <see cref="Rgba32"/>-compatible pixel types where <see cref="IPixel.ToVector4"/>
+            /// returns the same scaled result as <see cref="IPixel.ToScaledVector4"/>.
+            /// The method is works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
+            /// </summary>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            internal static void ToScaledVector4<TPixel>(
+                Configuration configuration,
+                PixelOperations<TPixel> pixelOperations,
+                ReadOnlySpan<TPixel> sourcePixels,
+                Span<Vector4> destVectors)
+                where TPixel : struct, IPixel<TPixel>
+                => ToVector4Impl(configuration, pixelOperations, sourcePixels, destVectors, true);
+
+            /// <summary>
+            /// Provides an efficient default implementation for <see cref="PixelOperations{TPixel}.FromScaledVector4"/>
+            /// which is applicable for <see cref="Rgba32"/>-compatible pixel types where <see cref="IPixel.ToVector4"/>
+            /// returns the same scaled result as <see cref="IPixel.ToScaledVector4"/>.
+            /// The method is works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
+            /// </summary>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            internal static void FromScaledVector4<TPixel>(
+                Configuration configuration,
+                PixelOperations<TPixel> pixelOperations,
+                ReadOnlySpan<Vector4> sourceVectors,
+                Span<TPixel> destPixels)
+                where TPixel : struct, IPixel<TPixel>
+                => FromVector4Impl(configuration, pixelOperations, sourceVectors, destPixels, true);
+
+            /// <summary>
+            /// Provides an efficient default implementation for converting pixels into alpha premultiplied destination vectors.
+            /// which is applicable for <see cref="Rgba32"/>-compatible pixel types where <see cref="IPixel.ToVector4"/>
+            /// returns the same scaled result as <see cref="IPixel.ToScaledVector4"/>.
+            /// The method is works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
+            /// </summary>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            internal static void ToPremultipliedVector4<TPixel>(
+                Configuration configuration,
+                PixelOperations<TPixel> pixelOperations,
+                ReadOnlySpan<TPixel> sourcePixels,
+                Span<Vector4> destVectors)
+                where TPixel : struct, IPixel<TPixel>
+            {
+                ToVector4(configuration, pixelOperations, sourcePixels, destVectors);
+
+                // TODO: Investigate optimized 1-pass approach.
+                Vector4Utils.Premultiply(destVectors);
+            }
+
+            /// <summary>
+            /// Provides an efficient default implementation for converting pixels into alpha premultiplied, scaled destination vectors.
+            /// which is applicable for <see cref="Rgba32"/>-compatible pixel types where <see cref="IPixel.ToVector4"/>
+            /// returns the same scaled result as <see cref="IPixel.ToScaledVector4"/>.
+            /// The method is works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
+            /// </summary>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            internal static void ToPremultipliedScaledVector4<TPixel>(
+                Configuration configuration,
+                PixelOperations<TPixel> pixelOperations,
+                ReadOnlySpan<TPixel> sourcePixels,
+                Span<Vector4> destVectors)
+                where TPixel : struct, IPixel<TPixel>
+            {
+                ToScaledVector4(configuration, pixelOperations, sourcePixels, destVectors);
+
+                // TODO: Investigate optimized 1-pass approach.
+                Vector4Utils.Premultiply(destVectors);
+            }
+
+            /// <summary>
+            /// Provides an efficient default implementation for converting pixels into companded, scaled destination vectors.
+            /// which is applicable for <see cref="Rgba32"/>-compatible pixel types where <see cref="IPixel.ToVector4"/>
+            /// returns the same scaled result as <see cref="IPixel.ToScaledVector4"/>.
+            /// The method is works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
+            /// </summary>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            internal static void ToCompandedScaledVector4<TPixel>(
+                Configuration configuration,
+                PixelOperations<TPixel> pixelOperations,
+                ReadOnlySpan<TPixel> sourcePixels,
+                Span<Vector4> destVectors)
+                where TPixel : struct, IPixel<TPixel>
+            {
+                ToScaledVector4(configuration, pixelOperations, sourcePixels, destVectors);
+
+                // TODO: Investigate optimized 1-pass approach.
+                SRgbCompanding.Expand(destVectors);
+            }
+
+            /// <summary>
+            /// Provides an efficient default implementation for converting pixels into alpha premultiplied, scaled destination vectors.
+            /// which is applicable for <see cref="Rgba32"/>-compatible pixel types where <see cref="IPixel.ToVector4"/>
+            /// returns the same scaled result as <see cref="IPixel.ToScaledVector4"/>.
+            /// The method is works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
+            /// </summary>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            internal static void ToCompandedPremultipliedScaledVector4<TPixel>(
+                Configuration configuration,
+                PixelOperations<TPixel> pixelOperations,
+                ReadOnlySpan<TPixel> sourcePixels,
+                Span<Vector4> destVectors)
+                where TPixel : struct, IPixel<TPixel>
+            {
+                ToCompandedScaledVector4(configuration, pixelOperations, sourcePixels, destVectors);
+
+                // TODO: Investigate optimized 1-pass approach.
+                Vector4Utils.Premultiply(destVectors);
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            private static void ToVector4Impl<TPixel>(
                 Configuration configuration,
                 PixelOperations<TPixel> pixelOperations,
                 ReadOnlySpan<TPixel> sourcePixels,
@@ -72,15 +206,8 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 destVectors[countWithoutLastItem] = sourcePixels[countWithoutLastItem].ToVector4();
             }
 
-            /// <summary>
-            /// Provides an efficient default implementation for <see cref="PixelOperations{TPixel}.FromVector4"/>
-            /// and <see cref="PixelOperations{TPixel}.FromScaledVector4"/>
-            /// which is applicable for <see cref="Rgba32"/>-compatible pixel types where <see cref="IPixel.ToVector4"/>
-            /// returns the same scaled result as <see cref="IPixel.ToScaledVector4"/>.
-            /// The method is works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
-            /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]
-            internal static void FromVector4<TPixel>(
+            internal static void FromVector4Impl<TPixel>(
                 Configuration configuration,
                 PixelOperations<TPixel> pixelOperations,
                 ReadOnlySpan<Vector4> sourceVectors,

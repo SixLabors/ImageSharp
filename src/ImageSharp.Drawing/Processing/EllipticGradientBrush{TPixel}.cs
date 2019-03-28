@@ -18,9 +18,9 @@ namespace SixLabors.ImageSharp.Processing
     public sealed class EllipticGradientBrush<TPixel> : GradientBrushBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private readonly Point center;
+        private readonly PointF center;
 
-        private readonly Point referenceAxisEnd;
+        private readonly PointF referenceAxisEnd;
 
         private readonly float axisRatio;
 
@@ -35,8 +35,8 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="repetitionMode">Defines how the colors of the gradients are repeated.</param>
         /// <param name="colorStops">the color stops as defined in base class.</param>
         public EllipticGradientBrush(
-            Point center,
-            Point referenceAxisEnd,
+            PointF center,
+            PointF referenceAxisEnd,
             float axisRatio,
             GradientRepetitionMode repetitionMode,
             params ColorStop<TPixel>[] colorStops)
@@ -64,9 +64,9 @@ namespace SixLabors.ImageSharp.Processing
         /// <inheritdoc />
         private sealed class RadialGradientBrushApplicator : GradientBrushApplicatorBase
         {
-            private readonly Point center;
+            private readonly PointF center;
 
-            private readonly Point referenceAxisEnd;
+            private readonly PointF referenceAxisEnd;
 
             private readonly float axisRatio;
 
@@ -99,8 +99,8 @@ namespace SixLabors.ImageSharp.Processing
             public RadialGradientBrushApplicator(
                 ImageFrame<TPixel> target,
                 GraphicsOptions options,
-                Point center,
-                Point referenceAxisEnd,
+                PointF center,
+                PointF referenceAxisEnd,
                 float axisRatio,
                 ColorStop<TPixel>[] colorStops,
                 GradientRepetitionMode repetitionMode)

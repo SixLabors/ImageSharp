@@ -17,9 +17,9 @@ namespace SixLabors.ImageSharp.Processing
     public sealed class LinearGradientBrush<TPixel> : GradientBrushBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private readonly Point p1;
+        private readonly PointF p1;
 
-        private readonly Point p2;
+        private readonly PointF p2;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LinearGradientBrush{TPixel}"/> class.
@@ -29,8 +29,8 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="repetitionMode">defines how colors are repeated.</param>
         /// <param name="colorStops"><inheritdoc /></param>
         public LinearGradientBrush(
-            Point p1,
-            Point p2,
+            PointF p1,
+            PointF p2,
             GradientRepetitionMode repetitionMode,
             params ColorStop<TPixel>[] colorStops)
             : base(repetitionMode, colorStops)
@@ -48,9 +48,9 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         private sealed class LinearGradientBrushApplicator : GradientBrushApplicatorBase
         {
-            private readonly Point start;
+            private readonly PointF start;
 
-            private readonly Point end;
+            private readonly PointF end;
 
             /// <summary>
             /// the vector along the gradient, x component
@@ -93,8 +93,8 @@ namespace SixLabors.ImageSharp.Processing
             /// <param name="options">the graphics options</param>
             public LinearGradientBrushApplicator(
                 ImageFrame<TPixel> source,
-                Point start,
-                Point end,
+                PointF start,
+                PointF end,
                 ColorStop<TPixel>[] colorStops,
                 GradientRepetitionMode repetitionMode,
                 GraphicsOptions options)
@@ -120,11 +120,11 @@ namespace SixLabors.ImageSharp.Processing
             {
                 if (this.acrossX == 0)
                 {
-                    return (x - this.start.X) / (float)(this.end.X - this.start.X);
+                    return (x - this.start.X) / (this.end.X - this.start.X);
                 }
                 else if (this.acrossY == 0)
                 {
-                    return (y - this.start.Y) / (float)(this.end.Y - this.start.Y);
+                    return (y - this.start.Y) / (this.end.Y - this.start.Y);
                 }
                 else
                 {

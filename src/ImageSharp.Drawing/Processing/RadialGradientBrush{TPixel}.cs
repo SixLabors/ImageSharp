@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Processing
             /// <param name="x">The X coordinate of the target pixel.</param>
             /// <param name="y">The Y coordinate of the target pixel.</param>
             /// <returns>the position on the color gradient.</returns>
-            protected override float PositionOnGradient(int x, int y)
+            protected override float PositionOnGradient(float x, float y)
             {
                 float distance = (float)Math.Sqrt(Math.Pow(this.center.X - x, 2) + Math.Pow(this.center.Y - y, 2));
                 return distance / this.radius;

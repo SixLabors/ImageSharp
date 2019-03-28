@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Processing
             {
                 get
                 {
-                    float positionOnCompleteGradient = this.PositionOnGradient(x, y);
+                    float positionOnCompleteGradient = this.PositionOnGradient(x + 0.5f, y + 0.5f);
 
                     switch (this.repetitionMode)
                     {
@@ -137,18 +137,18 @@ namespace SixLabors.ImageSharp.Processing
             }
 
             /// <summary>
-            /// calculates the position on the gradient for a given pixel.
+            /// calculates the position on the gradient for a given point.
             /// This method is abstract as it's content depends on the shape of the gradient.
             /// </summary>
-            /// <param name="x">The x coordinate of the pixel</param>
-            /// <param name="y">The y coordinate of the pixel</param>
+            /// <param name="x">The x coordinate of the point</param>
+            /// <param name="y">The y coordinate of the point</param>
             /// <returns>
-            /// The position the given pixel has on the gradient.
+            /// The position the given point has on the gradient.
             /// The position is not bound to the [0..1] interval.
             /// Values outside of that interval may be treated differently,
             /// e.g. for the <see cref="GradientRepetitionMode" /> enum.
             /// </returns>
-            protected abstract float PositionOnGradient(int x, int y);
+            protected abstract float PositionOnGradient(float x, float y);
 
             private (ColorStop<TPixel> from, ColorStop<TPixel> to) GetGradientSegment(
                 float positionOnCompleteGradient)

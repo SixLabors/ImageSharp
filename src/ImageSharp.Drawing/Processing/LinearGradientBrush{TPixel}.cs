@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Processing
                 this.length = (float)Math.Sqrt(this.alongsSquared);
             }
 
-            protected override float PositionOnGradient(int x, int y)
+            protected override float PositionOnGradient(float x, float y)
             {
                 if (this.acrossX == 0)
                 {

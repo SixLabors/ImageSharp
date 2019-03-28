@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Processing
             }
 
             /// <inheritdoc />
-            protected override float PositionOnGradient(int xt, int yt)
+            protected override float PositionOnGradient(float xt, float yt)
             {
                 float x0 = xt - this.center.X;
                 float y0 = yt - this.center.Y;

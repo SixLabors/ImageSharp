@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Processing
                     {
                         var fromAsVector = from.Color.ToVector4();
                         var toAsVector = to.Color.ToVector4();
-                        float onLocalGradient = (positionOnCompleteGradient - from.Ratio) / to.Ratio;
+                        float onLocalGradient = (positionOnCompleteGradient - from.Ratio) / (to.Ratio - from.Ratio);
 
                         // TODO: this should be changeble for different gradienting functions
                         Vector4 result = PorterDuffFunctions.NormalSrcOver(

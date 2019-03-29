@@ -28,85 +28,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private const int QuantizationTableCount = 2;
 
         /// <summary>
-        /// Counts the number of bits needed to hold an integer.
-        /// </summary>
-        private static readonly uint[] BitCountLut =
-            {
-                0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5,
-                5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-                6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-                7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8,
-            };
-
-        /// <summary>
-        /// The SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
-        /// - the marker length "\x00\x0c",
-        /// - the number of components "\x03",
-        /// - component 1 uses DC table 0 and AC table 0 "\x01\x00",
-        /// - component 2 uses DC table 1 and AC table 1 "\x02\x11",
-        /// - component 3 uses DC table 1 and AC table 1 "\x03\x11",
-        /// - the bytes "\x00\x3f\x00". Section B.2.3 of the spec says that for
-        /// sequential DCTs, those bytes (8-bit Ss, 8-bit Se, 4-bit Ah, 4-bit Al)
-        /// should be 0x00, 0x3f, 0x00&lt;&lt;4 | 0x00.
-        /// </summary>
-        private static readonly byte[] SosHeaderYCbCr =
-            {
-                JpegConstants.Markers.XFF, JpegConstants.Markers.SOS,
-
-                // Marker
-                0x00, 0x0c,
-
-                // Length (high byte, low byte), must be 6 + 2 * (number of components in scan)
-                0x03, // Number of components in a scan, 3
-                0x01, // Component Id Y
-                0x00, // DC/AC Huffman table
-                0x02, // Component Id Cb
-                0x11, // DC/AC Huffman table
-                0x03, // Component Id Cr
-                0x11, // DC/AC Huffman table
-                0x00, // Ss - Start of spectral selection.
-                0x3f, // Se - End of spectral selection.
-                0x00
-
-                // Ah + Ah (Successive approximation bit position high + low)
-            };
-
-        /// <summary>
-        /// The unscaled quantization tables in zig-zag order. Each
-        /// encoder copies and scales the tables according to its quality parameter.
-        /// The values are derived from section K.1 after converting from natural to
-        /// zig-zag order.
-        /// </summary>
-        private static readonly byte[,] UnscaledQuant =
-            {
-                    {
-                        // Luminance.
-                        16, 11, 12, 14, 12, 10, 16, 14, 13, 14, 18, 17, 16, 19, 24,
-                        40, 26, 24, 22, 22, 24, 49, 35, 37, 29, 40, 58, 51, 61, 60,
-                        57, 51, 56, 55, 64, 72, 92, 78, 64, 68, 87, 69, 55, 56, 80,
-                        109, 81, 87, 95, 98, 103, 104, 103, 62, 77, 113, 121, 112,
-                        100, 120, 92, 101, 103, 99,
-                    },
-                    {
-                        // Chrominance.
-                        17, 18, 18, 24, 21, 24, 47, 26, 26, 47, 99, 66, 56, 66,
-                        99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-                        99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-                        99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-                        99, 99, 99, 99, 99, 99, 99, 99,
-                    }
-            };
-
-        /// <summary>
         /// A scratch buffer to reduce allocations.
         /// </summary>
         private readonly byte[] buffer = new byte[20];
@@ -166,6 +87,103 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.quality = options.Quality;
             this.subsample = options.Subsample;
         }
+
+        /// <summary>
+        /// Gets the counts the number of bits needed to hold an integer.
+        /// </summary>
+        // The C# compiler emits this as a compile-time constant embedded in the PE file.
+        // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
+        // More details can be found: https://github.com/dotnet/roslyn/pull/24621
+        private static ReadOnlySpan<byte> BitCountLut => new byte[]
+            {
+                0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5,
+                5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+                6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+                7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8,
+            };
+
+        /// <summary>
+        /// Gets the SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
+        /// - the marker length "\x00\x0c",
+        /// - the number of components "\x03",
+        /// - component 1 uses DC table 0 and AC table 0 "\x01\x00",
+        /// - component 2 uses DC table 1 and AC table 1 "\x02\x11",
+        /// - component 3 uses DC table 1 and AC table 1 "\x03\x11",
+        /// - the bytes "\x00\x3f\x00". Section B.2.3 of the spec says that for
+        /// sequential DCTs, those bytes (8-bit Ss, 8-bit Se, 4-bit Ah, 4-bit Al)
+        /// should be 0x00, 0x3f, 0x00&lt;&lt;4 | 0x00.
+        /// </summary>
+        // The C# compiler emits this as a compile-time constant embedded in the PE file.
+        // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
+        // More details can be found: https://github.com/dotnet/roslyn/pull/24621
+        private static ReadOnlySpan<byte> SosHeaderYCbCr => new byte[]
+            {
+                JpegConstants.Markers.XFF, JpegConstants.Markers.SOS,
+
+                // Marker
+                0x00, 0x0c,
+
+                // Length (high byte, low byte), must be 6 + 2 * (number of components in scan)
+                0x03, // Number of components in a scan, 3
+                0x01, // Component Id Y
+                0x00, // DC/AC Huffman table
+                0x02, // Component Id Cb
+                0x11, // DC/AC Huffman table
+                0x03, // Component Id Cr
+                0x11, // DC/AC Huffman table
+                0x00, // Ss - Start of spectral selection.
+                0x3f, // Se - End of spectral selection.
+                0x00
+
+                // Ah + Ah (Successive approximation bit position high + low)
+            };
+
+        /// <summary>
+        /// Gets the unscaled quantization tables in zig-zag order. Each
+        /// encoder copies and scales the tables according to its quality parameter.
+        /// The values are derived from section K.1 after converting from natural to
+        /// zig-zag order.
+        /// </summary>
+        // The C# compiler emits this as a compile-time constant embedded in the PE file.
+        // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
+        // More details can be found: https://github.com/dotnet/roslyn/pull/24621
+        private static ReadOnlySpan<byte> UnscaledQuant_Luminance => new byte[]
+            {
+                // Luminance.
+                16, 11, 12, 14, 12, 10, 16, 14, 13, 14, 18, 17, 16, 19, 24,
+                40, 26, 24, 22, 22, 24, 49, 35, 37, 29, 40, 58, 51, 61, 60,
+                57, 51, 56, 55, 64, 72, 92, 78, 64, 68, 87, 69, 55, 56, 80,
+                109, 81, 87, 95, 98, 103, 104, 103, 62, 77, 113, 121, 112,
+                100, 120, 92, 101, 103, 99,
+            };
+
+        /// <summary>
+        /// Gets the unscaled quantization tables in zig-zag order. Each
+        /// encoder copies and scales the tables according to its quality parameter.
+        /// The values are derived from section K.1 after converting from natural to
+        /// zig-zag order.
+        /// </summary>
+        // The C# compiler emits this as a compile-time constant embedded in the PE file.
+        // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
+        // More details can be found: https://github.com/dotnet/roslyn/pull/24621
+        private static ReadOnlySpan<byte> UnscaledQuant_Chrominance => new byte[]
+            {
+                // Chrominance.
+                17, 18, 18, 24, 21, 24, 47, 26, 26, 47, 99, 66, 56, 66,
+                99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
+                99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
+                99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
+                99, 99, 99, 99, 99, 99, 99, 99,
+            };
 
         /// <summary>
         /// Encode writes the image to the jpeg baseline format with the given options.
@@ -259,9 +277,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="quant">The quantization table.</param>
         private static void InitQuantizationTable(int i, int scale, ref Block8x8F quant)
         {
+            DebugGuard.MustBeBetweenOrEqualTo(i, 0, 1, nameof(i));
+            var unscaledQuant = (i == 0) ? UnscaledQuant_Luminance : UnscaledQuant_Chrominance;
+
             for (int j = 0; j < Block8x8F.Size; j++)
             {
-                int x = UnscaledQuant[i, j];
+                int x = unscaledQuant[j];
                 x = ((x * scale) + 50) / 100;
                 if (x < 1)
                 {
@@ -357,7 +378,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
             else
             {
-                bt = 8 + BitCountLut[a >> 8];
+                bt = 8 + (uint)BitCountLut[a >> 8];
             }
 
             this.EmitHuff(index, (int)((uint)(runLength << 4) | bt));
@@ -871,7 +892,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             // TODO: We should allow grayscale writing.
-            this.outputStream.Write(SosHeaderYCbCr, 0, SosHeaderYCbCr.Length);
+            this.outputStream.Write(SosHeaderYCbCr);
 
             switch (this.subsample)
             {

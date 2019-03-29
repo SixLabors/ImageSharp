@@ -85,6 +85,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string ChunkLength1 = "Png/chunklength1.png";
                 public const string ChunkLength2 = "Png/chunklength2.png";
                 public const string CorruptedChunk = "Png/big-corrupted-chunk.png";
+                public const string ZlibOverflow = "Png/zlib-overflow.png";
             }
 
             public static readonly string[] All =
@@ -172,6 +173,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string OrderedInterleavedProgressive723C = "Jpg/issues/Issue723-Ordered-Interleaved-Progressive-C.jpg";
                 public const string ExifGetString750Transform = "Jpg/issues/issue750-exif-tranform.jpg";
                 public const string ExifGetString750Load = "Jpg/issues/issue750-exif-load.jpg";
+                public const string IncorrectQuality845 = "Jpg/issues/Issue845-Incorrect-Quality99.jpg";
 
                 public static class Fuzz
                 {
@@ -196,6 +198,7 @@ namespace SixLabors.ImageSharp.Tests
                     public const string ArgumentException826B = "Jpg/issues/fuzz/Issue826-ArgumentException-B.jpg";
                     public const string ArgumentException826C = "Jpg/issues/fuzz/Issue826-ArgumentException-C.jpg";
                     public const string AccessViolationException827 = "Jpg/issues/fuzz/Issue827-AccessViolationException.jpg";
+                    public const string ExecutionEngineException839 = "Jpg/issues/fuzz/Issue839-ExecutionEngineException.jpg";
                 }
             }
 

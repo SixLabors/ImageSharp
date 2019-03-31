@@ -32,10 +32,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
 
             /// <summary>
             /// Provides an efficient default implementation for <see cref="PixelOperations{TPixel}.ToVector4(SixLabors.ImageSharp.Configuration,System.ReadOnlySpan{TPixel},System.Span{System.Numerics.Vector4},SixLabors.ImageSharp.PixelFormats.PixelConversionModifiers)"/>
-            /// and <see cref="PixelOperations{TPixel}.ToScaledVector4"/>
-            /// which is applicable for <see cref="Rgba32"/>-compatible pixel types where <see cref="IPixel.ToVector4"/>
-            /// returns the same scaled result as <see cref="IPixel.ToScaledVector4"/>.
-            /// The method is works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
+            /// The method works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]
             internal static void ToVector4<TPixel>(
@@ -79,9 +76,6 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
 
             /// <summary>
             /// Provides an efficient default implementation for <see cref="PixelOperations{TPixel}.FromVector4(SixLabors.ImageSharp.Configuration,System.Span{System.Numerics.Vector4},System.Span{TPixel},SixLabors.ImageSharp.PixelFormats.PixelConversionModifiers)"/>
-            /// and <see cref="PixelOperations{TPixel}.FromScaledVector4"/>
-            /// which is applicable for <see cref="Rgba32"/>-compatible pixel types where <see cref="IPixel.ToVector4"/>
-            /// returns the same scaled result as <see cref="IPixel.ToScaledVector4"/>.
             /// The method is works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]

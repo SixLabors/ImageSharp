@@ -42,15 +42,6 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// TODO: For compatibility, should be inlined!
-        /// </summary>
-        internal void FromScaledVector4(
-            Configuration configuration,
-            Span<Vector4> sourceVectors,
-            Span<TPixel> destPixels) =>
-            this.FromVector4(configuration, sourceVectors, destPixels, PixelConversionModifiers.Scale);
-
-        /// <summary>
         /// Bulk version of <see cref="IPixel.FromVector4"/> converting 'sourceVectors.Length' pixels into 'destinationColors'.
         /// TODO: Rename to DestructiveFromVector4() + add explain behavior
         /// </summary>
@@ -89,12 +80,6 @@ namespace SixLabors.ImageSharp.PixelFormats
             ReadOnlySpan<TPixel> sourcePixels,
             Span<Vector4> destVectors) =>
             this.ToVector4(configuration, sourcePixels, destVectors, PixelConversionModifiers.None);
-
-        /// <summary>
-        /// TODO: For compatibility, should be inlined!
-        /// </summary>
-        internal void ToScaledVector4(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<Vector4> destVectors) =>
-            this.ToVector4(configuration, sourcePixels, destVectors, PixelConversionModifiers.Scale);
 
         /// <summary>
         /// Converts 'sourceColors.Length' pixels from 'sourceColors' into 'destinationColors'.

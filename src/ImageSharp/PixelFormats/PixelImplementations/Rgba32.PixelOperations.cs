@@ -22,7 +22,8 @@ namespace SixLabors.ImageSharp.PixelFormats
             internal override void ToVector4(
                 Configuration configuration,
                 ReadOnlySpan<Rgba32> sourcePixels,
-                Span<Vector4> destVectors)
+                Span<Vector4> destVectors,
+                PixelConversionModifiers modifiers)
             {
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
 
@@ -37,7 +38,8 @@ namespace SixLabors.ImageSharp.PixelFormats
             internal override void FromVector4(
                 Configuration configuration,
                 Span<Vector4> sourceVectors,
-                Span<Rgba32> destPixels)
+                Span<Rgba32> destPixels,
+                PixelConversionModifiers modifiers)
             {
                 Guard.DestinationShouldNotBeTooShort(sourceVectors, destPixels, nameof(destPixels));
 
@@ -46,24 +48,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                 SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(
                     MemoryMarshal.Cast<Vector4, float>(sourceVectors),
                     MemoryMarshal.Cast<Rgba32, byte>(destPixels));
-            }
-
-            /// <inheritdoc />
-            internal override void ToScaledVector4(
-                Configuration configuration,
-                ReadOnlySpan<Rgba32> sourceColors,
-                Span<Vector4> destinationVectors)
-            {
-                this.ToVector4(configuration, sourceColors, destinationVectors);
-            }
-
-            /// <inheritdoc />
-            internal override void FromScaledVector4(
-                Configuration configuration,
-                Span<Vector4> sourceVectors,
-                Span<Rgba32> destinationColors)
-            {
-                this.FromVector4(configuration, sourceVectors, destinationColors);
             }
         }
     }

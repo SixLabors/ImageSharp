@@ -111,7 +111,7 @@ using System.Runtime.InteropServices;
     {
 #>
             /// <inheritdoc />
-            internal override void FromVector4(Configuration configuration, ReadOnlySpan<Vector4> sourceVectors, Span<<#=pixelType#>> destPixels)
+            internal override void FromVector4(Configuration configuration, Span<Vector4> sourceVectors, Span<<#=pixelType#>> destPixels)
             {
                 Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, false);
             }
@@ -123,7 +123,7 @@ using System.Runtime.InteropServices;
             }
 
             /// <inheritdoc />
-            internal override void FromScaledVector4(Configuration configuration, ReadOnlySpan<Vector4> sourceVectors, Span<<#=pixelType#>> destPixels)
+            internal override void FromScaledVector4(Configuration configuration, Span<Vector4> sourceVectors, Span<<#=pixelType#>> destPixels)
             {
                 Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, true);
             }

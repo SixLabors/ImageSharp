@@ -9,6 +9,14 @@ using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.PixelFormats
 {
+    internal enum PixelConversionModifiers
+    {
+        None = 0,
+        Scale = 1 << 0,
+        Premultiply = 1 << 1,
+        SRgbCompand = 1 << 2,
+    }
+
     /// <summary>
     /// A stateless class implementing Strategy Pattern for batched pixel-data conversion operations
     /// for pixel buffers of type <typeparamref name="TPixel"/>.
@@ -30,7 +38,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination colors.</param>
         internal virtual void FromVector4(
             Configuration configuration,
-            ReadOnlySpan<Vector4> sourceVectors,
+            Span<Vector4> sourceVectors,
             Span<TPixel> destPixels)
         {
             Guard.NotNull(configuration, nameof(configuration));
@@ -64,7 +72,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="destinationColors">The <see cref="Span{T}"/> to the destination colors.</param>
         internal virtual void FromScaledVector4(
             Configuration configuration,
-            ReadOnlySpan<Vector4> sourceVectors,
+            Span<Vector4> sourceVectors,
             Span<TPixel> destinationColors)
         {
             Guard.NotNull(configuration, nameof(configuration));

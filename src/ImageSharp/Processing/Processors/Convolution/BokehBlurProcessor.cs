@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// The mapping of initialized complex kernels and parameters, to speed up the initialization of new <see cref="BokehBlurProcessor{TPixel}"/> instances
         /// </summary>
-        private static readonly Dictionary<BokehBlurParameters, (Vector4[], float, Complex64[][])> Cache = new Dictionary<BokehBlurParameters, (Vector4[], float, Complex64[][])>();
+        private static readonly Dictionary<BokehBlurParameters, BokehBlurKernelData> Cache = new Dictionary<BokehBlurParameters, BokehBlurKernelData>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Convolution.BokehBlurProcessor{TPixel}"/> class.
@@ -76,11 +76,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             // Reuse the initialized values from the cache, if possible
             var parameters = new BokehBlurParameters(radius, components);
-            if (Cache.TryGetValue(parameters, out (Vector4[], float, Complex64[][]) info))
+            if (Cache.TryGetValue(parameters, out BokehBlurKernelData info))
             {
-                this.kernelParameters = info.Item1;
-                this.kernelsScale = info.Item2;
-                this.kernels = info.Item3;
+                this.kernelParameters = info.Parameters;
+                this.kernelsScale = info.Scale;
+                this.kernels = info.Kernels;
             }
             else
             {
@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 this.NormalizeKernels();
 
                 // Store them in the cache for future use
-                Cache.Add(parameters, (this.kernelParameters, this.kernelsScale, this.kernels));
+                Cache.Add(parameters, new BokehBlurKernelData(this.kernelParameters, this.kernelsScale, this.kernels));
             }
         }
 

@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Primitives
     /// <summary>
     /// A <see langword="struct"/> that contains parameters to apply a bokeh blur filter
     /// </summary>
-    public readonly struct BokehBlurParameters
+    internal readonly struct BokehBlurParameters
     {
         /// <summary>
         /// The size of the convolution kernel to use when applying the bokeh blur

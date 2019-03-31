@@ -67,11 +67,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </param>
         public BokehBlurProcessor(int radius = 32, int components = 2, float gamma = 3)
         {
+            SixLabors.Guard.MustBeGreaterThanOrEqualTo(gamma, 1, nameof(gamma));
+
             this.Radius = radius;
             this.kernelSize = (radius * 2) + 1;
             this.componentsCount = components;
-
-            SixLabors.Guard.MustBeGreaterThanOrEqualTo(gamma, 1, nameof(gamma));
             this.Gamma = gamma;
 
             // Reuse the initialized values from the cache, if possible

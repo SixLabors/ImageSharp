@@ -18,32 +18,43 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal class PixelOperations : PixelOperations<RgbaVector>
         {
             /// <inheritdoc />
-            internal override void FromScaledVector4(
+            internal override void FromVector4(
                 Configuration configuration,
                 Span<Vector4> sourceVectors,
-                Span<RgbaVector> destinationColors)
+                Span<RgbaVector> destinationColors,
+                PixelConversionModifiers modifiers)
             {
                 Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationColors, nameof(destinationColors));
 
-                MemoryMarshal.Cast<Vector4, RgbaVector>(sourceVectors).CopyTo(destinationColors);
+                // TODO: Repeating previous override behavior here. Not sure if this is correct!
+                if (modifiers.IsDefined(PixelConversionModifiers.Scale))
+                {
+                    MemoryMarshal.Cast<Vector4, RgbaVector>(sourceVectors).CopyTo(destinationColors);
+                }
+                else
+                {
+                    base.FromVector4(configuration, sourceVectors, destinationColors, modifiers);
+                }
             }
-
-            /// <inheritdoc />
-            internal override void ToScaledVector4(
-                Configuration configuration,
-                ReadOnlySpan<RgbaVector> sourceColors,
-                Span<Vector4> destinationVectors)
-                => this.ToVector4(configuration, sourceColors, destinationVectors);
 
             /// <inheritdoc />
             internal override void ToVector4(
                 Configuration configuration,
                 ReadOnlySpan<RgbaVector> sourcePixels,
-                Span<Vector4> destVectors)
+                Span<Vector4> destVectors,
+                PixelConversionModifiers modifiers)
             {
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
 
-                MemoryMarshal.Cast<RgbaVector, Vector4>(sourcePixels).CopyTo(destVectors);
+                // TODO: Repeating previous override behavior here. Not sure if this is correct!
+                if (modifiers.IsDefined(PixelConversionModifiers.Scale))
+                {
+                    base.ToVector4(configuration, sourcePixels, destVectors, modifiers);
+                }
+                else
+                {
+                    MemoryMarshal.Cast<RgbaVector, Vector4>(sourcePixels).CopyTo(destVectors);
+                }
             }
         }
     }

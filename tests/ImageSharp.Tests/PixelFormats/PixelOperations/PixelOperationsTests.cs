@@ -33,6 +33,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 null;
 #endif
 
+        protected bool HasAlpha { get; set; } = true;
+
         protected PixelOperationsTests(ITestOutputHelper output)
             : base(output)
         {
@@ -165,12 +167,18 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         {
             void sourceAction(ref Vector4 v)
             {
-                Vector4Utils.Premultiply(ref v);
+                if (this.HasAlpha)
+                {
+                    Vector4Utils.Premultiply(ref v);
+                }
             }
 
             void expectedAction(ref Vector4 v)
             {
-                Vector4Utils.UnPremultiply(ref v);
+                if (this.HasAlpha)
+                {
+                    Vector4Utils.UnPremultiply(ref v);
+                }
             }
 
             Vector4[] source = CreateVector4TestData(count, (ref Vector4 v) => sourceAction(ref v));
@@ -189,12 +197,18 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         {
             void sourceAction(ref Vector4 v)
             {
-                Vector4Utils.Premultiply(ref v);
+                if (this.HasAlpha)
+                {
+                    Vector4Utils.Premultiply(ref v);
+                }
             }
 
             void expectedAction(ref Vector4 v)
             {
-                Vector4Utils.UnPremultiply(ref v);
+                if (this.HasAlpha)
+                {
+                    Vector4Utils.UnPremultiply(ref v);
+                }
             }
 
             Vector4[] source = CreateVector4TestData(count, (ref Vector4 v) => sourceAction(ref v));
@@ -218,12 +232,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             void sourceAction(ref Vector4 v)
             {
                 SRgbCompanding.Expand(ref v);
-                Vector4Utils.Premultiply(ref v);
+
+                if (this.HasAlpha)
+                {
+                    Vector4Utils.Premultiply(ref v);
+                }
             }
 
             void expectedAction(ref Vector4 v)
             {
-                Vector4Utils.UnPremultiply(ref v);
+                if (this.HasAlpha)
+                {
+                    Vector4Utils.UnPremultiply(ref v);
+                }
+                
                 SRgbCompanding.Compress(ref v);
             }
 

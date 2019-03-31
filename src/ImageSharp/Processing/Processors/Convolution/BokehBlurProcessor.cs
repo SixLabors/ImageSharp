@@ -86,15 +86,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             {
                 // Initialize the complex kernels and parameters with the current arguments
                 (this.kernelParameters, this.kernelsScale) = this.GetParameters();
-
-                this.kernels = new Complex64[this.kernelParameters.Length][];
-                ref Vector4 baseRef = ref MemoryMarshal.GetReference(this.kernelParameters.AsSpan());
-                for (int i = 0; i < this.kernelParameters.Length; i++)
-                {
-                    ref Vector4 paramsRef = ref Unsafe.Add(ref baseRef, i);
-                    this.kernels[i] = this.CreateComplex1DKernel(paramsRef.X, paramsRef.Y);
-                }
-
+                this.kernels = this.CreateComplexKernels();
                 this.NormalizeKernels();
 
                 // Store them in the cache for future use
@@ -189,6 +181,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             // Prepare the kernel components
             int index = Math.Max(0, Math.Min(this.componentsCount - 1, KernelComponents.Count));
             return (KernelComponents[index], KernelScales[index]);
+        }
+
+        /// <summary>
+        /// Creates the collection of complex 1D kernels with the specified parameters
+        /// </summary>
+        private Complex64[][] CreateComplexKernels()
+        {
+            var kernels = new Complex64[this.kernelParameters.Length][];
+            ref Vector4 baseRef = ref MemoryMarshal.GetReference(this.kernelParameters.AsSpan());
+            for (int i = 0; i < this.kernelParameters.Length; i++)
+            {
+                ref Vector4 paramsRef = ref Unsafe.Add(ref baseRef, i);
+                kernels[i] = this.CreateComplex1DKernel(paramsRef.X, paramsRef.Y);
+            }
+
+            return kernels;
         }
 
         /// <summary>

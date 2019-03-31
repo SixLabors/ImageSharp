@@ -5,6 +5,8 @@ using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
 
+using SixLabors.ImageSharp.PixelFormats.Utils;
+
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <content>
@@ -25,6 +27,8 @@ namespace SixLabors.ImageSharp.PixelFormats
                 PixelConversionModifiers modifiers)
             {
                 Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationColors, nameof(destinationColors));
+
+                Vector4Converters.ApplyBackwardConversionModifiers(sourceVectors, modifiers);
 
                 // TODO: Repeating previous override behavior here. Not sure if this is correct!
                 if (modifiers.IsDefined(PixelConversionModifiers.Scale))
@@ -55,6 +59,8 @@ namespace SixLabors.ImageSharp.PixelFormats
                 {
                     MemoryMarshal.Cast<RgbaVector, Vector4>(sourcePixels).CopyTo(destVectors);
                 }
+
+                Vector4Converters.ApplyForwardConversionModifiers(destVectors, modifiers);
             }
         }
     }

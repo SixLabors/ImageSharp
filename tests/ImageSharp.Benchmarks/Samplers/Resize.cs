@@ -14,11 +14,12 @@ using SixLabors.ImageSharp.Processing;
 namespace SixLabors.ImageSharp.Benchmarks
 {
     [Config(typeof(Config.ShortClr))]
-    public abstract class ResizeBenchmarkBase
+    public abstract class ResizeBenchmarkBase<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         protected readonly Configuration Configuration = new Configuration(new JpegConfigurationModule());
 
-        private Image<Rgba32> sourceImage;
+        private Image<TPixel> sourceImage;
 
         private Bitmap sourceBitmap;
 
@@ -31,7 +32,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         [GlobalSetup]
         public void Setup()
         {
-            this.sourceImage = new Image<Rgba32>(this.Configuration, this.SourceSize, this.SourceSize);
+            this.sourceImage = new Image<TPixel>(this.Configuration, this.SourceSize, this.SourceSize);
             this.sourceBitmap = new Bitmap(this.SourceSize, this.SourceSize);
         }
 
@@ -65,26 +66,29 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp, MaxDegreeOfParallelism = 1")]
         public int ImageSharp_P1() => this.RunImageSharpResize(1);
 
-        [Benchmark(Description = "ImageSharp, MaxDegreeOfParallelism = 4")]
-        public int ImageSharp_P4() => this.RunImageSharpResize(4);
+        // Parallel cases have been disabled for fast benchmark execution.
+        // Uncomment, if you are interested in parallel speedup
 
-        [Benchmark(Description = "ImageSharp, MaxDegreeOfParallelism = 8")]
-        public int ImageSharp_P8() => this.RunImageSharpResize(8);
+        //[Benchmark(Description = "ImageSharp, MaxDegreeOfParallelism = 4")]
+        //public int ImageSharp_P4() => this.RunImageSharpResize(4);
+
+        //[Benchmark(Description = "ImageSharp, MaxDegreeOfParallelism = 8")]
+        //public int ImageSharp_P8() => this.RunImageSharpResize(8);
 
         protected int RunImageSharpResize(int maxDegreeOfParallelism)
         {
             this.Configuration.MaxDegreeOfParallelism = maxDegreeOfParallelism;
 
-            using (Image<Rgba32> clone = this.sourceImage.Clone(this.ExecuteResizeOperation))
+            using (Image<TPixel> clone = this.sourceImage.Clone(this.ExecuteResizeOperation))
             {
                 return clone.Width;
             }
         }
 
-        protected abstract void ExecuteResizeOperation(IImageProcessingContext<Rgba32> ctx);
+        protected abstract void ExecuteResizeOperation(IImageProcessingContext<TPixel> ctx);
     }
-    
-    public class Resize_Bicubic : ResizeBenchmarkBase
+
+    public class Resize_Bicubic_Rgba32 : ResizeBenchmarkBase<Rgba32>
     {
         protected override void ExecuteResizeOperation(IImageProcessingContext<Rgba32> ctx)
         {
@@ -115,7 +119,15 @@ namespace SixLabors.ImageSharp.Benchmarks
 
     }
 
-    public class Resize_BicubicCompand : ResizeBenchmarkBase
+    public class Resize_Bicubic_Bgra32 : ResizeBenchmarkBase<Bgra32>
+    {
+        protected override void ExecuteResizeOperation(IImageProcessingContext<Bgra32> ctx)
+        {
+            ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic);
+        }
+    }
+
+    public class Resize_BicubicCompand_Rgba32 : ResizeBenchmarkBase<Rgba32>
     {
         protected override void ExecuteResizeOperation(IImageProcessingContext<Rgba32> ctx)
         {
@@ -144,4 +156,13 @@ namespace SixLabors.ImageSharp.Benchmarks
         //  'ImageSharp, MaxDegreeOfParallelism = 4' |    Core |       3032 |      400 |  36.21 ms | 53.802 ms | 3.0399 ms |   0.36 |     0.03 |   25300 B |
         //  'ImageSharp, MaxDegreeOfParallelism = 8' |    Core |       3032 |      400 |  26.52 ms |  2.173 ms | 0.1228 ms |   0.27 |     0.00 |   25589 B |
     }
+
+    public class Resize_Bicubic_Rgb24 : ResizeBenchmarkBase<Rgb24>
+    {
+        protected override void ExecuteResizeOperation(IImageProcessingContext<Rgb24> ctx)
+        {
+            ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic);
+        }
+    }
+
 }

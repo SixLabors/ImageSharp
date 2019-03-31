@@ -22,6 +22,7 @@ using System.Runtime.InteropServices;
     // Types with Rgba32-combatible to/from Vector4 conversion
     static readonly string[] Rgba32CompatibleTypes = { "Argb32", "Bgra32", "Rgb24", "Bgr24" };
 
+
     void GenerateDefaultSelfConversionMethods(string pixelType)
     {
 #>
@@ -107,19 +108,24 @@ using System.Runtime.InteropServices;
 <#+
     }
 
-    void GenerateRgba32CompatibleVector4ConversionMethods(string pixelType)
+    void GenerateRgba32CompatibleVector4ConversionMethods(string pixelType, bool hasAlpha)
     {
+           string removeTheseModifiers = "PixelConversionModifiers.Scale";
+           if (!hasAlpha)
+           {
+               removeTheseModifiers += " | PixelConversionModifiers.Premultiply";
+           }
 #>
             /// <inheritdoc />
             internal override void FromVector4(Configuration configuration, Span<Vector4> sourceVectors, Span<<#=pixelType#>> destPixels, PixelConversionModifiers modifiers)
             {
-                Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, modifiers.Remove(PixelConversionModifiers.Scale));
+                Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, modifiers.Remove(<#=removeTheseModifiers#>));
             }
 
             /// <inheritdoc />
             internal override void ToVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> sourcePixels, Span<Vector4> destVectors, PixelConversionModifiers modifiers)
             {
-                Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, modifiers.Remove(PixelConversionModifiers.Scale));
+                Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, modifiers.Remove(<#=removeTheseModifiers#>));
             }
 <#+
     }
@@ -130,7 +136,7 @@ using System.Runtime.InteropServices;
 
         if (Rgba32CompatibleTypes.Contains(pixelType))
         {
-            GenerateRgba32CompatibleVector4ConversionMethods(pixelType);
+            GenerateRgba32CompatibleVector4ConversionMethods(pixelType, pixelType.EndsWith("32"));
         }
 
         var matching32BitTypes = Optimized32BitTypes.Contains(pixelType) ?

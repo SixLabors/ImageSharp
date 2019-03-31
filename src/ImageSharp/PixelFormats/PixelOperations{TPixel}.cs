@@ -37,16 +37,8 @@ namespace SixLabors.ImageSharp.PixelFormats
             PixelConversionModifiers modifiers)
         {
             Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destPixels, nameof(destPixels));
 
-            if (modifiers.IsDefined(PixelConversionModifiers.Scale))
-            {
-                Utils.Vector4Converters.Default.DangerousFromScaledVector4(sourceVectors, destPixels);
-            }
-            else
-            {
-                Utils.Vector4Converters.Default.DangerousFromVector4(sourceVectors, destPixels);
-            }
+            Utils.Vector4Converters.Default.FromVector4(sourceVectors, destPixels, modifiers);
         }
 
         /// <summary>
@@ -82,16 +74,8 @@ namespace SixLabors.ImageSharp.PixelFormats
             PixelConversionModifiers modifiers)
         {
             Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
 
-            if (modifiers.IsDefined(PixelConversionModifiers.Scale))
-            {
-                Utils.Vector4Converters.Default.DangerousToScaledVector4(sourcePixels, destVectors);
-            }
-            else
-            {
-                Utils.Vector4Converters.Default.DangerousToVector4(sourcePixels, destVectors);
-            }
+            Utils.Vector4Converters.Default.ToVector4(sourcePixels, destVectors, modifiers);
         }
 
         /// <summary>

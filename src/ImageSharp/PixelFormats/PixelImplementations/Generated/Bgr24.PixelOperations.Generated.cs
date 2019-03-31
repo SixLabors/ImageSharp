@@ -44,13 +44,13 @@ namespace SixLabors.ImageSharp.PixelFormats
             /// <inheritdoc />
             internal override void FromVector4(Configuration configuration, Span<Vector4> sourceVectors, Span<Bgr24> destPixels, PixelConversionModifiers modifiers)
             {
-                Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, false);
+                Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, modifiers.Remove(PixelConversionModifiers.Scale));
             }
 
             /// <inheritdoc />
             internal override void ToVector4(Configuration configuration, ReadOnlySpan<Bgr24> sourcePixels, Span<Vector4> destVectors, PixelConversionModifiers modifiers)
             {
-                Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, false);
+                Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, modifiers.Remove(PixelConversionModifiers.Scale));
             }
 
             /// <inheritdoc />

@@ -148,7 +148,11 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromVector4(this.Configuration, s, d.GetSpan(), PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Scale)
+                (s, d) => Operations.FromVector4(
+                    this.Configuration,
+                    s,
+                    d.GetSpan(),
+                    PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Scale)
             );
         }
 
@@ -230,7 +234,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                     this.Configuration,
                     s,
                     d.GetSpan(),
-                    PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Premultiply)
+                    PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale)
             );
         }
 

@@ -4,6 +4,8 @@
 using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
+
+using SixLabors.ImageSharp.PixelFormats.Utils;
 using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.PixelFormats
@@ -28,10 +30,10 @@ namespace SixLabors.ImageSharp.PixelFormats
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
 
                 destVectors = destVectors.Slice(0, sourcePixels.Length);
-
                 SimdUtils.BulkConvertByteToNormalizedFloat(
                     MemoryMarshal.Cast<Rgba32, byte>(sourcePixels),
                     MemoryMarshal.Cast<Vector4, float>(destVectors));
+                Vector4Converters.ApplyForwardConversionModifiers(destVectors, modifiers);
             }
 
             /// <inheritdoc />
@@ -44,7 +46,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 Guard.DestinationShouldNotBeTooShort(sourceVectors, destPixels, nameof(destPixels));
 
                 destPixels = destPixels.Slice(0, sourceVectors.Length);
-
+                Vector4Converters.ApplyBackwardConversionModifiers(sourceVectors, modifiers);
                 SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(
                     MemoryMarshal.Cast<Vector4, float>(sourceVectors),
                     MemoryMarshal.Cast<Rgba32, byte>(destPixels));

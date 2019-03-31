@@ -124,8 +124,11 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromScaledVector4(this.Configuration, s, d.GetSpan())
-            );
+                (s, d) =>
+                    {
+                        Span<TPixel> destPixels = d.GetSpan();
+                        Operations.FromVector4(this.Configuration, (Span<Vector4>)s, destPixels, PixelConversionModifiers.Scale);
+                    });
         }
 
         [Theory]
@@ -262,8 +265,11 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToScaledVector4(this.Configuration, s, d.GetSpan())
-            );
+                (s, d) =>
+                    {
+                        Span<Vector4> destVectors = d.GetSpan();
+                        Operations.ToVector4(this.Configuration, (ReadOnlySpan<TPixel>)s, destVectors, PixelConversionModifiers.Scale);
+                    });
         }
 
         [Theory]

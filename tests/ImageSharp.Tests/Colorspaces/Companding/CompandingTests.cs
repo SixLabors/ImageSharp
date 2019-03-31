@@ -53,7 +53,15 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Companding
         {
             var rnd = new Random(42);
             Vector4[] source = rnd.GenerateRandomVectorArray(length, 0, 1);
-            Vector4[] expected = source.Select(v => SRgbCompanding.Expand(v)).ToArray();
+            var expected = new Vector4[source.Length];
+
+            for (int i = 0; i < source.Length; i++)
+            {
+                Vector4 s = source[i];
+                ref Vector4 e = ref expected[i];
+                SRgbCompanding.Expand(ref s);
+                e = s;
+            }
 
             SRgbCompanding.Expand(source);
 
@@ -68,7 +76,15 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Companding
         {
             var rnd = new Random(42);
             Vector4[] source = rnd.GenerateRandomVectorArray(length, 0, 1);
-            Vector4[] expected = source.Select(v => SRgbCompanding.Compress(v)).ToArray();
+            var expected = new Vector4[source.Length];
+
+            for (int i = 0; i < source.Length; i++)
+            {
+                Vector4 s = source[i];
+                ref Vector4 e = ref expected[i];
+                SRgbCompanding.Compress(ref s);
+                e = s;
+            }
 
             SRgbCompanding.Compress(source);
 

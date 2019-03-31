@@ -9,20 +9,6 @@ using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.PixelFormats
 {
-    internal enum PixelConversionModifiers
-    {
-        None = 0,
-        Scale = 1 << 0,
-        Premultiply = 1 << 1,
-        SRgbCompand = 1 << 2,
-    }
-
-    internal static class PixelConversionModifiersExtensions
-    {
-        public static bool IsDefined(this PixelConversionModifiers modifiers, PixelConversionModifiers expected) =>
-            (modifiers & expected) == expected;
-    }
-
     /// <summary>
     /// A stateless class implementing Strategy Pattern for batched pixel-data conversion operations
     /// for pixel buffers of type <typeparamref name="TPixel"/>.

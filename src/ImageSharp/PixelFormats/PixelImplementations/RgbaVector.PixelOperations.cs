@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             /// <inheritdoc />
             internal override void FromScaledVector4(
                 Configuration configuration,
-                ReadOnlySpan<Vector4> sourceVectors,
+                Span<Vector4> sourceVectors,
                 Span<RgbaVector> destinationColors)
             {
                 Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationColors, nameof(destinationColors));

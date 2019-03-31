@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void FromVector4(Configuration configuration, ReadOnlySpan<Vector4> sourceVectors, Span<Rgb24> destPixels)
+            internal override void FromVector4(Configuration configuration, Span<Vector4> sourceVectors, Span<Rgb24> destPixels)
             {
                 Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, false);
             }
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void FromScaledVector4(Configuration configuration, ReadOnlySpan<Vector4> sourceVectors, Span<Rgb24> destPixels)
+            internal override void FromScaledVector4(Configuration configuration, Span<Vector4> sourceVectors, Span<Rgb24> destPixels)
             {
                 Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, true);
             }

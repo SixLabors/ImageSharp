@@ -6,7 +6,7 @@ using System;
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
-    /// Detects bmp file headers
+    /// Detects bmp file headers.
     /// </summary>
     public sealed class BmpImageFormatDetector : IImageFormatDetector
     {

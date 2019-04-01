@@ -28,22 +28,22 @@ namespace SixLabors.ImageSharp.Primitives
         }
 
         /// <summary>
-        /// Enumerates the different value types
+        /// Enumerates the different value types.
         /// </summary>
         public enum ValueSizeType
         {
             /// <summary>
-            /// The value is the final return value
+            /// The value is the final return value.
             /// </summary>
             Absolute,
 
             /// <summary>
-            /// The value is a percentage of the image width
+            /// The value is a percentage of the image width.
             /// </summary>
             PercentageOfWidth,
 
             /// <summary>
-            /// The value is a percentage of the images height
+            /// The value is a percentage of the images height.
             /// </summary>
             PercentageOfHeight
         }
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Primitives
         public ValueSizeType Type { get; }
 
         /// <summary>
-        /// Implicitly converts a float into an absolute value
+        /// Implicitly converts a float into an absolute value.
         /// </summary>
         /// <param name="f">the value to use as the absolute figure.</param>
         public static implicit operator ValueSize(float f)
@@ -115,10 +115,7 @@ namespace SixLabors.ImageSharp.Primitives
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"{this.Value} - {this.Type}";
-        }
+        public override string ToString() => $"{this.Value} - {this.Type}";
 
         /// <inheritdoc/>
         public override bool Equals(object obj)

@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                     destinationSpan[i] = PorterDuffFunctions.NormalSrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
                 }
 
-                PixelOperations<TPixel>.Instance.FromVector4(this.Configuration, destinationSpan, destination);
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.Configuration, destinationSpan, destination);
             }
         }
 

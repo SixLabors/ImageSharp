@@ -635,40 +635,48 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 Guard.IsFalse(this.IsArray, nameof(value), "Value should not be an array.");
             }
 
+            void EnsureType(Type expectedType)
+            {
+                if (expectedType != typeof(byte))
+                {
+                    throw new Exception($"Value should be a {expectedType.Name}{(this.IsArray ? " array." : ".")}");
+                }
+            }
+
             switch (this.DataType)
             {
                 case ExifDataType.Byte:
-                    Guard.IsTrue(type == typeof(byte), nameof(value), $"Value should be a byte{(this.IsArray ? " array." : ".")}");
+                    EnsureType(typeof(byte));
                     break;
                 case ExifDataType.DoubleFloat:
-                    Guard.IsTrue(type == typeof(double), nameof(value), $"Value should be a double{(this.IsArray ? " array." : ".")}");
+                    EnsureType(typeof(double));
                     break;
                 case ExifDataType.Long:
-                    Guard.IsTrue(type == typeof(uint), nameof(value), $"Value should be an unsigned int{(this.IsArray ? " array." : ".")}");
+                    EnsureType(typeof(uint));
                     break;
                 case ExifDataType.Rational:
-                    Guard.IsTrue(type == typeof(Rational), nameof(value), $"Value should be a Rational{(this.IsArray ? " array." : ".")}");
+                    EnsureType(typeof(Rational));
                     break;
                 case ExifDataType.Short:
-                    Guard.IsTrue(type == typeof(ushort), nameof(value), $"Value should be an unsigned short{(this.IsArray ? " array." : ".")}");
+                    EnsureType(typeof(ushort));
                     break;
                 case ExifDataType.SignedByte:
-                    Guard.IsTrue(type == typeof(sbyte), nameof(value), $"Value should be a signed byte{(this.IsArray ? " array." : ".")}");
+                    EnsureType(typeof(sbyte));
                     break;
                 case ExifDataType.SignedLong:
-                    Guard.IsTrue(type == typeof(int), nameof(value), $"Value should be an int{(this.IsArray ? " array." : ".")}");
+                    EnsureType(typeof(int));
                     break;
                 case ExifDataType.SignedRational:
-                    Guard.IsTrue(type == typeof(SignedRational), nameof(value), $"Value should be a SignedRational{(this.IsArray ? " array." : ".")}");
+                    EnsureType(typeof(SignedRational));
                     break;
                 case ExifDataType.SignedShort:
-                    Guard.IsTrue(type == typeof(short), nameof(value), $"Value should be a short{(this.IsArray ? " array." : ".")}");
+                    EnsureType(typeof(short));
                     break;
                 case ExifDataType.SingleFloat:
-                    Guard.IsTrue(type == typeof(float), nameof(value), $"Value should be a float{(this.IsArray ? " array." : ".")}");
+                    EnsureType(typeof(float));
                     break;
                 case ExifDataType.Undefined:
-                    Guard.IsTrue(type == typeof(byte), nameof(value), "Value should be a byte array.");
+                    EnsureType(typeof(byte));
                     break;
                 default:
                     throw new NotSupportedException();

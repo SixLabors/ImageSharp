@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp
             if (format is null)
             {
                 var sb = new StringBuilder();
-                sb.AppendLine($"Can't find a format that is associated with the file extension '{ext}'. Registered formats with there extensions include:");
+                sb.AppendLine($"No encoder was found for extension '{ext}'. Registered encoders include:");
                 foreach (IImageFormat fmt in source.GetConfiguration().ImageFormats)
                 {
                     sb.AppendLine($" - {fmt.Name} : {string.Join(", ", fmt.FileExtensions)}");
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp
             if (encoder is null)
             {
                 var sb = new StringBuilder();
-                sb.AppendLine($"Can't find encoder for file extension '{ext}' using image format '{format.Name}'. Registered encoders include:");
+                sb.AppendLine($"No encoder was found for extension '{ext}' using image format '{format.Name}'. Registered encoders include:");
                 foreach (KeyValuePair<IImageFormat, IImageEncoder> enc in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
                 {
                     sb.AppendLine($" - {enc.Key} : {enc.Value.GetType().Name}");
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp
             if (encoder is null)
             {
                 var sb = new StringBuilder();
-                sb.AppendLine("Can't find encoder for provided mime type. Available encoded:");
+                sb.AppendLine("No encoder was found for the provided mime type. Registered encoders include:");
 
                 foreach (KeyValuePair<IImageFormat, IImageEncoder> val in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
                 {

@@ -22,24 +22,21 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <summary>
-        /// Gets the INCLUSIVE minimum
+        /// Gets the INCLUSIVE minimum.
         /// </summary>
         public int Min { get; }
 
         /// <summary>
-        /// Gets the EXCLUSIVE maximum
+        /// Gets the EXCLUSIVE maximum.
         /// </summary>
         public int Max { get; }
 
         /// <summary>
-        /// Gets the difference (<see cref="Max"/> - <see cref="Min"/>)
+        /// Gets the difference (<see cref="Max"/> - <see cref="Min"/>).
         /// </summary>
         public int Height => this.Max - this.Min;
 
         /// <inheritdoc />
-        public override string ToString()
-        {
-            return $"RowInterval [{this.Min}->{this.Max}[";
-        }
+        public override string ToString() => $"RowInterval [{this.Min}->{this.Max}]";
     }
 }

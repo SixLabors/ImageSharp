@@ -5,6 +5,8 @@ using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
 
+using SixLabors.ImageSharp.PixelFormats.Utils;
+
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <content>
@@ -18,32 +20,29 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal class PixelOperations : PixelOperations<RgbaVector>
         {
             /// <inheritdoc />
-            internal override void FromScaledVector4(
+            internal override void FromVector4Destructive(
                 Configuration configuration,
-                ReadOnlySpan<Vector4> sourceVectors,
-                Span<RgbaVector> destinationColors)
+                Span<Vector4> sourceVectors,
+                Span<RgbaVector> destinationColors,
+                PixelConversionModifiers modifiers)
             {
                 Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationColors, nameof(destinationColors));
 
+                Vector4Converters.ApplyBackwardConversionModifiers(sourceVectors, modifiers);
                 MemoryMarshal.Cast<Vector4, RgbaVector>(sourceVectors).CopyTo(destinationColors);
             }
-
-            /// <inheritdoc />
-            internal override void ToScaledVector4(
-                Configuration configuration,
-                ReadOnlySpan<RgbaVector> sourceColors,
-                Span<Vector4> destinationVectors)
-                => this.ToVector4(configuration, sourceColors, destinationVectors);
 
             /// <inheritdoc />
             internal override void ToVector4(
                 Configuration configuration,
                 ReadOnlySpan<RgbaVector> sourcePixels,
-                Span<Vector4> destVectors)
+                Span<Vector4> destVectors,
+                PixelConversionModifiers modifiers)
             {
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
 
                 MemoryMarshal.Cast<RgbaVector, Vector4>(sourcePixels).CopyTo(destVectors);
+                Vector4Converters.ApplyForwardConversionModifiers(destVectors, modifiers);
             }
         }
     }

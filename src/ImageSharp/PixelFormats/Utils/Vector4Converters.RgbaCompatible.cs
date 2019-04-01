@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
             }
 
             /// <summary>
-            /// Provides an efficient default implementation for <see cref="PixelOperations{TPixel}.FromVector4(SixLabors.ImageSharp.Configuration,System.Span{System.Numerics.Vector4},System.Span{TPixel},SixLabors.ImageSharp.PixelFormats.PixelConversionModifiers)"/>
+            /// Provides an efficient default implementation for <see cref="PixelOperations{TPixel}.FromVector4Destructive(SixLabors.ImageSharp.Configuration,System.Span{System.Numerics.Vector4},System.Span{TPixel},SixLabors.ImageSharp.PixelFormats.PixelConversionModifiers)"/>
             /// The method is works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]

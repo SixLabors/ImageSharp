@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromVector4(this.Configuration, s, d.GetSpan())
+                (s, d) => Operations.FromVector4Destructive(this.Configuration, s, d.GetSpan())
             );
         }
 
@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 (s, d) =>
                     {
                         Span<TPixel> destPixels = d.GetSpan();
-                        Operations.FromVector4(this.Configuration, (Span<Vector4>)s, destPixels, PixelConversionModifiers.Scale);
+                        Operations.FromVector4Destructive(this.Configuration, (Span<Vector4>)s, destPixels, PixelConversionModifiers.Scale);
                     });
         }
 
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromVector4(
+                (s, d) => Operations.FromVector4Destructive(
                     this.Configuration,
                     s,
                     d.GetSpan(),
@@ -187,7 +187,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromVector4(this.Configuration, s, d.GetSpan(), PixelConversionModifiers.Premultiply)
+                (s, d) => Operations.FromVector4Destructive(this.Configuration, s, d.GetSpan(), PixelConversionModifiers.Premultiply)
             );
         }
 
@@ -217,7 +217,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromVector4(
+                (s, d) => Operations.FromVector4Destructive(
                     this.Configuration,
                     s,
                     d.GetSpan(),
@@ -255,7 +255,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromVector4(
+                (s, d) => Operations.FromVector4Destructive(
                     this.Configuration,
                     s,
                     d.GetSpan(),

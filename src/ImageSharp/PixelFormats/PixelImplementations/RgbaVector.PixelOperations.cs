@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal class PixelOperations : PixelOperations<RgbaVector>
         {
             /// <inheritdoc />
-            internal override void FromVector4(
+            internal override void FromVector4Destructive(
                 Configuration configuration,
                 Span<Vector4> sourceVectors,
                 Span<RgbaVector> destinationColors,

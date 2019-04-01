@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                 kernel.Convolve(point, x, ref ySpanRef, ref xSpanRef, source.PixelBuffer, vectorSpan);
                             }
 
-                            PixelOperations<TPixel>.Instance.FromVector4(configuration, vectorSpan, targetRowSpan);
+                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan, targetRowSpan);
                         }
                     });
             }

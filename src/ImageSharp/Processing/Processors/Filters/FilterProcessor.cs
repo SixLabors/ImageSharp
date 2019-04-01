@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
 
                             Vector4Utils.Transform(vectorSpan, ref matrix);
 
-                            PixelOperations<TPixel>.Instance.FromVector4(configuration, vectorSpan, rowSpan);
+                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan, rowSpan);
                         }
                     });
         }

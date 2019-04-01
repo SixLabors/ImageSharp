@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void FromVector4(
+            internal override void FromVector4Destructive(
                 Configuration configuration,
                 Span<Vector4> sourceVectors,
                 Span<Rgba32> destPixels,

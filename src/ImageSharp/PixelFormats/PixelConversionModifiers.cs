@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Flags responsible to select additional operations which could be effitiently applied in
     /// <see cref="PixelOperations{TPixel}.ToVector4(SixLabors.ImageSharp.Configuration,System.ReadOnlySpan{TPixel},System.Span{System.Numerics.Vector4},SixLabors.ImageSharp.PixelFormats.PixelConversionModifiers)"/>
     /// or
-    /// <see cref="PixelOperations{TPixel}.FromVector4(SixLabors.ImageSharp.Configuration,System.Span{System.Numerics.Vector4},System.Span{TPixel},SixLabors.ImageSharp.PixelFormats.PixelConversionModifiers)"/>
+    /// <see cref="PixelOperations{TPixel}.FromVector4Destructive(SixLabors.ImageSharp.Configuration,System.Span{System.Numerics.Vector4},System.Span{TPixel},SixLabors.ImageSharp.PixelFormats.PixelConversionModifiers)"/>
     /// knowing the pixel type.
     /// </summary>
     [Flags]
@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         None = 0,
 
         /// <summary>
-        /// Select <see cref="IPixel.ToScaledVector4"/> <see cref="IPixel.FromScaledVector4"/> instead the standard (non scaled) variants.
+        /// Select <see cref="IPixel.ToScaledVector4"/> and <see cref="IPixel.FromScaledVector4"/> instead the standard (non scaled) variants.
         /// </summary>
         Scale = 1 << 0,
 

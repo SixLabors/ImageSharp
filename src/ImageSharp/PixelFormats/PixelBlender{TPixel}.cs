@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 this.BlendFunction(destinationSpan, backgroundSpan, sourceSpan, amount);
 
                 Span<Vector4> sourceVectors = destinationSpan.Slice(0, background.Length);
-                PixelOperations<TPixel>.Instance.FromVector4(configuration, sourceVectors, destination, PixelConversionModifiers.Scale);
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, sourceVectors, destination, PixelConversionModifiers.Scale);
             }
         }
 
@@ -163,7 +163,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 this.BlendFunction(destinationSpan, backgroundSpan, sourceSpan, amount);
 
                 Span<Vector4> sourceVectors = destinationSpan.Slice(0, background.Length);
-                PixelOperations<TPixel>.Instance.FromVector4(configuration, sourceVectors, destination, PixelConversionModifiers.Scale);
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, sourceVectors, destination, PixelConversionModifiers.Scale);
             }
         }
     }

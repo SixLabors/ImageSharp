@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void FromVector4(Configuration configuration, Span<Vector4> sourceVectors, Span<Rgb24> destPixels, PixelConversionModifiers modifiers)
+            internal override void FromVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Rgb24> destPixels, PixelConversionModifiers modifiers)
             {
                 Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, modifiers.Remove(PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply));
             }

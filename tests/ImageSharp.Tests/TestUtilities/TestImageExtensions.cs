@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests
                                     v.W = 1F;
                                 }
 
-                                PixelOperations<TPixel>.Instance.FromVector4(configuration, tempSpan, pixelSpan, PixelConversionModifiers.Scale);
+                                PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, tempSpan, pixelSpan, PixelConversionModifiers.Scale);
                             }
                         }
                     });

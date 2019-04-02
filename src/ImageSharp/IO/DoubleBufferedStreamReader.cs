@@ -13,10 +13,10 @@ namespace SixLabors.ImageSharp.IO
     /// A stream reader that add a secondary level buffer in addition to native stream buffered reading
     /// to reduce the overhead of small incremental reads.
     /// </summary>
-    internal class DoubleBufferedStreamReader : IDisposable
+    internal sealed class DoubleBufferedStreamReader : IDisposable
     {
         /// <summary>
-        /// The length, in bytes, of the buffering chunk
+        /// The length, in bytes, of the buffering chunk.
         /// </summary>
         public const int ChunkLength = 4096;
 
@@ -49,12 +49,12 @@ namespace SixLabors.ImageSharp.IO
         }
 
         /// <summary>
-        /// Gets the length, in bytes, of the stream
+        /// Gets the length, in bytes, of the stream.
         /// </summary>
         public long Length => this.length;
 
         /// <summary>
-        /// Gets or sets the current position within the stream
+        /// Gets or sets the current position within the stream.
         /// </summary>
         public long Position
         {

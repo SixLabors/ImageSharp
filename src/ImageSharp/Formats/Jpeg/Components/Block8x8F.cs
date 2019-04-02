@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Fill the block with defaults (zeroes)
+        /// Fill the block with defaults (zeroes).
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void Clear()
@@ -157,7 +157,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Load raw 32bit floating point data from source
+        /// Load raw 32bit floating point data from source.
         /// </summary>
         /// <param name="source">Source</param>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -170,7 +170,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Load raw 32bit floating point data from source
+        /// Load raw 32bit floating point data from source.
         /// </summary>
         /// <param name="blockPtr">Block pointer</param>
         /// <param name="source">Source</param>
@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Copy raw 32bit floating point data to dest
+        /// Copy raw 32bit floating point data to dest,
         /// </summary>
         /// <param name="dest">Destination</param>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -210,7 +210,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Convert salars to byte-s and copy to dest
+        /// Convert salars to byte-s and copy to dest,
         /// </summary>
         /// <param name="blockPtr">Pointer to block</param>
         /// <param name="dest">Destination</param>
@@ -226,10 +226,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Copy raw 32bit floating point data to dest
+        /// Copy raw 32bit floating point data to dest.
         /// </summary>
-        /// <param name="blockPtr">Block pointer</param>
-        /// <param name="dest">Destination</param>
+        /// <param name="blockPtr">The block pointer.</param>
+        /// <param name="dest">The destination.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static unsafe void CopyTo(Block8x8F* blockPtr, Span<float> dest)
         {
@@ -275,7 +275,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Multiply all elements of the block.
         /// </summary>
-        /// <param name="value">The value to multiply by</param>
+        /// <param name="value">The value to multiply by.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void MultiplyInplace(float value)
         {
@@ -298,7 +298,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Multiply all elements of the block by the corresponding elements of 'other'
+        /// Multiply all elements of the block by the corresponding elements of 'other'.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void MultiplyInplace(ref Block8x8F other)
@@ -349,8 +349,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Quantize the block.
         /// </summary>
-        /// <param name="blockPtr">Block pointer</param>
-        /// <param name="qtPtr">Qt pointer</param>
+        /// <param name="blockPtr">The block pointer.</param>
+        /// <param name="qtPtr">The qt pointer.</param>
         /// <param name="unzigPtr">Unzig pointer</param>
         // [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void DequantizeBlock(Block8x8F* blockPtr, Block8x8F* qtPtr, byte* unzigPtr)

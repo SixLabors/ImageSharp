@@ -8,7 +8,7 @@ using System.Text;
 namespace SixLabors.ImageSharp.Primitives
 {
     /// <summary>
-    /// Represents a number that can be expressed as a fraction
+    /// Represents a number that can be expressed as a fraction.
     /// </summary>
     /// <remarks>
     /// This is a very simplified implementation of a rational number designed for use with metadata only.

@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Common
         /// The start index, inclusive.
         /// </param>
         /// <param name="toDelegate">
-        /// A method that has one parameter and returns a <see cref="bool"/> calculating the end index
+        /// A method that has one parameter and returns a <see cref="bool"/> calculating the end index.
         /// </param>
         /// <param name="step">
         /// The incremental step.
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Common
         /// The start index, inclusive.
         /// </param>
         /// <param name="toDelegate">
-        /// A method that has one parameter and returns a <see cref="bool"/> calculating the end index
+        /// A method that has one parameter and returns a <see cref="bool"/> calculating the end index.
         /// </param>
         /// <param name="step">
         /// The incremental step.

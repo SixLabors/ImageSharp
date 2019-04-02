@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         /// <summary>
-        /// Gets the component Id.
+        /// Gets the component id.
         /// </summary>
         public byte Id { get; }
 

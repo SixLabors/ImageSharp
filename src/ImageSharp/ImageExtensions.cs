@@ -12,7 +12,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp
 {
     /// <summary>
-    /// Extension methods over Image{TPixel}
+    /// Extension methods over Image{TPixel}.
     /// </summary>
     public static partial class ImageExtensions
     {

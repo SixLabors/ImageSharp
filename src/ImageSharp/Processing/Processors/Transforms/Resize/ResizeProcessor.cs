@@ -9,7 +9,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.ColorSpaces.Companding;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
@@ -216,26 +215,32 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     workingRect,
                     configuration,
                     rows =>
+                    {
+                        for (int y = rows.Min; y < rows.Max; y++)
                         {
-                            for (int y = rows.Min; y < rows.Max; y++)
-                            {
-                                // Y coordinates of source points
-                                Span<TPixel> sourceRow =
-                                    source.GetPixelRowSpan((int)(((y - startY) * heightFactor) + sourceY));
-                                Span<TPixel> targetRow = destination.GetPixelRowSpan(y);
+                            // Y coordinates of source points
+                            Span<TPixel> sourceRow =
+                                source.GetPixelRowSpan((int)(((y - startY) * heightFactor) + sourceY));
+                            Span<TPixel> targetRow = destination.GetPixelRowSpan(y);
 
-                                for (int x = minX; x < maxX; x++)
-                                {
-                                    // X coordinates of source points
-                                    targetRow[x] = sourceRow[(int)(((x - startX) * widthFactor) + sourceX)];
-                                }
+                            for (int x = minX; x < maxX; x++)
+                            {
+                                // X coordinates of source points
+                                targetRow[x] = sourceRow[(int)(((x - startX) * widthFactor) + sourceX)];
                             }
-                        });
+                        }
+                    });
 
                 return;
             }
 
             int sourceHeight = source.Height;
+
+            PixelConversionModifiers conversionModifiers = PixelConversionModifiers.Premultiply;
+            if (this.Compand)
+            {
+                conversionModifiers |= PixelConversionModifiers.Scale | PixelConversionModifiers.SRgbCompand;
+            }
 
             // Interpolate the image using the calculated weights.
             // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm
@@ -251,30 +256,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     processColsRect,
                     configuration,
                     (rows, tempRowBuffer) =>
+                    {
+                        for (int y = rows.Min; y < rows.Max; y++)
                         {
-                            for (int y = rows.Min; y < rows.Max; y++)
+                            Span<TPixel> sourceRow = source.GetPixelRowSpan(y).Slice(sourceX);
+                            Span<Vector4> tempRowSpan = tempRowBuffer.Span.Slice(sourceX);
+
+                            PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, tempRowSpan, conversionModifiers);
+
+                            ref Vector4 firstPassBaseRef = ref firstPassPixelsTransposed.Span[y];
+
+                            for (int x = minX; x < maxX; x++)
                             {
-                                Span<TPixel> sourceRow = source.GetPixelRowSpan(y).Slice(sourceX);
-                                Span<Vector4> tempRowSpan = tempRowBuffer.Span.Slice(sourceX);
-
-                                PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, tempRowSpan);
-                                Vector4Utils.Premultiply(tempRowSpan);
-
-                                ref Vector4 firstPassBaseRef = ref firstPassPixelsTransposed.Span[y];
-
-                                if (this.Compand)
-                                {
-                                    SRgbCompanding.Expand(tempRowSpan);
-                                }
-
-                                for (int x = minX; x < maxX; x++)
-                                {
-                                    ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - startX);
-                                    Unsafe.Add(ref firstPassBaseRef, x * sourceHeight) =
-                                        kernel.Convolve(tempRowSpan);
-                                }
+                                ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - startX);
+                                Unsafe.Add(ref firstPassBaseRef, x * sourceHeight) = kernel.Convolve(tempRowSpan);
                             }
-                        });
+                        }
+                    });
 
                 var processRowsRect = Rectangle.FromLTRB(0, minY, width, maxY);
 
@@ -283,35 +281,29 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     processRowsRect,
                     configuration,
                     (rows, tempRowBuffer) =>
+                    {
+                        Span<Vector4> tempRowSpan = tempRowBuffer.Span;
+
+                        for (int y = rows.Min; y < rows.Max; y++)
                         {
-                            Span<Vector4> tempRowSpan = tempRowBuffer.Span;
+                            // Ensure offsets are normalized for cropping and padding.
+                            ResizeKernel kernel = this.verticalKernelMap.GetKernel(y - startY);
 
-                            for (int y = rows.Min; y < rows.Max; y++)
+                            ref Vector4 tempRowBase = ref MemoryMarshal.GetReference(tempRowSpan);
+
+                            for (int x = 0; x < width; x++)
                             {
-                                // Ensure offsets are normalized for cropping and padding.
-                                ResizeKernel kernel = this.verticalKernelMap.GetKernel(y - startY);
+                                Span<Vector4> firstPassColumn = firstPassPixelsTransposed.GetRowSpan(x).Slice(sourceY);
 
-                                ref Vector4 tempRowBase = ref MemoryMarshal.GetReference(tempRowSpan);
-
-                                for (int x = 0; x < width; x++)
-                                {
-                                    Span<Vector4> firstPassColumn = firstPassPixelsTransposed.GetRowSpan(x).Slice(sourceY);
-
-                                    // Destination color components
-                                    Unsafe.Add(ref tempRowBase, x) = kernel.Convolve(firstPassColumn);
-                                }
-
-                                Vector4Utils.UnPremultiply(tempRowSpan);
-
-                                if (this.Compand)
-                                {
-                                    SRgbCompanding.Compress(tempRowSpan);
-                                }
-
-                                Span<TPixel> targetRowSpan = destination.GetPixelRowSpan(y);
-                                PixelOperations<TPixel>.Instance.FromVector4(configuration, tempRowSpan, targetRowSpan);
+                                // Destination color components
+                                Unsafe.Add(ref tempRowBase, x) = kernel.Convolve(firstPassColumn);
                             }
-                        });
+
+                            Span<TPixel> targetRowSpan = destination.GetPixelRowSpan(y);
+
+                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, tempRowSpan, targetRowSpan, conversionModifiers);
+                        }
+                    });
             }
         }
 

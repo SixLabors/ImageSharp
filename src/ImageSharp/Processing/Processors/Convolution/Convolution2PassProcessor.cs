@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                 DenseMatrixUtils.Convolve(in matrix, sourcePixels, vectorSpan, y, x, maxY, maxX, startX);
                             }
 
-                            PixelOperations<TPixel>.Instance.FromVector4(configuration, vectorSpan.Slice(0, length), targetRowSpan);
+                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan.Slice(0, length), targetRowSpan);
                         }
                     });
         }

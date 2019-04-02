@@ -24,19 +24,57 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <summary>
         /// Bulk version of <see cref="IPixel.FromVector4"/> converting 'sourceVectors.Length' pixels into 'destinationColors'.
+        /// The method is DESTRUCTIVE altering the contents of <paramref name="sourceVectors"/>.
         /// </summary>
+        /// <remarks>
+        /// The destructive behavior is a design choice for performance reasons.
+        /// In a typical use case the contents of <paramref name="sourceVectors"/> are abandoned after the conversion.
+        /// </remarks>
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination colors.</param>
-        internal virtual void FromVector4(
+        /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the conversion</param>
+        internal virtual void FromVector4Destructive(
             Configuration configuration,
-            ReadOnlySpan<Vector4> sourceVectors,
-            Span<TPixel> destPixels)
+            Span<Vector4> sourceVectors,
+            Span<TPixel> destPixels,
+            PixelConversionModifiers modifiers)
         {
             Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destPixels, nameof(destPixels));
 
-            Utils.Vector4Converters.Default.DangerousFromVector4(sourceVectors, destPixels);
+            Utils.Vector4Converters.Default.FromVector4(sourceVectors, destPixels, modifiers);
+        }
+
+        /// <summary>
+        /// Bulk version of <see cref="IPixel.FromVector4"/> converting 'sourceVectors.Length' pixels into 'destinationColors'.
+        /// The method is DESTRUCTIVE altering the contents of <paramref name="sourceVectors"/>.
+        /// </summary>
+        /// <remarks>
+        /// The destructive behavior is a design choice for performance reasons.
+        /// In a typical use case the contents of <paramref name="sourceVectors"/> are abandoned after the conversion.
+        /// </remarks>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
+        /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination colors.</param>
+        internal void FromVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<TPixel> destPixels) =>
+            this.FromVector4Destructive(configuration, sourceVectors, destPixels, PixelConversionModifiers.None);
+
+        /// <summary>
+        /// Bulk version of <see cref="IPixel.ToVector4()"/> converting 'sourceColors.Length' pixels into 'destinationVectors'.
+        /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
+        /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source colors.</param>
+        /// <param name="destVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
+        /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the conversion</param>
+        internal virtual void ToVector4(
+            Configuration configuration,
+            ReadOnlySpan<TPixel> sourcePixels,
+            Span<Vector4> destVectors,
+            PixelConversionModifiers modifiers)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+
+            Utils.Vector4Converters.Default.ToVector4(sourcePixels, destVectors, modifiers);
         }
 
         /// <summary>
@@ -48,47 +86,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal virtual void ToVector4(
             Configuration configuration,
             ReadOnlySpan<TPixel> sourcePixels,
-            Span<Vector4> destVectors)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
-
-            Utils.Vector4Converters.Default.DangerousToVector4(sourcePixels, destVectors);
-        }
-
-        /// <summary>
-        /// Bulk version of <see cref="IPixel.FromScaledVector4"/> converting 'sourceVectors.Length' pixels into 'destinationColors'.
-        /// </summary>
-        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-        /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
-        /// <param name="destinationColors">The <see cref="Span{T}"/> to the destination colors.</param>
-        internal virtual void FromScaledVector4(
-            Configuration configuration,
-            ReadOnlySpan<Vector4> sourceVectors,
-            Span<TPixel> destinationColors)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationColors, nameof(destinationColors));
-
-            Utils.Vector4Converters.Default.DangerousFromScaledVector4(sourceVectors, destinationColors);
-        }
-
-        /// <summary>
-        /// Bulk version of <see cref="IPixel.ToScaledVector4()"/> converting 'sourceColors.Length' pixels into 'destinationVectors'.
-        /// </summary>
-        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-        /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destinationVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
-        internal virtual void ToScaledVector4(
-            Configuration configuration,
-            ReadOnlySpan<TPixel> sourceColors,
-            Span<Vector4> destinationVectors)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(sourceColors, destinationVectors, nameof(destinationVectors));
-
-            Utils.Vector4Converters.Default.DangerousToScaledVector4(sourceColors, destinationVectors);
-        }
+            Span<Vector4> destVectors) =>
+            this.ToVector4(configuration, sourcePixels, destVectors, PixelConversionModifiers.None);
 
         /// <summary>
         /// Converts 'sourceColors.Length' pixels from 'sourceColors' into 'destinationColors'.

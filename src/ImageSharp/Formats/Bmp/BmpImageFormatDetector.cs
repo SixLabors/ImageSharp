@@ -22,9 +22,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
         {
             // TODO: This should be in constants
-            return header.Length >= this.HeaderSize &&
-                   header[0] == 0x42 && // B
-                   header[1] == 0x4D;   // M
+            return header.Length >= this.HeaderSize
+                && header[0] == 0x42  // B
+                && header[1] == 0x4D; // M
         }
     }
 }

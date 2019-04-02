@@ -107,10 +107,7 @@ namespace SixLabors.ImageSharp.MetaData
         /// <returns>
         /// A <see cref="T:System.String"/> containing a fully qualified type name.
         /// </returns>
-        public override string ToString()
-        {
-            return $"ImageProperty [ Name={this.Name}, Value={this.Value} ]";
-        }
+        public override string ToString() => $"ImageProperty [ Name={this.Name}, Value={this.Value} ]";
 
         /// <summary>
         /// Indicates whether the current object is equal to another object of the same type.

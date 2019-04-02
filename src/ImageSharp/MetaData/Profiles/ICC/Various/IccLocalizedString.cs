@@ -49,9 +49,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             this.Text == other.Text;
 
         /// <inheritdoc />
-        public override string ToString()
-        {
-            return $"{this.Culture.Name}: {this.Text}";
-        }
+        public override string ToString() => $"{this.Culture.Name}: {this.Text}";
     }
 }

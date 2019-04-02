@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.ColorSpaces.Companding
 {
     /// <summary>
-    /// Implements sRGB companding
+    /// Implements sRGB companding.
     /// </summary>
     /// <remarks>
     /// For more info see:

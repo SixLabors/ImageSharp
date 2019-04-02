@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp
 {
     /// <summary>
     /// Encapsulates properties that describe basic image information including dimensions, pixel type information
-    /// and additional metadata
+    /// and additional metadata.
     /// </summary>
     public interface IImageInfo
     {

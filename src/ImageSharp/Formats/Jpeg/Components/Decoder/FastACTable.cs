@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     internal unsafe struct FastACTable
     {
         /// <summary>
-        /// Gets the lookahead array
+        /// Gets the lookahead array.
         /// </summary>
         public fixed short Lookahead[512];
 

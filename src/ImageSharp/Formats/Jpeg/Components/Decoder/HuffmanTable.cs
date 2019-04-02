@@ -26,22 +26,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 #pragma warning restore IDE0044 // Add readonly modifier
 
         /// <summary>
-        /// Gets the max code array
+        /// Gets the max code array.
         /// </summary>
         public fixed uint MaxCode[18];
 
         /// <summary>
-        /// Gets the value offset array
+        /// Gets the value offset array.
         /// </summary>
         public fixed int ValOffset[18];
 
         /// <summary>
-        /// Gets the huffman value array
+        /// Gets the huffman value array.
         /// </summary>
         public fixed byte Values[256];
 
         /// <summary>
-        /// Gets the lookahead array
+        /// Gets the lookahead array.
         /// </summary>
         public fixed byte Lookahead[512];
 

@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// Gets the configuration for the image.
         /// </summary>
         /// <typeparam name="TPixel">The Pixel format.</typeparam>
-        /// <param name="source">The source image</param>
+        /// <param name="source">The source image.</param>
         /// <returns>Returns the configuration.</returns>
         public static Configuration GetConfiguration<TPixel>(this Image<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
@@ -150,7 +150,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <summary>
         /// Gets the <see cref="MemoryAllocator"/> assigned to 'source'.
         /// </summary>
-        /// <param name="source">The source image</param>
+        /// <param name="source">The source image.</param>
         /// <returns>Returns the configuration.</returns>
         internal static MemoryAllocator GetMemoryAllocator(this IConfigurable source)
             => GetConfiguration(source).MemoryAllocator;
@@ -185,7 +185,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="source">The source.</param>
         /// <param name="row">The row.</param>
         /// <returns>
-        /// The span returned from Pixel source
+        /// The span returned from Pixel source.
         /// </returns>
         private static Span<TPixel> GetSpan<TPixel>(Buffer2D<TPixel> source, int row)
             where TPixel : struct, IPixel<TPixel>

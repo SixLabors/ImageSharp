@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 breakPoints[i] = this.ReadSingle();
             }
 
-            IccCurveSegment[] segments = new IccCurveSegment[segmentCount];
+            var segments = new IccCurveSegment[segmentCount];
             for (int i = 0; i < segmentCount; i++)
             {
                 segments[i] = this.ReadCurveSegment();
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 measurement[i] = this.ReadUInt32();
             }
 
-            Vector3[] xyzValues = new Vector3[channelCount];
+            var xyzValues = new Vector3[channelCount];
             for (int i = 0; i < channelCount; i++)
             {
                 xyzValues[i] = this.ReadXyzNumber();
@@ -67,9 +67,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <summary>
-        /// Reads a <see cref="IccParametricCurve"/>
+        /// Reads a <see cref="IccParametricCurve"/>/
         /// </summary>
-        /// <returns>The read curve</returns>
+        /// <returns>The read curve.</returns>
         public IccParametricCurve ReadParametricCurve()
         {
             ushort type = this.ReadUInt16();
@@ -104,15 +104,15 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 f = this.ReadFix16();
             }
 
-            switch (type)
+            return type switch
             {
-                case 0: return new IccParametricCurve(gamma);
-                case 1: return new IccParametricCurve(gamma, a, b);
-                case 2: return new IccParametricCurve(gamma, a, b, c);
-                case 3: return new IccParametricCurve(gamma, a, b, c, d);
-                case 4: return new IccParametricCurve(gamma, a, b, c, d, e, f);
-                default: throw new InvalidIccProfileException($"Invalid parametric curve type of {type}");
-            }
+                0 => new IccParametricCurve(gamma),
+                1 => new IccParametricCurve(gamma, a, b),
+                2 => new IccParametricCurve(gamma, a, b, c),
+                3 => new IccParametricCurve(gamma, a, b, c, d),
+                4 => new IccParametricCurve(gamma, a, b, c, d, e, f),
+                _ => throw new InvalidIccProfileException($"Invalid parametric curve type of {type}")
+            };
         }
 
         /// <summary>

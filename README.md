@@ -108,7 +108,7 @@ For more examples check out:
 
 If you prefer, you can compile ImageSharp yourself (please do and help!)
 
-- Using [Visual Studio 2017](https://visualstudio.microsoft.com/vs/)
+- Using [Visual Studio 2019](https://visualstudio.microsoft.com/vs/)
   - Make sure you have the latest version installed
   - Make sure you have [the .NET Core 2.1 SDK](https://www.microsoft.com/net/core#windows) installed
 

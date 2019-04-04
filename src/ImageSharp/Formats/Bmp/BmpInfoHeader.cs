@@ -372,21 +372,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             // The compression value in OS/2 bitmap has a different meaning than in windows bitmaps.
             // Map the OS/2 value to the windows values.
-            switch (compression)
+            infoHeader.Compression = compression switch
             {
-                case 0:
-                    infoHeader.Compression = BmpCompression.RGB;
-                    break;
-                case 1:
-                    infoHeader.Compression = BmpCompression.RLE8;
-                    break;
-                case 2:
-                    infoHeader.Compression = BmpCompression.RLE4;
-                    break;
-                default:
-                    BmpThrowHelper.ThrowImageFormatException($"Compression type is not supported. ImageSharp only supports uncompressed, RLE4 and RLE8.");
-                    break;
-            }
+                0 => BmpCompression.RGB,
+                1 => BmpCompression.RLE8,
+                2 => BmpCompression.RLE4,
+                _ => throw new ImageFormatException($"Compression type is not supported. ImageSharp only supports uncompressed, RLE4 and RLE8.")
+            };
 
             infoHeader.ImageSize = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(20, 4));
             infoHeader.XPelsPerMeter = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(24, 4));

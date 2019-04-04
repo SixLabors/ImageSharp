@@ -25,7 +25,7 @@
     <DebugType Condition="$(codecov) == ''">portable</DebugType>
     <DebugSymbols>True</DebugSymbols>
     <Features>IOperation</Features>
-    <LangVersion>preview</LangVersion>
+    <LangVersion>8.0</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' OR '$(TargetFramework)' == 'net472' ">

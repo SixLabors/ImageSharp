@@ -11,6 +11,8 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 
+// TODO: Isn't an AOS ("array of structures") layout more efficient & more readable than SOA ("structure of arrays") for this particular use case?
+// (T, R, G, B, A, M2) could be grouped together! Investigate a ColorMoment struct.
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 {
     /// <summary>
@@ -36,13 +38,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     internal sealed class WuFrameQuantizer<TPixel> : FrameQuantizerBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        // TODO: The WuFrameQuantizer<TPixel> code is rising several questions:
-        // - Do we really need to ALWAYS allocate the whole table of size TableLength? (~ 2471625 * sizeof(long) * 5 bytes ) JS. I'm afraid so.
-        // - Isn't an AOS ("array of structures") layout more efficient & more readable than SOA ("structure of arrays") for this particular use case?
-        //   (T, R, G, B, A, M2) could be grouped together! Investigate a ColorMoment struct.
-        // - It's a frequently used class, we need tests! (So we can optimize safely.) There are tests in the original!!! We should just adopt them!
-        //   https://github.com/JeremyAnsel/JeremyAnsel.ColorQuant/blob/master/JeremyAnsel.ColorQuant/JeremyAnsel.ColorQuant.Tests/WuColorQuantizerTests.cs
-
         // The following two variables determine the amount of bits to preserve when calculating the histogram.
         // Reducing the value of these numbers the granularity of the color maps produced, making it much faster
         // and using much less memory but potentially less accurate. Current results are very good though!
@@ -316,7 +311,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         /// <summary>
-        /// Computes part of Volume(cube, moment) that doesn't depend on r1, g1, or b1 (depending on direction).
+        /// Computes part of Volume(cube, moment) that doesn't depend on RMax, GMax, BMax, or AMax (depending on direction).
         /// </summary>
         /// <param name="cube">The cube.</param>
         /// <param name="direction">The direction.</param>
@@ -376,7 +371,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         /// <summary>
-        /// Computes remainder of Volume(cube, moment), substituting position for r1, g1, or b1 (depending on direction).
+        /// Computes remainder of Volume(cube, moment), substituting position for RMax, GMax, BMax, or AMax (depending on direction).
         /// </summary>
         /// <param name="cube">The cube.</param>
         /// <param name="direction">The direction.</param>

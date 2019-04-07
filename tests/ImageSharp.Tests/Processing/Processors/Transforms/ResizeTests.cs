@@ -15,7 +15,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
-    public class ResizeTests : FileTestBase
+    public class ResizeTests
     {
         public static readonly string[] CommonTestImages = { TestImages.Png.CalliphoraPartial };
 
@@ -30,6 +30,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 nameof(KnownResamplers.Box),
                 nameof(KnownResamplers.Lanczos5),
             };
+
+        private const PixelTypes DefaultPixelType = PixelTypes.Rgba32;
+
+        private const PixelTypes CommonNonDefaultPixelTypes =
+            PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
 
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), nameof(AllResamplerNames), DefaultPixelType, 0.5f, null, null)]
@@ -185,7 +190,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2, KnownResamplers.Bicubic));
 
                 // Comparer fights decoder with gif-s. Could not use CompareToReferenceOutput here :(
-                image.DebugSave(provider, extension: Extensions.Gif);
+                image.DebugSave(provider, extension: "gif");
             }
         }
 

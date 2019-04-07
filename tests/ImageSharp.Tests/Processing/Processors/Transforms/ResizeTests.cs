@@ -35,6 +35,23 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
         private const PixelTypes CommonNonDefaultPixelTypes =
             PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
+        
+        [Theory]
+        [WithBasicTestPatternImages(15, 12, PixelTypes.Rgba32)]
+        public void Resize_BasicSmall<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            // Basic test case, very helpful for debugging
+            // resizing: (15, 12) -> (10, 6)
+            // kernel dimensions: (3, 4)
+
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var destSize = new Size(image.Width * 2 / 3, image.Height / 2);
+                image.Mutate(x => x.Resize(destSize, KnownResamplers.Bicubic, false));
+                image.DebugSave(provider);
+            }
+        }
 
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), nameof(AllResamplerNames), DefaultPixelType, 0.5f, null, null)]

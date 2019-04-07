@@ -44,6 +44,12 @@ namespace SixLabors.ImageSharp.Tests
         public string MethodName { get; private set; }
         public string OutputSubfolderName { get; private set; }
 
+        public static TestImageProvider<TPixel> BasicTestPattern(int width,
+                                                                 int height,
+                                                                 MethodInfo testMethod = null,
+                                                                 PixelTypes pixelTypeOverride = PixelTypes.Undefined)
+            => new BasicTestPatternProvider(width, height).Init(testMethod, pixelTypeOverride);
+
         public static TestImageProvider<TPixel> TestPattern(
                 int width,
                 int height,

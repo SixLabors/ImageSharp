@@ -20,6 +20,9 @@ namespace SixLabors.ImageSharp.Tests
                 this.Height = height;
             }
 
+            /// <summary>
+            /// This parameterless constructor is needed for xUnit deserialization
+            /// </summary>
             public BlankProvider()
             {
                 this.Width = 100;

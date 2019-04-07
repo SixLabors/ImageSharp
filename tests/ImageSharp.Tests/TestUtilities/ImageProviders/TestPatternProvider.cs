@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Net.Mime;
 using System.Numerics;
 
 using SixLabors.ImageSharp.Memory;
@@ -25,8 +26,10 @@ namespace SixLabors.ImageSharp.Tests
             {
             }
 
+            /// <summary>
+            /// This parameterless constructor is needed for xUnit deserialization
+            /// </summary>
             public TestPatternProvider()
-                : base()
             {
             }
 

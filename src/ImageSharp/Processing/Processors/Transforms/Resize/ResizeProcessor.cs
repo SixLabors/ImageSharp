@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.Sampler = options.Sampler;
             this.Width = size.Width;
             this.Height = size.Height;
-            this.ResizeRectangle = rectangle;
+            this.TargetRectangle = rectangle;
             this.Compand = options.Compand;
         }
 
@@ -89,11 +89,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="width">The target width.</param>
         /// <param name="height">The target height.</param>
         /// <param name="sourceSize">The source image size</param>
-        /// <param name="resizeRectangle">
+        /// <param name="targetRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the target image object to draw to.
         /// </param>
         /// <param name="compand">Whether to compress or expand individual pixel color values on processing.</param>
-        public ResizeProcessor(IResampler sampler, int width, int height, Size sourceSize, Rectangle resizeRectangle, bool compand)
+        public ResizeProcessor(IResampler sampler, int width, int height, Size sourceSize, Rectangle targetRectangle, bool compand)
         {
             Guard.NotNull(sampler, nameof(sampler));
 
@@ -104,13 +104,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             if (width == 0 && height > 0)
             {
                 width = (int)MathF.Max(min, MathF.Round(sourceSize.Width * height / (float)sourceSize.Height));
-                resizeRectangle.Width = width;
+                targetRectangle.Width = width;
             }
 
             if (height == 0 && width > 0)
             {
                 height = (int)MathF.Max(min, MathF.Round(sourceSize.Height * width / (float)sourceSize.Width));
-                resizeRectangle.Height = height;
+                targetRectangle.Height = height;
             }
 
             Guard.MustBeGreaterThan(width, 0, nameof(width));
@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.Sampler = sampler;
             this.Width = width;
             this.Height = height;
-            this.ResizeRectangle = resizeRectangle;
+            this.TargetRectangle = targetRectangle;
             this.Compand = compand;
         }
 
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// Gets the resize rectangle.
         /// </summary>
-        public Rectangle ResizeRectangle { get; }
+        public Rectangle TargetRectangle { get; }
 
         /// <summary>
         /// Gets a value indicating whether to compress or expand individual pixel color values on processing.
@@ -167,13 +167,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 MemoryAllocator memoryAllocator = source.GetMemoryAllocator();
                 this.horizontalKernelMap = ResizeKernelMap.Calculate(
                     this.Sampler,
-                    this.ResizeRectangle.Width,
+                    this.TargetRectangle.Width,
                     sourceRectangle.Width,
                     memoryAllocator);
 
                 this.verticalKernelMap = ResizeKernelMap.Calculate(
                     this.Sampler,
-                    this.ResizeRectangle.Height,
+                    this.TargetRectangle.Height,
                     sourceRectangle.Height,
                     memoryAllocator);
             }
@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
         {
             // Handle resize dimensions identical to the original
-            if (source.Width == destination.Width && source.Height == destination.Height && sourceRectangle == this.ResizeRectangle)
+            if (source.Width == destination.Width && source.Height == destination.Height && sourceRectangle == this.TargetRectangle)
             {
                 // The cloned will be blank here copy all the pixel data over
                 source.GetPixelSpan().CopyTo(destination.GetPixelSpan());
@@ -194,10 +194,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int height = this.Height;
             int sourceX = sourceRectangle.X;
             int sourceY = sourceRectangle.Y;
-            int startY = this.ResizeRectangle.Y;
-            int endY = this.ResizeRectangle.Bottom;
-            int startX = this.ResizeRectangle.X;
-            int endX = this.ResizeRectangle.Right;
+            int startY = this.TargetRectangle.Y;
+            int endY = this.TargetRectangle.Bottom;
+            int startX = this.TargetRectangle.X;
+            int endX = this.TargetRectangle.Right;
 
             int minX = Math.Max(0, startX);
             int maxX = Math.Min(width, endX);
@@ -209,8 +209,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
 
                 // Scaling factors
-                float widthFactor = sourceRectangle.Width / (float)this.ResizeRectangle.Width;
-                float heightFactor = sourceRectangle.Height / (float)this.ResizeRectangle.Height;
+                float widthFactor = sourceRectangle.Width / (float)this.TargetRectangle.Width;
+                float heightFactor = sourceRectangle.Height / (float)this.TargetRectangle.Height;
 
                 ParallelHelper.IterateRows(
                     workingRect,

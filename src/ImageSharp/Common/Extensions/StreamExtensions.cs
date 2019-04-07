@@ -2,6 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+#if NET472 || NETSTANDARD1_3 || NETSTANDARD2_0
+using System.Buffers;
+#endif
 using System.IO;
 
 using SixLabors.ImageSharp.Memory;

@@ -437,7 +437,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                 v.Z = (float)Math.Pow(v.Z, gamma);
                             }
 
-                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan.Slice(0, length), targetRowSpan, PixelConversionModifiers.Premultiply);
+                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan.Slice(0, length), targetRowSpan);
                         }
                     });
         }

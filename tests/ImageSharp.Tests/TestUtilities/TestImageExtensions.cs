@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests
                             {
                                 Span<TPixel> pixelSpan = frame.GetPixelSpan();
 
-                                PixelOperations<TPixel>.Instance.ToScaledVector4(configuration, pixelSpan, tempSpan);
+                                PixelOperations<TPixel>.Instance.ToVector4(configuration, pixelSpan, tempSpan, PixelConversionModifiers.Scale);
 
                                 for (int i = 0; i < tempSpan.Length; i++)
                                 {
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests
                                     v.W = 1F;
                                 }
 
-                                PixelOperations<TPixel>.Instance.FromScaledVector4(configuration, tempSpan, pixelSpan);
+                                PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, tempSpan, pixelSpan, PixelConversionModifiers.Scale);
                             }
                         }
                     });

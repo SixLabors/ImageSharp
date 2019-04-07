@@ -7,7 +7,6 @@ using System.Buffers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp
 {
@@ -22,10 +21,10 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <param name="config">The <see cref="Configuration"/></param>
-        /// <param name="pixelMemory">The pixel memory</param>
-        /// <param name="width">The width of the memory image</param>
-        /// <param name="height">The height of the memory image</param>
-        /// <param name="metaData">The <see cref="ImageMetaData"/></param>
+        /// <param name="pixelMemory">The pixel memory.</param>
+        /// <param name="width">The width of the memory image.</param>
+        /// <param name="height">The height of the memory image.</param>
+        /// <param name="metaData">The <see cref="ImageMetaData"/>.</param>
         /// <returns>An <see cref="Image{TPixel}"/> instance</returns>
         public static Image<TPixel> WrapMemory<TPixel>(
             Configuration config,
@@ -45,10 +44,10 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <param name="config">The <see cref="Configuration"/></param>
-        /// <param name="pixelMemory">The pixel memory</param>
-        /// <param name="width">The width of the memory image</param>
-        /// <param name="height">The height of the memory image</param>
-        /// <returns>An <see cref="Image{TPixel}"/> instance</returns>
+        /// <param name="pixelMemory">The pixel memory.</param>
+        /// <param name="width">The width of the memory image.</param>
+        /// <param name="height">The height of the memory image.</param>
+        /// <returns>An <see cref="Image{TPixel}"/> instance.</returns>
         public static Image<TPixel> WrapMemory<TPixel>(
             Configuration config,
             Memory<TPixel> pixelMemory,
@@ -64,11 +63,11 @@ namespace SixLabors.ImageSharp
         /// allowing to view/manipulate it as an ImageSharp <see cref="Image{TPixel}"/> instance.
         /// The memory is being observed, the caller remains responsible for managing it's lifecycle.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel type</typeparam>
-        /// <param name="pixelMemory">The pixel memory</param>
-        /// <param name="width">The width of the memory image</param>
-        /// <param name="height">The height of the memory image</param>
-        /// <returns>An <see cref="Image{TPixel}"/> instance</returns>
+        /// <typeparam name="TPixel">The pixel type.</typeparam>
+        /// <param name="pixelMemory">The pixel memory.</param>
+        /// <param name="width">The width of the memory image.</param>
+        /// <param name="height">The height of the memory image.</param>
+        /// <returns>An <see cref="Image{TPixel}"/> instance.</returns>
         public static Image<TPixel> WrapMemory<TPixel>(
             Memory<TPixel> pixelMemory,
             int width,
@@ -88,8 +87,8 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <param name="config">The <see cref="Configuration"/></param>
         /// <param name="pixelMemoryOwner">The <see cref="IMemoryOwner{T}"/> that is being transferred to the image</param>
-        /// <param name="width">The width of the memory image</param>
-        /// <param name="height">The height of the memory image</param>
+        /// <param name="width">The width of the memory image.</param>
+        /// <param name="height">The height of the memory image.</param>
         /// <param name="metaData">The <see cref="ImageMetaData"/></param>
         /// <returns>An <see cref="Image{TPixel}"/> instance</returns>
         public static Image<TPixel> WrapMemory<TPixel>(
@@ -111,11 +110,11 @@ namespace SixLabors.ImageSharp
         /// meaning that the caller is not allowed to dispose <paramref name="pixelMemoryOwner"/>.
         /// It will be disposed together with the result image.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel type</typeparam>
+        /// <typeparam name="TPixel">The pixel type.</typeparam>
         /// <param name="config">The <see cref="Configuration"/></param>
-        /// <param name="pixelMemoryOwner">The <see cref="IMemoryOwner{T}"/> that is being transferred to the image</param>
-        /// <param name="width">The width of the memory image</param>
-        /// <param name="height">The height of the memory image</param>
+        /// <param name="pixelMemoryOwner">The <see cref="IMemoryOwner{T}"/> that is being transferred to the image.</param>
+        /// <param name="width">The width of the memory image.</param>
+        /// <param name="height">The height of the memory image.</param>
         /// <returns>An <see cref="Image{TPixel}"/> instance</returns>
         public static Image<TPixel> WrapMemory<TPixel>(
             Configuration config,
@@ -135,10 +134,10 @@ namespace SixLabors.ImageSharp
         /// It will be disposed together with the result image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
-        /// <param name="pixelMemoryOwner">The <see cref="IMemoryOwner{T}"/> that is being transferred to the image</param>
-        /// <param name="width">The width of the memory image</param>
-        /// <param name="height">The height of the memory image</param>
-        /// <returns>An <see cref="Image{TPixel}"/> instance</returns>
+        /// <param name="pixelMemoryOwner">The <see cref="IMemoryOwner{T}"/> that is being transferred to the image.</param>
+        /// <param name="width">The width of the memory image.</param>
+        /// <param name="height">The height of the memory image.</param>
+        /// <returns>An <see cref="Image{TPixel}"/> instance.</returns>
         public static Image<TPixel> WrapMemory<TPixel>(
             IMemoryOwner<TPixel> pixelMemoryOwner,
             int width,

@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tuples
     internal static class Octet
     {
         /// <summary>
-        /// Value tuple of <see cref="uint"/>-s
+        /// Value tuple of <see cref="uint"/>-s.
         /// </summary>
         [StructLayout(LayoutKind.Explicit, Size = 8 * sizeof(uint))]
         public struct OfUInt32

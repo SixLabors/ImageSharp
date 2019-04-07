@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             ImageMetaData metaData = image.MetaData;
             this.gifMetaData = metaData.GetFormatMetaData(GifFormat.Instance);
             this.colorTableMode = this.colorTableMode ?? this.gifMetaData.ColorTableMode;
-            bool useGlobalTable = this.colorTableMode.Equals(GifColorTableMode.Global);
+            bool useGlobalTable = this.colorTableMode == GifColorTableMode.Global;
 
             // Quantize the image returning a palette.
             QuantizedFrame<TPixel> quantized =

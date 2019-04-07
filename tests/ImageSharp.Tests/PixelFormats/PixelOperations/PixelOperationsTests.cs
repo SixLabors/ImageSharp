@@ -6,7 +6,7 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
+using SixLabors.ImageSharp.ColorSpaces.Companding;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -32,6 +32,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 #else
                 null;
 #endif
+
+        protected bool HasAlpha { get; set; } = true;
 
         protected PixelOperationsTests(ITestOutputHelper output)
             : base(output)
@@ -70,25 +72,33 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 
         internal static PixelOperations<TPixel> Operations => PixelOperations<TPixel>.Instance;
 
-        internal static TPixel[] CreateExpectedPixelData(Vector4[] source)
+        internal static TPixel[] CreateExpectedPixelData(Vector4[] source, RefAction<Vector4> vectorModifier = null)
         {
             var expected = new TPixel[source.Length];
 
             for (int i = 0; i < expected.Length; i++)
             {
-                expected[i].FromVector4(source[i]);
+                Vector4 v = source[i];
+                vectorModifier?.Invoke(ref v);
+
+                expected[i].FromVector4(v);
             }
+
             return expected;
         }
 
-        internal static TPixel[] CreateScaledExpectedPixelData(Vector4[] source)
+        internal static TPixel[] CreateScaledExpectedPixelData(Vector4[] source, RefAction<Vector4> vectorModifier = null)
         {
             var expected = new TPixel[source.Length];
 
             for (int i = 0; i < expected.Length; i++)
             {
-                expected[i].FromScaledVector4(source[i]);
+                Vector4 v = source[i];
+                vectorModifier?.Invoke(ref v);
+
+                expected[i].FromScaledVector4(v);
             }
+
             return expected;
         }
 
@@ -102,7 +112,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromVector4(this.Configuration, s, d.GetSpan())
+                (s, d) => Operations.FromVector4Destructive(this.Configuration, s, d.GetSpan())
             );
         }
 
@@ -116,7 +126,140 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromScaledVector4(this.Configuration, s, d.GetSpan())
+                (s, d) =>
+                    {
+                        Span<TPixel> destPixels = d.GetSpan();
+                        Operations.FromVector4Destructive(this.Configuration, (Span<Vector4>)s, destPixels, PixelConversionModifiers.Scale);
+                    });
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void FromCompandedScaledVector4(int count)
+        {
+            void sourceAction(ref Vector4 v)
+            {
+                SRgbCompanding.Expand(ref v);
+            }
+
+            void expectedAction(ref Vector4 v)
+            {
+                SRgbCompanding.Compress(ref v);
+            }
+
+            Vector4[] source = CreateVector4TestData(count, (ref Vector4 v) => sourceAction(ref v));
+            TPixel[] expected = CreateScaledExpectedPixelData(source, (ref Vector4 v) => expectedAction(ref v));
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.FromVector4Destructive(
+                    this.Configuration,
+                    s,
+                    d.GetSpan(),
+                    PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Scale)
+            );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void FromPremultipliedVector4(int count)
+        {
+            void sourceAction(ref Vector4 v)
+            {
+                if (this.HasAlpha)
+                {
+                    Vector4Utils.Premultiply(ref v);
+                }
+            }
+
+            void expectedAction(ref Vector4 v)
+            {
+                if (this.HasAlpha)
+                {
+                    Vector4Utils.UnPremultiply(ref v);
+                }
+            }
+
+            Vector4[] source = CreateVector4TestData(count, (ref Vector4 v) => sourceAction(ref v));
+            TPixel[] expected = CreateExpectedPixelData(source, (ref Vector4 v) => expectedAction(ref v));
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.FromVector4Destructive(this.Configuration, s, d.GetSpan(), PixelConversionModifiers.Premultiply)
+            );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void FromPremultipliedScaledVector4(int count)
+        {
+            void sourceAction(ref Vector4 v)
+            {
+                if (this.HasAlpha)
+                {
+                    Vector4Utils.Premultiply(ref v);
+                }
+            }
+
+            void expectedAction(ref Vector4 v)
+            {
+                if (this.HasAlpha)
+                {
+                    Vector4Utils.UnPremultiply(ref v);
+                }
+            }
+
+            Vector4[] source = CreateVector4TestData(count, (ref Vector4 v) => sourceAction(ref v));
+            TPixel[] expected = CreateScaledExpectedPixelData(source, (ref Vector4 v) => expectedAction(ref v));
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.FromVector4Destructive(
+                    this.Configuration,
+                    s,
+                    d.GetSpan(),
+                    PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale)
+            );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void FromCompandedPremultipliedScaledVector4(int count)
+        {
+            void sourceAction(ref Vector4 v)
+            {
+                SRgbCompanding.Expand(ref v);
+
+                if (this.HasAlpha)
+                {
+                    Vector4Utils.Premultiply(ref v);
+                }
+            }
+
+            void expectedAction(ref Vector4 v)
+            {
+                if (this.HasAlpha)
+                {
+                    Vector4Utils.UnPremultiply(ref v);
+                }
+                
+                SRgbCompanding.Compress(ref v);
+            }
+
+            Vector4[] source = CreateVector4TestData(count, (ref Vector4 v) => sourceAction(ref v));
+            TPixel[] expected = CreateScaledExpectedPixelData(source, (ref Vector4 v) => expectedAction(ref v));
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.FromVector4Destructive(
+                    this.Configuration,
+                    s,
+                    d.GetSpan(),
+                    PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale)
             );
         }
 
@@ -144,7 +287,119 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToScaledVector4(this.Configuration, s, d.GetSpan())
+                (s, d) =>
+                    {
+                        Span<Vector4> destVectors = d.GetSpan();
+                        Operations.ToVector4(this.Configuration, (ReadOnlySpan<TPixel>)s, destVectors, PixelConversionModifiers.Scale);
+                    });
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void ToCompandedScaledVector4(int count)
+        {
+            void sourceAction(ref Vector4 v)
+            {
+                SRgbCompanding.Compress(ref v);
+            }
+
+            void expectedAction(ref Vector4 v)
+            {
+                SRgbCompanding.Expand(ref v);
+            }
+
+            TPixel[] source = CreateScaledPixelTestData(count, (ref Vector4 v) => sourceAction(ref v));
+            Vector4[] expected = CreateExpectedScaledVector4Data(source, (ref Vector4 v) => expectedAction(ref v));
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.ToVector4(
+                    this.Configuration,
+                    s,
+                    d.GetSpan(),
+                    PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Scale)
+            );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void ToPremultipliedVector4(int count)
+        {
+            void sourceAction(ref Vector4 v)
+            {
+                Vector4Utils.UnPremultiply(ref v);
+            }
+
+            void expectedAction(ref Vector4 v)
+            {
+                Vector4Utils.Premultiply(ref v);
+            }
+
+            TPixel[] source = CreatePixelTestData(count, (ref Vector4 v) => sourceAction(ref v));
+            Vector4[] expected = CreateExpectedVector4Data(source, (ref Vector4 v) => expectedAction(ref v));
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.ToVector4(this.Configuration, s, d.GetSpan(), PixelConversionModifiers.Premultiply)
+            );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void ToPremultipliedScaledVector4(int count)
+        {
+            void sourceAction(ref Vector4 v)
+            {
+                Vector4Utils.UnPremultiply(ref v);
+            }
+
+            void expectedAction(ref Vector4 v)
+            {
+                Vector4Utils.Premultiply(ref v);
+            }
+
+            TPixel[] source = CreateScaledPixelTestData(count, (ref Vector4 v) => sourceAction(ref v));
+            Vector4[] expected = CreateExpectedScaledVector4Data(source, (ref Vector4 v) => expectedAction(ref v));
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.ToVector4(
+                    this.Configuration,
+                    s,
+                    d.GetSpan(),
+                    PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale));
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void ToCompandedPremultipliedScaledVector4(int count)
+        {
+            void sourceAction(ref Vector4 v)
+            {
+                Vector4Utils.UnPremultiply(ref v);
+                SRgbCompanding.Compress(ref v);
+            }
+
+            void expectedAction(ref Vector4 v)
+            {
+                SRgbCompanding.Expand(ref v);
+                Vector4Utils.Premultiply(ref v);
+            }
+
+            TPixel[] source = CreateScaledPixelTestData(count, (ref Vector4 v) => sourceAction(ref v));
+            Vector4[] expected = CreateExpectedScaledVector4Data(source, (ref Vector4 v) => expectedAction(ref v));
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.ToVector4(
+                    this.Configuration,
+                    s,
+                    d.GetSpan(),
+                    PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale)
             );
         }
 
@@ -477,25 +732,37 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             );
         }
 
-        internal static Vector4[] CreateExpectedVector4Data(TPixel[] source)
+        public delegate void RefAction<T1>(ref T1 arg1);
+
+        internal static Vector4[] CreateExpectedVector4Data(TPixel[] source, RefAction<Vector4> vectorModifier = null)
         {
             var expected = new Vector4[source.Length];
 
             for (int i = 0; i < expected.Length; i++)
             {
-                expected[i] = source[i].ToVector4();
+                var v = source[i].ToVector4();
+
+                vectorModifier?.Invoke(ref v);
+
+                expected[i] = v;
             }
+
             return expected;
         }
 
-        internal static Vector4[] CreateExpectedScaledVector4Data(TPixel[] source)
+        internal static Vector4[] CreateExpectedScaledVector4Data(TPixel[] source, RefAction<Vector4> vectorModifier = null)
         {
             var expected = new Vector4[source.Length];
 
             for (int i = 0; i < expected.Length; i++)
             {
-                expected[i] = source[i].ToScaledVector4();
+                Vector4 v = source[i].ToScaledVector4();
+
+                vectorModifier?.Invoke(ref v);
+
+                expected[i] = v;
             }
+
             return expected;
         }
 
@@ -513,19 +780,22 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             }
         }
 
-        internal static Vector4[] CreateVector4TestData(int length)
+        internal static Vector4[] CreateVector4TestData(int length, RefAction<Vector4> vectorModifier = null)
         {
             var result = new Vector4[length];
             var rnd = new Random(42); // Deterministic random values
 
             for (int i = 0; i < result.Length; i++)
             {
-                result[i] = GetVector(rnd);
+                Vector4 v = GetVector(rnd);
+                vectorModifier?.Invoke(ref v);
+
+                result[i] = v;
             }
             return result;
         }
 
-        internal static TPixel[] CreatePixelTestData(int length)
+        internal static TPixel[] CreatePixelTestData(int length, RefAction<Vector4> vectorModifier = null)
         {
             var result = new TPixel[length];
 
@@ -534,13 +804,16 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             for (int i = 0; i < result.Length; i++)
             {
                 Vector4 v = GetVector(rnd);
+
+                vectorModifier?.Invoke(ref v);
+
                 result[i].FromVector4(v);
             }
 
             return result;
         }
 
-        internal static TPixel[] CreateScaledPixelTestData(int length)
+        internal static TPixel[] CreateScaledPixelTestData(int length, RefAction<Vector4> vectorModifier = null)
         {
             var result = new TPixel[length];
 
@@ -549,6 +822,9 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             for (int i = 0; i < result.Length; i++)
             {
                 Vector4 v = GetVector(rnd);
+
+                vectorModifier?.Invoke(ref v);
+
                 result[i].FromScaledVector4(v);
             }
 

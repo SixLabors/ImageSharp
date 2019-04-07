@@ -426,8 +426,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         for (int y = rows.Min; y < rows.Max; y++)
                         {
                             Span<TPixel> targetRowSpan = targetPixels.GetRowSpan(y).Slice(startX);
-                            PixelOperations<TPixel>.Instance.ToVector4(configuration, targetRowSpan.Slice(0, length), vectorSpan);
-                            Vector4Utils.Premultiply(vectorSpan);
+                            PixelOperations<TPixel>.Instance.ToVector4(configuration, targetRowSpan.Slice(0, length), vectorSpan, PixelConversionModifiers.Premultiply);
                             ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectorSpan);
 
                             for (int x = 0; x < width; x++)
@@ -438,7 +437,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                 v.Z = (float)Math.Pow(v.Z, gamma);
                             }
 
-                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan.Slice(0, length), targetRowSpan);
+                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan.Slice(0, length), targetRowSpan, PixelConversionModifiers.Premultiply);
                         }
                     });
         }
@@ -486,8 +485,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                 v.Z = (float)Math.Pow(v.Z.Clamp(0, float.PositiveInfinity), expGamma);
                             }
 
-                            Vector4Utils.UnPremultiply(targetRowSpan);
-                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, targetRowSpan.Slice(0, width), targetPixelSpan);
+                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, targetRowSpan.Slice(0, width), targetPixelSpan, PixelConversionModifiers.Premultiply);
                         }
                     });
         }

@@ -275,10 +275,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 int verticalSign = startY == 0 ? 1 : -1;
                 int horizontalSign = startX == 0 ? 1 : -1;
 
-                // check first and last pixel, these are known:
-                Assert.Equal(red, image[startX, startY]);
-                Assert.Equal(yellow, image[endX, endY]);
-
                 for (int i = 0; i < image.Height; i++)
                 {
                     // it's diagonal, so for any (a, a) on the gradient line, for all (a-x, b+x) - +/- depending on the diagonal direction - must be the same color)

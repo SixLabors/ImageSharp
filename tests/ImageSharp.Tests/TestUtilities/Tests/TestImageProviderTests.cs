@@ -325,6 +325,20 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
+        [Theory]
+        [WithBasicTestPatternImages(50, 100, PixelTypes.Rgba32)]
+        [WithBasicTestPatternImages(49,17, PixelTypes.Rgba32)]
+        [WithBasicTestPatternImages(20, 10, PixelTypes.Rgba32)]
+        public void Use_WithBasicTestPatternImages<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> img = provider.GetImage())
+            {
+                img.DebugSave(provider);
+            }
+        }
+
+
         public static readonly TheoryData<object> BasicData = new TheoryData<object>()
         {
             TestImageProvider<Rgba32>.Blank(10, 20),

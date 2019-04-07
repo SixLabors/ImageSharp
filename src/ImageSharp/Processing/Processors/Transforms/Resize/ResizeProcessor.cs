@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -244,63 +245,48 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
             using (Buffer2D<Vector4> firstPassPixelsTransposed = source.MemoryAllocator.Allocate2D<Vector4>(sourceHeight, width))
+            using (IMemoryOwner<Vector4> tempBuffer = source.MemoryAllocator.Allocate<Vector4>(Math.Max(source.Width, width)))
             {
                 firstPassPixelsTransposed.MemorySource.Clear();
 
-                var processColsRect = new Rectangle(0, 0, source.Width, sourceRectangle.Bottom);
+                for (int y = 0; y < sourceRectangle.Bottom; y++)
+                {
+                    Span<TPixel> sourceRow = source.GetPixelRowSpan(y).Slice(sourceX);
+                    Span<Vector4> tempRowSpan = tempBuffer.GetSpan().Slice(sourceX, source.Width - sourceX);
 
-                ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
-                    processColsRect,
-                    configuration,
-                    (rows, tempRowBuffer) =>
+                    PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, tempRowSpan, conversionModifiers);
+
+                    ref Vector4 firstPassBaseRef = ref firstPassPixelsTransposed.Span[y];
+
+                    for (int x = minX; x < maxX; x++)
                     {
-                        for (int y = rows.Min; y < rows.Max; y++)
-                        {
-                            Span<TPixel> sourceRow = source.GetPixelRowSpan(y).Slice(sourceX);
-                            Span<Vector4> tempRowSpan = tempRowBuffer.Span.Slice(sourceX);
-
-                            PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, tempRowSpan, conversionModifiers);
-
-                            ref Vector4 firstPassBaseRef = ref firstPassPixelsTransposed.Span[y];
-
-                            for (int x = minX; x < maxX; x++)
-                            {
-                                ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - startX);
-                                Unsafe.Add(ref firstPassBaseRef, x * sourceHeight) = kernel.Convolve(tempRowSpan);
-                            }
-                        }
-                    });
-
-                var processRowsRect = Rectangle.FromLTRB(0, minY, width, maxY);
+                        ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - startX);
+                        Unsafe.Add(ref firstPassBaseRef, x * sourceHeight) = kernel.Convolve(tempRowSpan);
+                    }
+                }
 
                 // Now process the rows.
-                ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
-                    processRowsRect,
-                    configuration,
-                    (rows, tempRowBuffer) =>
+                Span<Vector4> tempColSpan = tempBuffer.GetSpan().Slice(0, width);
+
+                for (int y = minY; y < maxY; y++)
+                {
+                    // Ensure offsets are normalized for cropping and padding.
+                    ResizeKernel kernel = this.verticalKernelMap.GetKernel(y - startY);
+
+                    ref Vector4 tempRowBase = ref MemoryMarshal.GetReference(tempColSpan);
+
+                    for (int x = 0; x < width; x++)
                     {
-                        Span<Vector4> tempRowSpan = tempRowBuffer.Span;
+                        Span<Vector4> firstPassColumn = firstPassPixelsTransposed.GetRowSpan(x).Slice(sourceY);
 
-                        for (int y = rows.Min; y < rows.Max; y++)
-                        {
-                            // Ensure offsets are normalized for cropping and padding.
-                            ResizeKernel kernel = this.verticalKernelMap.GetKernel(y - startY);
+                        // Destination color components
+                        Unsafe.Add(ref tempRowBase, x) = kernel.Convolve(firstPassColumn);
+                    }
 
-                            ref Vector4 tempRowBase = ref MemoryMarshal.GetReference(tempRowSpan);
+                    Span<TPixel> targetRowSpan = destination.GetPixelRowSpan(y);
 
-                            for (int x = 0; x < width; x++)
-                            {
-                                Span<Vector4> firstPassColumn = firstPassPixelsTransposed.GetRowSpan(x).Slice(sourceY);
-
-                                // Destination color components
-                                Unsafe.Add(ref tempRowBase, x) = kernel.Convolve(firstPassColumn);
-                            }
-
-                            Span<TPixel> targetRowSpan = destination.GetPixelRowSpan(y);
-
-                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, tempRowSpan, targetRowSpan, conversionModifiers);
-                        }
-                    });
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, tempColSpan, targetRowSpan, conversionModifiers);
+                }
             }
         }
 

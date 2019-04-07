@@ -7,8 +7,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-using SixLabors.ImageSharp.ColorSpaces.Companding;
-
 namespace SixLabors.ImageSharp.PixelFormats.Utils
 {
     /// <content>

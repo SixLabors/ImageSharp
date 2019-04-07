@@ -5,8 +5,11 @@ using System;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+<<<<<<< HEAD
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+=======
+>>>>>>> Removed unused using directives
 
 using Xunit;
 

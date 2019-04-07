@@ -5,7 +5,6 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
     using BenchmarkDotNet.Attributes;
-    using SixLabors.Memory;
 
     /// <summary>
     /// This benchmark compares different methods for fetching memory data into <see cref="Vector{T}"/>

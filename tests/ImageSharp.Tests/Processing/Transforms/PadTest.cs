@@ -1,8 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+<<<<<<< HEAD
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
+=======
+using SixLabors.ImageSharp.PixelFormats;
+>>>>>>> Removed unused using directives
 
 using Xunit;
 

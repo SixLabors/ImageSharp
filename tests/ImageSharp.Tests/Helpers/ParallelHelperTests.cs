@@ -334,5 +334,20 @@ namespace SixLabors.ImageSharp.Tests.Helpers
                 TestImageExtensions.CompareBuffers(expected.Span, actual.Span);
             }
         }
+
+        [Theory]
+        [InlineData(0, 10)]
+        [InlineData(10, 0)]
+        [InlineData(-10, 10)]
+        [InlineData(10, -10)]
+        public void IterateRowsRequiresValidRectangle(int width, int height)
+        {
+            var parallelSettings = new ParallelExecutionSettings();
+
+            var rect = new Rectangle(0, 0, width, height);
+
+            Assert.Throws<ArgumentOutOfRangeException>(
+                () => { ParallelHelper.IterateRows(rect, parallelSettings, (rows) => { }); });
+        }
     }
 }

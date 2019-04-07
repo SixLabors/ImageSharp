@@ -81,6 +81,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 
             var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
 
+            if (workingRect.Width < 0 || workingRect.Height < 0)
+            {
+                // no effect because rectangle does not overlap with this image.
+                return;
+            }
+
             ParallelHelper.IterateRows(
                 workingRect,
                 configuration,

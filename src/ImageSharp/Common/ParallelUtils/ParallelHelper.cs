@@ -45,7 +45,8 @@ namespace SixLabors.ImageSharp.ParallelUtils
             in ParallelExecutionSettings parallelSettings,
             Action<RowInterval> body)
         {
-            DebugGuard.MustBeGreaterThan(rectangle.Width, 0, nameof(rectangle));
+            Guard.MustBeGreaterThan(rectangle.Width, 0, nameof(rectangle));
+            Guard.MustBeGreaterThan(rectangle.Height, 0, nameof(rectangle));
 
             int maxSteps = DivideCeil(rectangle.Width * rectangle.Height, parallelSettings.MinimumPixelsProcessedPerTask);
 

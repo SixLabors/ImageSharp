@@ -132,6 +132,26 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
+        [Theory]
+        [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32, -30, -30)]
+        [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32, 130, -30)]
+        [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32, 130, 130)]
+        [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32, -30, 130)]
+        public void NonOverlappingImageHasNoEffect(TestImageProvider<Rgba32> provider, int x, int y)
+        {
+            using (Image<Rgba32> original = provider.GetImage())
+            using (Image<Rgba32> background = provider.GetImage())
+            using (var overlay = new Image<Rgba32>(Configuration.Default, 10, 10, Rgba32.Black))
+            {
+                background.Mutate(context => context.DrawImage(overlay, new Point(x, y), GraphicsOptions.Default));
+
+                // background image should be unmodified
+                ImageComparer.Exact.CompareImagesOrFrames(original, background);
+
+                background.DebugSave(provider, testOutputDetails: "NonOverlapping");
+            }
+        }
+
         private static void VerifyImage<TPixel>(
             TestImageProvider<TPixel> provider,
             PixelColorBlendingMode mode,

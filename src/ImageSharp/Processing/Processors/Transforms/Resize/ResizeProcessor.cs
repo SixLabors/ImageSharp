@@ -236,11 +236,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             int sourceHeight = source.Height;
 
-            PixelConversionModifiers conversionModifiers = PixelConversionModifiers.Premultiply;
-            if (this.Compand)
-            {
-                conversionModifiers |= PixelConversionModifiers.Scale | PixelConversionModifiers.SRgbCompand;
-            }
+            PixelConversionModifiers conversionModifiers =
+                PixelConversionModifiers.Premultiply.ApplyCompanding(this.Compand);
 
             // Interpolate the image using the calculated weights.
             // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm

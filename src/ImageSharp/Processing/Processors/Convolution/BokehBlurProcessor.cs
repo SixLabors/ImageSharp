@@ -438,7 +438,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                 v.Z = (float)Math.Pow(v.Z, gamma);
                             }
 
-                            PixelOperations<TPixel>.Instance.FromVector4(configuration, vectorSpan.Slice(0, length), targetRowSpan);
+                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan.Slice(0, length), targetRowSpan);
                         }
                     });
         }
@@ -487,7 +487,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                             }
 
                             Vector4Utils.UnPremultiply(targetRowSpan);
-                            PixelOperations<TPixel>.Instance.FromVector4(configuration, targetRowSpan.Slice(0, width), targetPixelSpan);
+                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, targetRowSpan.Slice(0, width), targetPixelSpan);
                         }
                     });
         }

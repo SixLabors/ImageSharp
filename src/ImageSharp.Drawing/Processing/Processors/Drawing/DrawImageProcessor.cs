@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             Rectangle bounds = targetImage.Bounds();
 
             int minX = Math.Max(this.Location.X, sourceRectangle.X);
-            int maxX = Math.Min(this.Location.X + bounds.Width, sourceRectangle.Width);
+            int maxX = Math.Min(this.Location.X + bounds.Width, sourceRectangle.Right);
             int targetX = minX - this.Location.X;
 
             int minY = Math.Max(this.Location.Y, sourceRectangle.Y);
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 
             var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
 
-            if (workingRect.Width < 0 || workingRect.Height < 0)
+            if (workingRect.Width <= 0 || workingRect.Height <= 0)
             {
                 // no effect because rectangle does not overlap with this image.
                 return;

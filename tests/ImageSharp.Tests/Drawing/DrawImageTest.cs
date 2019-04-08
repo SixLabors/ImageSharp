@@ -131,6 +131,27 @@ namespace SixLabors.ImageSharp.Tests
                 background.DebugSave(provider, testOutputDetails: "Positive");
             }
         }
+        [Theory]
+        [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32)]
+        public void ImageShouldHandlePositiveLocationTruncatedOverlay(TestImageProvider<Rgba32> provider)
+        {
+            using (Image<Rgba32> background = provider.GetImage())
+            using (var overlay = new Image<Rgba32>(50, 50))
+            {
+                overlay.Mutate(x => x.Fill(Rgba32.Black));
+
+                const int xy = 75;
+                Rgba32 backgroundPixel = background[xy - 1, xy - 1];
+                Rgba32 overlayPixel = overlay[0, 0];
+
+                background.Mutate(x => x.DrawImage(overlay, new Point(xy, xy), PixelColorBlendingMode.Normal, 1F));
+
+                Assert.Equal(Rgba32.White, backgroundPixel);
+                Assert.Equal(overlayPixel, background[xy, xy]);
+
+                background.DebugSave(provider, testOutputDetails: "PositiveTruncated");
+            }
+        }
 
         [Theory]
         [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32, -30, -30)]

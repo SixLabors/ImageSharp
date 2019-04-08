@@ -164,12 +164,14 @@ namespace SixLabors.ImageSharp.Tests
             using (Image<Rgba32> background = provider.GetImage())
             using (var overlay = new Image<Rgba32>(Configuration.Default, 10, 10, Rgba32.Black))
             {
-                background.Mutate(context => context.DrawImage(overlay, new Point(x, y), GraphicsOptions.Default));
+                ArgumentException ex = Assert.Throws<ArgumentException>(Test);
 
-                // background image should be unmodified
-                ImageComparer.Exact.CompareImagesOrFrames(original, background);
+                Assert.Contains("does not overlap", ex.Message);
 
-                background.DebugSave(provider, testOutputDetails: "NonOverlapping");
+                void Test()
+                {
+                    background.Mutate(context => context.DrawImage(overlay, new Point(x, y), GraphicsOptions.Default));
+                }
             }
         }
 

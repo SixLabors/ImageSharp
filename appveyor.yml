@@ -43,11 +43,11 @@ install:
           }
         }
 
-        $sdkUrl = "https://dotnetcli.blob.core.windows.net/dotnet/Sdk/2.2.105/dotnet-sdk-2.2.105-win-x64.zi"
+        $sdkUrl = "https://dotnetcli.blob.core.windows.net/dotnet/Sdk/2.2.105/dotnet-sdk-2.2.105-win-x64.zip"
         Write-Host "Installing .NET Core"
         $env:DOTNET_INSTALL_DIR = "$path/.dotnetsdk"
         New-Item -Type Directory $env:DOTNET_INSTALL_DIR -Force | Out-Null
-        (New-Object System.Net.WebClient).DownloadFile($urlCurrent, "dotnet.zip")
+        (New-Object System.Net.WebClient).DownloadFile($sdkUrl, "dotnet.zip")
         Write-Host "Unzipping to $env:DOTNET_INSTALL_DIR"
         Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::ExtractToDirectory("dotnet.zip", $env:DOTNET_INSTALL_DIR)
 

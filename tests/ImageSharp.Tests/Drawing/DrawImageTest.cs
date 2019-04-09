@@ -158,15 +158,28 @@ namespace SixLabors.ImageSharp.Tests
         [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32, 130, -30)]
         [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32, 130, 130)]
         [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32, -30, 130)]
-        public void NonOverlappingImageHasNoEffect(TestImageProvider<Rgba32> provider, int x, int y)
+        public void NonOverlappingImageThrows(TestImageProvider<Rgba32> provider, int x, int y)
         {
-            using (Image<Rgba32> original = provider.GetImage())
             using (Image<Rgba32> background = provider.GetImage())
             using (var overlay = new Image<Rgba32>(Configuration.Default, 10, 10, Rgba32.Black))
             {
-                ArgumentException ex = Assert.Throws<ArgumentException>(Test);
+                Exception ex = Assert.ThrowsAny<Exception>(Test);
+                string message = null;
+                if (ex is ArgumentException)
+                {
+                    message = ex.Message;
+                }
+                else if (ex is ImageProcessingException imageProcessingException)
+                {
+                    Assert.IsType<ArgumentException>(imageProcessingException.InnerException.InnerException);
+                    message = imageProcessingException.InnerException.InnerException.Message;
+                }
+                else
+                {
+                    Assert.True(false, "Unexpected exception: " + ex?.GetType().FullName);
+                }
 
-                Assert.Contains("does not overlap", ex.Message);
+                Assert.Contains("does not overlap", message);
 
                 void Test()
                 {

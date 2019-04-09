@@ -1,5 +1,5 @@
 version: 1.0.0.{build}
-image: Visual Studio 2019 Preview
+image: Visual Studio 2017
 
 # prevent the double build when a branch has an active PR
 skip_branch_with_pr: true
@@ -42,6 +42,14 @@ install:
             cinst mono
           }
         }
+
+        $sdkUrl = "https://dotnetcli.blob.core.windows.net/dotnet/Sdk/2.2.105/dotnet-sdk-2.2.105-win-x64.zi"
+        Write-Host "Installing .NET Core"
+        $env:DOTNET_INSTALL_DIR = "$path/.dotnetsdk"
+        New-Item -Type Directory $env:DOTNET_INSTALL_DIR -Force | Out-Null
+        (New-Object System.Net.WebClient).DownloadFile($urlCurrent, "dotnet.zip")
+        Write-Host "Unzipping to $env:DOTNET_INSTALL_DIR"
+        Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::ExtractToDirectory("dotnet.zip", $env:DOTNET_INSTALL_DIR)
 
 before_build:
   - git submodule -q update --init

@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.IO
         /// <summary>
         /// The length, in bytes, of the buffering chunk.
         /// </summary>
-        public const int ChunkLength = 4096;
+        public const int ChunkLength = 8192;
 
         private const int ChunkLengthMinusOne = ChunkLength - 1;
 
@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.IO
         /// byte, or returns -1 if at the end of the stream.
         /// </summary>
         /// <returns>The unsigned byte cast to an <see cref="int"/>, or -1 if at the end of the stream.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public int ReadByte()
         {
             if (this.position >= this.length)
@@ -95,11 +95,8 @@ namespace SixLabors.ImageSharp.IO
         /// Skips the number of bytes in the stream
         /// </summary>
         /// <param name="count">The number of bytes to skip</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Skip(int count)
-        {
-            this.Position += count;
-        }
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void Skip(int count) => this.Position += count;
 
         /// <summary>
         /// Reads a sequence of bytes from the current stream and advances the position within the stream
@@ -120,10 +117,10 @@ namespace SixLabors.ImageSharp.IO
         /// of bytes requested if that many bytes are not currently available, or zero (0)
         /// if the end of the stream has been reached.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public int Read(byte[] buffer, int offset, int count)
         {
-            if (buffer.Length > ChunkLength)
+            if (count > ChunkLength)
             {
                 return this.ReadToBufferSlow(buffer, offset, count);
             }
@@ -143,12 +140,9 @@ namespace SixLabors.ImageSharp.IO
         }
 
         /// <inheritdoc/>
-        public void Dispose()
-        {
-            this.managedBuffer?.Dispose();
-        }
+        public void Dispose() => this.managedBuffer?.Dispose();
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(InliningOptions.ColdPath)]
         private int ReadByteSlow()
         {
             if (this.position != this.stream.Position)
@@ -163,7 +157,7 @@ namespace SixLabors.ImageSharp.IO
             return this.bufferChunk[this.bytesRead++];
         }
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(InliningOptions.ColdPath)]
         private int ReadToChunkSlow(byte[] buffer, int offset, int count)
         {
             // Refill our buffer then copy.
@@ -184,7 +178,7 @@ namespace SixLabors.ImageSharp.IO
             return n;
         }
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(InliningOptions.ColdPath)]
         private int ReadToBufferSlow(byte[] buffer, int offset, int count)
         {
             // Read to target but don't copy to our chunk.
@@ -198,7 +192,7 @@ namespace SixLabors.ImageSharp.IO
             return n;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private int GetCount(int count)
         {
             int n = this.length - this.position;
@@ -215,7 +209,7 @@ namespace SixLabors.ImageSharp.IO
             return n;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private void CopyBytes(byte[] buffer, int offset, int count)
         {
             if (count < 9)

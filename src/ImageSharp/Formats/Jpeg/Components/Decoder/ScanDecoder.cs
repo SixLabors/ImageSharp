@@ -264,7 +264,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int mcu = 0;
             for (int j = 0; j < h; j++)
             {
-                int blockRow = j;
                 Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(j);
                 ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 

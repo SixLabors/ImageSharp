@@ -19,8 +19,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         private MemoryStream stream2;
         private MemoryStream stream3;
         private MemoryStream stream4;
-        DoubleBufferedStreamReader reader1;
-        DoubleBufferedStreamReader reader2;
+        private DoubleBufferedStreamReader reader1;
+        private DoubleBufferedStreamReader reader2;
 
         [GlobalSetup]
         public void CreateStreams()
@@ -97,6 +97,19 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             for (int i = 0; i < reader.Length / 2; i++)
             {
                 r += reader.Read(b, 0, 2);
+            }
+
+            return r;
+        }
+
+        [Benchmark]
+        public int RawReadByte()
+        {
+            byte[] b = this.buffer;
+            int r = 0;
+            for (int i = 0; i < b.Length; i++)
+            {
+                r += b[i];
             }
 
             return r;

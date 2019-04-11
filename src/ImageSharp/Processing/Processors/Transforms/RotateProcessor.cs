@@ -5,7 +5,7 @@ using System;
 using System.Numerics;
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <inheritdoc/>
         protected override void AfterImageApply(Image<TPixel> source, Image<TPixel> destination, Rectangle sourceRectangle)
         {
-            ExifProfile profile = destination.MetaData.ExifProfile;
+            ExifProfile profile = destination.Metadata.ExifProfile;
             if (profile is null)
             {
                 return;

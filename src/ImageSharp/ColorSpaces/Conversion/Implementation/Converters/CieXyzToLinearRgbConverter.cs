@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         {
             this.TargetWorkingSpace = workingSpace;
 
-            // Gets the inverted Rgb -> Xyz matrix 
+            // Gets the inverted Rgb -> Xyz matrix
             Matrix4x4.Invert(GetRgbToCieXyzMatrix(workingSpace), out Matrix4x4 inverted);
 
             this.conversionMatrix = inverted;
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// Performs the conversion from the <see cref="CieXyz"/> input to an instance of <see cref="LinearRgb"/> type.
         /// </summary>
         /// <param name="input">The input color instance.</param>
-        /// <returns>The converted result</returns>
+        /// <returns>The converted result.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public LinearRgb Convert(in CieXyz input)
         {

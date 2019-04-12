@@ -95,8 +95,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
             bool useGlobalTable = this.colorTableMode == GifColorTableMode.Global;
 
             // Quantize the image returning a palette.
-            QuantizedFrame<TPixel> quantized =
-                this.quantizer.CreateFrameQuantizer<TPixel>(image.GetConfiguration()).QuantizeFrame(image.Frames.RootFrame);
+            QuantizedFrame<TPixel> quantized = null;
+            using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(image.GetConfiguration()))
+            {
+                quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame);
+            }
 
             // Get the number of bits.
             this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length).Clamp(1, 8);
@@ -133,7 +136,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             // Clean up.
             quantized?.Dispose();
-            quantized = null;
 
             // TODO: Write extension etc
             stream.WriteByte(GifConstants.EndIntroducer);
@@ -158,7 +160,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
                 else
                 {
-                    using (QuantizedFrame<TPixel> paletteQuantized = palleteQuantizer.CreateFrameQuantizer(image.GetConfiguration()).QuantizeFrame(frame))
+                    using (IFrameQuantizer<TPixel> palleteFrameQuantizer = palleteQuantizer.CreateFrameQuantizer(image.GetConfiguration()))
+                    using (QuantizedFrame<TPixel> paletteQuantized = palleteFrameQuantizer.QuantizeFrame(frame))
                     {
                         this.WriteImageData(paletteQuantized, stream);
                     }
@@ -181,14 +184,17 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     if (previousFrame != null && previousMeta.ColorTableLength != frameMetaData.ColorTableLength
                                               && frameMetaData.ColorTableLength > 0)
                     {
-                        quantized = this.quantizer.CreateFrameQuantizer<TPixel>(
-                            image.GetConfiguration(),
-                            frameMetaData.ColorTableLength).QuantizeFrame(frame);
+                        using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(image.GetConfiguration(), frameMetaData.ColorTableLength))
+                        {
+                            quantized = frameQuantizer.QuantizeFrame(frame);
+                        }
                     }
                     else
                     {
-                        quantized = this.quantizer.CreateFrameQuantizer<TPixel>(image.GetConfiguration())
-                            .QuantizeFrame(frame);
+                        using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(image.GetConfiguration()))
+                        {
+                            quantized = frameQuantizer.QuantizeFrame(frame);
+                        }
                     }
                 }
 

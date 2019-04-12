@@ -148,28 +148,27 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             Guard.NotNull(image, nameof(image));
             MemoryAllocator memoryAllocator = image.MemoryAllocator;
 
-            try
-            {
-                this.vwt = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
-                this.vmr = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
-                this.vmg = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
-                this.vmb = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
-                this.vma = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
-                this.m2 = memoryAllocator.Allocate<double>(TableLength, AllocationOptions.Clean);
-                this.tag = memoryAllocator.Allocate<byte>(TableLength, AllocationOptions.Clean);
+            this.vwt = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
+            this.vmr = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
+            this.vmg = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
+            this.vmb = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
+            this.vma = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
+            this.m2 = memoryAllocator.Allocate<double>(TableLength, AllocationOptions.Clean);
+            this.tag = memoryAllocator.Allocate<byte>(TableLength, AllocationOptions.Clean);
 
-                return base.QuantizeFrame(image);
-            }
-            finally
-            {
-                this.vwt?.Dispose();
-                this.vmr?.Dispose();
-                this.vmg?.Dispose();
-                this.vmb?.Dispose();
-                this.vma?.Dispose();
-                this.m2?.Dispose();
-                this.tag?.Dispose();
-            }
+            return base.QuantizeFrame(image);
+        }
+
+        /// <inheritdoc/>
+        public override void Dispose()
+        {
+            this.vwt?.Dispose();
+            this.vmr?.Dispose();
+            this.vmg?.Dispose();
+            this.vmb?.Dispose();
+            this.vma?.Dispose();
+            this.m2?.Dispose();
+            this.tag?.Dispose();
         }
 
         internal TPixel[] AotGetPalette() => this.GetPalette();

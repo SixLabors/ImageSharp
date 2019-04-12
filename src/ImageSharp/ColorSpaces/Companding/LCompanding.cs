@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.ColorSpaces.Conversion;
 namespace SixLabors.ImageSharp.ColorSpaces.Companding
 {
     /// <summary>
-    /// Implements L* companding
+    /// Implements L* companding.
     /// </summary>
     /// <remarks>
     /// For more info see:

@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
     /// </summary>
     /// <remarks>
     /// <see href="http://en.wikipedia.org/wiki/Rec._2020"/>
-    /// For 10-bits, companding is identical to <see cref="Rec709Companding"/>
+    /// For 10-bits, companding is identical to <see cref="Rec709Companding"/>.
     /// </remarks>
     public static class Rec2020Companding
     {

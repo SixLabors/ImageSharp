@@ -60,42 +60,61 @@ namespace SixLabors.ImageSharp.Tests.Quantization
         [Fact]
         public void Palette256()
         {
-            var image = new Image<Rgba32>(1, 256);
-
-            for (int i = 0; i < 256; i++)
+            using (var image = new Image<Rgba32>(1, 256))
             {
-                byte r = (byte)((i % 4) * 85);
-                byte g = (byte)(((i / 4) % 4) * 85);
-                byte b = (byte)(((i / 16) % 4) * 85);
-                byte a = (byte)((i / 64) * 85);
-
-                image[0, i] = new Rgba32(r, g, b, a);
-            }
-
-            Configuration config = Configuration.Default;
-            var quantizer = new WuQuantizer(false);
-            QuantizedFrame<Rgba32> result = quantizer.CreateFrameQuantizer<Rgba32>(config).QuantizeFrame(image.Frames[0]);
-
-            Assert.Equal(256, result.Palette.Length);
-            Assert.Equal(256, result.GetPixelSpan().Length);
-
-            var actualImage = new Image<Rgba32>(1, 256);
-
-            int paletteCount = result.Palette.Length - 1;
-            for (int y = 0; y < actualImage.Height; y++)
-            {
-                Span<Rgba32> row = actualImage.GetPixelRowSpan(y);
-                ReadOnlySpan<byte> quantizedPixelSpan = result.GetPixelSpan();
-                int yy = y * actualImage.Width;
-
-                for (int x = 0; x < actualImage.Width; x++)
+                for (int i = 0; i < 256; i++)
                 {
-                    int i = x + yy;
-                    row[x] = result.Palette[Math.Min(paletteCount, quantizedPixelSpan[i])];
+                    byte r = (byte)((i % 4) * 85);
+                    byte g = (byte)(((i / 4) % 4) * 85);
+                    byte b = (byte)(((i / 16) % 4) * 85);
+                    byte a = (byte)((i / 64) * 85);
+
+                    image[0, i] = new Rgba32(r, g, b, a);
+                }
+
+                Configuration config = Configuration.Default;
+                var quantizer = new WuQuantizer(false);
+                using (QuantizedFrame<Rgba32> result = quantizer.CreateFrameQuantizer<Rgba32>(config).QuantizeFrame(image.Frames[0]))
+                {
+                    Assert.Equal(256, result.Palette.Length);
+                    Assert.Equal(256, result.GetPixelSpan().Length);
+
+                    var actualImage = new Image<Rgba32>(1, 256);
+
+                    int paletteCount = result.Palette.Length - 1;
+                    for (int y = 0; y < actualImage.Height; y++)
+                    {
+                        Span<Rgba32> row = actualImage.GetPixelRowSpan(y);
+                        ReadOnlySpan<byte> quantizedPixelSpan = result.GetPixelSpan();
+                        int yy = y * actualImage.Width;
+
+                        for (int x = 0; x < actualImage.Width; x++)
+                        {
+                            int i = x + yy;
+                            row[x] = result.Palette[Math.Min(paletteCount, quantizedPixelSpan[i])];
+                        }
+                    }
+
+                    Assert.True(image.GetPixelSpan().SequenceEqual(actualImage.GetPixelSpan()));
                 }
             }
+        }
 
-            Assert.True(image.GetPixelSpan().SequenceEqual(actualImage.GetPixelSpan()));
+        [Theory]
+        [WithFile(TestImages.Png.LowColorVariance, PixelTypes.Rgba32)]
+        public void LowVariance<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            // See https://github.com/SixLabors/ImageSharp/issues/866
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                Configuration config = Configuration.Default;
+                var quantizer = new WuQuantizer(false);
+                using (QuantizedFrame<TPixel> result = quantizer.CreateFrameQuantizer<TPixel>(config).QuantizeFrame(image.Frames[0]))
+                {
+                    Assert.Equal(48, result.Palette.Length);
+                }
+            }
         }
 
         private static void TestScale(Func<byte, Rgba32> pixelBuilder)

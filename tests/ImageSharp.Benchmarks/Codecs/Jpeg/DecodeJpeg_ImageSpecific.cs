@@ -5,6 +5,7 @@ using System.Drawing;
 using System.IO;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Jobs;
 
 using SixLabors.ImageSharp.Formats.Jpeg;
@@ -27,7 +28,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             public Config()
             {
                 // Uncomment if you want to use any of the diagnoser
-                this.Add(new BenchmarkDotNet.Diagnosers.MemoryDiagnoser());
+                this.Add(MemoryDiagnoser.Default);
             }
 
             public class ShortClr : Benchmarks.Config
@@ -35,8 +36,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
                 public ShortClr()
                 {
                     this.Add(
-                        //Job.Clr.WithLaunchCount(1).WithWarmupCount(2).WithTargetCount(3),
-                        Job.Core.WithLaunchCount(1).WithWarmupCount(2).WithTargetCount(3)
+                        // Job.Clr.WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3),
+                        Job.Core.WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3)
                     );
                 }
             }
@@ -45,7 +46,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         private byte[] jpegBytes;
 
         private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
-        
+
         [Params(
             TestImages.Jpeg.BenchmarkSuite.Lake_Small444YCbCr,
             TestImages.Jpeg.BenchmarkSuite.BadRstProgressive518_Large444YCbCr,
@@ -87,7 +88,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             using (var memoryStream = new MemoryStream(this.jpegBytes))
             {
-                using (var image = Image.Load<Rgba32>(memoryStream, new JpegDecoder(){ IgnoreMetadata = true}))
+                using (var image = Image.Load<Rgba32>(memoryStream, new JpegDecoder() { IgnoreMetadata = true }))
                 {
                     return new CoreSize(image.Width, image.Height);
                 }

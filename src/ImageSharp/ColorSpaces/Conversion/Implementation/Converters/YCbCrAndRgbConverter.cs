@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// Performs the conversion from the <see cref="YCbCr"/> input to an instance of <see cref="Rgb"/> type.
         /// </summary>
         /// <param name="input">The input color instance.</param>
-        /// <returns>The converted result</returns>
+        /// <returns>The converted result.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public Rgb Convert(in YCbCr input)
         {
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// Performs the conversion from the <see cref="Rgb"/> input to an instance of <see cref="YCbCr"/> type.
         /// </summary>
         /// <param name="input">The input color instance.</param>
-        /// <returns>The converted result</returns>
+        /// <returns>The converted result.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public YCbCr Convert(in Rgb input)
         {

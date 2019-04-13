@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Text;
 using SixLabors.ImageSharp.Primitives;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
+namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
     /// <summary>
     /// Contains methods for writing EXIF metadata.

@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
@@ -45,8 +45,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.MetaData.ExifProfile = new ExifProfile();
-                image.MetaData.ExifProfile.SetValue(ExifTag.Orientation, orientation);
+                image.Metadata.ExifProfile = new ExifProfile();
+                image.Metadata.ExifProfile.SetValue(ExifTag.Orientation, orientation);
 
                 image.Mutate(x => x.RotateFlip(rotateType, flipType));
                 image.DebugSave(provider, string.Join("_", rotateType, flipType, orientation, "1_before"));
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.MetaData.ExifProfile = new ExifProfile(bytes);
+                image.Metadata.ExifProfile = new ExifProfile(bytes);
                 image.Mutate(x => x.AutoOrient());
             }
         }

@@ -11,13 +11,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Fact]
         public void CloneIsDeep()
         {
-            var meta = new PngMetaData()
+            var meta = new PngMetadata()
             {
                 BitDepth = PngBitDepth.Bit16,
                 ColorType = PngColorType.GrayscaleWithAlpha,
                 Gamma = 2
             };
-            var clone = (PngMetaData)meta.DeepClone();
+            var clone = (PngMetadata)meta.DeepClone();
 
             clone.BitDepth = PngBitDepth.Bit2;
             clone.ColorType = PngColorType.Palette;

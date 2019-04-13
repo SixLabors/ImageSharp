@@ -4,7 +4,7 @@
 using System;
 using System.Security.Cryptography;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// Represents an ICC profile

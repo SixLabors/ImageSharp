@@ -6,7 +6,7 @@ using System.Globalization;
 using System.Text;
 using SixLabors.ImageSharp.Primitives;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
+namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
     /// <summary>
     /// Represent the value of the EXIF profile.

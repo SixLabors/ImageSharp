@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.MetaData
+namespace SixLabors.ImageSharp.Metadata
 {
     /// <summary>
     /// Stores meta information about a image, like the name of the author,

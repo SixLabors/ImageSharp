@@ -1,7 +1,7 @@
-﻿namespace SixLabors.ImageSharp.Benchmarks
-{
-    using SixLabors.ImageSharp.Formats;
+﻿using SixLabors.ImageSharp.Formats;
 
+namespace SixLabors.ImageSharp.Benchmarks
+{
     /// <summary>
     /// The image benchmark base class.
     /// </summary>

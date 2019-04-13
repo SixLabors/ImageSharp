@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         protected Dictionary<string, byte[]> FileNamesToBytes = new Dictionary<string, byte[]>();
 
         protected Dictionary<string, Image<Rgba32>> FileNamesToImageSharpImages = new Dictionary<string, Image<Rgba32>>();
-        protected Dictionary<string, System.Drawing.Bitmap> FileNamesToSystemDrawingImages = new Dictionary<string, System.Drawing.Bitmap>();
+        protected Dictionary<string, Bitmap> FileNamesToSystemDrawingImages = new Dictionary<string, System.Drawing.Bitmap>();
 
         /// <summary>
         /// The values of this enum separate input files into categories
@@ -152,7 +152,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         {
             foreach (KeyValuePair<string, byte[]> kv in this.FileNames2Bytes)
             {
-                using (MemoryStream memoryStream = new MemoryStream(kv.Value))
+                using (var memoryStream = new MemoryStream(kv.Value))
                 {
                     try
                     {
@@ -179,7 +179,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
                     byte[] bytes = kv.Value;
                     string fn = kv.Key;
 
-                    using (MemoryStream ms1 = new MemoryStream(bytes))
+                    using (var ms1 = new MemoryStream(bytes))
                     {
                         this.FileNamesToImageSharpImages[fn] = CoreImage.Load<Rgba32>(ms1);
 
@@ -223,7 +223,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
             protected void ForEachImageSharpImage(Func<Image<Rgba32>, MemoryStream, object> operation)
             {
-                using (MemoryStream workStream = new MemoryStream())
+                using (var workStream = new MemoryStream())
                 {
 
                     this.ForEachImageSharpImage(

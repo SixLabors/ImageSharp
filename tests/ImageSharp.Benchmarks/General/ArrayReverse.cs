@@ -3,12 +3,12 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System;
+
+using BenchmarkDotNet.Attributes;
+
 namespace SixLabors.ImageSharp.Benchmarks.General
 {
-    using System;
-
-    using BenchmarkDotNet.Attributes;
-
     public class ArrayReverse
     {
         [Params(4, 16, 32)]

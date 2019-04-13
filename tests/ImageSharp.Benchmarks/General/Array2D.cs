@@ -3,14 +3,14 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System;
+
+using BenchmarkDotNet.Attributes;
+
+using SixLabors.ImageSharp.Primitives;
+
 namespace SixLabors.ImageSharp.Benchmarks.General
 {
-    using System;
-
-    using BenchmarkDotNet.Attributes;
-
-    using SixLabors.ImageSharp.Primitives;
-
     /**
      *                                Method | Count |     Mean |    Error |   StdDev | Scaled | ScaledSD |
 -------------------------------------------- |------ |---------:|---------:|---------:|-------:|---------:|

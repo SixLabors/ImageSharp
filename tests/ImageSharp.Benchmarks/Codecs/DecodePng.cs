@@ -11,7 +11,6 @@ using SDImage = System.Drawing.Image;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
-
     [Config(typeof(Config.ShortClr))]
     public class DecodePng : BenchmarkBase
     {

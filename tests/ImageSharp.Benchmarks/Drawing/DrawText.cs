@@ -14,11 +14,9 @@ using SixLabors.ImageSharp.Processing.Processors.Text;
 
 namespace SixLabors.ImageSharp.Benchmarks
 {
-
     [MemoryDiagnoser]
     public class DrawText : BenchmarkBase
     {
-
         [Params(10, 100)]
         public int TextIterations { get; set; }
         public string TextPhrase { get; set; } = "Hello World";
@@ -28,17 +26,14 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Baseline = true, Description = "System.Drawing Draw Text")]
         public void DrawTextSystemDrawing()
         {
-            using (Bitmap destination = new Bitmap(800, 800))
+            using (var destination = new Bitmap(800, 800))
+            using (var graphics = Graphics.FromImage(destination))
             {
-
-                using (Graphics graphics = Graphics.FromImage(destination))
+                graphics.InterpolationMode = InterpolationMode.Default;
+                graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using (var font = new Font("Arial", 12, GraphicsUnit.Point))
                 {
-                    graphics.InterpolationMode = InterpolationMode.Default;
-                    graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    using (var font = new Font("Arial", 12, GraphicsUnit.Point))
-                    {
-                        graphics.DrawString(TextToRender, font, System.Drawing.Brushes.HotPink, new RectangleF(10, 10, 780, 780));
-                    }
+                    graphics.DrawString(TextToRender, font, System.Drawing.Brushes.HotPink, new RectangleF(10, 10, 780, 780));
                 }
             }
         }
@@ -47,7 +42,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Draw Text - Cached Glyphs")]
         public void DrawTextCore()
         {
-            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
+            using (var image = new Image<Rgba32>(800, 800))
             {
                 var font = SixLabors.Fonts.SystemFonts.CreateFont("Arial", 12);
                 image.Mutate(x => x.ApplyProcessor(new DrawTextProcessor<Rgba32>(new TextGraphicsOptions(true) { WrapTextWidth = 780 }, TextToRender, font, Processing.Brushes.Solid(Rgba32.HotPink), null, new SixLabors.Primitives.PointF(10, 10))));
@@ -57,7 +52,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Draw Text - Nieve")]
         public void DrawTextCoreOld()
         {
-            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
+            using (var image = new Image<Rgba32>(800, 800))
             {
                 var font = SixLabors.Fonts.SystemFonts.CreateFont("Arial", 12);
                 image.Mutate(x => DrawTextOldVersion(x, new TextGraphicsOptions(true) { WrapTextWidth = 780 }, TextToRender, font, Processing.Brushes.Solid(Rgba32.HotPink), null, new SixLabors.Primitives.PointF(10, 10)));

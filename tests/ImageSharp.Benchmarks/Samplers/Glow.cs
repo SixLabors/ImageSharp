@@ -4,7 +4,6 @@
 using System;
 using System.Buffers;
 using System.Numerics;
-using System.Threading.Tasks;
 
 using BenchmarkDotNet.Attributes;
 
@@ -35,7 +34,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Glow - Bulk")]
         public CoreSize GlowBulk()
         {
-            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
+            using (var image = new Image<Rgba32>(800, 800))
             {
                 this.bulk.Apply(image, image.Bounds());
                 return new CoreSize(image.Width, image.Height);
@@ -45,7 +44,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Glow - Parallel")]
         public CoreSize GLowSimple()
         {
-            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
+            using (var image = new Image<Rgba32>(800, 800))
             {
                 this.parallel.Apply(image, image.Bounds());
                 return new CoreSize(image.Width, image.Height);
@@ -128,7 +127,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                                         int offsetX = x - startX;
                                         float distance = Vector2.Distance(centre, new Vector2(offsetX, offsetY));
                                         Vector4 sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
-                                        TPixel packed = default(TPixel);
+                                        TPixel packed = default;
                                         packed.FromVector4(
                                             PremultipliedLerp(
                                                 sourceColor,

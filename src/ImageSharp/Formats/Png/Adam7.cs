@@ -40,17 +40,17 @@ namespace SixLabors.ImageSharp.Formats.Png
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int ComputeColumns(int width, int passIndex)
         {
-            switch (passIndex)
+            return passIndex switch
             {
-                case 0: return (width + 7) / 8;
-                case 1: return (width + 3) / 8;
-                case 2: return (width + 3) / 4;
-                case 3: return (width + 1) / 4;
-                case 4: return (width + 1) / 2;
-                case 5: return width / 2;
-                case 6: return width;
-                default: throw new ArgumentException($"Not a valid pass index: {passIndex}");
-            }
+                0 => (width + 7) / 8,
+                1 => (width + 3) / 8,
+                2 => (width + 3) / 4,
+                3 => (width + 1) / 4,
+                4 => (width + 1) / 2,
+                5 => width / 2,
+                6 => width,
+                _ => throw new ArgumentException($"Not a valid pass index: {passIndex}")
+            };
         }
     }
 }

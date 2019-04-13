@@ -1,7 +1,5 @@
-﻿// <copyright file="Crop.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -37,7 +35,6 @@ namespace SixLabors.ImageSharp.Benchmarks
                 }
             }
         }
-
 
         [Benchmark(Description = "ImageSharp Draw Text - Cached Glyphs")]
         public void DrawTextCore()

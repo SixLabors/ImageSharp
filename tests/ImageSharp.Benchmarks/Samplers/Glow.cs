@@ -165,9 +165,9 @@ namespace SixLabors.ImageSharp.Benchmarks
                 // https://en.wikipedia.org/wiki/Alpha_compositing
                 // Vout =  Vs + Vb (1 - Vsa)
                 // Aout = Vsa + Vsb (1 - Vsa)
-                Vector3 inverseW = new Vector3(1 - source.W);
-                Vector3 xyzB = new Vector3(backdrop.X, backdrop.Y, backdrop.Z);
-                Vector3 xyzS = new Vector3(source.X, source.Y, source.Z);
+                var inverseW = new Vector3(1 - source.W);
+                var xyzB = new Vector3(backdrop.X, backdrop.Y, backdrop.Z);
+                var xyzS = new Vector3(source.X, source.Y, source.Z);
 
                 return new Vector4(xyzS + (xyzB * inverseW), source.W + (backdrop.W * (1 - source.W)));
             }

@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {
     /// <summary>
-    /// Color converter between CIE XYZ and CIE xyY
+    /// Color converter between CIE XYZ and CIE xyY.
     /// <see href="http://www.brucelindbloom.com/"/> for formulas.
     /// </summary>
     internal sealed class CieXyzAndCieXyyConverter

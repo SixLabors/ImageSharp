@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.ColorSpaces.Companding
 {
     /// <summary>
-    /// Implements gamma companding
+    /// Implements gamma companding.
     /// </summary>
     /// <remarks>
     /// <see href="http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html"/>

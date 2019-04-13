@@ -184,7 +184,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     if (previousFrame != null && previousMeta.ColorTableLength != frameMetadata.ColorTableLength
                                               && frameMetadata.ColorTableLength > 0)
                     {
-                        using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(image.GetConfiguration(), frameMetaData.ColorTableLength))
+                        using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(image.GetConfiguration(), frameMetadata.ColorTableLength))
                         {
                             quantized = frameQuantizer.QuantizeFrame(frame);
                         }

@@ -98,6 +98,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             return quantizedFrame;
         }
 
+        /// <inheritdoc/>
+        public virtual void Dispose()
+        {
+        }
+
         /// <summary>
         /// Execute the first pass through the pixels in the image to create the palette.
         /// </summary>

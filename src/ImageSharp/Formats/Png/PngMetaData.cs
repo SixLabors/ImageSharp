@@ -8,20 +8,20 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// <summary>
     /// Provides Png specific metadata information for the image.
     /// </summary>
-    public class PngMetaData : IDeepCloneable
+    public class PngMetadata : IDeepCloneable
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="PngMetaData"/> class.
+        /// Initializes a new instance of the <see cref="PngMetadata"/> class.
         /// </summary>
-        public PngMetaData()
+        public PngMetadata()
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PngMetaData"/> class.
+        /// Initializes a new instance of the <see cref="PngMetadata"/> class.
         /// </summary>
         /// <param name="other">The metadata to create an instance from.</param>
-        private PngMetaData(PngMetaData other)
+        private PngMetadata(PngMetadata other)
         {
             this.BitDepth = other.BitDepth;
             this.ColorType = other.ColorType;
@@ -75,6 +75,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         public bool HasTrans { get; set; }
 
         /// <inheritdoc/>
-        public IDeepCloneable DeepClone() => new PngMetaData(this);
+        public IDeepCloneable DeepClone() => new PngMetadata(this);
     }
 }

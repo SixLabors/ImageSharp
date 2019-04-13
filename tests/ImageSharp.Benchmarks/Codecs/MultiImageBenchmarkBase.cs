@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
                 public ShortClr()
                 {
                     this.Add(
-                        Job.Core.WithLaunchCount(1).WithWarmupCount(1).WithTargetCount(2)
+                        Job.Core.WithLaunchCount(1).WithWarmupCount(1).WithIterationCount(2)
                     );
                 }
             }

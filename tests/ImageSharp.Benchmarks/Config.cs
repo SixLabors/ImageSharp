@@ -5,10 +5,10 @@
 
 using BenchmarkDotNet.Configs;
 
+using BenchmarkDotNet.Jobs;
+
 namespace SixLabors.ImageSharp.Benchmarks
 {
-    using BenchmarkDotNet.Jobs;
-
     public class Config : ManualConfig
     {
         public Config()
@@ -22,9 +22,9 @@ namespace SixLabors.ImageSharp.Benchmarks
             public ShortClr()
             {
                 this.Add(
-                    Job.Clr.WithLaunchCount(1).WithWarmupCount(3).WithTargetCount(3),
-                    Job.Core.WithLaunchCount(1).WithWarmupCount(3).WithTargetCount(3)
-                        );
+                    Job.Clr.WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(3),
+                    Job.Core.WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(3)
+                );
             }
         }
     }

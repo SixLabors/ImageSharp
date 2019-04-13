@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using SixLabors.ImageSharp.Primitives;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
+namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
     /// <summary>
     /// Reads and parses EXIF data from a byte array.

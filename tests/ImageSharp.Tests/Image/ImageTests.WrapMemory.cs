@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Shapes;
 using SixLabors.ImageSharp.Processing;
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Tests
             public void WrapMemory_CreatedImageIsCorrect()
             {
                 Configuration cfg = Configuration.Default.Clone();
-                var metaData = new ImageMetaData();
+                var metaData = new ImageMetadata();
 
                 var array = new Rgba32[25];
                 var memory = new Memory<Rgba32>(array);
@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Tests
                     Assert.True(Unsafe.AreSame(ref array[0], ref pixel0));
 
                     Assert.Equal(cfg, image.GetConfiguration());
-                    Assert.Equal(metaData, image.MetaData);
+                    Assert.Equal(metaData, image.Metadata);
                 }
             }
 

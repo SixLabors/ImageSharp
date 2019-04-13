@@ -10,9 +10,9 @@ using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
-using SixLabors.ImageSharp.MetaData;
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
-using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
@@ -204,10 +204,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
 
             this.outputStream = stream;
-            ImageMetaData metaData = image.MetaData;
+            ImageMetadata metadata = image.Metadata;
 
             // System.Drawing produces identical output for jpegs with a quality parameter of 0 and 1.
-            int qlty = (this.quality ?? metaData.GetFormatMetaData(JpegFormat.Instance).Quality).Clamp(1, 100);
+            int qlty = (this.quality ?? metadata.GetFormatMetadata(JpegFormat.Instance).Quality).Clamp(1, 100);
             this.subsample = this.subsample ?? (qlty >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
 
             // Convert from a quality rating to a scaling factor.
@@ -229,10 +229,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int componentCount = 3;
 
             // Write the Start Of Image marker.
-            this.WriteApplicationHeader(metaData);
+            this.WriteApplicationHeader(metadata);
 
             // Write Exif and ICC profiles
-            this.WriteProfiles(metaData);
+            this.WriteProfiles(metadata);
 
             // Write the quantization tables.
             this.WriteDefineQuantizationTables();
@@ -448,8 +448,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Writes the application header containing the JFIF identifier plus extra data.
         /// </summary>
-        /// <param name="meta">The image meta data.</param>
-        private void WriteApplicationHeader(ImageMetaData meta)
+        /// <param name="meta">The image metadata.</param>
+        private void WriteApplicationHeader(ImageMetadata meta)
         {
             // Write the start of image marker. Markers are always prefixed with 0xff.
             this.buffer[0] = JpegConstants.Markers.XFF;
@@ -791,17 +791,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Writes the metadata profiles to the image.
         /// </summary>
-        /// <param name="metaData">The image meta data.</param>
-        private void WriteProfiles(ImageMetaData metaData)
+        /// <param name="metadata">The image metadata.</param>
+        private void WriteProfiles(ImageMetadata metadata)
         {
-            if (metaData is null)
+            if (metadata is null)
             {
                 return;
             }
 
-            metaData.SyncProfiles();
-            this.WriteExifProfile(metaData.ExifProfile);
-            this.WriteIccProfile(metaData.IccProfile);
+            metadata.SyncProfiles();
+            this.WriteExifProfile(metadata.ExifProfile);
+            this.WriteIccProfile(metadata.IccProfile);
         }
 
         /// <summary>

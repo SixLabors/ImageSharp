@@ -7,14 +7,19 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.ColorSpaces.Companding
 {
     /// <summary>
-    /// Implements Rec. 2020 companding function (for 12-bits).
+    /// Implements Rec. 2020 companding function.
     /// </summary>
     /// <remarks>
     /// <see href="http://en.wikipedia.org/wiki/Rec._2020"/>
-    /// For 10-bits, companding is identical to <see cref="Rec709Companding"/>
     /// </remarks>
     public static class Rec2020Companding
     {
+        private const float Alpha = 1.09929682680944F;
+        private const float AlphaMinusOne = Alpha - 1F;
+        private const float Beta = 0.018053968510807F;
+        private const float InverseBeta = Beta * 4.5F;
+        private const float Epsilon = 1 / 0.45F;
+
         /// <summary>
         /// Expands a companded channel to its linear equivalent with respect to the energy.
         /// </summary>
@@ -22,7 +27,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
         /// <returns>The <see cref="float"/> representing the linear channel value.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static float Expand(float channel)
-            => channel < 0.08145F ? channel / 4.5F : MathF.Pow((channel + 0.0993F) / 1.0993F, 2.222222F);
+            => channel < InverseBeta ? channel / 4.5F : MathF.Pow((channel + AlphaMinusOne) / Alpha, Epsilon);
 
         /// <summary>
         /// Compresses an uncompanded channel (linear) to its nonlinear equivalent.
@@ -31,6 +36,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
         /// <returns>The <see cref="float"/> representing the nonlinear channel value.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static float Compress(float channel)
-            => channel < 0.0181F ? 4500F * channel : (1.0993F * channel) - 0.0993F;
+            => channel < Beta ? 4.5F * channel : (Alpha * MathF.Pow(channel, 0.45F)) - AlphaMinusOne;
     }
 }

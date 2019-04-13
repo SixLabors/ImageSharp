@@ -13,7 +13,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using SixLabors.ImageSharp.MetaData;
+    using SixLabors.ImageSharp.Metadata;
     using static TestImages.Bmp;
 
     public class BmpDecoderTests
@@ -237,7 +237,7 @@ namespace SixLabors.ImageSharp.Tests
                 var decoder = new BmpDecoder();
                 using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
                 {
-                    ImageMetaData meta = image.MetaData;
+                    ImageMetadata meta = image.Metadata;
                     Assert.Equal(xResolution, meta.HorizontalResolution);
                     Assert.Equal(yResolution, meta.VerticalResolution);
                     Assert.Equal(resolutionUnit, meta.ResolutionUnits);

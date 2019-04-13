@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Linq;
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests
             ExifProfile profile;
             using (Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage())
             {
-                profile = image.MetaData.ExifProfile;
+                profile = image.Metadata.ExifProfile;
             }
 
             Assert.NotNull(profile);

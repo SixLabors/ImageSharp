@@ -34,30 +34,30 @@ namespace SixLabors.ImageSharp.Formats
     /// <summary>
     /// Defines the contract for an image format containing metadata.
     /// </summary>
-    /// <typeparam name="TFormatMetaData">The type of format metadata.</typeparam>
-    public interface IImageFormat<out TFormatMetaData> : IImageFormat
-        where TFormatMetaData : class
+    /// <typeparam name="TFormatMetadata">The type of format metadata.</typeparam>
+    public interface IImageFormat<out TFormatMetadata> : IImageFormat
+        where TFormatMetadata : class
     {
         /// <summary>
         /// Creates a default instance of the format metadata.
         /// </summary>
-        /// <returns>The <typeparamref name="TFormatMetaData"/>.</returns>
-        TFormatMetaData CreateDefaultFormatMetaData();
+        /// <returns>The <typeparamref name="TFormatMetadata"/>.</returns>
+        TFormatMetadata CreateDefaultFormatMetadata();
     }
 
     /// <summary>
     /// Defines the contract for an image format containing metadata with multiple frames.
     /// </summary>
-    /// <typeparam name="TFormatMetaData">The type of format metadata.</typeparam>
-    /// <typeparam name="TFormatFrameMetaData">The type of format frame metadata.</typeparam>
-    public interface IImageFormat<out TFormatMetaData, out TFormatFrameMetaData> : IImageFormat<TFormatMetaData>
-        where TFormatMetaData : class
-        where TFormatFrameMetaData : class
+    /// <typeparam name="TFormatMetadata">The type of format metadata.</typeparam>
+    /// <typeparam name="TFormatFrameMetadata">The type of format frame metadata.</typeparam>
+    public interface IImageFormat<out TFormatMetadata, out TFormatFrameMetadata> : IImageFormat<TFormatMetadata>
+        where TFormatMetadata : class
+        where TFormatFrameMetadata : class
     {
         /// <summary>
         /// Creates a default instance of the format frame metadata.
         /// </summary>
-        /// <returns>The <typeparamref name="TFormatFrameMetaData"/>.</returns>
-        TFormatFrameMetaData CreateDefaultFormatFrameMetaData();
+        /// <returns>The <typeparamref name="TFormatFrameMetadata"/>.</returns>
+        TFormatFrameMetadata CreateDefaultFormatFrameMetadata();
     }
 }

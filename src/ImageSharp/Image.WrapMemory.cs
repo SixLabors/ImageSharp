@@ -5,7 +5,7 @@ using System;
 using System.Buffers;
 
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
@@ -24,18 +24,18 @@ namespace SixLabors.ImageSharp
         /// <param name="pixelMemory">The pixel memory.</param>
         /// <param name="width">The width of the memory image.</param>
         /// <param name="height">The height of the memory image.</param>
-        /// <param name="metaData">The <see cref="ImageMetaData"/>.</param>
+        /// <param name="metadata">The <see cref="ImageMetadata"/>.</param>
         /// <returns>An <see cref="Image{TPixel}"/> instance</returns>
         public static Image<TPixel> WrapMemory<TPixel>(
             Configuration config,
             Memory<TPixel> pixelMemory,
             int width,
             int height,
-            ImageMetaData metaData)
+            ImageMetadata metadata)
             where TPixel : struct, IPixel<TPixel>
         {
             var memorySource = new MemorySource<TPixel>(pixelMemory);
-            return new Image<TPixel>(config, memorySource, width, height, metaData);
+            return new Image<TPixel>(config, memorySource, width, height, metadata);
         }
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp
             int height)
             where TPixel : struct, IPixel<TPixel>
         {
-            return WrapMemory(config, pixelMemory, width, height, new ImageMetaData());
+            return WrapMemory(config, pixelMemory, width, height, new ImageMetadata());
         }
 
         /// <summary>
@@ -89,18 +89,18 @@ namespace SixLabors.ImageSharp
         /// <param name="pixelMemoryOwner">The <see cref="IMemoryOwner{T}"/> that is being transferred to the image</param>
         /// <param name="width">The width of the memory image.</param>
         /// <param name="height">The height of the memory image.</param>
-        /// <param name="metaData">The <see cref="ImageMetaData"/></param>
+        /// <param name="metadata">The <see cref="ImageMetadata"/></param>
         /// <returns>An <see cref="Image{TPixel}"/> instance</returns>
         public static Image<TPixel> WrapMemory<TPixel>(
             Configuration config,
             IMemoryOwner<TPixel> pixelMemoryOwner,
             int width,
             int height,
-            ImageMetaData metaData)
+            ImageMetadata metadata)
             where TPixel : struct, IPixel<TPixel>
         {
             var memorySource = new MemorySource<TPixel>(pixelMemoryOwner, false);
-            return new Image<TPixel>(config, memorySource, width, height, metaData);
+            return new Image<TPixel>(config, memorySource, width, height, metadata);
         }
 
         /// <summary>
@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp
             int height)
             where TPixel : struct, IPixel<TPixel>
         {
-            return WrapMemory(config, pixelMemoryOwner, width, height, new ImageMetaData());
+            return WrapMemory(config, pixelMemoryOwner, width, height, new ImageMetadata());
         }
 
         /// <summary>

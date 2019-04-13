@@ -3,7 +3,7 @@
 
 using System.IO;
 using SixLabors.ImageSharp.Formats.Bmp;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using Xunit;
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        ImageMetaData meta = output.MetaData;
+                        ImageMetadata meta = output.Metadata;
                         Assert.Equal(xResolution, meta.HorizontalResolution);
                         Assert.Equal(yResolution, meta.VerticalResolution);
                         Assert.Equal(resolutionUnit, meta.ResolutionUnits);
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        BmpMetaData meta = output.MetaData.GetFormatMetaData(BmpFormat.Instance);
+                        BmpMetadata meta = output.Metadata.GetFormatMetadata(BmpFormat.Instance);
 
                         Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
                     }

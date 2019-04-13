@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
@@ -73,12 +73,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <returns>The <see cref="OrientationMode"/></returns>
         private static OrientationMode GetExifOrientation(Image<TPixel> source)
         {
-            if (source.MetaData.ExifProfile is null)
+            if (source.Metadata.ExifProfile is null)
             {
                 return OrientationMode.Unknown;
             }
 
-            ExifValue value = source.MetaData.ExifProfile.GetValue(ExifTag.Orientation);
+            ExifValue value = source.Metadata.ExifProfile.GetValue(ExifTag.Orientation);
             if (value is null)
             {
                 return OrientationMode.Unknown;
@@ -92,10 +92,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             else
             {
                 orientation = (OrientationMode)Convert.ToUInt16(value.Value);
-                source.MetaData.ExifProfile.RemoveValue(ExifTag.Orientation);
+                source.Metadata.ExifProfile.RemoveValue(ExifTag.Orientation);
             }
 
-            source.MetaData.ExifProfile.SetValue(ExifTag.Orientation, (ushort)OrientationMode.TopLeft);
+            source.Metadata.ExifProfile.SetValue(ExifTag.Orientation, (ushort)OrientationMode.TopLeft);
 
             return orientation;
         }

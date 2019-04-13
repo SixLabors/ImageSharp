@@ -14,6 +14,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
     /// </remarks>
     public static class Rec709Companding
     {
+        private const float Epsilon = 1 / 0.45F;
+
         /// <summary>
         /// Expands a companded channel to its linear equivalent with respect to the energy.
         /// </summary>
@@ -21,7 +23,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
         /// <returns>The <see cref="float"/> representing the linear channel value.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static float Expand(float channel)
-            => channel < 0.081F ? channel / 4.5F : MathF.Pow((channel + 0.099F) / 1.099F, 2.222222F);
+            => channel < 0.081F ? channel / 4.5F : MathF.Pow((channel + 0.099F) / 1.099F, Epsilon);
 
         /// <summary>
         /// Compresses an uncompanded channel (linear) to its nonlinear equivalent.
@@ -30,6 +32,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
         /// <returns>The <see cref="float"/> representing the nonlinear channel value.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static float Compress(float channel)
-            => channel < 0.018F ? 4500F * channel : (1.099F * channel) - 0.099F;
+            => channel < 0.018F ? 4.5F * channel : (1.099F * MathF.Pow(channel, 0.45F)) - 0.099F;
     }
 }

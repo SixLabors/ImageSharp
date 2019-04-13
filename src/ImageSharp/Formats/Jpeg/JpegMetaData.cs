@@ -6,20 +6,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     /// <summary>
     /// Provides Jpeg specific metadata information for the image.
     /// </summary>
-    public class JpegMetaData : IDeepCloneable
+    public class JpegMetadata : IDeepCloneable
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="JpegMetaData"/> class.
+        /// Initializes a new instance of the <see cref="JpegMetadata"/> class.
         /// </summary>
-        public JpegMetaData()
+        public JpegMetadata()
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="JpegMetaData"/> class.
+        /// Initializes a new instance of the <see cref="JpegMetadata"/> class.
         /// </summary>
         /// <param name="other">The metadata to create an instance from.</param>
-        private JpegMetaData(JpegMetaData other) => this.Quality = other.Quality;
+        private JpegMetadata(JpegMetadata other) => this.Quality = other.Quality;
 
         /// <summary>
         /// Gets or sets the encoded quality.
@@ -27,6 +27,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public int Quality { get; set; } = 75;
 
         /// <inheritdoc/>
-        public IDeepCloneable DeepClone() => new JpegMetaData(this);
+        public IDeepCloneable DeepClone() => new JpegMetadata(this);
     }
 }

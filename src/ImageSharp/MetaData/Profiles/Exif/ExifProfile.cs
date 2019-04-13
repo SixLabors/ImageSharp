@@ -7,7 +7,7 @@ using System.IO;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
+namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
     /// <summary>
     /// Represents an EXIF profile providing access to the collection of values.
@@ -249,13 +249,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         public ExifProfile DeepClone() => new ExifProfile(this);
 
         /// <summary>
-        /// Synchronizes the profiles with the specified meta data.
+        /// Synchronizes the profiles with the specified metadata.
         /// </summary>
-        /// <param name="metaData">The meta data.</param>
-        internal void Sync(ImageMetaData metaData)
+        /// <param name="metadata">The metadata.</param>
+        internal void Sync(ImageMetadata metadata)
         {
-            this.SyncResolution(ExifTag.XResolution, metaData.HorizontalResolution);
-            this.SyncResolution(ExifTag.YResolution, metaData.VerticalResolution);
+            this.SyncResolution(ExifTag.XResolution, metadata.HorizontalResolution);
+            this.SyncResolution(ExifTag.YResolution, metadata.VerticalResolution);
         }
 
         private void SyncResolution(ExifTag tag, double resolution)

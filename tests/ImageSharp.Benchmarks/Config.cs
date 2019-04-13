@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using BenchmarkDotNet.Configs;
-
+using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Jobs;
 
 namespace SixLabors.ImageSharp.Benchmarks
@@ -11,8 +11,7 @@ namespace SixLabors.ImageSharp.Benchmarks
     {
         public Config()
         {
-            // Uncomment if you want to use any of the diagnoser
-            this.Add(new BenchmarkDotNet.Diagnosers.MemoryDiagnoser());
+            this.Add(MemoryDiagnoser.Default);
         }
 
         public class ShortClr : Config

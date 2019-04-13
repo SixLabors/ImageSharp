@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
     using System.Numerics;
 
     using BenchmarkDotNet.Attributes;
-
+    using BenchmarkDotNet.Diagnosers;
     using SixLabors.ImageSharp.Tests;
 
     using CoreImage = ImageSharp.Image;
@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             public Config()
             {
                 // Uncomment if you want to use any of the diagnoser
-                this.Add(new BenchmarkDotNet.Diagnosers.MemoryDiagnoser());
+                this.Add(MemoryDiagnoser.Default);
             }
 
             public class ShortClr : Benchmarks.Config

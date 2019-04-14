@@ -235,27 +235,27 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             PixelConversionModifiers conversionModifiers =
                 PixelConversionModifiers.Premultiply.ApplyCompanding(this.Compand);
 
+            BufferArea<TPixel> sourceArea = source.PixelBuffer.GetArea(sourceRectangle);
+
             // Interpolate the image using the calculated weights.
             // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
-            using (var resizeWindow = new ResizeWindow(
+            using (var resizeWindow = new ResizeWindow<TPixel>(
                 configuration,
-                sourceRectangle,
+                sourceArea,
                 conversionModifiers,
                 this.horizontalKernelMap,
                 this.verticalKernelMap,
                 width,
                 workingRect,
                 startX))
-            using (IMemoryOwner<Vector4> tempBuffer = source.MemoryAllocator.Allocate<Vector4>(Math.Max(sourceRectangle.Width, width)))
+            using (IMemoryOwner<Vector4> tempBuffer = source.MemoryAllocator.Allocate<Vector4>(width))
             {
-                Span<Vector4> tempRowSpan = tempBuffer.GetSpan();
-
-                resizeWindow.Initialize(source.PixelBuffer, tempRowSpan);
+                resizeWindow.Initialize();
 
                 // Now process the rows.
-                Span<Vector4> tempColSpan = tempBuffer.GetSpan().Slice(0, width);
+                Span<Vector4> tempColSpan = tempBuffer.GetSpan();
 
                 for (int y = workingRect.Top; y < workingRect.Bottom; y++)
                 {

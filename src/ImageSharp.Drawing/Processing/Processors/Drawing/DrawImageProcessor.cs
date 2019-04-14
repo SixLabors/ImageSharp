@@ -82,10 +82,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
 
             // not a valid operation because rectangle does not overlap with this image.
-            Guard.IsFalse(
-                workingRect.Width <= 0 || workingRect.Height <= 0,
-                nameof(this.Location),
-                "Cannot draw image because the source image does not overlap the target image.");
+            if (workingRect.Width <= 0 || workingRect.Height <= 0)
+            {
+                throw new ImageProcessingException("Cannot draw image because the source image does not overlap the target image.");
+            }
 
             ParallelHelper.IterateRows(
                 workingRect,

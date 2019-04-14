@@ -163,23 +163,9 @@ namespace SixLabors.ImageSharp.Tests
             using (Image<Rgba32> background = provider.GetImage())
             using (var overlay = new Image<Rgba32>(Configuration.Default, 10, 10, Rgba32.Black))
             {
-                Exception ex = Assert.ThrowsAny<Exception>(Test);
-                string message = null;
-                if (ex is ArgumentException)
-                {
-                    message = ex.Message;
-                }
-                else if (ex is ImageProcessingException imageProcessingException)
-                {
-                    Assert.IsType<ArgumentException>(imageProcessingException.InnerException.InnerException);
-                    message = imageProcessingException.InnerException.InnerException.Message;
-                }
-                else
-                {
-                    Assert.True(false, "Unexpected exception: " + ex?.GetType().FullName);
-                }
+                ImageProcessingException ex = Assert.Throws<ImageProcessingException>(Test);
 
-                Assert.Contains("does not overlap", message);
+                Assert.Contains("does not overlap", ex.ToString());
 
                 void Test()
                 {

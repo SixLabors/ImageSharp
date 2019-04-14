@@ -347,10 +347,10 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 
             var rect = new Rectangle(0, 0, width, height);
 
-            ArgumentException ex = Assert.Throws<ArgumentException>(
+            ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
                 () => ParallelHelper.IterateRows(rect, parallelSettings, (rows) => { }));
 
-            Assert.Contains(width <= 0 ? "width" : "height", ex.Message);
+            Assert.Contains(width <= 0 ? "Width" : "Height", ex.Message);
         }
 
         [Theory]
@@ -364,10 +364,10 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 
             var rect = new Rectangle(0, 0, width, height);
 
-            ArgumentException ex = Assert.Throws<ArgumentException>(
+            ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
                 () => ParallelHelper.IterateRowsWithTempBuffer<Rgba32>(rect, parallelSettings, (rows, memory) => { }));
 
-            Assert.Contains(width <= 0 ? "width" : "height", ex.Message);
+            Assert.Contains(width <= 0 ? "Width" : "Height", ex.Message);
         }
     }
 }

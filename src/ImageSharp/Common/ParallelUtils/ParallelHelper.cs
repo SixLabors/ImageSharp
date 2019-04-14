@@ -147,15 +147,15 @@ namespace SixLabors.ImageSharp.ParallelUtils
 
         private static void ValidateRectangle(Rectangle rectangle)
         {
-            Guard.IsTrue(
-                rectangle.Width > 0,
-                $"{nameof(rectangle)}.{nameof(rectangle.Width)}",
-                "Can't iterate rows on a with a rectangle that has a width less than or equal to 0");
+            Guard.MustBeGreaterThan(
+                rectangle.Width,
+                0,
+                $"{nameof(rectangle)}.{nameof(rectangle.Width)}");
 
-            Guard.IsTrue(
-                rectangle.Height > 0,
-                $"{nameof(rectangle)}.{nameof(rectangle.Height)}",
-                "Can't iterate rows on a with a rectangle that has a height less than or equal to 0");
+            Guard.MustBeGreaterThan(
+                rectangle.Height,
+                0,
+                $"{nameof(rectangle)}.{nameof(rectangle.Height)}");
         }
     }
 }

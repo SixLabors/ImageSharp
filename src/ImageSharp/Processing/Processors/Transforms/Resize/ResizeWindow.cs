@@ -85,6 +85,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             return this.buffer.GetRowSpan(x).Slice(startY - this.Top);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Span<Vector4> GetColumnSpan(int x)
+        {
+            return this.buffer.GetRowSpan(x);
+        }
+
         public void Initialize()
         {
             this.Initialize(0, this.windowHeight);

@@ -13,7 +13,7 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
-    class ResizeWindow<TPixel> : IDisposable
+    internal class ResizeWindow<TPixel> : IDisposable
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly Buffer2D<Vector4> buffer;
@@ -36,6 +36,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly Rectangle workingRectangle;
 
+        private readonly int diameter;
+
         public ResizeWindow(
             Configuration configuration,
             BufferArea<TPixel> source,
@@ -54,6 +56,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.verticalKernelMap = verticalKernelMap;
             this.workingRectangle = workingRectangle;
             this.startX = startX;
+
+            this.diameter = verticalKernelMap.MaxDiameter;
+
             this.buffer = configuration.MemoryAllocator.Allocate2D<Vector4>(
                 this.sourceRectangle.Height,
                 destWidth,
@@ -101,6 +106,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     Unsafe.Add(ref firstPassBaseRef, x * this.sourceRectangle.Height) = kernel.Convolve(tempRowSpan);
                 }
             }
+        }
+
+        public void Slide()
+        {
+            throw new InvalidOperationException("Shouldn't happen yet!");
         }
     }
 }

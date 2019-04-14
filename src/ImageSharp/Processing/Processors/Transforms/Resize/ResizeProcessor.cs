@@ -262,6 +262,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     // Ensure offsets are normalized for cropping and padding.
                     ResizeKernel kernel = this.verticalKernelMap.GetKernel(y - startY);
 
+                    if (kernel.Left + kernel.Length > resizeWindow.Bottom)
+                    {
+                        resizeWindow.Slide();
+                    }
+
                     ref Vector4 tempRowBase = ref MemoryMarshal.GetReference(tempColSpan);
 
                     for (int x = 0; x < width; x++)

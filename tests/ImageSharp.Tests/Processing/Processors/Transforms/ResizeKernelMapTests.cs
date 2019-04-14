@@ -93,7 +93,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             GenerateImageResizeData();
 
 
-        [Theory(Skip = "Only for debugging and development")]
+        [Theory(
+            Skip = "Only for debugging and development"
+            )]
         [MemberData(nameof(KernelMapData))]
         public void PrintNonNormalizedKernelMap(string resamplerName, int srcSize, int destSize)
         {
@@ -130,7 +132,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             var referenceMap = ReferenceKernelMap.Calculate(resampler, destSize, srcSize);
             var kernelMap = ResizeKernelMap.Calculate(resampler, destSize, srcSize, Configuration.Default.MemoryAllocator);
 
+            
+
 #if DEBUG
+            this.Output.WriteLine(kernelMap.Info);
             this.Output.WriteLine($"Expected KernelMap:\n{PrintKernelMap(referenceMap)}\n");
             this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");
 #endif

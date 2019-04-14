@@ -5,6 +5,7 @@ using System;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -37,19 +38,23 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
         
         [Theory]
-        [WithBasicTestPatternImages(15, 12, PixelTypes.Rgba32)]
-        public void Resize_BasicSmall<TPixel>(TestImageProvider<TPixel> provider)
+        [WithBasicTestPatternImages(15, 12, PixelTypes.Rgba32, 2, 3, 1, 2)]
+        [WithBasicTestPatternImages(2, 256, PixelTypes.Rgba32, 1, 1, 1, 8)]
+        [WithBasicTestPatternImages(2, 32, PixelTypes.Rgba32, 1, 1, 1, 2)]
+        public void Resize_BasicSmall<TPixel>(TestImageProvider<TPixel> provider, int wN, int wD, int hN, int hD)
             where TPixel : struct, IPixel<TPixel>
         {
             // Basic test case, very helpful for debugging
+            // [WithBasicTestPatternImages(15, 12, PixelTypes.Rgba32, 2, 3, 1, 2)] means:
             // resizing: (15, 12) -> (10, 6)
             // kernel dimensions: (3, 4)
 
             using (Image<TPixel> image = provider.GetImage())
             {
-                var destSize = new Size(image.Width * 2 / 3, image.Height / 2);
+                var destSize = new Size(image.Width * wN / wD, image.Height * hN / hD);
                 image.Mutate(x => x.Resize(destSize, KnownResamplers.Bicubic, false));
-                image.DebugSave(provider);
+                FormattableString outputInfo = $"({wN}÷{wD},{hN}÷{hD})";
+                image.DebugSave(provider, outputInfo);
             }
         }
 

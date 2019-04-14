@@ -151,8 +151,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                     referenceKernel.Length == kernel.Length,
                     $"referenceKernel.Length != kernel.Length: {referenceKernel.Length} != {kernel.Length}");
                 Assert.True(
-                    referenceKernel.Left == kernel.Left,
-                    $"referenceKernel.Left != kernel.Left: {referenceKernel.Left} != {kernel.Left}");
+                    referenceKernel.Left == kernel.StartIndex,
+                    $"referenceKernel.Left != kernel.Left: {referenceKernel.Left} != {kernel.StartIndex}");
                 float[] expectedValues = referenceKernel.Values;
                 Span<float> actualValues = kernel.Values;
 

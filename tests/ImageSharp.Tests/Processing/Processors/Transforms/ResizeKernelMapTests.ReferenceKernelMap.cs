@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
             public static implicit operator ReferenceKernel(ResizeKernel orig)
             {
-                return new ReferenceKernel(orig.Left, orig.Values.ToArray());
+                return new ReferenceKernel(orig.StartIndex, orig.Values.ToArray());
             }
         }
     }

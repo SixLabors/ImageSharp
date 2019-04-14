@@ -1,13 +1,13 @@
-﻿namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces
+﻿using BenchmarkDotNet.Attributes;
+
+using Colourful;
+using Colourful.Conversion;
+
+using SixLabors.ImageSharp.ColorSpaces;
+using SixLabors.ImageSharp.ColorSpaces.Conversion;
+
+namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces
 {
-    using BenchmarkDotNet.Attributes;
-
-    using Colourful;
-    using Colourful.Conversion;
-
-    using SixLabors.ImageSharp.ColorSpaces;
-    using SixLabors.ImageSharp.ColorSpaces.Conversion;
-
     public class RgbWorkingSpaceAdapt
     {
         private static readonly Rgb Rgb = new Rgb(0.206162F, 0.260277F, 0.746717F, RgbWorkingSpaces.WideGamutRgb);
@@ -17,7 +17,6 @@
         private static readonly ColorSpaceConverter ColorSpaceConverter = new ColorSpaceConverter(new ColorSpaceConverterOptions { TargetRgbWorkingSpace = RgbWorkingSpaces.SRgb });
 
         private static readonly ColourfulConverter ColourfulConverter = new ColourfulConverter { TargetRGBWorkingSpace = RGBWorkingSpaces.sRGB };
-
 
         [Benchmark(Baseline = true, Description = "Colourful Adapt")]
         public RGBColor ColourfulConvert()

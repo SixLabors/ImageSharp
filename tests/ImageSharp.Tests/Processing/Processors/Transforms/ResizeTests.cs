@@ -102,6 +102,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             // [WithBasicTestPatternImages(15, 12, PixelTypes.Rgba32, 2, 3, 1, 2)] means:
             // resizing: (15, 12) -> (10, 6)
             // kernel dimensions: (3, 4)
+            
 
             using (Image<TPixel> image = provider.GetImage())
             {

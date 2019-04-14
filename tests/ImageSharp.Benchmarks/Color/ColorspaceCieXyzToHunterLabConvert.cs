@@ -1,13 +1,13 @@
-﻿namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces
+﻿using BenchmarkDotNet.Attributes;
+
+using Colourful;
+using Colourful.Conversion;
+
+using SixLabors.ImageSharp.ColorSpaces;
+using SixLabors.ImageSharp.ColorSpaces.Conversion;
+
+namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces
 {
-    using BenchmarkDotNet.Attributes;
-
-    using Colourful;
-    using Colourful.Conversion;
-
-    using SixLabors.ImageSharp.ColorSpaces;
-    using SixLabors.ImageSharp.ColorSpaces.Conversion;
-
     public class ColorspaceCieXyzToHunterLabConvert
     {
         private static readonly CieXyz CieXyz = new CieXyz(0.95047F, 1, 1.08883F);
@@ -17,7 +17,6 @@
         private static readonly ColorSpaceConverter ColorSpaceConverter = new ColorSpaceConverter();
 
         private static readonly ColourfulConverter ColourfulConverter = new ColourfulConverter();
-
 
         [Benchmark(Baseline = true, Description = "Colourful Convert")]
         public double ColourfulConvert()

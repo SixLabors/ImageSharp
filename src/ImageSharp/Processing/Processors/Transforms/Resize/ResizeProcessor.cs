@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int startY = this.TargetRectangle.Y;
             int startX = this.TargetRectangle.X;
 
-            var workingRect = Rectangle.Intersect(
+            var destWorkingRect = Rectangle.Intersect(
                 this.TargetRectangle,
                 new Rectangle(0, 0, width, height));
 
@@ -208,7 +208,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 float heightFactor = sourceRectangle.Height / (float)this.TargetRectangle.Height;
 
                 ParallelHelper.IterateRows(
-                    workingRect,
+                    destWorkingRect,
                     configuration,
                     rows =>
                     {
@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                 source.GetPixelRowSpan((int)(((y - startY) * heightFactor) + sourceY));
                             Span<TPixel> targetRow = destination.GetPixelRowSpan(y);
 
-                            for (int x = workingRect.Left; x < workingRect.Right; x++)
+                            for (int x = destWorkingRect.Left; x < destWorkingRect.Right; x++)
                             {
                                 // X coordinates of source points
                                 targetRow[x] = sourceRow[(int)(((x - startX) * widthFactor) + sourceX)];
@@ -248,7 +248,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 this.horizontalKernelMap,
                 this.verticalKernelMap,
                 width,
-                workingRect,
+                destWorkingRect,
                 startX))
             using (IMemoryOwner<Vector4> tempBuffer = source.MemoryAllocator.Allocate<Vector4>(width))
             {
@@ -257,12 +257,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 // Now process the rows.
                 Span<Vector4> tempColSpan = tempBuffer.GetSpan();
 
-                for (int y = workingRect.Top; y < workingRect.Bottom; y++)
+                for (int y = destWorkingRect.Top; y < destWorkingRect.Bottom; y++)
                 {
                     // Ensure offsets are normalized for cropping and padding.
                     ResizeKernel kernel = this.verticalKernelMap.GetKernel(y - startY);
 
-                    if (kernel.Left + kernel.Length > resizeWindow.Bottom)
+                    if (kernel.StartIndex + kernel.Length > resizeWindow.Bottom)
                     {
                         resizeWindow.Slide();
                     }
@@ -271,10 +271,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                     for (int x = 0; x < width; x++)
                     {
-                        Span<Vector4> firstPassColumn = resizeWindow.GetColumnSpan(x);
+                        Span<Vector4> firstPassColumn = resizeWindow.GetColumnSpan(x, kernel.StartIndex);
+                        ref Vector4 rowStartReference = ref MemoryMarshal.GetReference(firstPassColumn);
 
                         // Destination color components
-                        Unsafe.Add(ref tempRowBase, x) = kernel.Convolve(firstPassColumn);
+                        Unsafe.Add(ref tempRowBase, x) = kernel.ConvolveCore(ref rowStartReference);
                     }
 
                     Span<TPixel> targetRowSpan = destination.GetPixelRowSpan(y);

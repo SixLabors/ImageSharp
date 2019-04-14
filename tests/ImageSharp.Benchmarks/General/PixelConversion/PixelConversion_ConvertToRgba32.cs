@@ -1,7 +1,4 @@
-﻿// ReSharper disable InconsistentNaming
-
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.CompilerServices;
 
 using BenchmarkDotNet.Attributes;
 

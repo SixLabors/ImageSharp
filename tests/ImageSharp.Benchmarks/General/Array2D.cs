@@ -1,16 +1,14 @@
-﻿// <copyright file="Array2D.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using System;
+
+using BenchmarkDotNet.Attributes;
+
+using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Benchmarks.General
 {
-    using System;
-
-    using BenchmarkDotNet.Attributes;
-
-    using SixLabors.ImageSharp.Primitives;
-
     /**
      *                                Method | Count |     Mean |    Error |   StdDev | Scaled | ScaledSD |
 -------------------------------------------- |------ |---------:|---------:|---------:|-------:|---------:|

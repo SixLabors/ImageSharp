@@ -38,6 +38,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly int diameter;
 
+        private readonly int windowHeight;
+
         public ResizeWindow(
             Configuration configuration,
             BufferArea<TPixel> source,
@@ -59,15 +61,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             this.diameter = verticalKernelMap.MaxDiameter;
 
+            this.windowHeight = Math.Min(this.sourceRectangle.Height, 2 * this.diameter);
+
             this.buffer = configuration.MemoryAllocator.Allocate2D<Vector4>(
-                this.sourceRectangle.Height,
+                this.windowHeight,
                 destWidth,
                 AllocationOptions.Clean);
             this.tempRowBuffer = configuration.MemoryAllocator.Allocate<Vector4>(this.sourceRectangle.Width);
-
-            this.Top = 0;
-
-            this.Bottom = this.sourceRectangle.Height;
         }
 
         public int Bottom { get; private set; }
@@ -82,21 +82,26 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Span<Vector4> GetColumnSpan(int x, int startY)
         {
-            return this.buffer.GetRowSpan(x).Slice(startY);
+            return this.buffer.GetRowSpan(x).Slice(startY - this.Top);
         }
 
         public void Initialize()
         {
-            this.Initialize(0, this.sourceRectangle.Height);
+            this.Initialize(0, this.windowHeight);
         }
 
         public void Slide()
         {
-            throw new InvalidOperationException("Shouldn't happen yet!");
+            int top = this.Top + this.diameter;
+            int bottom = Math.Min(this.Bottom + this.diameter, this.sourceRectangle.Height);
+            this.Initialize(top, bottom);
         }
 
         private void Initialize(int top, int bottom)
         {
+            this.Top = top;
+            this.Bottom = bottom;
+
             Span<Vector4> tempRowSpan = this.tempRowBuffer.GetSpan();
             for (int y = top; y < bottom; y++)
             {
@@ -108,12 +113,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     tempRowSpan,
                     this.conversionModifiers);
 
-                ref Vector4 firstPassBaseRef = ref this.buffer.Span[y];
+                //ref Vector4 firstPassBaseRef = ref this.buffer.Span[y - top];
+                Span<Vector4> firstPassSpan = this.buffer.Span.Slice(y - top);
 
                 for (int x = this.destWorkingRect.Left; x < this.destWorkingRect.Right; x++)
                 {
                     ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - this.startX);
-                    Unsafe.Add(ref firstPassBaseRef, x * this.sourceRectangle.Height) = kernel.Convolve(tempRowSpan);
+                    firstPassSpan[x * this.windowHeight] = kernel.Convolve(tempRowSpan);
+                    //Unsafe.Add(ref firstPassBaseRef, x * this.sourceRectangle.Height) = kernel.Convolve(tempRowSpan);
                 }
             }
         }

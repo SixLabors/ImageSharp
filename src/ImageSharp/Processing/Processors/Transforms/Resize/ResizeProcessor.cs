@@ -272,10 +272,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     for (int x = 0; x < width; x++)
                     {
                         Span<Vector4> firstPassColumn = resizeWindow.GetColumnSpan(x, kernel.StartIndex);
-                        ref Vector4 rowStartReference = ref MemoryMarshal.GetReference(firstPassColumn);
 
                         // Destination color components
-                        Unsafe.Add(ref tempRowBase, x) = kernel.ConvolveCore(ref rowStartReference);
+                        Unsafe.Add(ref tempRowBase, x) = kernel.ConvolveCore(firstPassColumn);
                     }
 
                     Span<TPixel> targetRowSpan = destination.GetPixelRowSpan(y);

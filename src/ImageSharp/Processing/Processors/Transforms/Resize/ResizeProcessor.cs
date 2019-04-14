@@ -195,19 +195,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int sourceX = sourceRectangle.X;
             int sourceY = sourceRectangle.Y;
             int startY = this.TargetRectangle.Y;
-            int endY = this.TargetRectangle.Bottom;
             int startX = this.TargetRectangle.X;
-            int endX = this.TargetRectangle.Right;
 
-            int minX = Math.Max(0, startX);
-            int maxX = Math.Min(width, endX);
-            int minY = Math.Max(0, startY);
-            int maxY = Math.Min(height, endY);
+            var workingRect = Rectangle.Intersect(
+                this.TargetRectangle,
+                new Rectangle(0, 0, width, height));
 
             if (this.Sampler is NearestNeighborResampler)
             {
-                var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
-
                 // Scaling factors
                 float widthFactor = sourceRectangle.Width / (float)this.TargetRectangle.Width;
                 float heightFactor = sourceRectangle.Height / (float)this.TargetRectangle.Height;
@@ -224,7 +219,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                 source.GetPixelRowSpan((int)(((y - startY) * heightFactor) + sourceY));
                             Span<TPixel> targetRow = destination.GetPixelRowSpan(y);
 
-                            for (int x = minX; x < maxX; x++)
+                            for (int x = workingRect.Left; x < workingRect.Right; x++)
                             {
                                 // X coordinates of source points
                                 targetRow[x] = sourceRow[(int)(((x - startX) * widthFactor) + sourceX)];
@@ -244,29 +239,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
-            //using (Buffer2D<Vector4> firstPassPixelsTransposed = source.MemoryAllocator.Allocate2D<Vector4>(sourceHeight, width))
-
-            using (var resizeWindow = new ResizeWindowOld(
+            using (var resizeWindow = new ResizeWindow(
                 configuration,
                 sourceRectangle,
                 conversionModifiers,
                 this.horizontalKernelMap,
                 this.verticalKernelMap,
-                sourceHeight,
                 width,
-                minX,
-                maxX,
+                workingRect,
                 startX))
-            using (IMemoryOwner<Vector4> tempBuffer = source.MemoryAllocator.Allocate<Vector4>(Math.Max(source.Width, width)))
+            using (IMemoryOwner<Vector4> tempBuffer = source.MemoryAllocator.Allocate<Vector4>(Math.Max(sourceRectangle.Width, width)))
             {
-                Span<Vector4> tempRowSpan = tempBuffer.GetSpan().Slice(sourceX, source.Width - sourceX);
+                Span<Vector4> tempRowSpan = tempBuffer.GetSpan();
 
                 resizeWindow.Initialize(source.PixelBuffer, tempRowSpan);
 
                 // Now process the rows.
                 Span<Vector4> tempColSpan = tempBuffer.GetSpan().Slice(0, width);
 
-                for (int y = minY; y < maxY; y++)
+                for (int y = workingRect.Top; y < workingRect.Bottom; y++)
                 {
                     // Ensure offsets are normalized for cropping and padding.
                     ResizeKernel kernel = this.verticalKernelMap.GetKernel(y - startY);
@@ -297,94 +288,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.horizontalKernelMap = null;
             this.verticalKernelMap?.Dispose();
             this.verticalKernelMap = null;
-        }
-    }
-
-    class ResizeWindowOld : IDisposable
-    {
-        private readonly Buffer2D<Vector4> buffer;
-
-        private readonly Configuration configuration;
-
-        private readonly Rectangle sourceRectangle;
-
-        private readonly PixelConversionModifiers conversionModifiers;
-
-        private readonly ResizeKernelMap horizontalKernelMap;
-
-        private readonly ResizeKernelMap verticalKernelMap;
-
-        private readonly int minX;
-
-        private readonly int maxX;
-
-        private readonly int startX;
-
-        public ResizeWindowOld(
-            Configuration configuration,
-            Rectangle sourceRectangle,
-            PixelConversionModifiers conversionModifiers,
-            ResizeKernelMap horizontalKernelMap,
-            ResizeKernelMap verticalKernelMap,
-            int sourceHeight,
-            int destWidth,
-            int minX,
-            int maxX,
-            int startX)
-        {
-            this.configuration = configuration;
-            this.sourceRectangle = sourceRectangle;
-            this.conversionModifiers = conversionModifiers;
-            this.horizontalKernelMap = horizontalKernelMap;
-            this.verticalKernelMap = verticalKernelMap;
-            this.minX = minX;
-            this.maxX = maxX;
-            this.startX = startX;
-            this.buffer = configuration.MemoryAllocator.Allocate2D<Vector4>(sourceRectangle.Height, destWidth, AllocationOptions.Clean);
-
-            this.Top = sourceRectangle.Top;
-
-            this.Bottom = sourceRectangle.Bottom;
-        }
-
-        public int Top { get; private set; }
-
-        public int Bottom { get; private set; }
-
-        public void Initialize<TPixel>(
-            Buffer2D<TPixel> source,
-            Span<Vector4> tempRowSpan)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            for (int y = this.sourceRectangle.Top; y < this.sourceRectangle.Bottom; y++)
-            {
-                Span<TPixel> sourceRow = source.GetRowSpan(y).Slice(this.sourceRectangle.X);
-
-                PixelOperations<TPixel>.Instance.ToVector4(
-                    this.configuration,
-                    sourceRow,
-                    tempRowSpan,
-                    this.conversionModifiers);
-
-                ref Vector4 firstPassBaseRef = ref this.buffer.Span[y - this.sourceRectangle.Y];
-
-                for (int x = this.minX; x < this.maxX; x++)
-                {
-                    ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - this.startX);
-                    Unsafe.Add(ref firstPassBaseRef, x * this.sourceRectangle.Height) = kernel.Convolve(tempRowSpan);
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<Vector4> GetColumnSpan(int x)
-        {
-            return this.buffer.GetRowSpan(x);
-        }
-
-        public void Dispose()
-        {
-            this.buffer.Dispose();
         }
     }
 }

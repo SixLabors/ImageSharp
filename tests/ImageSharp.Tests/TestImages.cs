@@ -175,6 +175,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string ExifGetString750Transform = "Jpg/issues/issue750-exif-tranform.jpg";
                 public const string ExifGetString750Load = "Jpg/issues/issue750-exif-load.jpg";
                 public const string IncorrectQuality845 = "Jpg/issues/Issue845-Incorrect-Quality99.jpg";
+                public const string IncorrectColorspace855 = "Jpg/issues/issue855-incorrect-colorspace.jpg";
 
                 public static class Fuzz
                 {

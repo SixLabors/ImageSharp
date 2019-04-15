@@ -31,8 +31,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Issues.ExifGetString750Load,
                 TestImages.Jpeg.Issues.ExifGetString750Transform,
 
-                // LibJpeg can open this despite the invalid desity units.
+                // LibJpeg can open this despite the invalid density units.
                 TestImages.Jpeg.Issues.Fuzz.ArgumentOutOfRangeException825B,
+
+                // LibJpeg can open this despite incorrect colorspace metadata.
+                TestImages.Jpeg.Issues.IncorrectColorspace855,
 
                 // High depth images
                 TestImages.Jpeg.Baseline.Testorig12bit,

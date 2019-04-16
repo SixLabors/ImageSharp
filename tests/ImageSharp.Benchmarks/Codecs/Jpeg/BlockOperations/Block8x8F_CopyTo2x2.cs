@@ -364,22 +364,30 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
             ref Vector4 dTopLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset));
             ref Vector4 dBottomLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset + destStride));
 
-            var xyLeft = new Vector4(sLeft.X);
-            xyLeft.Z = sLeft.Y;
-            xyLeft.W = sLeft.Y;
+            var xyLeft = new Vector4(sLeft.X)
+            {
+                Z = sLeft.Y,
+                W = sLeft.Y
+            };
 
-            var zwLeft = new Vector4(sLeft.Z);
-            zwLeft.Z = sLeft.W;
-            zwLeft.W = sLeft.W;
-            
-            var xyRight = new Vector4(sRight.X);
-            xyRight.Z = sRight.Y;
-            xyRight.W = sRight.Y;
+            var zwLeft = new Vector4(sLeft.Z)
+            {
+                Z = sLeft.W,
+                W = sLeft.W
+            };
 
-            var zwRight = new Vector4(sRight.Z);
-            zwRight.Z = sRight.W;
-            zwRight.W = sRight.W;
-            
+            var xyRight = new Vector4(sRight.X)
+            {
+                Z = sRight.Y,
+                W = sRight.Y
+            };
+
+            var zwRight = new Vector4(sRight.Z)
+            {
+                Z = sRight.W,
+                W = sRight.W
+            };
+
             dTopLeft = xyLeft;
             Unsafe.Add(ref dTopLeft, 1) = zwLeft;
             Unsafe.Add(ref dTopLeft, 2) = xyRight;

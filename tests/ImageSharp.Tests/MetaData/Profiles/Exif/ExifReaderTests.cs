@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests

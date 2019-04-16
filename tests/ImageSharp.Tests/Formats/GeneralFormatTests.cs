@@ -27,8 +27,8 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.MetaData.VerticalResolution = 150;
-                image.MetaData.HorizontalResolution = 150;
+                image.Metadata.VerticalResolution = 150;
+                image.Metadata.HorizontalResolution = 150;
                 image.DebugSave(provider);
             }
         }

@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Linq;
 using System.Numerics;
 using SixLabors.ImageSharp.ColorSpaces.Companding;
 using Xunit;
@@ -10,9 +9,7 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Companding
 {
     /// <summary>
-    /// Tests various companding algorithms. Numbers are hand calculated from formulas online.
-    /// TODO: Oddly the formula for converting to/from Rec 2020 and 709 from Wikipedia seems to cause the value to 
-    /// fail a round trip. They're large spaces so this is a surprise. More reading required!!
+    /// Tests various companding algorithms. Expanded numbers are hand calculated from formulas online.
     /// </summary>
     public class CompandingTests
     {
@@ -24,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Companding
             const float input = .667F;
             float e = Rec2020Companding.Expand(input);
             float c = Rec2020Companding.Compress(e);
-            CompandingIsCorrectImpl(e, c, .4484759F, .3937096F);
+            CompandingIsCorrectImpl(e, c, .4484759F, input);
         }
 
         [Fact]
@@ -33,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Companding
             const float input = .667F;
             float e = Rec709Companding.Expand(input);
             float c = Rec709Companding.Compress(e);
-            CompandingIsCorrectImpl(e, c, .4483577F, .3937451F);
+            CompandingIsCorrectImpl(e, c, .4483577F, input);
         }
 
         [Fact]
@@ -42,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Companding
             const float input = .667F;
             float e = SRgbCompanding.Expand(input);
             float c = SRgbCompanding.Compress(e);
-            CompandingIsCorrectImpl(e, c, .40242353F, .667F);
+            CompandingIsCorrectImpl(e, c, .40242353F, input);
         }
 
         [Theory]
@@ -53,7 +50,15 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Companding
         {
             var rnd = new Random(42);
             Vector4[] source = rnd.GenerateRandomVectorArray(length, 0, 1);
-            Vector4[] expected = source.Select(v => SRgbCompanding.Expand(v)).ToArray();
+            var expected = new Vector4[source.Length];
+
+            for (int i = 0; i < source.Length; i++)
+            {
+                Vector4 s = source[i];
+                ref Vector4 e = ref expected[i];
+                SRgbCompanding.Expand(ref s);
+                e = s;
+            }
 
             SRgbCompanding.Expand(source);
 
@@ -68,7 +73,15 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Companding
         {
             var rnd = new Random(42);
             Vector4[] source = rnd.GenerateRandomVectorArray(length, 0, 1);
-            Vector4[] expected = source.Select(v => SRgbCompanding.Compress(v)).ToArray();
+            var expected = new Vector4[source.Length];
+
+            for (int i = 0; i < source.Length; i++)
+            {
+                Vector4 s = source[i];
+                ref Vector4 e = ref expected[i];
+                SRgbCompanding.Compress(ref s);
+                e = s;
+            }
 
             SRgbCompanding.Compress(source);
 
@@ -82,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Companding
             const float input = .667F;
             float e = GammaCompanding.Expand(input, gamma);
             float c = GammaCompanding.Compress(e, gamma);
-            CompandingIsCorrectImpl(e, c, .41027668F, .667F);
+            CompandingIsCorrectImpl(e, c, .41027668F, input);
         }
 
         [Fact]
@@ -91,7 +104,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Companding
             const float input = .667F;
             float e = LCompanding.Expand(input);
             float c = LCompanding.Compress(e);
-            CompandingIsCorrectImpl(e, c, .36236193F, .58908917F);
+            CompandingIsCorrectImpl(e, c, .36236193F, input);
         }
 
         private static void CompandingIsCorrectImpl(float e, float c, float expanded, float compressed)

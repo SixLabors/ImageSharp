@@ -3,7 +3,6 @@
 
 using System;
 using System.IO;
-using System.Linq;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -32,7 +31,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The mime type or null if none found.</returns>
         public static IImageFormat DetectFormat(Configuration config, byte[] data)
         {
-            using (Stream stream = new MemoryStream(data))
+            using (var stream = new MemoryStream(data))
             {
                 return DetectFormat(config, stream);
             }
@@ -118,9 +117,9 @@ namespace SixLabors.ImageSharp
         public static Image<TPixel> Load<TPixel>(Configuration config, byte[] data)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var memoryStream = new MemoryStream(data))
+            using (var steram = new MemoryStream(data))
             {
-                return Load<TPixel>(config, memoryStream);
+                return Load<TPixel>(config, steram);
             }
         }
 
@@ -135,9 +134,9 @@ namespace SixLabors.ImageSharp
         public static Image<TPixel> Load<TPixel>(Configuration config, byte[] data, out IImageFormat format)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var memoryStream = new MemoryStream(data))
+            using (var stream = new MemoryStream(data))
             {
-                return Load<TPixel>(config, memoryStream, out format);
+                return Load<TPixel>(config, stream, out format);
             }
         }
 
@@ -151,9 +150,9 @@ namespace SixLabors.ImageSharp
         public static Image<TPixel> Load<TPixel>(byte[] data, IImageDecoder decoder)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var memoryStream = new MemoryStream(data))
+            using (var stream = new MemoryStream(data))
             {
-                return Load<TPixel>(memoryStream, decoder);
+                return Load<TPixel>(stream, decoder);
             }
         }
 

@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// This type contains the PostScript product name to which this profile

@@ -2,13 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 
 namespace SixLabors.ImageSharp
 {
     /// <summary>
     /// Encapsulates properties that describe basic image information including dimensions, pixel type information
-    /// and additional metadata
+    /// and additional metadata.
     /// </summary>
     public interface IImageInfo
     {
@@ -30,6 +30,6 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the metadata of the image.
         /// </summary>
-        ImageMetaData MetaData { get; }
+        ImageMetadata Metadata { get; }
     }
 }

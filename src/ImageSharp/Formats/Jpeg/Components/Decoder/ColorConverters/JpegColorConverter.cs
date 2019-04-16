@@ -42,8 +42,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         {
             this.ColorSpace = colorSpace;
             this.Precision = precision;
-            this.MaximumValue = (float)Math.Pow(2, precision) - 1;
-            this.HalfValue = (float)Math.Ceiling(this.MaximumValue / 2);
+            this.MaximumValue = MathF.Pow(2, precision) - 1;
+            this.HalfValue = MathF.Ceiling(this.MaximumValue / 2);
         }
 
         /// <summary>

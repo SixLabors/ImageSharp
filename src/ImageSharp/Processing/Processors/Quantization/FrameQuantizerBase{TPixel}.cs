@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             // Collect the palette. Required before the second pass runs.
             TPixel[] palette = this.GetPalette();
             this.paletteVector = new Vector4[palette.Length];
-            PixelOperations<TPixel>.Instance.ToScaledVector4(image.Configuration, palette, this.paletteVector);
+            PixelOperations<TPixel>.Instance.ToVector4(image.Configuration, (ReadOnlySpan<TPixel>)palette, (Span<Vector4>)this.paletteVector, PixelConversionModifiers.Scale);
             var quantizedFrame = new QuantizedFrame<TPixel>(image.MemoryAllocator, width, height, palette);
 
             if (this.Dither)
@@ -96,6 +96,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
 
             return quantizedFrame;
+        }
+
+        /// <inheritdoc/>
+        public virtual void Dispose()
+        {
         }
 
         /// <summary>

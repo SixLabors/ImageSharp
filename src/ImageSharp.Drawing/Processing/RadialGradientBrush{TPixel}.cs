@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Processing
     public sealed class RadialGradientBrush<TPixel> : GradientBrushBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private readonly Point center;
+        private readonly PointF center;
 
         private readonly float radius;
 
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="repetitionMode">Defines how the colors in the gradient are repeated.</param>
         /// <param name="colorStops">the color stops as defined in base class.</param>
         public RadialGradientBrush(
-            Point center,
+            PointF center,
             float radius,
             GradientRepetitionMode repetitionMode,
             params ColorStop<TPixel>[] colorStops)
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <inheritdoc />
         private sealed class RadialGradientBrushApplicator : GradientBrushApplicatorBase
         {
-            private readonly Point center;
+            private readonly PointF center;
 
             private readonly float radius;
 
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Processing
             public RadialGradientBrushApplicator(
                 ImageFrame<TPixel> target,
                 GraphicsOptions options,
-                Point center,
+                PointF center,
                 float radius,
                 ColorStop<TPixel>[] colorStops,
                 GradientRepetitionMode repetitionMode)
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Processing
             /// <param name="x">The X coordinate of the target pixel.</param>
             /// <param name="y">The Y coordinate of the target pixel.</param>
             /// <returns>the position on the color gradient.</returns>
-            protected override float PositionOnGradient(int x, int y)
+            protected override float PositionOnGradient(float x, float y)
             {
                 float distance = (float)Math.Sqrt(Math.Pow(this.center.X - x, 2) + Math.Pow(this.center.Y - y, 2));
                 return distance / this.radius;

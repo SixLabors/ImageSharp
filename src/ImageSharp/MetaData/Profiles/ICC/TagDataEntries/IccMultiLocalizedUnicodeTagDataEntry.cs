@@ -4,7 +4,7 @@
 using System;
 using System.Linq;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// This tag structure contains a set of records each referencing

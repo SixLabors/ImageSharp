@@ -4,7 +4,7 @@
 using System;
 using System.Globalization;
 using System.Numerics;
-using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Tests
 {

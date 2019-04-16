@@ -27,8 +27,8 @@ namespace SixLabors.ImageSharp
         /// <param name="column">The current column.</param>
         /// <param name="minRow">The minimum working area row.</param>
         /// <param name="maxRow">The maximum working area row.</param>
+        /// <param name="minColumn">The minimum working area column.</param>
         /// <param name="maxColumn">The maximum working area column.</param>
-        /// <param name="offsetColumn">The column offset to apply to source sampling.</param>
         public static void Convolve2D<TPixel>(
             in DenseMatrix<float> matrixY,
             in DenseMatrix<float> matrixX,
@@ -38,8 +38,8 @@ namespace SixLabors.ImageSharp
             int column,
             int minRow,
             int maxRow,
-            int maxColumn,
-            int offsetColumn)
+            int minColumn,
+            int maxColumn)
             where TPixel : struct, IPixel<TPixel>
         {
             Vector4 vectorY = default;
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp
             int matrixWidth = matrixY.Columns;
             int radiusY = matrixHeight >> 1;
             int radiusX = matrixWidth >> 1;
-            int sourceOffsetColumnBase = column + offsetColumn;
+            int sourceOffsetColumnBase = column + minColumn;
 
             for (int y = 0; y < matrixHeight; y++)
             {
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp
 
                 for (int x = 0; x < matrixWidth; x++)
                 {
-                    int offsetX = (sourceOffsetColumnBase + x - radiusX).Clamp(offsetColumn, maxColumn);
+                    int offsetX = (sourceOffsetColumnBase + x - radiusX).Clamp(minColumn, maxColumn);
                     var currentColor = sourceRowSpan[offsetX].ToVector4();
                     Vector4Utils.Premultiply(ref currentColor);
 
@@ -84,8 +84,8 @@ namespace SixLabors.ImageSharp
         /// <param name="column">The current column.</param>
         /// <param name="minRow">The minimum working area row.</param>
         /// <param name="maxRow">The maximum working area row.</param>
+        /// <param name="minColumn">The minimum working area column.</param>
         /// <param name="maxColumn">The maximum working area column.</param>
-        /// <param name="offsetColumn">The column offset to apply to source sampling.</param>
         /// <param name="passType">The convolution pass type.</param>
         public static void Convolve<TPixel>(
             in DenseMatrix<float> matrix,
@@ -95,21 +95,21 @@ namespace SixLabors.ImageSharp
             int column,
             int minRow,
             int maxRow,
+            int minColumn,
             int maxColumn,
-            int offsetColumn,
             ConvolutionPassType passType)
             where TPixel : struct, IPixel<TPixel>
         {
             switch (passType)
             {
                 case ConvolutionPassType.Single:
-                    ConvolveSinglePass(matrix, sourcePixels, ref targetRowRef, row, column, minRow, maxRow, maxColumn, offsetColumn);
+                    ConvolveSinglePass(matrix, sourcePixels, ref targetRowRef, row, column, minRow, maxRow, minColumn, maxColumn);
                     break;
                 case ConvolutionPassType.First:
-                    ConvolveFirstPass(matrix, sourcePixels, ref targetRowRef, row, column, minRow, maxRow, maxColumn, offsetColumn);
+                    ConvolveFirstPass(matrix, sourcePixels, ref targetRowRef, row, column, minRow, maxRow, minColumn, maxColumn);
                     break;
                 case ConvolutionPassType.Second:
-                    ConvolveSecondPass(matrix, sourcePixels, ref targetRowRef, row, column, minRow, maxRow, maxColumn, offsetColumn);
+                    ConvolveSecondPass(matrix, sourcePixels, ref targetRowRef, row, column, minRow, maxRow, minColumn, maxColumn);
                     break;
             }
         }
@@ -122,8 +122,8 @@ namespace SixLabors.ImageSharp
             int column,
             int minRow,
             int maxRow,
-            int maxColumn,
-            int offsetColumn)
+            int minColumn,
+            int maxColumn)
             where TPixel : struct, IPixel<TPixel>
         {
             Vector4 vector = default;
@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp
             int matrixWidth = matrix.Columns;
             int radiusY = matrixHeight >> 1;
             int radiusX = matrixWidth >> 1;
-            int sourceOffsetColumnBase = column + offsetColumn;
+            int sourceOffsetColumnBase = column + minColumn;
 
             for (int y = 0; y < matrixHeight; y++)
             {
@@ -140,7 +140,7 @@ namespace SixLabors.ImageSharp
 
                 for (int x = 0; x < matrixWidth; x++)
                 {
-                    int offsetX = (sourceOffsetColumnBase + x - radiusX).Clamp(offsetColumn, maxColumn);
+                    int offsetX = (sourceOffsetColumnBase + x - radiusX).Clamp(minColumn, maxColumn);
                     var currentColor = sourceRowSpan[offsetX].ToVector4();
                     Vector4Utils.Premultiply(ref currentColor);
 
@@ -162,8 +162,8 @@ namespace SixLabors.ImageSharp
             int column,
             int minRow,
             int maxRow,
-            int maxColumn,
-            int offsetColumn)
+            int minColumn,
+            int maxColumn)
             where TPixel : struct, IPixel<TPixel>
         {
             Vector4 vector = default;
@@ -171,7 +171,7 @@ namespace SixLabors.ImageSharp
             int matrixWidth = matrix.Columns;
             int radiusY = matrixHeight >> 1;
             int radiusX = matrixWidth >> 1;
-            int sourceOffsetColumnBase = column + offsetColumn;
+            int sourceOffsetColumnBase = column + minColumn;
 
             for (int y = 0; y < matrixHeight; y++)
             {
@@ -180,7 +180,7 @@ namespace SixLabors.ImageSharp
 
                 for (int x = 0; x < matrixWidth; x++)
                 {
-                    int offsetX = (sourceOffsetColumnBase + x - radiusX).Clamp(offsetColumn, maxColumn);
+                    int offsetX = (sourceOffsetColumnBase + x - radiusX).Clamp(minColumn, maxColumn);
                     var currentColor = sourceRowSpan[offsetX].ToVector4();
                     Vector4Utils.Premultiply(ref currentColor);
 
@@ -188,6 +188,7 @@ namespace SixLabors.ImageSharp
                 }
             }
 
+            // No need to unpremultiply. Handled in second pass.
             Unsafe.Add(ref targetRowRef, column) = vector;
         }
 
@@ -199,8 +200,8 @@ namespace SixLabors.ImageSharp
             int column,
             int minRow,
             int maxRow,
-            int maxColumn,
-            int offsetColumn)
+            int minColumn,
+            int maxColumn)
             where TPixel : struct, IPixel<TPixel>
         {
             Vector4 vector = default;
@@ -208,7 +209,7 @@ namespace SixLabors.ImageSharp
             int matrixWidth = matrix.Columns;
             int radiusY = matrixHeight >> 1;
             int radiusX = matrixWidth >> 1;
-            int sourceOffsetColumnBase = column + offsetColumn;
+            int sourceOffsetColumnBase = column + minColumn;
 
             for (int y = 0; y < matrixHeight; y++)
             {
@@ -217,7 +218,9 @@ namespace SixLabors.ImageSharp
 
                 for (int x = 0; x < matrixWidth; x++)
                 {
-                    int offsetX = (sourceOffsetColumnBase + x - radiusX).Clamp(offsetColumn, maxColumn);
+                    int offsetX = (sourceOffsetColumnBase + x - radiusX).Clamp(minColumn, maxColumn);
+
+                    // No need to premultiply. Handled in first pass.
                     var currentColor = sourceRowSpan[offsetX].ToVector4();
                     vector += matrix[y, x] * currentColor;
                 }

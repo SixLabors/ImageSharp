@@ -90,8 +90,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                         x,
                                         startY,
                                         maxY,
-                                        maxX,
-                                        startX);
+                                        startX,
+                                        maxX);
                                 }
 
                                 PixelOperations<TPixel>.Instance.FromVector4(configuration, vectorSpan, targetRowSpan);

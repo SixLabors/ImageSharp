@@ -110,8 +110,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                     x,
                                     startY,
                                     maxY,
-                                    maxX,
                                     startX,
+                                    maxX,
                                     passType);
                             }
 

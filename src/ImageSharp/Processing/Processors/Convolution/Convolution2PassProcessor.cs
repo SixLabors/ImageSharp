@@ -108,6 +108,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                     ref vectorSpanRef,
                                     y,
                                     x,
+                                    startY,
                                     maxY,
                                     maxX,
                                     startX,

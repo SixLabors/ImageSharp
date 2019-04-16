@@ -25,6 +25,7 @@ namespace SixLabors.ImageSharp
         /// <param name="targetRowRef">The target row base reference.</param>
         /// <param name="row">The current row.</param>
         /// <param name="column">The current column.</param>
+        /// <param name="minRow">The minimum working area row.</param>
         /// <param name="maxRow">The maximum working area row.</param>
         /// <param name="maxColumn">The maximum working area column.</param>
         /// <param name="offsetColumn">The column offset to apply to source sampling.</param>
@@ -35,6 +36,7 @@ namespace SixLabors.ImageSharp
             ref Vector4 targetRowRef,
             int row,
             int column,
+            int minRow,
             int maxRow,
             int maxColumn,
             int offsetColumn)
@@ -50,7 +52,7 @@ namespace SixLabors.ImageSharp
 
             for (int y = 0; y < matrixHeight; y++)
             {
-                int offsetY = (row + y - radiusY).Clamp(0, maxRow);
+                int offsetY = (row + y - radiusY).Clamp(minRow, maxRow);
                 Span<TPixel> sourceRowSpan = sourcePixels.GetRowSpan(offsetY);
 
                 for (int x = 0; x < matrixWidth; x++)
@@ -80,6 +82,7 @@ namespace SixLabors.ImageSharp
         /// <param name="targetRowRef">The target row base reference.</param>
         /// <param name="row">The current row.</param>
         /// <param name="column">The current column.</param>
+        /// <param name="minRow">The minimum working area row.</param>
         /// <param name="maxRow">The maximum working area row.</param>
         /// <param name="maxColumn">The maximum working area column.</param>
         /// <param name="offsetColumn">The column offset to apply to source sampling.</param>
@@ -90,6 +93,7 @@ namespace SixLabors.ImageSharp
             ref Vector4 targetRowRef,
             int row,
             int column,
+            int minRow,
             int maxRow,
             int maxColumn,
             int offsetColumn,
@@ -99,13 +103,13 @@ namespace SixLabors.ImageSharp
             switch (passType)
             {
                 case ConvolutionPassType.Single:
-                    ConvolveSinglePass(matrix, sourcePixels, ref targetRowRef, row, column, maxRow, maxColumn, offsetColumn);
+                    ConvolveSinglePass(matrix, sourcePixels, ref targetRowRef, row, column, minRow, maxRow, maxColumn, offsetColumn);
                     break;
                 case ConvolutionPassType.First:
-                    ConvolveFirstPass(matrix, sourcePixels, ref targetRowRef, row, column, maxRow, maxColumn, offsetColumn);
+                    ConvolveFirstPass(matrix, sourcePixels, ref targetRowRef, row, column, minRow, maxRow, maxColumn, offsetColumn);
                     break;
                 case ConvolutionPassType.Second:
-                    ConvolveSecondPass(matrix, sourcePixels, ref targetRowRef, row, column, maxRow, maxColumn, offsetColumn);
+                    ConvolveSecondPass(matrix, sourcePixels, ref targetRowRef, row, column, minRow, maxRow, maxColumn, offsetColumn);
                     break;
             }
         }
@@ -116,6 +120,7 @@ namespace SixLabors.ImageSharp
             ref Vector4 targetRowRef,
             int row,
             int column,
+            int minRow,
             int maxRow,
             int maxColumn,
             int offsetColumn)
@@ -130,7 +135,7 @@ namespace SixLabors.ImageSharp
 
             for (int y = 0; y < matrixHeight; y++)
             {
-                int offsetY = (row + y - radiusY).Clamp(0, maxRow);
+                int offsetY = (row + y - radiusY).Clamp(minRow, maxRow);
                 Span<TPixel> sourceRowSpan = sourcePixels.GetRowSpan(offsetY);
 
                 for (int x = 0; x < matrixWidth; x++)
@@ -155,6 +160,7 @@ namespace SixLabors.ImageSharp
             ref Vector4 targetRowRef,
             int row,
             int column,
+            int minRow,
             int maxRow,
             int maxColumn,
             int offsetColumn)
@@ -169,7 +175,7 @@ namespace SixLabors.ImageSharp
 
             for (int y = 0; y < matrixHeight; y++)
             {
-                int offsetY = (row + y - radiusY).Clamp(0, maxRow);
+                int offsetY = (row + y - radiusY).Clamp(minRow, maxRow);
                 Span<TPixel> sourceRowSpan = sourcePixels.GetRowSpan(offsetY);
 
                 for (int x = 0; x < matrixWidth; x++)
@@ -191,6 +197,7 @@ namespace SixLabors.ImageSharp
             ref Vector4 targetRowRef,
             int row,
             int column,
+            int minRow,
             int maxRow,
             int maxColumn,
             int offsetColumn)
@@ -205,7 +212,7 @@ namespace SixLabors.ImageSharp
 
             for (int y = 0; y < matrixHeight; y++)
             {
-                int offsetY = (row + y - radiusY).Clamp(0, maxRow);
+                int offsetY = (row + y - radiusY).Clamp(minRow, maxRow);
                 Span<TPixel> sourceRowSpan = sourcePixels.GetRowSpan(offsetY);
 
                 for (int x = 0; x < matrixWidth; x++)

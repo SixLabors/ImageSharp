@@ -5,14 +5,12 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing.Processors.Filters;
-using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
@@ -28,10 +26,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// Initializes a new instance of the <see cref="EdgeDetectorCompassProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection.</param>
-        protected EdgeDetectorCompassProcessor(bool grayscale)
-        {
-            this.Grayscale = grayscale;
-        }
+        protected EdgeDetectorCompassProcessor(bool grayscale) => this.Grayscale = grayscale;
 
         /// <summary>
         /// Gets the North gradient operator
@@ -104,7 +99,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             // we need a clean copy for each pass to start from
             using (ImageFrame<TPixel> cleanCopy = source.Clone())
             {
-                new ConvolutionProcessor<TPixel>(kernels[0]).Apply(source, sourceRectangle, configuration);
+                new ConvolutionProcessor<TPixel>(kernels[0], true).Apply(source, sourceRectangle, configuration);
 
                 if (kernels.Length == 1)
                 {
@@ -133,7 +128,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 {
                     using (ImageFrame<TPixel> pass = cleanCopy.Clone())
                     {
-                        new ConvolutionProcessor<TPixel>(kernels[i]).Apply(pass, sourceRectangle, configuration);
+                        new ConvolutionProcessor<TPixel>(kernels[i], true).Apply(pass, sourceRectangle, configuration);
 
                         Buffer2D<TPixel> passPixels = pass.PixelBuffer;
                         Buffer2D<TPixel> targetPixels = source.PixelBuffer;
@@ -147,10 +142,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                     {
                                         int offsetY = y - shiftY;
 
-                                        ref TPixel passPixelsBase =
-                                            ref MemoryMarshal.GetReference(passPixels.GetRowSpan(offsetY));
-                                        ref TPixel targetPixelsBase =
-                                            ref MemoryMarshal.GetReference(targetPixels.GetRowSpan(offsetY));
+                                        ref TPixel passPixelsBase = ref MemoryMarshal.GetReference(passPixels.GetRowSpan(offsetY));
+                                        ref TPixel targetPixelsBase = ref MemoryMarshal.GetReference(targetPixels.GetRowSpan(offsetY));
 
                                         for (int x = minX; x < maxX; x++)
                                         {
@@ -158,8 +151,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                                             // Grab the max components of the two pixels
                                             ref TPixel currentPassPixel = ref Unsafe.Add(ref passPixelsBase, offsetX);
-                                            ref TPixel currentTargetPixel =
-                                                ref Unsafe.Add(ref targetPixelsBase, offsetX);
+                                            ref TPixel currentTargetPixel = ref Unsafe.Add(ref targetPixelsBase, offsetX);
 
                                             var pixelValue = Vector4.Max(
                                                 currentPassPixel.ToVector4(),

@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {
     public class DetectEdgesTest : FileTestBase
     {
-        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0456F);
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.1F);
 
         public static readonly string[] CommonTestImages = { TestImages.Png.Bike };
 

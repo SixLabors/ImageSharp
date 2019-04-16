@@ -45,8 +45,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
-        {
-            new ConvolutionProcessor<TPixel>(this.KernelXY).Apply(source, sourceRectangle, configuration);
-        }
+            => new ConvolutionProcessor<TPixel>(this.KernelXY, true).Apply(source, sourceRectangle, configuration);
     }
 }

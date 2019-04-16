@@ -43,7 +43,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         public bool Grayscale { get; set; }
 
         /// <inheritdoc />
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration) => new Convolution2DProcessor<TPixel>(this.KernelX, this.KernelY).Apply(source, sourceRectangle, configuration);
+        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+            => new Convolution2DProcessor<TPixel>(this.KernelX, this.KernelY, true).Apply(source, sourceRectangle, configuration);
 
         /// <inheritdoc/>
         protected override void BeforeFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)

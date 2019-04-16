@@ -24,11 +24,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </summary>
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
-        public Convolution2DProcessor(in DenseMatrix<float> kernelX, in DenseMatrix<float> kernelY)
+        /// <param name="preserveAlpha">Whether the convolution filter is applied to alpha as well as the color channels.</param>
+        public Convolution2DProcessor(in DenseMatrix<float> kernelX, in DenseMatrix<float> kernelY, bool preserveAlpha)
         {
             Guard.IsTrue(kernelX.Size.Equals(kernelY.Size), $"{nameof(kernelX)} {nameof(kernelY)}", "Kernel sizes must be the same.");
             this.KernelX = kernelX;
             this.KernelY = kernelY;
+            this.PreserveAlpha = preserveAlpha;
         }
 
         /// <summary>
@@ -41,6 +43,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </summary>
         public DenseMatrix<float> KernelY { get; }
 
+        /// <summary>
+        /// Gets a value indicating whether the convolution filter is applied to alpha as well as the color channels.
+        /// </summary>
+        public bool PreserveAlpha { get; }
+
         /// <inheritdoc/>
         protected override void OnFrameApply(
             ImageFrame<TPixel> source,
@@ -49,6 +56,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         {
             DenseMatrix<float> matrixY = this.KernelY;
             DenseMatrix<float> matrixX = this.KernelX;
+            bool preserveAlpha = this.PreserveAlpha;
 
             var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
             int startY = interest.Y;
@@ -91,7 +99,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                         startY,
                                         maxY,
                                         startX,
-                                        maxX);
+                                        maxX,
+                                        preserveAlpha);
                                 }
 
                                 PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan, targetRowSpan);

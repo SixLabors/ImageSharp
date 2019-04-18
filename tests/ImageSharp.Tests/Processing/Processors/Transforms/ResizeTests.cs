@@ -36,6 +36,25 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.07F);
 
         [Theory]
+        [InlineData(20, 100, 1, 2)]
+        [InlineData(20, 100, 20*100*16, 2)]
+        [InlineData(20, 100, 40*100*16, 2)]
+        [InlineData(20, 100, 59*100*16, 2)]
+        [InlineData(20, 100, 60*100*16, 3)]
+        [InlineData(17, 63, 5*17*63*16, 5)]
+        [InlineData(17, 63, 5*17*63*16+1, 5)]
+        [InlineData(17, 63, 6*17*63*16-1, 5)]
+        public void CalculateResizeWorkerWindowCount(
+            int windowDiameter,
+            int width,
+            int sizeLimitHintInBytes,
+            int expectedCount)
+        {
+            int actualCount = ResizeHelper.CalculateResizeWorkerWindowCount(windowDiameter, width, sizeLimitHintInBytes);
+            Assert.Equal(expectedCount, actualCount);
+        }
+        
+        [Theory]
         [InlineData(-2, 0)]
         [InlineData(-1, 0)]
         [InlineData(0, 1)]

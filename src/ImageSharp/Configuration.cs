@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp
@@ -103,6 +104,15 @@ namespace SixLabors.ImageSharp
         internal IFileSystem FileSystem { get; set; } = new LocalFileSystem();
 
         /// <summary>
+        /// Gets or sets the working buffer size hint for image processors.
+        /// The default value is 1MB.
+        /// </summary>
+        /// <remarks>
+        /// Currently only used by <see cref="ResizeProcessor{TPixel}"/>.
+        /// </remarks>
+        internal int WorkingBufferSizeHintInBytes { get; set; } = 1 * 1024 * 1024;
+
+        /// <summary>
         /// Gets or sets the image operations provider factory.
         /// </summary>
         internal IImageProcessingContextFactory ImageOperationsProvider { get; set; } = new DefaultImageOperationsProviderFactory();
@@ -130,7 +140,8 @@ namespace SixLabors.ImageSharp
                 MemoryAllocator = this.MemoryAllocator,
                 ImageOperationsProvider = this.ImageOperationsProvider,
                 ReadOrigin = this.ReadOrigin,
-                FileSystem = this.FileSystem
+                FileSystem = this.FileSystem,
+                WorkingBufferSizeHintInBytes = this.WorkingBufferSizeHintInBytes,
             };
         }
 

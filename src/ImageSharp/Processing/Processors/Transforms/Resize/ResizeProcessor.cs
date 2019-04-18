@@ -237,11 +237,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             BufferArea<TPixel> sourceArea = source.PixelBuffer.GetArea(sourceRectangle);
 
-            // Interpolate the image using the calculated weights.
-            // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm
-            // First process the columns. Since we are not using multiple threads startY and endY
-            // are the upper and lower bounds of the source rectangle.
-            using (var resizeWindow = new ResizeWindow<TPixel>(
+            // If we want to reintroduce processing:
+            // it's possible to launch multiple workers for different regions of the image
+            using (var worker = new ResizeWorker<TPixel>(
                 configuration,
                 sourceArea,
                 conversionModifiers,
@@ -250,39 +248,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 width,
                 destWorkingRect,
                 startX))
-            using (IMemoryOwner<Vector4> tempBuffer = source.MemoryAllocator.Allocate<Vector4>(width))
             {
-                resizeWindow.Initialize();
-
-                // Now process the rows.
-                Span<Vector4> tempColSpan = tempBuffer.GetSpan();
-
-                for (int y = destWorkingRect.Top; y < destWorkingRect.Bottom; y++)
-                {
-                    // Ensure offsets are normalized for cropping and padding.
-                    ResizeKernel kernel = this.verticalKernelMap.GetKernel(y - startY);
-
-                    while (kernel.StartIndex + kernel.Length > resizeWindow.Bottom)
-                    {
-                        resizeWindow.Slide();
-                    }
-
-                    ref Vector4 tempRowBase = ref MemoryMarshal.GetReference(tempColSpan);
-
-                    int top = kernel.StartIndex - resizeWindow.Top;
-
-                    for (int x = 0; x < width; x++)
-                    {
-                        Span<Vector4> firstPassColumn = resizeWindow.GetColumnSpan(x).Slice(top);
-
-                        // Destination color components
-                        Unsafe.Add(ref tempRowBase, x) = kernel.ConvolveCore(firstPassColumn);
-                    }
-
-                    Span<TPixel> targetRowSpan = destination.GetPixelRowSpan(y);
-
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, tempColSpan, targetRowSpan, conversionModifiers);
-                }
+                worker.Initialize();
+                worker.FillDestinationPixels(destWorkingRect.Top, destWorkingRect.Bottom, startY, destination.PixelBuffer);
             }
         }
 

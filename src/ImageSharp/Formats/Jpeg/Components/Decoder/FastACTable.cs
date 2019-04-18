@@ -19,11 +19,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="huffmanTable">The AC Huffman table.</param>
         public void Derive(ref HuffmanTable huffmanTable)
         {
-            const int FastBits = ScanDecoder.FastBits;
+            const int FastBits = 9;
             ref short fastACRef = ref this.Lookahead[0];
             ref byte huffmanLookaheadRef = ref huffmanTable.LookaheadValue[0];
             ref byte huffmanValuesRef = ref huffmanTable.Values[0];
-            ref short huffmanSizesRef = ref huffmanTable.Sizes[0];
+            ref byte huffmanSizesRef = ref huffmanTable.Sizes[0];
 
             int i;
             for (i = 0; i < (1 << FastBits); i++)

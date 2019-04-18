@@ -600,7 +600,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 return true;
             }
 
-            if (this.jpegBuffer.remain < 40)
+            if (this.jpegBuffer.remain < 56)
             {
                 this.jpegBuffer.FillBuffer();
             }
@@ -753,11 +753,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     }
 
 #pragma warning disable CS0675 // Bitwise-or operator used on a sign-extended operand
-                    this.data = (this.data << 48) | (ulong)b; // Can never be < 0 at this point.
+                    this.data = (this.data << 8) | (ulong)b; // Can never be < 0 at this point.
 #pragma warning restore CS0675 // Bitwise-or operator used on a sign-extended operand
                     this.remain += 8;
                 }
-                while (this.remain <= 40);
+                while (this.remain <= 56);
             }
         }
     }

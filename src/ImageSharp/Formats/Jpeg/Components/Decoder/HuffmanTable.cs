@@ -21,14 +21,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private readonly MemoryAllocator memoryAllocator;
 
-#pragma warning disable IDE0044 // Add readonly modifier
-        private fixed byte codeLengths[17];
-#pragma warning restore IDE0044 // Add readonly modifier
-
         /// <summary>
         /// Gets the sizes array
         /// </summary>
-        public fixed short Sizes[17];
+        public fixed byte Sizes[17];
 
         /// <summary>
         /// Gets the huffman value array.
@@ -65,7 +61,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             this.isDerived = false;
             this.memoryAllocator = memoryAllocator;
-            Unsafe.CopyBlockUnaligned(ref this.codeLengths[0], ref MemoryMarshal.GetReference(codeLengths), (uint)codeLengths.Length);
+            Unsafe.CopyBlockUnaligned(ref this.Sizes[0], ref MemoryMarshal.GetReference(codeLengths), (uint)codeLengths.Length);
             Unsafe.CopyBlockUnaligned(ref this.Values[0], ref MemoryMarshal.GetReference(values), (uint)values.Length);
         }
 
@@ -141,20 +137,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             // fill in all the entries that correspond to bit sequences starting
             // with that code.
             ref byte lookupSizeRef = ref this.LookaheadSize[0];
-            Unsafe.InitBlockUnaligned(ref lookupSizeRef, HuffmanScanDecoder.JPEG_HUFF_LOOKUP_BITS + 1, HuffmanScanDecoder.JPEG_HUFF_LOOKUP_SIZE);
+            Unsafe.InitBlockUnaligned(ref lookupSizeRef, (byte)(HuffmanScanDecoder.JPEG_HUFF_LOOKUP_BITS + 1), (uint)HuffmanScanDecoder.JPEG_HUFF_LOOKUP_SIZE);
 
             p = 0;
-            for (int l = 1; l <= HuffmanScanDecoder.JPEG_HUFF_LOOKUP_BITS; l++)
+            for (int length = 1; length <= HuffmanScanDecoder.JPEG_HUFF_LOOKUP_BITS; length++)
             {
-                for (int i = 1; i <= (int)this.Sizes[l]; i++, p++)
+                for (int i = 1; i <= (int)this.Sizes[length]; i++, p++)
                 {
-                    // l = current code's length, p = its index in huffcode[] & huffval[].
+                    // length = current code's length, p = its index in huffcode[] & huffval[].
                     // Generate left-justified code followed by all possible bit sequences
-                    int lookbits = (int)(huffcode[p] << (HuffmanScanDecoder.JPEG_HUFF_LOOKUP_BITS - l));
-                    for (int ctr = 1 << (HuffmanScanDecoder.JPEG_HUFF_LOOKUP_BITS - l); ctr > 0; ctr--)
+                    int lookbits = (int)(huffcode[p] << (HuffmanScanDecoder.JPEG_HUFF_LOOKUP_BITS - length));
+                    for (int ctr = 1 << (HuffmanScanDecoder.JPEG_HUFF_LOOKUP_BITS - length); ctr > 0; ctr--)
                     {
-                        this.LookaheadSize[lookbits] = (byte)l;
-                        this.LookaheadValue[lookbits] = this.Values[p];
+                        this.LookaheadSize[lookbits] = (byte)length;
+                        byte vv = this.Values[p];
+                        this.LookaheadValue[lookbits] = vv;
                         lookbits++;
                     }
                 }

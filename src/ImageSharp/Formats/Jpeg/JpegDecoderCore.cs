@@ -937,7 +937,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int spectralEnd = this.temp[1];
             int successiveApproximation = this.temp[2];
 
-            var sd = new ScanDecoder(
+            var sd = new HuffmanScanDecoder(
                 this.InputStream,
                 this.Frame,
                 this.dcHuffmanTables,

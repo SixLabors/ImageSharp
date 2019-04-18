@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             const int FastBits = ScanDecoder.FastBits;
             ref short fastACRef = ref this.Lookahead[0];
-            ref byte huffmanLookaheadRef = ref huffmanTable.Lookahead[0];
+            ref byte huffmanLookaheadRef = ref huffmanTable.LookaheadValue[0];
             ref byte huffmanValuesRef = ref huffmanTable.Values[0];
             ref short huffmanSizesRef = ref huffmanTable.Sizes[0];
 

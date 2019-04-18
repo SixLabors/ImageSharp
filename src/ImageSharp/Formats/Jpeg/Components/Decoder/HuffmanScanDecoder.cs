@@ -11,19 +11,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <summary>
     /// Decodes the Huffman encoded spectral scan.
-    /// Originally ported from <see href="https://github.com/rds1983/StbSharp"/>
+    /// Originally ported from <see href="https://github.com/t0rakka/mango"/>
     /// with additional fixes for both performance and common encoding errors.
     /// </summary>
-    internal class ScanDecoder
+    internal class HuffmanScanDecoder
     {
-        // The number of bits that can be read via a LUT.
-        public const int FastBits = 9;
+        public const int JPEG_REGISTER_SIZE = 64;
 
-        // LUT mask for n rightmost bits. Bmask[n] = (1 << n) - 1
-        private static readonly uint[] Bmask = { 0, 1, 3, 7, 15, 31, 63, 127, 255, 511, 1023, 2047, 4095, 8191, 16383, 32767, 65535 };
+        // Huffman look-ahead table log2 size
+        public const int JPEG_HUFF_LOOKUP_BITS = 8;
 
-        // LUT Bias[n] = (-1 << n) + 1
-        private static readonly int[] Bias = { 0, -1, -3, -7, -15, -31, -63, -127, -255, -511, -1023, -2047, -4095, -8191, -16383, -32767 };
+        public const int JPEG_HUFF_LOOKUP_SIZE = 1 << JPEG_HUFF_LOOKUP_BITS;
 
         private readonly JpegFrame frame;
         private readonly HuffmanTable[] dcHuffmanTables;
@@ -31,6 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private readonly FastACTable[] fastACTables;
 
         private readonly DoubleBufferedStreamReader stream;
+        private JpegBuffer jpegBuffer;
         private readonly JpegComponent[] components;
         private readonly ZigZag dctZigZag;
 
@@ -52,27 +51,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         // The successive approximation low bit end.
         private readonly int successiveLow;
 
-        // The number of valid bits left to read in the buffer.
-        private int codeBits;
-
-        // The entropy encoded code buffer.
-        private uint codeBuffer;
-
-        // Whether there is more data to pull from the stream for the current mcu.
-        private bool nomore;
-
-        // Whether we have prematurely reached the end of the file.
-        private bool eof;
-
-        // The current, if any, marker in the input stream.
-        private byte marker;
-
-        // Whether we have a bad marker, I.E. One that is not between RST0 and RST7
-        private bool badMarker;
-
-        // The opening position of an identified marker.
-        private long markerPosition;
-
         // How many mcu's are left to do.
         private int todo;
 
@@ -80,7 +58,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private int eobrun;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ScanDecoder"/> class.
+        /// Initializes a new instance of the <see cref="HuffmanScanDecoder"/> class.
         /// </summary>
         /// <param name="stream">The input stream.</param>
         /// <param name="frame">The image frame.</param>
@@ -93,7 +71,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="spectralEnd">The spectral selection end.</param>
         /// <param name="successiveHigh">The successive approximation bit high end.</param>
         /// <param name="successiveLow">The successive approximation bit low end.</param>
-        public ScanDecoder(
+        public HuffmanScanDecoder(
             DoubleBufferedStreamReader stream,
             JpegFrame frame,
             HuffmanTable[] dcHuffmanTables,
@@ -108,13 +86,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             this.dctZigZag = ZigZag.CreateUnzigTable();
             this.stream = stream;
+            this.jpegBuffer = new JpegBuffer(stream);
             this.frame = frame;
             this.dcHuffmanTables = dcHuffmanTables;
             this.acHuffmanTables = acHuffmanTables;
             this.fastACTables = fastACTables;
             this.components = frame.Components;
-            this.marker = JpegConstants.Markers.XFF;
-            this.markerPosition = 0;
             this.componentsLength = componentsLength;
             this.restartInterval = restartInterval;
             this.spectralStart = spectralStart;
@@ -139,9 +116,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 this.ParseProgressiveData();
             }
 
-            if (this.badMarker)
+            if (this.jpegBuffer.badMarker)
             {
-                this.stream.Position = this.markerPosition;
+                this.stream.Position = this.jpegBuffer.markerPosition;
             }
         }
 
@@ -212,7 +189,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                             for (int x = 0; x < h; x++)
                             {
-                                if (this.eof)
+                                if (this.jpegBuffer.eof)
                                 {
                                     return;
                                 }
@@ -269,7 +246,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 for (int i = 0; i < w; i++)
                 {
-                    if (this.eof)
+                    if (this.jpegBuffer.eof)
                     {
                         return;
                     }
@@ -397,7 +374,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                             for (int x = 0; x < h; x++)
                             {
-                                if (this.eof)
+                                if (this.jpegBuffer.eof)
                                 {
                                     return;
                                 }
@@ -449,7 +426,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                     for (int i = 0; i < w; i++)
                     {
-                        if (this.eof)
+                        if (this.jpegBuffer.eof)
                         {
                             return;
                         }
@@ -485,7 +462,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                     for (int i = 0; i < w; i++)
                     {
-                        if (this.eof)
+                        if (this.jpegBuffer.eof)
                         {
                             return;
                         }
@@ -513,106 +490,95 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             ref HuffmanTable acTable,
             ref short fastACRef)
         {
-            this.CheckBits();
-            int t = this.DecodeHuffman(ref dcTable);
+            ref short blockDataRef = ref Unsafe.As<Block8x8, short>(ref block);
+            JpegBuffer buffer = this.jpegBuffer;
 
-            if (t < 0)
+            // DC
+            int t = this.DecodeHuffman(ref buffer, ref dcTable);
+            if (t != 0)
             {
-                JpegThrowHelper.ThrowBadHuffmanCode();
+                t = Receive(ref buffer, t);
             }
 
-            ref short blockDataRef = ref Unsafe.As<Block8x8, short>(ref block);
+            t += component.DcPredictor;
+            component.DcPredictor = t;
+            blockDataRef = (short)t;
 
-            int diff = t != 0 ? this.ExtendReceive(t) : 0;
-            int dc = component.DcPredictor + diff;
-            component.DcPredictor = dc;
-            blockDataRef = (short)dc;
-
-            // Decode AC Components, See Jpeg Spec
-            int k = 1;
-            do
+            // AC
+            for (int i = 1; i < 64;)
             {
-                int zig;
-                int s;
+                int s = this.DecodeHuffman(ref buffer, ref acTable);
 
-                this.CheckBits();
-                int c = this.PeekBits();
-                int r = Unsafe.Add(ref fastACRef, c);
+                int r = s >> 4;
+                s &= 15;
 
-                if (r != 0)
+                if (s != 0)
                 {
-                    // Fast AC path
-                    k += (r >> 4) & 15; // Run
-                    s = r & 15; // Combined Length
-                    this.codeBuffer <<= s;
-                    this.codeBits -= s;
-
-                    // Decode into unzigzag location
-                    zig = this.dctZigZag[k++];
-                    Unsafe.Add(ref blockDataRef, zig) = (short)(r >> 8);
+                    i += r;
+                    s = Receive(ref buffer, s);
+                    Unsafe.Add(ref blockDataRef, this.dctZigZag[i++]) = (short)s;
                 }
                 else
                 {
-                    int rs = this.DecodeHuffman(ref acTable);
-
-                    if (rs < 0)
+                    if (r == 0)
                     {
-                        JpegThrowHelper.ThrowBadHuffmanCode();
+                        break;
                     }
 
-                    s = rs & 15;
-                    r = rs >> 4;
-
-                    if (s == 0)
-                    {
-                        if (rs != 0xF0)
-                        {
-                            break; // End block
-                        }
-
-                        k += 16;
-                    }
-                    else
-                    {
-                        k += r;
-
-                        // Decode into unzigzag location
-                        zig = this.dctZigZag[k++];
-                        Unsafe.Add(ref blockDataRef, zig) = (short)this.ExtendReceive(s);
-                    }
+                    i += 16;
                 }
             }
-            while (k < 64);
         }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private unsafe int DecodeHuffman(ref JpegBuffer buffer, ref HuffmanTable h)
+        {
+            buffer.CheckBits();
+            int v = PeekBits(ref buffer, JPEG_HUFF_LOOKUP_BITS);
+            int symbol = h.LookaheadValue[v];
+            int size = h.LookaheadSize[v];
+
+            if (size == JPEG_HUFF_LOOKUP_BITS + 1)
+            {
+                ulong x = this.jpegBuffer.data << (JPEG_REGISTER_SIZE - this.jpegBuffer.remain);
+                while (x > h.MaxCode[size])
+                {
+                    size++;
+                }
+
+                v = (int)(x >> (JPEG_REGISTER_SIZE - size));
+                symbol = h.Values[h.ValOffset[size] + v];
+            }
+
+            buffer.remain -= size;
+
+            return symbol;
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static int Receive(ref JpegBuffer buffer, int nbits)
+        {
+            buffer.CheckBits();
+            return Extend(GetBits(ref buffer, nbits), nbits);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static int Extend(int v, int nbits) => v - ((((v + v) >> nbits) - 1) & ((1 << nbits) - 1));
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static int GetBits(ref JpegBuffer buffer, int nbits) => (int)ExtractBits(buffer.data, buffer.remain -= nbits, nbits);
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static int PeekBits(ref JpegBuffer buffer, int nbits) => (int)ExtractBits(buffer.data, buffer.remain - nbits, nbits);
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static ulong ExtractBits(ulong value, int offset, int size) => (value >> offset) & (ulong)((1 << size) - 1);
 
         private void DecodeBlockProgressiveDC(
             JpegComponent component,
             ref Block8x8 block,
             ref HuffmanTable dcTable)
         {
-            this.CheckBits();
-
-            ref short blockDataRef = ref Unsafe.As<Block8x8, short>(ref block);
-
-            if (this.successiveHigh == 0)
-            {
-                // First scan for DC coefficient, must be first
-                int t = this.DecodeHuffman(ref dcTable);
-                int diff = t != 0 ? this.ExtendReceive(t) : 0;
-
-                int dc = component.DcPredictor + diff;
-                component.DcPredictor = dc;
-
-                blockDataRef = (short)(dc << this.successiveLow);
-            }
-            else
-            {
-                // Refinement scan for DC coefficient
-                if (this.GetBit() != 0)
-                {
-                    blockDataRef += (short)(1 << this.successiveLow);
-                }
-            }
         }
 
         private void DecodeBlockProgressiveAC(
@@ -620,381 +586,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             ref HuffmanTable acTable,
             ref short fastACRef)
         {
-            ref short blockDataRef = ref Unsafe.As<Block8x8, short>(ref block);
-
-            if (this.successiveHigh == 0)
-            {
-                // MCU decoding for AC initial scan (either spectral selection,
-                // or first pass of successive approximation).
-                int shift = this.successiveLow;
-
-                if (this.eobrun != 0)
-                {
-                    this.eobrun--;
-                    return;
-                }
-
-                int k = this.spectralStart;
-                do
-                {
-                    int zig;
-                    int s;
-
-                    this.CheckBits();
-                    int c = this.PeekBits();
-                    int r = Unsafe.Add(ref fastACRef, c);
-
-                    if (r != 0)
-                    {
-                        // Fast AC path
-                        k += (r >> 4) & 15; // Run
-                        s = r & 15; // Combined length
-                        this.codeBuffer <<= s;
-                        this.codeBits -= s;
-
-                        // Decode into unzigzag location
-                        zig = this.dctZigZag[k++];
-                        Unsafe.Add(ref blockDataRef, zig) = (short)((r >> 8) << shift);
-                    }
-                    else
-                    {
-                        int rs = this.DecodeHuffman(ref acTable);
-
-                        if (rs < 0)
-                        {
-                            JpegThrowHelper.ThrowBadHuffmanCode();
-                        }
-
-                        s = rs & 15;
-                        r = rs >> 4;
-
-                        if (s == 0)
-                        {
-                            if (r < 15)
-                            {
-                                this.eobrun = 1 << r;
-                                if (r != 0)
-                                {
-                                    this.eobrun += this.GetBits(r);
-                                }
-
-                                this.eobrun--;
-                                break;
-                            }
-
-                            k += 16;
-                        }
-                        else
-                        {
-                            k += r;
-                            zig = this.dctZigZag[k++];
-                            Unsafe.Add(ref blockDataRef, zig) = (short)(this.ExtendReceive(s) << shift);
-                        }
-                    }
-                }
-                while (k <= this.spectralEnd);
-            }
-            else
-            {
-                // Refinement scan for these AC coefficients
-                this.DecodeBlockProgressiveACRefined(ref blockDataRef, ref acTable);
-            }
         }
 
         private void DecodeBlockProgressiveACRefined(ref short blockDataRef, ref HuffmanTable acTable)
         {
-            int k;
-
-            // Refinement scan for these AC coefficients
-            short bit = (short)(1 << this.successiveLow);
-
-            if (this.eobrun != 0)
-            {
-                this.eobrun--;
-                for (k = this.spectralStart; k <= this.spectralEnd; k++)
-                {
-                    ref short p = ref Unsafe.Add(ref blockDataRef, this.dctZigZag[k]);
-                    if (p != 0)
-                    {
-                        if (this.GetBit() != 0)
-                        {
-                            if ((p & bit) == 0)
-                            {
-                                if (p > 0)
-                                {
-                                    p += bit;
-                                }
-                                else
-                                {
-                                    p -= bit;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                k = this.spectralStart;
-                do
-                {
-                    int rs = this.DecodeHuffman(ref acTable);
-                    if (rs < 0)
-                    {
-                        JpegThrowHelper.ThrowBadHuffmanCode();
-                    }
-
-                    int s = rs & 15;
-                    int r = rs >> 4;
-
-                    if (s == 0)
-                    {
-                        // r=15 s=0 should write 16 0s, so we just do
-                        // a run of 15 0s and then write s (which is 0),
-                        // so we don't have to do anything special here
-                        if (r < 15)
-                        {
-                            this.eobrun = (1 << r) - 1;
-
-                            if (r != 0)
-                            {
-                                this.eobrun += this.GetBits(r);
-                            }
-
-                            r = 64; // Force end of block
-                        }
-                    }
-                    else
-                    {
-                        if (s != 1)
-                        {
-                            JpegThrowHelper.ThrowBadHuffmanCode();
-                        }
-
-                        // Sign bit
-                        if (this.GetBit() != 0)
-                        {
-                            s = bit;
-                        }
-                        else
-                        {
-                            s = -bit;
-                        }
-                    }
-
-                    // Advance by r
-                    while (k <= this.spectralEnd)
-                    {
-                        ref short p = ref Unsafe.Add(ref blockDataRef, this.dctZigZag[k++]);
-                        if (p != 0)
-                        {
-                            if (this.GetBit() != 0)
-                            {
-                                if ((p & bit) == 0)
-                                {
-                                    if (p > 0)
-                                    {
-                                        p += bit;
-                                    }
-                                    else
-                                    {
-                                        p -= bit;
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (r == 0)
-                            {
-                                p = (short)s;
-                                break;
-                            }
-
-                            r--;
-                        }
-                    }
-                }
-                while (k <= this.spectralEnd);
-            }
         }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private int GetBits(int n)
-        {
-            if (this.codeBits < n)
-            {
-                this.FillBuffer();
-            }
-
-            uint k = LRot(this.codeBuffer, n);
-            uint mask = Bmask[n];
-            this.codeBuffer = k & ~mask;
-            k &= mask;
-            this.codeBits -= n;
-            return (int)k;
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private int GetBit()
-        {
-            if (this.codeBits < 1)
-            {
-                this.FillBuffer();
-            }
-
-            uint k = this.codeBuffer;
-            this.codeBuffer <<= 1;
-            this.codeBits--;
-
-            return (int)(k & 0x80000000);
-        }
-
-        [MethodImpl(InliningOptions.ColdPath)]
-        private void FillBuffer()
-        {
-            // Attempt to load at least the minimum number of required bits into the buffer.
-            // We fail to do so only if we hit a marker or reach the end of the input stream.
-            do
-            {
-                int b = this.nomore ? 0 : this.stream.ReadByte();
-
-                if (b == -1)
-                {
-                    // We've encountered the end of the file stream which means there's no EOI marker in the image
-                    // or the SOS marker has the wrong dimensions set.
-                    this.eof = true;
-                    b = 0;
-                }
-
-                // Found a marker.
-                if (b == JpegConstants.Markers.XFF)
-                {
-                    this.markerPosition = this.stream.Position - 1;
-                    int c = this.stream.ReadByte();
-                    while (c == JpegConstants.Markers.XFF)
-                    {
-                        c = this.stream.ReadByte();
-
-                        if (c == -1)
-                        {
-                            this.eof = true;
-                            c = 0;
-                            break;
-                        }
-                    }
-
-                    if (c != 0)
-                    {
-                        this.marker = (byte)c;
-                        this.nomore = true;
-                        if (!this.HasRestart())
-                        {
-                            this.badMarker = true;
-                        }
-
-                        return;
-                    }
-                }
-
-                this.codeBuffer |= (uint)b << (24 - this.codeBits);
-                this.codeBits += 8;
-            }
-            while (this.codeBits <= 24);
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private unsafe int DecodeHuffman(ref HuffmanTable table)
-        {
-            this.CheckBits();
-
-            // Look at the top FastBits and determine what symbol ID it is,
-            // if the code is <= FastBits.
-            int c = this.PeekBits();
-            int k = table.Lookahead[c];
-            if (k < 0xFF)
-            {
-                int s = table.Sizes[k];
-                if (s > this.codeBits)
-                {
-                    return -1;
-                }
-
-                this.codeBuffer <<= s;
-                this.codeBits -= s;
-                return table.Values[k];
-            }
-
-            return this.DecodeHuffmanSlow(ref table);
-        }
-
-        [MethodImpl(InliningOptions.ColdPath)]
-        private unsafe int DecodeHuffmanSlow(ref HuffmanTable table)
-        {
-            // Naive test is to shift the code_buffer down so k bits are
-            // valid, then test against MaxCode. To speed this up, we've
-            // preshifted maxcode left so that it has (16-k) 0s at the
-            // end; in other words, regardless of the number of bits, it
-            // wants to be compared against something shifted to have 16;
-            // that way we don't need to shift inside the loop.
-            uint temp = this.codeBuffer >> 16;
-            int k;
-            for (k = FastBits + 1; ; ++k)
-            {
-                if (temp < table.MaxCode[k])
-                {
-                    break;
-                }
-            }
-
-            if (k == 17)
-            {
-                // Error! code not found
-                this.codeBits -= 16;
-                return -1;
-            }
-
-            if (k > this.codeBits)
-            {
-                return -1;
-            }
-
-            // Convert the huffman code to the symbol id
-            int c = (int)(((this.codeBuffer >> (32 - k)) & Bmask[k]) + table.ValOffset[k]);
-
-            // Convert the id to a symbol
-            this.codeBits -= k;
-            this.codeBuffer <<= k;
-            return table.Values[c];
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private int ExtendReceive(int n)
-        {
-            if (this.codeBits < n)
-            {
-                this.FillBuffer();
-            }
-
-            int sgn = (int)this.codeBuffer >> 31;
-            uint k = LRot(this.codeBuffer, n);
-            this.codeBuffer = k & ~Bmask[n];
-            k &= Bmask[n];
-            this.codeBits -= n;
-            return (int)(k + (Bias[n] & ~sgn));
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private void CheckBits()
-        {
-            if (this.codeBits < 16)
-            {
-                this.FillBuffer();
-            }
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private int PeekBits() => (int)((this.codeBuffer >> (32 - FastBits)) & ((1 << FastBits) - 1));
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private bool ContinueOnMcuComplete()
@@ -1004,19 +600,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 return true;
             }
 
-            if (this.codeBits < 24)
+            if (this.jpegBuffer.remain < 40)
             {
-                this.FillBuffer();
+                this.jpegBuffer.FillBuffer();
             }
 
             // If it's NOT a restart, then just bail, so we get corrupt data rather than no data.
             // Reset the stream to before any bad markers to ensure we can read successive segments.
-            if (this.badMarker)
+            if (this.jpegBuffer.badMarker)
             {
-                this.stream.Position = this.markerPosition;
+                this.stream.Position = this.jpegBuffer.markerPosition;
             }
 
-            if (!this.HasRestart())
+            if (!this.jpegBuffer.HasRestart())
             {
                 return false;
             }
@@ -1027,31 +623,142 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private bool HasRestart()
-        {
-            byte m = this.marker;
-            return m >= JpegConstants.Markers.RST0 && m <= JpegConstants.Markers.RST7;
-        }
-
         private void Reset()
         {
-            this.codeBits = 0;
-            this.codeBuffer = 0;
-
             for (int i = 0; i < this.components.Length; i++)
             {
-                JpegComponent c = this.components[i];
-                c.DcPredictor = 0;
+                this.components[i].DcPredictor = 0;
             }
 
-            this.nomore = false;
-            this.marker = JpegConstants.Markers.XFF;
-            this.markerPosition = 0;
-            this.badMarker = false;
+            this.jpegBuffer.Reset();
             this.eobrun = 0;
 
             // No more than 1<<31 MCUs if no restartInterval? that's plenty safe since we don't even allow 1<<30 pixels
             this.todo = this.restartInterval > 0 ? this.restartInterval : int.MaxValue;
+        }
+
+        public struct JpegBuffer
+        {
+            private readonly DoubleBufferedStreamReader stream;
+
+            // The current, if any, marker in the input stream.
+            public byte marker;
+
+            // The opening position of an identified marker.
+            public long markerPosition;
+
+            // Whether we have a bad marker, I.E. One that is not between RST0 and RST7
+            public bool badMarker;
+
+            // The entropy encoded code buffer.
+            public ulong data;
+
+            // The number of valid bits left to read in the buffer.
+            public int remain;
+
+            // Whether there is more data to pull from the stream for the current mcu.
+            public bool nomore;
+
+            // Whether we have prematurely reached the end of the file.
+            public bool eof;
+
+            public JpegBuffer(DoubleBufferedStreamReader stream)
+            {
+                this.stream = stream;
+                this.data = 0ul;
+                this.remain = 0;
+                this.marker = JpegConstants.Markers.XFF;
+                this.markerPosition = 0;
+                this.badMarker = false;
+                this.nomore = false;
+                this.eof = false;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void CheckBits()
+            {
+                if (this.remain < 16)
+                {
+                    this.FillBuffer();
+                }
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Reset()
+            {
+                this.data = 0ul;
+                this.remain = 0;
+                this.marker = JpegConstants.Markers.XFF;
+                this.markerPosition = 0;
+                this.badMarker = false;
+                this.nomore = false;
+                this.eof = false;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public bool HasRestart()
+            {
+                byte m = this.marker;
+                return m >= JpegConstants.Markers.RST0 && m <= JpegConstants.Markers.RST7;
+            }
+
+            [MethodImpl(InliningOptions.ColdPath)]
+            public void FillBuffer()
+            {
+                // Attempt to load at least the minimum number of required bits into the buffer.
+                // We fail to do so only if we hit a marker or reach the end of the input stream.
+                //
+                // TODO: If we could track a reference to the chunk in DoubleBufferedStreamReader we could keep track of marker
+                // positions within the stream and do a fast cast of bytes to a ulong. We may have to create a custom type.
+                do
+                {
+                    int b = this.nomore ? 0 : this.stream.ReadByte();
+
+                    if (b == -1)
+                    {
+                        // We've encountered the end of the file stream which means there's no EOI marker in the image
+                        // or the SOS marker has the wrong dimensions set.
+                        this.eof = true;
+                        b = 0;
+                    }
+
+                    // Found a marker.
+                    if (b == JpegConstants.Markers.XFF)
+                    {
+                        this.markerPosition = this.stream.Position - 1;
+                        int c = this.stream.ReadByte();
+                        while (c == JpegConstants.Markers.XFF)
+                        {
+                            c = this.stream.ReadByte();
+
+                            if (c == -1)
+                            {
+                                this.eof = true;
+                                c = 0;
+                                break;
+                            }
+                        }
+
+                        if (c != 0)
+                        {
+                            this.marker = (byte)c;
+                            this.nomore = true;
+                            if (!this.HasRestart())
+                            {
+                                this.badMarker = true;
+                            }
+
+                            return;
+                        }
+                    }
+
+#pragma warning disable CS0675 // Bitwise-or operator used on a sign-extended operand
+                    this.data = (this.data << 48) | (ulong)b; // Can never be < 0 at this point.
+#pragma warning restore CS0675 // Bitwise-or operator used on a sign-extended operand
+                    this.remain += 8;
+                }
+                while (this.remain <= 40);
+            }
         }
     }
 }

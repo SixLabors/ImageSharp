@@ -41,9 +41,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly Point targetOrigin;
 
-        private readonly int windowBandDiameter;
+        private readonly int windowBandHeight;
 
-        private readonly int windowHeight;
+        private readonly int workerHeight;
 
         private RowInterval currentWindow;
 
@@ -67,24 +67,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.targetWorkingRect = targetWorkingRect;
             this.targetOrigin = targetOrigin;
 
-            this.windowBandDiameter = verticalKernelMap.MaxDiameter;
+            this.windowBandHeight = verticalKernelMap.MaxDiameter;
 
             int numberOfWindowBands = ResizeHelper.CalculateResizeWorkerHeightInWindowBands(
-                this.windowBandDiameter,
+                this.windowBandHeight,
                 destWidth,
                 configuration.WorkingBufferSizeHintInBytes);
 
-            this.windowHeight = Math.Min(this.sourceRectangle.Height, numberOfWindowBands * this.windowBandDiameter);
+            this.workerHeight = Math.Min(this.sourceRectangle.Height, numberOfWindowBands * this.windowBandHeight);
 
             this.transposedFirstPassBuffer = configuration.MemoryAllocator.Allocate2D<Vector4>(
-                this.windowHeight,
+                this.workerHeight,
                 destWidth,
                 AllocationOptions.Clean);
 
             this.tempRowBuffer = configuration.MemoryAllocator.Allocate<Vector4>(this.sourceRectangle.Width);
             this.tempColumnBuffer = configuration.MemoryAllocator.Allocate<Vector4>(destWidth);
 
-            this.currentWindow = new RowInterval(0, this.windowHeight);
+            this.currentWindow = new RowInterval(0, this.workerHeight);
         }
 
         public void Dispose()
@@ -145,8 +145,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private void Slide()
         {
-            int minY = this.currentWindow.Min + this.windowBandDiameter;
-            int maxY = Math.Min(this.currentWindow.Max + this.windowBandDiameter, this.sourceRectangle.Height);
+            int minY = this.currentWindow.Min + this.windowBandHeight;
+            int maxY = Math.Min(this.currentWindow.Max + this.windowBandHeight, this.sourceRectangle.Height);
             this.currentWindow = new RowInterval(minY, maxY);
             this.CalculateFirstPassValues(this.currentWindow);
         }
@@ -170,7 +170,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 for (int x = this.targetWorkingRect.Left; x < this.targetWorkingRect.Right; x++)
                 {
                     ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - this.targetOrigin.X);
-                    firstPassSpan[x * this.windowHeight] = kernel.Convolve(tempRowSpan);
+                    firstPassSpan[x * this.workerHeight] = kernel.Convolve(tempRowSpan);
 
                     // Unsafe.Add(ref firstPassBaseRef, x * this.sourceRectangle.Height) = kernel.Convolve(tempRowSpan);
                 }

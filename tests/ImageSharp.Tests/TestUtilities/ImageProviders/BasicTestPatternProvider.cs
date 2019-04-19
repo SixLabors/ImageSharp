@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public override Image<TPixel> GetImage()
             {
-                var result = new Image<TPixel>(this.Width, this.Height);
+                var result = new Image<TPixel>(this.Configuration, this.Width, this.Height);
 
                 TPixel topLeftColor = NamedColors<TPixel>.Red;
                 TPixel topRightColor = NamedColors<TPixel>.Green;

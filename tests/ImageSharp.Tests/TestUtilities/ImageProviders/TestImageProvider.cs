@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Tests
         /// </summary>
         public Image<TPixel> GetImage(Action<IImageProcessingContext<TPixel>> operationsToApply)
         {
-            Image<TPixel> img = GetImage();
+            Image<TPixel> img = this.GetImage();
             img.Mutate(operationsToApply);
             return img;
         }

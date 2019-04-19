@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public static bool operator ==(Cmyk left, Cmyk right) => left.Equals(right);
 
         /// <summary>
-        /// Compares two <see cref="Cmyk"/> objects for inequality
+        /// Compares two <see cref="Cmyk"/> objects for inequality.
         /// </summary>
         /// <param name="left">The <see cref="Cmyk"/> on the left side of the operand.</param>
         /// <param name="right">The <see cref="Cmyk"/> on the right side of the operand.</param>
@@ -90,13 +90,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override int GetHashCode()
-        {
-            int hash = this.C.GetHashCode();
-            hash = HashHelpers.Combine(hash, this.M.GetHashCode());
-            hash = HashHelpers.Combine(hash, this.Y.GetHashCode());
-            return HashHelpers.Combine(hash, this.K.GetHashCode());
-        }
+        public override int GetHashCode() => HashCode.Combine(this.C, this.M, this.Y, this.K);
 
         /// <inheritdoc/>
         public override string ToString() => FormattableString.Invariant($"Cmyk({this.C:#0.##}, {this.M:#0.##}, {this.Y:#0.##}, {this.K:#0.##})");

@@ -27,8 +27,8 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.MetaData.VerticalResolution = 150;
-                image.MetaData.HorizontalResolution = 150;
+                image.Metadata.VerticalResolution = 150;
+                image.Metadata.HorizontalResolution = 150;
                 image.DebugSave(provider);
             }
         }
@@ -57,8 +57,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 using (Image<Rgba32> image = file.CreateImage())
                 {
-                    var encoder = new PngEncoder { Quantizer = new WuQuantizer(KnownDiffusers.JarvisJudiceNinke, 256), ColorType = PngColorType.Palette };
-                    image.Save($"{path}/{file.FileName}.png", encoder);
+                    image.Save($"{path}/{file.FileName}");
                 }
             }
         }
@@ -67,7 +66,8 @@ namespace SixLabors.ImageSharp.Tests
             new TheoryData<string>
                 {
                     nameof(KnownQuantizers.Octree),
-                    nameof(KnownQuantizers.Palette),
+                    nameof(KnownQuantizers.WebSafe),
+                    nameof(KnownQuantizers.Werner),
                     nameof(KnownQuantizers.Wu)
                 };
 

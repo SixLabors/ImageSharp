@@ -7,7 +7,7 @@ using System.Linq;
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -23,6 +23,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         {
             { TestImages.Png.Rgb48Bpp, PngBitDepth.Bit16 },
             { TestImages.Png.Bpp1, PngBitDepth.Bit1 }
+        };
+
+        public static readonly TheoryData<string, PngBitDepth, PngColorType> PngTrnsFiles =
+        new TheoryData<string, PngBitDepth, PngColorType>
+        {
+            { TestImages.Png.Gray1BitTrans, PngBitDepth.Bit1, PngColorType.Grayscale },
+            { TestImages.Png.Gray2BitTrans, PngBitDepth.Bit2, PngColorType.Grayscale },
+            { TestImages.Png.Gray4BitTrans, PngBitDepth.Bit4, PngColorType.Grayscale },
+            { TestImages.Png.Gray8BitTrans, PngBitDepth.Bit8, PngColorType.Grayscale },
+            { TestImages.Png.GrayTrns16BitInterlaced, PngBitDepth.Bit16, PngColorType.Grayscale },
+            { TestImages.Png.Rgb24BppTrans, PngBitDepth.Bit8, PngColorType.Rgb },
+            { TestImages.Png.Rgb48BppTrans, PngBitDepth.Bit16, PngColorType.Rgb }
         };
 
         /// <summary>
@@ -216,7 +228,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        ImageMetaData meta = output.MetaData;
+                        ImageMetadata meta = output.Metadata;
                         Assert.Equal(xResolution, meta.HorizontalResolution);
                         Assert.Equal(yResolution, meta.VerticalResolution);
                         Assert.Equal(resolutionUnit, meta.ResolutionUnits);
@@ -241,9 +253,64 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        PngMetaData meta = output.MetaData.GetFormatMetaData(PngFormat.Instance);
+                        PngMetadata meta = output.Metadata.GetFormatMetadata(PngFormat.Instance);
 
                         Assert.Equal(pngBitDepth, meta.BitDepth);
+                    }
+                }
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(PngTrnsFiles))]
+        public void Encode_PreserveTrns(string imagePath, PngBitDepth pngBitDepth, PngColorType pngColorType)
+        {
+            var options = new PngEncoder();
+
+            var testFile = TestFile.Create(imagePath);
+            using (Image<Rgba32> input = testFile.CreateImage())
+            {
+                PngMetadata inMeta = input.Metadata.GetFormatMetadata(PngFormat.Instance);
+                Assert.True(inMeta.HasTrans);
+
+                using (var memStream = new MemoryStream())
+                {
+                    input.Save(memStream, options);
+                    memStream.Position = 0;
+                    using (var output = Image.Load<Rgba32>(memStream))
+                    {
+                        PngMetadata outMeta = output.Metadata.GetFormatMetadata(PngFormat.Instance);
+                        Assert.True(outMeta.HasTrans);
+
+                        switch (pngColorType)
+                        {
+                            case PngColorType.Grayscale:
+                                if (pngBitDepth.Equals(PngBitDepth.Bit16))
+                                {
+                                    Assert.True(outMeta.TransparentGray16.HasValue);
+                                    Assert.Equal(inMeta.TransparentGray16, outMeta.TransparentGray16);
+                                }
+                                else
+                                {
+                                    Assert.True(outMeta.TransparentGray8.HasValue);
+                                    Assert.Equal(inMeta.TransparentGray8, outMeta.TransparentGray8);
+                                }
+
+                                break;
+                            case PngColorType.Rgb:
+                                if (pngBitDepth.Equals(PngBitDepth.Bit16))
+                                {
+                                    Assert.True(outMeta.TransparentRgb48.HasValue);
+                                    Assert.Equal(inMeta.TransparentRgb48, outMeta.TransparentRgb48);
+                                }
+                                else
+                                {
+                                    Assert.True(outMeta.TransparentRgb24.HasValue);
+                                    Assert.Equal(inMeta.TransparentRgb24, outMeta.TransparentRgb24);
+                                }
+
+                                break;
+                        }
                     }
                 }
             }

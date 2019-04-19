@@ -4,62 +4,62 @@
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Formats;
 
-namespace SixLabors.ImageSharp.MetaData
+namespace SixLabors.ImageSharp.Metadata
 {
     /// <summary>
     /// Encapsulates the metadata of an image frame.
     /// </summary>
-    public sealed class ImageFrameMetaData : IDeepCloneable<ImageFrameMetaData>
+    public sealed class ImageFrameMetadata : IDeepCloneable<ImageFrameMetadata>
     {
-        private readonly Dictionary<IImageFormat, IDeepCloneable> formatMetaData = new Dictionary<IImageFormat, IDeepCloneable>();
+        private readonly Dictionary<IImageFormat, IDeepCloneable> formatMetadata = new Dictionary<IImageFormat, IDeepCloneable>();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageFrameMetaData"/> class.
+        /// Initializes a new instance of the <see cref="ImageFrameMetadata"/> class.
         /// </summary>
-        internal ImageFrameMetaData()
+        internal ImageFrameMetadata()
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageFrameMetaData"/> class
+        /// Initializes a new instance of the <see cref="ImageFrameMetadata"/> class
         /// by making a copy from other metadata.
         /// </summary>
         /// <param name="other">
-        /// The other <see cref="ImageFrameMetaData"/> to create this instance from.
+        /// The other <see cref="ImageFrameMetadata"/> to create this instance from.
         /// </param>
-        internal ImageFrameMetaData(ImageFrameMetaData other)
+        internal ImageFrameMetadata(ImageFrameMetadata other)
         {
             DebugGuard.NotNull(other, nameof(other));
 
-            foreach (KeyValuePair<IImageFormat, IDeepCloneable> meta in other.formatMetaData)
+            foreach (KeyValuePair<IImageFormat, IDeepCloneable> meta in other.formatMetadata)
             {
-                this.formatMetaData.Add(meta.Key, meta.Value.DeepClone());
+                this.formatMetadata.Add(meta.Key, meta.Value.DeepClone());
             }
         }
 
         /// <inheritdoc/>
-        public ImageFrameMetaData DeepClone() => new ImageFrameMetaData(this);
+        public ImageFrameMetadata DeepClone() => new ImageFrameMetadata(this);
 
         /// <summary>
         /// Gets the metadata value associated with the specified key.
         /// </summary>
-        /// <typeparam name="TFormatMetaData">The type of format metadata.</typeparam>
-        /// <typeparam name="TFormatFrameMetaData">The type of format frame metadata.</typeparam>
+        /// <typeparam name="TFormatMetadata">The type of format metadata.</typeparam>
+        /// <typeparam name="TFormatFrameMetadata">The type of format frame metadata.</typeparam>
         /// <param name="key">The key of the value to get.</param>
         /// <returns>
-        /// The <typeparamref name="TFormatFrameMetaData"/>.
+        /// The <typeparamref name="TFormatFrameMetadata"/>.
         /// </returns>
-        public TFormatFrameMetaData GetFormatMetaData<TFormatMetaData, TFormatFrameMetaData>(IImageFormat<TFormatMetaData, TFormatFrameMetaData> key)
-            where TFormatMetaData : class
-            where TFormatFrameMetaData : class, IDeepCloneable
+        public TFormatFrameMetadata GetFormatMetadata<TFormatMetadata, TFormatFrameMetadata>(IImageFormat<TFormatMetadata, TFormatFrameMetadata> key)
+            where TFormatMetadata : class
+            where TFormatFrameMetadata : class, IDeepCloneable
         {
-            if (this.formatMetaData.TryGetValue(key, out IDeepCloneable meta))
+            if (this.formatMetadata.TryGetValue(key, out IDeepCloneable meta))
             {
-                return (TFormatFrameMetaData)meta;
+                return (TFormatFrameMetadata)meta;
             }
 
-            TFormatFrameMetaData newMeta = key.CreateDefaultFormatFrameMetaData();
-            this.formatMetaData[key] = newMeta;
+            TFormatFrameMetadata newMeta = key.CreateDefaultFormatFrameMetadata();
+            this.formatMetadata[key] = newMeta;
             return newMeta;
         }
     }

@@ -12,8 +12,8 @@ using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.MetaData;
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 
@@ -125,31 +125,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         private PngColorType pngColorType;
 
         /// <summary>
-        /// Represents any color in an 8 bit Rgb24 encoded png that should be transparent
-        /// </summary>
-        private Rgb24 rgb24Trans;
-
-        /// <summary>
-        /// Represents any color in a 16 bit Rgb24 encoded png that should be transparent
-        /// </summary>
-        private Rgb48 rgb48Trans;
-
-        /// <summary>
-        /// Represents any color in an 8 bit grayscale encoded png that should be transparent
-        /// </summary>
-        private byte luminanceTrans;
-
-        /// <summary>
-        /// Represents any color in a 16 bit grayscale encoded png that should be transparent
-        /// </summary>
-        private ushort luminance16Trans;
-
-        /// <summary>
-        /// Whether the image has transparency chunk and markers were decoded
-        /// </summary>
-        private bool hasTrans;
-
-        /// <summary>
         /// The next chunk of data to return
         /// </summary>
         private PngChunk? nextChunk;
@@ -182,8 +157,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         public Image<TPixel> Decode<TPixel>(Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            var metaData = new ImageMetaData();
-            PngMetaData pngMetaData = metaData.GetFormatMetaData(PngFormat.Instance);
+            var metadata = new ImageMetadata();
+            PngMetadata pngMetadata = metadata.GetFormatMetadata(PngFormat.Instance);
             this.currentStream = stream;
             this.currentStream.Skip(8);
             Image<TPixel> image = null;
@@ -196,24 +171,24 @@ namespace SixLabors.ImageSharp.Formats.Png
                         switch (chunk.Type)
                         {
                             case PngChunkType.Header:
-                                this.ReadHeaderChunk(pngMetaData, chunk.Data.Array);
+                                this.ReadHeaderChunk(pngMetadata, chunk.Data.Array);
                                 break;
                             case PngChunkType.Physical:
-                                this.ReadPhysicalChunk(metaData, chunk.Data.GetSpan());
+                                this.ReadPhysicalChunk(metadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Gamma:
-                                this.ReadGammaChunk(pngMetaData, chunk.Data.GetSpan());
+                                this.ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Data:
                                 if (image is null)
                                 {
-                                    this.InitializeImage(metaData, out image);
+                                    this.InitializeImage(metadata, out image);
                                 }
 
                                 using (var deframeStream = new ZlibInflateStream(this.currentStream, this.ReadNextDataChunk))
                                 {
                                     deframeStream.AllocateNewBytes(chunk.Length);
-                                    this.ReadScanlines(deframeStream.CompressedStream, image.Frames.RootFrame);
+                                    this.ReadScanlines(deframeStream.CompressedStream, image.Frames.RootFrame, pngMetadata);
                                 }
 
                                 break;
@@ -222,21 +197,21 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 Buffer.BlockCopy(chunk.Data.Array, 0, pal, 0, chunk.Length);
                                 this.palette = pal;
                                 break;
-                            case PngChunkType.PaletteAlpha:
+                            case PngChunkType.Transparency:
                                 byte[] alpha = new byte[chunk.Length];
                                 Buffer.BlockCopy(chunk.Data.Array, 0, alpha, 0, chunk.Length);
                                 this.paletteAlpha = alpha;
-                                this.AssignTransparentMarkers(alpha);
+                                this.AssignTransparentMarkers(alpha, pngMetadata);
                                 break;
                             case PngChunkType.Text:
-                                this.ReadTextChunk(metaData, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                this.ReadTextChunk(metadata, chunk.Data.Array.AsSpan(0, chunk.Length));
                                 break;
                             case PngChunkType.Exif:
                                 if (!this.ignoreMetadata)
                                 {
                                     byte[] exifData = new byte[chunk.Length];
                                     Buffer.BlockCopy(chunk.Data.Array, 0, exifData, 0, chunk.Length);
-                                    metaData.ExifProfile = new ExifProfile(exifData);
+                                    metadata.ExifProfile = new ExifProfile(exifData);
                                 }
 
                                 break;
@@ -271,8 +246,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         public IImageInfo Identify(Stream stream)
         {
-            var metaData = new ImageMetaData();
-            PngMetaData pngMetaData = metaData.GetFormatMetaData(PngFormat.Instance);
+            var metadata = new ImageMetadata();
+            PngMetadata pngMetadata = metadata.GetFormatMetadata(PngFormat.Instance);
             this.currentStream = stream;
             this.currentStream.Skip(8);
             try
@@ -284,19 +259,19 @@ namespace SixLabors.ImageSharp.Formats.Png
                         switch (chunk.Type)
                         {
                             case PngChunkType.Header:
-                                this.ReadHeaderChunk(pngMetaData, chunk.Data.Array);
+                                this.ReadHeaderChunk(pngMetadata, chunk.Data.Array);
                                 break;
                             case PngChunkType.Physical:
-                                this.ReadPhysicalChunk(metaData, chunk.Data.GetSpan());
+                                this.ReadPhysicalChunk(metadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Gamma:
-                                this.ReadGammaChunk(pngMetaData, chunk.Data.GetSpan());
+                                this.ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Data:
                                 this.SkipChunkDataAndCrc(chunk);
                                 break;
                             case PngChunkType.Text:
-                                this.ReadTextChunk(metaData, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                this.ReadTextChunk(metadata, chunk.Data.Array.AsSpan(0, chunk.Length));
                                 break;
                             case PngChunkType.End:
                                 this.isEndChunkReached = true;
@@ -320,7 +295,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 throw new ImageFormatException("PNG Image does not contain a header chunk");
             }
 
-            return new ImageInfo(new PixelTypeInfo(this.CalculateBitsPerPixel()), this.header.Width, this.header.Height, metaData);
+            return new ImageInfo(new PixelTypeInfo(this.CalculateBitsPerPixel()), this.header.Width, this.header.Height, metadata);
         }
 
         /// <summary>
@@ -375,7 +350,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="metadata">The metadata to read to.</param>
         /// <param name="data">The data containing physical data.</param>
-        private void ReadPhysicalChunk(ImageMetaData metadata, ReadOnlySpan<byte> data)
+        private void ReadPhysicalChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
         {
             var physicalChunk = PhysicalChunkData.Parse(data);
 
@@ -392,7 +367,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="pngMetadata">The metadata to read to.</param>
         /// <param name="data">The data containing physical data.</param>
-        private void ReadGammaChunk(PngMetaData pngMetadata, ReadOnlySpan<byte> data)
+        private void ReadGammaChunk(PngMetadata pngMetadata, ReadOnlySpan<byte> data)
         {
             // The value is encoded as a 4-byte unsigned integer, representing gamma times 100000.
             // For example, a gamma of 1/2.2 would be stored as 45455.
@@ -405,7 +380,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The type the pixels will be</typeparam>
         /// <param name="metadata">The metadata information for the image</param>
         /// <param name="image">The image that we will populate</param>
-        private void InitializeImage<TPixel>(ImageMetaData metadata, out Image<TPixel> image)
+        private void InitializeImage<TPixel>(ImageMetadata metadata, out Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             image = new Image<TPixel>(this.configuration, this.header.Width, this.header.Height, metadata);
@@ -496,16 +471,17 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="dataStream">The <see cref="MemoryStream"/> containing data.</param>
         /// <param name="image"> The pixel data.</param>
-        private void ReadScanlines<TPixel>(Stream dataStream, ImageFrame<TPixel> image)
+        /// <param name="pngMetadata">The png metadata</param>
+        private void ReadScanlines<TPixel>(Stream dataStream, ImageFrame<TPixel> image, PngMetadata pngMetadata)
             where TPixel : struct, IPixel<TPixel>
         {
             if (this.header.InterlaceMethod == PngInterlaceMode.Adam7)
             {
-                this.DecodeInterlacedPixelData(dataStream, image);
+                this.DecodeInterlacedPixelData(dataStream, image, pngMetadata);
             }
             else
             {
-                this.DecodePixelData(dataStream, image);
+                this.DecodePixelData(dataStream, image, pngMetadata);
             }
         }
 
@@ -515,7 +491,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="compressedStream">The compressed pixel data stream.</param>
         /// <param name="image">The image to decode to.</param>
-        private void DecodePixelData<TPixel>(Stream compressedStream, ImageFrame<TPixel> image)
+        /// <param name="pngMetadata">The png metadata</param>
+        private void DecodePixelData<TPixel>(Stream compressedStream, ImageFrame<TPixel> image, PngMetadata pngMetadata)
             where TPixel : struct, IPixel<TPixel>
         {
             while (this.currentRow < this.header.Height)
@@ -555,7 +532,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         throw new ImageFormatException("Unknown filter type.");
                 }
 
-                this.ProcessDefilteredScanline(scanlineSpan, image);
+                this.ProcessDefilteredScanline(scanlineSpan, image, pngMetadata);
 
                 this.SwapBuffers();
                 this.currentRow++;
@@ -569,7 +546,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="compressedStream">The compressed pixel data stream.</param>
         /// <param name="image">The current image.</param>
-        private void DecodeInterlacedPixelData<TPixel>(Stream compressedStream, ImageFrame<TPixel> image)
+        /// <param name="pngMetadata">The png metadata.</param>
+        private void DecodeInterlacedPixelData<TPixel>(Stream compressedStream, ImageFrame<TPixel> image, PngMetadata pngMetadata)
             where TPixel : struct, IPixel<TPixel>
         {
             while (true)
@@ -626,7 +604,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     }
 
                     Span<TPixel> rowSpan = image.GetPixelRowSpan(this.currentRow);
-                    this.ProcessInterlacedDefilteredScanline(this.scanline.GetSpan(), rowSpan, Adam7.FirstColumn[this.pass], Adam7.ColumnIncrement[this.pass]);
+                    this.ProcessInterlacedDefilteredScanline(this.scanline.GetSpan(), rowSpan, pngMetadata, Adam7.FirstColumn[this.pass], Adam7.ColumnIncrement[this.pass]);
 
                     this.SwapBuffers();
 
@@ -654,7 +632,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="defilteredScanline">The de-filtered scanline</param>
         /// <param name="pixels">The image</param>
-        private void ProcessDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, ImageFrame<TPixel> pixels)
+        /// <param name="pngMetadata">The png metadata.</param>
+        private void ProcessDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, ImageFrame<TPixel> pixels, PngMetadata pngMetadata)
             where TPixel : struct, IPixel<TPixel>
         {
             Span<TPixel> rowSpan = pixels.GetPixelRowSpan(this.currentRow);
@@ -674,9 +653,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                         this.header,
                         scanlineSpan,
                         rowSpan,
-                        this.hasTrans,
-                        this.luminance16Trans,
-                        this.luminanceTrans);
+                        pngMetadata.HasTrans,
+                        pngMetadata.TransparentGray16.GetValueOrDefault(),
+                        pngMetadata.TransparentGray8.GetValueOrDefault());
 
                     break;
 
@@ -702,19 +681,21 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 case PngColorType.Rgb:
                     PngScanlineProcessor.ProcessRgbScanline(
+                        this.configuration,
                         this.header,
                         scanlineSpan,
                         rowSpan,
                         this.bytesPerPixel,
                         this.bytesPerSample,
-                        this.hasTrans,
-                        this.rgb48Trans,
-                        this.rgb24Trans);
+                        pngMetadata.HasTrans,
+                        pngMetadata.TransparentRgb48.GetValueOrDefault(),
+                        pngMetadata.TransparentRgb24.GetValueOrDefault());
 
                     break;
 
                 case PngColorType.RgbWithAlpha:
                     PngScanlineProcessor.ProcessRgbaScanline(
+                        this.configuration,
                         this.header,
                         scanlineSpan,
                         rowSpan,
@@ -733,9 +714,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="defilteredScanline">The de-filtered scanline</param>
         /// <param name="rowSpan">The current image row.</param>
+        /// <param name="pngMetadata">The png metadata.</param>
         /// <param name="pixelOffset">The column start index. Always 0 for none interlaced images.</param>
         /// <param name="increment">The column increment. Always 1 for none interlaced images.</param>
-        private void ProcessInterlacedDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, Span<TPixel> rowSpan, int pixelOffset = 0, int increment = 1)
+        private void ProcessInterlacedDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, Span<TPixel> rowSpan, PngMetadata pngMetadata, int pixelOffset = 0, int increment = 1)
             where TPixel : struct, IPixel<TPixel>
         {
             // Trim the first marker byte from the buffer
@@ -755,9 +737,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                         rowSpan,
                         pixelOffset,
                         increment,
-                        this.hasTrans,
-                        this.luminance16Trans,
-                        this.luminanceTrans);
+                        pngMetadata.HasTrans,
+                        pngMetadata.TransparentGray16.GetValueOrDefault(),
+                        pngMetadata.TransparentGray8.GetValueOrDefault());
 
                     break;
 
@@ -794,9 +776,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                         increment,
                         this.bytesPerPixel,
                         this.bytesPerSample,
-                        this.hasTrans,
-                        this.rgb48Trans,
-                        this.rgb24Trans);
+                        pngMetadata.HasTrans,
+                        pngMetadata.TransparentRgb48.GetValueOrDefault(),
+                        pngMetadata.TransparentRgb24.GetValueOrDefault());
 
                     break;
 
@@ -817,10 +799,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <summary>
-        /// Decodes and assigns marker colors that identify transparent pixels in non indexed images
+        /// Decodes and assigns marker colors that identify transparent pixels in non indexed images.
         /// </summary>
-        /// <param name="alpha">The alpha tRNS array</param>
-        private void AssignTransparentMarkers(ReadOnlySpan<byte> alpha)
+        /// <param name="alpha">The alpha tRNS array.</param>
+        /// <param name="pngMetadata">The png metadata.</param>
+        private void AssignTransparentMarkers(ReadOnlySpan<byte> alpha, PngMetadata pngMetadata)
         {
             if (this.pngColorType == PngColorType.Rgb)
             {
@@ -832,16 +815,16 @@ namespace SixLabors.ImageSharp.Formats.Png
                         ushort gc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(2, 2));
                         ushort bc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(4, 2));
 
-                        this.rgb48Trans = new Rgb48(rc, gc, bc);
-                        this.hasTrans = true;
+                        pngMetadata.TransparentRgb48 = new Rgb48(rc, gc, bc);
+                        pngMetadata.HasTrans = true;
                         return;
                     }
 
                     byte r = ReadByteLittleEndian(alpha, 0);
                     byte g = ReadByteLittleEndian(alpha, 2);
                     byte b = ReadByteLittleEndian(alpha, 4);
-                    this.rgb24Trans = new Rgb24(r, g, b);
-                    this.hasTrans = true;
+                    pngMetadata.TransparentRgb24 = new Rgb24(r, g, b);
+                    pngMetadata.HasTrans = true;
                 }
             }
             else if (this.pngColorType == PngColorType.Grayscale)
@@ -850,14 +833,14 @@ namespace SixLabors.ImageSharp.Formats.Png
                 {
                     if (this.header.BitDepth == 16)
                     {
-                        this.luminance16Trans = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(0, 2));
+                        pngMetadata.TransparentGray16 = new Gray16(BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(0, 2)));
                     }
                     else
                     {
-                        this.luminanceTrans = ReadByteLittleEndian(alpha, 0);
+                        pngMetadata.TransparentGray8 = new Gray8(ReadByteLittleEndian(alpha, 0));
                     }
 
-                    this.hasTrans = true;
+                    pngMetadata.HasTrans = true;
                 }
             }
         }
@@ -865,16 +848,16 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Reads a header chunk from the data.
         /// </summary>
-        /// <param name="pngMetaData">The png metadata.</param>
+        /// <param name="pngMetadata">The png metadata.</param>
         /// <param name="data">The <see cref="T:ReadOnlySpan{byte}"/> containing data.</param>
-        private void ReadHeaderChunk(PngMetaData pngMetaData, ReadOnlySpan<byte> data)
+        private void ReadHeaderChunk(PngMetadata pngMetadata, ReadOnlySpan<byte> data)
         {
             this.header = PngHeader.Parse(data);
 
             this.header.Validate();
 
-            pngMetaData.BitDepth = (PngBitDepth)this.header.BitDepth;
-            pngMetaData.ColorType = this.header.ColorType;
+            pngMetadata.BitDepth = (PngBitDepth)this.header.BitDepth;
+            pngMetadata.ColorType = this.header.ColorType;
 
             this.pngColorType = this.header.ColorType;
         }
@@ -884,7 +867,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="metadata">The metadata to decode to.</param>
         /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
-        private void ReadTextChunk(ImageMetaData metadata, ReadOnlySpan<byte> data)
+        private void ReadTextChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
         {
             if (this.ignoreMetadata)
             {

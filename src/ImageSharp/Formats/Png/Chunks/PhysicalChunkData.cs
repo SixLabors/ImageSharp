@@ -1,7 +1,10 @@
-﻿using System;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.Common.Helpers;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 
 namespace SixLabors.ImageSharp.Formats.Png.Chunks
 {
@@ -53,11 +56,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Chunks
 
         /// <summary>
         /// Constructs the PngPhysicalChunkData from the provided metadata.
-        /// If the resolution units are not in meters, they are automatically convereted.
+        /// If the resolution units are not in meters, they are automatically converted.
         /// </summary>
         /// <param name="meta">The metadata.</param>
         /// <returns>The constructed PngPhysicalChunkData instance.</returns>
-        public static PhysicalChunkData FromMetadata(ImageMetaData meta)
+        public static PhysicalChunkData FromMetadata(ImageMetadata meta)
         {
             byte unitSpecifier = 0;
             uint x;

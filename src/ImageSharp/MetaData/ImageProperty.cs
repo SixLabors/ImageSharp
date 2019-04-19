@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.MetaData
+namespace SixLabors.ImageSharp.Metadata
 {
     /// <summary>
     /// Stores meta information about a image, like the name of the author,
@@ -99,19 +99,7 @@ namespace SixLabors.ImageSharp.MetaData
         /// <returns>
         /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                int hashCode = this.Name.GetHashCode();
-                if (this.Value != null)
-                {
-                    hashCode = (hashCode * 397) ^ this.Value.GetHashCode();
-                }
-
-                return hashCode;
-            }
-        }
+        public override int GetHashCode() => HashCode.Combine(this.Name, this.Value);
 
         /// <summary>
         /// Returns the fully qualified type name of this instance.
@@ -119,10 +107,7 @@ namespace SixLabors.ImageSharp.MetaData
         /// <returns>
         /// A <see cref="T:System.String"/> containing a fully qualified type name.
         /// </returns>
-        public override string ToString()
-        {
-            return $"ImageProperty [ Name={this.Name}, Value={this.Value} ]";
-        }
+        public override string ToString() => $"ImageProperty [ Name={this.Name}, Value={this.Value} ]";
 
         /// <summary>
         /// Indicates whether the current object is equal to another object of the same type.

@@ -57,7 +57,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             // Up(x) = Raw(x) - Prior(x)
             resultBaseRef = 2;
 
-            for (int x = 0; x < scanline.Length; /* Note: ++x happens in the body to avoid one add operation */) {
+            for (int x = 0; x < scanline.Length; /* Note: ++x happens in the body to avoid one add operation */)
+            {
                 byte scan = Unsafe.Add(ref scanBaseRef, x);
                 byte above = Unsafe.Add(ref prevBaseRef, x);
                 ++x;

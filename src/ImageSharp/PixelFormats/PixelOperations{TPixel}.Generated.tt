@@ -18,9 +18,10 @@
         /// <summary>
         /// Converts all pixels in 'source` span of <see cref="<#=pixelType#>"/> into a span of <typeparamref name="TPixel"/>-s.
         /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="source">The source <see cref="Span{T}"/> of <see cref="<#=pixelType#>"/> data.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        internal virtual void From<#=pixelType#>(ReadOnlySpan<<#=pixelType#>> source, Span<TPixel> destPixels)
+        internal virtual void From<#=pixelType#>(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<TPixel> destPixels)
         {
             Guard.DestinationShouldNotBeTooShort(source, destPixels, nameof(destPixels));
             
@@ -37,16 +38,17 @@
         }
 
         /// <summary>
-        /// A helper for <see cref="From<#=pixelType#>(ReadOnlySpan{<#=pixelType#>}, Span{TPixel})"/> that expects a byte span.
+        /// A helper for <see cref="From<#=pixelType#>(Configuration, ReadOnlySpan{<#=pixelType#>}, Span{TPixel})"/> that expects a byte span.
         /// The layout of the data in 'sourceBytes' must be compatible with <see cref="<#=pixelType#>"/> layout.
         /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
         /// <param name="count">The number of pixels to convert.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void From<#=pixelType#>Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
+        internal void From<#=pixelType#>Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
         {
-            this.From<#=pixelType#>(MemoryMarshal.Cast<byte, <#=pixelType#>>(sourceBytes).Slice(0, count), destPixels);
+            this.From<#=pixelType#>(configuration, MemoryMarshal.Cast<byte, <#=pixelType#>>(sourceBytes).Slice(0, count), destPixels);
         }
 
 <#
@@ -58,9 +60,10 @@
         /// <summary>
         /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="<#=pixelType#>"/>-s.
         /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourcePixels">The span of source pixels</param>
         /// <param name="destPixels">The destination span of <see cref="<#=pixelType#>"/> data.</param>
-        internal virtual void To<#=pixelType#>(ReadOnlySpan<TPixel> sourcePixels, Span<<#=pixelType#>> destPixels)
+        internal virtual void To<#=pixelType#>(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<<#=pixelType#>> destPixels)
         {
             Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
@@ -77,16 +80,17 @@
         }
 
         /// <summary>
-        /// A helper for <see cref="To<#=pixelType#>(ReadOnlySpan{TPixel}, Span{<#=pixelType#>})"/> that expects a byte span as destination.
+        /// A helper for <see cref="To<#=pixelType#>(Configuration, ReadOnlySpan{TPixel}, Span{<#=pixelType#>})"/> that expects a byte span as destination.
         /// The layout of the data in 'destBytes' must be compatible with <see cref="<#=pixelType#>"/> layout.
         /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
         /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void To<#=pixelType#>Bytes(ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+        internal void To<#=pixelType#>Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.To<#=pixelType#>(sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, <#=pixelType#>>(destBytes));
+            this.To<#=pixelType#>(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, <#=pixelType#>>(destBytes));
         }
 <#
     }

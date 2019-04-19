@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         Size ImageSizeInPixels { get; }
 
         /// <summary>
-        /// Gets the number of coponents.
+        /// Gets the number of components.
         /// </summary>
         int ComponentCount { get; }
 
@@ -30,9 +30,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         JpegColorSpace ColorSpace { get; }
 
         /// <summary>
+        /// Gets the number of bits used for precision.
+        /// </summary>
+        int Precision { get; }
+
+        /// <summary>
         /// Gets the components.
         /// </summary>
-        IEnumerable<IJpegComponent> Components { get; }
+        IJpegComponent[] Components { get; }
 
         /// <summary>
         /// Gets the quantization tables, in zigzag order.

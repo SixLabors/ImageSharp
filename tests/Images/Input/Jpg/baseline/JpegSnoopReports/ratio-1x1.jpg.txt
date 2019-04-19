@@ -1,0 +1,338 @@
+
+JPEGsnoop 1.8.0 by Calvin Hass
+  http://www.impulseadventure.com/photo/
+  -------------------------------------
+
+  Filename: [.\ratio-1x1.jpg]
+  Filesize: [34674] Bytes
+
+Start Offset: 0x00000000
+*** Marker: SOI (xFFD8) ***
+  OFFSET: 0x00000000
+ 
+*** Marker: APP0 (xFFE0) ***
+  OFFSET: 0x00000002
+  Length     = 16
+  Identifier = [JFIF]
+  version    = [1.1]
+  density    = 1 x 1 (aspect ratio)
+  thumbnail  = 0 x 0
+ 
+*** Marker: DQT (xFFDB) ***
+  Define a Quantization Table.
+  OFFSET: 0x00000014
+  Table length = 67
+  ----
+  Precision=8 bits
+  Destination ID=0 (Luminance)
+    DQT, Row #0:   3   2   2   3   4   6   8  10 
+    DQT, Row #1:   2   2   2   3   4   9  10   9 
+    DQT, Row #2:   2   2   3   4   6   9  11   9 
+    DQT, Row #3:   2   3   4   5   8  14  13  10 
+    DQT, Row #4:   3   4   6   9  11  17  16  12 
+    DQT, Row #5:   4   6   9  10  13  17  18  15 
+    DQT, Row #6:   8  10  12  14  16  19  19  16 
+    DQT, Row #7:  12  15  15  16  18  16  16  16 
+    Approx quality factor = 91.86 (scaling=16.28 variance=1.13)
+ 
+*** Marker: DQT (xFFDB) ***
+  Define a Quantization Table.
+  OFFSET: 0x00000059
+  Table length = 67
+  ----
+  Precision=8 bits
+  Destination ID=1 (Chrominance)
+    DQT, Row #0:   3   3   4   8  16  16  16  16 
+    DQT, Row #1:   3   3   4  11  16  16  16  16 
+    DQT, Row #2:   4   4   9  16  16  16  16  16 
+    DQT, Row #3:   8  11  16  16  16  16  16  16 
+    DQT, Row #4:  16  16  16  16  16  16  16  16 
+    DQT, Row #5:  16  16  16  16  16  16  16  16 
+    DQT, Row #6:  16  16  16  16  16  16  16  16 
+    DQT, Row #7:  16  16  16  16  16  16  16  16 
+    Approx quality factor = 91.90 (scaling=16.20 variance=0.15)
+ 
+*** Marker: SOF0 (Baseline DCT) (xFFC0) ***
+  OFFSET: 0x0000009E
+  Frame header length = 17
+  Precision = 8
+  Number of Lines = 769
+  Samples per Line = 1900
+  Image Size = 1900 x 769
+  Raw Image Orientation = Landscape
+  Number of Img components = 3
+    Component[1]: ID=0x01, Samp Fac=0x22 (Subsamp 1 x 1), Quant Tbl Sel=0x00 (Lum: Y)
+    Component[2]: ID=0x02, Samp Fac=0x11 (Subsamp 2 x 2), Quant Tbl Sel=0x01 (Chrom: Cb)
+    Component[3]: ID=0x03, Samp Fac=0x11 (Subsamp 2 x 2), Quant Tbl Sel=0x01 (Chrom: Cr)
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x000000B1
+  Huffman table length = 29
+  ----
+  Destination ID = 0
+  Class = 0 (DC / Lossless Table)
+    Codes of length 01 bits (001 total): 00 
+    Codes of length 02 bits (000 total): 
+    Codes of length 03 bits (002 total): 07 08 
+    Codes of length 04 bits (002 total): 06 09 
+    Codes of length 05 bits (002 total): 04 05 
+    Codes of length 06 bits (003 total): 01 02 03 
+    Codes of length 07 bits (000 total): 
+    Codes of length 08 bits (000 total): 
+    Codes of length 09 bits (000 total): 
+    Codes of length 10 bits (000 total): 
+    Codes of length 11 bits (000 total): 
+    Codes of length 12 bits (000 total): 
+    Codes of length 13 bits (000 total): 
+    Codes of length 14 bits (000 total): 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 010
+
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x000000D0
+  Huffman table length = 78
+  ----
+  Destination ID = 0
+  Class = 1 (AC Table)
+    Codes of length 01 bits (001 total): 00 
+    Codes of length 02 bits (000 total): 
+    Codes of length 03 bits (001 total): 01 
+    Codes of length 04 bits (003 total): 02 03 04 
+    Codes of length 05 bits (003 total): 05 06 11 
+    Codes of length 06 bits (001 total): 07 
+    Codes of length 07 bits (005 total): 08 12 21 31 41 
+    Codes of length 08 bits (005 total): 13 14 22 51 61 
+    Codes of length 09 bits (003 total): 15 32 71 
+    Codes of length 10 bits (009 total): 09 16 23 52 62 81 91 92 A1 
+    Codes of length 11 bits (005 total): 17 33 42 72 82 
+    Codes of length 12 bits (005 total): 24 43 54 93 B3 
+    Codes of length 13 bits (006 total): 63 73 83 A2 B2 C2 
+    Codes of length 14 bits (003 total): 25 44 A3 
+    Codes of length 15 bits (009 total): 34 35 36 37 64 76 B1 B4 C1 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 059
+
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x00000120
+  Huffman table length = 28
+  ----
+  Destination ID = 1
+  Class = 0 (DC / Lossless Table)
+    Codes of length 01 bits (001 total): 00 
+    Codes of length 02 bits (000 total): 
+    Codes of length 03 bits (003 total): 05 06 07 
+    Codes of length 04 bits (001 total): 04 
+    Codes of length 05 bits (000 total): 
+    Codes of length 06 bits (003 total): 02 03 08 
+    Codes of length 07 bits (001 total): 01 
+    Codes of length 08 bits (000 total): 
+    Codes of length 09 bits (000 total): 
+    Codes of length 10 bits (000 total): 
+    Codes of length 11 bits (000 total): 
+    Codes of length 12 bits (000 total): 
+    Codes of length 13 bits (000 total): 
+    Codes of length 14 bits (000 total): 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 009
+
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x0000013E
+  Huffman table length = 64
+  ----
+  Destination ID = 1
+  Class = 1 (AC Table)
+    Codes of length 01 bits (001 total): 00 
+    Codes of length 02 bits (000 total): 
+    Codes of length 03 bits (001 total): 01 
+    Codes of length 04 bits (002 total): 02 03 
+    Codes of length 05 bits (003 total): 04 05 11 
+    Codes of length 06 bits (005 total): 06 21 31 71 81 
+    Codes of length 07 bits (003 total): 41 51 91 
+    Codes of length 08 bits (010 total): 12 13 14 22 32 61 A1 B1 C1 D1 
+    Codes of length 09 bits (005 total): 15 33 42 E1 F0 
+    Codes of length 10 bits (003 total): 07 23 52 
+    Codes of length 11 bits (004 total): 43 62 72 82 
+    Codes of length 12 bits (002 total): 92 F1 
+    Codes of length 13 bits (001 total): B2 
+    Codes of length 14 bits (005 total): 16 A2 C2 D2 E2 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 045
+
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x00000180
+  Scan header length = 12
+  Number of img components = 3
+    Component[1]: selector=0x01, table=0(DC),0(AC)
+    Component[2]: selector=0x02, table=1(DC),1(AC)
+    Component[3]: selector=0x03, table=1(DC),1(AC)
+  Spectral selection = 0 .. 63
+  Successive approximation = 0x00
+
+
+*** Decoding SCAN Data ***
+  OFFSET: 0x0000018E
+  Scan Decode Mode: No IDCT (DC only)
+    NOTE: Low-resolution DC component shown. Can decode full-res with [Options->Scan Segment->Full IDCT]
+
+  Scan Data encountered marker   0xFFD9 @ 0x00008770.0
+
+  Compression stats:
+    Compression Ratio: 127.89:1
+    Bits per pixel:     0.19:1
+
+  Huffman code histogram stats:
+    Huffman Table: (Dest ID: 0, Class: DC)
+      # codes of length 01 bits:    22539 ( 97%)
+      # codes of length 02 bits:        0 (  0%)
+      # codes of length 03 bits:      379 (  2%)
+      # codes of length 04 bits:      246 (  1%)
+      # codes of length 05 bits:       91 (  0%)
+      # codes of length 06 bits:       69 (  0%)
+      # codes of length 07 bits:        0 (  0%)
+      # codes of length 08 bits:        0 (  0%)
+      # codes of length 09 bits:        0 (  0%)
+      # codes of length 10 bits:        0 (  0%)
+      # codes of length 11 bits:        0 (  0%)
+      # codes of length 12 bits:        0 (  0%)
+      # codes of length 13 bits:        0 (  0%)
+      # codes of length 14 bits:        0 (  0%)
+      # codes of length 15 bits:        0 (  0%)
+      # codes of length 16 bits:        0 (  0%)
+
+    Huffman Table: (Dest ID: 1, Class: DC)
+      # codes of length 01 bits:    11012 ( 94%)
+      # codes of length 02 bits:        0 (  0%)
+      # codes of length 03 bits:      445 (  4%)
+      # codes of length 04 bits:      105 (  1%)
+      # codes of length 05 bits:        0 (  0%)
+      # codes of length 06 bits:       81 (  1%)
+      # codes of length 07 bits:       19 (  0%)
+      # codes of length 08 bits:        0 (  0%)
+      # codes of length 09 bits:        0 (  0%)
+      # codes of length 10 bits:        0 (  0%)
+      # codes of length 11 bits:        0 (  0%)
+      # codes of length 12 bits:        0 (  0%)
+      # codes of length 13 bits:        0 (  0%)
+      # codes of length 14 bits:        0 (  0%)
+      # codes of length 15 bits:        0 (  0%)
+      # codes of length 16 bits:        0 (  0%)
+
+    Huffman Table: (Dest ID: 0, Class: AC)
+      # codes of length 01 bits:    23301 ( 56%)
+      # codes of length 02 bits:        0 (  0%)
+      # codes of length 03 bits:     4265 ( 10%)
+      # codes of length 04 bits:     7407 ( 18%)
+      # codes of length 05 bits:     3364 (  8%)
+      # codes of length 06 bits:      767 (  2%)
+      # codes of length 07 bits:     1399 (  3%)
+      # codes of length 08 bits:      642 (  2%)
+      # codes of length 09 bits:      201 (  0%)
+      # codes of length 10 bits:      285 (  1%)
+      # codes of length 11 bits:       99 (  0%)
+      # codes of length 12 bits:       42 (  0%)
+      # codes of length 13 bits:       30 (  0%)
+      # codes of length 14 bits:        6 (  0%)
+      # codes of length 15 bits:        9 (  0%)
+      # codes of length 16 bits:        0 (  0%)
+
+    Huffman Table: (Dest ID: 1, Class: AC)
+      # codes of length 01 bits:    11662 ( 60%)
+      # codes of length 02 bits:        0 (  0%)
+      # codes of length 03 bits:     1971 ( 10%)
+      # codes of length 04 bits:     1938 ( 10%)
+      # codes of length 05 bits:     1525 (  8%)
+      # codes of length 06 bits:     1005 (  5%)
+      # codes of length 07 bits:      339 (  2%)
+      # codes of length 08 bits:      727 (  4%)
+      # codes of length 09 bits:      148 (  1%)
+      # codes of length 10 bits:       41 (  0%)
+      # codes of length 11 bits:       23 (  0%)
+      # codes of length 12 bits:        8 (  0%)
+      # codes of length 13 bits:        2 (  0%)
+      # codes of length 14 bits:        5 (  0%)
+      # codes of length 15 bits:        0 (  0%)
+      # codes of length 16 bits:        0 (  0%)
+
+  YCC clipping in DC:
+    Y  component: [<0=    0] [>255=    0]
+    Cb component: [<0=    0] [>255=    0]
+    Cr component: [<0=    0] [>255=    0]
+
+  RGB clipping in DC:
+    R  component: [<0=    0] [>255=    0]
+    G  component: [<0=    0] [>255=    0]
+    B  component: [<0=    0] [>255=    0]
+
+  Average Pixel Luminance (Y):
+    Y=[250] (range: 0..255)
+
+  Brightest Pixel Search:
+    YCC=[ 1017,    0,    0] RGB=[255,255,255] @ MCU[  0,  0]
+
+  Finished Decoding SCAN Data
+    Number of RESTART markers decoded: 0
+    Next position in scan buffer: Offset 0x0000876F.5
+
+ 
+*** Marker: EOI (End of Image) (xFFD9) ***
+  OFFSET: 0x00008770
+
+
+*** Searching Compression Signatures ***
+
+  Signature:           01557A9AE226A38386271DFE13D64298
+  Signature (Rotated): 0167FCEDBA3A8E8CF822163DB3564762
+  File Offset:         0 bytes
+  Chroma subsampling:  2x2
+  EXIF Make/Model:     NONE
+  EXIF Makernotes:     NONE
+  EXIF Software:       NONE
+
+  Searching Compression Signatures: (3347 built-in, 0 user(*) )
+
+          EXIF.Make / Software        EXIF.Model                            Quality           Subsamp Match?
+          -------------------------   -----------------------------------   ----------------  --------------
+     CAM:[Konica Minolta Camera, In] [DiMAGE Z2                          ] [                ] No               
+     CAM:[Minolta Co., Ltd.        ] [DiMAGE F100                        ] [                ] No               
+     CAM:[NIKON                    ] [E2500                              ] [FINE            ] No               
+     CAM:[NIKON                    ] [E4500                              ] [FINE            ] No               
+     CAM:[NIKON                    ] [E5000                              ] [FINE            ] No               
+     CAM:[NIKON                    ] [E8700                              ] [FINE            ] No               
+     CAM:[NIKON                    ] [E885                               ] [FINE            ] No               
+     CAM:[OLYMPUS CORPORATION      ] [C8080WZ                            ] [                ] No               
+     CAM:[OLYMPUS OPTICAL CO.,LTD  ] [C2000Z                             ] [                ] No               
+     CAM:[OLYMPUS OPTICAL CO.,LTD  ] [C3040Z                             ] [                ] No               
+     CAM:[SEIKO EPSON CORP.        ] [PhotoPC 3000Z                      ] [                ] No               
+     CAM:[SONY                     ] [DSC-H2                             ] [                ] No               
+     CAM:[SONY                     ] [DSC-H7                             ] [                ] No               
+     CAM:[SONY                     ] [DSC-H9                             ] [                ] No               
+     CAM:[SONY                     ] [DSC-P200                           ] [                ] No               
+     CAM:[SONY                     ] [DSC-S90                            ] [                ] No               
+     CAM:[SONY                     ] [DSC-W7                             ] [                ] No               
+     SW :[IJG Library              ]                                       [092             ]                  
+
+    The following IJG-based editors also match this signature:
+     SW :[GIMP                     ]                                       [092             ]                  
+     SW :[IrfanView                ]                                       [092             ]                  
+     SW :[idImager                 ]                                       [092             ]                  
+     SW :[FastStone Image Viewer   ]                                       [092             ]                  
+     SW :[NeatImage                ]                                       [092             ]                  
+     SW :[Paint.NET                ]                                       [092             ]                  
+     SW :[Photomatix               ]                                       [092             ]                  
+     SW :[XnView                   ]                                       [092             ]                  
+
+  Based on the analysis of compression characteristics and EXIF metadata:
+
+  ASSESSMENT: Class 1 - Image is processed/edited
+
+  This may be a new software editor for the database.
+  If this file is processed, and editor doesn't appear in list above,
+  PLEASE ADD TO DATABASE with [Tools->Add Camera to DB]
+

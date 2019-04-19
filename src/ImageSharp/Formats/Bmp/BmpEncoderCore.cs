@@ -3,9 +3,11 @@
 
 using System;
 using System.IO;
+
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 
@@ -21,7 +23,29 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private int padding;
 
+        /// <summary>
+        /// The mask for the alpha channel of the color for a 32 bit rgba bitmaps.
+        /// </summary>
+        private const int Rgba32AlphaMask = 0xFF << 24;
+
+        /// <summary>
+        /// The mask for the red part of the color for a 32 bit rgba bitmaps.
+        /// </summary>
+        private const int Rgba32RedMask = 0xFF << 16;
+
+        /// <summary>
+        /// The mask for the green part of the color for a 32 bit rgba bitmaps.
+        /// </summary>
+        private const int Rgba32GreenMask = 0xFF << 8;
+
+        /// <summary>
+        /// The mask for the blue part of the color for a 32 bit rgba bitmaps.
+        /// </summary>
+        private const int Rgba32BlueMask = 0xFF;
+
         private readonly MemoryAllocator memoryAllocator;
+
+        private Configuration configuration;
 
         private BmpBitsPerPixel? bitsPerPixel;
 
@@ -48,9 +72,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            ImageMetaData metaData = image.MetaData;
-            BmpMetaData bmpMetaData = metaData.GetFormatMetaData(BmpFormat.Instance);
-            this.bitsPerPixel = this.bitsPerPixel ?? bmpMetaData.BitsPerPixel;
+            this.configuration = image.GetConfiguration();
+            ImageMetadata metadata = image.Metadata;
+            BmpMetadata bmpMetadata = metadata.GetFormatMetadata(BmpFormat.Instance);
+            this.bitsPerPixel = this.bitsPerPixel ?? bmpMetadata.BitsPerPixel;
 
             short bpp = (short)this.bitsPerPixel;
             int bytesPerLine = 4 * (((image.Width * bpp) + 31) / 32);
@@ -60,35 +85,36 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int hResolution = 0;
             int vResolution = 0;
 
-            if (metaData.ResolutionUnits != PixelResolutionUnit.AspectRatio)
+            if (metadata.ResolutionUnits != PixelResolutionUnit.AspectRatio)
             {
-                if (metaData.HorizontalResolution > 0 && metaData.VerticalResolution > 0)
+                if (metadata.HorizontalResolution > 0 && metadata.VerticalResolution > 0)
                 {
-                    switch (metaData.ResolutionUnits)
+                    switch (metadata.ResolutionUnits)
                     {
                         case PixelResolutionUnit.PixelsPerInch:
 
-                            hResolution = (int)Math.Round(UnitConverter.InchToMeter(metaData.HorizontalResolution));
-                            vResolution = (int)Math.Round(UnitConverter.InchToMeter(metaData.VerticalResolution));
+                            hResolution = (int)Math.Round(UnitConverter.InchToMeter(metadata.HorizontalResolution));
+                            vResolution = (int)Math.Round(UnitConverter.InchToMeter(metadata.VerticalResolution));
                             break;
 
                         case PixelResolutionUnit.PixelsPerCentimeter:
 
-                            hResolution = (int)Math.Round(UnitConverter.CmToMeter(metaData.HorizontalResolution));
-                            vResolution = (int)Math.Round(UnitConverter.CmToMeter(metaData.VerticalResolution));
+                            hResolution = (int)Math.Round(UnitConverter.CmToMeter(metadata.HorizontalResolution));
+                            vResolution = (int)Math.Round(UnitConverter.CmToMeter(metadata.VerticalResolution));
                             break;
 
                         case PixelResolutionUnit.PixelsPerMeter:
-                            hResolution = (int)Math.Round(metaData.HorizontalResolution);
-                            vResolution = (int)Math.Round(metaData.VerticalResolution);
+                            hResolution = (int)Math.Round(metadata.HorizontalResolution);
+                            vResolution = (int)Math.Round(metadata.VerticalResolution);
 
                             break;
                     }
                 }
             }
 
+            int infoHeaderSize = BmpInfoHeader.SizeV4;
             var infoHeader = new BmpInfoHeader(
-                headerSize: BmpInfoHeader.Size,
+                headerSize: infoHeaderSize,
                 height: image.Height,
                 width: image.Width,
                 bitsPerPixel: bpp,
@@ -97,26 +123,37 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 clrUsed: 0,
                 clrImportant: 0,
                 xPelsPerMeter: hResolution,
-                yPelsPerMeter: vResolution);
+                yPelsPerMeter: vResolution)
+            {
+                RedMask = Rgba32RedMask,
+                GreenMask = Rgba32GreenMask,
+                BlueMask = Rgba32BlueMask,
+                Compression = BmpCompression.BitFields
+            };
+
+            if (this.bitsPerPixel == BmpBitsPerPixel.Pixel32)
+            {
+                infoHeader.AlphaMask = Rgba32AlphaMask;
+            }
 
             var fileHeader = new BmpFileHeader(
-                type: 19778, // BM
-                fileSize: 54 + infoHeader.ImageSize,
+                type: BmpConstants.TypeMarkers.Bitmap,
+                fileSize: BmpFileHeader.Size + infoHeaderSize + infoHeader.ImageSize,
                 reserved: 0,
-                offset: 54);
+                offset: BmpFileHeader.Size + infoHeaderSize);
 
 #if NETCOREAPP2_1
-            Span<byte> buffer = stackalloc byte[40];
+            Span<byte> buffer = stackalloc byte[infoHeaderSize];
 #else
-            byte[] buffer = new byte[40];
+            byte[] buffer = new byte[infoHeaderSize];
 #endif
             fileHeader.WriteTo(buffer);
 
             stream.Write(buffer, 0, BmpFileHeader.Size);
 
-            infoHeader.WriteTo(buffer);
+            infoHeader.WriteV4Header(buffer);
 
-            stream.Write(buffer, 0, 40);
+            stream.Write(buffer, 0, infoHeaderSize);
 
             this.WriteImage(stream, image.Frames.RootFrame);
 
@@ -163,7 +200,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToBgra32Bytes(pixelSpan, row.GetSpan(), pixelSpan.Length);
+                    PixelOperations<TPixel>.Instance.ToBgra32Bytes(
+                        this.configuration,
+                        pixelSpan,
+                        row.GetSpan(),
+                        pixelSpan.Length);
                     stream.Write(row.Array, 0, row.Length());
                 }
             }
@@ -183,7 +224,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToBgr24Bytes(pixelSpan, row.GetSpan(), pixelSpan.Length);
+                    PixelOperations<TPixel>.Instance.ToBgr24Bytes(
+                        this.configuration,
+                        pixelSpan,
+                        row.GetSpan(),
+                        pixelSpan.Length);
                     stream.Write(row.Array, 0, row.Length());
                 }
             }

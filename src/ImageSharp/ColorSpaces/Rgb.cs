@@ -14,13 +14,13 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// </summary>
     public readonly struct Rgb : IEquatable<Rgb>
     {
-        private static readonly Vector3 Min = Vector3.Zero;
-        private static readonly Vector3 Max = Vector3.One;
-
         /// <summary>
-        /// The default rgb working space
+        /// The default rgb working space.
         /// </summary>
         public static readonly RgbWorkingSpaceBase DefaultWorkingSpace = RgbWorkingSpaces.SRgb;
+
+        private static readonly Vector3 Min = Vector3.Zero;
+        private static readonly Vector3 Max = Vector3.One;
 
         /// <summary>
         /// Gets the red component.
@@ -147,12 +147,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public Vector3 ToVector3() => new Vector3(this.R, this.G, this.B);
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            int hash = this.R.GetHashCode();
-            hash = HashHelpers.Combine(hash, this.G.GetHashCode());
-            return HashHelpers.Combine(hash, this.B.GetHashCode());
-        }
+        public override int GetHashCode() => HashCode.Combine(this.R, this.G, this.B);
 
         /// <inheritdoc/>
         public override string ToString() => FormattableString.Invariant($"Rgb({this.R:#0.##}, {this.G:#0.##}, {this.B:#0.##})");

@@ -1,0 +1,39 @@
+
+JPEGsnoop 1.8.0 by Calvin Hass
+  http://www.impulseadventure.com/photo/
+  -------------------------------------
+
+  Filename: [.\Issue695-Invalid-EOI.jpg]
+  Filesize: [4805575] Bytes
+
+Start Offset: 0x00000000
+*** Marker: SOI (xFFD8) ***
+  OFFSET: 0x00000000
+ 
+*** Marker: APP0 (xFFE0) ***
+  OFFSET: 0x00000002
+  Length     = 16
+  Identifier = [JFIF]
+  version    = [1.1]
+  density    = 72 x 72 (aspect ratio)
+  thumbnail  = 0 x 0
+ 
+*** Marker: APP1 (xFFE1) ***
+  OFFSET: 0x00000014
+  Length          = 64
+  Identifier      = [Exif]
+  Identifier TIFF = 0x[49492A00 08000000]
+  Endian          = Intel (little)
+  TAG Mark x002A  = 0x002A
+
+  EXIF IFD0 @ Absolute 0x00000026
+    Dir Length = 0x0001
+    [ExifOffset                          ] = @ 0x001A
+    Offset to Next IFD = 0x00000000
+
+  EXIF SubIFD @ Absolute 0x00000038
+    Dir Length = 0x0002
+    [ExifImageWidth                      ] = 0x[000003E8] / 1000
+    [ExifImageHeight                     ] = 0x[000003E8] / 1000
+ 
+ERROR: Expected marker 0xFF, got 0x49 @ offset 0x00000056. Consider using [Tools->Img Search Fwd/Rev].

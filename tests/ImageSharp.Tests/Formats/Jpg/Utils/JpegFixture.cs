@@ -58,7 +58,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             {
                 for (int j = 0; j < 8; j++)
                 {
-                    result[i * 8 + j] = (short)(i * 10 + j);
+                    short val = (short)(i * 10 + j);
+                    if ((i + j) % 2 == 0)
+                    {
+                        val *= -1;
+                    }
+                    result[i * 8 + j] = val;
                 }
             }
             return result;

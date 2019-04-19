@@ -5,7 +5,7 @@ using System;
 using System.Globalization;
 using System.Numerics;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// Provides methods to read ICC data types
@@ -628,16 +628,16 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             int start = this.currentIndex - 8; // 8 is the tag header size
             ushort channelCount = this.ReadUInt16();
-            ushort measurmentCount = this.ReadUInt16();
+            ushort measurementCount = this.ReadUInt16();
 
-            uint[] offset = new uint[measurmentCount];
-            for (int i = 0; i < measurmentCount; i++)
+            uint[] offset = new uint[measurementCount];
+            for (int i = 0; i < measurementCount; i++)
             {
                 offset[i] = this.ReadUInt32();
             }
 
-            var curves = new IccResponseCurve[measurmentCount];
-            for (int i = 0; i < measurmentCount; i++)
+            var curves = new IccResponseCurve[measurementCount];
+            for (int i = 0; i < measurementCount; i++)
             {
                 this.currentIndex = (int)(start + offset[i]);
                 curves[i] = this.ReadResponseCurve(channelCount);

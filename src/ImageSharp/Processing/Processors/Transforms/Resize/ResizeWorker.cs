@@ -45,6 +45,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly int windowHeight;
 
+        private RowInterval currentWindow;
+
         public ResizeWorker(
             Configuration configuration,
             BufferArea<TPixel> source,
@@ -82,13 +84,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.tempRowBuffer = configuration.MemoryAllocator.Allocate<Vector4>(this.sourceRectangle.Width);
             this.tempColumnBuffer = configuration.MemoryAllocator.Allocate<Vector4>(destWidth);
 
-            this.CurrentMinY = 0;
-            this.CurrentMaxY = this.windowHeight;
+            this.currentWindow = new RowInterval(0, this.windowHeight);
         }
-
-        public int CurrentMaxY { get; private set; }
-
-        public int CurrentMinY { get; private set; }
 
         public void Dispose()
         {
@@ -100,18 +97,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Span<Vector4> GetColumnSpan(int x, int startY)
         {
-            return this.buffer.GetRowSpan(x).Slice(startY - this.CurrentMinY);
+            return this.buffer.GetRowSpan(x).Slice(startY - this.currentWindow.Min);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<Vector4> GetColumnSpan(int x)
-        {
-            return this.buffer.GetRowSpan(x);
-        }
 
         public void Initialize()
         {
-            this.CalculateFirstPassValues(0, this.windowHeight);
+            this.CalculateFirstPassValues(this.currentWindow);
         }
 
         public void FillDestinationPixels(int minY, int maxY, int startY, Buffer2D<TPixel> destination)
@@ -123,14 +115,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 // Ensure offsets are normalized for cropping and padding.
                 ResizeKernel kernel = this.verticalKernelMap.GetKernel(y - startY);
 
-                while (kernel.StartIndex + kernel.Length > this.CurrentMaxY)
+                while (kernel.StartIndex + kernel.Length > this.currentWindow.Max)
                 {
                     this.Slide();
                 }
 
                 ref Vector4 tempRowBase = ref MemoryMarshal.GetReference(tempColSpan);
 
-                int top = kernel.StartIndex - this.CurrentMinY;
+                int top = kernel.StartIndex - this.currentWindow.Min;
 
                 for (int x = 0; x < this.destWidth; x++)
                 {
@@ -146,17 +138,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
         }
 
-        public void Slide()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private Span<Vector4> GetColumnSpan(int x)
         {
-            this.CurrentMinY = this.CurrentMinY + this.windowBandDiameter;
-            this.CurrentMaxY = Math.Min(this.CurrentMaxY + this.windowBandDiameter, this.sourceRectangle.Height);
-            this.CalculateFirstPassValues(this.CurrentMinY, this.CurrentMaxY);
+            return this.buffer.GetRowSpan(x);
         }
 
-        private void CalculateFirstPassValues(int minY, int maxY)
+        private void Slide()
+        {
+            int minY = this.currentWindow.Min + this.windowBandDiameter;
+            int maxY = Math.Min(this.currentWindow.Max + this.windowBandDiameter, this.sourceRectangle.Height);
+            this.currentWindow = new RowInterval(minY, maxY);
+            this.CalculateFirstPassValues(this.currentWindow);
+        }
+
+        private void CalculateFirstPassValues(RowInterval window)
         {
             Span<Vector4> tempRowSpan = this.tempRowBuffer.GetSpan();
-            for (int y = minY; y < maxY; y++)
+            for (int y = window.Min; y < window.Max; y++)
             {
                 Span<TPixel> sourceRow = this.source.GetRowSpan(y);
 
@@ -167,7 +166,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     this.conversionModifiers);
 
                 // ref Vector4 firstPassBaseRef = ref this.buffer.Span[y - top];
-                Span<Vector4> firstPassSpan = this.buffer.Span.Slice(y - minY);
+                Span<Vector4> firstPassSpan = this.buffer.Span.Slice(y - window.Min);
 
                 for (int x = this.destWorkingRect.Left; x < this.destWorkingRect.Right; x++)
                 {

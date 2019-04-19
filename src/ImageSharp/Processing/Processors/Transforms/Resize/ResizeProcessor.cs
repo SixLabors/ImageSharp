@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int startY = this.TargetRectangle.Y;
             int startX = this.TargetRectangle.X;
 
-            var destWorkingRect = Rectangle.Intersect(
+            var targetWorkingRect = Rectangle.Intersect(
                 this.TargetRectangle,
                 new Rectangle(0, 0, width, height));
 
@@ -208,7 +208,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 float heightFactor = sourceRectangle.Height / (float)this.TargetRectangle.Height;
 
                 ParallelHelper.IterateRows(
-                    destWorkingRect,
+                    targetWorkingRect,
                     configuration,
                     rows =>
                     {
@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                 source.GetPixelRowSpan((int)(((y - startY) * heightFactor) + sourceY));
                             Span<TPixel> targetRow = destination.GetPixelRowSpan(y);
 
-                            for (int x = destWorkingRect.Left; x < destWorkingRect.Right; x++)
+                            for (int x = targetWorkingRect.Left; x < targetWorkingRect.Right; x++)
                             {
                                 // X coordinates of source points
                                 targetRow[x] = sourceRow[(int)(((x - startX) * widthFactor) + sourceX)];
@@ -237,8 +237,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             BufferArea<TPixel> sourceArea = source.PixelBuffer.GetArea(sourceRectangle);
 
-            // If we want to reintroduce processing:
-            // it's possible to launch multiple workers for different regions of the image
+            // To reintroduce parallel processing, we to launch multiple workers
+            // for different row intervals of the image.
             using (var worker = new ResizeWorker<TPixel>(
                 configuration,
                 sourceArea,
@@ -246,11 +246,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 this.horizontalKernelMap,
                 this.verticalKernelMap,
                 width,
-                destWorkingRect,
-                startX))
+                targetWorkingRect,
+                this.TargetRectangle.Location))
             {
                 worker.Initialize();
-                worker.FillDestinationPixels(destWorkingRect.Top, destWorkingRect.Bottom, startY, destination.PixelBuffer);
+
+                var workingInterval = new RowInterval(targetWorkingRect.Top, targetWorkingRect.Bottom);
+                worker.FillDestinationPixels(workingInterval, destination.PixelBuffer);
             }
         }
 

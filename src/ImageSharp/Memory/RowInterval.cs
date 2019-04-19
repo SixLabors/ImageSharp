@@ -38,7 +38,6 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         public int Height => this.Max - this.Min;
 
-
         public static bool operator ==(RowInterval left, RowInterval right)
         {
             return left.Equals(right);

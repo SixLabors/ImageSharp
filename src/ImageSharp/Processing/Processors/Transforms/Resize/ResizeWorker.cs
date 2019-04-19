@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal class ResizeWorker<TPixel> : IDisposable
         where TPixel : struct, IPixel<TPixel>
     {
-        private readonly Buffer2D<Vector4> buffer;
+        private readonly Buffer2D<Vector4> transposedFirstPassBuffer;
 
         private readonly Configuration configuration;
 
@@ -29,8 +29,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly Rectangle sourceRectangle;
 
-        private readonly int startX;
-
         private readonly IMemoryOwner<Vector4> tempRowBuffer;
 
         private readonly IMemoryOwner<Vector4> tempColumnBuffer;
@@ -39,7 +37,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly int destWidth;
 
-        private readonly Rectangle destWorkingRect;
+        private readonly Rectangle targetWorkingRect;
+
+        private readonly Point targetOrigin;
 
         private readonly int windowBandDiameter;
 
@@ -54,8 +54,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             ResizeKernelMap horizontalKernelMap,
             ResizeKernelMap verticalKernelMap,
             int destWidth,
-            Rectangle destWorkingRect,
-            int startX)
+            Rectangle targetWorkingRect,
+            Point targetOrigin)
         {
             this.configuration = configuration;
             this.source = source;
@@ -64,8 +64,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.horizontalKernelMap = horizontalKernelMap;
             this.verticalKernelMap = verticalKernelMap;
             this.destWidth = destWidth;
-            this.destWorkingRect = destWorkingRect;
-            this.startX = startX;
+            this.targetWorkingRect = targetWorkingRect;
+            this.targetOrigin = targetOrigin;
 
             this.windowBandDiameter = verticalKernelMap.MaxDiameter;
 
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             this.windowHeight = Math.Min(this.sourceRectangle.Height, numberOfWindowBands * this.windowBandDiameter);
 
-            this.buffer = configuration.MemoryAllocator.Allocate2D<Vector4>(
+            this.transposedFirstPassBuffer = configuration.MemoryAllocator.Allocate2D<Vector4>(
                 this.windowHeight,
                 destWidth,
                 AllocationOptions.Clean);
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         public void Dispose()
         {
-            this.buffer.Dispose();
+            this.transposedFirstPassBuffer.Dispose();
             this.tempRowBuffer.Dispose();
             this.tempColumnBuffer.Dispose();
         }
@@ -97,23 +97,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Span<Vector4> GetColumnSpan(int x, int startY)
         {
-            return this.buffer.GetRowSpan(x).Slice(startY - this.currentWindow.Min);
+            return this.transposedFirstPassBuffer.GetRowSpan(x).Slice(startY - this.currentWindow.Min);
         }
-
 
         public void Initialize()
         {
             this.CalculateFirstPassValues(this.currentWindow);
         }
 
-        public void FillDestinationPixels(int minY, int maxY, int startY, Buffer2D<TPixel> destination)
+        public void FillDestinationPixels(RowInterval rowInterval, Buffer2D<TPixel> destination)
         {
             Span<Vector4> tempColSpan = this.tempColumnBuffer.GetSpan();
 
-            for (int y = minY; y < maxY; y++)
+            for (int y = rowInterval.Min; y < rowInterval.Max; y++)
             {
                 // Ensure offsets are normalized for cropping and padding.
-                ResizeKernel kernel = this.verticalKernelMap.GetKernel(y - startY);
+                ResizeKernel kernel = this.verticalKernelMap.GetKernel(y - this.targetOrigin.Y);
 
                 while (kernel.StartIndex + kernel.Length > this.currentWindow.Max)
                 {
@@ -141,7 +140,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Span<Vector4> GetColumnSpan(int x)
         {
-            return this.buffer.GetRowSpan(x);
+            return this.transposedFirstPassBuffer.GetRowSpan(x);
         }
 
         private void Slide()
@@ -166,11 +165,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     this.conversionModifiers);
 
                 // ref Vector4 firstPassBaseRef = ref this.buffer.Span[y - top];
-                Span<Vector4> firstPassSpan = this.buffer.Span.Slice(y - window.Min);
+                Span<Vector4> firstPassSpan = this.transposedFirstPassBuffer.Span.Slice(y - window.Min);
 
-                for (int x = this.destWorkingRect.Left; x < this.destWorkingRect.Right; x++)
+                for (int x = this.targetWorkingRect.Left; x < this.targetWorkingRect.Right; x++)
                 {
-                    ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - this.startX);
+                    ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - this.targetOrigin.X);
                     firstPassSpan[x * this.windowHeight] = kernel.Convolve(tempRowSpan);
 
                     // Unsafe.Add(ref firstPassBaseRef, x * this.sourceRectangle.Height) = kernel.Convolve(tempRowSpan);

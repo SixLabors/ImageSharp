@@ -55,11 +55,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         [MethodImpl(InliningOptions.ShortMethod)]
         public Vector4 Convolve(Span<Vector4> rowSpan)
         {
-            return this.ConvolveCore(rowSpan.Slice(this.StartIndex));
+            return this.ConvolveCore(ref rowSpan[this.StartIndex]);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ConvolveCore(Span<Vector4> offsetedRowSpan)
+        public Vector4 ConvolveCore(ref Vector4 rowStartRef)
         {
             ref float horizontalValues = ref Unsafe.AsRef<float>(this.bufferPtr);
 
@@ -70,8 +70,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 float weight = Unsafe.Add(ref horizontalValues, i);
 
-                // Vector4 v = Unsafe.Add(ref rowStartRef, i);
-                Vector4 v = offsetedRowSpan[i];
+                // Vector4 v = offsetedRowSpan[i];
+                Vector4 v = Unsafe.Add(ref rowStartRef, i);
                 result += v * weight;
             }
 

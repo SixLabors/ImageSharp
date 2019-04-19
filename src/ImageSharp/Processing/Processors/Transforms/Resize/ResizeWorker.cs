@@ -125,10 +125,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                 for (int x = 0; x < this.destWidth; x++)
                 {
-                    Span<Vector4> firstPassColumn = this.GetColumnSpan(x).Slice(top);
+                    // Span<Vector4> firstPassColumn = this.GetColumnSpan(x).Slice(top);
+                    ref Vector4 firstPassColumnBase = ref this.GetColumnSpan(x)[top];
 
                     // Destination color components
-                    Unsafe.Add(ref tempRowBase, x) = kernel.ConvolveCore(firstPassColumn);
+                    Unsafe.Add(ref tempRowBase, x) = kernel.ConvolveCore(ref firstPassColumnBase);
                 }
 
                 Span<TPixel> targetRowSpan = destination.GetRowSpan(y);
@@ -174,15 +175,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     tempRowSpan,
                     this.conversionModifiers);
 
-                // ref Vector4 firstPassBaseRef = ref this.buffer.Span[y - top];
-                Span<Vector4> firstPassSpan = this.transposedFirstPassBuffer.Span.Slice(y - this.currentWindow.Min);
+                // Span<Vector4> firstPassSpan = this.transposedFirstPassBuffer.Span.Slice(y - this.currentWindow.Min);
+                ref Vector4 firstPassBaseRef = ref this.transposedFirstPassBuffer.Span[y - this.currentWindow.Min];
 
                 for (int x = this.targetWorkingRect.Left; x < this.targetWorkingRect.Right; x++)
                 {
                     ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - this.targetOrigin.X);
-                    firstPassSpan[x * this.workerHeight] = kernel.Convolve(tempRowSpan);
 
-                    // Unsafe.Add(ref firstPassBaseRef, x * this.sourceRectangle.Height) = kernel.Convolve(tempRowSpan);
+                    // firstPassSpan[x * this.workerHeight] = kernel.Convolve(tempRowSpan);
+                    Unsafe.Add(ref firstPassBaseRef, x * this.workerHeight) = kernel.Convolve(tempRowSpan);
                 }
             }
         }

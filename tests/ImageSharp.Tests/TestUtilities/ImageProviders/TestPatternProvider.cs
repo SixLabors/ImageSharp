@@ -45,9 +45,8 @@ namespace SixLabors.ImageSharp.Tests
                         DrawTestPattern(image);
                         TestImages.Add(this.SourceFileOrDescription, image);
                     }
+                    return TestImages[this.SourceFileOrDescription].Clone(this.Configuration);
                 }
-
-                return TestImages[this.SourceFileOrDescription].Clone();
             }
 
             /// <summary>

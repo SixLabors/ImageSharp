@@ -2,12 +2,17 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Linq;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
+using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 using Xunit;
@@ -36,84 +41,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.07F);
 
         [Theory]
-        [InlineData(20, 100, 1, 2)]
-        [InlineData(20, 100, 20*100*16, 2)]
-        [InlineData(20, 100, 40*100*16, 2)]
-        [InlineData(20, 100, 59*100*16, 2)]
-        [InlineData(20, 100, 60*100*16, 3)]
-        [InlineData(17, 63, 5*17*63*16, 5)]
-        [InlineData(17, 63, 5*17*63*16+1, 5)]
-        [InlineData(17, 63, 6*17*63*16-1, 5)]
-        [InlineData(33, 400, 1*1024*1024, 4)]
-        [InlineData(33, 400, 8*1024*1024, 39)]
-        [InlineData(50, 300, 1*1024*1024, 4)]
-        public void CalculateResizeWorkerHeightInWindowBands(
-            int windowDiameter,
-            int width,
-            int sizeLimitHintInBytes,
-            int expectedCount)
-        {
-            int actualCount = ResizeHelper.CalculateResizeWorkerHeightInWindowBands(windowDiameter, width, sizeLimitHintInBytes);
-            Assert.Equal(expectedCount, actualCount);
-        }
-        
-        [Theory]
-        [InlineData(-2, 0)]
-        [InlineData(-1, 0)]
-        [InlineData(0, 1)]
-        [InlineData(1, 0)]
-        [InlineData(2, 0)]
-        public static void BicubicWindowOscillatesCorrectly(float x, float expected)
-        {
-            IResampler sampler = KnownResamplers.Bicubic;
-            float result = sampler.GetValue(x);
-
-            Assert.Equal(result, expected);
-        }
-
-        [Theory]
-        [InlineData(-2, 0)]
-        [InlineData(-1, 0)]
-        [InlineData(0, 1)]
-        [InlineData(1, 0)]
-        [InlineData(2, 0)]
-        public static void Lanczos3WindowOscillatesCorrectly(float x, float expected)
-        {
-            IResampler sampler = KnownResamplers.Lanczos3;
-            float result = sampler.GetValue(x);
-
-            Assert.Equal(result, expected);
-        }
-
-        [Theory]
-        [InlineData(-4, 0)]
-        [InlineData(-2, 0)]
-        [InlineData(0, 1)]
-        [InlineData(2, 0)]
-        [InlineData(4, 0)]
-        public static void Lanczos5WindowOscillatesCorrectly(float x, float expected)
-        {
-            IResampler sampler = KnownResamplers.Lanczos5;
-            float result = sampler.GetValue(x);
-
-            Assert.Equal(result, expected);
-        }
-
-        [Theory]
-        [InlineData(-2, 0)]
-        [InlineData(-1, 0)]
-        [InlineData(0, 1)]
-        [InlineData(1, 0)]
-        [InlineData(2, 0)]
-        public static void TriangleWindowOscillatesCorrectly(float x, float expected)
-        {
-            IResampler sampler = KnownResamplers.Triangle;
-            float result = sampler.GetValue(x);
-
-            Assert.Equal(result, expected);
-        }
-
-        [Theory]
         [WithBasicTestPatternImages(15, 12, PixelTypes.Rgba32, 2, 3, 1, 2)]
         [WithBasicTestPatternImages(2, 256, PixelTypes.Rgba32, 1, 1, 1, 8)]
         [WithBasicTestPatternImages(2, 32, PixelTypes.Rgba32, 1, 1, 1, 2)]
@@ -133,6 +60,66 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 FormattableString outputInfo = $"({wN}÷{wD},{hN}÷{hD})";
                 image.DebugSave(provider, outputInfo, appendPixelTypeToFileName: false);
                 image.CompareToReferenceOutput(provider, outputInfo, appendPixelTypeToFileName: false);
+            }
+        }
+
+        private static readonly int SizeOfVector4 = Unsafe.SizeOf<Vector4>();
+
+        [Theory]
+        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 50)]
+        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 60)]
+        [WithTestPatternImages(100, 400, PixelTypes.Rgba32, 110)]
+        [WithTestPatternImages(79, 97, PixelTypes.Rgba32, 73)]
+        [WithTestPatternImages(79, 97, PixelTypes.Rgba32, 5)]
+        [WithTestPatternImages(47, 193, PixelTypes.Rgba32, 73)]
+        [WithTestPatternImages(23, 211, PixelTypes.Rgba32, 31)]
+        public void WorkingBufferSizeHintInBytes_IsAppliedCorrectly<TPixel>(
+            TestImageProvider<TPixel> provider,
+            int workingBufferLimitInRows)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image0 = provider.GetImage())
+            {
+                Size destSize = image0.Size() / 4;
+                
+                Configuration configuration = Configuration.CreateDefaultInstance();
+                
+                int workingBufferSizeHintInBytes = workingBufferLimitInRows * destSize.Width * SizeOfVector4;
+                TestMemoryAllocator allocator = new TestMemoryAllocator();
+                configuration.MemoryAllocator = allocator;
+                configuration.WorkingBufferSizeHintInBytes = workingBufferSizeHintInBytes;
+
+                var verticalKernelMap = ResizeKernelMap.Calculate(
+                    KnownResamplers.Bicubic,
+                    destSize.Height,
+                    image0.Height,
+                    Configuration.Default.MemoryAllocator);
+                int minimumWorkerAllocationInBytes =  verticalKernelMap.MaxDiameter * 2 * destSize.Width * SizeOfVector4;
+                verticalKernelMap.Dispose();
+                
+                using (Image<TPixel> image = image0.Clone(configuration))
+                {
+                    image.Mutate(x => x.Resize(destSize, KnownResamplers.Bicubic, false));
+
+                    image.DebugSave(
+                        provider,
+                        testOutputDetails: workingBufferLimitInRows,
+                        appendPixelTypeToFileName: false);
+                    image.CompareToReferenceOutput(
+                        provider,
+                        testOutputDetails: workingBufferLimitInRows,
+                        appendPixelTypeToFileName: false);
+                    
+                    Assert.NotEmpty(allocator.AllocationLog);
+
+                    var internalAllocations = allocator.AllocationLog.Where(
+                        e => e.ElementType == typeof(Vector4)).ToArray();
+                    
+                    int maxAllocationSize = internalAllocations.Max(e => e.LengthInBytes);
+                    
+                    
+                    Assert.True(maxAllocationSize <= Math.Max(workingBufferSizeHintInBytes, minimumWorkerAllocationInBytes));
+                }
             }
         }
 

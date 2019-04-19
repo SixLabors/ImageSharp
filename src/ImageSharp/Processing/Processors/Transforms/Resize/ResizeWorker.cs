@@ -142,7 +142,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                 Span<TPixel> targetRowSpan = destination.GetRowSpan(y);
 
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, tempColSpan, targetRowSpan, conversionModifiers);
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, tempColSpan, targetRowSpan, this.conversionModifiers);
             }
         }
 
@@ -166,14 +166,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     tempRowSpan,
                     this.conversionModifiers);
 
-                //ref Vector4 firstPassBaseRef = ref this.buffer.Span[y - top];
+                // ref Vector4 firstPassBaseRef = ref this.buffer.Span[y - top];
                 Span<Vector4> firstPassSpan = this.buffer.Span.Slice(y - minY);
 
                 for (int x = this.destWorkingRect.Left; x < this.destWorkingRect.Right; x++)
                 {
                     ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - this.startX);
                     firstPassSpan[x * this.windowHeight] = kernel.Convolve(tempRowSpan);
-                    //Unsafe.Add(ref firstPassBaseRef, x * this.sourceRectangle.Height) = kernel.Convolve(tempRowSpan);
+
+                    // Unsafe.Add(ref firstPassBaseRef, x * this.sourceRectangle.Height) = kernel.Convolve(tempRowSpan);
                 }
             }
         }

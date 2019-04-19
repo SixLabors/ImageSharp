@@ -123,10 +123,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                 int top = kernel.StartIndex - this.currentWindow.Min;
 
+                ref Vector4 fpBase = ref this.transposedFirstPassBuffer.Span[top];
+
                 for (int x = 0; x < this.destWidth; x++)
                 {
                     // Span<Vector4> firstPassColumn = this.GetColumnSpan(x).Slice(top);
-                    ref Vector4 firstPassColumnBase = ref this.GetColumnSpan(x)[top];
+                    // ref Vector4 firstPassColumnBase = ref this.GetColumnSpan(x)[top];
+                    ref Vector4 firstPassColumnBase = ref Unsafe.Add(ref fpBase, x * this.workerHeight);
 
                     // Destination color components
                     Unsafe.Add(ref tempRowBase, x) = kernel.ConvolveCore(ref firstPassColumnBase);

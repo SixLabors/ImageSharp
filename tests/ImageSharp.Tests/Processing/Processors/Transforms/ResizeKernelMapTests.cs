@@ -36,6 +36,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             { nameof(KnownResamplers.Bicubic), 40, 50 },
             { nameof(KnownResamplers.Bicubic), 500, 200 },
             { nameof(KnownResamplers.Bicubic), 200, 500 },
+            { nameof(KnownResamplers.Bicubic), 3032, 400 },
 
             { nameof(KnownResamplers.Bicubic), 10, 25 },
 

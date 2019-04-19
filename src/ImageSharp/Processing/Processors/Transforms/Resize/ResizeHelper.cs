@@ -15,13 +15,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// </summary>
     internal static class ResizeHelper
     {
-        public static unsafe int CalculateResizeWorkerWindowCount(
-            int windowDiameter,
+        public static unsafe int CalculateResizeWorkerHeightInWindowBands(
+            int windowBandDiameter,
             int width,
             int sizeLimitHintInBytes)
         {
             int sizeLimitHint = sizeLimitHintInBytes / sizeof(Vector4);
-            int sizeOfOneWindow = windowDiameter * width;
+            int sizeOfOneWindow = windowBandDiameter * width;
             return Math.Max(2, sizeLimitHint / sizeOfOneWindow);
         }
 

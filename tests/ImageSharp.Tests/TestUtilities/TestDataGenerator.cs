@@ -23,12 +23,17 @@ namespace SixLabors.ImageSharp.Tests
         {
             float[] values = new float[length];
 
-            for (int i = 0; i < length; i++)
-            {
-                values[i] = GetRandomFloat(rnd, minVal, maxVal);
-            }
+            RandomFill(rnd, values, minVal, maxVal);
 
             return values;
+        }
+
+        public static void RandomFill(this Random rnd, Span<float> destination, float minVal, float maxVal)
+        {
+            for (int i = 0; i < destination.Length; i++)
+            {
+                destination[i] = GetRandomFloat(rnd, minVal, maxVal);
+            }
         }
 
         /// <summary>

@@ -3,7 +3,9 @@
 
 using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 using SixLabors.Primitives;
 
@@ -27,8 +29,8 @@ namespace SixLabors.ImageSharp.Memory
         {
             DebugGuard.NotNull(buffer, nameof(buffer));
             DebugGuard.MustBeGreaterThanOrEqualTo(sourceIndex, 0, nameof(sourceIndex));
-            DebugGuard.MustBeGreaterThanOrEqualTo(destIndex, sourceIndex + columnCount, nameof(destIndex));
-            DebugGuard.MustBeLessThanOrEqualTo(destIndex, buffer.Width - columnCount, nameof(destIndex));
+            DebugGuard.MustBeGreaterThanOrEqualTo(destIndex, 0, nameof(sourceIndex));
+            CheckColumnRegionsDoNotOverlap(buffer, sourceIndex, destIndex, columnCount);
 
             int elementSize = Unsafe.SizeOf<T>();
             int width = buffer.Width * elementSize;
@@ -36,9 +38,11 @@ namespace SixLabors.ImageSharp.Memory
             int dOffset = destIndex * elementSize;
             long count = columnCount * elementSize;
 
-            using (MemoryHandle handle = buffer.Memory.Pin())
+            Span<byte> span = MemoryMarshal.AsBytes(buffer.Memory.Span);
+
+            fixed (byte* ptr = span)
             {
-                byte* basePtr = (byte*)handle.Pointer;
+                byte* basePtr = (byte*)ptr;
                 for (int y = 0; y < buffer.Height; y++)
                 {
                     byte* sPtr = basePtr + sOffset;
@@ -163,6 +167,22 @@ namespace SixLabors.ImageSharp.Memory
             where T : struct
         {
             return buffer.MemorySource.GetSpan();
+        }
+
+        [Conditional("DEBUG")]
+        private static void CheckColumnRegionsDoNotOverlap<T>(
+            Buffer2D<T> buffer,
+            int sourceIndex,
+            int destIndex,
+            int columnCount)
+            where T : struct
+        {
+            int minIndex = Math.Min(sourceIndex, destIndex);
+            int maxIndex = Math.Max(sourceIndex, destIndex);
+            if (maxIndex < minIndex + columnCount || maxIndex > buffer.Width - columnCount)
+            {
+                throw new InvalidOperationException("Column regions should not overlap!");
+            }
         }
     }
 }

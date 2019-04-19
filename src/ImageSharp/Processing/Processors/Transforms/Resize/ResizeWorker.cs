@@ -148,14 +148,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int minY = this.currentWindow.Max - this.windowBandHeight;
             int maxY = Math.Min(minY + this.workerHeight, this.sourceRectangle.Height);
 
+            // Copy previous bottom band to the new top:
+            // (rows <--> columns, because the buffer is transposed)
+            this.transposedFirstPassBuffer.CopyColumns(
+                this.workerHeight - this.windowBandHeight,
+                0,
+                this.windowBandHeight);
+
             this.currentWindow = new RowInterval(minY, maxY);
-            this.CalculateFirstPassValues(this.currentWindow);
+
+            // Calculate the remainder:
+            this.CalculateFirstPassValues(this.currentWindow.Slice(this.windowBandHeight));
         }
 
-        private void CalculateFirstPassValues(RowInterval window)
+        private void CalculateFirstPassValues(RowInterval calculationInterval)
         {
             Span<Vector4> tempRowSpan = this.tempRowBuffer.GetSpan();
-            for (int y = window.Min; y < window.Max; y++)
+            for (int y = calculationInterval.Min; y < calculationInterval.Max; y++)
             {
                 Span<TPixel> sourceRow = this.source.GetRowSpan(y);
 
@@ -166,7 +175,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     this.conversionModifiers);
 
                 // ref Vector4 firstPassBaseRef = ref this.buffer.Span[y - top];
-                Span<Vector4> firstPassSpan = this.transposedFirstPassBuffer.Span.Slice(y - window.Min);
+                Span<Vector4> firstPassSpan = this.transposedFirstPassBuffer.Span.Slice(y - this.currentWindow.Min);
 
                 for (int x = this.targetWorkingRect.Left; x < this.targetWorkingRect.Right; x++)
                 {

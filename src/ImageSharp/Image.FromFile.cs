@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The mime type or null if none found.</returns>
         public static IImageFormat DetectFormat(Configuration config, string filePath)
         {
-            config = config ?? Configuration.Default;
+            config ??= Configuration.Default;
             using (Stream file = config.FileSystem.OpenRead(filePath))
             {
                 return DetectFormat(config, file);

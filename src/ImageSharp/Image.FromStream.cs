@@ -173,7 +173,7 @@ namespace SixLabors.ImageSharp
         public static Image<TPixel> Load<TPixel>(Configuration config, Stream stream, out IImageFormat format)
             where TPixel : struct, IPixel<TPixel>
         {
-            config = config ?? Configuration.Default;
+            config ??= Configuration.Default;
             (Image<TPixel> img, IImageFormat format) data = WithSeekableStream(config, stream, s => Decode<TPixel>(s, config));
 
             format = data.format;

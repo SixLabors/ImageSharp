@@ -213,10 +213,10 @@ namespace SixLabors.ImageSharp.Formats.Png
             // Always take the encoder options over the metadata values.
             ImageMetadata metadata = image.Metadata;
             PngMetadata pngMetadata = metadata.GetFormatMetadata(PngFormat.Instance);
-            this.gamma = this.gamma ?? pngMetadata.Gamma;
+            this.gamma ??= pngMetadata.Gamma;
             this.writeGamma = this.gamma > 0;
-            this.pngColorType = this.pngColorType ?? pngMetadata.ColorType;
-            this.pngBitDepth = this.pngBitDepth ?? pngMetadata.BitDepth;
+            this.pngColorType ??= pngMetadata.ColorType;
+            this.pngBitDepth ??= pngMetadata.BitDepth;
             this.use16Bit = this.pngBitDepth == PngBitDepth.Bit16;
 
             // Ensure we are not allowing impossible combinations.

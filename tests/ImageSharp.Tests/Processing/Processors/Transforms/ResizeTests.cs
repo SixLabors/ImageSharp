@@ -42,9 +42,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.07F);
 
-        [Theory]
-        [WithTestPatternImages(4000, 4000, PixelTypes.Rgba32)]
-        public void LargeImage<TPixel>(TestImageProvider<TPixel> provider)
+        [Theory(
+            Skip = "Debug only, enable manually"
+            )]
+        [WithTestPatternImages(4000, 4000, PixelTypes.Rgba32, 300, 1024)]
+        [WithTestPatternImages(3032, 3032, PixelTypes.Rgba32, 400, 1024)]
+        [WithTestPatternImages(3032, 3032, PixelTypes.Rgba32, 400, 128)]
+        public void LargeImage<TPixel>(TestImageProvider<TPixel> provider, int destSize, int workingBufferSizeHintInKilobytes)
             where TPixel : struct, IPixel<TPixel>
         {
             if (!TestEnvironment.Is64BitProcess)
@@ -52,7 +56,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 return;
             }
 
-            provider.RunValidatingProcessorTest(x => x.Resize(300, 300), appendPixelTypeToFileName: false);
+            provider.Configuration.WorkingBufferSizeHintInBytes = workingBufferSizeHintInKilobytes * 1024;
+
+            using (var image = provider.GetImage())
+            {
+                image.Mutate(x => x.Resize(destSize, destSize));
+                image.DebugSave(provider, appendPixelTypeToFileName: false);
+            }
         }
         
         [Theory]

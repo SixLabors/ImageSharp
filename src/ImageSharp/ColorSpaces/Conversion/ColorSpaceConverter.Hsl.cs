@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         private static readonly HslAndRgbConverter HslAndRgbConverter = new HslAndRgbConverter();
 
         /// <summary>
-        /// Converts a <see cref="CieLab"/> into a <see cref="Hsl"/>
+        /// Converts a <see cref="CieLab"/> into a <see cref="Hsl"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="CieLab"/> into <see cref="Hsl"/>
+        /// Performs the bulk conversion from <see cref="CieLab"/> into <see cref="Hsl"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="CieLch"/> into a <see cref="Hsl"/>
+        /// Converts a <see cref="CieLch"/> into a <see cref="Hsl"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="CieLch"/> into <see cref="Hsl"/>
+        /// Performs the bulk conversion from <see cref="CieLch"/> into <see cref="Hsl"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="CieLchuv"/> into a <see cref="Hsl"/>
+        /// Converts a <see cref="CieLchuv"/> into a <see cref="Hsl"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="CieLchuv"/> into <see cref="Hsl"/>
+        /// Performs the bulk conversion from <see cref="CieLchuv"/> into <see cref="Hsl"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="CieLuv"/> into a <see cref="Hsl"/>
+        /// Converts a <see cref="CieLuv"/> into a <see cref="Hsl"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="CieLuv"/> into <see cref="Hsl"/>
+        /// Performs the bulk conversion from <see cref="CieLuv"/> into <see cref="Hsl"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
@@ -149,7 +149,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="CieXyy"/> into a <see cref="Hsl"/>
+        /// Converts a <see cref="CieXyy"/> into a <see cref="Hsl"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
@@ -281,7 +281,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="HunterLab"/> into a <see cref="Hsl"/>
+        /// Converts a <see cref="HunterLab"/> into a <see cref="Hsl"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
@@ -293,7 +293,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="HunterLab"/> into <see cref="Hsl"/>
+        /// Performs the bulk conversion from <see cref="HunterLab"/> into <see cref="Hsl"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
@@ -314,7 +314,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="LinearRgb"/> into a <see cref="Hsl"/>
+        /// Converts a <see cref="LinearRgb"/> into a <see cref="Hsl"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
@@ -326,7 +326,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="LinearRgb"/> into <see cref="Hsl"/>
+        /// Performs the bulk conversion from <see cref="LinearRgb"/> into <see cref="Hsl"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
@@ -347,7 +347,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="Lms"/> into a <see cref="Hsl"/>
+        /// Converts a <see cref="Lms"/> into a <see cref="Hsl"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
@@ -359,7 +359,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="Lms"/> into <see cref="Hsl"/>
+        /// Performs the bulk conversion from <see cref="Lms"/> into <see cref="Hsl"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
@@ -387,7 +387,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         public Hsl ToHsl(in Rgb color) => HslAndRgbConverter.Convert(color);
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="Rgb"/> into <see cref="Hsl"/>
+        /// Performs the bulk conversion from <see cref="Rgb"/> into <see cref="Hsl"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
@@ -408,7 +408,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="YCbCr"/> into a <see cref="Hsl"/>
+        /// Converts a <see cref="YCbCr"/> into a <see cref="Hsl"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
@@ -420,7 +420,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="YCbCr"/> into <see cref="Hsl"/>
+        /// Performs the bulk conversion from <see cref="YCbCr"/> into <see cref="Hsl"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>

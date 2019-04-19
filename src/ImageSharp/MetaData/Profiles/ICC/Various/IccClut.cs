@@ -4,7 +4,7 @@
 using System;
 using System.Linq;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// Color Lookup Table
@@ -142,15 +142,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.Values?.GetHashCode() ?? 0;
-                hashCode = (hashCode * 397) ^ (int)this.DataType;
-                hashCode = (hashCode * 397) ^ this.InputChannelCount;
-                hashCode = (hashCode * 397) ^ this.OutputChannelCount;
-                hashCode = (hashCode * 397) ^ (this.GridPointCount?.GetHashCode() ?? 0);
-                return hashCode;
-            }
+            return HashCode.Combine(
+                this.Values,
+                this.DataType,
+                this.InputChannelCount,
+                this.OutputChannelCount,
+                this.GridPointCount);
         }
 
         private bool EqualsValuesArray(IccClut other)

@@ -1,0 +1,683 @@
+
+JPEGsnoop 1.8.0 by Calvin Hass
+  http://www.impulseadventure.com/photo/
+  -------------------------------------
+
+  Filename: [.\Lake.jpg]
+  Filesize: [206342] Bytes
+
+Start Offset: 0x00000000
+*** Marker: SOI (xFFD8) ***
+  OFFSET: 0x00000000
+ 
+*** Marker: APP1 (xFFE1) ***
+  OFFSET: 0x00000002
+  Length          = 10392
+  Identifier      = [Exif]
+  Identifier TIFF = 0x[49492A00 08000000]
+  Endian          = Intel (little)
+  TAG Mark x002A  = 0x002A
+
+  EXIF IFD0 @ Absolute 0x00000014
+    Dir Length = 0x0008
+    [Make                                ] = "Canon"
+    [Model                               ] = "Canon EOS DIGITAL REBEL XSi"
+    [XResolution                         ] = 300/1
+    [YResolution                         ] = 300/1
+    [ResolutionUnit                      ] = Inch
+    [Software                            ] = "Adobe Photoshop Camera Raw 9.8 (Windows)"
+    [DateTime                            ] = "2016:12:29 12:57:54"
+    [ExifOffset                          ] = @ 0x00DE
+    Offset to Next IFD = 0x000002D6
+
+  EXIF IFD1 @ Absolute 0x000002E2
+    Dir Length = 0x0006
+    [Compression                         ] = JPEG
+    [XResolution                         ] = 72/1
+    [YResolution                         ] = 72/1
+    [ResolutionUnit                      ] = Inch
+    [JpegIFOffset                        ] = @ +0x0334 = @ 0x0340
+    [JpegIFByteCount                     ] = 0x[0000255C] / 9564
+    Offset to Next IFD = 0x00000000
+
+  EXIF SubIFD @ Absolute 0x000000EA
+    Dir Length = 0x001B
+    [ExposureTime                        ] = 1/640 s
+    [FNumber                             ] = F8.0
+    [ExposureProgram                     ] = Normal program
+    [ISOSpeedRatings                     ] = 200
+    [ExifVersion                         ] = 02.30
+    [DateTimeOriginal                    ] = "2009:07:19 17:00:36"
+    [DateTimeDigitized                   ] = "2009:07:19 17:00:36"
+    [ShutterSpeedValue                   ] = 9321928/1000000
+    [ApertureValue                       ] = 6/1
+    [ExposureBiasValue                   ] = 0.00 eV
+    [MaxApertureValue                    ] = 4/1
+    [MeteringMode                        ] = Pattern
+    [Flash                               ] = Flash did not fire
+    [FocalLength                         ] = 200 mm
+    [SubSecTimeOriginal                  ] = "73"
+    [SubSecTimeDigitized                 ] = "73"
+    [ColorSpace                          ] = Uncalibrated
+    [FocalPlaneXResolution               ] = 4272000/878
+    [FocalPlaneYResolution               ] = 2848000/584
+    [FocalPlaneResolutionUnit            ] = Inch
+    [CustomRendered                      ] = Normal process
+    [ExposureMode                        ] = Auto exposure
+    [WhiteBalance                        ] = Auto white balance
+    [SceneCaptureType                    ] = Standard
+ 
+*** Marker: APP13 (xFFED) ***
+  OFFSET: 0x0000289C
+  Length          = 9752
+  Identifier      = [Photoshop 3.0]
+      8BIM: [0x03ED] Name="" Len=[0x0010] DefinedName="ResolutionInfo structure"
+        Horizontal resolution                              = 300 pixels per inch
+        Width unit                                         = inch
+        Vertical resolution                                = 300 pixels per inch
+        Height unit                                        = inch
+      8BIM: [0x0404] Name="" Len=[0x003F] DefinedName="IPTC-NAA record"
+        IPTC [001:090] Coded Character Set                 = "%G"
+        IPTC [002:000] Record Version                      = 4
+        IPTC [002:055] Date Created                        = "20090719"
+        IPTC [002:060] Time Created                        = "170036"
+        IPTC [002:062] Digital Creation Date               = "20090719"
+        IPTC [002:063] Digital Creation Time               = "170036"
+      8BIM: [0x040C] Name="" Len=[0x2578] DefinedName="Thumbnail resources"
+        Format                                             = 1 
+        Width of thumbnail                                 = 256 pixels
+        Height of thumbnail                                = 171 pixels
+        Widthbytes                                         = 768 bytes
+        Total size                                         = 131328 bytes
+        Size after compression                             = 9564 bytes
+        Bits per pixel                                     = 24 bits
+        Number of planes                                   = 1 
+        JFIF data                                          @ 0x0000293E
+      8BIM: [0x0425] Name="" Len=[0x0010] DefinedName="Caption digest"
+        Caption digest                                     =  | 0x52 C5 4C EC 1E FE 25 B8 CA 88 F7 0D 2B 5F 09 F5  | R.L...%.....+_..
+ 
+*** Marker: APP2 (xFFE2) ***
+  OFFSET: 0x00004EB6
+  Length          = 576
+  Identifier      = [ICC_PROFILE]
+    ICC Profile:
+      Marker Number = 1 of 1
+        Profile Size                      : 560 bytes
+        Preferred CMM Type                : 'ADBE' (0x41444245)
+        Profile Version                   : 0.2.1.0 (0x02100000)
+        Profile Device/Class              : Display Device profile ('mntr' (0x6D6E7472))
+        Data Colour Space                 : rgbData ('RGB ' (0x52474220))
+        Profile connection space (PCS)    : 'XYZ ' (0x58595A20)
+        Profile creation date             : 1999-06-03 00:00:00
+        Profile file signature            : 'acsp' (0x61637370)
+        Primary platform                  : Apple Computer, Inc. ('APPL' (0x4150504C))
+        Profile flags                     : 0x00000000
+        Profile flags                       > Profile not embedded
+        Profile flags                       > Profile can't be used independently of embedded
+        Device Manufacturer               : 'none' (0x6E6F6E65)
+        Device Model                      : '....' (0x00000000)
+        Device attributes                 : 0x00000000_00000000
+        Device attributes                   > Reflective
+        Device attributes                   > Glossy
+        Device attributes                   > Media polarity = negative
+        Device attributes                   > Black & white media
+        Rendering intent                  : Perceptual
+        Profile creator                   : 'ADBE' (0x41444245)
+        Profile ID                        : 0x00000000_00000000_00000000_00000000
+ 
+*** Marker: APP1 (xFFE1) ***
+  OFFSET: 0x000050F8
+  Length          = 10738
+  Identifier      = [http://ns.adobe.com/xap/1.0/]
+    XMP = 
+          |<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
+          |<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 5.6-c128 79.159124, 2016/03/18-14:01:55        ">
+          | <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+          |  <rdf:Description rdf:about=""
+          |    xmlns:aux="http://ns.adobe.com/exif/1.0/aux/"
+          |    xmlns:xmp="http://ns.adobe.com/xap/1.0/"
+          |    xmlns:photoshop="http://ns.adobe.com/photoshop/1.0/"
+          |    xmlns:xmpMM="http://ns.adobe.com/xap/1.0/mm/"
+          |    xmlns:stEvt="http://ns.adobe.com/xap/1.0/sType/ResourceEvent#"
+          |    xmlns:stRef="http://ns.adobe.com/xap/1.0/sType/ResourceRef#"
+          |    xmlns:dc="http://purl.org/dc/elements/1.1/"
+          |    xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+          |   aux:SerialNumber="470113872"
+          |   aux:LensInfo="70/1 200/1 0/0 0/0"
+          |   aux:Lens="EF70-200mm f/4L USM"
+          |   aux:LensID="186"
+          |   aux:ImageNumber="0"
+          |   aux:ApproximateFocusDistance="4294967295/1"
+          |   aux:FlashCompensation="0/1"
+          |   aux:Firmware="1.0.4"
+          |   xmp:ModifyDate="2016-12-29T12:57:54-08:00"
+          |   xmp:CreateDate="2009-07-19T17:00:36.73"
+          |   xmp:CreatorTool="Adobe Photoshop Camera Raw 9.8 (Windows)"
+          |   xmp:MetadataDate="2016-12-29T12:57:54-08:00"
+          |   photoshop:DateCreated="2009-07-19T17:00:36.73"
+          |   xmpMM:DocumentID="xmp.did:47bcd1a4-3faa-ae43-8543-3b61d68d0367"
+          |   xmpMM:OriginalDocumentID="A9041C696BAB0C0CD85DC7C772360D9E"
+          |   xmpMM:InstanceID="xmp.iid:47bcd1a4-3faa-ae43-8543-3b61d68d0367"
+          |   dc:format="image/jpeg"
+          |   crs:RawFileName="IMG_2443.CR2"
+          |   crs:Version="9.8"
+          |   crs:ProcessVersion="6.7"
+          |   crs:WhiteBalance="As Shot"
+          |   crs:AutoWhiteVersion="134348800"
+          |   crs:Temperature="5600"
+          |   crs:Tint="+13"
+          |   crs:Saturation="0"
+          |   crs:Sharpness="25"
+          |   crs:LuminanceSmoothing="0"
+          |   crs:ColorNoiseReduction="25"
+          |   crs:VignetteAmount="0"
+          |   crs:ShadowTint="0"
+          |   crs:RedHue="0"
+          |   crs:RedSaturation="0"
+          |   crs:GreenHue="0"
+          |   crs:GreenSaturation="0"
+          |   crs:BlueHue="0"
+          |   crs:BlueSaturation="0"
+          |   crs:Vibrance="0"
+          |   crs:HueAdjustmentRed="0"
+          |   crs:HueAdjustmentOrange="0"
+          |   crs:HueAdjustmentYellow="0"
+          |   crs:HueAdjustmentGreen="0"
+          |   crs:HueAdjustmentAqua="0"
+          |   crs:HueAdjustmentBlue="0"
+          |   crs:HueAdjustmentPurple="0"
+          |   crs:HueAdjustmentMagenta="0"
+          |   crs:SaturationAdjustmentRed="0"
+          |   crs:SaturationAdjustmentOrange="0"
+          |   crs:SaturationAdjustmentYellow="0"
+          |   crs:SaturationAdjustmentGreen="0"
+          |   crs:SaturationAdjustmentAqua="0"
+          |   crs:SaturationAdjustmentBlue="0"
+          |   crs:SaturationAdjustmentPurple="0"
+          |   crs:SaturationAdjustmentMagenta="0"
+          |   crs:LuminanceAdjustmentRed="0"
+          |   crs:LuminanceAdjustmentOrange="0"
+          |   crs:LuminanceAdjustmentYellow="0"
+          |   crs:LuminanceAdjustmentGreen="0"
+          |   crs:LuminanceAdjustmentAqua="0"
+          |   crs:LuminanceAdjustmentBlue="0"
+          |   crs:LuminanceAdjustmentPurple="0"
+          |   crs:LuminanceAdjustmentMagenta="0"
+          |   crs:SplitToningShadowHue="0"
+          |   crs:SplitToningShadowSaturation="0"
+          |   crs:SplitToningHighlightHue="0"
+          |   crs:SplitToningHighlightSaturation="0"
+          |   crs:SplitToningBalance="0"
+          |   crs:ParametricShadows="0"
+          |   crs:ParametricDarks="0"
+          |   crs:ParametricLights="0"
+          |   crs:ParametricHighlights="0"
+          |   crs:ParametricShadowSplit="25"
+          |   crs:ParametricMidtoneSplit="50"
+          |   crs:ParametricHighlightSplit="75"
+          |   crs:SharpenRadius="+1.0"
+          |   crs:SharpenDetail="25"
+          |   crs:SharpenEdgeMasking="0"
+          |   crs:PostCropVignetteAmount="0"
+          |   crs:GrainAmount="0"
+          |   crs:ColorNoiseReductionDetail="50"
+          |   crs:ColorNoiseReductionSmoothness="50"
+          |   crs:LensProfileEnable="0"
+          |   crs:LensManualDistortionAmount="0"
+          |   crs:PerspectiveVertical="0"
+          |   crs:PerspectiveHorizontal="0"
+          |   crs:PerspectiveRotate="0.0"
+          |   crs:PerspectiveScale="100"
+          |   crs:PerspectiveAspect="0"
+          |   crs:PerspectiveUpright="0"
+          |   crs:PerspectiveX="0.00"
+          |   crs:PerspectiveY="0.00"
+          |   crs:AutoLateralCA="0"
+          |   crs:Exposure2012="0.00"
+          |   crs:Contrast2012="0"
+          |   crs:Highlights2012="0"
+          |   crs:Shadows2012="0"
+          |   crs:Whites2012="0"
+          |   crs:Blacks2012="0"
+          |   crs:Clarity2012="0"
+          |   crs:DefringePurpleAmount="0"
+          |   crs:DefringePurpleHueLo="30"
+          |   crs:DefringePurpleHueHi="70"
+          |   crs:DefringeGreenAmount="0"
+          |   crs:DefringeGreenHueLo="40"
+          |   crs:DefringeGreenHueHi="60"
+          |   crs:Dehaze="0"
+          |   crs:ToneMapStrength="0"
+          |   crs:ConvertToGrayscale="False"
+          |   crs:ToneCurveName="Medium Contrast"
+          |   crs:ToneCurveName2012="Linear"
+          |   crs:CameraProfile="Adobe Standard"
+          |   crs:CameraProfileDigest="162E063AD6FEDE4357249927BD89FB79"
+          |   crs:LensProfileSetup="LensDefaults"
+          |   crs:UprightVersion="151388160"
+          |   crs:UprightCenterMode="0"
+          |   crs:UprightCenterNormX="0.5"
+          |   crs:UprightCenterNormY="0.5"
+          |   crs:UprightFocalMode="0"
+          |   crs:UprightFocalLength35mm="35"
+          |   crs:UprightPreview="False"
+          |   crs:UprightTransformCount="6"
+          |   crs:UprightFourSegmentsCount="0"
+          |   crs:HasSettings="True"
+          |   crs:HasCrop="False"
+          |   crs:AlreadyApplied="True">
+          |   <xmpMM:History>
+          |    <rdf:Seq>
+          |     <rdf:li
+          |      stEvt:action="derived"
+          |      stEvt:parameters="converted from image/x-canon-cr2 to image/jpeg, saved to new location"/>
+          |     <rdf:li
+          |      stEvt:action="saved"
+          |      stEvt:instanceID="xmp.iid:47bcd1a4-3faa-ae43-8543-3b61d68d0367"
+          |      stEvt:when="2016-12-29T12:57:54-08:00"
+          |      stEvt:softwareAgent="Adobe Photoshop Camera Raw 9.8 (Windows)"
+          |      stEvt:changed="/"/>
+          |    </rdf:Seq>
+          |   </xmpMM:History>
+          |   <xmpMM:DerivedFrom
+          |    stRef:documentID="A9041C696BAB0C0CD85DC7C772360D9E"
+          |    stRef:originalDocumentID="A9041C696BAB0C0CD85DC7C772360D9E"/>
+          |   <crs:ToneCurve>
+          |    <rdf:Seq>
+          |     <rdf:li>0, 0</rdf:li>
+          |     <rdf:li>32, 22</rdf:li>
+          |     <rdf:li>64, 56</rdf:li>
+          |     <rdf:li>128, 128</rdf:li>
+          |     <rdf:li>192, 196</rdf:li>
+          |     <rdf:li>255, 255</rdf:li>
+          |    </rdf:Seq>
+          |   </crs:ToneCurve>
+          |   <crs:ToneCurveRed>
+          |    <rdf:Seq>
+          |     <rdf:li>0, 0</rdf:li>
+          |     <rdf:li>255, 255</rdf:li>
+          |    </rdf:Seq>
+          |   </crs:ToneCurveRed>
+          |   <crs:ToneCurveGreen>
+          |    <rdf:Seq>
+          |     <rdf:li>0, 0</rdf:li>
+          |     <rdf:li>255, 255</rdf:li>
+          |    </rdf:Seq>
+          |   </crs:ToneCurveGreen>
+          |   <crs:ToneCurveBlue>
+          |    <rdf:Seq>
+          |     <rdf:li>0, 0</rdf:li>
+          |     <rdf:li>255, 255</rdf:li>
+          |    </rdf:Seq>
+          |   </crs:ToneCurveBlue>
+          |   <crs:ToneCurvePV2012>
+          |    <rdf:Seq>
+          |     <rdf:li>0, 0</rdf:li>
+          |     <rdf:li>255, 255</rdf:li>
+          |    </rdf:Seq>
+          |   </crs:ToneCurvePV2012>
+          |   <crs:ToneCurvePV2012Red>
+          |    <rdf:Seq>
+          |     <rdf:li>0, 0</rdf:li>
+          |     <rdf:li>255, 255</rdf:li>
+          |    </rdf:Seq>
+          |   </crs:ToneCurvePV2012Red>
+          |   <crs:ToneCurvePV2012Green>
+          |    <rdf:Seq>
+          |     <rdf:li>0, 0</rdf:li>
+          |     <rdf:li>255, 255</rdf:li>
+          |    </rdf:Seq>
+          |   </crs:ToneCurvePV2012Green>
+          |   <crs:ToneCurvePV2012Blue>
+          |    <rdf:Seq>
+          |     <rdf:li>0, 0</rdf:li>
+          |     <rdf:li>255, 255</rdf:li>
+          |    </rdf:Seq>
+          |   </crs:ToneCurvePV2012Blue>
+          |  </rdf:Description>
+          | </rdf:RDF>
+          |</x:xmpmeta>
+ 
+*** Marker: DQT (xFFDB) ***
+  Define a Quantization Table.
+  OFFSET: 0x00007AEC
+  Table length = 132
+  ----
+  Precision=8 bits
+  Destination ID=0 (Luminance)
+    DQT, Row #0:   6   4   4   6   9  11  12  16 
+    DQT, Row #1:   4   5   5   6   8  10  12  12 
+    DQT, Row #2:   4   5   5   6  10  12  12  12 
+    DQT, Row #3:   6   6   6  11  12  12  12  12 
+    DQT, Row #4:   9   8  10  12  12  12  12  12 
+    DQT, Row #5:  11  10  12  12  12  12  12  12 
+    DQT, Row #6:  12  12  12  12  12  12  12  12 
+    DQT, Row #7:  16  12  12  12  12  12  12  12 
+    Approx quality factor = 88.28 (scaling=23.43 variance=111.68)
+  ----
+  Precision=8 bits
+  Destination ID=1 (Chrominance)
+    DQT, Row #0:   7   7  13  24  20  20  17  17 
+    DQT, Row #1:   7  12  16  14  14  12  12  12 
+    DQT, Row #2:  13  16  14  14  12  12  12  12 
+    DQT, Row #3:  24  14  14  12  12  12  12  12 
+    DQT, Row #4:  20  14  12  12  12  12  12  12 
+    DQT, Row #5:  20  12  12  12  12  12  12  12 
+    DQT, Row #6:  17  12  12  12  12  12  12  12 
+    DQT, Row #7:  17  12  12  12  12  12  12  12 
+    Approx quality factor = 90.19 (scaling=19.62 variance=201.04)
+ 
+*** Marker: DRI (Restart Interval) (xFFDD) ***
+  OFFSET: 0x00007B72
+  Length     = 4
+  interval   = 160
+ 
+*** Marker: APP14 (xFFEE) ***
+  OFFSET: 0x00007B78
+  Length            = 14
+  DCTEncodeVersion  = 100
+  APP14Flags0       = 49152
+  APP14Flags1       = 0
+  ColorTransform    = 1 [YCbCr]
+ 
+*** Marker: SOF0 (Baseline DCT) (xFFC0) ***
+  OFFSET: 0x00007B88
+  Frame header length = 17
+  Precision = 8
+  Number of Lines = 853
+  Samples per Line = 1280
+  Image Size = 1280 x 853
+  Raw Image Orientation = Landscape
+  Number of Img components = 3
+    Component[1]: ID=0x00, Samp Fac=0x11 (Subsamp 1 x 1), Quant Tbl Sel=0x00 (Lum: Y)
+    Component[2]: ID=0x01, Samp Fac=0x11 (Subsamp 1 x 1), Quant Tbl Sel=0x01 (Chrom: Cb)
+    Component[3]: ID=0x02, Samp Fac=0x11 (Subsamp 1 x 1), Quant Tbl Sel=0x01 (Chrom: Cr)
+ 
+*** Marker: DHT (Define Huffman Table) (xFFC4) ***
+  OFFSET: 0x00007B9B
+  Huffman table length = 159
+  ----
+  Destination ID = 0
+  Class = 0 (DC / Lossless Table)
+    Codes of length 01 bits (000 total): 
+    Codes of length 02 bits (002 total): 00 03 
+    Codes of length 03 bits (003 total): 01 02 04 
+    Codes of length 04 bits (001 total): 05 
+    Codes of length 05 bits (001 total): 06 
+    Codes of length 06 bits (001 total): 07 
+    Codes of length 07 bits (001 total): 08 
+    Codes of length 08 bits (000 total): 
+    Codes of length 09 bits (000 total): 
+    Codes of length 10 bits (000 total): 
+    Codes of length 11 bits (000 total): 
+    Codes of length 12 bits (000 total): 
+    Codes of length 13 bits (000 total): 
+    Codes of length 14 bits (000 total): 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 009
+
+  ----
+  Destination ID = 1
+  Class = 0 (DC / Lossless Table)
+    Codes of length 01 bits (001 total): 00 
+    Codes of length 02 bits (001 total): 01 
+    Codes of length 03 bits (001 total): 02 
+    Codes of length 04 bits (001 total): 03 
+    Codes of length 05 bits (001 total): 04 
+    Codes of length 06 bits (001 total): 05 
+    Codes of length 07 bits (000 total): 
+    Codes of length 08 bits (000 total): 
+    Codes of length 09 bits (000 total): 
+    Codes of length 10 bits (000 total): 
+    Codes of length 11 bits (000 total): 
+    Codes of length 12 bits (000 total): 
+    Codes of length 13 bits (000 total): 
+    Codes of length 14 bits (000 total): 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 006
+
+  ----
+  Destination ID = 0
+  Class = 1 (AC Table)
+    Codes of length 01 bits (000 total): 
+    Codes of length 02 bits (002 total): 01 02 
+    Codes of length 03 bits (001 total): 03 
+    Codes of length 04 bits (003 total): 00 04 11 
+    Codes of length 05 bits (003 total): 12 21 31 
+    Codes of length 06 bits (002 total): 05 41 
+    Codes of length 07 bits (003 total): 13 22 51 
+    Codes of length 08 bits (006 total): 32 61 71 81 91 A1 
+    Codes of length 09 bits (005 total): 06 14 23 42 B1 
+    Codes of length 10 bits (002 total): 52 C1 
+    Codes of length 11 bits (004 total): 15 33 62 D1 
+    Codes of length 12 bits (004 total): 07 72 E1 F1 
+    Codes of length 13 bits (005 total): 16 24 43 82 F0 
+    Codes of length 14 bits (003 total): 34 92 A2 
+    Codes of length 15 bits (000 total): 
+    Codes of length 16 bits (011 total): 53 63 C2 25 73 B2 D2 26 54 93 E2 
+    Total number of codes: 054
+
+  ----
+  Destination ID = 1
+  Class = 1 (AC Table)
+    Codes of length 01 bits (001 total): 00 
+    Codes of length 02 bits (001 total): 01 
+    Codes of length 03 bits (001 total): 11 
+    Codes of length 04 bits (001 total): 02 
+    Codes of length 05 bits (000 total): 
+    Codes of length 06 bits (002 total): 12 21 
+    Codes of length 07 bits (002 total): 03 31 
+    Codes of length 08 bits (003 total): 13 41 51 
+    Codes of length 09 bits (001 total): 61 
+    Codes of length 10 bits (000 total): 
+    Codes of length 11 bits (002 total): 04 71 
+    Codes of length 12 bits (003 total): 14 22 81 
+    Codes of length 13 bits (001 total): 32 
+    Codes of length 14 bits (001 total): 42 
+    Codes of length 15 bits (001 total): 91 
+    Codes of length 16 bits (000 total): 
+    Total number of codes: 020
+
+ 
+*** Marker: SOS (Start of Scan) (xFFDA) ***
+  OFFSET: 0x00007C3C
+  Scan header length = 12
+  Number of img components = 3
+    Component[1]: selector=0x00, table=0(DC),0(AC)
+    Component[2]: selector=0x01, table=1(DC),1(AC)
+    Component[3]: selector=0x02, table=1(DC),1(AC)
+  Spectral selection = 0 .. 63
+  Successive approximation = 0x00
+
+
+*** Decoding SCAN Data ***
+  OFFSET: 0x00007C4A
+  Scan Decode Mode: No IDCT (DC only)
+    NOTE: Low-resolution DC component shown. Can decode full-res with [Options->Scan Segment->Full IDCT]
+
+  Scan Data encountered marker   0xFFD9 @ 0x00032604.0
+
+  Compression stats:
+    Compression Ratio: 18.77:1
+    Bits per pixel:     1.28:1
+
+  Huffman code histogram stats:
+    Huffman Table: (Dest ID: 0, Class: DC)
+      # codes of length 01 bits:        0 (  0%)
+      # codes of length 02 bits:     8237 ( 48%)
+      # codes of length 03 bits:     7451 ( 44%)
+      # codes of length 04 bits:      930 (  5%)
+      # codes of length 05 bits:      300 (  2%)
+      # codes of length 06 bits:      197 (  1%)
+      # codes of length 07 bits:        5 (  0%)
+      # codes of length 08 bits:        0 (  0%)
+      # codes of length 09 bits:        0 (  0%)
+      # codes of length 10 bits:        0 (  0%)
+      # codes of length 11 bits:        0 (  0%)
+      # codes of length 12 bits:        0 (  0%)
+      # codes of length 13 bits:        0 (  0%)
+      # codes of length 14 bits:        0 (  0%)
+      # codes of length 15 bits:        0 (  0%)
+      # codes of length 16 bits:        0 (  0%)
+
+    Huffman Table: (Dest ID: 1, Class: DC)
+      # codes of length 01 bits:    16681 ( 49%)
+      # codes of length 02 bits:    10125 ( 30%)
+      # codes of length 03 bits:     5138 ( 15%)
+      # codes of length 04 bits:     1825 (  5%)
+      # codes of length 05 bits:      432 (  1%)
+      # codes of length 06 bits:       39 (  0%)
+      # codes of length 07 bits:        0 (  0%)
+      # codes of length 08 bits:        0 (  0%)
+      # codes of length 09 bits:        0 (  0%)
+      # codes of length 10 bits:        0 (  0%)
+      # codes of length 11 bits:        0 (  0%)
+      # codes of length 12 bits:        0 (  0%)
+      # codes of length 13 bits:        0 (  0%)
+      # codes of length 14 bits:        0 (  0%)
+      # codes of length 15 bits:        0 (  0%)
+      # codes of length 16 bits:        0 (  0%)
+
+    Huffman Table: (Dest ID: 0, Class: AC)
+      # codes of length 01 bits:        0 (  0%)
+      # codes of length 02 bits:   104267 ( 49%)
+      # codes of length 03 bits:    23564 ( 11%)
+      # codes of length 04 bits:    44372 ( 21%)
+      # codes of length 05 bits:    19037 (  9%)
+      # codes of length 06 bits:     5565 (  3%)
+      # codes of length 07 bits:     5437 (  3%)
+      # codes of length 08 bits:     5066 (  2%)
+      # codes of length 09 bits:     2163 (  1%)
+      # codes of length 10 bits:      491 (  0%)
+      # codes of length 11 bits:      407 (  0%)
+      # codes of length 12 bits:      211 (  0%)
+      # codes of length 13 bits:      115 (  0%)
+      # codes of length 14 bits:       36 (  0%)
+      # codes of length 15 bits:        0 (  0%)
+      # codes of length 16 bits:       26 (  0%)
+
+    Huffman Table: (Dest ID: 1, Class: AC)
+      # codes of length 01 bits:    34240 ( 51%)
+      # codes of length 02 bits:    15658 ( 24%)
+      # codes of length 03 bits:     7424 ( 11%)
+      # codes of length 04 bits:     3865 (  6%)
+      # codes of length 05 bits:        0 (  0%)
+      # codes of length 06 bits:     3125 (  5%)
+      # codes of length 07 bits:     1208 (  2%)
+      # codes of length 08 bits:      744 (  1%)
+      # codes of length 09 bits:      113 (  0%)
+      # codes of length 10 bits:        0 (  0%)
+      # codes of length 11 bits:       60 (  0%)
+      # codes of length 12 bits:       60 (  0%)
+      # codes of length 13 bits:        9 (  0%)
+      # codes of length 14 bits:        4 (  0%)
+      # codes of length 15 bits:        1 (  0%)
+      # codes of length 16 bits:        0 (  0%)
+
+  YCC clipping in DC:
+    Y  component: [<0=    0] [>255=    0]
+    Cb component: [<0=    0] [>255=    0]
+    Cr component: [<0=    0] [>255=    0]
+
+  RGB clipping in DC:
+    R  component: [<0=    0] [>255=    0]
+    G  component: [<0=    0] [>255=    0]
+    B  component: [<0=    0] [>255=    0]
+
+  Average Pixel Luminance (Y):
+    Y=[122] (range: 0..255)
+
+  Brightest Pixel Search:
+    YCC=[  714,  -42,   42] RGB=[224,215,206] @ MCU[113, 24]
+
+  Finished Decoding SCAN Data
+    Number of RESTART markers decoded: 106
+    Next position in scan buffer: Offset 0x00032604.0
+
+ 
+*** Marker: EOI (End of Image) (xFFD9) ***
+  OFFSET: 0x00032604
+
+
+*** Embedded JPEG Thumbnail ***
+  Offset: 0x00000340
+  Length: 0x0000255C (9564)
+
+  * Embedded Thumb Marker: SOI
+
+  * Embedded Thumb Marker: DQT
+    Length = 132
+    ----
+    Precision=8 bits
+    Destination ID=0 (Luminance, typically)
+      DQT, Row #0:   6   4   4   6   9  11  12  16 
+      DQT, Row #1:   4   5   5   6   8  10  12  12 
+      DQT, Row #2:   4   5   5   6  10  12  12  12 
+      DQT, Row #3:   6   6   6  11  12  12  12  12 
+      DQT, Row #4:   9   8  10  12  12  12  12  12 
+      DQT, Row #5:  11  10  12  12  12  12  12  12 
+      DQT, Row #6:  12  12  12  12  12  12  12  12 
+      DQT, Row #7:  16  12  12  12  12  12  12  12 
+    ----
+    Precision=8 bits
+    Destination ID=1 (Chrominance, typically)
+      DQT, Row #0:   7   7  13  24  20  20  17  17 
+      DQT, Row #1:   7  12  16  14  14  12  12  12 
+      DQT, Row #2:  13  16  14  14  12  12  12  12 
+      DQT, Row #3:  24  14  14  12  12  12  12  12 
+      DQT, Row #4:  20  14  12  12  12  12  12  12 
+      DQT, Row #5:  20  12  12  12  12  12  12  12 
+      DQT, Row #6:  17  12  12  12  12  12  12  12 
+      DQT, Row #7:  17  12  12  12  12  12  12  12 
+
+  * Embedded Thumb Marker: DRI
+    Length = 4
+
+  * Embedded Thumb Marker: APP14
+    Length = 14
+
+  * Embedded Thumb Marker: SOF
+    Frame header length = 17
+    Precision = 8
+    Number of Lines = 171
+    Samples per Line = 256
+    Image Size = 256 x 171
+
+  * Embedded Thumb Marker: DHT
+    Length = 148
+
+  * Embedded Thumb Marker: SOS
+    Skipping scan data
+    Skipped 9212 bytes
+
+  * Embedded Thumb Marker: EOI
+
+  * Embedded Thumb Signature: 01180AF3DE63318828A86409EF4013DD
+
+*** Searching Compression Signatures ***
+
+  Signature:           01180AF3DE63318828A86409EF4013DD
+  Signature (Rotated): 01180AF3DE63318828A86409EF4013DD
+  File Offset:         0 bytes
+  Chroma subsampling:  1x1
+  EXIF Make/Model:     OK   [Canon] [Canon EOS DIGITAL REBEL XSi]
+  EXIF Makernotes:     NONE
+  EXIF Software:       OK   [Adobe Photoshop Camera Raw 9.8 (Windows)]
+
+  Searching Compression Signatures: (3347 built-in, 0 user(*) )
+
+          EXIF.Make / Software        EXIF.Model                            Quality           Subsamp Match?
+          -------------------------   -----------------------------------   ----------------  --------------
+     SW :[Adobe Photoshop          ]                                       [Save As 08      ]                  
+
+  NOTE: EXIF Software field recognized as from editor
+  Based on the analysis of compression characteristics and EXIF metadata:
+
+  ASSESSMENT: Class 1 - Image is processed/edited
+
+  Appears to be new signature for known software.
+  If the camera/software doesn't appear in list above,
+  PLEASE ADD TO DATABASE with [Tools->Add Camera to DB]
+

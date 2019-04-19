@@ -88,6 +88,17 @@ namespace SixLabors.ImageSharp.Tests
             return values;
         }
 
+        public static short[] GenerateRandomInt16Array(this Random rnd, int length, short minVal, short maxVal)
+        {
+            short[] values = new short[length];
+            for (int i = 0; i < values.Length; i++)
+            {
+                values[i] = (short)rnd.Next(minVal, maxVal);
+            }
+
+            return values;
+        }
+
         private static float GetRandomFloat(this Random rnd, float minVal, float maxVal) => ((float)rnd.NextDouble() * (maxVal - minVal)) + minVal;
     }
 }

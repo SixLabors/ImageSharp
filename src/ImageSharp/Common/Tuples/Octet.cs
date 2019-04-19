@@ -1,4 +1,7 @@
-﻿using System.Runtime.CompilerServices;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Tuples
@@ -9,7 +12,7 @@ namespace SixLabors.ImageSharp.Tuples
     internal static class Octet
     {
         /// <summary>
-        /// Value tuple of <see cref="uint"/>-s
+        /// Value tuple of <see cref="uint"/>-s.
         /// </summary>
         [StructLayout(LayoutKind.Explicit, Size = 8 * sizeof(uint))]
         public struct OfUInt32

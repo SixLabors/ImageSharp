@@ -17,23 +17,31 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     [StructLayout(LayoutKind.Sequential)]
     internal unsafe struct HuffmanTable
     {
+        private bool isDerived;
+
+        private readonly MemoryAllocator memoryAllocator;
+
+#pragma warning disable IDE0044 // Add readonly modifier
+        private fixed byte codeLengths[17];
+#pragma warning restore IDE0044 // Add readonly modifier
+
         /// <summary>
-        /// Gets the max code array
+        /// Gets the max code array.
         /// </summary>
         public fixed uint MaxCode[18];
 
         /// <summary>
-        /// Gets the value offset array
+        /// Gets the value offset array.
         /// </summary>
         public fixed int ValOffset[18];
 
         /// <summary>
-        /// Gets the huffman value array
+        /// Gets the huffman value array.
         /// </summary>
         public fixed byte Values[256];
 
         /// <summary>
-        /// Gets the lookahead array
+        /// Gets the lookahead array.
         /// </summary>
         public fixed byte Lookahead[512];
 
@@ -50,16 +58,31 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="values">The huffman values</param>
         public HuffmanTable(MemoryAllocator memoryAllocator, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
         {
+            this.isDerived = false;
+            this.memoryAllocator = memoryAllocator;
+            Unsafe.CopyBlockUnaligned(ref this.codeLengths[0], ref MemoryMarshal.GetReference(codeLengths), (uint)codeLengths.Length);
+            Unsafe.CopyBlockUnaligned(ref this.Values[0], ref MemoryMarshal.GetReference(values), (uint)values.Length);
+        }
+
+        /// <summary>
+        /// Expands the HuffmanTable into its derived form.
+        /// </summary>
+        public void Derive()
+        {
+            if (this.isDerived)
+            {
+                return;
+            }
+
             const int Length = 257;
-            using (IMemoryOwner<short> huffcode = memoryAllocator.Allocate<short>(Length))
+            using (IMemoryOwner<short> huffcode = this.memoryAllocator.Allocate<short>(Length))
             {
                 ref short huffcodeRef = ref MemoryMarshal.GetReference(huffcode.GetSpan());
-                ref byte codeLengthsRef = ref MemoryMarshal.GetReference(codeLengths);
+                ref byte codeLengthsRef = ref this.codeLengths[0];
 
                 // Figure C.1: make table of Huffman code length for each symbol
                 ref short sizesRef = ref this.Sizes[0];
                 short x = 0;
-
                 for (short i = 1; i < 17; i++)
                 {
                     byte length = Unsafe.Add(ref codeLengthsRef, i);
@@ -91,7 +114,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     }
 
                     // Figure F.15: generate decoding tables for bit-sequential decoding.
-                    // Compute largest code + 1 for this size. preshifted as we needit later.
+                    // Compute largest code + 1 for this size. preshifted as we need it later.
                     Unsafe.Add(ref maxcodeRef, k) = code << (16 - k);
                     code <<= 1;
                 }
@@ -100,25 +123,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 // Generate non-spec lookup tables to speed up decoding.
                 const int FastBits = ScanDecoder.FastBits;
-                ref byte fastRef = ref this.Lookahead[0];
-                Unsafe.InitBlockUnaligned(ref fastRef, 0xFF, 1 << FastBits); // Flag for non-accelerated
+                ref byte lookaheadRef = ref this.Lookahead[0];
+                Unsafe.InitBlockUnaligned(ref lookaheadRef, 0xFF, 1 << FastBits); // Flag for non-accelerated
 
                 for (int i = 0; i < si; i++)
                 {
                     int size = Unsafe.Add(ref sizesRef, i);
                     if (size <= FastBits)
                     {
-                        int c = Unsafe.Add(ref huffcodeRef, i) << (FastBits - size);
-                        int m = 1 << (FastBits - size);
-                        for (int l = 0; l < m; l++)
+                        int fastOffset = FastBits - size;
+                        int fastCode = Unsafe.Add(ref huffcodeRef, i) << fastOffset;
+                        int fastMax = 1 << fastOffset;
+                        for (int left = 0; left < fastMax; left++)
                         {
-                            Unsafe.Add(ref fastRef, c + l) = (byte)i;
+                            Unsafe.Add(ref lookaheadRef, fastCode + left) = (byte)i;
                         }
                     }
                 }
             }
 
-            Unsafe.CopyBlockUnaligned(ref this.Values[0], ref MemoryMarshal.GetReference(values), 256);
+            this.isDerived = true;
         }
     }
 }

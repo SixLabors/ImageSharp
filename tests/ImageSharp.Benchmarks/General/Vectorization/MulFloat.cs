@@ -1,9 +1,9 @@
+using System.Numerics;
+
+using BenchmarkDotNet.Attributes;
+
 namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
 {
-    using System.Numerics;
-
-    using BenchmarkDotNet.Attributes;
-
     public class MulFloat
     {
         private float[] input;

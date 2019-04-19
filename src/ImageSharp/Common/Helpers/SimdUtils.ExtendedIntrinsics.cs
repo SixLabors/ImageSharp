@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -24,6 +27,20 @@ namespace SixLabors.ImageSharp
 #else
                 false;
 #endif
+
+            /// <summary>
+            /// Widen and convert a vector of <see cref="short"/> values into 2 vectors of <see cref="float"/>-s.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal static void ConvertToSingle(
+                Vector<short> source,
+                out Vector<float> dest1,
+                out Vector<float> dest2)
+            {
+                Vector.Widen(source, out Vector<int> i1, out Vector<int> i2);
+                dest1 = Vector.ConvertToSingle(i1);
+                dest2 = Vector.ConvertToSingle(i2);
+            }
 
             /// <summary>
             /// <see cref="BulkConvertByteToNormalizedFloat"/> as many elements as possible, slicing them down (keeping the remainder).

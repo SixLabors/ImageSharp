@@ -24,6 +24,8 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
         protected IMemoryOwner<TPixel> destination;
 
+        protected Configuration Configuration => Configuration.Default;
+
         [Params(
             64,
             2048
@@ -33,8 +35,8 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [GlobalSetup]
         public void Setup()
         {
-            this.destination = Configuration.Default.MemoryAllocator.Allocate<TPixel>(this.Count);
-            this.source = Configuration.Default.MemoryAllocator.Allocate<Vector4>(this.Count);
+            this.destination = this.Configuration.MemoryAllocator.Allocate<TPixel>(this.Count);
+            this.source = this.Configuration.MemoryAllocator.Allocate<Vector4>(this.Count);
         }
 
         [GlobalCleanup]
@@ -59,13 +61,13 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [Benchmark]
         public void PixelOperations_Base()
         {
-            new PixelOperations<TPixel>().FromVector4(this.source.GetSpan(), this.destination.GetSpan());
+            new PixelOperations<TPixel>().FromVector4Destructive(this.Configuration, this.source.GetSpan(), this.destination.GetSpan());
         }
 
         [Benchmark]
         public void PixelOperations_Specialized()
         {
-            PixelOperations<TPixel>.Instance.FromVector4(this.source.GetSpan(), this.destination.GetSpan());
+            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.Configuration, this.source.GetSpan(), this.destination.GetSpan());
         }
     }
 

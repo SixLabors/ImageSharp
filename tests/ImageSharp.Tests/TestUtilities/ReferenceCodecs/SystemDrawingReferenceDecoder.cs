@@ -4,7 +4,7 @@
 using System.IO;
 
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             using (var sourceBitmap = new System.Drawing.Bitmap(stream))
             {
                 var pixelType = new PixelTypeInfo(System.Drawing.Image.GetPixelFormatSize(sourceBitmap.PixelFormat));
-                return new ImageInfo(pixelType, sourceBitmap.Width, sourceBitmap.Height, new ImageMetaData());
+                return new ImageInfo(pixelType, sourceBitmap.Width, sourceBitmap.Height, new ImageMetadata());
             }
         }
     }

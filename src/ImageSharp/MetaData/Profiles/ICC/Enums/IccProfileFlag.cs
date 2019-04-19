@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// Profile flags. Can be combined with a logical OR.
@@ -29,12 +29,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         NotEmbedded = 0,
 
         /// <summary>
-        /// Profile cannot be used independently of the embedded colour data
+        /// Profile cannot be used independently of the embedded color data
         /// </summary>
         NotIndependent = 1 << 1,
 
         /// <summary>
-        /// Profile can be used independently of the embedded colour data
+        /// Profile can be used independently of the embedded color data
         /// </summary>
         Independent = 0,
     }

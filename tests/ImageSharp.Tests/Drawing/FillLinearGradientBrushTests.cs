@@ -275,10 +275,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 int verticalSign = startY == 0 ? 1 : -1;
                 int horizontalSign = startX == 0 ? 1 : -1;
 
-                // check first and last pixel, these are known:
-                Assert.Equal(red, image[startX, startY]);
-                Assert.Equal(yellow, image[endX, endY]);
-
                 for (int i = 0; i < image.Height; i++)
                 {
                     // it's diagonal, so for any (a, a) on the gradient line, for all (a-x, b+x) - +/- depending on the diagonal direction - must be the same color)
@@ -328,7 +324,56 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 TPixel color = colors[stopColorCodes[i % colors.Length]];
                 float position = stopPositions[i];
                 colorStops[i] = new ColorStop<TPixel>(position, color);
-                coloringVariant.AppendFormat(CultureInfo.InvariantCulture, "{0}@{1};", color.ToRgba32().ToHex(), position);
+                Rgba32 rgba = default;
+                color.ToRgba32(ref rgba);
+                coloringVariant.AppendFormat(CultureInfo.InvariantCulture, "{0}@{1};", rgba.ToHex(), position);
+            }
+
+            FormattableString variant = $"({startX},{startY})_TO_({endX},{endY})__[{coloringVariant}]";
+
+            provider.VerifyOperation(
+                image =>
+                {
+                    var unicolorLinearGradientBrush = new LinearGradientBrush<TPixel>(
+                        new SixLabors.Primitives.Point(startX, startY),
+                        new SixLabors.Primitives.Point(endX, endY),
+                        GradientRepetitionMode.None,
+                        colorStops);
+
+                    image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
+                },
+                variant,
+                false,
+                false);
+        }
+
+        [Theory]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 0, 0, 199, 199, new[] { 0f, .25f, .5f, .75f, 1f }, new[] { 0, 1, 2, 3, 4 })]
+        public void MultiplePointGradients<TPixel>(
+            TestImageProvider<TPixel> provider,
+            int startX, int startY,
+            int endX, int endY,
+            float[] stopPositions,
+            int[] stopColorCodes)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel[] colors =
+            {
+                NamedColors<TPixel>.Black, NamedColors<TPixel>.Blue, NamedColors<TPixel>.Red,
+                NamedColors<TPixel>.White, NamedColors<TPixel>.Lime
+            };
+
+            var coloringVariant = new StringBuilder();
+            var colorStops = new ColorStop<TPixel>[stopPositions.Length];
+
+            for (int i = 0; i < stopPositions.Length; i++)
+            {
+                TPixel color = colors[stopColorCodes[i % colors.Length]];
+                float position = stopPositions[i];
+                colorStops[i] = new ColorStop<TPixel>(position, color);
+                Rgba32 rgba = default;
+                color.ToRgba32(ref rgba);
+                coloringVariant.AppendFormat(CultureInfo.InvariantCulture, "{0}@{1};", rgba.ToHex(), position);
             }
 
             FormattableString variant = $"({startX},{startY})_TO_({endX},{endY})__[{coloringVariant}]";

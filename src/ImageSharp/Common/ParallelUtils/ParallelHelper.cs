@@ -1,4 +1,4 @@
-﻿// Copyright(c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.ParallelUtils
             Rectangle rectangle,
             in ParallelExecutionSettings parallelSettings,
             Action<RowInterval, Memory<T>> body)
-            where T : struct
+            where T : unmanaged
         {
             int maxSteps = DivideCeil(rectangle.Width * rectangle.Height, parallelSettings.MinimumPixelsProcessedPerTask);
 
@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp.ParallelUtils
             Rectangle rectangle,
             Configuration configuration,
             Action<RowInterval, Memory<T>> body)
-            where T : struct
+            where T : unmanaged
         {
             IterateRowsWithTempBuffer(rectangle, configuration.GetParallelSettings(), body);
         }

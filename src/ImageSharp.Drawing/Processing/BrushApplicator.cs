@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Processing
                 }
 
                 Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
-                this.Blender.Blend(memoryAllocator, destinationRow, destinationRow, overlaySpan, amountSpan);
+                this.Blender.Blend(this.Target.Configuration, destinationRow, destinationRow, overlaySpan, amountSpan);
             }
         }
     }

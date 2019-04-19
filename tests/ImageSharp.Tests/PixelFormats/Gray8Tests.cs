@@ -1,14 +1,42 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Diagnostics;
 using System.Numerics;
+
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
     public class Gray8Tests
     {
+        public static readonly TheoryData<byte> LuminanceData = new TheoryData<byte>()
+                                                                    {
+                                                                        0,
+                                                                        1,
+                                                                        2,
+                                                                        3,
+                                                                        5,
+                                                                        13,
+                                                                        31,
+                                                                        71,
+                                                                        73,
+                                                                        79,
+                                                                        83,
+                                                                        109,
+                                                                        127,
+                                                                        128,
+                                                                        131,
+                                                                        199,
+                                                                        250,
+                                                                        251,
+                                                                        254,
+                                                                        255
+                                                                    };
+
         [Theory]
         [InlineData(0)]
         [InlineData(255)]
@@ -34,9 +62,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Theory]
-        [InlineData(0)]
-        [InlineData(255)]
-        [InlineData(30)]
+        [MemberData(nameof(LuminanceData))]
         public void Gray8_ToScaledVector4(byte input)
         {
             // Arrange
@@ -53,26 +79,24 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Assert.Equal(1, actual.W);
         }
 
-        [Fact]
-        public void Gray8_FromVector4()
+        [Theory]
+        [MemberData(nameof(LuminanceData))]
+        public void Gray8_FromVector4(byte luminance)
         {
             // Arrange
             Gray8 gray = default;
-            const int expected = 128;
-            var vector = new Gray8(expected).ToVector4();
+            var vector = new Gray8(luminance).ToVector4();
 
             // Act
             gray.FromVector4(vector);
             byte actual = gray.PackedValue;
 
             // Assert
-            Assert.Equal(expected, actual);
+            Assert.Equal(luminance, actual);
         }
 
         [Theory]
-        [InlineData(0)]
-        [InlineData(255)]
-        [InlineData(30)]
+        [MemberData(nameof(LuminanceData))]
         public void Gray8_ToVector4(byte input)
         {
             // Arrange
@@ -89,12 +113,12 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Assert.Equal(1, actual.W);
         }
 
-        [Fact]
-        public void Gray8_FromRgba32()
+        [Theory]
+        [MemberData(nameof(LuminanceData))]
+        public void Gray8_FromRgba32(byte rgb)
         {
             // Arrange
             Gray8 gray = default;
-            const byte rgb = 128;
             byte expected = ImageMaths.Get8BitBT709Luminance(rgb, rgb, rgb);
 
             // Act
@@ -105,23 +129,124 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Assert.Equal(expected, actual);
         }
 
+        
         [Theory]
-        [InlineData(0)]
-        [InlineData(255)]
-        [InlineData(30)]
-        public void Gray8_ToRgba32(byte input)
+        [MemberData(nameof(LuminanceData))]
+        public void Gray8_ToRgba32(byte luminance)
         {
             // Arrange
-            var gray = new Gray8(input);
+            var gray = new Gray8(luminance);
 
             // Act
-            var actual = gray.ToRgba32();
+            Rgba32 actual = default;
+            gray.ToRgba32(ref actual);
 
             // Assert
-            Assert.Equal(input, actual.R);
-            Assert.Equal(input, actual.G);
-            Assert.Equal(input, actual.B);
+            Assert.Equal(luminance, actual.R);
+            Assert.Equal(luminance, actual.G);
+            Assert.Equal(luminance, actual.B);
             Assert.Equal(byte.MaxValue, actual.A);
+        }
+
+        public class Rgba32Compatibility
+        {
+            // ReSharper disable once MemberHidesStaticFromOuterClass
+            public static readonly TheoryData<byte> LuminanceData = Gray8Tests.LuminanceData;
+
+            [Theory]
+            [MemberData(nameof(LuminanceData))]
+            public void Gray8_FromRgba32_IsInverseOf_ToRgba32(byte luminance)
+            {
+                var original = new Gray8(luminance);
+
+                Rgba32 rgba = default;
+                original.ToRgba32(ref rgba);
+
+                Gray8 mirror = default;
+                mirror.FromRgba32(rgba);
+
+                Assert.Equal(original, mirror);
+            }
+
+
+            [Theory]
+            [MemberData(nameof(LuminanceData))]
+            public void Rgba32_ToGray8_IsInverseOf_Gray8_ToRgba32(byte luminance)
+            {
+                var original = new Gray8(luminance);
+
+                Rgba32 rgba = default;
+                original.ToRgba32(ref rgba);
+
+                Gray8 mirror = default;
+                mirror.FromRgba32(rgba);
+
+                Assert.Equal(original, mirror);
+            }
+
+            [Theory]
+            [MemberData(nameof(LuminanceData))]
+            public void ToVector4_IsRgba32Compatible(byte luminance)
+            {
+                var original = new Gray8(luminance);
+
+                Rgba32 rgba = default;
+                original.ToRgba32(ref rgba);
+
+                var gray8Vector = original.ToVector4();
+                var rgbaVector = original.ToVector4();
+
+                Assert.Equal(gray8Vector, rgbaVector, new ApproximateFloatComparer(1e-5f));
+            }
+
+            [Theory]
+            [MemberData(nameof(LuminanceData))]
+            public void FromVector4_IsRgba32Compatible(byte luminance)
+            {
+                var original = new Gray8(luminance);
+
+                Rgba32 rgba = default;
+                original.ToRgba32(ref rgba);
+
+                Vector4 rgbaVector = original.ToVector4();
+
+                Gray8 mirror = default;
+                mirror.FromVector4(rgbaVector);
+
+                Assert.Equal(original, mirror);
+            }
+
+            [Theory]
+            [MemberData(nameof(LuminanceData))]
+            public void ToScaledVector4_IsRgba32Compatible(byte luminance)
+            {
+                var original = new Gray8(luminance);
+
+                Rgba32 rgba = default;
+                original.ToRgba32(ref rgba);
+
+                Vector4 gray8Vector = original.ToScaledVector4();
+                Vector4 rgbaVector = original.ToScaledVector4();
+
+                Assert.Equal(gray8Vector, rgbaVector, new ApproximateFloatComparer(1e-5f));
+            }
+
+            [Theory]
+            [MemberData(nameof(LuminanceData))]
+            public void FromScaledVector4_IsRgba32Compatible(byte luminance)
+            {
+                var original = new Gray8(luminance);
+
+                Rgba32 rgba = default;
+                original.ToRgba32(ref rgba);
+
+                Vector4 rgbaVector = original.ToScaledVector4();
+
+                Gray8 mirror = default;
+                mirror.FromScaledVector4(rgbaVector);
+
+                Assert.Equal(original, mirror);
+            }
         }
     }
 }

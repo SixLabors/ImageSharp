@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 {
     /// <summary>
     /// Provides methods to allow the decoding of raw scanlines to image rows of different pixel formats.
+    /// TODO: We should make this a stateful class or struct to reduce the number of arguments on methods (most are invariant).
     /// </summary>
     internal static class PngScanlineProcessor
     {
@@ -19,8 +20,8 @@ namespace SixLabors.ImageSharp.Formats.Png
             ReadOnlySpan<byte> scanlineSpan,
             Span<TPixel> rowSpan,
             bool hasTrans,
-            ushort luminance16Trans,
-            byte luminanceTrans)
+            Gray16 luminance16Trans,
+            Gray8 luminanceTrans)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel pixel = default;
@@ -61,7 +62,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     rgba64.R = luminance;
                     rgba64.G = luminance;
                     rgba64.B = luminance;
-                    rgba64.A = luminance.Equals(luminance16Trans) ? ushort.MinValue : ushort.MaxValue;
+                    rgba64.A = luminance.Equals(luminance16Trans.PackedValue) ? ushort.MinValue : ushort.MaxValue;
 
                     pixel.FromRgba64(rgba64);
                     Unsafe.Add(ref rowSpanRef, x) = pixel;
@@ -69,7 +70,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else
             {
-                byte scaledLuminanceTrans = (byte)(luminanceTrans * scaleFactor);
+                byte scaledLuminanceTrans = (byte)(luminanceTrans.PackedValue * scaleFactor);
                 Rgba32 rgba32 = default;
                 for (int x = 0; x < header.Width; x++)
                 {
@@ -92,8 +93,8 @@ namespace SixLabors.ImageSharp.Formats.Png
             int pixelOffset,
             int increment,
             bool hasTrans,
-            ushort luminance16Trans,
-            byte luminanceTrans)
+            Gray16 luminance16Trans,
+            Gray8 luminanceTrans)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel pixel = default;
@@ -134,7 +135,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     rgba64.R = luminance;
                     rgba64.G = luminance;
                     rgba64.B = luminance;
-                    rgba64.A = luminance.Equals(luminance16Trans) ? ushort.MinValue : ushort.MaxValue;
+                    rgba64.A = luminance.Equals(luminance16Trans.PackedValue) ? ushort.MinValue : ushort.MaxValue;
 
                     pixel.FromRgba64(rgba64);
                     Unsafe.Add(ref rowSpanRef, x) = pixel;
@@ -142,11 +143,11 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else
             {
-                byte scaledLuminanceTrans = (byte)(luminanceTrans * scaleFactor);
+                byte scaledLuminanceTrans = (byte)(luminanceTrans.PackedValue * scaleFactor);
                 Rgba32 rgba32 = default;
-                for (int x = pixelOffset; x < header.Width; x += increment)
+                for (int x = pixelOffset, o = 0; x < header.Width; x += increment, o++)
                 {
-                    byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, x) * scaleFactor);
+                    byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, o) * scaleFactor);
                     rgba32.R = luminance;
                     rgba32.G = luminance;
                     rgba32.B = luminance;
@@ -189,12 +190,11 @@ namespace SixLabors.ImageSharp.Formats.Png
             else
             {
                 Rgba32 rgba32 = default;
-                int bps = bytesPerSample;
                 for (int x = 0; x < header.Width; x++)
                 {
                     int offset = x * bytesPerPixel;
                     byte luminance = Unsafe.Add(ref scanlineSpanRef, offset);
-                    byte alpha = Unsafe.Add(ref scanlineSpanRef, offset + bps);
+                    byte alpha = Unsafe.Add(ref scanlineSpanRef, offset + bytesPerSample);
 
                     rgba32.R = luminance;
                     rgba32.G = luminance;
@@ -240,9 +240,9 @@ namespace SixLabors.ImageSharp.Formats.Png
             else
             {
                 Rgba32 rgba32 = default;
+                int offset = 0;
                 for (int x = pixelOffset; x < header.Width; x += increment)
                 {
-                    int offset = x * bytesPerPixel;
                     byte luminance = Unsafe.Add(ref scanlineSpanRef, offset);
                     byte alpha = Unsafe.Add(ref scanlineSpanRef, offset + bytesPerSample);
                     rgba32.R = luminance;
@@ -252,6 +252,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                     pixel.FromRgba32(rgba32);
                     Unsafe.Add(ref rowSpanRef, x) = pixel;
+                    offset += bytesPerPixel;
                 }
             }
         }
@@ -346,6 +347,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         public static void ProcessRgbScanline<TPixel>(
+            Configuration configuration,
             in PngHeader header,
             ReadOnlySpan<byte> scanlineSpan,
             Span<TPixel> rowSpan,
@@ -357,7 +359,6 @@ namespace SixLabors.ImageSharp.Formats.Png
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel pixel = default;
-            ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
             ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
 
             if (!hasTrans)
@@ -377,7 +378,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 }
                 else
                 {
-                    PixelOperations<TPixel>.Instance.FromRgb24Bytes(scanlineSpan, rowSpan, header.Width);
+                    PixelOperations<TPixel>.Instance.FromRgb24Bytes(configuration, scanlineSpan, rowSpan, header.Width);
                 }
 
                 return;
@@ -500,6 +501,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         public static void ProcessRgbaScanline<TPixel>(
+            Configuration configuration,
             in PngHeader header,
             ReadOnlySpan<byte> scanlineSpan,
             Span<TPixel> rowSpan,
@@ -526,7 +528,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else
             {
-                PixelOperations<TPixel>.Instance.FromRgba32Bytes(scanlineSpan, rowSpan, header.Width);
+                PixelOperations<TPixel>.Instance.FromRgba32Bytes(configuration, scanlineSpan, rowSpan, header.Width);
             }
         }
 

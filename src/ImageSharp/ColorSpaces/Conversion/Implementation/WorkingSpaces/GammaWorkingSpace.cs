@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.ColorSpaces.Companding;
 
@@ -9,7 +10,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     /// <summary>
     /// The gamma working space.
     /// </summary>
-    public class GammaWorkingSpace : RgbWorkingSpaceBase
+    public sealed class GammaWorkingSpace : RgbWorkingSpaceBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="GammaWorkingSpace" /> class.
@@ -57,10 +58,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         }
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            int hash = base.GetHashCode();
-            return HashHelpers.Combine(hash, this.Gamma.GetHashCode());
-        }
+        public override int GetHashCode() => HashCode.Combine(
+            this.WhitePoint,
+            this.ChromaticityCoordinates,
+            this.Gamma);
     }
 }

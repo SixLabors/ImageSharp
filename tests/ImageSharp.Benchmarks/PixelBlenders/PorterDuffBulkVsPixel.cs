@@ -17,6 +17,8 @@ namespace SixLabors.ImageSharp.Benchmarks
 
     public class PorterDuffBulkVsPixel : BenchmarkBase
     {
+        private Configuration Configuration => Configuration.Default;
+
         private void BulkVectorConvert<TPixel>(
             Span<TPixel> destination,
             Span<TPixel> background,
@@ -35,15 +37,15 @@ namespace SixLabors.ImageSharp.Benchmarks
                 Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
                 Span<Vector4> sourceSpan = buffer.Slice(destination.Length * 2, destination.Length);
 
-                PixelOperations<TPixel>.Instance.ToVector4(background, backgroundSpan);
-                PixelOperations<TPixel>.Instance.ToVector4(source, sourceSpan);
+                PixelOperations<TPixel>.Instance.ToVector4(this.Configuration, background, backgroundSpan);
+                PixelOperations<TPixel>.Instance.ToVector4(this.Configuration, source, sourceSpan);
 
                 for (int i = 0; i < destination.Length; i++)
                 {
                     destinationSpan[i] = PorterDuffFunctions.NormalSrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
                 }
 
-                PixelOperations<TPixel>.Instance.FromVector4(destinationSpan, destination);
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.Configuration, destinationSpan, destination);
             }
         }
 

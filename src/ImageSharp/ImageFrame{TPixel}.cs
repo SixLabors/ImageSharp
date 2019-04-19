@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
@@ -21,7 +21,6 @@ namespace SixLabors.ImageSharp
     public sealed class ImageFrame<TPixel> : IPixelSource<TPixel>, IDisposable
         where TPixel : struct, IPixel<TPixel>
     {
-        private readonly Configuration configuration;
         private bool isDisposed;
 
         /// <summary>
@@ -31,7 +30,7 @@ namespace SixLabors.ImageSharp
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
         internal ImageFrame(Configuration configuration, int width, int height)
-            : this(configuration, width, height, new ImageFrameMetaData())
+            : this(configuration, width, height, new ImageFrameMetadata())
         {
         }
 
@@ -40,9 +39,9 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="size">The <see cref="Size"/> of the frame.</param>
-        /// <param name="metaData">The meta data.</param>
-        internal ImageFrame(Configuration configuration, Size size, ImageFrameMetaData metaData)
-            : this(configuration, size.Width, size.Height, metaData)
+        /// <param name="metadata">The metadata.</param>
+        internal ImageFrame(Configuration configuration, Size size, ImageFrameMetadata metadata)
+            : this(configuration, size.Width, size.Height, metadata)
         {
         }
 
@@ -52,9 +51,9 @@ namespace SixLabors.ImageSharp
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
-        /// <param name="metaData">The meta data.</param>
-        internal ImageFrame(Configuration configuration, int width, int height, ImageFrameMetaData metaData)
-            : this(configuration, width, height, default(TPixel), metaData)
+        /// <param name="metadata">The metadata.</param>
+        internal ImageFrame(Configuration configuration, int width, int height, ImageFrameMetadata metadata)
+            : this(configuration, width, height, default(TPixel), metadata)
         {
         }
 
@@ -66,7 +65,7 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="backgroundColor">The color to clear the image with.</param>
         internal ImageFrame(Configuration configuration, int width, int height, TPixel backgroundColor)
-            : this(configuration, width, height, backgroundColor, new ImageFrameMetaData())
+            : this(configuration, width, height, backgroundColor, new ImageFrameMetadata())
         {
         }
 
@@ -77,17 +76,17 @@ namespace SixLabors.ImageSharp
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="backgroundColor">The color to clear the image with.</param>
-        /// <param name="metaData">The meta data.</param>
-        internal ImageFrame(Configuration configuration, int width, int height, TPixel backgroundColor, ImageFrameMetaData metaData)
+        /// <param name="metadata">The metadata.</param>
+        internal ImageFrame(Configuration configuration, int width, int height, TPixel backgroundColor, ImageFrameMetadata metadata)
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            this.configuration = configuration;
+            this.Configuration = configuration;
             this.MemoryAllocator = configuration.MemoryAllocator;
             this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(width, height);
-            this.MetaData = metaData ?? new ImageFrameMetaData();
+            this.Metadata = metadata ?? new ImageFrameMetadata();
             this.Clear(configuration.GetParallelOptions(), backgroundColor);
         }
 
@@ -99,7 +98,7 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="memorySource">The memory source.</param>
         internal ImageFrame(Configuration configuration, int width, int height, MemorySource<TPixel> memorySource)
-            : this(configuration, width, height, memorySource, new ImageFrameMetaData())
+            : this(configuration, width, height, memorySource, new ImageFrameMetadata())
         {
         }
 
@@ -110,18 +109,18 @@ namespace SixLabors.ImageSharp
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="memorySource">The memory source.</param>
-        /// <param name="metaData">The meta data.</param>
-        internal ImageFrame(Configuration configuration, int width, int height, MemorySource<TPixel> memorySource, ImageFrameMetaData metaData)
+        /// <param name="metadata">The metadata.</param>
+        internal ImageFrame(Configuration configuration, int width, int height, MemorySource<TPixel> memorySource, ImageFrameMetadata metadata)
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
-            Guard.NotNull(metaData, nameof(metaData));
+            Guard.NotNull(metadata, nameof(metadata));
 
-            this.configuration = configuration;
+            this.Configuration = configuration;
             this.MemoryAllocator = configuration.MemoryAllocator;
             this.PixelBuffer = new Buffer2D<TPixel>(memorySource, width, height);
-            this.MetaData = metaData;
+            this.Metadata = metadata;
         }
 
         /// <summary>
@@ -134,17 +133,22 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(source, nameof(source));
 
-            this.configuration = configuration;
+            this.Configuration = configuration;
             this.MemoryAllocator = configuration.MemoryAllocator;
             this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(source.PixelBuffer.Width, source.PixelBuffer.Height);
             source.PixelBuffer.GetSpan().CopyTo(this.PixelBuffer.GetSpan());
-            this.MetaData = source.MetaData.DeepClone();
+            this.Metadata = source.Metadata.DeepClone();
         }
 
         /// <summary>
         /// Gets the <see cref="MemoryAllocator" /> to use for buffer allocations.
         /// </summary>
         public MemoryAllocator MemoryAllocator { get; }
+
+        /// <summary>
+        /// Gets the <see cref="Configuration"/> instance associated with this <see cref="ImageFrame{TPixel}"/>.
+        /// </summary>
+        internal Configuration Configuration { get; }
 
         /// <summary>
         /// Gets the image pixels. Not private as Buffer2D requires an array in its constructor.
@@ -165,9 +169,9 @@ namespace SixLabors.ImageSharp
         public int Height => this.PixelBuffer.Height;
 
         /// <summary>
-        /// Gets the meta data of the frame.
+        /// Gets the metadata of the frame.
         /// </summary>
-        public ImageFrameMetaData MetaData { get; }
+        public ImageFrameMetadata Metadata { get; }
 
         /// <summary>
         /// Gets or sets the pixel at the specified position.
@@ -248,13 +252,13 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"ImageFrame<{typeof(TPixel).Name}>: {this.Width}x{this.Height}";
+        public override string ToString() => $"ImageFrame<{typeof(TPixel).Name}>({this.Width}x{this.Height})";
 
         /// <summary>
         /// Clones the current instance.
         /// </summary>
         /// <returns>The <see cref="ImageFrame{TPixel}"/></returns>
-        internal ImageFrame<TPixel> Clone() => this.Clone(this.configuration);
+        internal ImageFrame<TPixel> Clone() => this.Clone(this.Configuration);
 
         /// <summary>
         /// Clones the current instance.
@@ -269,7 +273,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel2">The pixel format.</typeparam>
         /// <returns>The <see cref="ImageFrame{TPixel2}"/></returns>
         internal ImageFrame<TPixel2> CloneAs<TPixel2>()
-            where TPixel2 : struct, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.configuration);
+            where TPixel2 : struct, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.Configuration);
 
         /// <summary>
         /// Returns a copy of the image frame in the given pixel format.
@@ -285,7 +289,7 @@ namespace SixLabors.ImageSharp
                 return this.Clone(configuration) as ImageFrame<TPixel2>;
             }
 
-            var target = new ImageFrame<TPixel2>(configuration, this.Width, this.Height, this.MetaData.DeepClone());
+            var target = new ImageFrame<TPixel2>(configuration, this.Width, this.Height, this.Metadata.DeepClone());
 
             ParallelHelper.IterateRows(
                 this.Bounds(),
@@ -296,7 +300,7 @@ namespace SixLabors.ImageSharp
                         {
                             Span<TPixel> sourceRow = this.GetPixelRowSpan(y);
                             Span<TPixel2> targetRow = target.GetPixelRowSpan(y);
-                            PixelOperations<TPixel>.Instance.To(sourceRow, targetRow);
+                            PixelOperations<TPixel>.Instance.To(configuration, sourceRow, targetRow);
                         }
                     });
 

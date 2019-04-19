@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
 
             // Paeth(x) + PaethPredictor(Raw(x-bpp), Prior(x), Prior(x-bpp))
-            int offset = bytesPerPixel + 1; // Add one bcause x starts at one.
+            int offset = bytesPerPixel + 1; // Add one because x starts at one.
             int x = 1;
             for (; x < offset; x++)
             {

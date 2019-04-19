@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <summary>
-    /// Identifies the colorspace of a Jpeg image
+    /// Identifies the colorspace of a Jpeg image.
     /// </summary>
     internal enum JpegColorSpace
     {

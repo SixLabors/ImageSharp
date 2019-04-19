@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using static SixLabors.ImageSharp.MetaData.Profiles.Exif.ExifTag;
+using static SixLabors.ImageSharp.Metadata.Profiles.Exif.ExifTag;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
+namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
     internal static class ExifTags
     {
@@ -238,7 +238,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             LensMake,
             LensModel,
             LensSerialNumber
-          };
+        };
 
         /// <summary>
         /// The collection of GPS tags

@@ -25,7 +25,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// If the first byte is zero, the record has different meanings, depending
         /// on the second byte. If the second byte is zero, it is the end of the row,
         /// if it is one, it is the end of the image.
-        /// Not supported at the moment.
         /// </summary>
         RLE8 = 1,
 
@@ -35,14 +34,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// If the first byte is zero, the record has different meanings, depending
         /// on the second byte. If the second byte is zero, it is the end of the row,
         /// if it is one, it is the end of the image.
-        /// Not supported at the moment.
         /// </summary>
         RLE4 = 2,
 
         /// <summary>
         /// Each image row has a multiple of four elements. If the
         /// row has less elements, zeros will be added at the right side.
-        /// Not supported at the moment.
         /// </summary>
         BitFields = 3,
 
@@ -56,6 +53,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// The bitmap contains a PNG image.
         /// Not supported at the moment.
         /// </summary>
-        PNG = 5
+        PNG = 5,
+
+        /// <summary>
+        /// Introduced with Windows CE.
+        /// Specifies that the bitmap is not compressed and that the color table consists of four DWORD color
+        /// masks that specify the red, green, blue, and alpha components of each pixel.
+        /// </summary>
+        BI_ALPHABITFIELDS = 6
     }
 }

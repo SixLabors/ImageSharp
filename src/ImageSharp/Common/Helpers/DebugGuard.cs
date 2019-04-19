@@ -164,6 +164,20 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Verifies whether a specific condition is met, throwing an exception if it's false.
+        /// </summary>
+        /// <param name="target">The condition</param>
+        /// <param name="message">The error message</param>
+        [Conditional("DEBUG")]
+        public static void IsTrue(bool target, string message)
+        {
+            if (!target)
+            {
+                throw new InvalidOperationException(message);
+            }
+        }
+
+        /// <summary>
         /// Verifies, that the method parameter with specified target value is false
         /// and throws an exception if it is found to be so.
         /// </summary>

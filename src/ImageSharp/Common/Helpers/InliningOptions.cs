@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-// Uncomment this for verbose profiler results:
+// Uncomment this for verbose profiler results. DO NOT PUSH TO MAIN!
 // #define PROFILING
 using System.Runtime.CompilerServices;
 

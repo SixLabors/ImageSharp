@@ -112,11 +112,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                     
                     Assert.NotEmpty(allocator.AllocationLog);
 
-                    var internalAllocations = allocator.AllocationLog.Where(
-                        e => e.ElementType == typeof(Vector4)).ToArray();
-                    
-                    int maxAllocationSize = internalAllocations.Max(e => e.LengthInBytes);
-                    
+                    int maxAllocationSize = allocator.AllocationLog.Where(
+                        e => e.ElementType == typeof(Vector4)).Max(e => e.LengthInBytes);
                     
                     Assert.True(maxAllocationSize <= Math.Max(workingBufferSizeHintInBytes, minimumWorkerAllocationInBytes));
                 }
@@ -256,6 +253,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
             var comparer = ImageComparer.TolerantPercentage(allowHigherInaccuracy ? 0.3f : 0.017f);
 
+            // Let's make the working buffer size non-default:
+            provider.Configuration.WorkingBufferSizeHintInBytes = 16 * 1024 * SizeOfVector4;
+            
             provider.RunValidatingProcessorTest(
                 ctx =>
                     {

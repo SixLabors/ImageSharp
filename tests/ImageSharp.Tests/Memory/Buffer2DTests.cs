@@ -155,5 +155,28 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 }
             }
         }
+
+        [Fact]
+        public void CopyColumns_InvokeMultipleTimes()
+        {
+            Random rnd = new Random(123);
+            using (Buffer2D<float> b = this.MemoryAllocator.Allocate2D<float>(100, 100))
+            {
+                rnd.RandomFill(b.Span, 0, 1);
+                
+                b.CopyColumns(0, 50, 22);
+                b.CopyColumns(0, 50, 22);
+
+                for (int y = 0; y < b.Height; y++)
+                {
+                    Span<float> row = b.GetRowSpan(y);
+
+                    Span<float> s = row.Slice(0, 22);
+                    Span<float> d = row.Slice(50, 22);
+                    
+                    Xunit.Assert.True(s.SequenceEqual(d));
+                }
+            }
+        }
     }
 }

@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly Rectangle destWorkingRect;
 
-        private readonly int diameter;
+        private readonly int windowBandDiameter;
 
         private readonly int windowHeight;
 
@@ -65,9 +65,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.destWorkingRect = destWorkingRect;
             this.startX = startX;
 
-            this.diameter = verticalKernelMap.MaxDiameter;
+            this.windowBandDiameter = verticalKernelMap.MaxDiameter;
 
-            this.windowHeight = Math.Min(this.sourceRectangle.Height, 2 * this.diameter);
+            int numberOfWindowBands = ResizeHelper.CalculateResizeWorkerHeightInWindowBands(
+                this.windowBandDiameter,
+                destWidth,
+                configuration.WorkingBufferSizeHintInBytes);
+
+            this.windowHeight = Math.Min(this.sourceRectangle.Height, numberOfWindowBands * this.windowBandDiameter);
 
             this.buffer = configuration.MemoryAllocator.Allocate2D<Vector4>(
                 this.windowHeight,
@@ -143,8 +148,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         public void Slide()
         {
-            this.CurrentMinY = this.CurrentMinY + this.diameter;
-            this.CurrentMaxY = Math.Min(this.CurrentMaxY + this.diameter, this.sourceRectangle.Height);
+            this.CurrentMinY = this.CurrentMinY + this.windowBandDiameter;
+            this.CurrentMaxY = Math.Min(this.CurrentMaxY + this.windowBandDiameter, this.sourceRectangle.Height);
             this.CalculateFirstPassValues(this.CurrentMinY, this.CurrentMaxY);
         }
 

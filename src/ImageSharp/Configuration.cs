@@ -128,9 +128,9 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Creates a shallow copy of the <see cref="Configuration"/>
+        /// Creates a shallow copy of the <see cref="Configuration"/>.
         /// </summary>
-        /// <returns>A new configuration instance</returns>
+        /// <returns>A new configuration instance.</returns>
         public Configuration Clone()
         {
             return new Configuration
@@ -147,12 +147,12 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Creates the default instance with the following <see cref="IConfigurationModule"/>s preregistered:
-        /// <para><see cref="PngConfigurationModule"/></para>
-        /// <para><see cref="JpegConfigurationModule"/></para>
-        /// <para><see cref="GifConfigurationModule"/></para>
-        /// <para><see cref="BmpConfigurationModule"/></para>
+        /// <see cref="PngConfigurationModule"/>
+        /// <see cref="JpegConfigurationModule"/>
+        /// <see cref="GifConfigurationModule"/>
+        /// <see cref="BmpConfigurationModule"/>.
         /// </summary>
-        /// <returns>The default configuration of <see cref="Configuration"/></returns>
+        /// <returns>The default configuration of <see cref="Configuration"/>.</returns>
         internal static Configuration CreateDefaultInstance()
         {
             return new Configuration(

@@ -8,8 +8,7 @@ using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 namespace SixLabors.ImageSharp.ColorSpaces
 {
     /// <summary>
-    /// Chromaticity coordinates taken from:
-    /// <see href="http://www.brucelindbloom.com/index.html?WorkingSpaceInfo.html"/>
+    /// Chromaticity coordinates based on: <see href="http://www.brucelindbloom.com/index.html?WorkingSpaceInfo.html"/>
     /// </summary>
     public static class RgbWorkingSpaces
     {

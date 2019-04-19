@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 // ReSharper disable InconsistentNaming
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// Enumerates the ICC Profile Tags as defined in ICC.1:2010 version 4.3.0.0
@@ -19,18 +19,18 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         Unknown,
 
         /// <summary>
-        /// A2B0 - This tag defines a colour transform from Device, Colour Encoding or PCS, to PCS, or a colour transform
+        /// A2B0 - This tag defines a color transform from Device, Color Encoding or PCS, to PCS, or a color transform
         /// from Device 1 to Device 2, using lookup table tag element structures
         /// </summary>
         AToB0 = 0x41324230,
 
         /// <summary>
-        /// A2B2 - This tag describes the colour transform from Device or Colour Encoding to PCS using lookup table tag element structures
+        /// A2B2 - This tag describes the color transform from Device or Color Encoding to PCS using lookup table tag element structures
         /// </summary>
         AToB1 = 0x41324231,
 
         /// <summary>
-        /// A2B2 - This tag describes the colour transform from Device or Colour Encoding to PCS using lookup table tag element structures
+        /// A2B2 - This tag describes the color transform from Device or Color Encoding to PCS using lookup table tag element structures
         /// </summary>
         AToB2 = 0x41324232,
 
@@ -46,40 +46,40 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         BlueTrc = 0x62545243,
 
         /// <summary>
-        /// B2A0 - This tag defines a colour transform from PCS to Device or Colour Encoding using the lookup table tag element structures
+        /// B2A0 - This tag defines a color transform from PCS to Device or Color Encoding using the lookup table tag element structures
         /// </summary>
         BToA0 = 0x42324130,
 
         /// <summary>
-        /// B2A1 - This tag defines a colour transform from PCS to Device or Colour Encoding using the lookup table tag element structures.
+        /// B2A1 - This tag defines a color transform from PCS to Device or Color Encoding using the lookup table tag element structures.
         /// </summary>
         BToA1 = 0x42324131,
 
         /// <summary>
-        /// B2A2 - This tag defines a colour transform from PCS to Device or Colour Encoding using the lookup table tag element structures.
+        /// B2A2 - This tag defines a color transform from PCS to Device or Color Encoding using the lookup table tag element structures.
         /// </summary>
         BToA2 = 0x42324132,
 
         /// <summary>
-        /// B2D0 - This tag defines a colour transform from PCS to Device. It supports float32Number-encoded input range, output range and transform, and
+        /// B2D0 - This tag defines a color transform from PCS to Device. It supports float32Number-encoded input range, output range and transform, and
         /// provides a means to override the BToA0 tag.
         /// </summary>
         BToD0 = 0x42324430,
 
         /// <summary>
-        /// B2D1 - This tag defines a colour transform from PCS to Device. It supports float32Number-encoded input range, output range and transform, and
+        /// B2D1 - This tag defines a color transform from PCS to Device. It supports float32Number-encoded input range, output range and transform, and
         /// provides a means to override the BToA1 tag.
         /// </summary>
         BToD1 = 0x42324431,
 
         /// <summary>
-        /// B2D2 - This tag defines a colour transform from PCS to Device. It supports float32Number-encoded input range, output range and transform, and
+        /// B2D2 - This tag defines a color transform from PCS to Device. It supports float32Number-encoded input range, output range and transform, and
         /// provides a means to override the BToA2 tag.
         /// </summary>
         BToD2 = 0x42324432,
 
         /// <summary>
-        /// B2D3 - This tag defines a colour transform from PCS to Device. It supports float32Number-encoded input range, output range and transform, and
+        /// B2D3 - This tag defines a color transform from PCS to Device. It supports float32Number-encoded input range, output range and transform, and
         /// provides a means to override the BToA1 tag.
         /// </summary>
         BToD3 = 0x42324433,
@@ -97,8 +97,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         CharTarget = 0x74617267,
 
         /// <summary>
-        /// chad - This tag contains a matrix, which shall be invertible, and which converts an nCIEXYZ colour, measured using the actual illumination
-        /// conditions and relative to the actual adopted white, to an nCIEXYZ colour relative to the PCS adopted white
+        /// chad - This tag contains a matrix, which shall be invertible, and which converts an nCIEXYZ color, measured using the actual illumination
+        /// conditions and relative to the actual adopted white, to an nCIEXYZ color relative to the PCS adopted white
         /// </summary>
         ChromaticAdaptation = 0x63686164,
 
@@ -166,33 +166,33 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         DeviceSettings = 0x64657673,
 
         /// <summary>
-        /// D2B0 - This tag defines a colour transform from Device to PCS. It supports float32Number-encoded
+        /// D2B0 - This tag defines a color transform from Device to PCS. It supports float32Number-encoded
         /// input range, output range and transform, and provides a means to override the AToB0 tag
         /// </summary>
         DToB0 = 0x44324230,
 
         /// <summary>
-        /// D2B1 - This tag defines a colour transform from Device to PCS. It supports float32Number-encoded
+        /// D2B1 - This tag defines a color transform from Device to PCS. It supports float32Number-encoded
         /// input range, output range and transform, and provides a means to override the AToB1 tag
         /// </summary>
         DToB1 = 0x44324230,
 
         /// <summary>
-        /// D2B2 - This tag defines a colour transform from Device to PCS. It supports float32Number-encoded
+        /// D2B2 - This tag defines a color transform from Device to PCS. It supports float32Number-encoded
         /// input range, output range and transform, and provides a means to override the AToB1 tag
         /// </summary>
         DToB2 = 0x44324230,
 
         /// <summary>
-        /// D2B3 - This tag defines a colour transform from Device to PCS. It supports float32Number-encoded
+        /// D2B3 - This tag defines a color transform from Device to PCS. It supports float32Number-encoded
         /// input range, output range and transform, and provides a means to override the AToB1 tag
         /// </summary>
         DToB3 = 0x44324230,
 
         /// <summary>
         /// gamt - This tag provides a table in which PCS values are the input and a single
-        /// output value for each input value is the output. If the output value is 0, the PCS colour is in-gamut.
-        /// If the output is non-zero, the PCS colour is out-of-gamut
+        /// output value for each input value is the output. If the output value is 0, the PCS color is in-gamut.
+        /// If the output is non-zero, the PCS color is out-of-gamut
         /// </summary>
         Gamut = 0x67616D74,
 
@@ -214,7 +214,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         GreenTrc = 0x67545243,
 
         /// <summary>
-        /// lumi - This tag contains the absolute luminance of emissive devices in candelas per square metre as described by the Y channel.
+        /// lumi - This tag contains the absolute luminance of emissive devices in candelas per square meter as described by the Y channel.
         /// </summary>
         Luminance = 0x6C756d69,
 
@@ -240,8 +240,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         NamedColor = 0x6E636f6C,
 
         /// <summary>
-        /// ncl2 - This tag contains the named colour information providing a PCS and optional device representation
-        /// for a list of named colours.
+        /// ncl2 - This tag contains the named color information providing a PCS and optional device representation
+        /// for a list of named colors.
         /// </summary>
         NamedColor2 = 0x6E636C32,
 

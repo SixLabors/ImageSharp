@@ -20,14 +20,20 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
         private IMemoryOwner<byte> source;
 
-        [Params(16, 128, 1024)]
+        private Configuration configuration;
+
+        [Params(
+            128, 
+            1024,
+            2048)]
         public int Count { get; set; }
 
         [GlobalSetup]
         public void Setup()
         {
-            this.destination = Configuration.Default.MemoryAllocator.Allocate<TPixel>(this.Count);
-            this.source = Configuration.Default.MemoryAllocator.Allocate<byte>(this.Count * 4);
+            this.configuration = Configuration.Default;
+            this.destination = this.configuration.MemoryAllocator.Allocate<TPixel>(this.Count);
+            this.source = this.configuration.MemoryAllocator.Allocate<byte>(this.Count * 4);
         }
 
         [GlobalCleanup]
@@ -37,8 +43,8 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             this.source.Dispose();
         }
 
-        [Benchmark(Baseline = true)]
-        public void PerElement()
+        //[Benchmark]
+        public void Naive()
         {
             Span<byte> s = this.source.GetSpan();
             Span<TPixel> d = this.destination.GetSpan();
@@ -52,20 +58,35 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             }
         }
 
-        [Benchmark]
+        [Benchmark(Baseline = true)]
         public void CommonBulk()
         {
-            new PixelOperations<TPixel>().FromRgba32Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
+            new PixelOperations<TPixel>().FromRgba32Bytes(this.configuration, this.source.GetSpan(), this.destination.GetSpan(), this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-           PixelOperations<TPixel>.Instance.FromRgba32Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
+           PixelOperations<TPixel>.Instance.FromRgba32Bytes(this.configuration, this.source.GetSpan(), this.destination.GetSpan(), this.Count);
         }
     }
 
-    public class FromRgba32BytesRgba32 : FromRgba32Bytes<Rgba32>
+    public class FromRgba32Bytes_ToRgba32 : FromRgba32Bytes<Rgba32>
     {
+    }
+
+    public class FromRgba32Bytes_ToBgra32 : FromRgba32Bytes<Bgra32>
+    {
+        // RESULTS:
+        //         Method | Count |       Mean |     Error |    StdDev | Scaled |
+        // -------------- |------ |-----------:|----------:|----------:|-------:|
+        //     CommonBulk |   128 |   207.1 ns |  3.723 ns |  3.300 ns |   1.00 |
+        //  OptimizedBulk |   128 |   166.5 ns |  1.204 ns |  1.005 ns |   0.80 |
+        //                |       |            |           |           |        |
+        //     CommonBulk |  1024 | 1,333.9 ns | 12.426 ns | 11.624 ns |   1.00 |
+        //  OptimizedBulk |  1024 |   974.1 ns | 18.803 ns | 16.669 ns |   0.73 |
+        //                |       |            |           |           |        |
+        //     CommonBulk |  2048 | 2,625.4 ns | 30.143 ns | 26.721 ns |   1.00 |
+        //  OptimizedBulk |  2048 | 1,843.0 ns | 20.505 ns | 18.177 ns |   0.70 |
     }
 }

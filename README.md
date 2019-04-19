@@ -123,6 +123,14 @@ To clone ImageSharp locally click the "Clone in Windows" button above or run the
 git clone https://github.com/SixLabors/ImageSharp
 ```
 
+### Submodules
+
+This repository contains [git submodules](https://blog.github.com/2016-02-01-working-with-submodules/). To add the submodules to the project, navigate to the repository root and type:
+
+``` bash
+git submodule update --init --recursive
+```
+
 ### How can you help?
 
 Please... Spread the word, contribute algorithms, submit performance improvements, unit tests, no input is too little. Make sure to read our [Contribution Guide](https://github.com/SixLabors/ImageSharp/blob/master/.github/CONTRIBUTING.md) before opening a PR.

@@ -10,13 +10,13 @@ using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
     /// <summary>
-    /// Basic implementation of the von Kries chromatic adaptation model
+    /// Implementation of the von Kries chromatic adaptation model.
     /// </summary>
     /// <remarks>
     /// Transformation described here:
     /// http://www.brucelindbloom.com/index.html?Eqn_ChromAdapt.html
     /// </remarks>
-    public class VonKriesChromaticAdaptation : IChromaticAdaptation
+    public sealed class VonKriesChromaticAdaptation : IChromaticAdaptation
     {
         private readonly CieXyzAndLmsConverter converter;
 

@@ -1,5 +1,4 @@
 ﻿using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Attributes.Jobs;
 
 namespace SixLabors.ImageSharp.Benchmarks.General.BasicMath
 {

@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <returns>The <see typeparam="T"/> at the specified position.</returns>
         public ref T this[int row, int column]
         {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            [MethodImpl(InliningOptions.ShortMethod)]
             get
             {
                 this.CheckCoordinates(row, column);
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <returns>
         /// The <see cref="DenseMatrix{T}"/> representation on the source data.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static implicit operator DenseMatrix<T>(T[,] data) => new DenseMatrix<T>(data);
 
         /// <summary>
@@ -135,9 +135,9 @@ namespace SixLabors.ImageSharp.Primitives
         /// <returns>
         /// The <see cref="T:T[,]"/> representation on the source data.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
 #pragma warning disable SA1008 // Opening parenthesis should be spaced correctly
-        public static implicit operator T[,] (DenseMatrix<T> data)
+        public static implicit operator T[,] (in DenseMatrix<T> data)
 #pragma warning restore SA1008 // Opening parenthesis should be spaced correctly
         {
             var result = new T[data.Rows, data.Columns];
@@ -155,16 +155,37 @@ namespace SixLabors.ImageSharp.Primitives
         }
 
         /// <summary>
+        /// Transposes the rows and columns of the dense matrix.
+        /// </summary>
+        /// <returns>The <see cref="DenseMatrix{T}"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public DenseMatrix<T> Transpose()
+        {
+            var result = new DenseMatrix<T>(this.Rows, this.Columns);
+
+            for (int y = 0; y < this.Rows; y++)
+            {
+                for (int x = 0; x < this.Columns; x++)
+                {
+                    ref T value = ref result[x, y];
+                    value = this[y, x];
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// Fills the matrix with the given value
         /// </summary>
         /// <param name="value">The value to fill each item with</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void Fill(T value) => this.Span.Fill(value);
 
         /// <summary>
         /// Clears the matrix setting each value to the default value for the element type
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void Clear() => this.Span.Clear();
 
         /// <summary>

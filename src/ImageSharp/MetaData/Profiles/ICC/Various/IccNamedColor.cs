@@ -4,7 +4,7 @@
 using System;
 using System.Linq;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// A specific color with a name
@@ -80,27 +80,23 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <inheritdoc/>
-        public bool Equals(IccNamedColor other) =>
-            this.Name == other.Name &&
-            this.PcsCoordinates.SequenceEqual(other.PcsCoordinates) &&
-            this.DeviceCoordinates.SequenceEqual(other.DeviceCoordinates);
+        public bool Equals(IccNamedColor other)
+        {
+            return this.Name.Equals(other.Name)
+                && this.PcsCoordinates.SequenceEqual(other.PcsCoordinates)
+                && this.DeviceCoordinates.SequenceEqual(other.DeviceCoordinates);
+        }
 
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.Name.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.PcsCoordinates.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.DeviceCoordinates.GetHashCode();
-                return hashCode;
-            }
+            return HashCode.Combine(
+                this.Name,
+                this.PcsCoordinates,
+                this.DeviceCoordinates);
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return this.Name;
-        }
+        public override string ToString() => this.Name;
     }
 }

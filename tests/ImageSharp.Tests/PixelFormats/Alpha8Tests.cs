@@ -90,7 +90,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var input = new Alpha8(128);
             var expected = new Rgba32(0, 0, 0, 128);
 
-            var actual = input.ToRgba32();
+            Rgba32 actual = default;
+            input.ToRgba32(ref actual);
             Assert.Equal(expected, actual);
         }
     }

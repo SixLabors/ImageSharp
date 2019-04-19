@@ -1,10 +1,10 @@
+using System;
+using System.Numerics;
+
+using BenchmarkDotNet.Attributes;
+
 namespace SixLabors.ImageSharp.Benchmarks.General
 {
-    using System;
-    using System.Numerics;
-
-    using BenchmarkDotNet.Attributes;
-
     /// <summary>
     /// Has it any effect on performance to store SIMD constants as static readonly fields? Is it OK to always inline them?
     /// Spoiler: the difference seems to be statistically insignificant!

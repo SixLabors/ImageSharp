@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// Position of an object within an ICC profile
@@ -73,15 +73,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             this.Size == other.Size;
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return unchecked((int)(this.Offset ^ this.Size));
-        }
+        public override int GetHashCode() => unchecked((int)(this.Offset ^ this.Size));
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"{this.Offset}; {this.Size}";
-        }
+        public override string ToString() => $"{this.Offset}; {this.Size}";
     }
 }

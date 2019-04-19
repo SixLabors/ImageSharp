@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     /// <summary>
     /// Registers the image encoders, decoders and mime type detectors for the jpeg format.
     /// </summary>
-    public sealed class JpegFormat : IImageFormat<JpegMetaData>
+    public sealed class JpegFormat : IImageFormat<JpegMetadata>
     {
         private JpegFormat()
         {
@@ -32,6 +32,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public IEnumerable<string> FileExtensions => JpegConstants.FileExtensions;
 
         /// <inheritdoc/>
-        public JpegMetaData CreateDefaultFormatMetaData() => new JpegMetaData();
+        public JpegMetadata CreateDefaultFormatMetadata() => new JpegMetadata();
     }
 }

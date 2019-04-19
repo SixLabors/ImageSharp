@@ -4,7 +4,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// A single channel of a <see cref="IccScreeningTagDataEntry"/>
@@ -26,12 +26,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <summary>
-        /// Gets the screen frequency
+        /// Gets the screen frequency.
         /// </summary>
         public float Frequency { get; }
 
         /// <summary>
-        /// Gets the angle in degrees
+        /// Gets the angle in degrees.
         /// </summary>
         public float Angle { get; }
 
@@ -85,19 +85,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.Frequency.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Angle.GetHashCode();
-                hashCode = (hashCode * 397) ^ (int)this.SpotShape;
-                return hashCode;
-            }
+            return HashCode.Combine(this.Frequency, this.Angle, this.SpotShape);
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"{this.Frequency}Hz; {this.Angle}°; {this.SpotShape}";
-        }
+        public override string ToString() => $"{this.Frequency}Hz; {this.Angle}°; {this.SpotShape}";
     }
 }

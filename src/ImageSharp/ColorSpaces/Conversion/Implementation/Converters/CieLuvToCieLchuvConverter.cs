@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
             float l = input.L, a = input.U, b = input.V;
             float c = MathF.Sqrt((a * a) + (b * b));
             float hRadians = MathF.Atan2(b, a);
-            float hDegrees = MathFExtensions.RadianToDegree(hRadians);
+            float hDegrees = GeometryUtilities.RadianToDegree(hRadians);
 
             // Wrap the angle round at 360.
             hDegrees %= 360;

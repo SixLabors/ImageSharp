@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             // Collect the palette. Required before the second pass runs.
             TPixel[] palette = this.GetPalette();
             this.paletteVector = new Vector4[palette.Length];
-            PixelOperations<TPixel>.Instance.ToScaledVector4(palette, this.paletteVector);
+            PixelOperations<TPixel>.Instance.ToVector4(image.Configuration, (ReadOnlySpan<TPixel>)palette, (Span<Vector4>)this.paletteVector, PixelConversionModifiers.Scale);
             var quantizedFrame = new QuantizedFrame<TPixel>(image.MemoryAllocator, width, height, palette);
 
             if (this.Dither)
@@ -96,6 +96,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
 
             return quantizedFrame;
+        }
+
+        /// <inheritdoc/>
+        public virtual void Dispose()
+        {
         }
 
         /// <summary>
@@ -139,8 +144,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         protected byte GetTransparentIndex()
         {
             // Transparent pixels are much more likely to be found at the end of a palette.
-            int index = this.paletteVector.Length - 1;
-            for (int i = this.paletteVector.Length - 1; i >= 0; i--)
+            int paletteVectorLengthMinus1 = this.paletteVector.Length - 1;
+
+            int index = paletteVectorLengthMinus1;
+            for (int i = paletteVectorLengthMinus1; i >= 0; i--)
             {
                 ref Vector4 candidate = ref this.paletteVector[i];
                 if (candidate.Equals(default))

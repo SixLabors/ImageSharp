@@ -93,14 +93,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         for (int y = rows.Min; y < rows.Max; y++)
                         {
                             Span<TPixel> targetRowSpan = targetPixels.GetRowSpan(y).Slice(startX);
-                            PixelOperations<TPixel>.Instance.ToVector4(targetRowSpan.Slice(0, length), vectorSpan);
+                            PixelOperations<TPixel>.Instance.ToVector4(configuration, targetRowSpan.Slice(0, length), vectorSpan);
 
                             for (int x = 0; x < width; x++)
                             {
                                 DenseMatrixUtils.Convolve(in matrix, sourcePixels, vectorSpan, y, x, maxY, maxX, startX);
                             }
 
-                            PixelOperations<TPixel>.Instance.FromVector4(vectorSpan.Slice(0, length), targetRowSpan);
+                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan.Slice(0, length), targetRowSpan);
                         }
                     });
         }

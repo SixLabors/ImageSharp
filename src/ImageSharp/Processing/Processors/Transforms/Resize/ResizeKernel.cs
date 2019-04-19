@@ -62,13 +62,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public Vector4 ConvolveCore(Span<Vector4> offsetedRowSpan)
         {
             ref float horizontalValues = ref Unsafe.AsRef<float>(this.bufferPtr);
+
             // Destination color components
             Vector4 result = Vector4.Zero;
 
             for (int i = 0; i < this.Length; i++)
             {
                 float weight = Unsafe.Add(ref horizontalValues, i);
-                //Vector4 v = Unsafe.Add(ref rowStartRef, i);
+
+                // Vector4 v = Unsafe.Add(ref rowStartRef, i);
                 Vector4 v = offsetedRowSpan[i];
                 result += v * weight;
             }

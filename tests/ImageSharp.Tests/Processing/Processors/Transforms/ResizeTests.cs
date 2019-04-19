@@ -34,12 +34,27 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
         public static readonly string[] SmokeTestResamplerNames =
             {
-                nameof(KnownResamplers.NearestNeighbor), nameof(KnownResamplers.Bicubic), nameof(KnownResamplers.Box),
+                nameof(KnownResamplers.NearestNeighbor), 
+                nameof(KnownResamplers.Bicubic), 
+                nameof(KnownResamplers.Box),
                 nameof(KnownResamplers.Lanczos5),
             };
 
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.07F);
 
+        [Theory]
+        [WithTestPatternImages(4000, 4000, PixelTypes.Rgba32)]
+        public void LargeImage<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            if (!TestEnvironment.Is64BitProcess)
+            {
+                return;
+            }
+
+            provider.RunValidatingProcessorTest(x => x.Resize(300, 300), appendPixelTypeToFileName: false);
+        }
+        
         [Theory]
         [WithBasicTestPatternImages(15, 12, PixelTypes.Rgba32, 2, 3, 1, 2)]
         [WithBasicTestPatternImages(2, 256, PixelTypes.Rgba32, 1, 1, 1, 8)]

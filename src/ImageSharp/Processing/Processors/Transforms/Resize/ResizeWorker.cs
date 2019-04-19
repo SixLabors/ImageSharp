@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 // Ensure offsets are normalized for cropping and padding.
                 ResizeKernel kernel = this.verticalKernelMap.GetKernel(y - this.targetOrigin.Y);
 
-                while (kernel.StartIndex + kernel.Length > this.currentWindow.Max)
+                if (kernel.StartIndex + kernel.Length > this.currentWindow.Max)
                 {
                     this.Slide();
                 }
@@ -145,8 +145,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private void Slide()
         {
-            int minY = this.currentWindow.Min + this.windowBandHeight;
-            int maxY = Math.Min(this.currentWindow.Max + this.windowBandHeight, this.sourceRectangle.Height);
+            int minY = this.currentWindow.Max - this.windowBandHeight;
+            int maxY = Math.Min(minY + this.workerHeight, this.sourceRectangle.Height);
+
             this.currentWindow = new RowInterval(minY, maxY);
             this.CalculateFirstPassValues(this.currentWindow);
         }

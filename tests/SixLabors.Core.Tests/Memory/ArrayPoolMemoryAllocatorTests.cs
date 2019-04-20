@@ -249,7 +249,6 @@ namespace SixLabors.Memory.Tests
 
         [Theory]
         [InlineData(-1)]
-        [InlineData(int.MaxValue)]
         public void AllocateManagedByteBuffer_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
         {
             var ex = Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.AllocateManagedByteBuffer(length));

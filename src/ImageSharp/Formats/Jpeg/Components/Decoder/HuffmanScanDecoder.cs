@@ -16,12 +16,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     /// </summary>
     internal class HuffmanScanDecoder
     {
-        public const int JPEG_REGISTER_SIZE = 64;
+        public const int JpegRegisterSize = 64;
 
         // Huffman look-ahead table log2 size
-        public const int JPEG_HUFF_LOOKUP_BITS = 8;
+        public const int JpegHuffLookupBits = 8;
 
-        public const int JPEG_HUFF_LOOKUP_SIZE = 1 << JPEG_HUFF_LOOKUP_BITS;
+        public const int JpegHuffLookupSize = 1 << JpegHuffLookupBits;
 
         private readonly JpegFrame frame;
         private readonly HuffmanTable[] dcHuffmanTables;
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private readonly FastACTable[] fastACTables;
 
         private readonly DoubleBufferedStreamReader stream;
-        private JpegBuffer jpegBuffer;
+        private readonly JpegBuffer jpegBuffer;
         private readonly JpegComponent[] components;
         private readonly ZigZag dctZigZag;
 
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private int todo;
 
         // The End-Of-Block countdown for ending the sequence prematurely when the remaining coefficients are zero.
-        private int eobrun;
+        // private int eobrun;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HuffmanScanDecoder"/> class.
@@ -94,6 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.components = frame.Components;
             this.componentsLength = componentsLength;
             this.restartInterval = restartInterval;
+            this.todo = restartInterval;
             this.spectralStart = spectralStart;
             this.spectralEnd = spectralEnd;
             this.successiveHigh = successiveHigh;
@@ -105,8 +106,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// </summary>
         public void ParseEntropyCodedData()
         {
-            this.Reset();
-
+            // this.Reset();
             if (!this.frame.Progressive)
             {
                 this.ParseBaselineData();
@@ -116,9 +116,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 this.ParseProgressiveData();
             }
 
-            if (this.jpegBuffer.badMarker)
+            if (this.jpegBuffer.BadMarker)
             {
-                this.stream.Position = this.jpegBuffer.markerPosition;
+                this.stream.Position = this.jpegBuffer.MarkerPosition;
             }
         }
 
@@ -189,7 +189,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                             for (int x = 0; x < h; x++)
                             {
-                                if (this.jpegBuffer.eof)
+                                if (this.jpegBuffer.Eof)
                                 {
                                     return;
                                 }
@@ -209,10 +209,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     // After all interleaved components, that's an interleaved MCU,
                     // so now count down the restart interval
                     mcu++;
-                    if (!this.ContinueOnMcuComplete())
-                    {
-                        return;
-                    }
+                    this.HandleRestart();
+
+                    // if (!this.ContinueOnMcuComplete())
+                    // {
+                    //    return;
+                    // }
                 }
             }
         }
@@ -246,7 +248,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 for (int i = 0; i < w; i++)
                 {
-                    if (this.jpegBuffer.eof)
+                    if (this.jpegBuffer.Eof)
                     {
                         return;
                     }
@@ -374,7 +376,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                             for (int x = 0; x < h; x++)
                             {
-                                if (this.jpegBuffer.eof)
+                                if (this.jpegBuffer.Eof)
                                 {
                                     return;
                                 }
@@ -392,10 +394,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     // After all interleaved components, that's an interleaved MCU,
                     // so now count down the restart interval
                     mcu++;
-                    if (!this.ContinueOnMcuComplete())
-                    {
-                        return;
-                    }
+                    this.HandleRestart();
+
+                    // if (!this.ContinueOnMcuComplete())
+                    // {
+                    //    return;
+                    // }
                 }
             }
         }
@@ -426,7 +430,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                     for (int i = 0; i < w; i++)
                     {
-                        if (this.jpegBuffer.eof)
+                        if (this.jpegBuffer.Eof)
                         {
                             return;
                         }
@@ -462,7 +466,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                     for (int i = 0; i < w; i++)
                     {
-                        if (this.jpegBuffer.eof)
+                        if (this.jpegBuffer.Eof)
                         {
                             return;
                         }
@@ -494,10 +498,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             JpegBuffer buffer = this.jpegBuffer;
 
             // DC
-            int t = this.DecodeHuffman(ref buffer, ref dcTable);
+            int t = this.DecodeHuffman(buffer, ref dcTable);
             if (t != 0)
             {
-                t = Receive(ref buffer, t);
+                t = Receive(buffer, t);
             }
 
             t += component.DcPredictor;
@@ -507,7 +511,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             // AC
             for (int i = 1; i < 64;)
             {
-                int s = this.DecodeHuffman(ref buffer, ref acTable);
+                int s = this.DecodeHuffman(buffer, ref acTable);
 
                 int r = s >> 4;
                 s &= 15;
@@ -515,7 +519,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 if (s != 0)
                 {
                     i += r;
-                    s = Receive(ref buffer, s);
+                    s = Receive(buffer, s);
                     Unsafe.Add(ref blockDataRef, this.dctZigZag[i++]) = (short)s;
                 }
                 else
@@ -531,45 +535,45 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private unsafe int DecodeHuffman(ref JpegBuffer buffer, ref HuffmanTable h)
+        private unsafe int DecodeHuffman(JpegBuffer buffer, ref HuffmanTable h)
         {
             buffer.CheckBits();
-            int v = PeekBits(ref buffer, JPEG_HUFF_LOOKUP_BITS);
+            int v = PeekBits(buffer, JpegHuffLookupBits);
             int symbol = h.LookaheadValue[v];
             int size = h.LookaheadSize[v];
 
-            if (size == JPEG_HUFF_LOOKUP_BITS + 1)
+            if (size == JpegHuffLookupBits + 1)
             {
-                ulong x = this.jpegBuffer.data << (JPEG_REGISTER_SIZE - this.jpegBuffer.remain);
+                ulong x = this.jpegBuffer.Data << (JpegRegisterSize - this.jpegBuffer.Remain);
                 while (x > h.MaxCode[size])
                 {
                     size++;
                 }
 
-                v = (int)(x >> (JPEG_REGISTER_SIZE - size));
+                v = (int)(x >> (JpegRegisterSize - size));
                 symbol = h.Values[h.ValOffset[size] + v];
             }
 
-            buffer.remain -= size;
+            buffer.Remain -= size;
 
             return symbol;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int Receive(ref JpegBuffer buffer, int nbits)
+        private static int Receive(JpegBuffer buffer, int nbits)
         {
             buffer.CheckBits();
-            return Extend(GetBits(ref buffer, nbits), nbits);
+            return Extend(GetBits(buffer, nbits), nbits);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int Extend(int v, int nbits) => v - ((((v + v) >> nbits) - 1) & ((1 << nbits) - 1));
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int GetBits(ref JpegBuffer buffer, int nbits) => (int)ExtractBits(buffer.data, buffer.remain -= nbits, nbits);
+        private static int GetBits(JpegBuffer buffer, int nbits) => (int)ExtractBits(buffer.Data, buffer.Remain -= nbits, nbits);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int PeekBits(ref JpegBuffer buffer, int nbits) => (int)ExtractBits(buffer.data, buffer.remain - nbits, nbits);
+        private static int PeekBits(JpegBuffer buffer, int nbits) => (int)ExtractBits(buffer.Data, buffer.Remain - nbits, nbits);
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static ulong ExtractBits(ulong value, int offset, int size) => (value >> offset) & (ulong)((1 << size) - 1);
@@ -600,16 +604,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 return true;
             }
 
-            if (this.jpegBuffer.remain < 56)
-            {
-                this.jpegBuffer.FillBuffer();
-            }
-
+            // if (this.jpegBuffer.remain < 56)
+            // {
+            //    this.jpegBuffer.FillBuffer();
+            // }
+            //
             // If it's NOT a restart, then just bail, so we get corrupt data rather than no data.
             // Reset the stream to before any bad markers to ensure we can read successive segments.
-            if (this.jpegBuffer.badMarker)
+            if (this.jpegBuffer.BadMarker)
             {
-                this.stream.Position = this.jpegBuffer.markerPosition;
+                this.stream.Position = this.jpegBuffer.MarkerPosition;
             }
 
             if (!this.jpegBuffer.HasRestart())
@@ -617,89 +621,172 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 return false;
             }
 
-            this.Reset();
+            this.Reset(true);
 
             return true;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void Reset()
+        private void Reset(bool bump = false)
         {
             for (int i = 0; i < this.components.Length; i++)
             {
                 this.components[i].DcPredictor = 0;
             }
 
-            this.jpegBuffer.Reset();
-            this.eobrun = 0;
+            this.jpegBuffer.Reset(bump);
 
+            // this.eobrun = 0;
+            //
             // No more than 1<<31 MCUs if no restartInterval? that's plenty safe since we don't even allow 1<<30 pixels
-            this.todo = this.restartInterval > 0 ? this.restartInterval : int.MaxValue;
+            // this.todo = this.restartInterval > 0 ? this.restartInterval : int.MaxValue;
         }
 
-        public struct JpegBuffer
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private bool HandleRestart()
+        {
+            if (this.restartInterval > 0 && (--this.todo) == 0)
+            {
+                this.todo = this.restartInterval;
+
+                // if (isRestartMarker(decodeState.buffer.ptr))
+                // {
+                //    restart();
+                //    decodeState.buffer.ptr += 2;
+                //    return true;
+                // }
+            }
+
+            return false;
+        }
+
+        internal class JpegBuffer
         {
             private readonly DoubleBufferedStreamReader stream;
-
-            // The current, if any, marker in the input stream.
-            public byte marker;
-
-            // The opening position of an identified marker.
-            public long markerPosition;
-
-            // Whether we have a bad marker, I.E. One that is not between RST0 and RST7
-            public bool badMarker;
-
-            // The entropy encoded code buffer.
-            public ulong data;
-
-            // The number of valid bits left to read in the buffer.
-            public int remain;
-
-            // Whether there is more data to pull from the stream for the current mcu.
-            public bool nomore;
-
-            // Whether we have prematurely reached the end of the file.
-            public bool eof;
 
             public JpegBuffer(DoubleBufferedStreamReader stream)
             {
                 this.stream = stream;
-                this.data = 0ul;
-                this.remain = 0;
-                this.marker = JpegConstants.Markers.XFF;
-                this.markerPosition = 0;
-                this.badMarker = false;
-                this.nomore = false;
-                this.eof = false;
+                this.Reset();
             }
+
+            /// <summary>
+            /// Gets or sets the current, if any, marker in the input stream.
+            /// </summary>
+            public byte Marker { get; set; }
+
+            /// <summary>
+            /// Gets or sets the opening position of an identified marker.
+            /// </summary>
+            public long MarkerPosition { get; set; }
+
+            /// <summary>
+            /// Gets or sets a value indicating whether we have a bad marker, I.E. One that is not between RST0 and RST7
+            /// </summary>
+            public bool BadMarker { get; set; }
+
+            /// <summary>
+            /// Gets or sets the entropy encoded code buffer.
+            /// </summary>
+            public ulong Data { get; set; }
+
+            /// <summary>
+            /// Gets or sets the number of valid bits left to read in the buffer.
+            /// </summary>
+            public int Remain { get; set; }
+
+            /// <summary>
+            /// Gets or sets a value indicating whether there is more data to pull from the stream for the current mcu.
+            /// </summary>
+            public bool NoMore { get; set; }
+
+            /// <summary>
+            /// Gets or sets a value indicating whether we have prematurely reached the end of the file.
+            /// </summary>
+            public bool Eof { get; set; }
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public void CheckBits()
             {
-                if (this.remain < 16)
+                if (this.Remain < 16)
                 {
                     this.FillBuffer();
                 }
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Reset()
+            public void Reset(bool bump = false)
             {
-                this.data = 0ul;
-                this.remain = 0;
-                this.marker = JpegConstants.Markers.XFF;
-                this.markerPosition = 0;
-                this.badMarker = false;
-                this.nomore = false;
-                this.eof = false;
+                this.Data = 0ul;
+                this.Remain = 0;
+
+                // if (this.HasRestart())
+                // {
+                //    this.stream.Position += 2;
+                // }
+                this.Marker = JpegConstants.Markers.XFF;
+                this.MarkerPosition = 0;
+                this.BadMarker = false;
+                this.NoMore = false;
+                this.Eof = false;
+
+                if (bump)
+                {
+                    this.stream.Position += 2;
+                }
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public bool HasRestart()
             {
-                byte m = this.marker;
+                byte m = this.Marker;
                 return m >= JpegConstants.Markers.RST0 && m <= JpegConstants.Markers.RST7;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            private ulong Bytes(int n)
+            {
+                ulong temp = 0;
+                long end = this.stream.Length - 1;
+                long ptr = this.stream.Position;
+
+                for (int i = 0; i < n; ++i)
+                {
+                    int a = 0;
+
+                    if (ptr < end)
+                    {
+                        a = this.stream.ReadByte();
+                        ptr++;
+                    }
+
+                    if (a == JpegConstants.Markers.XFF)
+                    {
+                        int b = 0;
+
+                        if (ptr < end)
+                        {
+                            b = this.stream.ReadByte();
+                            ptr++;
+                        }
+
+                        if (b != 0)
+                        {
+                            // Found a marker; keep returning zero until it has been processed
+                            ptr -= 2;
+                            a = 0;
+                        }
+                    }
+
+                    temp = (temp << 8) | (ulong)(long)a;
+                }
+
+                if (ptr != this.stream.Position)
+                {
+                    this.stream.Position = ptr;
+                }
+
+                return temp;
             }
 
             [MethodImpl(InliningOptions.ColdPath)]
@@ -710,54 +797,53 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 //
                 // TODO: If we could track a reference to the chunk in DoubleBufferedStreamReader we could keep track of marker
                 // positions within the stream and do a fast cast of bytes to a ulong. We may have to create a custom type.
-                do
-                {
-                    int b = this.nomore ? 0 : this.stream.ReadByte();
-
-                    if (b == -1)
-                    {
-                        // We've encountered the end of the file stream which means there's no EOI marker in the image
-                        // or the SOS marker has the wrong dimensions set.
-                        this.eof = true;
-                        b = 0;
-                    }
-
-                    // Found a marker.
-                    if (b == JpegConstants.Markers.XFF)
-                    {
-                        this.markerPosition = this.stream.Position - 1;
-                        int c = this.stream.ReadByte();
-                        while (c == JpegConstants.Markers.XFF)
-                        {
-                            c = this.stream.ReadByte();
-
-                            if (c == -1)
-                            {
-                                this.eof = true;
-                                c = 0;
-                                break;
-                            }
-                        }
-
-                        if (c != 0)
-                        {
-                            this.marker = (byte)c;
-                            this.nomore = true;
-                            if (!this.HasRestart())
-                            {
-                                this.badMarker = true;
-                            }
-
-                            return;
-                        }
-                    }
-
-#pragma warning disable CS0675 // Bitwise-or operator used on a sign-extended operand
-                    this.data = (this.data << 8) | (ulong)b; // Can never be < 0 at this point.
-#pragma warning restore CS0675 // Bitwise-or operator used on a sign-extended operand
-                    this.remain += 8;
-                }
-                while (this.remain <= 56);
+                // for (int i = 0; i < 6; i++)
+                // {
+                //    int b = this.NoMore ? 0 : this.stream.ReadByte();
+                //
+                //    if (b == -1)
+                //    {
+                //        // We've encountered the end of the file stream which means there's no EOI marker in the image
+                //        // or the SOS marker has the wrong dimensions set.
+                //        this.Eof = true;
+                //        b = 0;
+                //    }
+                //
+                //    // Found a marker.
+                //    if (b == JpegConstants.Markers.XFF)
+                //    {
+                //        this.MarkerPosition = this.stream.Position - 1;
+                //        int c = this.stream.ReadByte();
+                //        while (c == JpegConstants.Markers.XFF)
+                //        {
+                //            c = this.stream.ReadByte();
+                //
+                //            if (c == -1)
+                //            {
+                //                this.Eof = true;
+                //                c = 0;
+                //                break;
+                //            }
+                //        }
+                //
+                //        if (c != 0)
+                //        {
+                //            this.Marker = (byte)c;
+                //            this.NoMore = true;
+                //            if (!this.HasRestart())
+                //            {
+                //                this.BadMarker = true;
+                //            }
+                //
+                //            return;
+                //        }
+                //    }
+                //
+                //    temp = (temp << 8) | (ulong)(long)b;
+                // }
+                this.Remain += 48;
+                ulong temp = this.Bytes(6);
+                this.Data = (this.Data << 48) | temp;
             }
         }
     }

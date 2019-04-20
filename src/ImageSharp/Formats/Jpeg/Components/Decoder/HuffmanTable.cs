@@ -2,11 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
-using SixLabors.ImageSharp.Memory;
 using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
@@ -39,17 +36,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Gets the value offset array.
         /// </summary>
-        public fixed byte ValOffset[19];
+        public fixed int ValOffset[19];
 
         /// <summary>
         /// Gets the lookahead array.
         /// </summary>
-        public fixed byte LookaheadSize[HuffmanScanDecoder.JPEG_HUFF_LOOKUP_SIZE];
+        public fixed byte LookaheadSize[HuffmanScanDecoder.JpegHuffLookupSize];
 
         /// <summary>
         /// Gets the lookahead array.
         /// </summary>
-        public fixed byte LookaheadValue[HuffmanScanDecoder.JPEG_HUFF_LOOKUP_SIZE];
+        public fixed byte LookaheadValue[HuffmanScanDecoder.JpegHuffLookupSize];
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HuffmanTable"/> struct.
@@ -84,7 +81,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             p = 0;
             for (int l = 1; l <= 16; l++)
             {
-                int i = (int)this.Sizes[l];
+                int i = this.Sizes[l];
                 while (i-- != 0)
                 {
                     huffsize[p++] = (char)l;
@@ -99,7 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             p = 0;
             while (huffsize[p] != 0)
             {
-                while (((int)huffsize[p]) == si)
+                while (huffsize[p] == si)
                 {
                     huffcode[p++] = code;
                     code++;
@@ -116,7 +113,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 if (this.Sizes[l] != 0)
                 {
                     int offset = p - (int)huffcode[p];
-                    this.ValOffset[l] = this.Values[offset];
+                    this.ValOffset[l] = offset;
                     p += this.Sizes[l];
                     this.MaxCode[l] = huffcode[p - 1]; // Maximum code of length l
                     this.MaxCode[l] <<= 64 - l; // left justify
@@ -137,21 +134,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             // fill in all the entries that correspond to bit sequences starting
             // with that code.
             ref byte lookupSizeRef = ref this.LookaheadSize[0];
-            Unsafe.InitBlockUnaligned(ref lookupSizeRef, (byte)(HuffmanScanDecoder.JPEG_HUFF_LOOKUP_BITS + 1), (uint)HuffmanScanDecoder.JPEG_HUFF_LOOKUP_SIZE);
+            Unsafe.InitBlockUnaligned(ref lookupSizeRef, HuffmanScanDecoder.JpegHuffLookupBits + 1, HuffmanScanDecoder.JpegHuffLookupSize);
 
             p = 0;
-            for (int length = 1; length <= HuffmanScanDecoder.JPEG_HUFF_LOOKUP_BITS; length++)
+            for (int length = 1; length <= HuffmanScanDecoder.JpegHuffLookupBits; length++)
             {
-                for (int i = 1; i <= (int)this.Sizes[length]; i++, p++)
+                for (int i = 1; i <= this.Sizes[length]; i++, p++)
                 {
                     // length = current code's length, p = its index in huffcode[] & huffval[].
                     // Generate left-justified code followed by all possible bit sequences
-                    int lookbits = (int)(huffcode[p] << (HuffmanScanDecoder.JPEG_HUFF_LOOKUP_BITS - length));
-                    for (int ctr = 1 << (HuffmanScanDecoder.JPEG_HUFF_LOOKUP_BITS - length); ctr > 0; ctr--)
+                    int lookbits = (int)(huffcode[p] << (HuffmanScanDecoder.JpegHuffLookupBits - length));
+                    for (int ctr = 1 << (HuffmanScanDecoder.JpegHuffLookupBits - length); ctr > 0; ctr--)
                     {
                         this.LookaheadSize[lookbits] = (byte)length;
-                        byte vv = this.Values[p];
-                        this.LookaheadValue[lookbits] = vv;
+                        this.LookaheadValue[lookbits] = this.Values[p];
                         lookbits++;
                     }
                 }

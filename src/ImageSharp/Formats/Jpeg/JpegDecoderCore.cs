@@ -401,15 +401,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             if (this.ComponentCount == 3)
             {
-                if (this.adobe.Equals(default) || this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformYCbCr)
-                {
-                    return JpegColorSpace.YCbCr;
-                }
-
-                if (this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
+                if (!this.adobe.Equals(default) && this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
                 {
                     return JpegColorSpace.RGB;
                 }
+
+                // Some images are poorly encoded and contain incorrect colorspace transform metadata.
+                // We ignore that and always fall back to the default colorspace.
+                return JpegColorSpace.YCbCr;
             }
 
             if (this.ComponentCount == 4)
@@ -419,7 +418,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     : JpegColorSpace.Cmyk;
             }
 
-            JpegThrowHelper.ThrowImageFormatException($"Unsupported color mode. Max components 4; found {this.ComponentCount}");
+            JpegThrowHelper.ThrowImageFormatException($"Unsupported color mode. Supported component counts 1, 3, and 4; found {this.ComponentCount}");
             return default;
         }
 

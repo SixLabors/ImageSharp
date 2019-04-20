@@ -53,6 +53,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Gray2BitTrans = "Png/gray-2-tRNS.png";
             public const string Gray4BitTrans = "Png/gray-4-tRNS.png";
             public const string Gray8BitTrans = "Png/gray-8-tRNS.png";
+            public const string LowColorVariance = "Png/low-variance.png";
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";
@@ -174,6 +175,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string ExifGetString750Transform = "Jpg/issues/issue750-exif-tranform.jpg";
                 public const string ExifGetString750Load = "Jpg/issues/issue750-exif-load.jpg";
                 public const string IncorrectQuality845 = "Jpg/issues/Issue845-Incorrect-Quality99.jpg";
+                public const string IncorrectColorspace855 = "Jpg/issues/issue855-incorrect-colorspace.jpg";
 
                 public static class Fuzz
                 {

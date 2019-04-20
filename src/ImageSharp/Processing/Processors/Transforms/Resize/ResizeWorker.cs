@@ -14,6 +14,13 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
+    /// <summary>
+    /// Implements the resize algorithm using a sliding window of size
+    /// maximized by <see cref="Configuration.WorkingBufferSizeHintInBytes"/>.
+    /// The height of the window is a multiple of the vertical kernel's maximum diameter.
+    /// When sliding the window, the contents of the bottom window band are copied to the new top band.
+    /// For more details, and visual explanation, see "ResizeWorker.pptx".
+    /// </summary>
     internal class ResizeWorker<TPixel> : IDisposable
         where TPixel : struct, IPixel<TPixel>
     {
@@ -127,8 +134,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                 for (int x = 0; x < this.destWidth; x++)
                 {
-                    // Span<Vector4> firstPassColumn = this.GetColumnSpan(x).Slice(top);
-                    // ref Vector4 firstPassColumnBase = ref this.GetColumnSpan(x)[top];
                     ref Vector4 firstPassColumnBase = ref Unsafe.Add(ref fpBase, x * this.workerHeight);
 
                     // Destination color components
@@ -139,12 +144,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, tempColSpan, targetRowSpan, this.conversionModifiers);
             }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Span<Vector4> GetColumnSpan(int x)
-        {
-            return this.transposedFirstPassBuffer.GetRowSpan(x);
         }
 
         private void Slide()

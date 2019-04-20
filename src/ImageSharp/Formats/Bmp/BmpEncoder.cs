@@ -18,6 +18,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         public BmpBitsPerPixel? BitsPerPixel { get; set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the encoder should support transparency.
+        /// </summary>
+        public bool SupportTransparency { get; set; }
+
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>

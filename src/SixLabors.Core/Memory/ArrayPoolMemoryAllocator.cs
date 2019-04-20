@@ -118,7 +118,6 @@ namespace SixLabors.Memory
         public override IManagedByteBuffer AllocateManagedByteBuffer(int length, AllocationOptions options = AllocationOptions.None)
         {
             Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
-            Guard.MustBeLessThan(length, int.MaxValue, nameof(length));
 
             ArrayPool<byte> pool = this.GetArrayPool(length);
             byte[] byteArray = pool.Rent(length);

@@ -14,9 +14,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     [StructLayout(LayoutKind.Sequential)]
     internal unsafe struct HuffmanTable
     {
-        private bool isDerived;
-
         private readonly MemoryAllocator memoryAllocator;
+        private bool isConfigured;
 
         /// <summary>
         /// Gets the sizes array
@@ -56,18 +55,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="values">The huffman values</param>
         public HuffmanTable(MemoryAllocator memoryAllocator, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
         {
-            this.isDerived = false;
+            this.isConfigured = false;
             this.memoryAllocator = memoryAllocator;
             Unsafe.CopyBlockUnaligned(ref this.Sizes[0], ref MemoryMarshal.GetReference(codeLengths), (uint)codeLengths.Length);
             Unsafe.CopyBlockUnaligned(ref this.Values[0], ref MemoryMarshal.GetReference(values), (uint)values.Length);
         }
 
         /// <summary>
-        /// Expands the HuffmanTable into its derived form.
+        /// Expands the HuffmanTable into its readable form.
         /// </summary>
-        public void Derive()
+        public void Configure()
         {
-            if (this.isDerived)
+            if (this.isConfigured)
             {
                 return;
             }
@@ -116,7 +115,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     this.ValOffset[l] = offset;
                     p += this.Sizes[l];
                     this.MaxCode[l] = huffcode[p - 1]; // Maximum code of length l
-                    this.MaxCode[l] <<= 64 - l; // left justify
+                    this.MaxCode[l] <<= 64 - l; // Left justify
                     this.MaxCode[l] |= (1ul << (64 - l)) - 1;
                 }
                 else
@@ -134,7 +133,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             // fill in all the entries that correspond to bit sequences starting
             // with that code.
             ref byte lookupSizeRef = ref this.LookaheadSize[0];
-            Unsafe.InitBlockUnaligned(ref lookupSizeRef, HuffmanScanDecoder.JpegHuffLookupBits + 1, HuffmanScanDecoder.JpegHuffLookupSize);
+            Unsafe.InitBlockUnaligned(ref lookupSizeRef, HuffmanScanDecoder.JpegHuffSlowBits, HuffmanScanDecoder.JpegHuffLookupSize);
 
             p = 0;
             for (int length = 1; length <= HuffmanScanDecoder.JpegHuffLookupBits; length++)
@@ -153,7 +152,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
             }
 
-            this.isDerived = true;
+            this.isConfigured = true;
         }
     }
 }

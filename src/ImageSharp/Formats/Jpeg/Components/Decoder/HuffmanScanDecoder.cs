@@ -21,6 +21,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         // Huffman look-ahead table log2 size
         public const int JpegHuffLookupBits = 8;
 
+        public const int JpegHuffSlowBits = JpegHuffLookupBits + 1;
+
         public const int JpegHuffLookupSize = 1 << JpegHuffLookupBits;
 
         private readonly JpegFrame frame;
@@ -28,7 +30,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private readonly HuffmanTable[] acHuffmanTables;
         private readonly FastACTable[] fastACTables;
 
-        private readonly DoubleBufferedStreamReader stream;
+        private readonly JpegStreamReader stream;
         private readonly JpegBuffer jpegBuffer;
         private readonly JpegComponent[] components;
         private readonly ZigZag dctZigZag;
@@ -72,7 +74,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="successiveHigh">The successive approximation bit high end.</param>
         /// <param name="successiveLow">The successive approximation bit low end.</param>
         public HuffmanScanDecoder(
-            DoubleBufferedStreamReader stream,
+            JpegStreamReader stream,
             JpegFrame frame,
             HuffmanTable[] dcHuffmanTables,
             HuffmanTable[] acHuffmanTables,
@@ -152,8 +154,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
                 ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
-                dcHuffmanTable.Derive();
-                acHuffmanTable.Derive();
+                dcHuffmanTable.Configure();
+                acHuffmanTable.Configure();
 
                 ref FastACTable fastAcTable = ref this.fastACTables[component.ACHuffmanTableId];
                 fastAcTable.Derive(ref acHuffmanTable);
@@ -233,8 +235,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
             ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
-            dcHuffmanTable.Derive();
-            acHuffmanTable.Derive();
+            dcHuffmanTable.Configure();
+            acHuffmanTable.Configure();
 
             ref FastACTable fastAcTable = ref this.fastACTables[component.ACHuffmanTableId];
             fastAcTable.Derive(ref acHuffmanTable);
@@ -262,10 +264,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                     // Every data block is an MCU, so countdown the restart interval
                     mcu++;
-                    if (!this.ContinueOnMcuComplete())
-                    {
-                        return;
-                    }
+
+                    this.HandleRestart();
                 }
             }
         }
@@ -347,7 +347,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 int order = this.frame.ComponentOrder[k];
                 JpegComponent component = this.components[order];
                 ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
-                dcHuffmanTable.Derive();
+                dcHuffmanTable.Configure();
             }
 
             for (int j = 0; j < mcusPerColumn; j++)
@@ -420,7 +420,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             if (this.spectralStart == 0)
             {
                 ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
-                dcHuffmanTable.Derive();
+                dcHuffmanTable.Configure();
 
                 int mcu = 0;
                 for (int j = 0; j < h; j++)
@@ -452,7 +452,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             else
             {
                 ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
-                acHuffmanTable.Derive();
+                acHuffmanTable.Configure();
 
                 ref FastACTable fastAcTable = ref this.fastACTables[component.ACHuffmanTableId];
                 fastAcTable.Derive(ref acHuffmanTable);
@@ -542,7 +542,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int symbol = h.LookaheadValue[v];
             int size = h.LookaheadSize[v];
 
-            if (size == JpegHuffLookupBits + 1)
+            if (size == JpegHuffSlowBits)
             {
                 ulong x = this.jpegBuffer.Data << (JpegRegisterSize - this.jpegBuffer.Remain);
                 while (x > h.MaxCode[size])
@@ -599,6 +599,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         [MethodImpl(InliningOptions.ShortMethod)]
         private bool ContinueOnMcuComplete()
         {
+            // TODO: Delete me.
             if (--this.todo > 0)
             {
                 return true;
@@ -621,25 +622,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 return false;
             }
 
-            this.Reset(true);
+            this.Reset();
 
             return true;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void Reset(bool bump = false)
+        private void Reset()
         {
             for (int i = 0; i < this.components.Length; i++)
             {
                 this.components[i].DcPredictor = 0;
             }
 
-            this.jpegBuffer.Reset(bump);
-
             // this.eobrun = 0;
-            //
-            // No more than 1<<31 MCUs if no restartInterval? that's plenty safe since we don't even allow 1<<30 pixels
-            // this.todo = this.restartInterval > 0 ? this.restartInterval : int.MaxValue;
+            this.jpegBuffer.Reset();
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -649,22 +646,35 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 this.todo = this.restartInterval;
 
-                // if (isRestartMarker(decodeState.buffer.ptr))
-                // {
-                //    restart();
-                //    decodeState.buffer.ptr += 2;
-                //    return true;
-                // }
+                if (this.jpegBuffer.HasRestart())
+                {
+                    this.stream.Position = this.jpegBuffer.MarkerPosition + 2;
+                    this.Reset();
+                    return true;
+                }
+
+                if (this.jpegBuffer.Marker != JpegConstants.Markers.XFF)
+                {
+                    this.stream.Position = this.jpegBuffer.MarkerPosition;
+                    this.Reset();
+                    return true;
+                }
             }
 
             return false;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static bool IsRestartMarker(byte m)
+        {
+            return m >= JpegConstants.Markers.RST0 && m <= JpegConstants.Markers.RST7;
+        }
+
         internal class JpegBuffer
         {
-            private readonly DoubleBufferedStreamReader stream;
+            private readonly JpegStreamReader stream;
 
-            public JpegBuffer(DoubleBufferedStreamReader stream)
+            public JpegBuffer(JpegStreamReader stream)
             {
                 this.stream = stream;
                 this.Reset();
@@ -715,25 +725,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Reset(bool bump = false)
+            public void Reset()
             {
                 this.Data = 0ul;
                 this.Remain = 0;
-
-                // if (this.HasRestart())
-                // {
-                //    this.stream.Position += 2;
-                // }
                 this.Marker = JpegConstants.Markers.XFF;
                 this.MarkerPosition = 0;
                 this.BadMarker = false;
                 this.NoMore = false;
                 this.Eof = false;
-
-                if (bump)
-                {
-                    this.stream.Position += 2;
-                }
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
@@ -762,6 +762,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                     if (a == JpegConstants.Markers.XFF)
                     {
+                        this.MarkerPosition = this.stream.Position - 1;
                         int b = 0;
 
                         if (ptr < end)
@@ -773,6 +774,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         if (b != 0)
                         {
                             // Found a marker; keep returning zero until it has been processed
+                            this.Marker = (byte)b;
                             ptr -= 2;
                             a = 0;
                         }

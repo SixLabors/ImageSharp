@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Gets the input stream.
         /// </summary>
-        public DoubleBufferedStreamReader InputStream { get; private set; }
+        public JpegStreamReader InputStream { get; private set; }
 
         /// <summary>
         /// Gets a value indicating whether the metadata should be ignored when the image is being decoded.
@@ -179,7 +179,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="marker">The buffer to read file markers to</param>
         /// <param name="stream">The input stream</param>
         /// <returns>The <see cref="JpegFileMarker"/></returns>
-        public static JpegFileMarker FindNextFileMarker(byte[] marker, DoubleBufferedStreamReader stream)
+        public static JpegFileMarker FindNextFileMarker(byte[] marker, JpegStreamReader stream)
         {
             int value = stream.Read(marker, 0, 2);
 
@@ -248,7 +248,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public void ParseStream(Stream stream, bool metadataOnly = false)
         {
             this.MetaData = new ImageMetaData();
-            this.InputStream = new DoubleBufferedStreamReader(this.configuration.MemoryAllocator, stream);
+            this.InputStream = new JpegStreamReader(this.configuration.MemoryAllocator, stream);
 
             // Check for the Start Of Image marker.
             this.InputStream.Read(this.markerBuffer, 0, 2);

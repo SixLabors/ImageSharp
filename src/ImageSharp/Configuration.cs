@@ -10,7 +10,6 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp
@@ -108,7 +107,7 @@ namespace SixLabors.ImageSharp
         /// The default value is 1MB.
         /// </summary>
         /// <remarks>
-        /// Currently only used by <see cref="ResizeProcessor{TPixel}"/>.
+        /// Currently only used by Resize.
         /// </remarks>
         internal int WorkingBufferSizeHintInBytes { get; set; } = 1 * 1024 * 1024;
 

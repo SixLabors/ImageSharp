@@ -3,8 +3,8 @@ solution: ImageSharp.sln
 
 matrix:
   include:
-    - os: linux # Ubuntu 14.04
-      dist: trusty
+    - os: linux # Ubuntu 16.04
+      dist: xenial
       sudo: required
       dotnet: 2.1.603
       mono: latest

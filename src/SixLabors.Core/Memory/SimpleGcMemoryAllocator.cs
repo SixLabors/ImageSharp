@@ -16,7 +16,6 @@ namespace SixLabors.Memory
         public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
         {
             Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
-            Guard.MustBeLessThan(length, int.MaxValue, nameof(length));
 
             return new BasicArrayBuffer<T>(new T[length]);
         }
@@ -25,7 +24,6 @@ namespace SixLabors.Memory
         public override IManagedByteBuffer AllocateManagedByteBuffer(int length, AllocationOptions options = AllocationOptions.None)
         {
             Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
-            Guard.MustBeLessThan(length, int.MaxValue, nameof(length));
 
             return new BasicByteBuffer(new byte[length]);
         }

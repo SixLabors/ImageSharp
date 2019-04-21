@@ -776,16 +776,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                             // Found a marker; keep returning zero until it has been processed
                             this.Marker = (byte)b;
                             ptr -= 2;
+                            this.stream.Position -= 2;
                             a = 0;
                         }
                     }
 
                     temp = (temp << 8) | (ulong)(long)a;
-                }
-
-                if (ptr != this.stream.Position)
-                {
-                    this.stream.Position = ptr;
                 }
 
                 return temp;
@@ -797,54 +793,56 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 // Attempt to load at least the minimum number of required bits into the buffer.
                 // We fail to do so only if we hit a marker or reach the end of the input stream.
                 //
-                // TODO: If we could track a reference to the chunk in DoubleBufferedStreamReader we could keep track of marker
-                // positions within the stream and do a fast cast of bytes to a ulong. We may have to create a custom type.
-                // for (int i = 0; i < 6; i++)
-                // {
-                //    int b = this.NoMore ? 0 : this.stream.ReadByte();
-                //
-                //    if (b == -1)
-                //    {
-                //        // We've encountered the end of the file stream which means there's no EOI marker in the image
-                //        // or the SOS marker has the wrong dimensions set.
-                //        this.Eof = true;
-                //        b = 0;
-                //    }
-                //
-                //    // Found a marker.
-                //    if (b == JpegConstants.Markers.XFF)
-                //    {
-                //        this.MarkerPosition = this.stream.Position - 1;
-                //        int c = this.stream.ReadByte();
-                //        while (c == JpegConstants.Markers.XFF)
-                //        {
-                //            c = this.stream.ReadByte();
-                //
-                //            if (c == -1)
-                //            {
-                //                this.Eof = true;
-                //                c = 0;
-                //                break;
-                //            }
-                //        }
-                //
-                //        if (c != 0)
-                //        {
-                //            this.Marker = (byte)c;
-                //            this.NoMore = true;
-                //            if (!this.HasRestart())
-                //            {
-                //                this.BadMarker = true;
-                //            }
-                //
-                //            return;
-                //        }
-                //    }
-                //
-                //    temp = (temp << 8) | (ulong)(long)b;
-                // }
+                // TODO: JpegStreamReader we could keep track of marker positions within the
+                // stream and we could use that knowledge to do a fast cast of bytes to a ulong
+                // avoiding this loop.
+                ulong temp = 0;
+                for (int i = 0; i < 6; i++)
+                {
+                    int b = this.NoMore ? 0 : this.stream.ReadByte();
+
+                    if (b == -1)
+                    {
+                        // We've encountered the end of the file stream which means there's no EOI marker in the image
+                        // or the SOS marker has the wrong dimensions set.
+                        this.Eof = true;
+                        b = 0;
+                    }
+
+                    // Found a marker.
+                    if (b == JpegConstants.Markers.XFF)
+                    {
+                        this.MarkerPosition = this.stream.Position - 1;
+                        int c = this.stream.ReadByte();
+                        while (c == JpegConstants.Markers.XFF)
+                        {
+                            c = this.stream.ReadByte();
+
+                            if (c == -1)
+                            {
+                                this.Eof = true;
+                                c = 0;
+                                break;
+                            }
+                        }
+
+                        if (c != 0)
+                        {
+                            this.Marker = (byte)c;
+                            this.NoMore = true;
+                            if (!this.HasRestart())
+                            {
+                                this.BadMarker = true;
+                            }
+                        }
+                    }
+
+                    temp = (temp << 8) | (ulong)(long)b;
+                }
+
                 this.Remain += 48;
-                ulong temp = this.Bytes(6);
+
+                // ulong temp = this.Bytes(6);
                 this.Data = (this.Data << 48) | temp;
             }
         }

@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.IO
         /// </summary>
         public const int ChunkLength = 8192;
 
-        private const int ChunkLengthMinusOne = ChunkLength - 1;
+        private const int MaxChunkIndex = ChunkLength - 1;
 
         private readonly Stream stream;
 
@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.IO
 
         private readonly int length;
 
-        private int bytesRead;
+        private int chunkIndex;
 
         private int position;
 
@@ -62,10 +62,20 @@ namespace SixLabors.ImageSharp.IO
 
             set
             {
-                // Reset everything. It's easier than tracking.
-                this.position = (int)value;
-                this.stream.Seek(this.position, SeekOrigin.Begin);
-                this.bytesRead = ChunkLength;
+                // Only reset chunkIndex if we are out of bounds of our working chunk
+                // otherwise we should simply move the value by the diff.
+                int v = (int)value;
+                if (this.IsInChunk(v, out int index))
+                {
+                    this.chunkIndex = index;
+                    this.position = v;
+                }
+                else
+                {
+                    this.position = v;
+                    this.stream.Seek(value, SeekOrigin.Begin);
+                    this.chunkIndex = ChunkLength;
+                }
             }
         }
 
@@ -82,19 +92,19 @@ namespace SixLabors.ImageSharp.IO
                 return -1;
             }
 
-            if (this.position == 0 || this.bytesRead > ChunkLengthMinusOne)
+            if (this.position == 0 || this.chunkIndex > MaxChunkIndex)
             {
-                return this.ReadByteSlow();
+                this.FillChunk();
             }
 
             this.position++;
-            return this.bufferChunk[this.bytesRead++];
+            return this.bufferChunk[this.chunkIndex++];
         }
 
         /// <summary>
         /// Skips the number of bytes in the stream
         /// </summary>
-        /// <param name="count">The number of bytes to skip</param>
+        /// <param name="count">The number of bytes to skip.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void Skip(int count) => this.Position += count;
 
@@ -125,25 +135,34 @@ namespace SixLabors.ImageSharp.IO
                 return this.ReadToBufferSlow(buffer, offset, count);
             }
 
-            if (this.position == 0 || count + this.bytesRead > ChunkLength)
+            if (this.position == 0 || count + this.chunkIndex > ChunkLength)
             {
                 return this.ReadToChunkSlow(buffer, offset, count);
             }
 
-            int n = this.GetCount(count);
+            int n = this.GetCopyCount(count);
             this.CopyBytes(buffer, offset, n);
 
             this.position += n;
-            this.bytesRead += n;
-
+            this.chunkIndex += n;
             return n;
         }
 
         /// <inheritdoc/>
         public void Dispose() => this.managedBuffer?.Dispose();
 
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private int GetPositionDifference(int p) => p - this.position;
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private bool IsInChunk(int p, out int index)
+        {
+            index = this.GetPositionDifference(p) + this.chunkIndex;
+            return index > -1 && index < ChunkLength;
+        }
+
         [MethodImpl(InliningOptions.ColdPath)]
-        private int ReadByteSlow()
+        private void FillChunk()
         {
             if (this.position != this.stream.Position)
             {
@@ -151,29 +170,20 @@ namespace SixLabors.ImageSharp.IO
             }
 
             this.stream.Read(this.bufferChunk, 0, ChunkLength);
-            this.bytesRead = 0;
-
-            this.position++;
-            return this.bufferChunk[this.bytesRead++];
+            this.chunkIndex = 0;
         }
 
         [MethodImpl(InliningOptions.ColdPath)]
         private int ReadToChunkSlow(byte[] buffer, int offset, int count)
         {
             // Refill our buffer then copy.
-            if (this.position != this.stream.Position)
-            {
-                this.stream.Seek(this.position, SeekOrigin.Begin);
-            }
+            this.FillChunk();
 
-            this.stream.Read(this.bufferChunk, 0, ChunkLength);
-            this.bytesRead = 0;
-
-            int n = this.GetCount(count);
+            int n = this.GetCopyCount(count);
             this.CopyBytes(buffer, offset, n);
 
             this.position += n;
-            this.bytesRead += n;
+            this.chunkIndex += n;
 
             return n;
         }
@@ -189,11 +199,12 @@ namespace SixLabors.ImageSharp.IO
 
             int n = this.stream.Read(buffer, offset, count);
             this.Position += n;
+
             return n;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private int GetCount(int count)
+        private int GetCopyCount(int count)
         {
             int n = this.length - this.position;
             if (n > count)
@@ -215,7 +226,7 @@ namespace SixLabors.ImageSharp.IO
             if (count < 9)
             {
                 int byteCount = count;
-                int read = this.bytesRead;
+                int read = this.chunkIndex;
                 byte[] chunk = this.bufferChunk;
 
                 while (--byteCount > -1)
@@ -225,7 +236,7 @@ namespace SixLabors.ImageSharp.IO
             }
             else
             {
-                Buffer.BlockCopy(this.bufferChunk, this.bytesRead, buffer, offset, count);
+                Buffer.BlockCopy(this.bufferChunk, this.chunkIndex, buffer, offset, count);
             }
         }
     }

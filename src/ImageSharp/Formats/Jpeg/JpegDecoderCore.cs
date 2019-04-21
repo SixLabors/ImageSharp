@@ -60,11 +60,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private HuffmanTable[] acHuffmanTables;
 
         /// <summary>
-        /// The fast AC tables used for entropy decoding
-        /// </summary>
-        private FastACTable[] fastACTables;
-
-        /// <summary>
         /// The reset interval determined by RST markers
         /// </summary>
         private ushort resetInterval;
@@ -141,7 +136,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Gets the input stream.
         /// </summary>
-        public JpegStreamReader InputStream { get; private set; }
+        public DoubleBufferedStreamReader InputStream { get; private set; }
 
         /// <summary>
         /// Gets a value indicating whether the metadata should be ignored when the image is being decoded.
@@ -179,7 +174,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="marker">The buffer to read file markers to</param>
         /// <param name="stream">The input stream</param>
         /// <returns>The <see cref="JpegFileMarker"/></returns>
-        public static JpegFileMarker FindNextFileMarker(byte[] marker, JpegStreamReader stream)
+        public static JpegFileMarker FindNextFileMarker(byte[] marker, DoubleBufferedStreamReader stream)
         {
             int value = stream.Read(marker, 0, 2);
 
@@ -248,7 +243,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public void ParseStream(Stream stream, bool metadataOnly = false)
         {
             this.MetaData = new ImageMetaData();
-            this.InputStream = new JpegStreamReader(this.configuration.MemoryAllocator, stream);
+            this.InputStream = new DoubleBufferedStreamReader(this.configuration.MemoryAllocator, stream);
 
             // Check for the Start Of Image marker.
             this.InputStream.Read(this.markerBuffer, 0, 2);
@@ -269,7 +264,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 const int maxTables = 4;
                 this.dcHuffmanTables = new HuffmanTable[maxTables];
                 this.acHuffmanTables = new HuffmanTable[maxTables];
-                this.fastACTables = new FastACTable[maxTables];
             }
 
             // Break only when we discover a valid EOI marker.
@@ -385,7 +379,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.Frame = null;
             this.dcHuffmanTables = null;
             this.acHuffmanTables = null;
-            this.fastACTables = null;
         }
 
         /// <summary>
@@ -942,7 +935,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.Frame,
                 this.dcHuffmanTables,
                 this.acHuffmanTables,
-                this.fastACTables,
                 selectorsCount,
                 this.resetInterval,
                 spectralStart,

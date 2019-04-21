@@ -191,11 +191,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                             for (int x = 0; x < h; x++)
                             {
-                                if (this.jpegBuffer.Eof)
-                                {
-                                    return;
-                                }
-
+                                // if (this.jpegBuffer.Eof)
+                                // {
+                                //    return;
+                                // }
                                 int blockCol = (mcuCol * h) + x;
 
                                 this.DecodeBlockBaseline(
@@ -250,11 +249,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 for (int i = 0; i < w; i++)
                 {
-                    if (this.jpegBuffer.Eof)
-                    {
-                        return;
-                    }
-
+                    // if (this.jpegBuffer.Eof)
+                    // {
+                    //    return;
+                    // }
                     this.DecodeBlockBaseline(
                         component,
                         ref Unsafe.Add(ref blockRef, i),
@@ -648,7 +646,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 if (this.jpegBuffer.HasRestart())
                 {
-                    this.stream.Position = this.jpegBuffer.MarkerPosition + 2;
                     this.Reset();
                     return true;
                 }
@@ -743,50 +740,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 return m >= JpegConstants.Markers.RST0 && m <= JpegConstants.Markers.RST7;
             }
 
-            [MethodImpl(InliningOptions.ShortMethod)]
-            private ulong Bytes(int n)
-            {
-                ulong temp = 0;
-                long end = this.stream.Length - 1;
-                long ptr = this.stream.Position;
-
-                for (int i = 0; i < n; ++i)
-                {
-                    int a = 0;
-
-                    if (ptr < end)
-                    {
-                        a = this.stream.ReadByte();
-                        ptr++;
-                    }
-
-                    if (a == JpegConstants.Markers.XFF)
-                    {
-                        this.MarkerPosition = this.stream.Position - 1;
-                        int b = 0;
-
-                        if (ptr < end)
-                        {
-                            b = this.stream.ReadByte();
-                            ptr++;
-                        }
-
-                        if (b != 0)
-                        {
-                            // Found a marker; keep returning zero until it has been processed
-                            this.Marker = (byte)b;
-                            ptr -= 2;
-                            this.stream.Position -= 2;
-                            a = 0;
-                        }
-                    }
-
-                    temp = (temp << 8) | (ulong)(long)a;
-                }
-
-                return temp;
-            }
-
             [MethodImpl(InliningOptions.ColdPath)]
             public void FillBuffer()
             {
@@ -841,8 +794,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
 
                 this.Remain += 48;
-
-                // ulong temp = this.Bytes(6);
                 this.Data = (this.Data << 48) | temp;
             }
         }

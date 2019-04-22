@@ -46,6 +46,7 @@ namespace SixLabors.ImageSharp.IO
             this.length = (int)stream.Length;
             this.managedBuffer = memoryAllocator.AllocateManagedByteBuffer(ChunkLength, AllocationOptions.Clean);
             this.bufferChunk = this.managedBuffer.Array;
+            this.chunkIndex = ChunkLength;
         }
 
         /// <summary>
@@ -92,7 +93,7 @@ namespace SixLabors.ImageSharp.IO
                 return -1;
             }
 
-            if (this.position == 0 || this.chunkIndex > MaxChunkIndex)
+            if (this.chunkIndex > MaxChunkIndex)
             {
                 this.FillChunk();
             }
@@ -135,7 +136,7 @@ namespace SixLabors.ImageSharp.IO
                 return this.ReadToBufferSlow(buffer, offset, count);
             }
 
-            if (this.position == 0 || count + this.chunkIndex > ChunkLength)
+            if (count + this.chunkIndex > ChunkLength)
             {
                 return this.ReadToChunkSlow(buffer, offset, count);
             }

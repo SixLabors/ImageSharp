@@ -16,19 +16,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     /// </summary>
     internal class HuffmanScanDecoder
     {
-        public const int JpegRegisterSize = 64;
-
-        // Huffman look-ahead table log2 size
-        public const int JpegHuffLookupBits = 8;
-
-        public const int JpegHuffSlowBits = JpegHuffLookupBits + 1;
-
-        public const int JpegHuffLookupSize = 1 << JpegHuffLookupBits;
-
         private readonly JpegFrame frame;
         private readonly HuffmanTable[] dcHuffmanTables;
         private readonly HuffmanTable[] acHuffmanTables;
-
         private readonly DoubleBufferedStreamReader stream;
         private readonly HuffmanScanBuffer scanBuffer;
         private readonly JpegComponent[] components;
@@ -57,6 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         // The End-Of-Block countdown for ending the sequence prematurely when the remaining coefficients are zero.
         private int eobrun;
 
+        // The unzig data.
         private ZigZag dctZigZag;
 
         /// <summary>
@@ -118,6 +109,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             {
                 this.stream.Position = this.scanBuffer.MarkerPosition;
             }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static int Receive(HuffmanScanBuffer buffer, int nbits)
+        {
+            buffer.CheckBits();
+            return Extend(GetBits(buffer, nbits), nbits);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -210,11 +208,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        /// <summary>
-        /// Non-interleaved data, we just need to process one block at a time in trivial scanline order
-        /// number of blocks to do just depends on how many actual "pixels" each component has,
-        /// independent of interleaved MCU blocking and such.
-        /// </summary>
         private unsafe void ParseBaselineDataNonInterleaved()
         {
             JpegComponent component = this.components[this.frame.ComponentOrder[0]];
@@ -378,12 +371,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        /// <summary>
-        /// Non-interleaved data, we just need to process one block at a time,
-        /// in trivial scanline order
-        /// number of blocks to do just depends on how many actual "pixels" this
-        /// component has, independent of interleaved MCU blocking and such
-        /// </summary>
         private unsafe void ParseProgressiveDataNonInterleaved()
         {
             JpegComponent component = this.components[this.frame.ComponentOrder[0]];
@@ -495,38 +482,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     i += 16;
                 }
             }
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private unsafe int DecodeHuffman(HuffmanScanBuffer buffer, ref HuffmanTable h)
-        {
-            buffer.CheckBits();
-            int v = PeekBits(buffer, JpegHuffLookupBits);
-            int symbol = h.LookaheadValue[v];
-            int size = h.LookaheadSize[v];
-
-            if (size == JpegHuffSlowBits)
-            {
-                ulong x = this.scanBuffer.Data << (JpegRegisterSize - this.scanBuffer.Remain);
-                while (x > h.MaxCode[size])
-                {
-                    size++;
-                }
-
-                v = (int)(x >> (JpegRegisterSize - size));
-                symbol = h.Values[h.ValOffset[size] + v];
-            }
-
-            buffer.Remain -= size;
-
-            return symbol;
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static int Receive(HuffmanScanBuffer buffer, int nbits)
-        {
-            buffer.CheckBits();
-            return Extend(GetBits(buffer, nbits), nbits);
         }
 
         private void DecodeBlockProgressiveDC(JpegComponent component, ref Block8x8 block, ref HuffmanTable dcTable)
@@ -714,6 +669,31 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 --this.eobrun;
             }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private unsafe int DecodeHuffman(HuffmanScanBuffer buffer, ref HuffmanTable h)
+        {
+            buffer.CheckBits();
+            int v = PeekBits(buffer, JpegConstants.Huffman.LookupBits);
+            int symbol = h.LookaheadValue[v];
+            int size = h.LookaheadSize[v];
+
+            if (size == JpegConstants.Huffman.SlowBits)
+            {
+                ulong x = this.scanBuffer.Data << (JpegConstants.Huffman.RegisterSize - this.scanBuffer.Remain);
+                while (x > h.MaxCode[size])
+                {
+                    size++;
+                }
+
+                v = (int)(x >> (JpegConstants.Huffman.RegisterSize - size));
+                symbol = h.Values[h.ValOffset[size] + v];
+            }
+
+            buffer.Remain -= size;
+
+            return symbol;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

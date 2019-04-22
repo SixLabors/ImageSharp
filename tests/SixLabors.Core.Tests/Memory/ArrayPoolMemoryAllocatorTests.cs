@@ -12,7 +12,7 @@ using Xunit;
 
 namespace SixLabors.Memory.Tests
 {
-    public class ArrayPoolMemoryManagerTests
+    public class ArrayPoolMemoryAllocatorTests
     {
         private const int MaxPooledBufferSizeInBytes = 2048;
 
@@ -231,9 +231,28 @@ namespace SixLabors.Memory.Tests
             private uint dummy;
         }
 
-        [StructLayout(LayoutKind.Explicit, Size = MaxPooledBufferSizeInBytes / 5)]
+        private const int SizeOfLargeStruct = MaxPooledBufferSizeInBytes / 5;
+
+        [StructLayout(LayoutKind.Explicit, Size = SizeOfLargeStruct)]
         private struct LargeStruct
         {
+        }
+
+        [Theory]
+        [InlineData(-1)]
+        [InlineData((int.MaxValue / SizeOfLargeStruct) + 1)]
+        public void AllocateIncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
+        {
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.Allocate<LargeStruct>(length));
+            Assert.Equal("length", ex.ParamName);
+        }
+
+        [Theory]
+        [InlineData(-1)]
+        public void AllocateManagedByteBuffer_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
+        {
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.AllocateManagedByteBuffer(length));
+            Assert.Equal("length", ex.ParamName);
         }
     }
 }

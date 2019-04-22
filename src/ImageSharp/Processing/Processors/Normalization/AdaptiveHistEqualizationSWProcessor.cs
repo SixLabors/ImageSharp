@@ -56,54 +56,69 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int pixeInTile = tileWidth * tileHeight;
             int halfTileHeight = tileHeight / 2;
             int halfTileWidth = halfTileHeight;
+            var slidingWindowInfos = new SlidingWindowInfos(tileWidth, tileHeight, halfTileWidth, halfTileHeight, pixeInTile);
             using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Width, source.Height))
             {
+                // Process the inner tiles, which do not require to check the borders.
                 Parallel.For(
                     halfTileWidth,
                     source.Width - halfTileWidth,
                     parallelOptions,
-                    this.ProcessSlidingWindow(source, memoryAllocator, targetPixels, tileWidth, tileHeight, pixeInTile, halfTileHeight, halfTileWidth, yStart: halfTileHeight, yEnd: source.Height - halfTileHeight));
+                    this.ProcessSlidingWindow(source, memoryAllocator, targetPixels, slidingWindowInfos, yStart: halfTileHeight, yEnd: source.Height - halfTileHeight));
 
-                // Left border
+                // Process the left border of the image.
                 Parallel.For(
                     0,
                     halfTileWidth,
                     parallelOptions,
-                    this.ProcessSlidingWindow(source, memoryAllocator, targetPixels, tileWidth, tileHeight, pixeInTile, halfTileHeight, halfTileWidth, yStart: 0, yEnd: source.Height, useFastPath: false));
+                    this.ProcessSlidingWindow(source, memoryAllocator, targetPixels, slidingWindowInfos, yStart: 0, yEnd: source.Height, useFastPath: false));
 
-                // Right border
+                // Process the right border of the image.
                 Parallel.For(
                     source.Width - halfTileWidth,
                     source.Width,
                     parallelOptions,
-                    this.ProcessSlidingWindow(source, memoryAllocator, targetPixels, tileWidth, tileHeight, pixeInTile, halfTileHeight, halfTileWidth, yStart: 0, yEnd: source.Height, useFastPath: false));
+                    this.ProcessSlidingWindow(source, memoryAllocator, targetPixels, slidingWindowInfos, yStart: 0, yEnd: source.Height, useFastPath: false));
 
-                // Top border
+                // Process the top border of the image.
                 Parallel.For(
                     halfTileWidth,
                     source.Width - halfTileWidth,
                     parallelOptions,
-                    this.ProcessSlidingWindow(source, memoryAllocator, targetPixels, tileWidth, tileHeight, pixeInTile, halfTileHeight, halfTileWidth, yStart: 0, yEnd: halfTileHeight, useFastPath: false));
+                    this.ProcessSlidingWindow(source, memoryAllocator, targetPixels, slidingWindowInfos, yStart: 0, yEnd: halfTileHeight, useFastPath: false));
 
-                // Bottom border
+                // Process the bottom border of the image.
                 Parallel.For(
                     halfTileWidth,
                     source.Width - halfTileWidth,
                     parallelOptions,
-                    this.ProcessSlidingWindow(source, memoryAllocator, targetPixels, tileWidth, tileHeight, pixeInTile, halfTileHeight, halfTileWidth, yStart: source.Height - halfTileHeight, yEnd: source.Height, useFastPath: false));
+                    this.ProcessSlidingWindow(source, memoryAllocator, targetPixels, slidingWindowInfos, yStart: source.Height - halfTileHeight, yEnd: source.Height, useFastPath: false));
 
                 Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
             }
         }
 
-        private Action<int> ProcessSlidingWindow(ImageFrame<TPixel> source, MemoryAllocator memoryAllocator, Buffer2D<TPixel> targetPixels, int tileWidth, int tileHeight, int pixeInTile, int halfTileHeight, int halfTileWidth, int yStart, int yEnd, bool useFastPath = true)
+        /// <summary>
+        /// Applies the sliding window equalization to one column of the image. The window is moved from top to bottom.
+        /// Moving the window one pixel down requires to remove one row from the top of the window from the histogram and
+        /// adding a new row at the bottom.
+        /// </summary>
+        /// <param name="source">The source image.</param>
+        /// <param name="memoryAllocator">The memory allocator.</param>
+        /// <param name="targetPixels">The target pixels.</param>
+        /// <param name="swInfos">Informations about the sliding window dimensions.</param>
+        /// <param name="yStart">The y start position.</param>
+        /// <param name="yEnd">The y end position.</param>
+        /// <param name="useFastPath">if set to true the borders of the image will not be checked.</param>
+        /// <returns>Action Delegate.</returns>
+        private Action<int> ProcessSlidingWindow(ImageFrame<TPixel> source, MemoryAllocator memoryAllocator, Buffer2D<TPixel> targetPixels, SlidingWindowInfos swInfos, int yStart, int yEnd, bool useFastPath = true)
         {
             return x =>
             {
                 using (IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
                 using (IMemoryOwner<int> histogramBufferCopy = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
                 using (IMemoryOwner<int> cdfBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
-                using (IMemoryOwner<TPixel> pixelRowBuffer = memoryAllocator.Allocate<TPixel>(tileWidth, AllocationOptions.Clean))
+                using (IMemoryOwner<TPixel> pixelRowBuffer = memoryAllocator.Allocate<TPixel>(swInfos.TileWidth, AllocationOptions.Clean))
                 {
                     Span<int> histogram = histogramBuffer.GetSpan();
                     ref int histogramBase = ref MemoryMarshal.GetReference(histogram);
@@ -112,10 +127,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     ref int cdfBase = ref MemoryMarshal.GetReference(cdfBuffer.GetSpan());
                     Span<TPixel> pixelRow = pixelRowBuffer.GetSpan();
 
-                    // Build the histogram of grayscale values for the current tile.
-                    for (int dy = yStart - halfTileHeight; dy < yStart + halfTileHeight; dy++)
+                    // Build the initial histogram of grayscale values.
+                    for (int dy = yStart - swInfos.HalfTileHeight; dy < yStart + swInfos.HalfTileHeight; dy++)
                     {
-                        Span<TPixel> rowSpan = useFastPath ? this.GetPixelRowFast(source, pixelRow, x - halfTileWidth, dy, tileWidth) : this.GetPixelRow(source, pixelRow, x - halfTileWidth, dy, tileWidth);
+                        Span<TPixel> rowSpan = useFastPath
+                                                   ? this.GetPixelRowFast(source, pixelRow, x - swInfos.HalfTileWidth, dy, swInfos.TileWidth)
+                                                   : this.GetPixelRow(source, pixelRow, x - swInfos.HalfTileWidth, dy, swInfos.TileWidth);
                         this.AddPixelsToHistogram(rowSpan, histogram, this.LuminanceLevels);
                     }
 
@@ -125,7 +142,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         {
                             // Clipping the histogram, but doing it on a copy to keep the original un-clipped values for the next iteration.
                             histogram.CopyTo(histogramCopy);
-                            this.ClipHistogram(histogramCopy, this.ClipLimitPercentage, pixeInTile);
+                            this.ClipHistogram(histogramCopy, this.ClipLimitPercentage, swInfos.PixeInTile);
                         }
 
                         // Calculate the cumulative distribution function, which will map each input pixel in the current tile to a new value.
@@ -133,19 +150,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         ? this.CalculateCdf(ref cdfBase, ref histogramCopyBase, histogram.Length - 1)
                         : this.CalculateCdf(ref cdfBase, ref histogramBase, histogram.Length - 1);
 
-                        float numberOfPixelsMinusCdfMin = pixeInTile - cdfMin;
+                        float numberOfPixelsMinusCdfMin = swInfos.PixeInTile - cdfMin;
 
-                        // Map the current pixel to the new equalized value
+                        // Map the current pixel to the new equalized value.
                         int luminance = GetLuminance(source[x, y], this.LuminanceLevels);
                         float luminanceEqualized = Unsafe.Add(ref cdfBase, luminance) / numberOfPixelsMinusCdfMin;
                         targetPixels[x, y].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, source[x, y].ToVector4().W));
 
                         // Remove top most row from the histogram, mirroring rows which exceeds the borders.
-                        Span<TPixel> rowSpan = useFastPath ? this.GetPixelRowFast(source, pixelRow, x - halfTileWidth, y - halfTileWidth, tileWidth) : this.GetPixelRow(source, pixelRow, x - halfTileWidth, y - halfTileWidth, tileWidth);
+                        Span<TPixel> rowSpan = useFastPath
+                                                   ? this.GetPixelRowFast(source, pixelRow, x - swInfos.HalfTileWidth, y - swInfos.HalfTileWidth, swInfos.TileWidth)
+                                                   : this.GetPixelRow(source, pixelRow, x - swInfos.HalfTileWidth, y - swInfos.HalfTileWidth, swInfos.TileWidth);
                         this.RemovePixelsFromHistogram(rowSpan, histogram, this.LuminanceLevels);
 
                         // Add new bottom row to the histogram, mirroring rows which exceeds the borders.
-                        rowSpan = useFastPath ? this.GetPixelRowFast(source, pixelRow, x - halfTileWidth, y + halfTileWidth, tileWidth) : this.GetPixelRow(source, pixelRow, x - halfTileWidth, y + halfTileWidth, tileWidth);
+                        rowSpan = useFastPath
+                                      ? this.GetPixelRowFast(source, pixelRow, x - swInfos.HalfTileWidth, y + swInfos.HalfTileWidth, swInfos.TileWidth)
+                                      : this.GetPixelRow(source, pixelRow, x - swInfos.HalfTileWidth, y + swInfos.HalfTileWidth, swInfos.TileWidth);
                         this.AddPixelsToHistogram(rowSpan, histogram, this.LuminanceLevels);
                     }
                 }
@@ -173,7 +194,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 y = source.Height - diff - 1;
             }
 
-            // Special cases for the left and the right border where GetPixelRowSpan can not be used
+            // Special cases for the left and the right border where GetPixelRowSpan can not be used.
             if (x < 0)
             {
                 rowPixels.Clear();
@@ -211,6 +232,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             return source.GetPixelRowSpan(y).Slice(start: x, length: tileWidth);
         }
 
+        /// <summary>
+        /// Get the a pixel row at a given position with a length of the tile width.
+        /// </summary>
+        /// <param name="source">The source image.</param>
+        /// <param name="rowPixels">Pre-allocated pixel row span of the size of a the tile width.</param>
+        /// <param name="x">The x position.</param>
+        /// <param name="y">The y position.</param>
+        /// <param name="tileWidth">The width in pixels of a tile.</param>
+        /// <returns>A pixel row of the length of the tile width.</returns>
         private Span<TPixel> GetPixelRowFast(ImageFrame<TPixel> source, Span<TPixel> rowPixels, int x, int y, int tileWidth)
         {
             return source.GetPixelRowSpan(y).Slice(start: x, length: tileWidth);
@@ -244,6 +274,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 int luminance = GetLuminance(greyValues[idx], luminanceLevels);
                 histogram[luminance]--;
             }
+        }
+
+        private class SlidingWindowInfos
+        {
+            public SlidingWindowInfos(int tileWidth, int tileHeight, int halfTileWidth, int halfTileHeight, int pixeInTile)
+            {
+                this.TileWidth = tileWidth;
+                this.TileHeight = tileHeight;
+                this.HalfTileWidth = halfTileWidth;
+                this.HalfTileHeight = halfTileHeight;
+                this.PixeInTile = pixeInTile;
+            }
+
+            public int TileWidth { get; private set; }
+
+            public int TileHeight { get; private set; }
+
+            public int PixeInTile { get; private set; }
+
+            public int HalfTileWidth { get; private set; }
+
+            public int HalfTileHeight { get; private set; }
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 
@@ -91,8 +92,15 @@ namespace SixLabors.Memory
         /// <inheritdoc />
         public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
         {
+            Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
             int itemSizeBytes = Unsafe.SizeOf<T>();
             int bufferSizeInBytes = length * itemSizeBytes;
+            if (bufferSizeInBytes < 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(length),
+                    $"{nameof(ArrayPoolMemoryAllocator)} can not allocate {length} elements of {typeof(T).Name}.");
+            }
 
             ArrayPool<byte> pool = this.GetArrayPool(bufferSizeInBytes);
             byte[] byteArray = pool.Rent(bufferSizeInBytes);
@@ -109,6 +117,8 @@ namespace SixLabors.Memory
         /// <inheritdoc />
         public override IManagedByteBuffer AllocateManagedByteBuffer(int length, AllocationOptions options = AllocationOptions.None)
         {
+            Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
+
             ArrayPool<byte> pool = this.GetArrayPool(length);
             byte[] byteArray = pool.Rent(length);
 

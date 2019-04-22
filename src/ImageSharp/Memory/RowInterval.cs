@@ -65,12 +65,6 @@ namespace SixLabors.ImageSharp.Memory
             return !ReferenceEquals(null, obj) && obj is RowInterval other && this.Equals(other);
         }
 
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                return (this.Min * 397) ^ this.Max;
-            }
-        }
+        public override int GetHashCode() => HashCode.Combine(this.Min, this.Max);
     }
 }

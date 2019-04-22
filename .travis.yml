@@ -40,4 +40,4 @@ addons:
     notification_email: james_south@hotmail.com
     build_command_prepend: "dotnet restore"
     build_command:   "dotnet build -c Release"
-branch_pattern: coverity_scan
+    branch_pattern: coverity_scan

@@ -26,10 +26,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLch"/></returns>
         public CieLch ToCieLch(in CieLab color)
         {
-            // Adaptation
             CieLab adapted = this.Adapt(color);
 
-            // Conversion
             return CieLabToCieLchConverter.Convert(adapted);
         }
 

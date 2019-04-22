@@ -1,7 +1,5 @@
-﻿// <copyright file="MultiImageBenchmarkBase.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
@@ -47,7 +45,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         protected Dictionary<string, byte[]> FileNamesToBytes = new Dictionary<string, byte[]>();
 
         protected Dictionary<string, Image<Rgba32>> FileNamesToImageSharpImages = new Dictionary<string, Image<Rgba32>>();
-        protected Dictionary<string, System.Drawing.Bitmap> FileNamesToSystemDrawingImages = new Dictionary<string, System.Drawing.Bitmap>();
+        protected Dictionary<string, Bitmap> FileNamesToSystemDrawingImages = new Dictionary<string, System.Drawing.Bitmap>();
 
         /// <summary>
         /// The values of this enum separate input files into categories

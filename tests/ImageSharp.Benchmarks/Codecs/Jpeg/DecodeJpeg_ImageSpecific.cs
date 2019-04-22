@@ -27,7 +27,6 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             public Config()
             {
-                // Uncomment if you want to use any of the diagnoser
                 this.Add(MemoryDiagnoser.Default);
             }
 

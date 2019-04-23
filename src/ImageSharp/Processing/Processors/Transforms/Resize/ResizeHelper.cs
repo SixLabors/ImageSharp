@@ -296,7 +296,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // Don't upscale
             if (width > sourceWidth || height > sourceHeight)
             {
-                return (new Size(sourceWidth, sourceWidth), new Rectangle(0, 0, sourceWidth, sourceHeight));
+                return (new Size(sourceWidth, sourceHeight), new Rectangle(0, 0, sourceWidth, sourceHeight));
             }
 
             // Find the shortest distance to go.

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 
@@ -13,7 +14,7 @@ namespace SixLabors.ImageSharp.IO
     /// A stream reader that add a secondary level buffer in addition to native stream buffered reading
     /// to reduce the overhead of small incremental reads.
     /// </summary>
-    internal sealed class DoubleBufferedStreamReader : IDisposable
+    internal sealed unsafe class DoubleBufferedStreamReader : IDisposable
     {
         /// <summary>
         /// The length, in bytes, of the buffering chunk.
@@ -25,6 +26,10 @@ namespace SixLabors.ImageSharp.IO
         private readonly Stream stream;
 
         private readonly IManagedByteBuffer managedBuffer;
+
+        private MemoryHandle handle;
+
+        private readonly byte* pinnedChunk;
 
         private readonly byte[] bufferChunk;
 
@@ -46,6 +51,8 @@ namespace SixLabors.ImageSharp.IO
             this.length = (int)stream.Length;
             this.managedBuffer = memoryAllocator.AllocateManagedByteBuffer(ChunkLength);
             this.bufferChunk = this.managedBuffer.Array;
+            this.handle = this.managedBuffer.Memory.Pin();
+            this.pinnedChunk = (byte*)this.handle.Pointer;
             this.chunkIndex = ChunkLength;
         }
 
@@ -99,7 +106,7 @@ namespace SixLabors.ImageSharp.IO
             }
 
             this.position++;
-            return this.bufferChunk[this.chunkIndex++];
+            return this.pinnedChunk[this.chunkIndex++];
         }
 
         /// <summary>
@@ -150,7 +157,11 @@ namespace SixLabors.ImageSharp.IO
         }
 
         /// <inheritdoc/>
-        public void Dispose() => this.managedBuffer?.Dispose();
+        public void Dispose()
+        {
+            this.handle.Dispose();
+            this.managedBuffer?.Dispose();
+        }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private int GetPositionDifference(int p) => p - this.position;
@@ -228,11 +239,11 @@ namespace SixLabors.ImageSharp.IO
             {
                 int byteCount = count;
                 int read = this.chunkIndex;
-                byte[] chunk = this.bufferChunk;
+                byte* pinned = this.pinnedChunk;
 
                 while (--byteCount > -1)
                 {
-                    buffer[offset + byteCount] = chunk[read + byteCount];
+                    buffer[offset + byteCount] = pinned[read + byteCount];
                 }
             }
             else

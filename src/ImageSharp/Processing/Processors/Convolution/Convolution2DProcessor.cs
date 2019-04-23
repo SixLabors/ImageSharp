@@ -87,20 +87,39 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                 Span<TPixel> targetRowSpan = targetPixels.GetRowSpan(y).Slice(startX);
                                 PixelOperations<TPixel>.Instance.ToVector4(configuration, targetRowSpan.Slice(0, length), vectorSpan);
 
-                                for (int x = 0; x < width; x++)
+                                if (preserveAlpha)
                                 {
-                                    DenseMatrixUtils.Convolve2D(
-                                        in matrixY,
-                                        in matrixX,
-                                        source.PixelBuffer,
-                                        ref vectorSpanRef,
-                                        y,
-                                        x,
-                                        startY,
-                                        maxY,
-                                        startX,
-                                        maxX,
-                                        preserveAlpha);
+                                    for (int x = 0; x < width; x++)
+                                    {
+                                        DenseMatrixUtils.Convolve2D3(
+                                            in matrixY,
+                                            in matrixX,
+                                            source.PixelBuffer,
+                                            ref vectorSpanRef,
+                                            y,
+                                            x,
+                                            startY,
+                                            maxY,
+                                            startX,
+                                            maxX);
+                                    }
+                                }
+                                else
+                                {
+                                    for (int x = 0; x < width; x++)
+                                    {
+                                        DenseMatrixUtils.Convolve2D4(
+                                            in matrixY,
+                                            in matrixX,
+                                            source.PixelBuffer,
+                                            ref vectorSpanRef,
+                                            y,
+                                            x,
+                                            startY,
+                                            maxY,
+                                            startX,
+                                            maxX);
+                                    }
                                 }
 
                                 PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan, targetRowSpan);

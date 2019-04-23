@@ -12,9 +12,9 @@ using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.MetaData;
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
-using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.Memory;
@@ -52,17 +52,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// The DC Huffman tables
         /// </summary>
-        private HuffmanTables dcHuffmanTables;
+        private HuffmanTable[] dcHuffmanTables;
 
         /// <summary>
         /// The AC Huffman tables
         /// </summary>
-        private HuffmanTables acHuffmanTables;
+        private HuffmanTable[] acHuffmanTables;
 
         /// <summary>
         /// The fast AC tables used for entropy decoding
         /// </summary>
-        private FastACTables fastACTables;
+        private FastACTable[] fastACTables;
 
         /// <summary>
         /// The reset interval determined by RST markers
@@ -149,9 +149,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public bool IgnoreMetadata { get; }
 
         /// <summary>
-        /// Gets the <see cref="ImageMetaData"/> decoded by this decoder instance.
+        /// Gets the <see cref="ImageMetadata"/> decoded by this decoder instance.
         /// </summary>
-        public ImageMetaData MetaData { get; private set; }
+        public ImageMetadata Metadata { get; private set; }
 
         /// <inheritdoc/>
         public int ComponentCount { get; private set; }
@@ -222,7 +222,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.ParseStream(stream);
             this.InitExifProfile();
             this.InitIccProfile();
-            this.InitDerivedMetaDataProperties();
+            this.InitDerivedMetadataProperties();
             return this.PostProcessIntoImage<TPixel>();
         }
 
@@ -235,9 +235,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.ParseStream(stream, true);
             this.InitExifProfile();
             this.InitIccProfile();
-            this.InitDerivedMetaDataProperties();
+            this.InitDerivedMetadataProperties();
 
-            return new ImageInfo(new PixelTypeInfo(this.BitsPerPixel), this.ImageWidth, this.ImageHeight, this.MetaData);
+            return new ImageInfo(new PixelTypeInfo(this.BitsPerPixel), this.ImageWidth, this.ImageHeight, this.Metadata);
         }
 
         /// <summary>
@@ -247,7 +247,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="metadataOnly">Whether to decode metadata only.</param>
         public void ParseStream(Stream stream, bool metadataOnly = false)
         {
-            this.MetaData = new ImageMetaData();
+            this.Metadata = new ImageMetadata();
             this.InputStream = new DoubleBufferedStreamReader(this.configuration.MemoryAllocator, stream);
 
             // Check for the Start Of Image marker.
@@ -266,9 +266,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Only assign what we need
             if (!metadataOnly)
             {
-                this.dcHuffmanTables = new HuffmanTables();
-                this.acHuffmanTables = new HuffmanTables();
-                this.fastACTables = new FastACTables(this.configuration.MemoryAllocator);
+                const int maxTables = 4;
+                this.dcHuffmanTables = new HuffmanTable[maxTables];
+                this.acHuffmanTables = new HuffmanTable[maxTables];
+                this.fastACTables = new FastACTable[maxTables];
             }
 
             // Break only when we discover a valid EOI marker.
@@ -378,7 +379,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             this.InputStream?.Dispose();
             this.Frame?.Dispose();
-            this.fastACTables?.Dispose();
 
             // Set large fields to null.
             this.InputStream = null;
@@ -401,15 +401,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             if (this.ComponentCount == 3)
             {
-                if (this.adobe.Equals(default) || this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformYCbCr)
-                {
-                    return JpegColorSpace.YCbCr;
-                }
-
-                if (this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
+                if (!this.adobe.Equals(default) && this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
                 {
                     return JpegColorSpace.RGB;
                 }
+
+                // Some images are poorly encoded and contain incorrect colorspace transform metadata.
+                // We ignore that and always fall back to the default colorspace.
+                return JpegColorSpace.YCbCr;
             }
 
             if (this.ComponentCount == 4)
@@ -419,7 +418,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     : JpegColorSpace.Cmyk;
             }
 
-            JpegThrowHelper.ThrowImageFormatException($"Unsupported color mode. Max components 4; found {this.ComponentCount}");
+            JpegThrowHelper.ThrowImageFormatException($"Unsupported color mode. Supported component counts 1, 3, and 4; found {this.ComponentCount}");
             return default;
         }
 
@@ -430,7 +429,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             if (this.isExif)
             {
-                this.MetaData.ExifProfile = new ExifProfile(this.exifData);
+                this.Metadata.ExifProfile = new ExifProfile(this.exifData);
             }
         }
 
@@ -444,21 +443,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 var profile = new IccProfile(this.iccData);
                 if (profile.CheckIsValid())
                 {
-                    this.MetaData.IccProfile = profile;
+                    this.Metadata.IccProfile = profile;
                 }
             }
         }
 
         /// <summary>
-        /// Assigns derived metadata properties to <see cref="MetaData"/>, eg. horizontal and vertical resolution if it has a JFIF header.
+        /// Assigns derived metadata properties to <see cref="Metadata"/>, eg. horizontal and vertical resolution if it has a JFIF header.
         /// </summary>
-        private void InitDerivedMetaDataProperties()
+        private void InitDerivedMetadataProperties()
         {
             if (this.jFif.XDensity > 0 && this.jFif.YDensity > 0)
             {
-                this.MetaData.HorizontalResolution = this.jFif.XDensity;
-                this.MetaData.VerticalResolution = this.jFif.YDensity;
-                this.MetaData.ResolutionUnits = this.jFif.DensityUnits;
+                this.Metadata.HorizontalResolution = this.jFif.XDensity;
+                this.Metadata.VerticalResolution = this.jFif.YDensity;
+                this.Metadata.ResolutionUnits = this.jFif.DensityUnits;
             }
             else if (this.isExif)
             {
@@ -467,16 +466,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                 if (horizontalValue > 0 && verticalValue > 0)
                 {
-                    this.MetaData.HorizontalResolution = horizontalValue;
-                    this.MetaData.VerticalResolution = verticalValue;
-                    this.MetaData.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(this.MetaData.ExifProfile);
+                    this.Metadata.HorizontalResolution = horizontalValue;
+                    this.Metadata.VerticalResolution = verticalValue;
+                    this.Metadata.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(this.Metadata.ExifProfile);
                 }
             }
         }
 
         private double GetExifResolutionValue(ExifTag tag)
         {
-            if (!this.MetaData.ExifProfile.TryGetValue(tag, out ExifValue exifValue))
+            if (!this.Metadata.ExifProfile.TryGetValue(tag, out ExifValue exifValue))
             {
                 return 0;
             }
@@ -713,7 +712,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 JpegThrowHelper.ThrowBadMarker(nameof(JpegConstants.Markers.DQT), remaining);
             }
 
-            this.MetaData.GetFormatMetaData(JpegFormat.Instance).Quality = QualityEvaluator.EstimateQuality(this.QuantizationTables);
+            this.Metadata.GetFormatMetadata(JpegFormat.Instance).Quality = QualityEvaluator.EstimateQuality(this.QuantizationTables);
         }
 
         /// <summary>
@@ -872,12 +871,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                                 tableIndex,
                                 codeLengths.GetSpan(),
                                 huffmanValues.GetSpan());
-
-                            if (tableType != 0)
-                            {
-                                // Build a table that decodes both magnitude and value of small ACs in one go.
-                                this.fastACTables.BuildACTableLut(tableIndex, this.acHuffmanTables);
-                            }
                         }
                     }
                 }
@@ -967,7 +960,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="codeLengths">The codelengths</param>
         /// <param name="values">The values</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void BuildHuffmanTable(HuffmanTables tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
+        private void BuildHuffmanTable(HuffmanTable[] tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
             => tables[index] = new HuffmanTable(this.configuration.MemoryAllocator, codeLengths, values);
 
         /// <summary>
@@ -998,7 +991,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.configuration,
                 this.ImageWidth,
                 this.ImageHeight,
-                this.MetaData);
+                this.Metadata);
 
             using (var postProcessor = new JpegImagePostProcessor(this.configuration, this))
             {

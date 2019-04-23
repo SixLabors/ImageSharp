@@ -7,7 +7,7 @@ using System.IO;
 using System.Text;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Gif;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
         new TheoryData<string, int, int, PixelResolutionUnit>
         {
-            { TestImages.Gif.Rings, (int)ImageMetaData.DefaultHorizontalResolution, (int)ImageMetaData.DefaultVerticalResolution , PixelResolutionUnit.PixelsPerInch},
+            { TestImages.Gif.Rings, (int)ImageMetadata.DefaultHorizontalResolution, (int)ImageMetadata.DefaultVerticalResolution , PixelResolutionUnit.PixelsPerInch},
             { TestImages.Gif.Ratio1x4, 1, 4 , PixelResolutionUnit.AspectRatio},
             { TestImages.Gif.Ratio4x1, 4, 1, PixelResolutionUnit.AspectRatio }
         };
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 var decoder = new GifDecoder();
                 using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
                 {
-                    ImageMetaData meta = image.MetaData;
+                    ImageMetadata meta = image.Metadata;
                     Assert.Equal(xResolution, meta.HorizontalResolution);
                     Assert.Equal(yResolution, meta.VerticalResolution);
                     Assert.Equal(resolutionUnit, meta.ResolutionUnits);
@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             {
                 var decoder = new GifDecoder();
                 IImageInfo image = decoder.Identify(Configuration.Default, stream);
-                ImageMetaData meta = image.MetaData;
+                ImageMetadata meta = image.Metadata;
                 Assert.Equal(xResolution, meta.HorizontalResolution);
                 Assert.Equal(yResolution, meta.VerticalResolution);
                 Assert.Equal(resolutionUnit, meta.ResolutionUnits);
@@ -167,9 +167,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             using (Image<Rgba32> image = testFile.CreateImage(options))
             {
-                Assert.Equal(1, image.MetaData.Properties.Count);
-                Assert.Equal("Comments", image.MetaData.Properties[0].Name);
-                Assert.Equal("ImageSharp", image.MetaData.Properties[0].Value);
+                Assert.Equal(1, image.Metadata.Properties.Count);
+                Assert.Equal("Comments", image.Metadata.Properties[0].Name);
+                Assert.Equal("ImageSharp", image.Metadata.Properties[0].Value);
             }
         }
 
@@ -185,7 +185,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             using (Image<Rgba32> image = testFile.CreateImage(options))
             {
-                Assert.Equal(0, image.MetaData.Properties.Count);
+                Assert.Equal(0, image.Metadata.Properties.Count);
             }
         }
 
@@ -201,8 +201,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             using (Image<Rgba32> image = testFile.CreateImage(options))
             {
-                Assert.Equal(1, image.MetaData.Properties.Count);
-                Assert.Equal("浉条卥慨灲", image.MetaData.Properties[0].Value);
+                Assert.Equal(1, image.Metadata.Properties.Count);
+                Assert.Equal("浉条卥慨灲", image.Metadata.Properties[0].Value);
             }
         }
 

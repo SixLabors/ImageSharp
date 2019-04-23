@@ -53,6 +53,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Gray2BitTrans = "Png/gray-2-tRNS.png";
             public const string Gray4BitTrans = "Png/gray-4-tRNS.png";
             public const string Gray8BitTrans = "Png/gray-8-tRNS.png";
+            public const string LowColorVariance = "Png/low-variance.png";
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";
@@ -85,6 +86,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string ChunkLength1 = "Png/chunklength1.png";
                 public const string ChunkLength2 = "Png/chunklength2.png";
                 public const string CorruptedChunk = "Png/big-corrupted-chunk.png";
+                public const string ZlibOverflow = "Png/zlib-overflow.png";
             }
 
             public static readonly string[] All =
@@ -173,6 +175,8 @@ namespace SixLabors.ImageSharp.Tests
                 public const string OrderedInterleavedProgressive723C = "Jpg/issues/Issue723-Ordered-Interleaved-Progressive-C.jpg";
                 public const string ExifGetString750Transform = "Jpg/issues/issue750-exif-tranform.jpg";
                 public const string ExifGetString750Load = "Jpg/issues/issue750-exif-load.jpg";
+                public const string IncorrectQuality845 = "Jpg/issues/Issue845-Incorrect-Quality99.jpg";
+                public const string IncorrectColorspace855 = "Jpg/issues/issue855-incorrect-colorspace.jpg";
 
                 public static class Fuzz
                 {
@@ -197,6 +201,7 @@ namespace SixLabors.ImageSharp.Tests
                     public const string ArgumentException826B = "Jpg/issues/fuzz/Issue826-ArgumentException-B.jpg";
                     public const string ArgumentException826C = "Jpg/issues/fuzz/Issue826-ArgumentException-C.jpg";
                     public const string AccessViolationException827 = "Jpg/issues/fuzz/Issue827-AccessViolationException.jpg";
+                    public const string ExecutionEngineException839 = "Jpg/issues/fuzz/Issue839-ExecutionEngineException.jpg";
                 }
             }
 

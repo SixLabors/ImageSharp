@@ -4,7 +4,7 @@
 using System;
 using System.Globalization;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// A string with a specific locale.
@@ -49,9 +49,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             this.Text == other.Text;
 
         /// <inheritdoc />
-        public override string ToString()
-        {
-            return $"{this.Culture.Name}: {this.Text}";
-        }
+        public override string ToString() => $"{this.Culture.Name}: {this.Text}";
     }
 }

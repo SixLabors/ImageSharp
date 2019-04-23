@@ -14,13 +14,13 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// </summary>
     public readonly struct Rgb : IEquatable<Rgb>
     {
-        private static readonly Vector3 Min = Vector3.Zero;
-        private static readonly Vector3 Max = Vector3.One;
-
         /// <summary>
-        /// The default rgb working space
+        /// The default rgb working space.
         /// </summary>
         public static readonly RgbWorkingSpaceBase DefaultWorkingSpace = RgbWorkingSpaces.SRgb;
+
+        private static readonly Vector3 Min = Vector3.Zero;
+        private static readonly Vector3 Max = Vector3.One;
 
         /// <summary>
         /// Gets the red component.

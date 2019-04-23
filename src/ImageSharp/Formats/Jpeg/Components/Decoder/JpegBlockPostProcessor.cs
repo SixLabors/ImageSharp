@@ -20,17 +20,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public Block8x8F SourceBlock;
 
         /// <summary>
-        /// Temporal block 1 to store intermediate and/or final computation results
+        /// Temporal block 1 to store intermediate and/or final computation results.
         /// </summary>
         public Block8x8F WorkspaceBlock1;
 
         /// <summary>
-        /// Temporal block 2 to store intermediate and/or final computation results
+        /// Temporal block 2 to store intermediate and/or final computation results.
         /// </summary>
         public Block8x8F WorkspaceBlock2;
 
         /// <summary>
-        /// The quantization table as <see cref="Block8x8F"/>
+        /// The quantization table as <see cref="Block8x8F"/>.
         /// </summary>
         public Block8x8F DequantiazationTable;
 
@@ -40,9 +40,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private Size subSamplingDivisors;
 
         /// <summary>
-        /// Defines the maximum value derived from the bitdepth
+        /// Defines the maximum value derived from the bitdepth.
         /// </summary>
-        private int maximumValue;
+        private readonly int maximumValue;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegBlockPostProcessor"/> struct.
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int qtIndex = component.QuantizationTableIndex;
             this.DequantiazationTable = ZigZag.CreateDequantizationTable(ref decoder.QuantizationTables[qtIndex]);
             this.subSamplingDivisors = component.SubSamplingDivisors;
-            this.maximumValue = (int)Math.Pow(2, decoder.Precision) - 1;
+            this.maximumValue = (int)MathF.Pow(2, decoder.Precision) - 1;
 
             this.SourceBlock = default;
             this.WorkspaceBlock1 = default;
@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// - Dequantize
         /// - Applying IDCT
         /// - Level shift by +maximumValue/2, clip to [0, maximumValue]
-        /// - Copy the resulting color values into 'destArea' scaling up the block by amount defined in <see cref="subSamplingDivisors"/>
+        /// - Copy the resulting color values into 'destArea' scaling up the block by amount defined in <see cref="subSamplingDivisors"/>.
         /// </summary>
         /// <param name="sourceBlock">The source block.</param>
         /// <param name="destArea">The destination buffer area.</param>

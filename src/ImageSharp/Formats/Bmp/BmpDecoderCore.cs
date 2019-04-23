@@ -9,7 +9,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 
@@ -66,12 +66,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// The metadata.
         /// </summary>
-        private ImageMetaData metaData;
+        private ImageMetadata metadata;
 
         /// <summary>
         /// The bmp specific metadata.
         /// </summary>
-        private BmpMetaData bmpMetaData;
+        private BmpMetadata bmpMetadata;
 
         /// <summary>
         /// The file header containing general information.
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 int bytesPerColorMapEntry = this.ReadImageHeaders(stream, out bool inverted, out byte[] palette);
 
-                var image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height, this.metaData);
+                var image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height, this.metadata);
 
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     case BmpCompression.RGB:
                         if (this.infoHeader.BitsPerPixel == 32)
                         {
-                            if (this.bmpMetaData.InfoHeaderType == BmpInfoHeaderType.WinVersion3)
+                            if (this.bmpMetadata.InfoHeaderType == BmpInfoHeaderType.WinVersion3)
                             {
                                 this.ReadRgb32Slow(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
                             }
@@ -188,7 +188,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public IImageInfo Identify(Stream stream)
         {
             this.ReadImageHeaders(stream, out _, out _);
-            return new ImageInfo(new PixelTypeInfo(this.infoHeader.BitsPerPixel), this.infoHeader.Width, this.infoHeader.Height, this.metaData);
+            return new ImageInfo(new PixelTypeInfo(this.infoHeader.BitsPerPixel), this.infoHeader.Width, this.infoHeader.Height, this.metadata);
         }
 
         /// <summary>
@@ -999,7 +999,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
 
             // Resolution is stored in PPM.
-            var meta = new ImageMetaData
+            var meta = new ImageMetadata
             {
                 ResolutionUnits = PixelResolutionUnit.PixelsPerMeter
             };
@@ -1011,21 +1011,21 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             else
             {
                 // Convert default metadata values to PPM.
-                meta.HorizontalResolution = Math.Round(UnitConverter.InchToMeter(ImageMetaData.DefaultHorizontalResolution));
-                meta.VerticalResolution = Math.Round(UnitConverter.InchToMeter(ImageMetaData.DefaultVerticalResolution));
+                meta.HorizontalResolution = Math.Round(UnitConverter.InchToMeter(ImageMetadata.DefaultHorizontalResolution));
+                meta.VerticalResolution = Math.Round(UnitConverter.InchToMeter(ImageMetadata.DefaultVerticalResolution));
             }
 
-            this.metaData = meta;
+            this.metadata = meta;
 
             short bitsPerPixel = this.infoHeader.BitsPerPixel;
-            this.bmpMetaData = this.metaData.GetFormatMetaData(BmpFormat.Instance);
-            this.bmpMetaData.InfoHeaderType = infoHeaderType;
+            this.bmpMetadata = this.metadata.GetFormatMetadata(BmpFormat.Instance);
+            this.bmpMetadata.InfoHeaderType = infoHeaderType;
 
             // We can only encode at these bit rates so far.
             if (bitsPerPixel.Equals((short)BmpBitsPerPixel.Pixel24)
                 || bitsPerPixel.Equals((short)BmpBitsPerPixel.Pixel32))
             {
-                this.bmpMetaData.BitsPerPixel = (BmpBitsPerPixel)bitsPerPixel;
+                this.bmpMetadata.BitsPerPixel = (BmpBitsPerPixel)bitsPerPixel;
             }
 
             // skip the remaining header because we can't read those parts

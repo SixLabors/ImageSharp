@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             if (this.paletteVector is null)
             {
                 this.paletteVector = new Vector4[this.Palette.Length];
-                PixelOperations<TPixel>.Instance.ToScaledVector4(configuration, this.Palette, this.paletteVector);
+                PixelOperations<TPixel>.Instance.ToVector4(configuration, (ReadOnlySpan<TPixel>)this.Palette, (Span<Vector4>)this.paletteVector, PixelConversionModifiers.Scale);
             }
         }
     }

@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.IO
             this.stream = stream;
             this.Position = (int)stream.Position;
             this.length = (int)stream.Length;
-            this.managedBuffer = memoryAllocator.AllocateManagedByteBuffer(ChunkLength, AllocationOptions.Clean);
+            this.managedBuffer = memoryAllocator.AllocateManagedByteBuffer(ChunkLength);
             this.bufferChunk = this.managedBuffer.Array;
             this.chunkIndex = ChunkLength;
         }

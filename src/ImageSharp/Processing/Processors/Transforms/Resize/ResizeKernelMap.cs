@@ -54,17 +54,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.radius = radius;
             this.sourceLength = sourceLength;
             this.DestinationLength = destinationLength;
-            int maxWidth = (radius * 2) + 1;
-            this.data = memoryAllocator.Allocate2D<float>(maxWidth, bufferHeight, AllocationOptions.Clean);
+            this.MaxDiameter = (radius * 2) + 1;
+            this.data = memoryAllocator.Allocate2D<float>(this.MaxDiameter, bufferHeight, AllocationOptions.Clean);
             this.pinHandle = this.data.Memory.Pin();
             this.kernels = new ResizeKernel[destinationLength];
-            this.tempValues = new double[maxWidth];
+            this.tempValues = new double[this.MaxDiameter];
         }
 
         /// <summary>
         /// Gets the length of the destination row/column
         /// </summary>
         public int DestinationLength { get; }
+
+        /// <summary>
+        /// Gets the maximum diameter of the kernels.
+        /// </summary>
+        public int MaxDiameter { get; }
 
         /// <summary>
         /// Gets a string of information to help debugging

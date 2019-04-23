@@ -152,7 +152,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 Image<TPixel> cachedImage = cache.GetOrAdd(key, _ => this.LoadImage(decoder));
 
-                return cachedImage.Clone();
+                return cachedImage.Clone(this.Configuration);
             }
 
             public override void Deserialize(IXunitSerializationInfo info)

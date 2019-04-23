@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
+using SixLabors.Primitives;
 
 using Xunit;
 
@@ -30,6 +32,25 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         {
             int actualCount = ResizeHelper.CalculateResizeWorkerHeightInWindowBands(windowDiameter, width, sizeLimitHintInBytes);
             Assert.Equal(expectedCount, actualCount);
+        }
+
+        [Fact]
+        public void CalculateMinRectangleWhenSourceIsSmallerThanTarget()
+        {
+            var sourceSize = new Size(200, 100);
+            var target = new Size(400, 200);
+
+            var actual = ResizeHelper.CalculateTargetLocationAndBounds(
+                sourceSize,
+                new ResizeOptions{
+                    Mode = ResizeMode.Min,
+                    Size = target
+                },
+                target.Width,
+                target.Height);
+            
+            Assert.Equal(sourceSize, actual.Item1);
+            Assert.Equal(new Rectangle(0, 0, sourceSize.Width, sourceSize.Height), actual.Item2);
         }
     }
 }

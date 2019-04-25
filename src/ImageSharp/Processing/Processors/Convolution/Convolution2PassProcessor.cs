@@ -3,7 +3,7 @@
 
 using System;
 using System.Numerics;
-
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
@@ -24,10 +24,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </summary>
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
-        public Convolution2PassProcessor(DenseMatrix<float> kernelX, DenseMatrix<float> kernelY)
+        /// <param name="preserveAlpha">Whether the convolution filter is applied to alpha as well as the color channels.</param>
+        public Convolution2PassProcessor(
+            in DenseMatrix<float> kernelX,
+            in DenseMatrix<float> kernelY,
+            bool preserveAlpha)
         {
             this.KernelX = kernelX;
             this.KernelY = kernelY;
+            this.PreserveAlpha = preserveAlpha;
         }
 
         /// <summary>
@@ -40,13 +45,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </summary>
         public DenseMatrix<float> KernelY { get; }
 
+        /// <summary>
+        /// Gets a value indicating whether the convolution filter is applied to alpha as well as the color channels.
+        /// </summary>
+        public bool PreserveAlpha { get; }
+
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             using (Buffer2D<TPixel> firstPassPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
             {
-                source.CopyTo(firstPassPixels);
-
                 var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
                 this.ApplyConvolution(firstPassPixels, source.PixelBuffer, interest, this.KernelX, configuration);
                 this.ApplyConvolution(source.PixelBuffer, firstPassPixels, interest, this.KernelY, configuration);
@@ -72,6 +80,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             Configuration configuration)
         {
             DenseMatrix<float> matrix = kernel;
+            bool preserveAlpha = this.PreserveAlpha;
+
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
@@ -89,18 +99,47 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     {
                         Span<Vector4> vectorSpan = vectorBuffer.Span;
                         int length = vectorSpan.Length;
+                        ref Vector4 vectorSpanRef = ref MemoryMarshal.GetReference(vectorSpan);
 
                         for (int y = rows.Min; y < rows.Max; y++)
                         {
                             Span<TPixel> targetRowSpan = targetPixels.GetRowSpan(y).Slice(startX);
                             PixelOperations<TPixel>.Instance.ToVector4(configuration, targetRowSpan.Slice(0, length), vectorSpan);
 
-                            for (int x = 0; x < width; x++)
+                            if (preserveAlpha)
                             {
-                                DenseMatrixUtils.Convolve(in matrix, sourcePixels, vectorSpan, y, x, maxY, maxX, startX);
+                                for (int x = 0; x < width; x++)
+                                {
+                                    DenseMatrixUtils.Convolve3(
+                                        in matrix,
+                                        sourcePixels,
+                                        ref vectorSpanRef,
+                                        y,
+                                        x,
+                                        startY,
+                                        maxY,
+                                        startX,
+                                        maxX);
+                                }
+                            }
+                            else
+                            {
+                                for (int x = 0; x < width; x++)
+                                {
+                                    DenseMatrixUtils.Convolve4(
+                                        in matrix,
+                                        sourcePixels,
+                                        ref vectorSpanRef,
+                                        y,
+                                        x,
+                                        startY,
+                                        maxY,
+                                        startX,
+                                        maxX);
+                                }
                             }
 
-                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan.Slice(0, length), targetRowSpan);
+                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan, targetRowSpan);
                         }
                     });
         }

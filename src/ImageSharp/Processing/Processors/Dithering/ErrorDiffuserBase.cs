@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// </summary>
         /// <param name="matrix">The dithering matrix.</param>
         /// <param name="divisor">The divisor.</param>
-        internal ErrorDiffuserBase(DenseMatrix<float> matrix, byte divisor)
+        internal ErrorDiffuserBase(in DenseMatrix<float> matrix, byte divisor)
         {
             Guard.MustBeGreaterThan(divisor, 0, nameof(divisor));
 

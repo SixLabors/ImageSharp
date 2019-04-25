@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         /// <summary>
         /// Contains the largest code of length k (0 if none). MaxCode[17] is a sentinel to
-        /// ensure <see cref="HuffmanScanDecoder.DecodeHuffman"/> terminates.
+        /// ensure <see cref="HuffmanScanBuffer.DecodeHuffman"/> terminates.
         /// </summary>
         public fixed ulong MaxCode[18];
 

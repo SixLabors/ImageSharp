@@ -35,6 +35,9 @@ namespace SixLabors.ImageSharp.Tests
                 this.a = a;
             }
 
+            /// <summary>
+            /// This parameterless constructor is needed for xUnit deserialization
+            /// </summary>
             public SolidProvider()
                 : base()
             {

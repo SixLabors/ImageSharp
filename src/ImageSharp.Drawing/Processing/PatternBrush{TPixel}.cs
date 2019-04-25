@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="foreColor">Color of the fore.</param>
         /// <param name="backColor">Color of the back.</param>
         /// <param name="pattern">The pattern.</param>
-        internal PatternBrush(TPixel foreColor, TPixel backColor, DenseMatrix<bool> pattern)
+        internal PatternBrush(TPixel foreColor, TPixel backColor, in DenseMatrix<bool> pattern)
         {
             var foreColorVector = foreColor.ToVector4();
             var backColorVector = backColor.ToVector4();
@@ -93,10 +93,7 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <inheritdoc />
-        public BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
-        {
-            return new PatternBrushApplicator(source, this.pattern, this.patternVector, options);
-        }
+        public BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options) => new PatternBrushApplicator(source, this.pattern, this.patternVector, options);
 
         /// <summary>
         /// The pattern brush applicator.
@@ -116,7 +113,7 @@ namespace SixLabors.ImageSharp.Processing
             /// <param name="pattern">The pattern.</param>
             /// <param name="patternVector">The patternVector.</param>
             /// <param name="options">The options</param>
-            public PatternBrushApplicator(ImageFrame<TPixel> source, DenseMatrix<TPixel> pattern, DenseMatrix<Vector4> patternVector, GraphicsOptions options)
+            public PatternBrushApplicator(ImageFrame<TPixel> source, in DenseMatrix<TPixel> pattern, DenseMatrix<Vector4> patternVector, GraphicsOptions options)
                 : base(source, options)
             {
                 this.pattern = pattern;

@@ -60,11 +60,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private HuffmanTable[] acHuffmanTables;
 
         /// <summary>
-        /// The fast AC tables used for entropy decoding
-        /// </summary>
-        private FastACTable[] fastACTables;
-
-        /// <summary>
         /// The reset interval determined by RST markers
         /// </summary>
         private ushort resetInterval;
@@ -269,7 +264,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 const int maxTables = 4;
                 this.dcHuffmanTables = new HuffmanTable[maxTables];
                 this.acHuffmanTables = new HuffmanTable[maxTables];
-                this.fastACTables = new FastACTable[maxTables];
             }
 
             // Break only when we discover a valid EOI marker.
@@ -385,7 +379,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.Frame = null;
             this.dcHuffmanTables = null;
             this.acHuffmanTables = null;
-            this.fastACTables = null;
         }
 
         /// <summary>
@@ -936,12 +929,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int spectralEnd = this.temp[1];
             int successiveApproximation = this.temp[2];
 
-            var sd = new ScanDecoder(
+            var sd = new HuffmanScanDecoder(
                 this.InputStream,
                 this.Frame,
                 this.dcHuffmanTables,
                 this.acHuffmanTables,
-                this.fastACTables,
                 selectorsCount,
                 this.resetInterval,
                 spectralStart,

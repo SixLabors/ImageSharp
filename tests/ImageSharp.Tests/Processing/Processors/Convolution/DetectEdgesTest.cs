@@ -12,6 +12,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {
     public class DetectEdgesTest : FileTestBase
     {
+        // I think our comparison is not accurate enough (nor can be) for RgbaVector.
+        // The image pixels are identical according to BeyondCompare.
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0456F);
 
         public static readonly string[] CommonTestImages = { TestImages.Png.Bike };

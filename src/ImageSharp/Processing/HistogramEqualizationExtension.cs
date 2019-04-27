@@ -12,25 +12,51 @@ namespace SixLabors.ImageSharp.Processing
     public static class HistogramEqualizationExtension
     {
         /// <summary>
-        /// Equalizes the histogram of an image to increases the global contrast using 65536 luminance levels.
+        /// Equalizes the histogram of an image to increases the contrast.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> HistogramEqualization<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-            => HistogramEqualization(source, 65536);
+            => HistogramEqualization(source, HistogramEqualizationOptions.Default);
 
         /// <summary>
-        /// Equalizes the histogram of an image to increases the global contrast.
+        /// Equalizes the histogram of an image to increases the contrast.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
-        /// <param name="luminanceLevels">The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
-        /// or 65536 for 16-bit grayscale images.</param>
+        /// <param name="options">The histogram equalization options to use.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> HistogramEqualization<TPixel>(this IImageProcessingContext<TPixel> source, int luminanceLevels)
+        public static IImageProcessingContext<TPixel> HistogramEqualization<TPixel>(this IImageProcessingContext<TPixel> source, HistogramEqualizationOptions options)
             where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new HistogramEqualizationProcessor<TPixel>(luminanceLevels));
+            => source.ApplyProcessor(GetProcessor<TPixel>(options));
+
+        private static HistogramEqualizationProcessor<TPixel> GetProcessor<TPixel>(HistogramEqualizationOptions options)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            HistogramEqualizationProcessor<TPixel> processor;
+
+            switch (options.Method)
+            {
+                case HistogramEqualizationMethod.Global:
+                    processor = new GlobalHistogramEqualizationProcessor<TPixel>(options.LuminanceLevels, options.ClipHistogram, options.ClipLimitPercentage);
+                    break;
+
+                case HistogramEqualizationMethod.AdaptiveTileInterpolation:
+                    processor = new AdaptiveHistEqualizationProcessor<TPixel>(options.LuminanceLevels, options.ClipHistogram, options.ClipLimitPercentage, options.Tiles);
+                    break;
+
+                case HistogramEqualizationMethod.AdaptiveSlidingWindow:
+                    processor = new AdaptiveHistEqualizationSWProcessor<TPixel>(options.LuminanceLevels, options.ClipHistogram, options.ClipLimitPercentage, options.Tiles);
+                    break;
+
+                default:
+                    processor = new GlobalHistogramEqualizationProcessor<TPixel>(options.LuminanceLevels, options.ClipHistogram, options.ClipLimitPercentage);
+                    break;
+            }
+
+            return processor;
+        }
     }
 }

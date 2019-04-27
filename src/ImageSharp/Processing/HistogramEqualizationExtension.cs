@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> HistogramEqualization<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-            => HistogramEqualization(source, new HistogramEqualizationOptions());
+            => HistogramEqualization(source, HistogramEqualizationOptions.Default);
 
         /// <summary>
         /// Equalizes the histogram of an image to increases the contrast.

@@ -133,11 +133,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 ProcessBorderColumn(ref pixelsBase, cdfData, this.Tiles - 1, sourceWidth, sourceHeight, tileWidth, tileHeight, xStart: rightBorderStartX, xEnd: sourceWidth, luminanceLevels);
 
                 // Fix top row
-                ProcessBorderRow(ref pixelsBase, cdfData, 0, sourceWidth, tileWidth, tileHeight, yStart: 0, yEnd: halfTileHeight, luminanceLevels);
+                ProcessBorderRow(ref pixelsBase, cdfData, 0, sourceWidth, tileWidth, yStart: 0, yEnd: halfTileHeight, luminanceLevels);
 
                 // Fix bottom row
                 int bottomBorderStartY = ((this.Tiles - 1) * tileHeight) + halfTileHeight;
-                ProcessBorderRow(ref pixelsBase, cdfData, this.Tiles - 1, sourceWidth, tileWidth, tileHeight, yStart: bottomBorderStartY, yEnd: sourceHeight, luminanceLevels);
+                ProcessBorderRow(ref pixelsBase, cdfData, this.Tiles - 1, sourceWidth, tileWidth, yStart: bottomBorderStartY, yEnd: sourceHeight, luminanceLevels);
 
                 // Left top corner
                 ProcessCornerTile(ref pixelsBase, cdfData, sourceWidth, 0, 0, xStart: 0, xEnd: halfTileWidth, yStart: 0, yEnd: halfTileHeight, luminanceLevels);
@@ -256,7 +256,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="cdfY">The Y index of the lookup table to use.</param>
         /// <param name="sourceWidth">The source image width.</param>
         /// <param name="tileWidth">The width of a tile.</param>
-        /// <param name="tileHeight">The height of a tile.</param>
         /// <param name="yStart">Y start position in the image.</param>
         /// <param name="yEnd">Y end position of the image.</param>
         /// <param name="luminanceLevels">
@@ -269,13 +268,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int cdfY,
             int sourceWidth,
             int tileWidth,
-            int tileHeight,
             int yStart,
             int yEnd,
             int luminanceLevels)
         {
             int halfTileWidth = tileWidth / 2;
-            int halfTileHeight = tileHeight / 2;
 
             int cdfX = 0;
             for (int x = halfTileWidth; x < sourceWidth - halfTileWidth; x += tileWidth)
@@ -396,7 +393,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="rb">Luminance from right bottom tile.</param>
         /// <returns>Interpolated Luminance.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static float BilinearInterpolation(float tx, float ty, float lt, float rt, float lb, float rb) => LinearInterpolation(LinearInterpolation(lt, rt, tx), LinearInterpolation(lb, rb, tx), ty);
+        private static float BilinearInterpolation(float tx, float ty, float lt, float rt, float lb, float rb)
+            => LinearInterpolation(LinearInterpolation(lt, rt, tx), LinearInterpolation(lb, rb, tx), ty);
 
         /// <summary>
         /// Linear interpolation between two grey values.
@@ -406,7 +404,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="t">The interpolation value between the two values in the range of [0, 1].</param>
         /// <returns>The interpolated value.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static float LinearInterpolation(float left, float right, float t) => left + ((right - left) * t);
+        private static float LinearInterpolation(float left, float right, float t)
+            => left + ((right - left) * t);
 
         /// <summary>
         /// Contains the results of the cumulative distribution function for all tiles.

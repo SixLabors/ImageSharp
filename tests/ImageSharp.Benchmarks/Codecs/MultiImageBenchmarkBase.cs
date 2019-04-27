@@ -254,7 +254,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
             protected void ForEachSystemDrawingImage(Func<System.Drawing.Bitmap, MemoryStream, object> operation)
             {
-                using (MemoryStream workStream = new MemoryStream())
+                using (var workStream = new MemoryStream())
                 {
 
                     this.ForEachSystemDrawingImage(

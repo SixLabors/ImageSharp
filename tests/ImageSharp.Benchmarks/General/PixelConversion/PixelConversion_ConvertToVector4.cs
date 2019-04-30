@@ -3,8 +3,6 @@ using System.Runtime.CompilerServices;
 
 using BenchmarkDotNet.Attributes;
 
-using SixLabors.ImageSharp.PixelFormats;
-
 namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 {
     public class PixelConversion_ConvertToVector4

@@ -5,7 +5,6 @@ using System;
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp

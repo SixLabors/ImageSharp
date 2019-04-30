@@ -131,6 +131,48 @@ namespace SixLabors.ImageSharp.Tests
                 background.DebugSave(provider, testOutputDetails: "Positive");
             }
         }
+        [Theory]
+        [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32)]
+        public void ImageShouldHandlePositiveLocationTruncatedOverlay(TestImageProvider<Rgba32> provider)
+        {
+            using (Image<Rgba32> background = provider.GetImage())
+            using (var overlay = new Image<Rgba32>(50, 50))
+            {
+                overlay.Mutate(x => x.Fill(Rgba32.Black));
+
+                const int xy = 75;
+                Rgba32 backgroundPixel = background[xy - 1, xy - 1];
+                Rgba32 overlayPixel = overlay[0, 0];
+
+                background.Mutate(x => x.DrawImage(overlay, new Point(xy, xy), PixelColorBlendingMode.Normal, 1F));
+
+                Assert.Equal(Rgba32.White, backgroundPixel);
+                Assert.Equal(overlayPixel, background[xy, xy]);
+
+                background.DebugSave(provider, testOutputDetails: "PositiveTruncated");
+            }
+        }
+
+        [Theory]
+        [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32, -30, -30)]
+        [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32, 130, -30)]
+        [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32, 130, 130)]
+        [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32, -30, 130)]
+        public void NonOverlappingImageThrows(TestImageProvider<Rgba32> provider, int x, int y)
+        {
+            using (Image<Rgba32> background = provider.GetImage())
+            using (var overlay = new Image<Rgba32>(Configuration.Default, 10, 10, Rgba32.Black))
+            {
+                ImageProcessingException ex = Assert.Throws<ImageProcessingException>(Test);
+
+                Assert.Contains("does not overlap", ex.ToString());
+
+                void Test()
+                {
+                    background.Mutate(context => context.DrawImage(overlay, new Point(x, y), GraphicsOptions.Default));
+                }
+            }
+        }
 
         private static void VerifyImage<TPixel>(
             TestImageProvider<TPixel> provider,

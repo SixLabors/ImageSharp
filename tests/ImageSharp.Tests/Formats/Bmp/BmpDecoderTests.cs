@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.Tests
 
         [Theory]
         [WithFile(LessThanFullSizedPalette, PixelTypes.Rgba32)]
-        public void BmpDecoder_CanDecodeLessThanFullPalete<TPixel>(TestImageProvider<TPixel> provider)
+        public void BmpDecoder_CanDecodeLessThanFullPalette<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
@@ -218,6 +218,9 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData(NegHeight, 24)]
         [InlineData(Bit8, 8)]
         [InlineData(Bit8Inverted, 8)]
+        [InlineData(Bit16, 16)]
+        [InlineData(Bit16Inverted, 16)]
+        [InlineData(Bit4, 4)]
         public void Identify(string imagePath, int expectedPixelSize)
         {
             var testFile = TestFile.Create(imagePath);

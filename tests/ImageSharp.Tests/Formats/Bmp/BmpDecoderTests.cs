@@ -213,13 +213,15 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
+        [InlineData(Bit32Rgb, 32)]
+        [InlineData(Bit32Rgba, 32)]
         [InlineData(Car, 24)]
         [InlineData(F, 24)]
         [InlineData(NegHeight, 24)]
-        [InlineData(Bit8, 8)]
-        [InlineData(Bit8Inverted, 8)]
         [InlineData(Bit16, 16)]
         [InlineData(Bit16Inverted, 16)]
+        [InlineData(Bit8, 8)]
+        [InlineData(Bit8Inverted, 8)]
         [InlineData(Bit4, 4)]
         public void Identify(string imagePath, int expectedPixelSize)
         {

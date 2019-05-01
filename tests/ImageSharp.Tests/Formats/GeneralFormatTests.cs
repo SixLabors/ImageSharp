@@ -65,9 +65,6 @@ namespace SixLabors.ImageSharp.Tests
         public static readonly TheoryData<string> QuantizerNames =
             new TheoryData<string>
                 {
-                    nameof(KnownQuantizers.Octree),
-                    nameof(KnownQuantizers.WebSafe),
-                    nameof(KnownQuantizers.Werner),
                     nameof(KnownQuantizers.Wu)
                 };
 

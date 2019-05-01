@@ -21,9 +21,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
         /// <summary>
         /// Gets or sets the quantizer for reducing the color count.
-        /// Defaults to the <see cref="OctreeQuantizer"/>
+        /// Defaults to the <see cref="WuQuantizer"/>
         /// </summary>
-        public IQuantizer Quantizer { get; set; } = new OctreeQuantizer();
+        public IQuantizer Quantizer { get; set; } = new WuQuantizer();
 
         /// <summary>
         /// Gets or sets the color table mode: Global or local.

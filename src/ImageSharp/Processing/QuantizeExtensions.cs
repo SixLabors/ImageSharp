@@ -12,14 +12,14 @@ namespace SixLabors.ImageSharp.Processing
     public static class QuantizeExtensions
     {
         /// <summary>
-        /// Applies quantization to the image using the <see cref="OctreeQuantizer"/>.
+        /// Applies quantization to the image using the <see cref="WuQuantizer"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Quantize<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-            => Quantize(source, KnownQuantizers.Octree);
+            => Quantize(source, KnownQuantizers.Wu);
 
         /// <summary>
         /// Applies quantization to the image.

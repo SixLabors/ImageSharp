@@ -88,28 +88,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             provider.RunValidatingProcessorTest(c => c.Fill(color, region), testDetails, ImageComparer.Exact);
         }
 
-        [Theory]
-        [WithSolidFilledImages(16, 16, "Red", PixelTypes.Rgba32, 5, 7, 3, 8)]
-        [WithSolidFilledImages(16, 16, "Red", PixelTypes.Rgba32, 8, 5, 6, 4)]
-        public void FillRegion_WorksOnWrappedMemoryImage<TPixel>(
-            TestImageProvider<TPixel> provider,
-            int x0,
-            int y0,
-            int w,
-            int h)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            FormattableString testDetails = $"(x{x0},y{y0},w{w},h{h})";
-            var region = new RectangleF(x0, y0, w, h);
-            TPixel color = TestUtils.GetPixelOfNamedColor<TPixel>("Blue");
-
-            provider.RunValidatingProcessorTestOnWrappedMemoryImage(
-                c => c.Fill(color, region),
-                testDetails,
-                ImageComparer.Exact,
-                useReferenceOutputFrom: nameof(this.FillRegion));
-        }
-
         public static readonly TheoryData<bool, string, float, PixelColorBlendingMode, float> BlendData =
             new TheoryData<bool, string, float, PixelColorBlendingMode, float>()
                 {

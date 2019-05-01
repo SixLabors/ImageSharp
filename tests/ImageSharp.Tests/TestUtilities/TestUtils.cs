@@ -232,57 +232,6 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-        public static void RunValidatingProcessorTestOnWrappedMemoryImage<TPixel>(
-            this TestImageProvider<TPixel> provider,
-            Action<IImageProcessingContext<TPixel>> process,
-            object testOutputDetails = null,
-            ImageComparer comparer = null,
-            string useReferenceOutputFrom = null,
-            bool appendPixelTypeToFileName = true,
-            bool appendSourceFileOrDescription = true)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            if (comparer == null)
-            {
-                comparer = ImageComparer.TolerantPercentage(0.001f);
-            }
-
-            using (Image<TPixel> image0 = provider.GetImage())
-            {
-                var mmg = TestMemoryManager<TPixel>.CreateAsCopyOf(image0.GetPixelSpan());
-
-                using (var image1 = Image.WrapMemory(mmg.Memory, image0.Width, image0.Height))
-                {
-                    image1.Mutate(process);
-                    image1.DebugSave(
-                        provider,
-                        testOutputDetails,
-                        appendPixelTypeToFileName: appendPixelTypeToFileName,
-                        appendSourceFileOrDescription: appendSourceFileOrDescription);
-
-                    // TODO: Investigate the cause of pixel inaccuracies under Linux
-                    if (TestEnvironment.IsWindows)
-                    {
-                        string testNameBackup = provider.Utility.TestName;
-
-                        if (useReferenceOutputFrom != null)
-                        {
-                            provider.Utility.TestName = useReferenceOutputFrom;
-                        }
-
-                        image1.CompareToReferenceOutput(
-                            comparer,
-                            provider,
-                            testOutputDetails,
-                            appendPixelTypeToFileName: appendPixelTypeToFileName,
-                            appendSourceFileOrDescription: appendSourceFileOrDescription);
-
-                        provider.Utility.TestName = testNameBackup;
-                    }
-                }
-            }
-        }
-
         /// <summary>
         /// Same as <see cref="RunValidatingProcessorTest{TPixel}"/> but with an additional <see cref="Rectangle"/> parameter passed to 'process'
         /// </summary>

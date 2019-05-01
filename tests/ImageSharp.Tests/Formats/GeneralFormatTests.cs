@@ -124,63 +124,6 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-        [Fact]
-        public void ImageShouldPreservePixelByteOrderWhenSerialized()
-        {
-            string path = TestEnvironment.CreateOutputDirectory("Serialized");
-
-            foreach (TestFile file in Files)
-            {
-                byte[] serialized;
-                using (var image = Image.Load(file.Bytes, out IImageFormat mimeType))
-                using (var memoryStream = new MemoryStream())
-                {
-                    image.Save(memoryStream, mimeType);
-                    memoryStream.Flush();
-                    serialized = memoryStream.ToArray();
-                }
-
-                using (var image2 = Image.Load<Rgba32>(serialized))
-                {
-                    image2.Save($"{path}/{file.FileName}");
-                }
-            }
-        }
-
-        [Theory]
-        [InlineData(10, 10, "png")]
-        [InlineData(100, 100, "png")]
-        [InlineData(100, 10, "png")]
-        [InlineData(10, 100, "png")]
-        [InlineData(10, 10, "gif")]
-        [InlineData(100, 100, "gif")]
-        [InlineData(100, 10, "gif")]
-        [InlineData(10, 100, "gif")]
-        [InlineData(10, 10, "bmp")]
-        [InlineData(100, 100, "bmp")]
-        [InlineData(100, 10, "bmp")]
-        [InlineData(10, 100, "bmp")]
-        [InlineData(10, 10, "jpg")]
-        [InlineData(100, 100, "jpg")]
-        [InlineData(100, 10, "jpg")]
-        [InlineData(10, 100, "jpg")]
-        public void CanIdentifyImageLoadedFromBytes(int width, int height, string format)
-        {
-            using (var image = Image.LoadPixelData(new Rgba32[width * height], width, height))
-            {
-                using (var memoryStream = new MemoryStream())
-                {
-                    image.Save(memoryStream, GetEncoder(format));
-                    memoryStream.Position = 0;
-
-                    IImageInfo imageInfo = Image.Identify(memoryStream);
-
-                    Assert.Equal(imageInfo.Width, width);
-                    Assert.Equal(imageInfo.Height, height);
-                }
-            }
-        }
-
         private static IImageEncoder GetEncoder(string format)
         {
             switch (format)

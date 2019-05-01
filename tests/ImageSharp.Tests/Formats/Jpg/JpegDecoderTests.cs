@@ -125,37 +125,5 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             return "0%";
         }
-        
-        // DEBUG ONLY!
-        // The PDF.js output should be saved by "tests\ImageSharp.Tests\Formats\Jpg\pdfjs\jpeg-converter.htm"
-        // into "\tests\Images\ActualOutput\JpegDecoderTests\"
-        //[Theory]
-        //[WithFile(TestImages.Jpeg.Progressive.Progress, PixelTypes.Rgba32, "PdfJsOriginal_progress.png")]
-        public void ValidateProgressivePdfJsOutput<TPixel>(TestImageProvider<TPixel> provider,
-            string pdfJsOriginalResultImage)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            // tests\ImageSharp.Tests\Formats\Jpg\pdfjs\jpeg-converter.htm
-            string pdfJsOriginalResultPath = Path.Combine(
-                provider.Utility.GetTestOutputDir(),
-                pdfJsOriginalResultImage);
-
-            byte[] sourceBytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
-
-            provider.Utility.TestName = nameof(DecodeProgressiveJpegOutputName);
-
-            var comparer = ImageComparer.Tolerant(0, 0);
-
-            using (Image<TPixel> expectedImage = provider.GetReferenceOutputImage<TPixel>(appendPixelTypeToFileName: false))
-            using (var pdfJsOriginalResult = Image.Load(pdfJsOriginalResultPath))
-            using (var pdfJsPortResult = Image.Load(sourceBytes, JpegDecoder))
-            {
-                ImageSimilarityReport originalReport = comparer.CompareImagesOrFrames(expectedImage, pdfJsOriginalResult);
-                ImageSimilarityReport portReport = comparer.CompareImagesOrFrames(expectedImage, pdfJsPortResult);
-
-                this.Output.WriteLine($"Difference for PDF.js ORIGINAL: {originalReport.DifferencePercentageString}");
-                this.Output.WriteLine($"Difference for PORT: {portReport.DifferencePercentageString}");
-            }
-        }
     }
 }

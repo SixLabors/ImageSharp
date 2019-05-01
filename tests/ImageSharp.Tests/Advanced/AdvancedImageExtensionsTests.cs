@@ -43,37 +43,6 @@ namespace SixLabors.ImageSharp.Tests.Advanced
                 }
             }
 
-
-            [Theory]
-            [WithSolidFilledImages(1, 1, "Red", PixelTypes.Rgba32 | PixelTypes.Bgr24)]
-            [WithTestPatternImages(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
-            public void WhenMemoryIsConsumed<TPixel>(TestImageProvider<TPixel> provider)
-                where TPixel : struct, IPixel<TPixel>
-            {
-                using (Image<TPixel> image0 = provider.GetImage())
-                {
-                    var targetBuffer = new TPixel[image0.Width * image0.Height];
-                    image0.GetPixelSpan().CopyTo(targetBuffer);
-
-                    var managerOfExeternalMemory = new TestMemoryManager<TPixel>(targetBuffer);
-
-                    Memory<TPixel> externalMemory = managerOfExeternalMemory.Memory;
-
-                    using (var image1 = Image.WrapMemory(externalMemory, image0.Width, image0.Height))
-                    {
-                        Memory<TPixel> internalMemory = image1.GetPixelMemory();
-                        Assert.Equal(targetBuffer.Length, internalMemory.Length);
-                        Assert.True(Unsafe.AreSame(ref targetBuffer[0], ref internalMemory.Span[0]));
-
-                        image0.ComparePixelBufferTo(internalMemory.Span);
-                    }
-
-                    // Make sure externalMemory works after destruction:
-                    image0.ComparePixelBufferTo(externalMemory.Span);
-                }
-            }
-        }
-
         [Theory]
         [WithSolidFilledImages(1, 1, "Red", PixelTypes.Rgba32)]
         [WithTestPatternImages(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
@@ -149,6 +118,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
 
                 image.ComparePixelBufferTo(targetBuffer);
             }
+        }
         }
     }
 }

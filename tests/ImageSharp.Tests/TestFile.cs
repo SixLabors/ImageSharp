@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Tests
         /// </returns>
         public Image<Rgba32> CreateImage(IImageDecoder decoder)
         {
-            return ImageSharp.Image.Load(this.Image.GetConfiguration(), this.Bytes, decoder);
+            return ImageSharp.Image.Load<Rgba32>(this.Image.GetConfiguration(), this.Bytes, decoder);
         }
     }
 }

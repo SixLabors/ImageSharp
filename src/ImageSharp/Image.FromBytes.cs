@@ -38,55 +38,6 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Load a new instance of <see cref="Image{Rgba32}"/> from the given encoded byte array.
-        /// </summary>
-        /// <param name="data">The byte array containing image data.</param>
-        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
-        public static Image<Rgba32> Load(byte[] data) => Load<Rgba32>(Configuration.Default, data);
-
-        /// <summary>
-        /// Load a new instance of <see cref="Image{Rgba32}"/> from the given encoded byte array.
-        /// </summary>
-        /// <param name="data">The byte array containing encoded image data.</param>
-        /// <param name="format">The mime type of the decoded image.</param>
-        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
-        public static Image<Rgba32> Load(byte[] data, out IImageFormat format) => Load<Rgba32>(Configuration.Default, data, out format);
-
-        /// <summary>
-        /// Load a new instance of <see cref="Image{Rgba32}"/> from the given encoded byte array.
-        /// </summary>
-        /// <param name="config">The config for the decoder.</param>
-        /// <param name="data">The byte array containing encoded image data.</param>
-        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
-        public static Image<Rgba32> Load(Configuration config, byte[] data) => Load<Rgba32>(config, data);
-
-        /// <summary>
-        /// Load a new instance of <see cref="Image{Rgba32}"/> from the given encoded byte array.
-        /// </summary>
-        /// <param name="config">The config for the decoder.</param>
-        /// <param name="data">The byte array containing image data.</param>
-        /// <param name="format">The mime type of the decoded image.</param>
-        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
-        public static Image<Rgba32> Load(Configuration config, byte[] data, out IImageFormat format) => Load<Rgba32>(config, data, out format);
-
-        /// <summary>
-        /// Load a new instance of <see cref="Image{Rgba32}"/> from the given encoded byte array.
-        /// </summary>
-        /// <param name="data">The byte array containing encoded image data.</param>
-        /// <param name="decoder">The decoder.</param>
-        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
-        public static Image<Rgba32> Load(byte[] data, IImageDecoder decoder) => Load<Rgba32>(data, decoder);
-
-        /// <summary>
-        /// Load a new instance of <see cref="Image{Rgba32}"/> from the given encoded byte array.
-        /// </summary>
-        /// <param name="config">The config for the decoder.</param>
-        /// <param name="data">The byte array containing image data.</param>
-        /// <param name="decoder">The decoder.</param>
-        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
-        public static Image<Rgba32> Load(Configuration config, byte[] data, IImageDecoder decoder) => Load<Rgba32>(config, data, decoder);
-
-        /// <summary>
         /// Load a new instance of <see cref="Image{TPixel}"/> from the given encoded byte array.
         /// </summary>
         /// <param name="data">The byte array containing encoded image data.</param>
@@ -209,22 +160,7 @@ namespace SixLabors.ImageSharp
 
             return default;
         }
-
-        /// <summary>
-        /// Load a new instance of <see cref="Image{Rgba32}"/> from the given encoded byte span.
-        /// </summary>
-        /// <param name="data">The byte span containing image data.</param>
-        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
-        public static Image<Rgba32> Load(ReadOnlySpan<byte> data) => Load<Rgba32>(Configuration.Default, data);
-
-        /// <summary>
-        /// Load a new instance of <see cref="Image{Rgba32}"/> from the given encoded byte span.
-        /// </summary>
-        /// <param name="config">The config for the decoder.</param>
-        /// <param name="data">The byte span containing encoded image data.</param>
-        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
-        public static Image<Rgba32> Load(Configuration config, ReadOnlySpan<byte> data) => Load<Rgba32>(config, data);
-
+        
         /// <summary>
         /// Load a new instance of <see cref="Image{TPixel}"/> from the given encoded byte span.
         /// </summary>

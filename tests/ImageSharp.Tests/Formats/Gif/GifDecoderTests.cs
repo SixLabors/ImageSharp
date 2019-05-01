@@ -241,21 +241,5 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 Assert.Equal(expectedPixelSize, Image.Identify(stream)?.PixelType?.BitsPerPixel);
             }
         }
-
-        [Fact]
-        public void CanDecodeIntermingledImages()
-        {
-            using (var kumin1 = Image.Load(TestFile.Create(TestImages.Gif.Kumin).Bytes))
-            using (var icon = Image.Load(TestFile.Create(TestImages.Png.Icon).Bytes))
-            using (var kumin2 = Image.Load(TestFile.Create(TestImages.Gif.Kumin).Bytes))
-            {
-                for (int i = 0; i < kumin1.Frames.Count; i++)
-                {
-                    ImageFrame<Rgba32> first = kumin1.Frames[i];
-                    ImageFrame<Rgba32> second = kumin2.Frames[i];
-                    first.ComparePixelBufferTo(second.GetPixelSpan());
-                }
-            }
-        }
     }
 }

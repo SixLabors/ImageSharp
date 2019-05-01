@@ -124,23 +124,5 @@ namespace SixLabors.ImageSharp.Tests
             provider.Verify(x => x.Configure(config));
         }
 
-        [Fact]
-        public void DetectFormatAllocatesCleanBuffer()
-        {
-            byte[] jpegImage;
-            using (var buffer = new MemoryStream())
-            {
-                using (var image = new Image<Rgba32>(100, 100))
-                {
-                    image.SaveAsJpeg(buffer);
-                    jpegImage = buffer.ToArray();
-                }
-            }
-
-            byte[] invalidImage = { 1, 2, 3 };
-
-            Assert.Equal(Image.DetectFormat(jpegImage), JpegFormat.Instance);
-            Assert.True(Image.DetectFormat(invalidImage) is null);
-        }
     }
 }

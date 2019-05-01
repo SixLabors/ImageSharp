@@ -113,7 +113,6 @@ namespace SixLabors.ImageSharp.Processing
             /// <inheritdoc />
             public override void Dispose()
             {
-                this.source.Dispose();
             }
 
             /// <inheritdoc />

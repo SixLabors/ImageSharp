@@ -18,6 +18,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         public BmpBitsPerPixel? BitsPerPixel { get; set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the encoder should support transparency.
+        /// Note: Transparency support only works together with 32 bits per pixel. This option will
+        /// change the default behavior of the encoder of writing a bitmap version 3 info header with no compression.
+        /// Instead a bitmap version 4 info header will be written with the BITFIELDS compression.
+        /// </summary>
+        public bool SupportTransparency { get; set; }
+
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>

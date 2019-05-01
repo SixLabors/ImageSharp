@@ -4,7 +4,7 @@
 using System;
 
 namespace SixLabors.ImageSharp
-{
+{   
     /// <summary>
     /// Encapsulates the properties and methods that describe an image.
     /// </summary>

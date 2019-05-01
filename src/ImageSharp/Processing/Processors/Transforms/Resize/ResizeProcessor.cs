@@ -1,5 +1,5 @@
-// // Copyright (c) Six Labors and contributors.
-// // Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
 using System;
 
@@ -8,6 +8,9 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
+    // The non-generic processor is responsible for:
+    // - Encapsulating the parameters of the processor
+    // - Implementing a factory method to create the pixel-specific processor that contains the implementation
     public class ResizeProcessor : IImageProcessor
     {
         /// <summary>

@@ -18,10 +18,6 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
-    // The non-generic processor is responsible for:
-    // - Encapsulating the parameters of the processor
-    // - Implementing a factory method to create the pixel-specific processor that contains the implementation
-
     /// <summary>
     /// Provides methods that allow the resizing of images using various algorithms.
     /// Adapted from <see href="http://www.realtimerendering.com/resources/GraphicsGems/gemsiii/filter_rcg.c"/>

@@ -106,6 +106,10 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ImageMaths.UpscaleFrom8BitTo16Bit(source.B));
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
+
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromGray8(Gray8 source) => this.PackedValue = ImageMaths.UpscaleFrom8BitTo16Bit(source.PackedValue);

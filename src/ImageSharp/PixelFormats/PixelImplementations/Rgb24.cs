@@ -156,6 +156,10 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.B = rgb;
         }
 
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromBgra5551(Bgra5551 source) => this.FromVector4(source.ToVector4());
+
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromRgb24(Rgb24 source) => this = source;

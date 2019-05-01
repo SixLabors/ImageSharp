@@ -23,8 +23,7 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The source image.</param>
         /// <param name="filePath">The file path to save the image to.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        public static void Save<TPixel>(this Image<TPixel> source, string filePath)
-            where TPixel : struct, IPixel<TPixel>
+        public static void Save(this Image source, string filePath)
         {
             Guard.NotNullOrWhiteSpace(filePath, nameof(filePath));
 
@@ -67,8 +66,7 @@ namespace SixLabors.ImageSharp
         /// <param name="filePath">The file path to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
         /// <exception cref="ArgumentNullException">Thrown if the encoder is null.</exception>
-        public static void Save<TPixel>(this Image<TPixel> source, string filePath, IImageEncoder encoder)
-            where TPixel : struct, IPixel<TPixel>
+        public static void Save(this Image source, string filePath, IImageEncoder encoder)
         {
             Guard.NotNull(encoder, nameof(encoder));
             using (Stream fs = source.GetConfiguration().FileSystem.Create(filePath))
@@ -85,8 +83,7 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="format">The format to save the image in.</param>
         /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
-        public static void Save<TPixel>(this Image<TPixel> source, Stream stream, IImageFormat format)
-            where TPixel : struct, IPixel<TPixel>
+        public static void Save(this Image source, Stream stream, IImageFormat format)
         {
             Guard.NotNull(format, nameof(format));
             IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);

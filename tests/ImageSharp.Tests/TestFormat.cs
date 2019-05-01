@@ -199,6 +199,8 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             public bool IsSupportedFileFormat(Span<byte> header) => testFormat.IsSupportedFileFormat(header);
+            
+            public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
         }
 
         public class TestEncoder : ImageSharp.Formats.IImageEncoder

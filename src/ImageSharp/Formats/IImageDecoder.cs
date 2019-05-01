@@ -20,5 +20,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <returns>The decoded image</returns>
         Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
             where TPixel : struct, IPixel<TPixel>;
+
+        Image Decode(Configuration configuration, Stream stream);
     }
 }

@@ -379,6 +379,8 @@ namespace SixLabors.ImageSharp.Tests
                 this.callerName = name;
                 invocationCounts[name] = 0;
             }
+            
+            public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
         }
 
         private class TestDecoderWithParameters : IImageDecoder
@@ -416,6 +418,8 @@ namespace SixLabors.ImageSharp.Tests
                 this.callerName = name;
                 invocationCounts[name] = 0;
             }
+            
+            public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
         }
     }
 }

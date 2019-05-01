@@ -21,8 +21,12 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <returns>The <see cref="Rectangle"/></returns>
         Size GetCurrentSize();
+
+        IImageProcessingContext ApplyProcessor(IImageProcessor processor, Rectangle rectangle);
+
+        IImageProcessingContext ApplyProcessor(IImageProcessor processor);
     }
-    
+
     /// <summary>
     /// An interface to queue up image operations to apply to an image.
     /// </summary>

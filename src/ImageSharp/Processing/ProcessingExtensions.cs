@@ -13,9 +13,41 @@ namespace SixLabors.ImageSharp.Processing
     /// </summary>
     public static class ProcessingExtensions
     {
+        class ProcessingVisitor : IImageVisitor
+        {
+            private readonly Action<IImageProcessingContext> operation;
+
+            private readonly bool mutate;
+            
+            public Image ResultImage { get; private set; }
+
+            public ProcessingVisitor(Action<IImageProcessingContext> operation, bool mutate)
+            {
+                this.operation = operation;
+                this.mutate = mutate;
+            }
+
+            public void Visit<TPixel>(Image<TPixel> image)
+                where TPixel : struct, IPixel<TPixel>
+            {
+                IInternalImageProcessingContext<TPixel> operationsRunner = image.GetConfiguration()
+                    .ImageOperationsProvider.CreateImageProcessingContext(image, this.mutate);
+                this.operation(operationsRunner);
+                this.ResultImage = operationsRunner.Apply();
+            }
+        }
+        
         public static void Mutate(this Image source, Action<IImageProcessingContext> operation)
         {
-            
+            ProcessingVisitor visitor = new ProcessingVisitor(operation, true);
+            source.AcceptVisitor(visitor);
+        }
+
+        public static Image Clone(this Image source, Action<IImageProcessingContext> operation)
+        {
+            ProcessingVisitor visitor = new ProcessingVisitor(operation, false);
+            source.AcceptVisitor(visitor);
+            return visitor.ResultImage;
         }
         
         /// <summary>

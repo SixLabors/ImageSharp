@@ -8,6 +8,11 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing
 {
+    public interface IImageProcessingContext
+    {
+        
+    }
+    
     /// <summary>
     /// An interface to queue up image operations to apply to an image.
     /// </summary>

@@ -11,6 +11,8 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using static TestImages.Bmp;
+
     public class BmpEncoderTests : FileTestBase
     {
         public static readonly TheoryData<BmpBitsPerPixel> BitsPerPixel =
@@ -102,15 +104,43 @@ namespace SixLabors.ImageSharp.Tests
         public void Encode_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             where TPixel : struct, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel);
 
-        private static void TestBmpEncoderCore<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
+        [Theory]
+        [WithFile(Bit32Rgb, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
+        [WithFile(Bit32Rgba, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
+        [WithFile(WinBmpv4, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
+        [WithFile(WinBmpv5, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
+        // WinBmpv3 is a 24 bits per pixel image
+        [WithFile(WinBmpv3, PixelTypes.Rgb24, BmpBitsPerPixel.Pixel24)]
+        public void Encode_WithV3Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
+            // if supportTransparency is false, a v3 bitmap header will be written
+            where TPixel : struct, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false);
+
+        [Theory]
+        [WithFile(Bit32Rgb, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
+        [WithFile(Bit32Rgba, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
+        [WithFile(WinBmpv4, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
+        [WithFile(WinBmpv5, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
+        [WithFile(WinBmpv3, PixelTypes.Rgb24, BmpBitsPerPixel.Pixel24)]
+        public void Encode_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
+            where TPixel : struct, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
+
+        [Theory]
+        [WithFile(TestImages.Png.GrayAlpha2BitInterlaced, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel32)]
+        public void Encode_PreservesAlpha<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
+            where TPixel : struct, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
+
+        private static void TestBmpEncoderCore<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel, bool supportTransparency = true)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                // there is no alpha in bmp!
-                image.Mutate(c => c.MakeOpaque());
+                // There is no alpha in bmp with 24 bits per pixels, so the reference image will be made opaque.
+                if (bitsPerPixel == BmpBitsPerPixel.Pixel24)
+                {
+                    image.Mutate(c => c.MakeOpaque());
+                }
 
-                var encoder = new BmpEncoder { BitsPerPixel = bitsPerPixel };
+                var encoder = new BmpEncoder { BitsPerPixel = bitsPerPixel, SupportTransparency = supportTransparency };
 
                 // Does DebugSave & load reference CompareToReferenceInput():
                 image.VerifyEncoder(provider, "bmp", bitsPerPixel, encoder);

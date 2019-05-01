@@ -24,22 +24,22 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private int padding;
 
         /// <summary>
-        /// The mask for the alpha channel of the color for a 32 bit rgba bitmaps.
+        /// The mask for the alpha channel of the color for 32 bit rgba bitmaps.
         /// </summary>
         private const int Rgba32AlphaMask = 0xFF << 24;
 
         /// <summary>
-        /// The mask for the red part of the color for a 32 bit rgba bitmaps.
+        /// The mask for the red part of the color for 32 bit rgba bitmaps.
         /// </summary>
         private const int Rgba32RedMask = 0xFF << 16;
 
         /// <summary>
-        /// The mask for the green part of the color for a 32 bit rgba bitmaps.
+        /// The mask for the green part of the color for 32 bit rgba bitmaps.
         /// </summary>
         private const int Rgba32GreenMask = 0xFF << 8;
 
         /// <summary>
-        /// The mask for the blue part of the color for a 32 bit rgba bitmaps.
+        /// The mask for the blue part of the color for 32 bit rgba bitmaps.
         /// </summary>
         private const int Rgba32BlueMask = 0xFF;
 
@@ -50,14 +50,22 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private BmpBitsPerPixel? bitsPerPixel;
 
         /// <summary>
+        /// A bitmap v4 header will only be written, if the user explicitly wants support for transparency.
+        /// In this case the compression type BITFIELDS will be used.
+        /// Otherwise a bitmap v3 header will be written, which is supported by almost all decoders.
+        /// </summary>
+        private readonly bool writeV4Header;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="BmpEncoderCore"/> class.
         /// </summary>
-        /// <param name="options">The encoder options</param>
-        /// <param name="memoryAllocator">The memory manager</param>
+        /// <param name="options">The encoder options.</param>
+        /// <param name="memoryAllocator">The memory manager.</param>
         public BmpEncoderCore(IBmpEncoderOptions options, MemoryAllocator memoryAllocator)
         {
             this.memoryAllocator = memoryAllocator;
             this.bitsPerPixel = options.BitsPerPixel;
+            this.writeV4Header = options.SupportTransparency;
         }
 
         /// <summary>
@@ -112,7 +120,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 }
             }
 
-            int infoHeaderSize = BmpInfoHeader.SizeV4;
+            int infoHeaderSize = this.writeV4Header ? BmpInfoHeader.SizeV4 : BmpInfoHeader.SizeV3;
             var infoHeader = new BmpInfoHeader(
                 headerSize: infoHeaderSize,
                 height: image.Height,
@@ -123,17 +131,15 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 clrUsed: 0,
                 clrImportant: 0,
                 xPelsPerMeter: hResolution,
-                yPelsPerMeter: vResolution)
-            {
-                RedMask = Rgba32RedMask,
-                GreenMask = Rgba32GreenMask,
-                BlueMask = Rgba32BlueMask,
-                Compression = BmpCompression.BitFields
-            };
+                yPelsPerMeter: vResolution);
 
-            if (this.bitsPerPixel == BmpBitsPerPixel.Pixel32)
+            if (this.writeV4Header && this.bitsPerPixel == BmpBitsPerPixel.Pixel32)
             {
                 infoHeader.AlphaMask = Rgba32AlphaMask;
+                infoHeader.RedMask = Rgba32RedMask;
+                infoHeader.GreenMask = Rgba32GreenMask;
+                infoHeader.BlueMask = Rgba32BlueMask;
+                infoHeader.Compression = BmpCompression.BitFields;
             }
 
             var fileHeader = new BmpFileHeader(
@@ -151,7 +157,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             stream.Write(buffer, 0, BmpFileHeader.Size);
 
-            infoHeader.WriteV4Header(buffer);
+            if (this.writeV4Header)
+            {
+                infoHeader.WriteV4Header(buffer);
+            }
+            else
+            {
+                infoHeader.WriteV3Header(buffer);
+            }
 
             stream.Write(buffer, 0, infoHeaderSize);
 

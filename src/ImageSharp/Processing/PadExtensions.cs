@@ -19,8 +19,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="width">The new width.</param>
         /// <param name="height">The new height.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Pad<TPixel>(this IImageProcessingContext<TPixel> source, int width, int height)
-            where TPixel : struct, IPixel<TPixel>
+        public static IImageProcessingContext Pad(this IImageProcessingContext source, int width, int height)
         {
             var options = new ResizeOptions
             {

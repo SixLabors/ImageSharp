@@ -67,6 +67,16 @@ namespace SixLabors.ImageSharp.Tests
                 return this.Source.Size();
             }
 
+            public IImageProcessingContext ApplyProcessor(IImageProcessor processor, Rectangle rectangle)
+            {
+                throw new System.NotImplementedException();
+            }
+
+            public IImageProcessingContext ApplyProcessor(IImageProcessor processor)
+            {
+                throw new System.NotImplementedException();
+            }
+
             public IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
             {
                 this.Applied.Add(new AppliedOperation

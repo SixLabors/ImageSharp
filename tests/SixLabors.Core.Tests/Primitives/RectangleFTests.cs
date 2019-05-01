@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -251,6 +251,36 @@ namespace SixLabors.Primitives.Tests
         {
             var r = new RectangleF(5, 5.1F, 1.3F, 1);
             Assert.Equal(string.Format(CultureInfo.CurrentCulture, "RectangleF [ X={0}, Y={1}, Width={2}, Height={3} ]", r.X, r.Y, r.Width, r.Height), r.ToString());
+        }
+
+        [Theory]
+        [InlineData(float.MinValue, float.MaxValue, float.MaxValue, float.MaxValue)]
+        [InlineData(float.MinValue, float.MaxValue, float.MaxValue, float.MinValue)]
+        [InlineData(float.MinValue, float.MaxValue, float.MinValue, float.MaxValue)]
+        [InlineData(float.MinValue, float.MaxValue, float.MinValue, float.MinValue)]
+        [InlineData(float.MinValue, float.MinValue, float.MaxValue, float.MaxValue)]
+        [InlineData(float.MinValue, float.MinValue, float.MaxValue, float.MinValue)]
+        [InlineData(float.MinValue, float.MinValue, float.MinValue, float.MaxValue)]
+        [InlineData(float.MinValue, float.MinValue, float.MinValue, float.MinValue)]
+        [InlineData(float.MaxValue, float.MaxValue, float.MaxValue, float.MaxValue)]
+        [InlineData(float.MaxValue, float.MaxValue, float.MaxValue, float.MinValue)]
+        [InlineData(float.MaxValue, float.MaxValue, float.MinValue, float.MaxValue)]
+        [InlineData(float.MaxValue, float.MaxValue, float.MinValue, float.MinValue)]
+        [InlineData(float.MaxValue, float.MinValue, float.MaxValue, float.MaxValue)]
+        [InlineData(float.MaxValue, float.MinValue, float.MaxValue, float.MinValue)]
+        [InlineData(float.MaxValue, float.MinValue, float.MinValue, float.MaxValue)]
+        [InlineData(float.MaxValue, float.MinValue, float.MinValue, float.MinValue)]
+        [InlineData(0, 0, 0, 0)]
+        public void DeconstructTest(float x, float y, float width, float height)
+        {
+            RectangleF r = new RectangleF(x, y, width, height);
+
+            (float dx, float dy, float dw, float dh) = r;
+
+            Assert.Equal(x, dx);
+            Assert.Equal(y, dy);
+            Assert.Equal(width, dw);
+            Assert.Equal(height, dh);
         }
     }
 }

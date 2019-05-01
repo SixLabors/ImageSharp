@@ -102,6 +102,18 @@ namespace SixLabors.ImageSharp
             Image<TPixel> img = decoder.Decode<TPixel>(config, stream);
             return (img, format);
         }
+        
+        private static (Image img, IImageFormat format) Decode(Stream stream, Configuration config)
+        {
+            IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
+            if (decoder is null)
+            {
+                return (null, null);
+            }
+
+            Image img = decoder.Decode(config, stream);
+            return (img, format);
+        }
 
         /// <summary>
         /// Reads the raw image information from the specified stream.

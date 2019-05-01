@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
-        public static Image<Rgba32> Load(string path) => Load<Rgba32>(path);
+        public static Image Load(string path) => Load(path);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given file.
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
-        public static Image<Rgba32> Load(string path, out IImageFormat format) => Load<Rgba32>(path, out format);
+        public static Image Load(string path, out IImageFormat format) => Load(path, out format);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given file.
@@ -68,19 +68,7 @@ namespace SixLabors.ImageSharp
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
-        public static Image<Rgba32> Load(Configuration config, string path) => Load<Rgba32>(config, path);
-
-        /// <summary>
-        /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given file.
-        /// </summary>
-        /// <param name="config">The config for the decoder.</param>
-        /// <param name="path">The file path to the image.</param>
-        /// <param name="format">The mime type of the decoded image.</param>
-        /// <exception cref="NotSupportedException">
-        /// Thrown if the stream is not readable nor seekable.
-        /// </exception>
-        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
-        public static Image<Rgba32> Load(Configuration config, string path, out IImageFormat format) => Load<Rgba32>(config, path, out format);
+        public static Image Load(Configuration config, string path) => Load(config, path);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given file.
@@ -92,7 +80,7 @@ namespace SixLabors.ImageSharp
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
-        public static Image<Rgba32> Load(Configuration config, string path, IImageDecoder decoder) => Load<Rgba32>(config, path, decoder);
+        public static Image Load(Configuration config, string path, IImageDecoder decoder) => Load(config, path, decoder);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given file.
@@ -103,7 +91,7 @@ namespace SixLabors.ImageSharp
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
-        public static Image<Rgba32> Load(string path, IImageDecoder decoder) => Load<Rgba32>(path, decoder);
+        public static Image Load(string path, IImageDecoder decoder) => Load(path, decoder);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given file.
@@ -172,6 +160,14 @@ namespace SixLabors.ImageSharp
             using (Stream stream = config.FileSystem.OpenRead(path))
             {
                 return Load<TPixel>(config, stream, out format);
+            }
+        }
+        
+        public static Image Load(Configuration config, string path, out IImageFormat format)
+        {
+            using (Stream stream = config.FileSystem.OpenRead(path))
+            {
+                return Load(config, stream, out format);
             }
         }
 

@@ -144,20 +144,6 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Saves the image to the given stream using the given image encoder.
-        /// </summary>
-        /// <param name="stream">The stream to save the image to.</param>
-        /// <param name="encoder">The encoder to save the image with.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the stream or encoder is null.</exception>
-        public void Save(Stream stream, IImageEncoder encoder)
-        {
-            Guard.NotNull(stream, nameof(stream));
-            Guard.NotNull(encoder, nameof(encoder));
-
-            encoder.Encode(this, stream);
-        }
-
-        /// <summary>
         /// Clones the current image
         /// </summary>
         /// <returns>Returns a new image with all the same metadata as the original.</returns>

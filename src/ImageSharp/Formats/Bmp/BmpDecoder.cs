@@ -30,6 +30,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             return new BmpDecoderCore(configuration, this).Decode<TPixel>(stream);
         }
 
+        public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
+
         /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream)
         {

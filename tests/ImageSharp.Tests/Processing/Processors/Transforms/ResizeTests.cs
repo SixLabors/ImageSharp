@@ -40,6 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 nameof(KnownResamplers.Lanczos5),
             };
 
+
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.07F);
 
         [Fact]

@@ -16,26 +16,22 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Filters an image but the given color matrix
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="matrix">The filter color matrix</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Filter<TPixel>(this IImageProcessingContext<TPixel> source, ColorMatrix matrix)
-            where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new FilterProcessor<TPixel>(matrix));
+        public static IImageProcessingContext Filter(this IImageProcessingContext source, ColorMatrix matrix)
+            => source.ApplyProcessor(new FilterProcessor(matrix));
 
         /// <summary>
         /// Filters an image but the given color matrix
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="matrix">The filter color matrix</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Filter<TPixel>(this IImageProcessingContext<TPixel> source, ColorMatrix matrix, Rectangle rectangle)
-            where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new FilterProcessor<TPixel>(matrix), rectangle);
+        public static IImageProcessingContext Filter(this IImageProcessingContext source, ColorMatrix matrix, Rectangle rectangle)
+            => source.ApplyProcessor(new FilterProcessor(matrix), rectangle);
     }
 }

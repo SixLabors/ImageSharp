@@ -11,8 +11,10 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc/>
         public PixelTypeInfo PixelType { get; }
 
+        /// <inheritdoc />
         public abstract int Width { get; }
-        
+
+        /// <inheritdoc />
         public abstract int Height { get; }
         
         /// <inheritdoc/>

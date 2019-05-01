@@ -6,6 +6,12 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors
 {
+    public interface IImageProcessor
+    {
+        IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+            where TPixel : struct, IPixel<TPixel>;
+    }
+    
     /// <summary>
     /// Encapsulates methods to alter the pixels of an image.
     /// </summary>

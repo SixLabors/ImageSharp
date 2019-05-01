@@ -13,6 +13,11 @@ namespace SixLabors.ImageSharp.Processing
     /// </summary>
     public static class ProcessingExtensions
     {
+        public static void Mutate(this Image source, Action<IImageProcessingContext> operation)
+        {
+            
+        }
+        
         /// <summary>
         /// Applies the given operation to the mutable image.
         /// Useful when we need to extract information like Width/Height to parametrize the next operation working on the <see cref="IImageProcessingContext{TPixel}"/> chain.

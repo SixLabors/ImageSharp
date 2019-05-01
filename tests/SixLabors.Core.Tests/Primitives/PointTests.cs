@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -238,6 +238,21 @@ namespace SixLabors.Primitives.Tests
         {
             var p = new Point(5, -5);
             Assert.Equal(string.Format(CultureInfo.CurrentCulture, "Point [ X={0}, Y={1} ]", p.X, p.Y), p.ToString());
+        }
+
+        [Theory]
+        [InlineData(int.MaxValue, int.MinValue)]
+        [InlineData(int.MinValue, int.MinValue)]
+        [InlineData(int.MaxValue, int.MaxValue)]
+        [InlineData(0, 0)]
+        public void DeconstructTest(int x, int y)
+        {
+            Point p = new Point(x, y);
+
+            (int deconstructedX, int deconstructedY) = p;
+
+            Assert.Equal(x, deconstructedX);
+            Assert.Equal(y, deconstructedY);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -230,6 +230,21 @@ namespace SixLabors.Primitives.Tests
             SizeF size = new SizeF(width, height);
             SizeF expected = new SizeF(width / divisor, height / divisor);
             Assert.Equal(expected, size / divisor);
+        }
+
+        [Theory]
+        [InlineData(float.MaxValue, float.MinValue)]
+        [InlineData(float.MinValue, float.MinValue)]
+        [InlineData(float.MaxValue, float.MaxValue)]
+        [InlineData(0, 0)]
+        public void DeconstructTest(float width, float height)
+        {
+            SizeF s = new SizeF(width, height);
+
+            (float deconstructedWidth, float deconstructedHeight) = s;
+
+            Assert.Equal(width, deconstructedWidth);
+            Assert.Equal(height, deconstructedHeight);
         }
     }
 }

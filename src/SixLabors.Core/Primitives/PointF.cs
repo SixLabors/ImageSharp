@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -246,6 +246,17 @@ namespace SixLabors.Primitives
         /// <returns>The transformed <see cref="PointF"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static PointF Transform(PointF point, Matrix3x2 matrix) => Vector2.Transform(point, matrix);
+
+        /// <summary>
+        /// Deconstructs this point into two floats
+        /// </summary>
+        /// <param name="x">The out value for X</param>
+        /// <param name="y">The out value for Y</param>
+        public void Deconstruct(out float x, out float y)
+        {
+            x = this.X;
+            y = this.Y;
+        }
 
         /// <summary>
         /// Translates this <see cref="PointF"/> by the specified amount.

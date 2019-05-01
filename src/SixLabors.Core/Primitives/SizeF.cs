@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -195,6 +195,17 @@ namespace SixLabors.Primitives
             var v = Vector2.Transform(new Vector2(size.Width, size.Height), matrix);
 
             return new SizeF(v.X, v.Y);
+        }
+
+        /// <summary>
+        /// Deconstructs this size into two floats
+        /// </summary>
+        /// <param name="width">The out value for the width</param>
+        /// <param name="height">The out value for the height</param>
+        public void Deconstruct(out float width, out float height)
+        {
+            width = this.Width;
+            height = this.Height;
         }
 
         /// <inheritdoc/>

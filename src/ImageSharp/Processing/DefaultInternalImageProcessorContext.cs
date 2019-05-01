@@ -53,6 +53,18 @@ namespace SixLabors.ImageSharp.Processing
         /// <inheritdoc/>
         public Size GetCurrentSize() => this.GetCurrentBounds().Size;
 
+        public IImageProcessingContext ApplyProcessor(IImageProcessor processor, Rectangle rectangle)
+        {
+            var processorImplementation = processor.CreatePixelSpecificProcessor<TPixel>();
+            return this.ApplyProcessor(processorImplementation, rectangle);
+        }
+
+        public IImageProcessingContext ApplyProcessor(IImageProcessor processor)
+        {
+            var processorImplementation = processor.CreatePixelSpecificProcessor<TPixel>();
+            return this.ApplyProcessor(processorImplementation);
+        }
+
         /// <inheritdoc/>
         public IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
         {

@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.CompilerServices;
+
 namespace SixLabors.ImageSharp.Formats
 {
     /// <summary>
@@ -21,5 +23,7 @@ namespace SixLabors.ImageSharp.Formats
         /// Gets color depth, in number of bits per pixel.
         /// </summary>
         public int BitsPerPixel { get; }
+        
+        internal static PixelTypeInfo Create<TPixel>() => new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
     }
 }

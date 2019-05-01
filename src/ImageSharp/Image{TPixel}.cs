@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp
     /// Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public sealed class Image<TPixel> : IImage, IConfigurable
+    public sealed class Image<TPixel> : Image, IConfigurable
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly Configuration configuration;
@@ -68,10 +68,9 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="metadata">The images metadata.</param>
         internal Image(Configuration configuration, int width, int height, ImageMetadata metadata)
+            : base(PixelTypeInfo.Create<TPixel>(), metadata)
         {
             this.configuration = configuration ?? Configuration.Default;
-            this.PixelType = new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
-            this.Metadata = metadata ?? new ImageMetadata();
             this.Frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
         }
 
@@ -85,10 +84,9 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="metadata">The images metadata.</param>
         internal Image(Configuration configuration, MemorySource<TPixel> memorySource, int width, int height, ImageMetadata metadata)
+            : base(PixelTypeInfo.Create<TPixel>(), metadata)
         {
             this.configuration = configuration;
-            this.PixelType = new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
-            this.Metadata = metadata;
             this.Frames = new ImageFrameCollection<TPixel>(this, width, height, memorySource);
         }
 
@@ -102,10 +100,9 @@ namespace SixLabors.ImageSharp
         /// <param name="backgroundColor">The color to initialize the pixels with.</param>
         /// <param name="metadata">The images metadata.</param>
         internal Image(Configuration configuration, int width, int height, TPixel backgroundColor, ImageMetadata metadata)
+            : base(PixelTypeInfo.Create<TPixel>(), metadata)
         {
             this.configuration = configuration ?? Configuration.Default;
-            this.PixelType = new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
-            this.Metadata = metadata ?? new ImageMetadata();
             this.Frames = new ImageFrameCollection<TPixel>(this, width, height, backgroundColor);
         }
 
@@ -117,11 +114,9 @@ namespace SixLabors.ImageSharp
         /// <param name="metadata">The images metadata.</param>
         /// <param name="frames">The frames that will be owned by this image instance.</param>
         internal Image(Configuration configuration, ImageMetadata metadata, IEnumerable<ImageFrame<TPixel>> frames)
+            : base(PixelTypeInfo.Create<TPixel>(), metadata)
         {
             this.configuration = configuration ?? Configuration.Default;
-            this.PixelType = new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
-            this.Metadata = metadata ?? new ImageMetadata();
-
             this.Frames = new ImageFrameCollection<TPixel>(this, frames);
         }
 
@@ -129,18 +124,6 @@ namespace SixLabors.ImageSharp
         /// Gets the pixel buffer.
         /// </summary>
         Configuration IConfigurable.Configuration => this.configuration;
-
-        /// <inheritdoc/>
-        public PixelTypeInfo PixelType { get; }
-
-        /// <inheritdoc/>
-        public int Width => this.Frames.RootFrame.Width;
-
-        /// <inheritdoc/>
-        public int Height => this.Frames.RootFrame.Height;
-
-        /// <inheritdoc/>
-        public ImageMetadata Metadata { get; }
 
         /// <summary>
         /// Gets the frames.
@@ -151,6 +134,12 @@ namespace SixLabors.ImageSharp
         /// Gets the root frame.
         /// </summary>
         private IPixelSource<TPixel> PixelSource => this.Frames?.RootFrame ?? throw new ObjectDisposedException(nameof(Image<TPixel>));
+
+        /// <inheritdoc/>
+        public override int Width => this.Frames.RootFrame.Width;
+
+        /// <inheritdoc/>
+        public override int Height => this.Frames.RootFrame.Height;
 
         /// <summary>
         /// Gets or sets the pixel at the specified position.
@@ -218,7 +207,7 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc/>
-        public void Dispose() => this.Frames.Dispose();
+        public override void Dispose() => this.Frames.Dispose();
 
         /// <inheritdoc/>
         public override string ToString() => $"Image<{typeof(TPixel).Name}>: {this.Width}x{this.Height}";

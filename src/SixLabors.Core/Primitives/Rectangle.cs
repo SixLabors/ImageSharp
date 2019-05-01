@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -318,6 +318,21 @@ namespace SixLabors.Primitives
             int y2 = Math.Max(a.Bottom, b.Bottom);
 
             return new Rectangle(x1, y1, x2 - x1, y2 - y1);
+        }
+
+        /// <summary>
+        /// Deconstructs this rectangle into four integers
+        /// </summary>
+        /// <param name="x">The out value for X</param>
+        /// <param name="y">The out value for Y</param>
+        /// <param name="width">The out value for the width</param>
+        /// <param name="height">The out value for the height</param>
+        public void Deconstruct(out int x, out int y, out int width, out int height)
+        {
+            x = this.X;
+            y = this.Y;
+            width = this.Width;
+            height = this.Height;
         }
 
         /// <summary>

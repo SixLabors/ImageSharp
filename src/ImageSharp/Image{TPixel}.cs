@@ -209,6 +209,11 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc/>
         public override void Dispose() => this.Frames.Dispose();
 
+        internal override void ApplyVisitor(IImageVisitor visitor)
+        {
+            visitor.Visit(this);
+        }
+
         /// <inheritdoc/>
         public override string ToString() => $"Image<{typeof(TPixel).Name}>: {this.Width}x{this.Height}";
 

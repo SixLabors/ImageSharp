@@ -3,9 +3,16 @@
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
 {
+    internal interface IImageVisitor
+    {
+        void Visit<TPixel>(Image<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>;
+    }
+    
     public abstract partial class Image : IImage
     {
         /// <inheritdoc/>
@@ -27,5 +34,7 @@ namespace SixLabors.ImageSharp
         }
 
         public abstract void Dispose();
+
+        internal abstract void ApplyVisitor(IImageVisitor visitor);
     }
 }

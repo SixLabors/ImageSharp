@@ -18,11 +18,9 @@ namespace SixLabors.ImageSharp
     /// Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public sealed class Image<TPixel> : IImage, IConfigurable
+    public sealed class Image<TPixel> : Image
         where TPixel : struct, IPixel<TPixel>
     {
-        private readonly Configuration configuration;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
         /// with the height and the width of the image.
@@ -68,8 +66,8 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="metadata">The images metadata.</param>
         internal Image(Configuration configuration, int width, int height, ImageMetadata metadata)
+            : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata)
         {
-            this.configuration = configuration ?? Configuration.Default;
             this.PixelType = new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
             this.Metadata = metadata ?? new ImageMetadata();
             this.Frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
@@ -85,8 +83,8 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="metadata">The images metadata.</param>
         internal Image(Configuration configuration, MemorySource<TPixel> memorySource, int width, int height, ImageMetadata metadata)
+            : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata)
         {
-            this.configuration = configuration;
             this.PixelType = new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
             this.Metadata = metadata;
             this.Frames = new ImageFrameCollection<TPixel>(this, width, height, memorySource);
@@ -102,8 +100,8 @@ namespace SixLabors.ImageSharp
         /// <param name="backgroundColor">The color to initialize the pixels with.</param>
         /// <param name="metadata">The images metadata.</param>
         internal Image(Configuration configuration, int width, int height, TPixel backgroundColor, ImageMetadata metadata)
+            : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata)
         {
-            this.configuration = configuration ?? Configuration.Default;
             this.PixelType = new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
             this.Metadata = metadata ?? new ImageMetadata();
             this.Frames = new ImageFrameCollection<TPixel>(this, width, height, backgroundColor);
@@ -117,18 +115,14 @@ namespace SixLabors.ImageSharp
         /// <param name="metadata">The images metadata.</param>
         /// <param name="frames">The frames that will be owned by this image instance.</param>
         internal Image(Configuration configuration, ImageMetadata metadata, IEnumerable<ImageFrame<TPixel>> frames)
+            : base(configuration,PixelTypeInfo.Create<TPixel>(), metadata)
         {
-            this.configuration = configuration ?? Configuration.Default;
             this.PixelType = new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
             this.Metadata = metadata ?? new ImageMetadata();
 
             this.Frames = new ImageFrameCollection<TPixel>(this, frames);
         }
 
-        /// <summary>
-        /// Gets the pixel buffer.
-        /// </summary>
-        Configuration IConfigurable.Configuration => this.configuration;
 
         /// <inheritdoc/>
         public PixelTypeInfo PixelType { get; }
@@ -142,7 +136,6 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc/>
         public ImageMetadata Metadata { get; }
 
-        /// <summary>
         /// Gets the frames.
         /// </summary>
         public ImageFrameCollection<TPixel> Frames { get; }
@@ -220,7 +213,7 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc/>
         public void Dispose() => this.Frames.Dispose();
 
-        internal override void ApplyVisitor(IImageVisitor visitor)
+        internal override void AcceptVisitor(IImageVisitor visitor)
         {
             visitor.Visit(this);
         }

@@ -10,16 +10,6 @@ namespace SixLabors.ImageSharp.Processing
 {
     public interface IImageProcessingContext
     {
-        
-    }
-    
-    /// <summary>
-    /// An interface to queue up image operations to apply to an image.
-    /// </summary>
-    /// <typeparam name="TPixel">The pixel format</typeparam>
-    public interface IImageProcessingContext<TPixel>
-        where TPixel : struct, IPixel<TPixel>
-    {
         /// <summary>
         /// Gets a reference to the <see cref="MemoryAllocator" /> used to allocate buffers
         /// for this context.
@@ -31,7 +21,15 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <returns>The <see cref="Rectangle"/></returns>
         Size GetCurrentSize();
-
+    }
+    
+    /// <summary>
+    /// An interface to queue up image operations to apply to an image.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format</typeparam>
+    public interface IImageProcessingContext<TPixel> : IImageProcessingContext
+        where TPixel : struct, IPixel<TPixel>
+    {
         /// <summary>
         /// Adds the processor to the current set of image operations to be applied.
         /// </summary>

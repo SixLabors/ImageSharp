@@ -48,18 +48,6 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, true)]
-        [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, false)]
-        public void IsEquivalentTo_WhenFalse<TPixel>(TestImageProvider<TPixel> provider, bool compareAlpha)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            Image<TPixel> a = provider.GetImage();
-            Image<TPixel> b = provider.GetImage(x => x.OilPaint(3, 2));
-
-            Assert.False(a.IsEquivalentTo(b, compareAlpha));
-        }
-
-        [Theory]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Rgba32 | PixelTypes.Bgr565, true)]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Rgba32 | PixelTypes.Bgr565, false)]
         public void IsEquivalentTo_WhenTrue<TPixel>(TestImageProvider<TPixel> provider, bool compareAlpha)

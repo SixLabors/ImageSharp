@@ -64,6 +64,34 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
+        public void Bgra5551_FromRgba32()
+        {
+            // arrange
+            var bgra = default(Bgra5551);
+            ushort expectedPackedValue = ushort.MaxValue;
+
+            // act
+            bgra.FromRgba32(new Rgba32(255, 255, 255, 255));
+
+            // assert
+            Assert.Equal(expectedPackedValue, bgra.PackedValue);
+        }
+
+        [Fact]
+        public void Bgra5551_FromBgra32()
+        {
+            // arrange
+            var bgra = default(Bgra5551);
+            ushort expectedPackedValue = ushort.MaxValue;
+
+            // act
+            bgra.FromBgra32(new Bgra32(255, 255, 255, 255));
+
+            // assert
+            Assert.Equal(expectedPackedValue, bgra.PackedValue);
+        }
+
+        [Fact]
         public void Bgra5551_Clamping()
         {
             Assert.Equal(Vector4.Zero, new Bgra5551(Vector4.One * -1234.0f).ToVector4());

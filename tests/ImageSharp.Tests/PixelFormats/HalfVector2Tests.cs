@@ -71,5 +71,22 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // assert
             Assert.Equal(expected, actual);
         }
+
+        [Fact]
+        public void HalfVector2_FromBgra5551()
+        {
+            // arrange
+            var halfVector2 = default(HalfVector2);
+            
+            // act
+            halfVector2.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // assert
+            Vector4 actual = halfVector2.ToScaledVector4();
+            Assert.Equal(1F, actual.X);
+            Assert.Equal(1F, actual.Y);
+            Assert.Equal(0, actual.Z);
+            Assert.Equal(1, actual.W);
+        }
     }
 }

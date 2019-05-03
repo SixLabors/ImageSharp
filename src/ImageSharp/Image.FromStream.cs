@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp
     /// <content>
     /// Adds static methods allowing the creation of new image from a given stream.
     /// </content>
-    public static partial class Image
+    public abstract partial class Image
     {
         /// <summary>
         /// By reading the header on the provided stream this calculates the images mime type.

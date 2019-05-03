@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp
     /// <content>
     /// Adds static methods allowing the decoding of new images.
     /// </content>
-    public static partial class Image
+    public abstract partial class Image
     {
         /// <summary>
         /// Creates an <see cref="Image{TPixel}"/> instance backed by an uninitialized memory buffer.

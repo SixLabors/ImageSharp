@@ -8,33 +8,29 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extensions that allow the alteration of the hue component to the <see cref="Image{TPixel}"/> type.
+    /// Adds extensions that allow the alteration of the hue component to the <see cref="Image"/> type.
     /// </summary>
     public static class HueExtensions
     {
         /// <summary>
         /// Alters the hue component of the image.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="degrees">The rotation angle in degrees to adjust the hue.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Hue<TPixel>(this IImageProcessingContext<TPixel> source, float degrees)
-            where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new HueProcessor<TPixel>(degrees));
+        public static IImageProcessingContext Hue(this IImageProcessingContext source, float degrees)
+            => source.ApplyProcessor(new HueProcessor(degrees));
 
         /// <summary>
         /// Alters the hue component of the image.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="degrees">The rotation angle in degrees to adjust the hue.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Hue<TPixel>(this IImageProcessingContext<TPixel> source, float degrees, Rectangle rectangle)
-            where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new HueProcessor<TPixel>(degrees), rectangle);
+        public static IImageProcessingContext Hue(this IImageProcessingContext source, float degrees, Rectangle rectangle)
+            => source.ApplyProcessor(new HueProcessor(degrees), rectangle);
     }
 }

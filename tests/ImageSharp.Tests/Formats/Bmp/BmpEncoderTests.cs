@@ -6,10 +6,11 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+
 using Xunit;
 using Xunit.Abstractions;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 {
     using static TestImages.Bmp;
 
@@ -25,16 +26,16 @@ namespace SixLabors.ImageSharp.Tests
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
         new TheoryData<string, int, int, PixelResolutionUnit>
         {
-            { TestImages.Bmp.Car, 3780, 3780 , PixelResolutionUnit.PixelsPerMeter },
-            { TestImages.Bmp.V5Header, 3780, 3780 , PixelResolutionUnit.PixelsPerMeter },
-            { TestImages.Bmp.RLE8, 2835, 2835, PixelResolutionUnit.PixelsPerMeter }
+            { Car, 3780, 3780 , PixelResolutionUnit.PixelsPerMeter },
+            { V5Header, 3780, 3780 , PixelResolutionUnit.PixelsPerMeter },
+            { RLE8, 2835, 2835, PixelResolutionUnit.PixelsPerMeter }
         };
 
         public static readonly TheoryData<string, BmpBitsPerPixel> BmpBitsPerPixelFiles =
         new TheoryData<string, BmpBitsPerPixel>
         {
-            { TestImages.Bmp.Car, BmpBitsPerPixel.Pixel24 },
-            { TestImages.Bmp.Bit32Rgb, BmpBitsPerPixel.Pixel32 }
+            { Car, BmpBitsPerPixel.Pixel24 },
+            { Bit32Rgb, BmpBitsPerPixel.Pixel32 }
         };
 
         public BmpEncoderTests(ITestOutputHelper output) => this.Output = output;
@@ -111,6 +112,8 @@ namespace SixLabors.ImageSharp.Tests
         [WithFile(WinBmpv5, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
         // WinBmpv3 is a 24 bits per pixel image
         [WithFile(WinBmpv3, PixelTypes.Rgb24, BmpBitsPerPixel.Pixel24)]
+        [WithFile(Rgb16, PixelTypes.Bgra5551, BmpBitsPerPixel.Pixel16)]
+        [WithFile(Bit16, PixelTypes.Bgra5551, BmpBitsPerPixel.Pixel16)]
         public void Encode_WithV3Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             // if supportTransparency is false, a v3 bitmap header will be written
             where TPixel : struct, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false);
@@ -121,6 +124,8 @@ namespace SixLabors.ImageSharp.Tests
         [WithFile(WinBmpv4, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
         [WithFile(WinBmpv5, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
         [WithFile(WinBmpv3, PixelTypes.Rgb24, BmpBitsPerPixel.Pixel24)]
+        [WithFile(Rgb16, PixelTypes.Bgra5551, BmpBitsPerPixel.Pixel16)]
+        [WithFile(Bit16, PixelTypes.Bgra5551, BmpBitsPerPixel.Pixel16)]
         public void Encode_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             where TPixel : struct, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
 

@@ -63,6 +63,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
+        public void Rg32_FromBgra5551()
+        {
+            // arrange
+            var rg32 = new Rg32(Vector2.One);
+            uint expected = 0xFFFFFFFF;
+
+            // act
+            rg32.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // assert
+            Assert.Equal(expected, rg32.PackedValue);
+        }
+
+        [Fact]
         public void Rg32_Clamping()
         {
             Assert.Equal(Vector2.Zero, new Rg32(Vector2.One * -1234.0f).ToVector2());

@@ -134,6 +134,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromBgra32(Bgra32 source) => this.FromScaledVector4(source.ToScaledVector4());
 
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
+
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromGray8(Gray8 source) => this.FromScaledVector4(source.ToScaledVector4());
@@ -152,10 +156,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToRgba32(ref Rgba32 dest)
-        {
-            dest.FromScaledVector4(this.ToScaledVector4());
-        }
+        public void ToRgba32(ref Rgba32 dest) => dest.FromScaledVector4(this.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

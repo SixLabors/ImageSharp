@@ -11,7 +11,7 @@ using Xunit;
 
 // ReSharper disable InconsistentNaming
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 {
     using SixLabors.ImageSharp.Metadata;
     using static TestImages.Bmp;

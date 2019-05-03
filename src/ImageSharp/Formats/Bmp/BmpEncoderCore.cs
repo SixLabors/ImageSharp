@@ -194,6 +194,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 case BmpBitsPerPixel.Pixel24:
                     this.Write24Bit(stream, pixels);
                     break;
+
+                case BmpBitsPerPixel.Pixel16:
+                    this.Write16Bit(stream, pixels);
+                    break;
             }
         }
 
@@ -242,6 +246,32 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         pixelSpan,
                         row.GetSpan(),
                         pixelSpan.Length);
+                    stream.Write(row.Array, 0, row.Length());
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes the 16bit color palette to the stream.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
+        private void Write16Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 2))
+            {
+                for (int y = pixels.Height - 1; y >= 0; y--)
+                {
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+
+                    PixelOperations<TPixel>.Instance.ToBgra5551Bytes(
+                        this.configuration,
+                        pixelSpan,
+                        row.GetSpan(),
+                        pixelSpan.Length);
+
                     stream.Write(row.Array, 0, row.Length());
                 }
             }

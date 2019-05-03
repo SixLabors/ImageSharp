@@ -58,5 +58,21 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // assert
             Assert.Equal(expected, actual);
         }
+
+        [Fact]
+        public void Rgb48_FromBgra5551()
+        {
+            // arrange
+            var rgb = default(Rgb48);
+            ushort expected = ushort.MaxValue;
+
+            // act
+            rgb.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // assert
+            Assert.Equal(expected, rgb.R);
+            Assert.Equal(expected, rgb.G);
+            Assert.Equal(expected, rgb.B);
+        }
     }
 }

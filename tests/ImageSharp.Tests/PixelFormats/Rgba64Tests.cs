@@ -91,5 +91,22 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // assert
             Assert.Equal(expected, actual);
         }
+
+        [Fact]
+        public void Rgba64_FromBgra5551()
+        {
+            // arrange
+            var rgba = default(Rgba64);
+            ushort expected = ushort.MaxValue;
+
+            // act
+            rgba.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // assert
+            Assert.Equal(expected, rgba.R);
+            Assert.Equal(expected, rgba.G);
+            Assert.Equal(expected, rgba.B);
+            Assert.Equal(expected, rgba.A);
+        }
     }
 }

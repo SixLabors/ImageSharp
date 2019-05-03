@@ -95,5 +95,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             Assert.Equal(Vec(1, 2, 3), rgb.ToVector4());
         }
+
+        [Fact]
+        public void Bgr24_FromBgra5551()
+        {
+            // arrange
+            var bgr = default(Bgr24);
+
+            // act
+            bgr.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // assert
+            Assert.Equal(255, bgr.R);
+            Assert.Equal(255, bgr.G);
+            Assert.Equal(255, bgr.B);
+        }
     }
 }

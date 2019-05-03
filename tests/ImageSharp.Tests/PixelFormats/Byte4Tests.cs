@@ -62,6 +62,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
+        public void Byte4_FromBgra5551()
+        {
+            // arrange
+            var rgb = default(Byte4);
+            uint expected = 0xFFFFFFFF;
+
+            // act
+            rgb.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // assert
+            Assert.Equal(expected, rgb.PackedValue);
+        }
+
+        [Fact]
         public void Byte4_Clamping()
         {
             Assert.Equal(Vector4.Zero, new Byte4(Vector4.One * -1234.0f).ToVector4());

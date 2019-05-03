@@ -61,6 +61,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
+        public void Argb32_FromBgra5551()
+        {
+            // arrange
+            var argb = default(Argb32);
+            uint expected = uint.MaxValue;
+
+            // act
+            argb.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // assert
+            Assert.Equal(expected, argb.PackedValue);
+        }
+
+        [Fact]
         public void Argb32_Clamping()
         {
             Assert.Equal(Vector4.Zero, new Argb32(Vector4.One * -1234.0f).ToVector4());

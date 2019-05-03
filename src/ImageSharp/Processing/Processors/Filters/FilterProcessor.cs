@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         /// </summary>
         public ColorMatrix Matrix { get; }
 
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+        public virtual IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
             return new FilterProcessorImplementation<TPixel>(this);

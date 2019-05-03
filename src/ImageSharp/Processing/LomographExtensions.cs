@@ -8,31 +8,27 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extensions that allow the recreation of an old Lomograph camera effect to the <see cref="Image{TPixel}"/> type.
+    /// Adds extensions that allow the recreation of an old Lomograph camera effect to the <see cref="Image"/> type.
     /// </summary>
     public static class LomographExtensions
     {
         /// <summary>
         /// Alters the colors of the image recreating an old Lomograph camera effect.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Lomograph<TPixel>(this IImageProcessingContext<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new LomographProcessor<TPixel>());
+        public static IImageProcessingContext Lomograph(this IImageProcessingContext source)
+            => source.ApplyProcessor(new LomographProcessor());
 
         /// <summary>
         /// Alters the colors of the image recreating an old Lomograph camera effect.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Lomograph<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle)
-            where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new LomographProcessor<TPixel>(), rectangle);
+        public static IImageProcessingContext Lomograph(this IImageProcessingContext source, Rectangle rectangle)
+            => source.ApplyProcessor(new LomographProcessor(), rectangle);
     }
 }

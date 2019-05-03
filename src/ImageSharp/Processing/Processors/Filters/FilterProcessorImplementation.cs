@@ -18,11 +18,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     internal class FilterProcessorImplementation<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private readonly FilterProcessor paramterSource;
+        private readonly FilterProcessor definition;
 
-        public FilterProcessorImplementation(FilterProcessor paramterSource)
+        public FilterProcessorImplementation(FilterProcessor definition)
         {
-            this.paramterSource = paramterSource;
+            this.definition = definition;
         }
 
         /// <inheritdoc/>
@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
             var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
             int startX = interest.X;
 
-            ColorMatrix matrix = this.paramterSource.Matrix;
+            ColorMatrix matrix = this.definition.Matrix;
 
             ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
                 interest,

@@ -8,12 +8,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// <summary>
     /// Converts the colors of the image recreating Tritanomaly (Blue-Weak) color blindness.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class TritanomalyProcessor<TPixel> : FilterProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    internal class TritanomalyProcessor : FilterProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="TritanomalyProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="TritanomalyProcessor"/> class.
         /// </summary>
         public TritanomalyProcessor()
             : base(KnownFilterMatrices.TritanomalyFilter)

@@ -8,12 +8,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// <summary>
     /// Converts the colors of the image recreating Achromatomaly (Color desensitivity) color blindness.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class AchromatomalyProcessor<TPixel> : FilterProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    internal class AchromatomalyProcessor : FilterProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="AchromatomalyProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="AchromatomalyProcessor"/> class.
         /// </summary>
         public AchromatomalyProcessor()
             : base(KnownFilterMatrices.AchromatomalyFilter)

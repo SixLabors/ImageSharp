@@ -8,19 +8,17 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extensions that allow the recreation of an old Polaroid camera effect to the <see cref="Image{TPixel}"/> type.
+    /// Adds extensions that allow the recreation of an old Polaroid camera effect to the <see cref="Image"/> type.
     /// </summary>
     public static class PolaroidExtensions
     {
         /// <summary>
         /// Alters the colors of the image recreating an old Polaroid camera effect.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Polaroid<TPixel>(this IImageProcessingContext<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new PolaroidProcessor<TPixel>());
+        public static IImageProcessingContext Polaroid(this IImageProcessingContext source)
+            => source.ApplyProcessor(new PolaroidProcessor());
 
         /// <summary>
         /// Alters the colors of the image recreating an old Polaroid camera effect.
@@ -31,8 +29,7 @@ namespace SixLabors.ImageSharp.Processing
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Polaroid<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle)
-            where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new PolaroidProcessor<TPixel>(), rectangle);
+        public static IImageProcessingContext Polaroid(this IImageProcessingContext source, Rectangle rectangle)
+            => source.ApplyProcessor(new PolaroidProcessor(), rectangle);
     }
 }

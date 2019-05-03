@@ -8,12 +8,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// <summary>
     /// Applies a brightness filter matrix using the given amount.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class BrightnessProcessor<TPixel> : FilterProcessor<TPixel>
-         where TPixel : struct, IPixel<TPixel>
+    internal class BrightnessProcessor : FilterProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="BrightnessProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="BrightnessProcessor"/> class.
         /// </summary>
         /// <remarks>
         /// A value of <value>0</value> will create an image that is completely black. A value of <value>1</value> leaves the input unchanged.

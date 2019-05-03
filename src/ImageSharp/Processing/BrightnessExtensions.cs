@@ -19,13 +19,11 @@ namespace SixLabors.ImageSharp.Processing
         /// A value of 0 will create an image that is completely black. A value of 1 leaves the input unchanged.
         /// Other values are linear multipliers on the effect. Values of an amount over 1 are allowed, providing brighter results.
         /// </remarks>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="amount">The proportion of the conversion. Must be greater than or equal to 0.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Brightness<TPixel>(this IImageProcessingContext<TPixel> source, float amount)
-           where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new BrightnessProcessor<TPixel>(amount));
+        public static IImageProcessingContext Brightness(this IImageProcessingContext source, float amount)
+            => source.ApplyProcessor(new BrightnessProcessor(amount));
 
         /// <summary>
         /// Alters the brightness component of the image.
@@ -34,15 +32,13 @@ namespace SixLabors.ImageSharp.Processing
         /// A value of 0 will create an image that is completely black. A value of 1 leaves the input unchanged.
         /// Other values are linear multipliers on the effect. Values of an amount over 1 are allowed, providing brighter results.
         /// </remarks>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="amount">The proportion of the conversion. Must be greater than or equal to 0.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Brightness<TPixel>(this IImageProcessingContext<TPixel> source, float amount, Rectangle rectangle)
-            where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new BrightnessProcessor<TPixel>(amount), rectangle);
+        public static IImageProcessingContext Brightness(this IImageProcessingContext source, float amount, Rectangle rectangle)
+            => source.ApplyProcessor(new BrightnessProcessor(amount), rectangle);
     }
 }

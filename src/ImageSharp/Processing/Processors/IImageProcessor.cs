@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
             where TPixel : struct, IPixel<TPixel>;
     }
-    
+
     /// <summary>
     /// Encapsulates methods to alter the pixels of an image.
     /// </summary>
@@ -33,5 +33,34 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <paramref name="sourceRectangle"/> doesn't fit the dimension of the image.
         /// </exception>
         void Apply(Image<TPixel> source, Rectangle sourceRectangle);
+    }
+
+    internal static class ImageProcessorExtensions
+    {
+        public static void Apply(this IImageProcessor processor, Image source, Rectangle sourceRectangle)
+        {
+            var visitor = new ApplyVisitor(processor, sourceRectangle);
+            source.AcceptVisitor(visitor);
+        }
+
+        private class ApplyVisitor : IImageVisitor
+        {
+            private readonly IImageProcessor processor;
+
+            private readonly Rectangle sourceRectangle;
+
+            public ApplyVisitor(IImageProcessor processor, Rectangle sourceRectangle)
+            {
+                this.processor = processor;
+                this.sourceRectangle = sourceRectangle;
+            }
+
+            public void Visit<TPixel>(Image<TPixel> image)
+                where TPixel : struct, IPixel<TPixel>
+            {
+                var processorImpl = processor.CreatePixelSpecificProcessor<TPixel>();
+                processorImpl.Apply(image, this.sourceRectangle);
+            }
+        }
     }
 }

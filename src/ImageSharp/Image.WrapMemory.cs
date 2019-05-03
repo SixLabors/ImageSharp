@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp
     /// <content>
     /// Adds static methods allowing wrapping an existing memory area as an image.
     /// </content>
-    public static partial class Image
+    public abstract partial class Image
     {
         /// <summary>
         /// Wraps an existing contiguous memory area of 'width' x 'height' pixels,

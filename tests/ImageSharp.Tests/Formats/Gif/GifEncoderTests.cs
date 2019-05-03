@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             // Compare encoded result
             string path = provider.Utility.GetTestOutputFileName("gif", null, true);
-            using (var encoded = Image.Load(path))
+            using (var encoded = Image.Load<Rgba32>(path))
             {
                 encoded.CompareToReferenceOutput(ValidatorComparer, provider, null, "gif");
             }
@@ -180,7 +180,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             {
                 inStream.Position = 0;
 
-                var image = Image.Load(inStream);
+                var image = Image.Load<Rgba32>(inStream);
                 GifMetadata metaData = image.Metadata.GetFormatMetadata(GifFormat.Instance);
                 GifFrameMetadata frameMetaData = image.Frames.RootFrame.Metadata.GetFormatMetadata(GifFormat.Instance);
                 GifColorTableMode colorMode = metaData.ColorTableMode;
@@ -194,7 +194,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 outStream.Position = 0;
 
                 outStream.Position = 0;
-                var clone = Image.Load(outStream);
+                var clone = Image.Load<Rgba32>(outStream);
 
                 GifMetadata cloneMetaData = clone.Metadata.GetFormatMetadata<GifMetadata>(GifFormat.Instance);
                 Assert.Equal(metaData.ColorTableMode, cloneMetaData.ColorTableMode);

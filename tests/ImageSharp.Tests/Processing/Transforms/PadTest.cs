@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             IResampler sampler = KnownResamplers.NearestNeighbor;
 
             this.operations.Pad(width, height);
-            ResizeProcessor<Rgba32> resizeProcessor = this.Verify<ResizeProcessor<Rgba32>>();
+            ResizeProcessorImplementation<Rgba32> resizeProcessor = this.Verify<ResizeProcessorImplementation<Rgba32>>();
 
             Assert.Equal(width, resizeProcessor.Width);
             Assert.Equal(height, resizeProcessor.Height);

@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             int width = 50;
             int height = 100;
             this.operations.Resize(width, height);
-            ResizeProcessorImplementation<Rgba32> resizeProcessor = this.Verify<ResizeProcessorImplementation<Rgba32>>();
+            ResizeProcessor resizeProcessor = this.Verify<ResizeProcessor>();
 
             Assert.Equal(width, resizeProcessor.Width);
             Assert.Equal(height, resizeProcessor.Height);
@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             int height = 100;
             IResampler sampler = KnownResamplers.Lanczos3;
             this.operations.Resize(width, height, sampler);
-            ResizeProcessorImplementation<Rgba32> resizeProcessor = this.Verify<ResizeProcessorImplementation<Rgba32>>();
+            ResizeProcessor resizeProcessor = this.Verify<ResizeProcessor>();
 
             Assert.Equal(width, resizeProcessor.Width);
             Assert.Equal(height, resizeProcessor.Height);
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
             // ReSharper disable once ConditionIsAlwaysTrueOrFalse
             this.operations.Resize(width, height, sampler, compand);
-            ResizeProcessorImplementation<Rgba32> resizeProcessor = this.Verify<ResizeProcessorImplementation<Rgba32>>();
+            ResizeProcessor resizeProcessor = this.Verify<ResizeProcessor>();
 
             Assert.Equal(width, resizeProcessor.Width);
             Assert.Equal(height, resizeProcessor.Height);
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             };
 
             this.operations.Resize(resizeOptions);
-            ResizeProcessorImplementation<Rgba32> resizeProcessor = this.Verify<ResizeProcessorImplementation<Rgba32>>();
+            ResizeProcessor resizeProcessor = this.Verify<ResizeProcessor>();
 
             Assert.Equal(width, resizeProcessor.Width);
             Assert.Equal(height, resizeProcessor.Height);

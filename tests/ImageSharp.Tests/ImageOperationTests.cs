@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests
             this.image.Mutate(x => x.ApplyProcessor(this.processor));
 
             Assert.True(this.provider.HasCreated(this.image));
-            Assert.Contains(this.processor, this.provider.AppliedOperations(this.image).Select(x => x.Processor));
+            Assert.Contains(this.processor, this.provider.AppliedOperations(this.image).Select(x => x.GenericProcessor));
         }
 
         [Fact]
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests
             this.image.Mutate(this.processor);
 
             Assert.True(this.provider.HasCreated(this.image));
-            Assert.Contains(this.processor, this.provider.AppliedOperations(this.image).Select(x => x.Processor));
+            Assert.Contains(this.processor, this.provider.AppliedOperations(this.image).Select(x => x.GenericProcessor));
         }
 
         [Fact]
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests
             Image<Rgba32> returned = this.image.Clone(x => x.ApplyProcessor(this.processor));
 
             Assert.True(this.provider.HasCreated(returned));
-            Assert.Contains(this.processor, this.provider.AppliedOperations(returned).Select(x => x.Processor));
+            Assert.Contains(this.processor, this.provider.AppliedOperations(returned).Select(x => x.GenericProcessor));
         }
 
         [Fact]
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests
             Image<Rgba32> returned = this.image.Clone(this.processor);
 
             Assert.True(this.provider.HasCreated(returned));
-            Assert.Contains(this.processor, this.provider.AppliedOperations(returned).Select(x => x.Processor));
+            Assert.Contains(this.processor, this.provider.AppliedOperations(returned).Select(x => x.GenericProcessor));
         }
 
         [Fact]
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             Image<Rgba32> returned = this.image.Clone(x => x.ApplyProcessor(this.processor));
             Assert.False(this.provider.HasCreated(this.image));
-            Assert.DoesNotContain(this.processor, this.provider.AppliedOperations(this.image).Select(x => x.Processor));
+            Assert.DoesNotContain(this.processor, this.provider.AppliedOperations(this.image).Select(x => x.GenericProcessor));
         }
 
         [Fact]
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             Image<Rgba32> returned = this.image.Clone(this.processor);
             Assert.False(this.provider.HasCreated(this.image));
-            Assert.DoesNotContain(this.processor, this.provider.AppliedOperations(this.image).Select(x => x.Processor));
+            Assert.DoesNotContain(this.processor, this.provider.AppliedOperations(this.image).Select(x => x.GenericProcessor));
         }
 
         [Fact]
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             var operations = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(null, false);
             operations.ApplyProcessors(this.processor);
-            Assert.Contains(this.processor, operations.Applied.Select(x => x.Processor));
+            Assert.Contains(this.processor, operations.Applied.Select(x => x.GenericProcessor));
         }
 
         public void Dispose() => this.image.Dispose();

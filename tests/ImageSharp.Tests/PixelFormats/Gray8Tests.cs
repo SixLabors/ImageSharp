@@ -148,6 +148,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Assert.Equal(byte.MaxValue, actual.A);
         }
 
+        [Fact]
+        public void Gray8_FromBgra5551()
+        {
+            // arrange
+            var grey = default(Gray8);
+            byte expected = byte.MaxValue;
+
+            // act
+            grey.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // assert
+            Assert.Equal(expected, grey.PackedValue);
+        }
+
         public class Rgba32Compatibility
         {
             // ReSharper disable once MemberHidesStaticFromOuterClass

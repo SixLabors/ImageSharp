@@ -64,6 +64,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
+        public void Bgr565_FromBgra5551()
+        {
+            // arrange
+            var bgr = default(Bgr565);
+            ushort expected = ushort.MaxValue;
+
+            // act
+            bgr.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // assert
+            Assert.Equal(expected, bgr.PackedValue);
+        }
+
+        [Fact]
         public void Bgr565_Clamping()
         {
             Assert.Equal(Vector3.Zero, new Bgr565(Vector3.One * -1234F).ToVector3());

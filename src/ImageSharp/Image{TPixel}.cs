@@ -128,10 +128,10 @@ namespace SixLabors.ImageSharp
         public PixelTypeInfo PixelType { get; }
 
         /// <inheritdoc/>
-        public int Width => this.Frames.RootFrame.Width;
+        public override int Width => this.Frames.RootFrame.Width;
 
         /// <inheritdoc/>
-        public int Height => this.Frames.RootFrame.Height;
+        public override int Height => this.Frames.RootFrame.Height;
 
         /// <inheritdoc/>
         public ImageMetadata Metadata { get; }
@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc/>
-        public void Dispose() => this.Frames.Dispose();
+        public override void Dispose() => this.Frames.Dispose();
 
         internal override void AcceptVisitor(IImageVisitor visitor)
         {

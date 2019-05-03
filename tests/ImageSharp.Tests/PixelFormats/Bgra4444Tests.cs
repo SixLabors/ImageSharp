@@ -65,6 +65,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
+        public void Bgra4444_FromBgra5551()
+        {
+            // arrange
+            var bgra = default(Bgra4444);
+            ushort expected = ushort.MaxValue;
+
+            // act
+            bgra.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // assert
+            Assert.Equal(expected, bgra.PackedValue);
+        }
+
+        [Fact]
         public void Bgra4444_Clamping()
         {
             Assert.Equal(Vector4.Zero, new Bgra4444(Vector4.One * -1234.0f).ToVector4());

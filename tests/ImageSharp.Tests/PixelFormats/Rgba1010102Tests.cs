@@ -65,6 +65,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
+        public void Rgba1010102_FromBgra5551()
+        {
+            // arrange
+            var rgba = new Rgba1010102(Vector4.One);
+            uint expected = 0xFFFFFFFF;
+
+            // act
+            rgba.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // assert
+            Assert.Equal(expected, rgba.PackedValue);
+        }
+
+        [Fact]
         public void Rgba1010102_Clamping()
         {
             Assert.Equal(Vector4.Zero, new Rgba1010102(Vector4.One * -1234.0f).ToVector4());

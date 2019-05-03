@@ -1022,7 +1022,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.bmpMetadata.InfoHeaderType = infoHeaderType;
 
             // We can only encode at these bit rates so far.
-            if (bitsPerPixel.Equals((short)BmpBitsPerPixel.Pixel24)
+            if (bitsPerPixel.Equals((short)BmpBitsPerPixel.Pixel16)
+                || bitsPerPixel.Equals((short)BmpBitsPerPixel.Pixel24)
                 || bitsPerPixel.Equals((short)BmpBitsPerPixel.Pixel32))
             {
                 this.bmpMetadata.BitsPerPixel = (BmpBitsPerPixel)bitsPerPixel;

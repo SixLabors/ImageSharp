@@ -126,5 +126,19 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Assert.Equal(expected, actual.B);
             Assert.Equal(byte.MaxValue, actual.A);
         }
+
+        [Fact]
+        public void Gray16_FromBgra5551()
+        {
+            // arrange
+            var gray = default(Gray16);
+            ushort expected = ushort.MaxValue;
+
+            // act
+            gray.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // assert
+            Assert.Equal(expected, gray.PackedValue);
+        }
     }
 }

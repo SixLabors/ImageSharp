@@ -126,6 +126,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromRgba64(Rgba64 source) => this = source.Rgb;
 
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
+
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromGray8(Gray8 source)

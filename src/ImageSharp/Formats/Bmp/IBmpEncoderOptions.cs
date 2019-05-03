@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// <summary>
     /// Configuration options for use during bmp encoding
     /// </summary>
-    /// <remarks>The encoder can currently only write 24-bit and 32-bit rgb images to streams.</remarks>
+    /// <remarks>The encoder can currently only write 16-bit, 24-bit and 32-bit rgb images to streams.</remarks>
     internal interface IBmpEncoderOptions
     {
         /// <summary>

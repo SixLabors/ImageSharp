@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         public DenseMatrix<float> KernelY { get; }
 
         /// <inheritdoc/>
-        public bool Grayscale { get; set; }
+        public bool Grayscale { get; }
 
         /// <inheritdoc />
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)

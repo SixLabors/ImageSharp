@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 Configuration configuration = source.GetConfiguration();
 
                 // Detect the edges.
-                new SobelProcessor<TPixel>(false).Apply(temp, sourceRectangle, configuration);
+                new SobelProcessor(false).ApplyToFrame(temp, sourceRectangle, configuration);
 
                 // Apply threshold binarization filter.
                 new BinaryThresholdProcessor<TPixel>(this.Threshold).Apply(temp, sourceRectangle, configuration);

@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     {
         /// <summary>
         /// Kernel radius is calculated using the minimum viable value.
-        /// See http://chemaguerra.com/gaussian-filter-radius/ .
+        /// See <see href="http://chemaguerra.com/gaussian-filter-radius/"/>.
         /// </summary>
         internal static int GetDefaultGaussianRadius(float sigma)
         {

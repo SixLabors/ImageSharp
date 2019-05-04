@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Dithering;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
@@ -39,6 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
                                                                                      KnownDitherers.OrderedDither3x3,
                                                                                      KnownDitherers.BayerDither2x2
                                                                                  };
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.05f);
         
         private static IOrderedDither DefaultDitherer => KnownDitherers.BayerDither4x4;
 
@@ -49,16 +51,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         public void ApplyDiffusionFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (Image<TPixel> image = source.Clone())
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
-
-                image.Mutate(x => x.Diffuse(DefaultErrorDiffuser, .5F, bounds));
-                image.DebugSave(provider);
-
-                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
-            }
+            provider.RunRectangleConstrainedValidatingProcessorTest(
+                (x, rect) => x.Diffuse(DefaultErrorDiffuser, .5F, rect),
+                comparer: ValidatorComparer);
         }
 
         [Theory]
@@ -66,28 +61,19 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         public void ApplyDitherFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (Image<TPixel> image = source.Clone())
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
-
-                image.Mutate(x => x.Dither(DefaultDitherer, bounds));
-                image.DebugSave(provider);
-
-                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
-            }
+            provider.RunRectangleConstrainedValidatingProcessorTest(
+                (x, rect) => x.Dither(DefaultDitherer, rect),
+                comparer: ValidatorComparer);
         }
 
         [Theory]
         [WithFile(TestImages.Png.Filter0, CommonNonDefaultPixelTypes)]
-            public void DiffusionFilter_ShouldNotDependOnSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
+        public void DiffusionFilter_ShouldNotDependOnSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Diffuse(DefaultErrorDiffuser, 0.5f));
-                image.DebugSave(provider);
-            }
+            // Increased tolerance because of compatibility issues on .NET 4.6.2:
+            var comparer = ImageComparer.TolerantPercentage(1f);
+            provider.RunValidatingProcessorTest(x => x.Diffuse(DefaultErrorDiffuser, 0.5f), comparer: comparer);
         }
 
         [Theory]
@@ -97,11 +83,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             IErrorDiffuser diffuser)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Diffuse(diffuser, .5F));
-                image.DebugSave(provider, diffuser.GetType().Name);
-            }
+            provider.RunValidatingProcessorTest(
+                x => x.Diffuse(diffuser, 0.5f),
+                testOutputDetails: diffuser.GetType().Name,
+                comparer: ValidatorComparer,
+                appendPixelTypeToFileName: false);
         }
 
         [Theory]
@@ -109,11 +95,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         public void DitherFilter_ShouldNotDependOnSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Dither(DefaultDitherer));
-                image.DebugSave(provider);
-            }
+            provider.RunValidatingProcessorTest(
+                x => x.Dither(DefaultDitherer),
+                comparer: ValidatorComparer);
         }
 
         [Theory]
@@ -123,11 +107,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             IOrderedDither ditherer)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Dither(ditherer));
-                image.DebugSave(provider, ditherer.GetType().Name);
-            }
+            provider.RunValidatingProcessorTest(
+                x => x.Dither(ditherer),
+                testOutputDetails: ditherer.GetType().Name,
+                comparer: ValidatorComparer,
+                appendPixelTypeToFileName: false);
         }
     }
 }

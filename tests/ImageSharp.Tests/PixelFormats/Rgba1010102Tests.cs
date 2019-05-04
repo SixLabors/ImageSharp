@@ -123,6 +123,24 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
+        public void Rgba1010102_FromRgba32()
+        {
+            // arrange
+            var rgba1 = default(Rgba1010102);
+            var rgba2 = default(Rgba1010102);
+            uint expectedPackedValue1 = uint.MaxValue;
+            uint expectedPackedValue2 = 0xFFF003FF;
+
+            // act
+            rgba1.FromRgba32(new Rgba32(255, 255, 255, 255));
+            rgba2.FromRgba32(new Rgba32(255, 0, 255, 255));
+
+            // assert
+            Assert.Equal(expectedPackedValue1, rgba1.PackedValue);
+            Assert.Equal(expectedPackedValue2, rgba2.PackedValue);
+        }
+
+        [Fact]
         public void Rgba1010102_FromBgr24()
         {
             // arrange

@@ -76,6 +76,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
+        public void Byte4_ToRgba32()
+        {
+            // arrange
+            var byte4 = new Byte4(byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue);
+            var expected = new Rgba32(Vector4.One);
+            var actual = default(Rgba32);
+
+            // act
+            byte4.ToRgba32(ref actual);
+
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
         public void Byte4_FromScaledVector4()
         {
             // arrange

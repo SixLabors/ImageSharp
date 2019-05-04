@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// Defines a processor that detects edges within an image using a eight two dimensional matrices.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class EdgeDetectorCompassProcessor<TPixel> : ImageProcessor<TPixel>, IEdgeDetectorProcessor<TPixel>
+    internal abstract class EdgeDetectorCompassProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

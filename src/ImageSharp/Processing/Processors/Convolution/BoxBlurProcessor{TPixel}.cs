@@ -1,5 +1,5 @@
-// // Copyright (c) Six Labors and contributors.
-// // Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
@@ -37,7 +37,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// Gets the vertical gradient operator.
         /// </summary>
         public DenseMatrix<float> KernelY { get; }
-
 
         /// <inheritdoc/>
         protected override void OnFrameApply(

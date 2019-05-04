@@ -1,5 +1,5 @@
-// // Copyright (c) Six Labors and contributors.
-// // Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
 using System;
 
@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     {
         /// <summary>
         /// Kernel radius is calculated using the minimum viable value.
-        /// <see cref="http://chemaguerra.com/gaussian-filter-radius/"/>.
+        /// See http://chemaguerra.com/gaussian-filter-radius/ .
         /// </summary>
         internal static int GetDefaultGaussianRadius(float sigma)
         {
@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         }
 
         /// <summary>
-        /// Create a 1 dimensional Gaussian kernel using the Gaussian G(x) function
+        /// Create a 1 dimensional Gaussian kernel using the Gaussian G(x) function.
         /// </summary>
         /// <returns>The <see cref="DenseMatrix{T}"/>.</returns>
         internal static DenseMatrix<float> CreateGaussianBlurKernel(int size, float weight)

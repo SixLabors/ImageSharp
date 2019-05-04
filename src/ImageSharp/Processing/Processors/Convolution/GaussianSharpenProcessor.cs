@@ -70,6 +70,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </summary>
         public int Radius { get; }
 
+        /// <inheritdoc />
         public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {

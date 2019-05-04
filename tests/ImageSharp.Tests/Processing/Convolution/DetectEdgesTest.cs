@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution
         [Theory]
         [MemberData(nameof(EdgeDetectionTheoryData))]
         public void DetectEdges_filter_SobelProcessorDefaultsSet<TProcessor>(TestType<TProcessor> type, EdgeDetectionOperators filter)
-            where TProcessor : IEdgeDetectorProcessor<Rgba32>
+            where TProcessor : IImageProcessor<Rgba32>
         {
             this.operations.DetectEdges(filter);
 
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution
         [Theory]
         [MemberData(nameof(EdgeDetectionTheoryData))]
         public void DetectEdges_filter_grayscale_SobelProcessorDefaultsSet<TProcessor>(TestType<TProcessor> type, EdgeDetectionOperators filter)
-            where TProcessor : IEdgeDetectorProcessor<Rgba32>
+            where TProcessor : IImageProcessor<Rgba32>
         {
             bool grey = (int)filter % 2 == 0;
             this.operations.DetectEdges(filter, grey);

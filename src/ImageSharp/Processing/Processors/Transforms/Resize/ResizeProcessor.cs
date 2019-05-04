@@ -9,7 +9,7 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
     /// <summary>
-    /// Implements resizing of images using various resamplers.
+    /// Defines an image resizing operation with the given <see cref="IResampler"/> and dimensional parameters.
     /// </summary>
     public class ResizeProcessor : IImageProcessor
     {

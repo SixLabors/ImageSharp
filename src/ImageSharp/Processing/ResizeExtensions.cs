@@ -15,7 +15,6 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Resizes an image in accordance with the given <see cref="ResizeOptions"/>.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="options">The resize options.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
@@ -26,7 +25,6 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Resizes an image to the given <see cref="Size"/>.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="size">The target image size.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
@@ -37,7 +35,6 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Resizes an image to the given <see cref="Size"/>.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="size">The target image size.</param>
         /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
@@ -49,7 +46,6 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Resizes an image to the given width and height.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
@@ -61,7 +57,6 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Resizes an image to the given width and height.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
@@ -74,7 +69,6 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Resizes an image to the given width and height with the given sampler.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
@@ -87,7 +81,6 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Resizes an image to the given width and height with the given sampler.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="size">The target image size.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
@@ -100,7 +93,6 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Resizes an image to the given width and height with the given sampler.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
@@ -115,7 +107,6 @@ namespace SixLabors.ImageSharp.Processing
         /// Resizes an image to the given width and height with the given sampler and
         /// source rectangle.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>
@@ -142,7 +133,6 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Resizes an image to the given width and height with the given sampler and source rectangle.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to resize.</param>
         /// <param name="width">The target image width.</param>
         /// <param name="height">The target image height.</param>

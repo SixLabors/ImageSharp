@@ -8,36 +8,20 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
-    // The non-generic processor is responsible for:
-    // - Encapsulating the parameters of the processor
-    // - Implementing a factory method to create the pixel-specific processor that contains the implementation
+    /// <summary>
+    /// Implements resizing of images using various resamplers.
+    /// </summary>
     public class ResizeProcessor : IImageProcessor
     {
         /// <summary>
-        /// Gets the sampler to perform the resize operation.
+        /// Initializes a new instance of the <see cref="ResizeProcessor"/> class.
         /// </summary>
-        public IResampler Sampler { get; }
-
-        /// <summary>
-        /// Gets the target width.
-        /// </summary>
-        public int Width { get; }
-
-        /// <summary>
-        /// Gets the target height.
-        /// </summary>
-        public int Height { get; }
-
-        /// <summary>
-        /// Gets the resize rectangle.
-        /// </summary>
-        public Rectangle TargetRectangle { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether to compress or expand individual pixel color values on processing.
-        /// </summary>
-        public bool Compand { get; }
-        
+        /// <param name="sampler">The <see cref="IResampler"/>.</param>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        /// <param name="sourceSize">The size of the source image.</param>
+        /// <param name="targetRectangle">The target rectangle to resize into.</param>
+        /// <param name="compand">A value indicating whether to apply RGBA companding.</param>
         public ResizeProcessor(IResampler sampler, int width, int height, Size sourceSize, Rectangle targetRectangle, bool compand)
         {
             Guard.NotNull(sampler, nameof(sampler));
@@ -67,12 +51,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.TargetRectangle = targetRectangle;
             this.Compand = compand;
         }
-        
+
         /// <summary>
-        /// Initializes a new instance of the <see cref="ResizeProcessorImplementation{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="ResizeProcessor"/> class.
         /// </summary>
-        /// <param name="options">The resize options</param>
-        /// <param name="sourceSize">The source image size</param>
+        /// <param name="options">The resize options.</param>
+        /// <param name="sourceSize">The source image size.</param>
         public ResizeProcessor(ResizeOptions options, Size sourceSize)
         {
             Guard.NotNull(options, nameof(options));
@@ -109,7 +93,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ResizeProcessorImplementation{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="ResizeProcessor"/> class.
         /// </summary>
         /// <param name="sampler">The sampler to perform the resize operation.</param>
         /// <param name="width">The target width.</param>
@@ -120,6 +104,32 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         {
         }
 
+        /// <summary>
+        /// Gets the sampler to perform the resize operation.
+        /// </summary>
+        public IResampler Sampler { get; }
+
+        /// <summary>
+        /// Gets the target width.
+        /// </summary>
+        public int Width { get; }
+
+        /// <summary>
+        /// Gets the target height.
+        /// </summary>
+        public int Height { get; }
+
+        /// <summary>
+        /// Gets the resize rectangle.
+        /// </summary>
+        public Rectangle TargetRectangle { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether to compress or expand individual pixel color values on processing.
+        /// </summary>
+        public bool Compand { get; }
+
+        /// <inheritdoc />
         public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {

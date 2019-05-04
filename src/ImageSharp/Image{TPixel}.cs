@@ -16,6 +16,7 @@ namespace SixLabors.ImageSharp
 {
     /// <summary>
     /// Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.
+    /// For generic <see cref="Image{TPixel}"/>-s the pixel type is known at compile time.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     public sealed class Image<TPixel> : Image
@@ -68,8 +69,6 @@ namespace SixLabors.ImageSharp
         internal Image(Configuration configuration, int width, int height, ImageMetadata metadata)
             : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata)
         {
-            this.PixelType = new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
-            this.Metadata = metadata ?? new ImageMetadata();
             this.Frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
         }
 
@@ -85,8 +84,6 @@ namespace SixLabors.ImageSharp
         internal Image(Configuration configuration, MemorySource<TPixel> memorySource, int width, int height, ImageMetadata metadata)
             : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata)
         {
-            this.PixelType = new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
-            this.Metadata = metadata;
             this.Frames = new ImageFrameCollection<TPixel>(this, width, height, memorySource);
         }
 
@@ -102,8 +99,6 @@ namespace SixLabors.ImageSharp
         internal Image(Configuration configuration, int width, int height, TPixel backgroundColor, ImageMetadata metadata)
             : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata)
         {
-            this.PixelType = new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
-            this.Metadata = metadata ?? new ImageMetadata();
             this.Frames = new ImageFrameCollection<TPixel>(this, width, height, backgroundColor);
         }
 
@@ -115,17 +110,10 @@ namespace SixLabors.ImageSharp
         /// <param name="metadata">The images metadata.</param>
         /// <param name="frames">The frames that will be owned by this image instance.</param>
         internal Image(Configuration configuration, ImageMetadata metadata, IEnumerable<ImageFrame<TPixel>> frames)
-            : base(configuration,PixelTypeInfo.Create<TPixel>(), metadata)
+            : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata)
         {
-            this.PixelType = new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
-            this.Metadata = metadata ?? new ImageMetadata();
-
             this.Frames = new ImageFrameCollection<TPixel>(this, frames);
         }
-
-
-        /// <inheritdoc/>
-        public PixelTypeInfo PixelType { get; }
 
         /// <inheritdoc/>
         public override int Width => this.Frames.RootFrame.Width;
@@ -133,9 +121,7 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc/>
         public override int Height => this.Frames.RootFrame.Height;
 
-        /// <inheritdoc/>
-        public ImageMetadata Metadata { get; }
-
+        /// <summary>
         /// Gets the frames.
         /// </summary>
         public ImageFrameCollection<TPixel> Frames { get; }
@@ -154,7 +140,6 @@ namespace SixLabors.ImageSharp
         public TPixel this[int x, int y]
         {
             get => this.PixelSource.PixelBuffer[x, y];
-
             set => this.PixelSource.PixelBuffer[x, y] = value;
         }
 
@@ -162,7 +147,7 @@ namespace SixLabors.ImageSharp
         /// Clones the current image
         /// </summary>
         /// <returns>Returns a new image with all the same metadata as the original.</returns>
-        public Image<TPixel> Clone() => this.Clone(this.configuration);
+        public Image<TPixel> Clone() => this.Clone(this.Configuration);
 
         /// <summary>
         /// Clones the current image with the given configuration.
@@ -181,7 +166,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel2">The pixel format.</typeparam>
         /// <returns>The <see cref="Image{TPixel2}"/></returns>
         public Image<TPixel2> CloneAs<TPixel2>()
-            where TPixel2 : struct, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.configuration);
+            where TPixel2 : struct, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.Configuration);
 
         /// <summary>
         /// Returns a copy of the image in the given pixel format.

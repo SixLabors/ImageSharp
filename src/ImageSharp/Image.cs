@@ -10,15 +10,30 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
 {
-    internal interface IImageVisitor
-    {
-        void Visit<TPixel>(Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>;
-    }
-    
+    /// <summary>
+    /// Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.
+    /// For the non-generic <see cref="Image"/> type, the pixel type is only known at runtime.
+    /// <see cref="Image"/> is always implemented by a pixel-specific <see cref="Image{TPixel}"/> instance.
+    /// </summary>
     public abstract partial class Image : IImage, IConfigurable
     {
-        protected readonly Configuration configuration;
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class.
+        /// </summary>
+        /// <param name="configuration">The <see cref="Configuration"/>.</param>
+        /// <param name="pixelType">The <see cref="PixelTypeInfo"/>.</param>
+        /// <param name="metadata">The <see cref="ImageMetadata"/>.</param>
+        protected Image(Configuration configuration, PixelTypeInfo pixelType, ImageMetadata metadata)
+        {
+            this.Configuration = configuration ?? Configuration.Default;
+            this.PixelType = pixelType;
+            this.Metadata = metadata ?? new ImageMetadata();
+        }
+
+        /// <summary>
+        /// Gets the <see cref="Configuration"/>.
+        /// </summary>
+        protected Configuration Configuration { get; }
 
         /// <inheritdoc/>
         public PixelTypeInfo PixelType { get; }
@@ -28,22 +43,16 @@ namespace SixLabors.ImageSharp
 
         /// <inheritdoc />
         public abstract int Height { get; }
-        
+
         /// <inheritdoc/>
         public ImageMetadata Metadata { get; }
 
         /// <summary>
         /// Gets the pixel buffer.
         /// </summary>
-        Configuration IConfigurable.Configuration => this.configuration;
+        Configuration IConfigurable.Configuration => this.Configuration;
 
-        protected Image(Configuration configuration, PixelTypeInfo pixelType, ImageMetadata metadata)
-        {
-            this.configuration = configuration ?? Configuration.Default;
-            this.PixelType = pixelType;
-            this.Metadata = metadata ?? new ImageMetadata();
-        }
-
+        /// <inheritdoc />
         public abstract void Dispose();
 
         internal abstract void AcceptVisitor(IImageVisitor visitor);
@@ -63,7 +72,7 @@ namespace SixLabors.ImageSharp
             this.AcceptVisitor(visitor);
         }
 
-        class EncodeVisitor : IImageVisitor
+        private class EncodeVisitor : IImageVisitor
         {
             private readonly IImageEncoder encoder;
 

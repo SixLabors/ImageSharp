@@ -6,14 +6,23 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors
 {
+    /// <summary>
+    /// Defines an algorithm to alter the pixels of an image.
+    /// </summary>
     public interface IImageProcessor
     {
+        /// <summary>
+        /// Creates a pixel specific <see cref="IImageProcessor{TPixel}"/> that is capable for executing
+        /// the processing algorithm on an <see cref="Image{TPixel}"/>.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type.</typeparam>
+        /// <returns>The <see cref="IImageProcessor{TPixel}"/></returns>
         IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
             where TPixel : struct, IPixel<TPixel>;
     }
 
     /// <summary>
-    /// Encapsulates methods to alter the pixels of an image.
+    /// Implements an algorithm to alter the pixels of an image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     public interface IImageProcessor<TPixel>
@@ -58,7 +67,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             public void Visit<TPixel>(Image<TPixel> image)
                 where TPixel : struct, IPixel<TPixel>
             {
-                var processorImpl = processor.CreatePixelSpecificProcessor<TPixel>();
+                var processorImpl = this.processor.CreatePixelSpecificProcessor<TPixel>();
                 processorImpl.Apply(image, this.sourceRectangle);
             }
         }

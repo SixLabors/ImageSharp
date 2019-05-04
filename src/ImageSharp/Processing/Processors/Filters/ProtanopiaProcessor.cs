@@ -8,7 +8,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// <summary>
     /// Converts the colors of the image recreating Protanopia (Red-Blind) color blindness.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class ProtanopiaProcessor : FilterProcessor
     {
         /// <summary>

@@ -182,6 +182,7 @@ namespace SixLabors.ImageSharp
 
             throw new NotSupportedException(sb.ToString());
         }
+
         private static Image Load(Configuration config, Stream stream, out IImageFormat format)
         {
             config = config ?? Configuration.Default;

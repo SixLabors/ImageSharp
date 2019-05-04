@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         internal void ApplyToFrame<TPixel>(ImageFrame<TPixel> frame, Rectangle sourceRectangle, Configuration configuration)
             where TPixel : struct, IPixel<TPixel>
         {
-            var processorImpl = new FilterProcessorImplementation<TPixel>(new GrayscaleBt709Processor(1F));
+            var processorImpl = new FilterProcessor<TPixel>(new GrayscaleBt709Processor(1F));
             processorImpl.Apply(frame, sourceRectangle, configuration);
         }
     }

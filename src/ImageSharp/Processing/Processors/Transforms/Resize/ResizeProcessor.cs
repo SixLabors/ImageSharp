@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            return new ResizeProcessorImplementation<TPixel>(this);
+            return new ResizeProcessor<TPixel>(this);
         }
     }
 }

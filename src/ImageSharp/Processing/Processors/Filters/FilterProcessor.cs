@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         public virtual IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            return new FilterProcessorImplementation<TPixel>(this);
+            return new FilterProcessor<TPixel>(this);
         }
     }
 }

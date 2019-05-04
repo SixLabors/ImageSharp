@@ -19,7 +19,6 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Writes the image to the given stream using the currently loaded image format.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="filePath">The file path to save the image to.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
@@ -61,7 +60,6 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Writes the image to the given stream using the currently loaded image format.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="filePath">The file path to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
@@ -78,7 +76,6 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Writes the image to the given stream using the currently loaded image format.
         /// </summary>
-        /// <typeparam name="TPixel">The Pixel format.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="format">The format to save the image in.</param>

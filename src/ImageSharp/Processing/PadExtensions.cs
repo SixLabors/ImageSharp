@@ -14,7 +14,6 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Evenly pads an image to fit the new dimensions.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The source image to pad.</param>
         /// <param name="width">The new width.</param>
         /// <param name="height">The new height.</param>
@@ -25,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing
             {
                 Size = new Size(width, height),
                 Mode = ResizeMode.BoxPad,
-                Sampler = KnownResamplers.NearestNeighbor
+                Sampler = KnownResamplers.NearestNeighbor,
             };
 
             return source.Resize(options);

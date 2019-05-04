@@ -23,7 +23,6 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Alters the colors of the image recreating an old Polaroid camera effect.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.

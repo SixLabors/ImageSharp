@@ -19,9 +19,11 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
     /// <summary>
-    /// Provides methods that allow the resizing of images using various algorithms.
-    /// Adapted from <see href="http://www.realtimerendering.com/resources/GraphicsGems/gemsiii/filter_rcg.c"/>
+    /// Implements resizing of images using various resamplers.
     /// </summary>
+    /// <remarks>
+    /// The original code has been adapted from <see href="http://www.realtimerendering.com/resources/GraphicsGems/gemsiii/filter_rcg.c"/>.
+    /// </remarks>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class ResizeProcessorImplementation<TPixel> : TransformProcessorBase<TPixel>
         where TPixel : struct, IPixel<TPixel>

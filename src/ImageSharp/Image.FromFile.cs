@@ -162,7 +162,18 @@ namespace SixLabors.ImageSharp
                 return Load<TPixel>(config, stream, out format);
             }
         }
-        
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image"/> class from the given file.
+        /// The pixel type is selected by the decoder.
+        /// </summary>
+        /// <param name="config">The configuration options.</param>
+        /// <param name="path">The file path to the image.</param>
+        /// <param name="format">The mime type of the decoded image.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image Load(Configuration config, string path, out IImageFormat format)
         {
             using (Stream stream = config.FileSystem.OpenRead(path))

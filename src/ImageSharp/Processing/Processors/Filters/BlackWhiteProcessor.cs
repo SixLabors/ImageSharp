@@ -8,11 +8,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// <summary>
     /// Applies a black and white filter matrix to the image
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class BlackWhiteProcessor : FilterProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="BlackWhiteProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="BlackWhiteProcessor"/> class.
         /// </summary>
         public BlackWhiteProcessor()
             : base(KnownFilterMatrices.BlackWhiteFilter)

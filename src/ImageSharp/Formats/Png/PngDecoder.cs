@@ -59,7 +59,8 @@ namespace SixLabors.ImageSharp.Formats.Png
             var decoder = new PngDecoderCore(configuration, this);
             return decoder.Identify(stream);
         }
-        
+
+        /// <inheritdoc />
         public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
     }
 }

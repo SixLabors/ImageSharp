@@ -6,6 +6,9 @@ using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Filters
 {
+    /// <summary>
+    /// Provides methods that accept a <see cref="ColorMatrix"/> matrix to apply free-form filters to images.
+    /// </summary>
     public class FilterProcessor : IImageProcessor
     {
         /// <summary>
@@ -19,6 +22,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         /// </summary>
         public ColorMatrix Matrix { get; }
 
+        /// <inheritdoc />
         public virtual IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {

@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp
         /// allowing to view/manipulate it as an ImageSharp <see cref="Image{TPixel}"/> instance.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
-        /// <param name="config">The <see cref="Configuration"/></param>
+        /// <param name="config">The <see cref="ImageSharp.Configuration"/></param>
         /// <param name="pixelMemory">The pixel memory.</param>
         /// <param name="width">The width of the memory image.</param>
         /// <param name="height">The height of the memory image.</param>
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp
         /// allowing to view/manipulate it as an ImageSharp <see cref="Image{TPixel}"/> instance.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
-        /// <param name="config">The <see cref="Configuration"/></param>
+        /// <param name="config">The <see cref="ImageSharp.Configuration"/></param>
         /// <param name="pixelMemory">The pixel memory.</param>
         /// <param name="width">The width of the memory image.</param>
         /// <param name="height">The height of the memory image.</param>
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp
         /// It will be disposed together with the result image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
-        /// <param name="config">The <see cref="Configuration"/></param>
+        /// <param name="config">The <see cref="ImageSharp.Configuration"/></param>
         /// <param name="pixelMemoryOwner">The <see cref="IMemoryOwner{T}"/> that is being transferred to the image</param>
         /// <param name="width">The width of the memory image.</param>
         /// <param name="height">The height of the memory image.</param>
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp
         /// It will be disposed together with the result image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type.</typeparam>
-        /// <param name="config">The <see cref="Configuration"/></param>
+        /// <param name="config">The <see cref="ImageSharp.Configuration"/></param>
         /// <param name="pixelMemoryOwner">The <see cref="IMemoryOwner{T}"/> that is being transferred to the image.</param>
         /// <param name="width">The width of the memory image.</param>
         /// <param name="height">The height of the memory image.</param>

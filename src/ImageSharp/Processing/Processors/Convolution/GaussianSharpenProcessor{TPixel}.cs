@@ -8,20 +8,20 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 {
     /// <summary>
-    /// Applies Gaussian blur processing to an image.
+    /// Applies Gaussian sharpening processing to the image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class GaussianBlurProcessor<TPixel> : ImageProcessor<TPixel>
+    internal class GaussianSharpenProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="GaussianBlurProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="GaussianSharpenProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="definition">The <see cref="GaussianBlurProcessor"/> defining the processor parameters.</param>
-        public GaussianBlurProcessor(GaussianBlurProcessor definition)
+        public GaussianSharpenProcessor(GaussianSharpenProcessor definition)
         {
             int kernelSize = (definition.Radius * 2) + 1;
-            this.KernelX = ConvolutionProcessorHelpers.CreateGaussianBlurKernel(kernelSize, definition.Sigma);
+            this.KernelX = ConvolutionProcessorHelpers.CreateGaussianSharpenKernel(kernelSize, definition.Sigma);
             this.KernelY = this.KernelX.Transpose();
         }
 
@@ -36,13 +36,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         public DenseMatrix<float> KernelY { get; }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(
-            ImageFrame<TPixel> source,
-            Rectangle sourceRectangle,
-            Configuration configuration) =>
-            new Convolution2PassProcessor<TPixel>(this.KernelX, this.KernelY, false).Apply(
-                source,
-                sourceRectangle,
-                configuration);
+        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+            => new Convolution2PassProcessor<TPixel>(this.KernelX, this.KernelY, false).Apply(source, sourceRectangle, configuration);
     }
 }

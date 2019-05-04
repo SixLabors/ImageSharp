@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.ImageSharp.Processing.Processors.Convolution;
 using SixLabors.Primitives;
 
@@ -82,7 +83,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image this method extends.</param>
         /// <param name="filter">The filter for detecting edges.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> DetectEdges<TPixel>(this IImageProcessingContext<TPixel> source, IEdgeDetectorProcessor<TPixel> filter)
+        private static IImageProcessingContext<TPixel> DetectEdges<TPixel>(this IImageProcessingContext<TPixel> source, IImageProcessor<TPixel> filter)
             where TPixel : struct, IPixel<TPixel>
         {
             return source.ApplyProcessor(filter);
@@ -98,17 +99,17 @@ namespace SixLabors.ImageSharp.Processing
         /// </param>
         /// <param name="filter">The filter for detecting edges.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> DetectEdges<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle, IEdgeDetectorProcessor<TPixel> filter)
+        private static IImageProcessingContext<TPixel> DetectEdges<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle, IImageProcessor<TPixel> filter)
             where TPixel : struct, IPixel<TPixel>
         {
             source.ApplyProcessor(filter, rectangle);
             return source;
         }
 
-        private static IEdgeDetectorProcessor<TPixel> GetProcessor<TPixel>(EdgeDetectionOperators filter, bool grayscale)
+        private static IImageProcessor<TPixel> GetProcessor<TPixel>(EdgeDetectionOperators filter, bool grayscale)
             where TPixel : struct, IPixel<TPixel>
         {
-            IEdgeDetectorProcessor<TPixel> processor;
+            IImageProcessor<TPixel> processor;
 
             switch (filter)
             {

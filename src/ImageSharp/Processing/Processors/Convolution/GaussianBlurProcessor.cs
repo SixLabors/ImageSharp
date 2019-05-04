@@ -1,14 +1,13 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 {
     /// <summary>
-    /// Defines a gaussian blur processor with a (Sigma, Radius) pair.
+    /// Defines Gaussian blur by a (Sigma, Radius) pair.
     /// </summary>
     public class GaussianBlurProcessor : IImageProcessor
     {
@@ -21,7 +20,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// Initializes a new instance of the <see cref="GaussianBlurProcessor"/> class.
         /// </summary>
         public GaussianBlurProcessor()
-            : this(DefaultSigma, CalculateDefaultRadius(DefaultSigma))
+            : this(DefaultSigma, ConvolutionProcessorHelpers.GetDefaultGaussianRadius(DefaultSigma))
         {
         }
 
@@ -30,7 +29,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </summary>
         /// <param name="sigma">The 'sigma' value representing the weight of the blur.</param>
         public GaussianBlurProcessor(float sigma)
-            : this(sigma, CalculateDefaultRadius(sigma))
+            : this(sigma, ConvolutionProcessorHelpers.GetDefaultGaussianRadius(sigma))
         {
         }
 
@@ -76,15 +75,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             where TPixel : struct, IPixel<TPixel>
         {
             return new GaussianBlurProcessor<TPixel>(this);
-        }
-
-        /// <summary>
-        /// Kernel radius is calculated using the minimum viable value.
-        /// <see cref="http://chemaguerra.com/gaussian-filter-radius/"/>.
-        /// </summary>
-        private static int CalculateDefaultRadius(float sigma)
-        {
-            return (int)MathF.Ceiling(sigma * 3);
         }
     }
 }

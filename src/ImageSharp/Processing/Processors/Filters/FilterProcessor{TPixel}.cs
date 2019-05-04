@@ -15,12 +15,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// Provides methods that accept a <see cref="ColorMatrix"/> matrix to apply free-form filters to images.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class FilterProcessorImplementation<TPixel> : ImageProcessor<TPixel>
+    internal class FilterProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly FilterProcessor definition;
 
-        public FilterProcessorImplementation(FilterProcessor definition)
+        public FilterProcessor(FilterProcessor definition)
         {
             this.definition = definition;
         }

@@ -18,6 +18,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
 
         /// <inheritdoc />
         public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>() =>
-            new PolaroidProcessorImplementation<TPixel>(this);
+            new PolaroidProcessor<TPixel>(this);
     }
 }

@@ -9,6 +9,36 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
     public class Rgba1010102Tests
     {
+        /// <summary>
+        /// Tests the equality operators for equality.
+        /// </summary>
+        [Fact]
+        public void AreEqual()
+        {
+            var color1 = new Rgba1010102(0.0f, 0.0f, 0.0f, 0.0f);
+            var color2 = new Rgba1010102(new Vector4(0.0f));
+            var color3 = new Rgba1010102(new Vector4(1.0f, 0.0f, 1.0f, 1.0f));
+            var color4 = new Rgba1010102(1.0f, 0.0f, 1.0f, 1.0f);
+
+            Assert.Equal(color1, color2);
+            Assert.Equal(color3, color4);
+        }
+
+        /// <summary>
+        /// Tests the equality operators for inequality.
+        /// </summary>
+        [Fact]
+        public void AreNotEqual()
+        {
+            var color1 = new Rgba1010102(0.0f, 0.0f, 0.0f, 0.0f);
+            var color2 = new Rgba1010102(new Vector4(1.0f));
+            var color3 = new Rgba1010102(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+            var color4 = new Rgba1010102(1.0f, 1.0f, 0.0f, 1.0f);
+
+            Assert.NotEqual(color1, color2);
+            Assert.NotEqual(color3, color4);
+        }
+
         [Fact]
         public void Rgba1010102_PackedValue()
         {
@@ -76,6 +106,104 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             // assert
             Assert.Equal(expected, rgba.PackedValue);
+        }
+
+        [Fact]
+        public void Rgba1010102_FromArgb32()
+        {
+            // arrange
+            var rgba = default(Rgba1010102);
+            uint expectedPackedValue = uint.MaxValue;
+
+            // act
+            rgba.FromArgb32(new Argb32(255, 255, 255, 255));
+
+            // assert
+            Assert.Equal(expectedPackedValue, rgba.PackedValue);
+        }
+
+        [Fact]
+        public void Rgba1010102_FromBgr24()
+        {
+            // arrange
+            var rgba = default(Rgba1010102);
+            uint expectedPackedValue = uint.MaxValue;
+
+            // act
+            rgba.FromBgr24(new Bgr24(byte.MaxValue, byte.MaxValue, byte.MaxValue));
+
+            // assert
+            Assert.Equal(expectedPackedValue, rgba.PackedValue);
+        }
+
+        [Fact]
+        public void Rgba1010102_FromGrey8()
+        {
+            // arrange
+            var rgba = default(Rgba1010102);
+            uint expectedPackedValue = uint.MaxValue;
+
+            // act
+            rgba.FromGray8(new Gray8(byte.MaxValue));
+
+            // assert
+            Assert.Equal(expectedPackedValue, rgba.PackedValue);
+        }
+
+        [Fact]
+        public void Rgba1010102_FromGrey16()
+        {
+            // arrange
+            var rgba = default(Rgba1010102);
+            uint expectedPackedValue = uint.MaxValue;
+
+            // act
+            rgba.FromGray16(new Gray16(ushort.MaxValue));
+
+            // assert
+            Assert.Equal(expectedPackedValue, rgba.PackedValue);
+        }
+
+        [Fact]
+        public void Rgba1010102_FromRgb24()
+        {
+            // arrange
+            var rgba = default(Rgba1010102);
+            uint expectedPackedValue = uint.MaxValue;
+
+            // act
+            rgba.FromRgb24(new Rgb24(byte.MaxValue, byte.MaxValue, byte.MaxValue));
+
+            // assert
+            Assert.Equal(expectedPackedValue, rgba.PackedValue);
+        }
+
+        [Fact]
+        public void Rgba1010102_FromRgb48()
+        {
+            // arrange
+            var rgba = default(Rgba1010102);
+            uint expectedPackedValue = uint.MaxValue;
+
+            // act
+            rgba.FromRgb48(new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
+
+            // assert
+            Assert.Equal(expectedPackedValue, rgba.PackedValue);
+        }
+
+        [Fact]
+        public void Rgba1010102_FromRgba64()
+        {
+            // arrange
+            var rgba = default(Rgba1010102);
+            uint expectedPackedValue = uint.MaxValue;
+
+            // act
+            rgba.FromRgba64(new Rgba64(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
+
+            // assert
+            Assert.Equal(expectedPackedValue, rgba.PackedValue);
         }
 
         [Fact]

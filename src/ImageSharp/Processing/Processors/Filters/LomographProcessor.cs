@@ -17,6 +17,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         }
 
         public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>() =>
-            new LomographProcessorImplementation<TPixel>(this);
+            new LomographProcessor<TPixel>(this);
     }
 }

@@ -15,6 +15,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     {
         private static readonly TPixel VeryDarkGreen = ColorBuilder<TPixel>.FromRGBA(0, 10, 0, 255);
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LomographProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="definition">The <see cref="LomographProcessor"/> defining the parameters.</param>
         public LomographProcessor(LomographProcessor definition)
             : base(definition)
         {

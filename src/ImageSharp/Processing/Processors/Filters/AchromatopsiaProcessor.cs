@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// <summary>
     /// Converts the colors of the image recreating Achromatopsia (Monochrome) color blindness.
     /// </summary>
-    internal class AchromatopsiaProcessor : FilterProcessor
+    public class AchromatopsiaProcessor : FilterProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="AchromatopsiaProcessor"/> class.

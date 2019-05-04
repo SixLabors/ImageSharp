@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// <summary>
     /// Converts the colors of the image recreating Achromatomaly (Color desensitivity) color blindness.
     /// </summary>
-    internal class AchromatomalyProcessor : FilterProcessor
+    public class AchromatomalyProcessor : FilterProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="AchromatomalyProcessor"/> class.

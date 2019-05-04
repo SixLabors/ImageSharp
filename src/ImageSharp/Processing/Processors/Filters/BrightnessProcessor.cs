@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// <summary>
     /// Applies a brightness filter matrix using the given amount.
     /// </summary>
-    internal class BrightnessProcessor : FilterProcessor
+    public class BrightnessProcessor : FilterProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="BrightnessProcessor"/> class.

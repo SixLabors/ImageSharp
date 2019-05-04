@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.ImageSharp.Processing.Processors.Convolution;
 using SixLabors.Primitives;
@@ -9,82 +8,79 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds edge detection extensions to the <see cref="Image{TPixel}"/> type.
+    /// Adds edge detection extensions to the <see cref="Image"/> type.
     /// </summary>
     public static class DetectEdgesExtensions
     {
         /// <summary>
-        /// Detects any edges within the image. Uses the <see cref="SobelProcessor{TPixel}"/> filter
+        /// Detects any edges within the image. Uses the <see cref="SobelProcessor"/> filter
         /// operating in grayscale mode.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> DetectEdges<TPixel>(this IImageProcessingContext<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
-            => DetectEdges(source, new SobelProcessor<TPixel>(true));
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static IImageProcessingContext DetectEdges(this IImageProcessingContext source) =>
+            DetectEdges(source, new SobelProcessor(true));
 
         /// <summary>
-        /// Detects any edges within the image. Uses the <see cref="SobelProcessor{TPixel}"/> filter
+        /// Detects any edges within the image. Uses the <see cref="SobelProcessor"/> filter
         /// operating in grayscale mode.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> DetectEdges<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle)
-            where TPixel : struct, IPixel<TPixel>
-            => DetectEdges(source, rectangle, new SobelProcessor<TPixel>(true));
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static IImageProcessingContext DetectEdges(this IImageProcessingContext source, Rectangle rectangle) =>
+            DetectEdges(source, rectangle, new SobelProcessor(true));
 
         /// <summary>
         /// Detects any edges within the image.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="filter">The filter for detecting edges.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> DetectEdges<TPixel>(this IImageProcessingContext<TPixel> source, EdgeDetectionOperators filter)
-            where TPixel : struct, IPixel<TPixel>
-            => DetectEdges(source, GetProcessor<TPixel>(filter, true));
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static IImageProcessingContext DetectEdges(
+            this IImageProcessingContext source,
+            EdgeDetectionOperators filter) =>
+            DetectEdges(source, GetProcessor(filter, true));
 
         /// <summary>
         /// Detects any edges within the image.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="filter">The filter for detecting edges.</param>
         /// <param name="grayscale">Whether to convert the image to grayscale first. Defaults to true.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> DetectEdges<TPixel>(this IImageProcessingContext<TPixel> source, EdgeDetectionOperators filter, bool grayscale)
-            where TPixel : struct, IPixel<TPixel>
-            => DetectEdges(source, GetProcessor<TPixel>(filter, grayscale));
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static IImageProcessingContext DetectEdges(
+            this IImageProcessingContext source,
+            EdgeDetectionOperators filter,
+            bool grayscale) =>
+            DetectEdges(source, GetProcessor(filter, grayscale));
 
         /// <summary>
         /// Detects any edges within the image.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="filter">The filter for detecting edges.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <param name="grayscale">Whether to convert the image to grayscale first. Defaults to true.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> DetectEdges<TPixel>(this IImageProcessingContext<TPixel> source, EdgeDetectionOperators filter, Rectangle rectangle, bool grayscale = true)
-            where TPixel : struct, IPixel<TPixel>
-            => DetectEdges(source, rectangle, GetProcessor<TPixel>(filter, grayscale));
+        /// <returns>The <see cref="Image"/>.</returns>
+        public static IImageProcessingContext DetectEdges(
+            this IImageProcessingContext source,
+            EdgeDetectionOperators filter,
+            Rectangle rectangle,
+            bool grayscale = true) =>
+            DetectEdges(source, rectangle, GetProcessor(filter, grayscale));
 
         /// <summary>
         /// Detects any edges within the image.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="filter">The filter for detecting edges.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        private static IImageProcessingContext<TPixel> DetectEdges<TPixel>(this IImageProcessingContext<TPixel> source, IImageProcessor<TPixel> filter)
-            where TPixel : struct, IPixel<TPixel>
+        /// <returns>The <see cref="Image"/>.</returns>
+        private static IImageProcessingContext DetectEdges(this IImageProcessingContext source, IImageProcessor filter)
         {
             return source.ApplyProcessor(filter);
         }
@@ -92,65 +88,65 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Detects any edges within the image.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <param name="filter">The filter for detecting edges.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        private static IImageProcessingContext<TPixel> DetectEdges<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle, IImageProcessor<TPixel> filter)
-            where TPixel : struct, IPixel<TPixel>
+        /// <returns>The <see cref="Image"/>.</returns>
+        private static IImageProcessingContext DetectEdges(
+            this IImageProcessingContext source,
+            Rectangle rectangle,
+            IImageProcessor filter)
         {
             source.ApplyProcessor(filter, rectangle);
             return source;
         }
 
-        private static IImageProcessor<TPixel> GetProcessor<TPixel>(EdgeDetectionOperators filter, bool grayscale)
-            where TPixel : struct, IPixel<TPixel>
+        private static IImageProcessor GetProcessor(EdgeDetectionOperators filter, bool grayscale)
         {
-            IImageProcessor<TPixel> processor;
+            IImageProcessor processor;
 
             switch (filter)
             {
                 case EdgeDetectionOperators.Kayyali:
-                    processor = new KayyaliProcessor<TPixel>(grayscale);
+                    processor = new KayyaliProcessor(grayscale);
                     break;
 
                 case EdgeDetectionOperators.Kirsch:
-                    processor = new KirschProcessor<TPixel>(grayscale);
+                    processor = new KirschProcessor(grayscale);
                     break;
 
                 case EdgeDetectionOperators.Laplacian3x3:
-                    processor = new Laplacian3x3Processor<TPixel>(grayscale);
+                    processor = new Laplacian3x3Processor(grayscale);
                     break;
 
                 case EdgeDetectionOperators.Laplacian5x5:
-                    processor = new Laplacian5x5Processor<TPixel>(grayscale);
+                    processor = new Laplacian5x5Processor(grayscale);
                     break;
 
                 case EdgeDetectionOperators.LaplacianOfGaussian:
-                    processor = new LaplacianOfGaussianProcessor<TPixel>(grayscale);
+                    processor = new LaplacianOfGaussianProcessor(grayscale);
                     break;
 
                 case EdgeDetectionOperators.Prewitt:
-                    processor = new PrewittProcessor<TPixel>(grayscale);
+                    processor = new PrewittProcessor(grayscale);
                     break;
 
                 case EdgeDetectionOperators.RobertsCross:
-                    processor = new RobertsCrossProcessor<TPixel>(grayscale);
+                    processor = new RobertsCrossProcessor(grayscale);
                     break;
 
                 case EdgeDetectionOperators.Robinson:
-                    processor = new RobinsonProcessor<TPixel>(grayscale);
+                    processor = new RobinsonProcessor(grayscale);
                     break;
 
                 case EdgeDetectionOperators.Scharr:
-                    processor = new ScharrProcessor<TPixel>(grayscale);
+                    processor = new ScharrProcessor(grayscale);
                     break;
 
                 default:
-                    processor = new SobelProcessor<TPixel>(grayscale);
+                    processor = new SobelProcessor(grayscale);
                     break;
             }
 

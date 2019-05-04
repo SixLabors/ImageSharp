@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// <summary>
     /// Converts the colors of the image recreating Deuteranomaly (Green-Weak) color blindness.
     /// </summary>
-    internal class DeuteranomalyProcessor : FilterProcessor
+    public class DeuteranomalyProcessor : FilterProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="DeuteranomalyProcessor"/> class.

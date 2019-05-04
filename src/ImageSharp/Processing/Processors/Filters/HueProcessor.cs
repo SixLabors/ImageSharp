@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// <summary>
     /// Applies a hue filter matrix using the given angle of rotation in degrees
     /// </summary>
-    internal class HueProcessor : FilterProcessor
+    public class HueProcessor : FilterProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="HueProcessor"/> class.

@@ -16,7 +16,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         private static readonly TPixel VeryDarkOrange = ColorBuilder<TPixel>.FromRGB(102, 34, 0);
         private static readonly TPixel LightOrange = ColorBuilder<TPixel>.FromRGBA(255, 153, 102, 128);
 
-        public PolaroidProcessor(FilterProcessor definition)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PolaroidProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="definition">The <see cref="PolaroidProcessor"/> defining the parameters.</param>
+        public PolaroidProcessor(PolaroidProcessor definition)
             : base(definition)
         {
         }

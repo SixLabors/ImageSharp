@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.Primitives;
 namespace SixLabors.ImageSharp.Processing.Processors.Filters
 {
     /// <summary>
-    /// Provides methods that accept a <see cref="ColorMatrix"/> matrix to apply free-form filters to images.
+    /// Defines a free-form color filter by a <see cref="ColorMatrix"/>.
     /// </summary>
     public class FilterProcessor : IImageProcessor
     {

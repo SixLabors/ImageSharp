@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// <summary>
     /// Applies a contrast filter matrix using the given amount.
     /// </summary>
-    internal class ContrastProcessor : FilterProcessor
+    public class ContrastProcessor : FilterProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ContrastProcessor"/> class.
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         }
 
         /// <summary>
-        /// Gets the proportion of the conversion
+        /// Gets the proportion of the conversion.
         /// </summary>
         public float Amount { get; }
     }

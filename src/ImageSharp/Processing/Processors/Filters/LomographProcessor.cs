@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// <summary>
     /// Converts the colors of the image recreating an old Lomograph effect.
     /// </summary>
-    internal class LomographProcessor : FilterProcessor
+    public class LomographProcessor : FilterProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="LomographProcessor" /> class.
@@ -16,6 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         {
         }
 
+        /// <inheritdoc />
         public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>() =>
             new LomographProcessor<TPixel>(this);
     }

@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// <summary>
     /// Applies a saturation filter matrix using the given amount.
     /// </summary>
-    internal class SaturateProcessor : FilterProcessor
+    public class SaturateProcessor : FilterProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="SaturateProcessor"/> class.

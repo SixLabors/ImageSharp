@@ -6,9 +6,9 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Processing.Processors.Filters
 {
     /// <summary>
-    /// Applies a black and white filter matrix to the image
+    /// Applies a black and white filter matrix to the image.
     /// </summary>
-    internal class BlackWhiteProcessor : FilterProcessor
+    public class BlackWhiteProcessor : FilterProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="BlackWhiteProcessor"/> class.

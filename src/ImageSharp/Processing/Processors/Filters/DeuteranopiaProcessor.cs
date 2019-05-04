@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// <summary>
     /// Converts the colors of the image recreating Deuteranopia (Green-Blind) color blindness.
     /// </summary>
-    internal class DeuteranopiaProcessor : FilterProcessor
+    public class DeuteranopiaProcessor : FilterProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="DeuteranopiaProcessor"/> class.

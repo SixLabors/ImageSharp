@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// <summary>
     /// Applies a filter matrix that inverts the colors of an image
     /// </summary>
-    internal class InvertProcessor : FilterProcessor
+    public class InvertProcessor : FilterProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="InvertProcessor"/> class.

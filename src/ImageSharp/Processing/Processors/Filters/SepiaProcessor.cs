@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// <summary>
     /// Applies a sepia filter matrix using the given amount.
     /// </summary>
-    internal class SepiaProcessor : FilterProcessor
+    public class SepiaProcessor : FilterProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="SepiaProcessor"/> class.

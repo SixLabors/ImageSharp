@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// Defines a processor that detects edges within an image using two one-dimensional matrices.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class EdgeDetector2DProcessor<TPixel> : ImageProcessor<TPixel>
+    internal class EdgeDetector2DProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
         /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection.</param>
-        protected EdgeDetector2DProcessor(in DenseMatrix<float> kernelX, in DenseMatrix<float> kernelY, bool grayscale)
+        internal EdgeDetector2DProcessor(in DenseMatrix<float> kernelX, in DenseMatrix<float> kernelY, bool grayscale)
         {
             Guard.IsTrue(kernelX.Size.Equals(kernelY.Size), $"{nameof(kernelX)} {nameof(kernelY)}", "Kernel sizes must be the same.");
             this.KernelX = kernelX;
@@ -39,7 +39,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </summary>
         public DenseMatrix<float> KernelY { get; }
 
-        /// <inheritdoc/>
         public bool Grayscale { get; }
 
         /// <inheritdoc />

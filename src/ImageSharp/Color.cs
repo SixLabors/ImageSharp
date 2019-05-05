@@ -18,8 +18,7 @@ namespace SixLabors.ImageSharp
 
         public Color(Rgba32 pixel)
         {
-            this.data = default;
-            this.data.FromRgba32(pixel);
+            this.data = new Rgba64(pixel);
         }
 
         public Color(Vector4 vector)
@@ -29,8 +28,7 @@ namespace SixLabors.ImageSharp
         }
 
         public static Color FromRgba(byte r, byte g, byte b, byte a) => new Color(new Rgba32(r, g, b, a));
-        public static Color FromRgba(ushort r, ushort g, ushort b, ushort a) => new Color(new Rgba64(r, g, b, a));
-        
+
         public TPixel ToPixel<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {

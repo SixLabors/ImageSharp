@@ -50,7 +50,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         /// The output is visually correct old 32bit runtime,
         /// but it is very different because of floating point inaccuracies.
         /// </summary>
-        private static readonly bool SkipAllDitherTests = false;
+        private static readonly bool SkipAllDitherTests =
+            !TestEnvironment.Is64BitProcess && string.IsNullOrEmpty(TestEnvironment.NetCoreVersion);
 
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32)]

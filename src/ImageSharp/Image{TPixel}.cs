@@ -3,14 +3,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
 {
@@ -67,14 +66,14 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="metadata">The images metadata.</param>
         internal Image(Configuration configuration, int width, int height, ImageMetadata metadata)
-            : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata)
+            : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
         {
             this.Frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
-        /// wrapping an external <see cref="MemorySource{T}"/>
+        /// wrapping an external <see cref="MemorySource{T}"/>.
         /// </summary>
         /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
         /// <param name="memorySource">The memory source.</param>
@@ -82,7 +81,7 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="metadata">The images metadata.</param>
         internal Image(Configuration configuration, MemorySource<TPixel> memorySource, int width, int height, ImageMetadata metadata)
-            : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata)
+            : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
         {
             this.Frames = new ImageFrameCollection<TPixel>(this, width, height, memorySource);
         }
@@ -97,7 +96,7 @@ namespace SixLabors.ImageSharp
         /// <param name="backgroundColor">The color to initialize the pixels with.</param>
         /// <param name="metadata">The images metadata.</param>
         internal Image(Configuration configuration, int width, int height, TPixel backgroundColor, ImageMetadata metadata)
-            : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata)
+            : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
         {
             this.Frames = new ImageFrameCollection<TPixel>(this, width, height, backgroundColor);
         }
@@ -110,16 +109,10 @@ namespace SixLabors.ImageSharp
         /// <param name="metadata">The images metadata.</param>
         /// <param name="frames">The frames that will be owned by this image instance.</param>
         internal Image(Configuration configuration, ImageMetadata metadata, IEnumerable<ImageFrame<TPixel>> frames)
-            : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata)
+            : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, ValidateFramesAndGetSize(frames))
         {
             this.Frames = new ImageFrameCollection<TPixel>(this, frames);
         }
-
-        /// <inheritdoc/>
-        public override int Width => this.Frames.RootFrame.Width;
-
-        /// <inheritdoc/>
-        public override int Height => this.Frames.RootFrame.Height;
 
         /// <summary>
         /// Gets the frames.
@@ -173,7 +166,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <typeparam name="TPixel2">The pixel format.</typeparam>
         /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
-        /// <returns>The <see cref="Image{TPixel2}"/></returns>
+        /// <returns>The <see cref="Image{TPixel2}"/>.</returns>
         public Image<TPixel2> CloneAs<TPixel2>(Configuration configuration)
             where TPixel2 : struct, IPixel<TPixel2>
         {
@@ -184,6 +177,7 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc/>
         public override void Dispose() => this.Frames.Dispose();
 
+        /// <inheritdoc />
         internal override void AcceptVisitor(IImageVisitor visitor)
         {
             visitor.Visit(this);
@@ -204,6 +198,29 @@ namespace SixLabors.ImageSharp
             {
                 this.Frames[i].SwapOrCopyPixelsBufferFrom(pixelSource.Frames[i]);
             }
+
+            this.UpdateSize(pixelSource.Size());
+        }
+
+        private static Size ValidateFramesAndGetSize(IEnumerable<ImageFrame<TPixel>> frames)
+        {
+            Guard.NotNull(frames, nameof(frames));
+
+            ImageFrame<TPixel> rootFrame = frames.FirstOrDefault();
+
+            if (rootFrame == null)
+            {
+                throw new ArgumentException("Must not be empty.", nameof(frames));
+            }
+
+            Size rootSize = rootFrame.Size();
+
+            if (frames.Any(f => f.Size() != rootSize))
+            {
+                throw new ArgumentException("The provided frames must be of the same size.", nameof(frames));
+            }
+
+            return rootSize;
         }
     }
 }

@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// <summary>
     /// Converts the colors of the image recreating an old Polaroid effect.
     /// </summary>
-    public class PolaroidProcessor : FilterProcessor
+    public sealed class PolaroidProcessor : FilterProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="PolaroidProcessor" /> class.

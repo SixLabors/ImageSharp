@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// <summary>
     /// Applies an opacity filter matrix using the given amount.
     /// </summary>
-    public class OpacityProcessor : FilterProcessor
+    public sealed class OpacityProcessor : FilterProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="OpacityProcessor"/> class.

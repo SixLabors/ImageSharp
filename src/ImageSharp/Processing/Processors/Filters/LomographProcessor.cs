@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// <summary>
     /// Converts the colors of the image recreating an old Lomograph effect.
     /// </summary>
-    public class LomographProcessor : FilterProcessor
+    public sealed class LomographProcessor : FilterProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="LomographProcessor" /> class.

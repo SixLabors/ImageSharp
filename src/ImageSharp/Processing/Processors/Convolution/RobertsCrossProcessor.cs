@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// Defines edge detection processing using the Roberts Cross operator filter.
     /// See <see href="http://en.wikipedia.org/wiki/Roberts_cross"/>.
     /// </summary>
-    public class RobertsCrossProcessor : EdgeDetectorProcessor
+    public sealed class RobertsCrossProcessor : EdgeDetectorProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RobertsCrossProcessor"/> class.

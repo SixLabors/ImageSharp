@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// Defines edge detection using the Robinson operator filter.
     /// See <see href="http://www.tutorialspoint.com/dip/Robinson_Compass_Mask.htm"/>.
     /// </summary>
-    internal class RobinsonProcessor : EdgeDetectorProcessor
+    public sealed class RobinsonProcessor : EdgeDetectorProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RobinsonProcessor"/> class.

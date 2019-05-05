@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// <summary>
     /// Defines a box blur processor of a given Radius.
     /// </summary>
-    public class BoxBlurProcessor : IImageProcessor
+    public sealed class BoxBlurProcessor : IImageProcessor
     {
         /// <summary>
         /// The default radius used by the parameterless constructor.

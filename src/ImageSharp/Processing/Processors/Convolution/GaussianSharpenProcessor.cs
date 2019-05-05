@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// <summary>
     /// Defines Gaussian sharpening by a (Sigma, Radius) pair.
     /// </summary>
-    public class GaussianSharpenProcessor : IImageProcessor
+    public sealed class GaussianSharpenProcessor : IImageProcessor
     {
          /// <summary>
         /// The default value for <see cref="Sigma"/>.

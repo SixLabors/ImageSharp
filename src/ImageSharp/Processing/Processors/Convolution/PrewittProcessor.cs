@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// Defines edge detection using the Prewitt operator filter.
     /// See <see href="http://en.wikipedia.org/wiki/Prewitt_operator"/>.
     /// </summary>
-    public class PrewittProcessor : EdgeDetectorProcessor
+    public sealed class PrewittProcessor : EdgeDetectorProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="PrewittProcessor"/> class.

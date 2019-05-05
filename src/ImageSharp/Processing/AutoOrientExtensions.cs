@@ -7,7 +7,8 @@ using SixLabors.ImageSharp.Processing.Processors.Transforms;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extensions that allow the application of auto-orientation operations to the <see cref="Image{TPixel}"/> type.
+    /// Defines extensions that allow the application of auto-orientation operations to an <see cref="Image{TPixel}"/>
+    /// using Mutate/Clone.
     /// </summary>
     public static class AutoOrientExtensions
     {

@@ -9,7 +9,8 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extensions that allow the application of composable filters to the <see cref="Image{TPixel}"/> type.
+    /// Defines extensions that allow the application of composable filters to an <see cref="Image"/>
+    /// using Mutate/Clone.
     /// </summary>
     public static class FilterExtensions
     {
@@ -18,7 +19,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="matrix">The filter color matrix</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Filter(this IImageProcessingContext source, ColorMatrix matrix)
             => source.ApplyProcessor(new FilterProcessor(matrix));
 
@@ -30,7 +31,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Filter(this IImageProcessingContext source, ColorMatrix matrix, Rectangle rectangle)
             => source.ApplyProcessor(new FilterProcessor(matrix), rectangle);
     }

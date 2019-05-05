@@ -6,7 +6,8 @@ using SixLabors.ImageSharp.Processing.Processors.Transforms;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extensions that allow the application of rotate operations to the <see cref="Image"/> type.
+    /// Defines extensions that allow the application of rotate operations on an <see cref="Image"/>
+    /// using Mutate/Clone.
     /// </summary>
     public static class RotateExtensions
     {
@@ -15,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="source">The image to rotate.</param>
         /// <param name="rotateMode">The <see cref="RotateMode"/> to perform the rotation.</param>
-        /// <returns>The <see cref="Image{TPixel}"/></returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Rotate(this IImageProcessingContext source, RotateMode rotateMode) =>
             Rotate(source, (float)rotateMode);
 
@@ -24,7 +25,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="source">The image to rotate.</param>
         /// <param name="degrees">The angle in degrees to perform the rotation.</param>
-        /// <returns>The <see cref="Image{TPixel}"/></returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Rotate(this IImageProcessingContext source, float degrees) =>
             Rotate(source, degrees, KnownResamplers.Bicubic);
 
@@ -34,7 +35,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image to rotate.</param>
         /// <param name="degrees">The angle in degrees to perform the rotation.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-        /// <returns>The <see cref="Image{TPixel}"/></returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Rotate(
             this IImageProcessingContext source,
             float degrees,

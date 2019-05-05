@@ -7,7 +7,8 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extensions that allow the application of padding operations to the <see cref="Image{TPixel}"/> type.
+    /// Defines extensions that allow the application of padding operations on an <see cref="Image"/>
+    /// using Mutate/Clone.
     /// </summary>
     public static class PadExtensions
     {
@@ -17,7 +18,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The source image to pad.</param>
         /// <param name="width">The new width.</param>
         /// <param name="height">The new height.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Pad(this IImageProcessingContext source, int width, int height)
         {
             var options = new ResizeOptions

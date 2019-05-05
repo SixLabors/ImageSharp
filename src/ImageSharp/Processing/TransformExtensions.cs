@@ -9,7 +9,8 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extensions that allow the application of composable transform operations to the <see cref="Image"/> type.
+    /// Defines extensions that allow the application of composable transform operations on an <see cref="Image"/>
+    /// using Mutate/Clone.
     /// </summary>
     public static class TransformExtensions
     {
@@ -30,7 +31,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="ctx">The <see cref="IImageProcessingContext"/>.</param>
         /// <param name="builder">The affine transform builder.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Transform(
             this IImageProcessingContext ctx,
             AffineTransformBuilder builder,
@@ -44,7 +45,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="sourceRectangle">The source rectangle</param>
         /// <param name="builder">The affine transform builder.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Transform(
             this IImageProcessingContext ctx,
             Rectangle sourceRectangle,
@@ -64,7 +65,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="transform">The transformation matrix.</param>
         /// <param name="targetDimensions">The size of the result image.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Transform(
             this IImageProcessingContext ctx,
             Rectangle sourceRectangle,
@@ -82,7 +83,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="source">The image to transform.</param>
         /// <param name="builder">The affine transform builder.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Transform(
             this IImageProcessingContext source,
             ProjectiveTransformBuilder builder) =>
@@ -94,7 +95,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="ctx">The <see cref="IImageProcessingContext"/>.</param>
         /// <param name="builder">The projective transform builder.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Transform(
             this IImageProcessingContext ctx,
             ProjectiveTransformBuilder builder,
@@ -108,7 +109,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="sourceRectangle">The source rectangle</param>
         /// <param name="builder">The projective transform builder.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Transform(
             this IImageProcessingContext ctx,
             Rectangle sourceRectangle,
@@ -128,7 +129,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="transform">The transformation matrix.</param>
         /// <param name="targetDimensions">The size of the result image.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Transform(
             this IImageProcessingContext ctx,
             Rectangle sourceRectangle,

@@ -8,7 +8,8 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extensions that allow the alteration of the opacity component to the <see cref="Image{TPixel}"/> type.
+    /// Defines extensions that allow the alteration of the opacity component of an <see cref="Image"/>
+    /// using Mutate/Clone.
     /// </summary>
     public static class OpacityExtensions
     {
@@ -17,7 +18,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="amount">The proportion of the conversion. Must be between 0 and 1.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Opacity(this IImageProcessingContext source, float amount)
             => source.ApplyProcessor(new OpacityProcessor(amount));
 
@@ -29,7 +30,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Opacity(this IImageProcessingContext source, float amount, Rectangle rectangle)
             => source.ApplyProcessor(new OpacityProcessor(amount), rectangle);
     }

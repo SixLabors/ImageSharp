@@ -8,7 +8,7 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds edge detection extensions to the <see cref="Image"/> type.
+    /// Defines edge detection extensions applicable on an <see cref="Image"/> using Mutate/Clone.
     /// </summary>
     public static class DetectEdgesExtensions
     {
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing
         /// operating in grayscale mode.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
-        /// <returns>The <see cref="Image"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext DetectEdges(this IImageProcessingContext source) =>
             DetectEdges(source, new SobelProcessor(true));
 
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext DetectEdges(this IImageProcessingContext source, Rectangle rectangle) =>
             DetectEdges(source, rectangle, new SobelProcessor(true));
 
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="filter">The filter for detecting edges.</param>
-        /// <returns>The <see cref="Image"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext DetectEdges(
             this IImageProcessingContext source,
             EdgeDetectionOperators filter) =>
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image this method extends.</param>
         /// <param name="filter">The filter for detecting edges.</param>
         /// <param name="grayscale">Whether to convert the image to grayscale first. Defaults to true.</param>
-        /// <returns>The <see cref="Image"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext DetectEdges(
             this IImageProcessingContext source,
             EdgeDetectionOperators filter,
@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Processing
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <param name="grayscale">Whether to convert the image to grayscale first. Defaults to true.</param>
-        /// <returns>The <see cref="Image"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext DetectEdges(
             this IImageProcessingContext source,
             EdgeDetectionOperators filter,
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="filter">The filter for detecting edges.</param>
-        /// <returns>The <see cref="Image"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         private static IImageProcessingContext DetectEdges(this IImageProcessingContext source, IImageProcessor filter)
         {
             return source.ApplyProcessor(filter);
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Processing
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <param name="filter">The filter for detecting edges.</param>
-        /// <returns>The <see cref="Image"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         private static IImageProcessingContext DetectEdges(
             this IImageProcessingContext source,
             Rectangle rectangle,

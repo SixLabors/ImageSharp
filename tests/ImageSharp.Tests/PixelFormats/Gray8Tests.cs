@@ -1,10 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Diagnostics;
 using System.Numerics;
 
-using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
@@ -44,6 +42,24 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [InlineData(42)]
         public void Gray8_PackedValue_EqualsInput(byte input)
             => Assert.Equal(input, new Gray8(input).PackedValue);
+
+        [Fact]
+        public void AreEqual()
+        {
+            var color1 = new Gray8(100);
+            var color2 = new Gray8(100);
+            
+            Assert.Equal(color1, color2);
+        }
+
+        [Fact]
+        public void AreNotEqual()
+        {
+            var color1 = new Gray8(100);
+            var color2 = new Gray8(200);
+
+            Assert.NotEqual(color1, color2);
+        }
 
         [Fact]
         public void Gray8_FromScaledVector4()

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -9,6 +10,30 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
     public class Bgra32Tests
     {
+        /// <summary>
+        /// Tests the equality operators for equality.
+        /// </summary>
+        [Fact]
+        public void AreEqual()
+        {
+            var color1 = new Bgra32(byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue);
+            var color2 = new Bgra32(byte.MaxValue, byte.MaxValue, byte.MaxValue);
+            
+            Assert.Equal(color1, color2);
+        }
+
+        /// <summary>
+        /// Tests the equality operators for inequality.
+        /// </summary>
+        [Fact]
+        public void AreNotEqual()
+        {
+            var color1 = new Bgra32(0, 0, byte.MaxValue, byte.MaxValue);
+            var color2 = new Bgra32(byte.MaxValue, byte.MaxValue, byte.MaxValue);
+
+            Assert.NotEqual(color1, color2);
+        }
+
         public static readonly TheoryData<byte, byte, byte, byte> ColorData =
             new TheoryData<byte, byte, byte, byte>()
                 {

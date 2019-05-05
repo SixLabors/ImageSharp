@@ -8,7 +8,8 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extensions that allow the alteration of the hue component to the <see cref="Image"/> type.
+    /// Defines extensions that allow the alteration of the hue component of an <see cref="Image"/>
+    /// using Mutate/Clone.
     /// </summary>
     public static class HueExtensions
     {
@@ -17,7 +18,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="degrees">The rotation angle in degrees to adjust the hue.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Hue(this IImageProcessingContext source, float degrees)
             => source.ApplyProcessor(new HueProcessor(degrees));
 
@@ -29,7 +30,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Hue(this IImageProcessingContext source, float degrees, Rectangle rectangle)
             => source.ApplyProcessor(new HueProcessor(degrees), rectangle);
     }

@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.ImageSharp.Processing.Processors.Filters;
 using SixLabors.Primitives;
@@ -9,7 +8,8 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extensions that simulate the effects of various color blindness disorders to the <see cref="Image{TPixel}"/> type.
+    /// Defines extensions that simulate the effects of various color blindness disorders on an <see cref="Image"/>
+    /// using Mutate/Clone.
     /// </summary>
     public static class ColorBlindnessExtensions
     {
@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="colorBlindness">The type of color blindness simulator to apply.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext ColorBlindness(this IImageProcessingContext source, ColorBlindnessMode colorBlindness)
             => source.ApplyProcessor(GetProcessor(colorBlindness));
 
@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext ColorBlindness(this IImageProcessingContext source, ColorBlindnessMode colorBlindnessMode, Rectangle rectangle)
             => source.ApplyProcessor(GetProcessor(colorBlindnessMode), rectangle);
 

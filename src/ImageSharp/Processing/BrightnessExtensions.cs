@@ -8,7 +8,8 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extensions that allow the alteration of the brightness component to the <see cref="Image{TPixel}"/> type.
+    /// Defines extensions that allow the alteration of the brightness component of an <see cref="Image"/>
+    /// using Mutate/Clone.
     /// </summary>
     public static class BrightnessExtensions
     {
@@ -21,7 +22,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </remarks>
         /// <param name="source">The image this method extends.</param>
         /// <param name="amount">The proportion of the conversion. Must be greater than or equal to 0.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Brightness(this IImageProcessingContext source, float amount)
             => source.ApplyProcessor(new BrightnessProcessor(amount));
 
@@ -37,7 +38,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Brightness(this IImageProcessingContext source, float amount, Rectangle rectangle)
             => source.ApplyProcessor(new BrightnessProcessor(amount), rectangle);
     }

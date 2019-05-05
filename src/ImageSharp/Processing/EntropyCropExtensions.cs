@@ -6,7 +6,8 @@ using SixLabors.ImageSharp.Processing.Processors.Transforms;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extensions that allow the application of entropy cropping operations to the <see cref="Image"/> type.
+    /// Defines extensions that allow the application of entropy cropping operations on an <see cref="Image"/>
+    /// using Mutate/Clone.
     /// </summary>
     public static class EntropyCropExtensions
     {
@@ -14,7 +15,7 @@ namespace SixLabors.ImageSharp.Processing
         /// Crops an image to the area of greatest entropy using a threshold for entropic density of <value>.5F</value>.
         /// </summary>
         /// <param name="source">The image to crop.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext EntropyCrop(this IImageProcessingContext source) =>
             source.ApplyProcessor(new EntropyCropProcessor());
 
@@ -23,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="source">The image to crop.</param>
         /// <param name="threshold">The threshold for entropic density.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext EntropyCrop(this IImageProcessingContext source, float threshold) =>
             source.ApplyProcessor(new EntropyCropProcessor(threshold));
     }

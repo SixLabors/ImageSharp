@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Processing.Processors.Normalization;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extension that allow the adjustment of the contrast of an image via its histogram.
+    /// Defines extension that allow the adjustment of the contrast of an image via its histogram.
     /// </summary>
     public static class HistogramEqualizationExtension
     {
@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Processing
         /// Equalizes the histogram of an image to increases the contrast.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext HistogramEqualization(this IImageProcessingContext source) =>
             HistogramEqualization(source, HistogramEqualizationOptions.Default);
 
@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="options">The histogram equalization options to use.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext HistogramEqualization(
             this IImageProcessingContext source,
             HistogramEqualizationOptions options) =>

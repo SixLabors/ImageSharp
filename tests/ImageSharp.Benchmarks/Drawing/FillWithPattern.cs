@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Benchmarks
             {
                 graphics.SmoothingMode = SmoothingMode.AntiAlias;
 
-                using (var brush = new HatchBrush(HatchStyle.BackwardDiagonal, Color.HotPink))
+                using (var brush = new HatchBrush(HatchStyle.BackwardDiagonal, System.Drawing.Color.HotPink))
                 {
                     graphics.FillRectangle(brush, new Rectangle(0, 0, 800, 800)); // can't find a way to flood fill with a brush
                 }

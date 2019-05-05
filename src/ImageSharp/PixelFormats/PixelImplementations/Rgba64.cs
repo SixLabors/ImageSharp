@@ -57,20 +57,78 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgba64"/> struct.
         /// </summary>
-        /// <param name="r">The red component.</param>
-        /// <param name="g">The green component.</param>
-        /// <param name="b">The blue component.</param>
-        /// <param name="a">The alpha component.</param>
-        public Rgba64(byte r, byte g, byte b, byte a)
+        /// <param name="source">A structure of 4 bytes in RGBA byte order.</param>
+        public Rgba64(Rgba32 source)
         {
-            this.R = r;
-            this.G = g;
-            this.B = b;
-            this.A = a;
+            this.R = ImageMaths.UpscaleFrom8BitTo16Bit(source.R);
+            this.G = ImageMaths.UpscaleFrom8BitTo16Bit(source.G);
+            this.B = ImageMaths.UpscaleFrom8BitTo16Bit(source.B);
+            this.A = ImageMaths.UpscaleFrom8BitTo16Bit(source.A);
         }
 
         /// <summary>
-        /// Gets or sets the RGB components of this struct as <see cref="Rgb48"/>
+        /// Initializes a new instance of the <see cref="Rgba64"/> struct.
+        /// </summary>
+        /// <param name="source">A structure of 4 bytes in BGRA byte order.</param>
+        public Rgba64(Bgra32 source)
+        {
+            this.R = ImageMaths.UpscaleFrom8BitTo16Bit(source.R);
+            this.G = ImageMaths.UpscaleFrom8BitTo16Bit(source.G);
+            this.B = ImageMaths.UpscaleFrom8BitTo16Bit(source.B);
+            this.A = ImageMaths.UpscaleFrom8BitTo16Bit(source.A);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rgba64"/> struct.
+        /// </summary>
+        /// <param name="source">A structure of 4 bytes in ARGB byte order.</param>
+        public Rgba64(Argb32 source)
+        {
+            this.R = ImageMaths.UpscaleFrom8BitTo16Bit(source.R);
+            this.G = ImageMaths.UpscaleFrom8BitTo16Bit(source.G);
+            this.B = ImageMaths.UpscaleFrom8BitTo16Bit(source.B);
+            this.A = ImageMaths.UpscaleFrom8BitTo16Bit(source.A);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rgba64"/> struct.
+        /// </summary>
+        /// <param name="source">A structure of 3 bytes in RGB byte order.</param>
+        public Rgba64(Rgb24 source)
+        {
+            this.R = ImageMaths.UpscaleFrom8BitTo16Bit(source.R);
+            this.G = ImageMaths.UpscaleFrom8BitTo16Bit(source.G);
+            this.B = ImageMaths.UpscaleFrom8BitTo16Bit(source.B);
+            this.A = ushort.MaxValue;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rgba64"/> struct.
+        /// </summary>
+        /// <param name="source">A structure of 3 bytes in BGR byte order.</param>
+        public Rgba64(Bgr24 source)
+        {
+            this.R = ImageMaths.UpscaleFrom8BitTo16Bit(source.R);
+            this.G = ImageMaths.UpscaleFrom8BitTo16Bit(source.G);
+            this.B = ImageMaths.UpscaleFrom8BitTo16Bit(source.B);
+            this.A = ushort.MaxValue;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rgba64"/> struct.
+        /// </summary>
+        /// <param name="vector">The <see cref="Vector4"/>.</param>
+        public Rgba64(Vector4 vector)
+        {
+            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * Max;
+            this.R = (ushort)MathF.Round(vector.X);
+            this.G = (ushort)MathF.Round(vector.Y);
+            this.B = (ushort)MathF.Round(vector.Z);
+            this.A = (ushort)MathF.Round(vector.W);
+        }
+
+        /// <summary>
+        /// Gets or sets the RGB components of this struct as <see cref="Rgb48"/>.
         /// </summary>
         public Rgb48 Rgb
         {
@@ -235,6 +293,74 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromRgba64(Rgba64 source) => this = source;
+
+        /// <summary>
+        /// Convert to <see cref="Rgba32"/>.
+        /// </summary>
+        /// <returns>The <see cref="Rgba32"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public Rgba32 ToRgba32()
+        {
+            byte r = ImageMaths.DownScaleFrom16BitTo8Bit(this.R);
+            byte g = ImageMaths.DownScaleFrom16BitTo8Bit(this.G);
+            byte b = ImageMaths.DownScaleFrom16BitTo8Bit(this.B);
+            byte a = ImageMaths.DownScaleFrom16BitTo8Bit(this.A);
+            return new Rgba32(r, g, b, a);
+        }
+
+        /// <summary>
+        /// Convert to <see cref="Bgra32"/>.
+        /// </summary>
+        /// <returns>The <see cref="Bgra32"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public Bgra32 ToBgra32()
+        {
+            byte r = ImageMaths.DownScaleFrom16BitTo8Bit(this.R);
+            byte g = ImageMaths.DownScaleFrom16BitTo8Bit(this.G);
+            byte b = ImageMaths.DownScaleFrom16BitTo8Bit(this.B);
+            byte a = ImageMaths.DownScaleFrom16BitTo8Bit(this.A);
+            return new Bgra32(r, g, b, a);
+        }
+
+        /// <summary>
+        /// Convert to <see cref="Argb32"/>.
+        /// </summary>
+        /// <returns>The <see cref="Argb32"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public Argb32 ToArgb32()
+        {
+            byte r = ImageMaths.DownScaleFrom16BitTo8Bit(this.R);
+            byte g = ImageMaths.DownScaleFrom16BitTo8Bit(this.G);
+            byte b = ImageMaths.DownScaleFrom16BitTo8Bit(this.B);
+            byte a = ImageMaths.DownScaleFrom16BitTo8Bit(this.A);
+            return new Argb32(r, g, b, a);
+        }
+
+        /// <summary>
+        /// Convert to <see cref="Rgb24"/>.
+        /// </summary>
+        /// <returns>The <see cref="Rgb24"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public Rgb24 ToRgb24()
+        {
+            byte r = ImageMaths.DownScaleFrom16BitTo8Bit(this.R);
+            byte g = ImageMaths.DownScaleFrom16BitTo8Bit(this.G);
+            byte b = ImageMaths.DownScaleFrom16BitTo8Bit(this.B);
+            return new Rgb24(r, g, b);
+        }
+
+        /// <summary>
+        /// Convert to <see cref="Bgr24"/>.
+        /// </summary>
+        /// <returns>The <see cref="Bgr24"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public Bgr24 ToBgr24()
+        {
+            byte r = ImageMaths.DownScaleFrom16BitTo8Bit(this.R);
+            byte g = ImageMaths.DownScaleFrom16BitTo8Bit(this.G);
+            byte b = ImageMaths.DownScaleFrom16BitTo8Bit(this.B);
+            return new Bgr24(r, g, b);
+        }
 
         /// <inheritdoc />
         public override bool Equals(object obj) => obj is Rgba64 rgba64 && this.Equals(rgba64);

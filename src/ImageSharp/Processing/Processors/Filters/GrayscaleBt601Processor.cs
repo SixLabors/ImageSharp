@@ -1,14 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.PixelFormats;
-
 namespace SixLabors.ImageSharp.Processing.Processors.Filters
 {
     /// <summary>
     /// Applies a grayscale filter matrix using the given amount and the formula as specified by ITU-R Recommendation BT.601
     /// </summary>
-    public class GrayscaleBt601Processor : FilterProcessor
+    public sealed class GrayscaleBt601Processor : FilterProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="GrayscaleBt601Processor"/> class.

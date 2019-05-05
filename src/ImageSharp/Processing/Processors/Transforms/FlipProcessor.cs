@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// <summary>
     /// Defines a flipping around the center point of the image.
     /// </summary>
-    public class FlipProcessor : IImageProcessor
+    public sealed class FlipProcessor : IImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="FlipProcessor"/> class.

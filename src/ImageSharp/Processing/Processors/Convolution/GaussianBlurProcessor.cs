@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// <summary>
     /// Defines Gaussian blur by a (Sigma, Radius) pair.
     /// </summary>
-    public class GaussianBlurProcessor : IImageProcessor
+    public sealed class GaussianBlurProcessor : IImageProcessor
     {
         /// <summary>
         /// The default value for <see cref="Sigma"/>.

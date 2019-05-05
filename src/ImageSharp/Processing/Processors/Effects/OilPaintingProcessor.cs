@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
     /// <summary>
     /// Defines an oil painting effect.
     /// </summary>
-    public class OilPaintingProcessor : IImageProcessor
+    public sealed class OilPaintingProcessor : IImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="OilPaintingProcessor"/> class.

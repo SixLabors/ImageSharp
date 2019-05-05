@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// <summary>
     /// Defines a skew transformation applicable to an <see cref="Image"/>.
     /// </summary>
-    internal class SkewProcessor : AffineTransformProcessor
+    public sealed class SkewProcessor : AffineTransformProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="SkewProcessor"/> class.

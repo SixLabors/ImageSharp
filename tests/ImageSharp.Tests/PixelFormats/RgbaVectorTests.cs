@@ -146,5 +146,47 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // assert
             Assert.Equal(expected, actual);
         }
+
+        [Fact]
+        public void RgbaVector_FromBgra5551()
+        {
+            // arrange
+            var rgb = default(RgbaVector);
+            Vector4 expected = Vector4.One;
+
+            // act
+            rgb.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // assert
+            Assert.Equal(expected, rgb.ToScaledVector4());
+        }
+
+        [Fact]
+        public void RgbaVector_FromGrey16()
+        {
+            // arrange
+            var rgba = default(RgbaVector);
+            Vector4 expected = Vector4.One;
+
+            // act
+            rgba.FromGray16(new Gray16(ushort.MaxValue));
+
+            // assert
+            Assert.Equal(expected, rgba.ToScaledVector4());
+        }
+
+        [Fact]
+        public void RgbaVector_FromGrey8()
+        {
+            // arrange
+            var rgba = default(RgbaVector);
+            Vector4 expected = Vector4.One;
+
+            // act
+            rgba.FromGray8(new Gray8(byte.MaxValue));
+
+            // assert
+            Assert.Equal(expected, rgba.ToScaledVector4());
+        }
     }
 }

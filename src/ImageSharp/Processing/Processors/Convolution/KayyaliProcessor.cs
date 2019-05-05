@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// Defines edge detection processing using the Kayyali operator filter.
     /// See <see href="http://edgedetection.webs.com/"/>.
     /// </summary>
-    public class KayyaliProcessor : EdgeDetectorProcessor
+    public sealed class KayyaliProcessor : EdgeDetectorProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="KayyaliProcessor"/> class.

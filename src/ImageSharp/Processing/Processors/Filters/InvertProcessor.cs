@@ -1,14 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.PixelFormats;
-
 namespace SixLabors.ImageSharp.Processing.Processors.Filters
 {
     /// <summary>
     /// Applies a filter matrix that inverts the colors of an image
     /// </summary>
-    public class InvertProcessor : FilterProcessor
+    public sealed class InvertProcessor : FilterProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="InvertProcessor"/> class.

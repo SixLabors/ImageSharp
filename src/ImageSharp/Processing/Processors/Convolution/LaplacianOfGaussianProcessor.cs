@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// Applies edge detection processing to the image using the Laplacian of Gaussian operator filter.
     /// See <see href="http://fourier.eng.hmc.edu/e161/lectures/gradient/node8.html"/>.
     /// </summary>
-    public class LaplacianOfGaussianProcessor : EdgeDetectorProcessor
+    public sealed class LaplacianOfGaussianProcessor : EdgeDetectorProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="LaplacianOfGaussianProcessor"/> class.

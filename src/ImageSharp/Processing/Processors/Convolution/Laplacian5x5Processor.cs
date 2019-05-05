@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// Defines edge detection processing using the Laplacian 5x5 operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Discrete_Laplace_operator"/>.
     /// </summary>
-    public class Laplacian5x5Processor : EdgeDetectorProcessor
+    public sealed class Laplacian5x5Processor : EdgeDetectorProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Laplacian5x5Processor"/> class.

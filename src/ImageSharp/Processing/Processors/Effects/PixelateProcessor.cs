@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
     /// <summary>
     /// Defines a pixelation effect of a given size.
     /// </summary>
-    public class PixelateProcessor : IImageProcessor
+    public sealed class PixelateProcessor : IImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelateProcessor"/> class.

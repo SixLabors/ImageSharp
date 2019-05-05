@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// <summary>
     /// Applies a grayscale filter matrix using the given amount and the formula as specified by ITU-R Recommendation BT.709
     /// </summary>
-    public class GrayscaleBt709Processor : FilterProcessor
+    public sealed class GrayscaleBt709Processor : FilterProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="GrayscaleBt709Processor"/> class.

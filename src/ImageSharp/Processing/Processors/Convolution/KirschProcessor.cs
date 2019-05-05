@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// Defines edge detection using the Kirsch operator filter.
     /// See <see href="http://en.wikipedia.org/wiki/Kirsch_operator"/>.
     /// </summary>
-    public class KirschProcessor : EdgeDetectorProcessor
+    public sealed class KirschProcessor : EdgeDetectorProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="KirschProcessor"/> class.

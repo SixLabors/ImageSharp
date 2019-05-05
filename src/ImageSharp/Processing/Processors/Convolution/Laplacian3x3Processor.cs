@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// Applies edge detection processing to the image using the Laplacian 3x3 operator filter.
     /// <see href="http://en.wikipedia.org/wiki/Discrete_Laplace_operator"/>
     /// </summary>
-    public class Laplacian3x3Processor : EdgeDetectorProcessor
+    public sealed class Laplacian3x3Processor : EdgeDetectorProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Laplacian3x3Processor"/> class.

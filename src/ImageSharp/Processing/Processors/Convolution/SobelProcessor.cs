@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// Defines edge detection using the Sobel operator filter.
     /// See <see href="http://en.wikipedia.org/wiki/Sobel_operator"/>.
     /// </summary>
-    public class SobelProcessor : EdgeDetectorProcessor
+    public sealed class SobelProcessor : EdgeDetectorProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="SobelProcessor"/> class.

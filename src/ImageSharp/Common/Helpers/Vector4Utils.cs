@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Bulk variant of <see cref="Transform(ref Vector4, ref ColorMatrix)"/>
+        /// Bulk variant of <see cref="Transform(ref Vector4, ref ColorMatrix)"/>.
         /// </summary>
         /// <param name="vectors">The span of vectors</param>
         /// <param name="matrix">The transformation matrix.</param>

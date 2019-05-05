@@ -26,13 +26,5 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         {
             return new EdgeDetector2DProcessor<TPixel>(SobelKernels.SobelX, SobelKernels.SobelY, this.Grayscale);
         }
-
-        // TODO: Move this to an appropriate extension method if possible.
-        internal void ApplyToFrame<TPixel>(ImageFrame<TPixel> frame, Rectangle sourceRectangle, Configuration configuration)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            var processorImpl = new EdgeDetector2DProcessor<TPixel>(SobelKernels.SobelX, SobelKernels.SobelY, this.Grayscale);
-            processorImpl.Apply(frame, sourceRectangle, configuration);
-        }
     }
 }

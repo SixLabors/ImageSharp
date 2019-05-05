@@ -55,6 +55,21 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="Rgba64"/> struct.
+        /// </summary>
+        /// <param name="r">The red component.</param>
+        /// <param name="g">The green component.</param>
+        /// <param name="b">The blue component.</param>
+        /// <param name="a">The alpha component.</param>
+        public Rgba64(byte r, byte g, byte b, byte a)
+        {
+            this.R = r;
+            this.G = g;
+            this.B = b;
+            this.A = a;
+        }
+
+        /// <summary>
         /// Gets or sets the RGB components of this struct as <see cref="Rgb48"/>
         /// </summary>
         public Rgb48 Rgb

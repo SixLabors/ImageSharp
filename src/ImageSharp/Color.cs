@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
 {
-    public readonly struct Color
+    public readonly partial struct Color
     {
         private readonly Rgba64 data;
 

@@ -38,6 +38,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <summary>
         /// Gets or sets the number of tiles the image is split into (horizontal and vertically) for the adaptive histogram equalization. Defaults to 10.
         /// </summary>
-        public int Tiles { get; set; } = 10;
+        public int NumberOfTiles { get; set; } = 10;
     }
 }

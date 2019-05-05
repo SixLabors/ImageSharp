@@ -8,7 +8,8 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing.Dithering
 {
     /// <summary>
-    /// Adds diffusion extensions to the <see cref="Image{TPixel}"/> type.
+    /// Defines extension methods to apply diffusion to an <see cref="Image{TPixel}"/>
+    /// using Mutate/Clone.
     /// </summary>
     public static class DiffuseExtensions
     {
@@ -17,7 +18,7 @@ namespace SixLabors.ImageSharp.Processing.Dithering
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Diffuse<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
             => Diffuse(source, KnownDiffusers.FloydSteinberg, .5F);
@@ -28,7 +29,7 @@ namespace SixLabors.ImageSharp.Processing.Dithering
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Diffuse<TPixel>(this IImageProcessingContext<TPixel> source, float threshold)
             where TPixel : struct, IPixel<TPixel>
             => Diffuse(source, KnownDiffusers.FloydSteinberg, threshold);
@@ -40,7 +41,7 @@ namespace SixLabors.ImageSharp.Processing.Dithering
         /// <param name="source">The image this method extends.</param>
         /// <param name="diffuser">The diffusion algorithm to apply.</param>
         /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Diffuse<TPixel>(this IImageProcessingContext<TPixel> source, IErrorDiffuser diffuser, float threshold)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new ErrorDiffusionPaletteProcessor<TPixel>(diffuser, threshold));
@@ -55,7 +56,7 @@ namespace SixLabors.ImageSharp.Processing.Dithering
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Diffuse<TPixel>(this IImageProcessingContext<TPixel> source, IErrorDiffuser diffuser, float threshold, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new ErrorDiffusionPaletteProcessor<TPixel>(diffuser, threshold), rectangle);
@@ -68,7 +69,7 @@ namespace SixLabors.ImageSharp.Processing.Dithering
         /// <param name="diffuser">The diffusion algorithm to apply.</param>
         /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
         /// <param name="palette">The palette to select substitute colors from.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Diffuse<TPixel>(this IImageProcessingContext<TPixel> source, IErrorDiffuser diffuser, float threshold, TPixel[] palette)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new ErrorDiffusionPaletteProcessor<TPixel>(diffuser, threshold, palette));
@@ -84,7 +85,7 @@ namespace SixLabors.ImageSharp.Processing.Dithering
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Diffuse<TPixel>(this IImageProcessingContext<TPixel> source, IErrorDiffuser diffuser, float threshold, TPixel[] palette, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new ErrorDiffusionPaletteProcessor<TPixel>(diffuser, threshold, palette), rectangle);

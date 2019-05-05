@@ -6,7 +6,8 @@ using SixLabors.ImageSharp.Processing.Processors.Transforms;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extensions that allow the application of flipping operations to the <see cref="Image"/> type.
+    /// Defines extensions that allow the application of flipping operations on an <see cref="Image"/>
+    /// using Mutate/Clone.
     /// </summary>
     public static class FlipExtensions
     {
@@ -15,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="source">The image to rotate, flip, or both.</param>
         /// <param name="flipMode">The <see cref="FlipMode"/> to perform the flip.</param>
-        /// <returns>The <see cref="Image{TPixel}"/></returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Flip(this IImageProcessingContext source, FlipMode flipMode)
             => source.ApplyProcessor(new FlipProcessor(flipMode));
     }

@@ -9,7 +9,8 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extensions that allow the application of grayscale toning to the <see cref="Image"/> type.
+    /// Defines extensions that allow the application of grayscale toning to an <see cref="Image"/>
+    /// using Mutate/Clone.
     /// </summary>
     public static class GrayscaleExtensions
     {

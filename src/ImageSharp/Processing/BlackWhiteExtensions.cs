@@ -8,7 +8,8 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extensions that allow the application of black and white toning to the <see cref="Image{TPixel}"/> type.
+    /// Defines extension methods that allow the application of black and white toning to an <see cref="Image"/>
+    /// using Mutate/Clone.
     /// </summary>
     public static class BlackWhiteExtensions
     {
@@ -16,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing
         /// Applies black and white toning to the image.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext BlackWhite(this IImageProcessingContext source)
             => source.ApplyProcessor(new BlackWhiteProcessor());
 
@@ -27,7 +28,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext BlackWhite(this IImageProcessingContext source, Rectangle rectangle)
             => source.ApplyProcessor(new BlackWhiteProcessor(), rectangle);
     }

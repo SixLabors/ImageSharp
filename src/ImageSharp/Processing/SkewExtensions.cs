@@ -6,7 +6,8 @@ using SixLabors.ImageSharp.Processing.Processors.Transforms;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extensions that allow the application of skew operations to the <see cref="Image"/> type.
+    /// Defines extensions that allow the application of skew operations on an <see cref="Image"/>
+    /// using Mutate/Clone.
     /// </summary>
     public static class SkewExtensions
     {
@@ -16,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image to skew.</param>
         /// <param name="degreesX">The angle in degrees to perform the skew along the x-axis.</param>
         /// <param name="degreesY">The angle in degrees to perform the skew along the y-axis.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext
             Skew(this IImageProcessingContext source, float degreesX, float degreesY) =>
             Skew(source, degreesX, degreesY, KnownResamplers.Bicubic);
@@ -28,7 +29,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="degreesX">The angle in degrees to perform the skew along the x-axis.</param>
         /// <param name="degreesY">The angle in degrees to perform the skew along the y-axis.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Skew(
             this IImageProcessingContext source,
             float degreesX,

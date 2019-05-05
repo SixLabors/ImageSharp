@@ -8,7 +8,8 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extensions that allow the application of sepia toning to the <see cref="Image"/> type.
+    /// Defines extensions that allow the application of sepia toning on an <see cref="Image"/>
+    /// using Mutate/Clone.
     /// </summary>
     public static class SepiaExtensions
     {
@@ -16,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing
         /// Applies sepia toning to the image.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Sepia(this IImageProcessingContext source)
              => Sepia(source, 1F);
 
@@ -25,7 +26,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="amount">The proportion of the conversion. Must be between 0 and 1.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Sepia(this IImageProcessingContext source, float amount)
              => source.ApplyProcessor(new SepiaProcessor(amount));
 
@@ -36,7 +37,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Sepia(this IImageProcessingContext source, Rectangle rectangle)
             => Sepia(source, 1F, rectangle);
 
@@ -48,7 +49,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Sepia(this IImageProcessingContext source, float amount, Rectangle rectangle)
             => source.ApplyProcessor(new SepiaProcessor(amount), rectangle);
     }

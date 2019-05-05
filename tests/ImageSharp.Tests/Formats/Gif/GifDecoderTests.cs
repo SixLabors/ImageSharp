@@ -165,7 +165,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             var testFile = TestFile.Create(TestImages.Gif.Rings);
 
-            using (Image<Rgba32> image = testFile.CreateImage(options))
+            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
                 Assert.Equal(1, image.Metadata.Properties.Count);
                 Assert.Equal("Comments", image.Metadata.Properties[0].Name);
@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             var testFile = TestFile.Create(TestImages.Gif.Rings);
 
-            using (Image<Rgba32> image = testFile.CreateImage(options))
+            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
                 Assert.Equal(0, image.Metadata.Properties.Count);
             }
@@ -199,7 +199,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             var testFile = TestFile.Create(TestImages.Gif.Rings);
 
-            using (Image<Rgba32> image = testFile.CreateImage(options))
+            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
                 Assert.Equal(1, image.Metadata.Properties.Count);
                 Assert.Equal("浉条卥慨灲", image.Metadata.Properties[0].Value);

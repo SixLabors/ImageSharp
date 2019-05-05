@@ -202,7 +202,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             var testFile = TestFile.Create(TestImages.Png.Blur);
 
-            using (Image<Rgba32> image = testFile.CreateImage(options))
+            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
                 Assert.Equal(1, image.Metadata.Properties.Count);
                 Assert.Equal("Software", image.Metadata.Properties[0].Name);
@@ -220,7 +220,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             var testFile = TestFile.Create(TestImages.Png.Blur);
 
-            using (Image<Rgba32> image = testFile.CreateImage(options))
+            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
                 Assert.Equal(0, image.Metadata.Properties.Count);
             }
@@ -236,7 +236,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             var testFile = TestFile.Create(TestImages.Png.Blur);
 
-            using (Image<Rgba32> image = testFile.CreateImage(options))
+            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
                 Assert.Equal(1, image.Metadata.Properties.Count);
                 Assert.Equal("潓瑦慷敲", image.Metadata.Properties[0].Name);

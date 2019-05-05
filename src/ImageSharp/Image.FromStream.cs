@@ -56,39 +56,54 @@ namespace SixLabors.ImageSharp
             => WithSeekableStream(config, stream, s => InternalIdentity(s, config ?? Configuration.Default));
 
         /// <summary>
-        /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given stream.
+        /// Decode a new instance of the <see cref="Image"/> class from the given stream.
+        /// The pixel format is selected by the decoder.
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
         /// <param name="format">the mime type of the decoded image.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
-        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>>
-        public static Image Load(Stream stream, out IImageFormat format) => Load(stream, out format);
+        /// <returns>A new <see cref="Image"/>.</returns>>
+        public static Image Load(Stream stream, out IImageFormat format) => Load(Configuration.Default, stream, out format);
 
         /// <summary>
-        /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given stream.
+        /// Decode a new instance of the <see cref="Image"/> class from the given stream.
+        /// The pixel format is selected by the decoder.
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
-        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>>
-        public static Image Load(Stream stream) => Load(stream);
+        /// <returns>A new <see cref="Image"/>.</returns>>
+        public static Image Load(Stream stream) => Load(Configuration.Default, stream);
 
         /// <summary>
-        /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given stream.
+        /// Decode a new instance of the <see cref="Image"/> class from the given stream.
+        /// The pixel format is selected by the decoder.
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
         /// <param name="decoder">The decoder.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
-        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>>
-        public static Image Load(Stream stream, IImageDecoder decoder) => Load(stream, decoder);
+        /// <returns>A new <see cref="Image"/>.</returns>>
+        public static Image Load(Stream stream, IImageDecoder decoder) => Load(Configuration.Default, stream, decoder);
 
         /// <summary>
-        /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given stream.
+        /// Decode a new instance of the <see cref="Image"/> class from the given stream.
+        /// The pixel format is selected by the decoder.
+        /// </summary>
+        /// <param name="config">The config for the decoder.</param>
+        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="decoder">The decoder.</param>
+        /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <returns>A new <see cref="Image"/>.</returns>>
+        public static Image Load(Configuration config, Stream stream, IImageDecoder decoder) =>
+            WithSeekableStream(config, stream, s => decoder.Decode(config, s));
+
+        /// <summary>
+        /// Decode a new instance of the <see cref="Image"/> class from the given stream.
         /// </summary>
         /// <param name="config">The config for the decoder.</param>
         /// <param name="stream">The stream containing image information.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
-        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>>
-        public static Image Load(Configuration config, Stream stream) => Load(config, stream);
+        /// <returns>A new <see cref="Image"/>.</returns>>
+        public static Image Load(Configuration config, Stream stream) => Load(config, stream, out _);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -183,7 +198,16 @@ namespace SixLabors.ImageSharp
             throw new NotSupportedException(sb.ToString());
         }
 
-        private static Image Load(Configuration config, Stream stream, out IImageFormat format)
+        /// <summary>
+        /// Decode a new instance of the <see cref="Image"/> class from the given stream.
+        /// The pixel format is selected by the decoder.
+        /// </summary>
+        /// <param name="config">The configuration options.</param>
+        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="format">the mime type of the decoded image.</param>
+        /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
+        public static Image Load(Configuration config, Stream stream, out IImageFormat format)
         {
             config = config ?? Configuration.Default;
             (Image img, IImageFormat format) data = WithSeekableStream(config, stream, s => Decode(s, config));

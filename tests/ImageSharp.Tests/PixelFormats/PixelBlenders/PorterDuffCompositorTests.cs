@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
         public void PorterDuffOutputIsCorrect(TestImageProvider<Rgba32> provider, PixelAlphaCompositionMode mode)
         {
             var srcFile = TestFile.Create(TestImages.Png.PDSrc);
-            using (Image<Rgba32> src = srcFile.CreateImage())
+            using (Image<Rgba32> src = srcFile.CreateRgba32Image())
             using (Image<Rgba32> dest = provider.GetImage())
             {
                 GraphicsOptions options = new GraphicsOptions

@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 Assert.NotNull(img);
 
-                this.TestFormat.VerifyDecodeCall(this.Marker, this.TopLevelConfiguration);
+                this.TestFormat.VerifySpecificDecodeCall<Rgba32>(this.Marker, this.TopLevelConfiguration);
             }
 
             [Fact]

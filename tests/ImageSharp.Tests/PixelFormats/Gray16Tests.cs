@@ -9,6 +9,24 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
     public class Gray16Tests
     {
+        [Fact]
+        public void AreEqual()
+        {
+            var color1 = new Gray16(3000);
+            var color2 = new Gray16(3000);
+
+            Assert.Equal(color1, color2);
+        }
+
+        [Fact]
+        public void AreNotEqual()
+        {
+            var color1 = new Gray16(12345);
+            var color2 = new Gray16(54321);
+
+            Assert.NotEqual(color1, color2);
+        }
+
         [Theory]
         [InlineData(0)]
         [InlineData(65535)]

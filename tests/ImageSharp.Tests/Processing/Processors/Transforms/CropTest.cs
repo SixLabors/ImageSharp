@@ -13,7 +13,7 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
     [GroupOutput("Transforms")]
-    public class CropTest : FileTestBase
+    public class CropTest
     {
         [Theory]
         [WithTestPatternImages(70, 30, PixelTypes.Rgba32, 0, 0, 70, 30)]

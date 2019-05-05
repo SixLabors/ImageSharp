@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
 {
@@ -17,17 +18,34 @@ namespace SixLabors.ImageSharp
     /// </summary>
     public abstract partial class Image : IImage, IConfigurable
     {
+        private Size size;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Image"/> class.
         /// </summary>
         /// <param name="configuration">The <see cref="Configuration"/>.</param>
         /// <param name="pixelType">The <see cref="PixelTypeInfo"/>.</param>
         /// <param name="metadata">The <see cref="ImageMetadata"/>.</param>
-        protected Image(Configuration configuration, PixelTypeInfo pixelType, ImageMetadata metadata)
+        /// <param name="size">The <see cref="size"/>.</param>
+        protected Image(Configuration configuration, PixelTypeInfo pixelType, ImageMetadata metadata, Size size)
         {
             this.Configuration = configuration ?? Configuration.Default;
             this.PixelType = pixelType;
+            this.size = size;
             this.Metadata = metadata ?? new ImageMetadata();
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image"/> class.
+        /// </summary>
+        internal Image(
+            Configuration configuration,
+            PixelTypeInfo pixelType,
+            ImageMetadata metadata,
+            int width,
+            int height)
+            : this(configuration, pixelType, metadata, new Size(width, height))
+        {
         }
 
         /// <summary>
@@ -39,10 +57,10 @@ namespace SixLabors.ImageSharp
         public PixelTypeInfo PixelType { get; }
 
         /// <inheritdoc />
-        public abstract int Width { get; }
+        public int Width => this.size.Width;
 
         /// <inheritdoc />
-        public abstract int Height { get; }
+        public int Height => this.size.Height;
 
         /// <inheritdoc/>
         public ImageMetadata Metadata { get; }
@@ -54,8 +72,6 @@ namespace SixLabors.ImageSharp
 
         /// <inheritdoc />
         public abstract void Dispose();
-
-        internal abstract void AcceptVisitor(IImageVisitor visitor);
 
         /// <summary>
         /// Saves the image to the given stream using the given image encoder.
@@ -71,6 +87,19 @@ namespace SixLabors.ImageSharp
             EncodeVisitor visitor = new EncodeVisitor(encoder, stream);
             this.AcceptVisitor(visitor);
         }
+
+        /// <summary>
+        /// Accept a <see cref="IImageVisitor"/>.
+        /// Implemented by <see cref="Image{TPixel}"/> invoking <see cref="IImageVisitor.Visit{TPixel}"/>
+        /// with the pixel type of the image.
+        /// </summary>
+        internal abstract void AcceptVisitor(IImageVisitor visitor);
+
+        /// <summary>
+        /// Update the size of the image after mutation.
+        /// </summary>
+        /// <param name="size">The <see cref="Size"/>.</param>
+        protected void UpdateSize(Size size) => this.size = size;
 
         private class EncodeVisitor : IImageVisitor
         {

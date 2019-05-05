@@ -25,13 +25,5 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         /// Gets the proportion of the conversion.
         /// </summary>
         public float Amount { get; }
-
-        // TODO: Move this to an appropriate extension method if possible.
-        internal void ApplyToFrame<TPixel>(ImageFrame<TPixel> frame, Rectangle sourceRectangle, Configuration configuration)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            var processorImpl = new FilterProcessor<TPixel>(new GrayscaleBt709Processor(1F));
-            processorImpl.Apply(frame, sourceRectangle, configuration);
-        }
     }
 }

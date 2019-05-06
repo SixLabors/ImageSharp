@@ -5,6 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.Globalization;
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -117,6 +118,44 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc />
         public override string ToString() => this.ToHex();
 
+        public TPixel ToPixel<TPixel>()
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel pixel = default;
+            pixel.FromRgba64(this.data);
+            return pixel;
+        }
+
+        public bool Equals(Color other)
+        {
+            return this.data.PackedValue == other.data.PackedValue;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+            return obj is Color other && this.Equals(other);
+        }
+
+        /// <inheritdoc />
+        public override int GetHashCode()
+        {
+            return this.data.PackedValue.GetHashCode();
+        }
+
+        internal static void ToPixel<TPixel>(
+            Configuration configuration,
+            ReadOnlySpan<Color> source,
+            Span<TPixel> destination)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            ReadOnlySpan<Rgba64> rgba64Span = MemoryMarshal.Cast<Color, Rgba64>(source);
+            PixelOperations<TPixel>.Instance.FromRgba64(Configuration.Default, rgba64Span, destination);
+        }
+
         /// <summary>
         /// Converts the specified hex value to an rrggbbaa hex value.
         /// </summary>
@@ -152,34 +191,6 @@ namespace SixLabors.ImageSharp
             char a = hex.Length == 3 ? 'F' : hex[3];
 
             return new string(new[] { r, r, g, g, b, b, a, a });
-        }
-
-        public TPixel ToPixel<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
-        {
-            TPixel pixel = default;
-            pixel.FromRgba64(this.data);
-            return pixel;
-        }
-
-        public bool Equals(Color other)
-        {
-            return this.data.PackedValue == other.data.PackedValue;
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (ReferenceEquals(null, obj))
-            {
-                return false;
-            }
-            return obj is Color other && this.Equals(other);
-        }
-
-        /// <inheritdoc />
-        public override int GetHashCode()
-        {
-            return this.data.PackedValue.GetHashCode();
         }
     }
 }

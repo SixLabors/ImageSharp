@@ -1,10 +1,11 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -14,7 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// The base class for dither and diffusion processors that consume a palette.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class PaletteDitherProcessorBase<TPixel> : ImageProcessor<TPixel>
+    internal abstract class PaletteDitherProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly Dictionary<TPixel, PixelPair<TPixel>> cache = new Dictionary<TPixel, PixelPair<TPixel>>();
@@ -24,19 +25,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// </summary>
         private Vector4[] paletteVector;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PaletteDitherProcessorBase{TPixel}"/> class.
-        /// </summary>
-        /// <param name="palette">The palette to select substitute colors from.</param>
-        protected PaletteDitherProcessorBase(TPixel[] palette)
-        {
-            this.Palette = palette ?? throw new ArgumentNullException(nameof(palette));
-        }
+        private TPixel[] palette;
 
         /// <summary>
-        /// Gets the palette to select substitute colors from.
+        /// Initializes a new instance of the <see cref="PaletteDitherProcessor{TPixel}"/> class.
         /// </summary>
-        public TPixel[] Palette { get; }
+        protected PaletteDitherProcessor(PaletteDitherProcessor definition)
+        {
+            this.Definition = definition;
+        }
+
+        protected PaletteDitherProcessor Definition { get; }
 
         /// <summary>
         /// Returns the two closest colors from the palette calculated via Euclidean distance in the Rgba space.
@@ -74,12 +73,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 {
                     leastDistance = distance;
                     secondClosest = closest;
-                    closest = this.Palette[index];
+                    closest = this.palette[index];
                 }
                 else if (distance < secondLeastDistance)
                 {
                     secondLeastDistance = distance;
-                    secondClosest = this.Palette[index];
+                    secondClosest = this.palette[index];
                 }
             }
 
@@ -94,11 +93,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         {
             base.BeforeFrameApply(source, sourceRectangle, configuration);
 
+            // Lazy init palette:
+            if (this.palette is null)
+            {
+                ReadOnlySpan<Color> sourcePalette = this.Definition.Palette;
+                this.palette = new TPixel[sourcePalette.Length];
+                Color.ToPixel<TPixel>(configuration, sourcePalette, this.palette);
+            }
+
             // Lazy init paletteVector:
             if (this.paletteVector is null)
             {
-                this.paletteVector = new Vector4[this.Palette.Length];
-                PixelOperations<TPixel>.Instance.ToVector4(configuration, (ReadOnlySpan<TPixel>)this.Palette, (Span<Vector4>)this.paletteVector, PixelConversionModifiers.Scale);
+                this.paletteVector = new Vector4[this.palette.Length];
+                PixelOperations<TPixel>.Instance.ToVector4(configuration, (ReadOnlySpan<TPixel>)this.palette, (Span<Vector4>)this.paletteVector, PixelConversionModifiers.Scale);
             }
         }
     }

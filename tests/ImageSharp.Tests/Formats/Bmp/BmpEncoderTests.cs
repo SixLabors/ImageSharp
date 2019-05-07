@@ -114,6 +114,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         [WithFile(WinBmpv3, PixelTypes.Rgb24, BmpBitsPerPixel.Pixel24)]
         [WithFile(Rgb16, PixelTypes.Bgra5551, BmpBitsPerPixel.Pixel16)]
         [WithFile(Bit16, PixelTypes.Bgra5551, BmpBitsPerPixel.Pixel16)]
+        [WithFile(Bit8Palette4, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel8)]
+        [WithFile(Bit8Gs, PixelTypes.Gray8, BmpBitsPerPixel.Pixel8)]
         public void Encode_WithV3Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             // if supportTransparency is false, a v3 bitmap header will be written
             where TPixel : struct, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false);
@@ -126,11 +128,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         [WithFile(WinBmpv3, PixelTypes.Rgb24, BmpBitsPerPixel.Pixel24)]
         [WithFile(Rgb16, PixelTypes.Bgra5551, BmpBitsPerPixel.Pixel16)]
         [WithFile(Bit16, PixelTypes.Bgra5551, BmpBitsPerPixel.Pixel16)]
+        [WithFile(Bit8Palette4, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel8)]
+        [WithFile(Bit8Gs, PixelTypes.Gray8, BmpBitsPerPixel.Pixel8)]
         public void Encode_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             where TPixel : struct, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
 
         [Theory]
         [WithFile(TestImages.Png.GrayAlpha2BitInterlaced, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel32)]
+        [WithFile(Bit32Rgba, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel32)]
         public void Encode_PreservesAlpha<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             where TPixel : struct, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
 
@@ -139,8 +144,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                // There is no alpha in bmp with 24 bits per pixels, so the reference image will be made opaque.
-                if (bitsPerPixel == BmpBitsPerPixel.Pixel24)
+                // There is no alpha in bmp with less then 32 bits per pixels, so the reference image will be made opaque.
+                if (bitsPerPixel != BmpBitsPerPixel.Pixel32)
                 {
                     image.Mutate(c => c.MakeOpaque());
                 }

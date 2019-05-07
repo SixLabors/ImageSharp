@@ -304,7 +304,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             byte[] colorPalette = new byte[ColorPaletteSize8Bit];
 #endif
 
-            var quantizer = new WuQuantizer(256);
+            var quantizer = new OctreeQuantizer(256);
             QuantizedFrame<TPixel> quantized = quantizer.CreateFrameQuantizer<TPixel>(this.configuration).QuantizeFrame(image);
 
             int idx = 0;

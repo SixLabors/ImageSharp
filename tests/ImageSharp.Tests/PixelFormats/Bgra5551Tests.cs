@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -10,6 +9,36 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
     public class Bgra5551Tests
     {
+        /// <summary>
+        /// Tests the equality operators for equality.
+        /// </summary>
+        [Fact]
+        public void AreEqual()
+        {
+            var color1 = new Bgra5551(0.0f, 0.0f, 0.0f, 0.0f);
+            var color2 = new Bgra5551(new Vector4(0.0f));
+            var color3 = new Bgra5551(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+            var color4 = new Bgra5551(1.0f, 0.0f, 0.0f, 1.0f);
+            
+            Assert.Equal(color1, color2);
+            Assert.Equal(color3, color4);
+        }
+
+        /// <summary>
+        /// Tests the equality operators for inequality.
+        /// </summary>
+        [Fact]
+        public void AreNotEqual()
+        {
+            var color1 = new Bgra5551(0.0f, 0.0f, 0.0f, 0.0f);
+            var color2 = new Bgra5551(new Vector4(1.0f));
+            var color3 = new Bgra5551(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+            var color4 = new Bgra5551(1.0f, 1.0f, 0.0f, 1.0f);
+
+            Assert.NotEqual(color1, color2);
+            Assert.NotEqual(color3, color4);
+        }
+
         [Fact]
         public void Bgra5551_PackedValue()
         {
@@ -55,6 +84,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
+        public void Bgra5551_ToRgba32()
+        {
+            // arrange
+            var bgra = new Bgra5551(Vector4.One);
+            var expected = new Rgba32(Vector4.One);
+            var actual = default(Rgba32);
+
+            // act
+            bgra.ToRgba32(ref actual);
+
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
         public void Bgra5551_FromScaledVector4()
         {
             // arrange
@@ -65,6 +108,22 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // act
             pixel.FromScaledVector4(scaled);
             ushort actual = pixel.PackedValue;
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void Bgra5551_FromBgra5551()
+        {
+            // arrange
+            var bgra = default(Bgra5551);
+            var actual = default(Bgra5551);
+            var expected = new Bgra5551(1.0f, 0.0f, 1.0f, 1.0f);
+
+            // act 
+            bgra.FromBgra5551(expected);
+            actual.FromBgra5551(bgra);
 
             // assert
             Assert.Equal(expected, actual);
@@ -116,6 +175,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // act
             bgra.FromArgb32(new Argb32(255, 255, 255, 255));
             
+            // assert
+            Assert.Equal(expectedPackedValue, bgra.PackedValue);
+        }
+
+        [Fact]
+        public void Bgra5551_FromRgb48()
+        {
+            // arrange
+            var bgra = default(Bgra5551);
+            ushort expectedPackedValue = ushort.MaxValue;
+
+            // act
+            bgra.FromRgb48(new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
+
             // assert
             Assert.Equal(expectedPackedValue, bgra.PackedValue);
         }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -250,6 +250,17 @@ namespace SixLabors.Primitives
         /// <returns>The <see cref="Size"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Size Truncate(SizeF size) => new Size(unchecked((int)size.Width), unchecked((int)size.Height));
+
+        /// <summary>
+        /// Deconstructs this size into two integers
+        /// </summary>
+        /// <param name="width">The out value for the width</param>
+        /// <param name="height">The out value for the height</param>
+        public void Deconstruct(out int width, out int height)
+        {
+            width = this.Width;
+            height = this.Height;
+        }
 
         /// <inheritdoc/>
         public override int GetHashCode() => HashCode.Combine(this.Width, this.Height);

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -293,6 +293,36 @@ namespace SixLabors.Primitives.Tests
         {
             var r = new Rectangle(5, -5, 0, 1);
             Assert.Equal(string.Format(CultureInfo.CurrentCulture, "Rectangle [ X={0}, Y={1}, Width={2}, Height={3} ]", r.X, r.Y, r.Width, r.Height), r.ToString());
+        }
+
+        [Theory]
+        [InlineData(int.MinValue, int.MaxValue, int.MaxValue, int.MaxValue)]
+        [InlineData(int.MinValue, int.MaxValue, int.MaxValue, int.MinValue)]
+        [InlineData(int.MinValue, int.MaxValue, int.MinValue, int.MaxValue)]
+        [InlineData(int.MinValue, int.MaxValue, int.MinValue, int.MinValue)]
+        [InlineData(int.MinValue, int.MinValue, int.MaxValue, int.MaxValue)]
+        [InlineData(int.MinValue, int.MinValue, int.MaxValue, int.MinValue)]
+        [InlineData(int.MinValue, int.MinValue, int.MinValue, int.MaxValue)]
+        [InlineData(int.MinValue, int.MinValue, int.MinValue, int.MinValue)]
+        [InlineData(int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue)]
+        [InlineData(int.MaxValue, int.MaxValue, int.MaxValue, int.MinValue)]
+        [InlineData(int.MaxValue, int.MaxValue, int.MinValue, int.MaxValue)]
+        [InlineData(int.MaxValue, int.MaxValue, int.MinValue, int.MinValue)]
+        [InlineData(int.MaxValue, int.MinValue, int.MaxValue, int.MaxValue)]
+        [InlineData(int.MaxValue, int.MinValue, int.MaxValue, int.MinValue)]
+        [InlineData(int.MaxValue, int.MinValue, int.MinValue, int.MaxValue)]
+        [InlineData(int.MaxValue, int.MinValue, int.MinValue, int.MinValue)]
+        [InlineData(0, 0, 0, 0)]
+        public void DeconstructTest(int x, int y, int width, int height)
+        {
+            Rectangle r = new Rectangle(x, y, width, height);
+
+            (int dx, int dy, int dw, int dh) = r;
+
+            Assert.Equal(x, dx);
+            Assert.Equal(y, dy);
+            Assert.Equal(width, dw);
+            Assert.Equal(height, dh);
         }
     }
 }

@@ -27,18 +27,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private float Degrees { get; }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
-        {
-            if (this.OptimizedApply(source, destination, configuration))
-            {
-                return;
-            }
-
-            base.OnFrameApply(source, destination, sourceRectangle, configuration);
-        }
-
-        /// <inheritdoc/>
-        protected override void AfterImageApply(Image<TPixel> source, Image<TPixel> destination, Rectangle sourceRectangle)
+        protected override void AfterImageApply(
+            Image<TPixel> source,
+            Image<TPixel> destination,
+            Rectangle sourceRectangle)
         {
             ExifProfile profile = destination.Metadata.ExifProfile;
             if (profile is null)
@@ -55,6 +47,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             profile.RemoveValue(ExifTag.Orientation);
 
             base.AfterImageApply(source, destination, sourceRectangle);
+        }
+
+        /// <inheritdoc/>
+        protected override void OnFrameApply(
+            ImageFrame<TPixel> source,
+            ImageFrame<TPixel> destination,
+            Rectangle sourceRectangle,
+            Configuration configuration)
+        {
+            if (this.OptimizedApply(source, destination, configuration))
+            {
+                return;
+            }
+
+            base.OnFrameApply(source, destination, sourceRectangle, configuration);
         }
 
         /// <summary>
@@ -83,7 +90,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <returns>
         /// The <see cref="bool" />
         /// </returns>
-        private bool OptimizedApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Configuration configuration)
+        private bool OptimizedApply(
+            ImageFrame<TPixel> source,
+            ImageFrame<TPixel> destination,
+            Configuration configuration)
         {
             // Wrap the degrees to keep within 0-360 so we can apply optimizations when possible.
             float degrees = WrapDegrees(this.Degrees);
@@ -117,6 +127,35 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         }
 
         /// <summary>
+        /// Rotates the image 180 degrees clockwise at the centre point.
+        /// </summary>
+        /// <param name="source">The source image.</param>
+        /// <param name="destination">The destination image.</param>
+        /// <param name="configuration">The configuration.</param>
+        private void Rotate180(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Configuration configuration)
+        {
+            int width = source.Width;
+            int height = source.Height;
+
+            ParallelHelper.IterateRows(
+                source.Bounds(),
+                configuration,
+                rows =>
+                    {
+                        for (int y = rows.Min; y < rows.Max; y++)
+                        {
+                            Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
+                            Span<TPixel> targetRow = destination.GetPixelRowSpan(height - y - 1);
+
+                            for (int x = 0; x < width; x++)
+                            {
+                                targetRow[width - x - 1] = sourceRow[x];
+                            }
+                        }
+                    });
+        }
+
+        /// <summary>
         /// Rotates the image 270 degrees clockwise at the centre point.
         /// </summary>
         /// <param name="source">The source image.</param>
@@ -146,35 +185,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                 {
                                     destination[newX, newY] = sourceRow[x];
                                 }
-                            }
-                        }
-                    });
-        }
-
-        /// <summary>
-        /// Rotates the image 180 degrees clockwise at the centre point.
-        /// </summary>
-        /// <param name="source">The source image.</param>
-        /// <param name="destination">The destination image.</param>
-        /// <param name="configuration">The configuration.</param>
-        private void Rotate180(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Configuration configuration)
-        {
-            int width = source.Width;
-            int height = source.Height;
-
-            ParallelHelper.IterateRows(
-                source.Bounds(),
-                configuration,
-                rows =>
-                    {
-                        for (int y = rows.Min; y < rows.Max; y++)
-                        {
-                            Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
-                            Span<TPixel> targetRow = destination.GetPixelRowSpan(height - y - 1);
-
-                            for (int x = 0; x < width; x++)
-                            {
-                                targetRow[width - x - 1] = sourceRow[x];
                             }
                         }
                     });

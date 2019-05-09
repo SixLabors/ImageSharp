@@ -33,15 +33,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
         {
             // We will always be creating the clone even for mutate because we may need to resize the canvas
-            IEnumerable<ImageFrame<TPixel>> frames =
-                source.Frames.Select(x => new ImageFrame<TPixel>(source.GetConfiguration(), this.TargetDimensions.Width, this.TargetDimensions.Height, x.Metadata.DeepClone()));
+            IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select(
+                x => new ImageFrame<TPixel>(
+                    source.GetConfiguration(),
+                    this.TargetDimensions.Width,
+                    this.TargetDimensions.Height,
+                    x.Metadata.DeepClone()));
 
             // Use the overload to prevent an extra frame being added
             return new Image<TPixel>(source.GetConfiguration(), source.Metadata.DeepClone(), frames);
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(
+            ImageFrame<TPixel> source,
+            ImageFrame<TPixel> destination,
+            Rectangle sourceRectangle,
+            Configuration configuration)
         {
             Matrix4x4 transformMatrix = this.definition.TransformMatrix;
 
@@ -110,10 +118,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                     // Use the single precision position to calculate correct bounding pixels
                                     // otherwise we get rogue pixels outside of the bounds.
                                     Vector2 point = TransformUtils.ProjectiveTransform2D(x, y, matrix);
-                                    kernel.Convolve(point, x, ref ySpanRef, ref xSpanRef, source.PixelBuffer, vectorSpan);
+                                    kernel.Convolve(
+                                        point,
+                                        x,
+                                        ref ySpanRef,
+                                        ref xSpanRef,
+                                        source.PixelBuffer,
+                                        vectorSpan);
                                 }
 
-                                PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan, targetRowSpan);
+                                PixelOperations<TPixel>.Instance.FromVector4Destructive(
+                                    configuration,
+                                    vectorSpan,
+                                    targetRowSpan);
                             }
                         });
             }

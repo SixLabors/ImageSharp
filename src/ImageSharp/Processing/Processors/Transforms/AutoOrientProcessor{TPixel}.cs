@@ -61,7 +61,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> sourceBase, Rectangle sourceRectangle, Configuration config)
+        protected override void OnFrameApply(
+            ImageFrame<TPixel> sourceBase,
+            Rectangle sourceRectangle,
+            Configuration config)
         {
             // All processing happens at the image level within BeforeImageApply();
         }

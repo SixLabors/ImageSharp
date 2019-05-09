@@ -8,6 +8,9 @@ using SixLabors.ImageSharp.Processing.Processors.Dithering;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Binarization
 {
+    /// <summary>
+    /// Defines a binary threshold filtering using ordered dithering.
+    /// </summary>
     public class BinaryOrderedDitherProcessor : IImageProcessor
     {
         /// <summary>

@@ -41,12 +41,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         public float Threshold { get; }
 
         /// <summary>
-        /// Gets or sets the color to use for pixels that are above the threshold.
+        /// Gets the color to use for pixels that are above the threshold.
         /// </summary>
         public Color UpperColor { get; }
 
         /// <summary>
-        /// Gets or sets the color to use for pixels that fall below the threshold.
+        /// Gets the color to use for pixels that fall below the threshold.
         /// </summary>
         public Color LowerColor { get; }
 

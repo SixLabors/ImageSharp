@@ -21,18 +21,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
     /// To calculate the final equalized pixel value, the cdf value of four adjacent tiles will be interpolated.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class AdaptiveHistEqualizationProcessor<TPixel> : HistogramEqualizationProcessor<TPixel>
+    internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualizationProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="AdaptiveHistEqualizationProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="AdaptiveHistogramEqualizationProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="luminanceLevels">The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
         /// or 65536 for 16-bit grayscale images.</param>
         /// <param name="clipHistogram">Indicating whether to clip the histogram bins at a specific value.</param>
         /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels in the tile. Histogram bins which exceed this limit, will be capped at this value.</param>
         /// <param name="tiles">The number of tiles the image is split into (horizontal and vertically). Minimum value is 2. Maximum value is 100.</param>
-        public AdaptiveHistEqualizationProcessor(int luminanceLevels, bool clipHistogram, float clipLimitPercentage, int tiles)
+        public AdaptiveHistogramEqualizationProcessor(int luminanceLevels, bool clipHistogram, float clipLimitPercentage, int tiles)
             : base(luminanceLevels, clipHistogram, clipLimitPercentage)
         {
             Guard.MustBeGreaterThanOrEqualTo(tiles, 2, nameof(tiles));

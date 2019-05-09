@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 {
     /// <summary>
-    /// Defines a processing operation to replace the background color of an <see cref="Image"/>. 
+    /// Defines a processing operation to replace the background color of an <see cref="Image"/>.
     /// </summary>
     public sealed class BackgroundColorProcessor : IImageProcessor
     {

@@ -20,7 +20,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         {
         }
 
-
         /// <summary>
         /// Initializes a new instance of the <see cref="GlowProcessor" /> class.
         /// </summary>

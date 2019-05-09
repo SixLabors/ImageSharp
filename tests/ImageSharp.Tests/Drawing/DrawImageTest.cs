@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 // Apply a background color so we can see the translation.
                 blend.Mutate(x => x.Transform(builder));
-                blend.Mutate(x => x.BackgroundColor(NamedColors<TPixel>.HotPink));
+                blend.Mutate(x => x.BackgroundColor(Color.HotPink));
 
                 // Lets center the matrix so we can tell whether any cut-off issues we may have belong to the drawing processor
                 var position = new Point((image.Width - blend.Width) / 2, (image.Height - blend.Height) / 2);

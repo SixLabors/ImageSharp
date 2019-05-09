@@ -31,7 +31,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             // var clipped = new Rectangle(10, 10, 100, 100).Clip(new Rectangle(20, 0, 20, 20));
             using (var image = new Image<Rgba32>(500, 500))
             {
-                image.Mutate(x => x.BackgroundColor(Rgba32.Blue).Fill(Rgba32.HotPink, clipped));
+                image.Mutate(x => x.BackgroundColor(Rgba32.Blue));
+                image.Mutate(x => x.Fill(Rgba32.HotPink, clipped));
                 image.Save($"{path}/Simple.png");
 
                 Buffer2D<Rgba32> sourcePixels = image.GetRootFramePixelBuffer();
@@ -59,7 +60,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             using (var image = new Image<Rgba32>(500, 500))
             {
-                image.Mutate(x => x.BackgroundColor(Rgba32.Blue).Fill(Rgba32.HotPink, simplePath.Clip(hole1)));
+                image.Mutate(x => x.BackgroundColor(Rgba32.Blue));
+                image.Mutate(x => x.Fill(Rgba32.HotPink, simplePath.Clip(hole1)));
                 image.Save($"{path}/SimpleOverlapping.png");
 
                 Buffer2D<Rgba32> sourcePixels = image.GetRootFramePixelBuffer();
@@ -88,7 +90,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             using (var image = new Image<Rgba32>(500, 500))
             {
-                image.Mutate(x => x.BackgroundColor(Rgba32.Blue).Fill(color, simplePath.Clip(hole1)));
+                image.Mutate(x => x.BackgroundColor(Rgba32.Blue));
+                image.Mutate(x => x.Fill(color, simplePath.Clip(hole1)));
                 image.Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount

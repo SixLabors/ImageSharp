@@ -1,10 +1,13 @@
-// // Copyright (c) Six Labors and contributors.
-// // Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
 using System;
 
 namespace SixLabors.ImageSharp
 {
+    /// <content>
+    /// Contains the definition of <see cref="WernerPalette"/>.
+    /// </content>
     public partial struct Color
     {
         private static readonly Lazy<Color[]> WernerPaletteLazy = new Lazy<Color[]>(CreateWernerPalette, true);

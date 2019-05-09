@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
     /// <summary>
     /// Defines a processor that normalizes the histogram of an image.
     /// </summary>
-    internal abstract class HistogramEqualizationProcessor : IImageProcessor
+    public abstract class HistogramEqualizationProcessor : IImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="HistogramEqualizationProcessor"/> class.
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     break;
 
                 case HistogramEqualizationMethod.AdaptiveTileInterpolation:
-                    processor = new AdaptiveHistEqualizationProcessor(
+                    processor = new AdaptiveHistogramEqualizationProcessor(
                         options.LuminanceLevels,
                         options.ClipHistogram,
                         options.ClipLimitPercentage,
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     break;
 
                 case HistogramEqualizationMethod.AdaptiveSlidingWindow:
-                    processor = new AdaptiveHistEqualizationSWProcessor(
+                    processor = new AdaptiveHistogramEqualizationSlidingWindowProcessor(
                         options.LuminanceLevels,
                         options.ClipHistogram,
                         options.ClipLimitPercentage,

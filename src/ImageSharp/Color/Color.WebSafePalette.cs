@@ -1,16 +1,19 @@
-// // Copyright (c) Six Labors and contributors.
-// // Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
 using System;
 
 namespace SixLabors.ImageSharp
 {
+    /// <content>
+    /// Contains the definition of <see cref="WebSafePalette"/>.
+    /// </content>
     public partial struct Color
     {
         private static readonly Lazy<Color[]> WebSafePaletteLazy = new Lazy<Color[]>(CreateWebSafePalette, true);
 
         /// <summary>
-        /// Gets a collection of named, web safe, colors as defined in the CSS Color Module Level 4.
+        /// Gets a collection of named, web safe colors as defined in the CSS Color Module Level 4.
         /// </summary>
         public static ReadOnlySpan<Color> WebSafePalette => WebSafePaletteLazy.Value;
 

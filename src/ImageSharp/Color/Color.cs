@@ -11,81 +11,58 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
 {
+    /// <summary>
+    /// Represents a color value that is convertible to all <see cref="IPixel{TSelf}"/> implementations.
+    /// </summary>
     public readonly partial struct Color : IEquatable<Color>
     {
         private readonly Rgba64 data;
 
-        public Color(Rgba64 pixel)
-        {
-            this.data = pixel;
-        }
-
-        public Color(Rgba32 pixel)
-        {
-            this.data = new Rgba64(pixel);
-        }
-
-        public Color(Argb32 pixel)
-        {
-            this.data = new Rgba64(pixel);
-        }
-
-        public Color(Bgra32 pixel)
-        {
-            this.data = new Rgba64(pixel);
-        }
-
-        public Color(Rgb24 pixel)
-        {
-            this.data = new Rgba64(pixel);
-        }
-
-        public Color(Bgr24 pixel)
-        {
-            this.data = new Rgba64(pixel);
-        }
-
-        public Color(Vector4 vector)
-        {
-            this.data = new Rgba64(vector);
-        }
-
-        public static implicit operator Color(Rgba64 source) => new Color(source);
-
-        public static implicit operator Color(Rgba32 source) => new Color(source);
-
-        public static implicit operator Color(Bgra32 source) => new Color(source);
-
-        public static implicit operator Color(Argb32 source) => new Color(source);
-
-        public static implicit operator Color(Rgb24 source) => new Color(source);
-
-        public static implicit operator Color(Bgr24 source) => new Color(source);
-
-        public static implicit operator Rgba64(Color color) => color.data;
-
-        public static implicit operator Rgba32(Color color) => color.data.ToRgba32();
-
-        public static implicit operator Bgra32(Color color) => color.data.ToBgra32();
-
-        public static implicit operator Argb32(Color color) => color.data.ToArgb32();
-
-        public static implicit operator Rgb24(Color color) => color.data.ToRgb24();
-
-        public static implicit operator Bgr24(Color color) => color.data.ToBgr24();
-
+        /// <summary>
+        /// Checks whether two <see cref="Color"/> structures are equal.
+        /// </summary>
+        /// <param name="left">The left hand <see cref="Color"/> operand.</param>
+        /// <param name="right">The right hand <see cref="Color"/> operand.</param>
+        /// <returns>
+        /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter;
+        /// otherwise, false.
+        /// </returns>
         public static bool operator ==(Color left, Color right)
         {
             return left.Equals(right);
         }
 
+        /// <summary>
+        /// Checks whether two <see cref="Color"/> structures are equal.
+        /// </summary>
+        /// <param name="left">The left hand <see cref="Color"/> operand.</param>
+        /// <param name="right">The right hand <see cref="Color"/> operand.</param>
+        /// <returns>
+        /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter;
+        /// otherwise, false.
+        /// </returns>
         public static bool operator !=(Color left, Color right)
         {
             return !left.Equals(right);
         }
 
+        /// <summary>
+        /// Creates a <see cref="Color"/> from RGBA bytes.
+        /// </summary>
+        /// <param name="r">The red component (0-255).</param>
+        /// <param name="g">The green component (0-255).</param>
+        /// <param name="b">The blue component (0-255).</param>
+        /// <param name="a">The alpha component (0-255).</param>
+        /// <returns>The <see cref="Color"/>.</returns>
         public static Color FromRgba(byte r, byte g, byte b, byte a) => new Color(new Rgba32(r, g, b, a));
 
+        /// <summary>
+        /// Creates a <see cref="Color"/> from RGB bytes.
+        /// </summary>
+        /// <param name="r">The red component (0-255).</param>
+        /// <param name="g">The green component (0-255).</param>
+        /// <param name="b">The blue component (0-255).</param>
+        /// <returns>The <see cref="Color"/>.</returns>
         public static Color FromRgb(byte r, byte g, byte b) => FromRgba(r, g, b, 255);
 
         /// <summary>
@@ -120,6 +97,12 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc />
         public override string ToString() => this.ToHex();
 
+        /// <summary>
+        /// Converts the color instance to an <see cref="IPixel{TSelf}"/>
+        /// implementation defined by <typeparamref name="TPixel"/>.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type to convert to.</typeparam>
+        /// <returns>The pixel value.</returns>
         public TPixel ToPixel<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
@@ -128,17 +111,20 @@ namespace SixLabors.ImageSharp
             return pixel;
         }
 
+        /// <inheritdoc />
         public bool Equals(Color other)
         {
             return this.data.PackedValue == other.data.PackedValue;
         }
 
+        /// <inheritdoc />
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj))
             {
                 return false;
             }
+
             return obj is Color other && this.Equals(other);
         }
 
@@ -148,6 +134,9 @@ namespace SixLabors.ImageSharp
             return this.data.PackedValue.GetHashCode();
         }
 
+        /// <summary>
+        /// Bulk convert a span of <see cref="Color"/> to a span of a specified pixel type.
+        /// </summary>
         internal static void ToPixel<TPixel>(
             Configuration configuration,
             ReadOnlySpan<Color> source,

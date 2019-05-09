@@ -1,8 +1,11 @@
-// // Copyright (c) Six Labors and contributors.
-// // Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp
 {
+    /// <content>
+    /// Contains static named color values.
+    /// </content>
     public readonly partial struct Color
     {
         /// <summary>

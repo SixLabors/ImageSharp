@@ -86,6 +86,8 @@ namespace SixLabors.ImageSharp
 
         public static Color FromRgba(byte r, byte g, byte b, byte a) => new Color(new Rgba32(r, g, b, a));
 
+        public static Color FromRgb(byte r, byte g, byte b) => FromRgba(r, g, b, 255);
+
         /// <summary>
         /// Creates a new <see cref="Color"/> instance from the string representing a color in hexadecimal form.
         /// </summary>

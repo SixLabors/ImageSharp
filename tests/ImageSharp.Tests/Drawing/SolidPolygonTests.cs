@@ -68,8 +68,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             using (var image = new Image<Rgba32>(500, 500))
             {
+                image.Mutate(x => x.BackgroundColor(Rgba32.Blue));
                 image.Mutate(
-                    x => x.BackgroundColor(Rgba32.Blue).FillPolygon(
+                    x => x.FillPolygon(
                         new GraphicsOptions(false),
                         Rgba32.HotPink,
                         simplePath));
@@ -101,9 +102,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             {
                 var brush = new ImageBrush<Rgba32>(brushImage);
 
-                image.Mutate(x => x
-                    .BackgroundColor(Rgba32.Blue)
-                    .FillPolygon(brush, simplePath));
+                image.Mutate(x => x.BackgroundColor(Rgba32.Blue));
+                image.Mutate(x => x.FillPolygon(brush, simplePath));
                 image.Save($"{path}/Image.png");
             }
         }
@@ -121,7 +121,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             using (var image = new Image<Rgba32>(500, 500))
             {
-                image.Mutate(x => x.BackgroundColor(Rgba32.Blue).FillPolygon(color, simplePath));
+                image.Mutate(x => x.BackgroundColor(Rgba32.Blue));
+                image.Mutate(x => x.FillPolygon(color, simplePath));
                 image.Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount
@@ -140,8 +141,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             using (var image = new Image<Rgba32>(500, 500))
             {
+                image.Mutate(x => x.BackgroundColor(Rgba32.Blue));
                 image.Mutate(
-                    x => x.BackgroundColor(Rgba32.Blue).Fill(
+                    x => x.Fill(
                         Rgba32.HotPink,
                         new SixLabors.Shapes.RectangularPolygon(10, 10, 190, 140)));
                 image.Save($"{path}/Rectangle.png");
@@ -166,8 +168,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             using (var image = new Image<Rgba32>(100, 100))
             {
+                image.Mutate(x => x.BackgroundColor(Rgba32.Blue));
                 image.Mutate(
-                    x => x.BackgroundColor(Rgba32.Blue).Fill(Rgba32.HotPink, new RegularPolygon(50, 50, 3, 30)));
+                    x => x.Fill(Rgba32.HotPink, new RegularPolygon(50, 50, 3, 30)));
                 image.Save($"{path}/Triangle.png");
 
                 Buffer2D<Rgba32> sourcePixels = image.GetRootFramePixelBuffer();
@@ -186,9 +189,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             config.MaxDegreeOfParallelism = 1;
             using (var image = new Image<Rgba32>(config, 100, 100))
             {
-                image.Mutate(x => x
-                    .BackgroundColor(Rgba32.Blue)
-                    .Fill(Rgba32.HotPink, new RegularPolygon(50, 50, 7, 30, -(float)Math.PI)));
+                image.Mutate(x => x.BackgroundColor(Rgba32.Blue));
+                image.Mutate(x => x.Fill(Rgba32.HotPink, 
+                    new RegularPolygon(50, 50, 7, 30, -(float)Math.PI)));
                 image.Save($"{path}/Septagon.png");
             }
         }
@@ -202,8 +205,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             config.MaxDegreeOfParallelism = 1;
             using (var image = new Image<Rgba32>(config, 100, 100))
             {
+                image.Mutate(x => x.BackgroundColor(Rgba32.Blue));
                 image.Mutate(x => x
-                    .BackgroundColor(Rgba32.Blue)
                     .Fill(Rgba32.HotPink, new EllipsePolygon(50, 50, 30, 50)
                     .Rotate((float)(Math.PI / 3))));
                 image.Save($"{path}/ellipse.png");

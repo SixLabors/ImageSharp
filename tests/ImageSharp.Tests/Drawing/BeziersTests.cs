@@ -19,8 +19,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "BezierLine");
             using (var image = new Image<Rgba32>(500, 500))
             {
+                image.Mutate(x => x.BackgroundColor(Color.Blue));
                 image.Mutate(
-                    x => x.BackgroundColor(Rgba32.Blue).DrawBeziers(
+                    x => x.DrawBeziers(
                         Rgba32.HotPink,
                         5,
                         new SixLabors.Primitives.PointF[]
@@ -56,8 +57,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             using (var image = new Image<Rgba32>(500, 500))
             {
+                image.Mutate(x => x.BackgroundColor(Color.Blue));
                 image.Mutate(
-                    x => x.BackgroundColor(Rgba32.Blue).DrawBeziers(
+                    x => x.DrawBeziers(
                         color,
                         10,
                         new SixLabors.Primitives.PointF[]

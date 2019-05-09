@@ -13,11 +13,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Overlays
     [GroupOutput("Overlays")]
     public class GlowTest : OverlayTestBase
     {
-        protected override void Apply<T>(IImageProcessingContext<T> ctx, T color) => ctx.Glow(color);
+        protected override void Apply(IImageProcessingContext ctx, Color color) => ctx.Glow(color);
 
-        protected override void Apply<T>(IImageProcessingContext<T> ctx, float radiusX, float radiusY) =>
+        protected override void Apply(IImageProcessingContext ctx, float radiusX, float radiusY) =>
             ctx.Glow(radiusX);
 
-        protected override void Apply<T>(IImageProcessingContext<T> ctx, Rectangle rect) => ctx.Glow(rect);
+        protected override void Apply(IImageProcessingContext ctx, Rectangle rect) => ctx.Glow(rect);
     }
 }

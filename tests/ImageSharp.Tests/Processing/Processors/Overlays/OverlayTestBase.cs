@@ -27,8 +27,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Overlays
             where TPixel : struct, IPixel<TPixel>
         {
             provider.Utility.TestGroupName = this.GetType().Name;
-            var f = (FieldInfo)typeof(NamedColors<TPixel>).GetMember(colorName)[0];
-            TPixel color = (TPixel)f.GetValue(null);
+            var f = (FieldInfo)typeof(Color).GetMember(colorName)[0];
+            Color color = (Color)f.GetValue(null);
 
             provider.RunValidatingProcessorTest(x => this.Apply(x, color), colorName, ValidatorComparer, appendPixelTypeToFileName: false);
         }
@@ -58,13 +58,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Overlays
             provider.RunRectangleConstrainedValidatingProcessorTest((x, rect) => this.Apply(x, rect));
         }
 
-        protected abstract void Apply<T>(IImageProcessingContext<T> ctx, T color)
-            where T : struct, IPixel<T>;
+        protected abstract void Apply(IImageProcessingContext ctx, Color color);
         
-        protected abstract void Apply<T>(IImageProcessingContext<T> ctx, float radiusX, float radiusY)
-            where T : struct, IPixel<T>;
+        protected abstract void Apply(IImageProcessingContext ctx, float radiusX, float radiusY);
         
-        protected abstract void Apply<T>(IImageProcessingContext<T> ctx, Rectangle rect)
-            where T : struct, IPixel<T>;
+        protected abstract void Apply(IImageProcessingContext ctx, Rectangle rect);
     }
 }

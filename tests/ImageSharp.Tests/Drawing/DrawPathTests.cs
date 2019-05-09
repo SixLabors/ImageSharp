@@ -30,8 +30,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     new Vector2(10, 400));
 
                 var p = new Path(linerSegemnt, bazierSegment);
-
-                image.Mutate(x => x.BackgroundColor(Rgba32.Blue).Draw(Rgba32.HotPink, 5, p));
+                
+                image.Mutate(x => x.BackgroundColor(Rgba32.Blue));
+                image.Mutate(x => x.Draw(Rgba32.HotPink, 5, p));
                 image.Save($"{path}/Simple.png");
 
                 Buffer2D<Rgba32> sourcePixels = image.GetRootFramePixelBuffer();
@@ -67,7 +68,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             using (var image = new Image<Rgba32>(500, 500))
             {
-                image.Mutate(x => x.BackgroundColor(Rgba32.Blue).Draw(color, 10, p));
+                image.Mutate(x => x.BackgroundColor(Rgba32.Blue));
+                image.Mutate(x => x.Draw(color, 10, p));
                 image.Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount

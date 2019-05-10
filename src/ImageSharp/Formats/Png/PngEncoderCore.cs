@@ -676,7 +676,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 ref byte colorTableRef = ref MemoryMarshal.GetReference(colorTable.GetSpan());
                 ref byte alphaTableRef = ref MemoryMarshal.GetReference(alphaTable.GetSpan());
-                Span<byte> quantizedSpan = quantized.GetPixelSpan();
+                ReadOnlySpan<byte> quantizedSpan = quantized.GetPixelSpan();
 
                 Rgba32 rgba = default;
 

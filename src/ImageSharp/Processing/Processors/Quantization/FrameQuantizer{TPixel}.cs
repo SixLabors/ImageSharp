@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         /// <inheritdoc/>
-        public virtual QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image)
+        public QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image)
         {
             Guard.NotNull(image, nameof(image));
 
@@ -112,17 +112,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             var quantizedFrame = new QuantizedFrame<TPixel>(image.MemoryAllocator, width, height, palette);
 
+            Span<byte> pixelSpan = quantizedFrame.GetWritablePixelSpan();
             if (this.Dither)
             {
                 // We clone the image as we don't want to alter the original via dithering.
                 using (ImageFrame<TPixel> clone = image.Clone())
                 {
-                    this.SecondPass(clone, quantizedFrame.GetPixelSpan(), palette.Span, width, height);
+                    this.SecondPass(clone, pixelSpan, palette.Span, width, height);
                 }
             }
             else
             {
-                this.SecondPass(image, quantizedFrame.GetPixelSpan(), palette.Span, width, height);
+                this.SecondPass(image, pixelSpan, palette.Span, width, height);
             }
 
             return quantizedFrame;

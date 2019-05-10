@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <param name="width">The image width.</param>
         /// <param name="height">The image height.</param>
         /// <param name="palette">The color palette.</param>
-        public QuantizedFrame(MemoryAllocator memoryAllocator, int width, int height, ReadOnlyMemory<TPixel> palette)
+        internal QuantizedFrame(MemoryAllocator memoryAllocator, int width, int height, ReadOnlyMemory<TPixel> palette)
         {
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         /// <returns>The <see cref="Span{T}"/></returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Span<byte> GetPixelSpan() => this.pixels.GetSpan();
+        public ReadOnlySpan<byte> GetPixelSpan() => this.pixels.GetSpan();
 
         /// <summary>
         /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <param name="rowIndex">The row.</param>
         /// <returns>The <see cref="Span{T}"/></returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Span<byte> GetRowSpan(int rowIndex) => this.GetPixelSpan().Slice(rowIndex * this.Width, this.Width);
+        public ReadOnlySpan<byte> GetRowSpan(int rowIndex) => this.GetPixelSpan().Slice(rowIndex * this.Width, this.Width);
 
         /// <inheritdoc/>
         public void Dispose()
@@ -76,5 +76,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.pixels = null;
             this.Palette = null;
         }
+
+        /// <summary>
+        /// Get the non-readonly span of pixel data so <see cref="FrameQuantizer{TPixel}"/> can fill it.
+        /// </summary>
+        internal Span<byte> GetWritablePixelSpan() => this.pixels.GetSpan();
     }
 }

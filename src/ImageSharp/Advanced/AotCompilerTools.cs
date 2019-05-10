@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileWuQuantizer<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            var test = new WuFrameQuantizer<TPixel>(new WuQuantizer(false));
+            var test = new WuFrameQuantizer<TPixel>(Configuration.Default.MemoryAllocator, new WuQuantizer(false));
             test.QuantizeFrame(new ImageFrame<TPixel>(Configuration.Default, 1, 1));
             test.AotGetPalette();
         }

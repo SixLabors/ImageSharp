@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <param name="diffuser">The error diffuser</param>
         /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
         /// <param name="palette">The palette to select substitute colors from.</param>
-        public ErrorDiffusionPaletteProcessor(IErrorDiffuser diffuser, float threshold, ReadOnlySpan<Color> palette)
+        public ErrorDiffusionPaletteProcessor(IErrorDiffuser diffuser, float threshold, ReadOnlyMemory<Color> palette)
             : base(palette)
         {
             Guard.NotNull(diffuser, nameof(diffuser));

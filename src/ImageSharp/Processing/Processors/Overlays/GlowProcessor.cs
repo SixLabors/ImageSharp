@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         }
 
         /// <summary>
-        /// Gets the options effecting blending and composition
+        /// Gets the options effecting blending and composition.
         /// </summary>
         public GraphicsOptions GraphicsOptions { get; }
 

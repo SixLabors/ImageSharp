@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </para>
     /// </remarks>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal sealed class WuFrameQuantizer<TPixel> : FrameQuantizerBase<TPixel>
+    internal sealed class WuFrameQuantizer<TPixel> : FrameQuantizer<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         // The following two variables determine the amount of bits to preserve when calculating the histogram.
@@ -171,10 +171,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.tag?.Dispose();
         }
 
-        internal TPixel[] AotGetPalette() => this.GetPalette();
+        internal ReadOnlyMemory<TPixel> AotGetPalette() => this.GetPalette();
 
         /// <inheritdoc/>
-        protected override TPixel[] GetPalette()
+        protected override ReadOnlyMemory<TPixel> GetPalette()
         {
             if (this.palette is null)
             {

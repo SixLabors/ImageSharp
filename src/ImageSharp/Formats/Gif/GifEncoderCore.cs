@@ -144,8 +144,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void EncodeGlobal<TPixel>(Image<TPixel> image, QuantizedFrame<TPixel> quantized, int transparencyIndex, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            var palleteQuantizer = new PaletteQuantizer<TPixel>(quantized.Palette, this.quantizer.Diffuser);
-
             for (int i = 0; i < image.Frames.Count; i++)
             {
                 ImageFrame<TPixel> frame = image.Frames[i];
@@ -160,10 +158,13 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
                 else
                 {
-                    using (IFrameQuantizer<TPixel> palleteFrameQuantizer = palleteQuantizer.CreateFrameQuantizer(image.GetConfiguration()))
-                    using (QuantizedFrame<TPixel> paletteQuantized = palleteFrameQuantizer.QuantizeFrame(frame))
+                    using (IFrameQuantizer<TPixel> palleteFrameQuantizer =
+                        new PaletteFrameQuantizer<TPixel>(this.quantizer.Diffuser, quantized.Palette))
                     {
-                        this.WriteImageData(paletteQuantized, stream);
+                        using (QuantizedFrame<TPixel> paletteQuantized = palleteFrameQuantizer.QuantizeFrame(frame))
+                        {
+                            this.WriteImageData(paletteQuantized, stream);
+                        }    
                     }
                 }
             }

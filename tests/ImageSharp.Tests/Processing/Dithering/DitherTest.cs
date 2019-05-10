@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
             this.operations.Dither(this.orderedDither);
             OrderedDitherPaletteProcessor p = this.Verify<OrderedDitherPaletteProcessor>();
             Assert.Equal(this.orderedDither, p.Dither);
-            Assert.Equal(Color.WebSafePalette.ToArray(), p.Palette);
+            Assert.Equal(Color.WebSafePalette, p.Palette);
         }
 
         [Fact]

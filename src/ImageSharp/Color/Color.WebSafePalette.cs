@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets a collection of named, web safe colors as defined in the CSS Color Module Level 4.
         /// </summary>
-        public static ReadOnlySpan<Color> WebSafePalette => WebSafePaletteLazy.Value;
+        public static ReadOnlyMemory<Color> WebSafePalette => WebSafePaletteLazy.Value;
 
         private static Color[] CreateWebSafePalette() => new[]
         {

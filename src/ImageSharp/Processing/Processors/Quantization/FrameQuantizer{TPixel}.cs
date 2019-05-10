@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         /// <inheritdoc/>
-        public QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image)
+        public IQuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image)
         {
             Guard.NotNull(image, nameof(image));
 

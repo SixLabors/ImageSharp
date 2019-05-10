@@ -227,7 +227,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             stream.Write(PngConstants.HeaderBytes, 0, PngConstants.HeaderBytes.Length);
 
-            QuantizedFrame<TPixel> quantized = null;
+            IQuantizedFrame<TPixel> quantized = null;
             if (this.pngColorType == PngColorType.Palette)
             {
                 byte bits = (byte)this.pngBitDepth;
@@ -511,7 +511,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="quantized">The quantized pixels. Can be null.</param>
         /// <param name="row">The row.</param>
         /// <returns>The <see cref="IManagedByteBuffer"/></returns>
-        private IManagedByteBuffer EncodePixelRow<TPixel>(ReadOnlySpan<TPixel> rowSpan, QuantizedFrame<TPixel> quantized, int row)
+        private IManagedByteBuffer EncodePixelRow<TPixel>(ReadOnlySpan<TPixel> rowSpan, IQuantizedFrame<TPixel> quantized, int row)
             where TPixel : struct, IPixel<TPixel>
         {
             switch (this.pngColorType)
@@ -662,7 +662,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="quantized">The quantized frame.</param>
-        private void WritePaletteChunk<TPixel>(Stream stream, QuantizedFrame<TPixel> quantized)
+        private void WritePaletteChunk<TPixel>(Stream stream, IQuantizedFrame<TPixel> quantized)
             where TPixel : struct, IPixel<TPixel>
         {
             // Grab the palette and write it to the stream.
@@ -808,7 +808,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="pixels">The image.</param>
         /// <param name="quantized">The quantized pixel data. Can be null.</param>
         /// <param name="stream">The stream.</param>
-        private void WriteDataChunks<TPixel>(ImageFrame<TPixel> pixels, QuantizedFrame<TPixel> quantized, Stream stream)
+        private void WriteDataChunks<TPixel>(ImageFrame<TPixel> pixels, IQuantizedFrame<TPixel> quantized, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
             this.bytesPerScanline = this.CalculateScanlineLength(this.width);

@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                     ReadOnlySpan<byte> quantizedPixelSpan = quantized.GetPixelSpan();
 
                     ReadOnlySpan<TPixel> paletteSpan = quantized.Palette.Span;
-                    
+
                     int yy = y * source.Width;
 
                     for (int x = 0; x < source.Width; x++)

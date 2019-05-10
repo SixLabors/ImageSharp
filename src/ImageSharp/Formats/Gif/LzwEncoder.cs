@@ -180,7 +180,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <param name="indexedPixels">The span of indexed pixels.</param>
         /// <param name="stream">The stream to write to.</param>
-        public void Encode(Span<byte> indexedPixels, Stream stream)
+        public void Encode(ReadOnlySpan<byte> indexedPixels, Stream stream)
         {
             // Write "initial code size" byte
             stream.WriteByte((byte)this.initialCodeSize);
@@ -251,7 +251,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="indexedPixels">The span of indexed pixels.</param>
         /// <param name="intialBits">The initial bits.</param>
         /// <param name="stream">The stream to write to.</param>
-        private void Compress(Span<byte> indexedPixels, int intialBits, Stream stream)
+        private void Compress(ReadOnlySpan<byte> indexedPixels, int intialBits, Stream stream)
         {
             int fcode;
             int c;
@@ -375,7 +375,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// The <see cref="int"/>
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int NextPixel(Span<byte> indexedPixels)
+        private int NextPixel(ReadOnlySpan<byte> indexedPixels)
         {
             return indexedPixels[this.position++] & 0xFF;
         }

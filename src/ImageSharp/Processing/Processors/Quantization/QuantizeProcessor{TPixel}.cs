@@ -31,8 +31,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <inheritdoc />
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            using (IFrameQuantizer<TPixel> executor = this.quantizer.CreateFrameQuantizer<TPixel>(configuration))
-            using (QuantizedFrame<TPixel> quantized = executor.QuantizeFrame(source))
+            using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(configuration))
+            using (IQuantizedFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(source))
             {
                 int paletteCount = quantized.Palette.Length - 1;
 

@@ -8,14 +8,13 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 
-// TODO: Consider pooling the TPixel palette also. For Rgba48+ this would end up on th LOH if 256 colors.
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 {
     /// <summary>
     /// Represents a quantized image frame where the pixels indexed by a color palette.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public class QuantizedFrame<TPixel> : IDisposable
+    public class QuantizedFrame<TPixel> : IQuantizedFrame<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private IMemoryOwner<byte> pixels;
@@ -59,15 +58,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <returns>The <see cref="Span{T}"/></returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public ReadOnlySpan<byte> GetPixelSpan() => this.pixels.GetSpan();
-
-        /// <summary>
-        /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory
-        /// at row <paramref name="rowIndex"/> beginning from the the first pixel on that row.
-        /// </summary>
-        /// <param name="rowIndex">The row.</param>
-        /// <returns>The <see cref="Span{T}"/></returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public ReadOnlySpan<byte> GetRowSpan(int rowIndex) => this.GetPixelSpan().Slice(rowIndex * this.Width, this.Width);
 
         /// <inheritdoc/>
         public void Dispose()

@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// </summary>
         /// <param name="dither">The ordered ditherer.</param>
         /// <param name="palette">The palette to select substitute colors from.</param>
-        public OrderedDitherPaletteProcessor(IOrderedDither dither, ReadOnlySpan<Color> palette)
+        public OrderedDitherPaletteProcessor(IOrderedDither dither, ReadOnlyMemory<Color> palette)
             : base(palette) => this.Dither = dither ?? throw new ArgumentNullException(nameof(dither));
 
         /// <summary>

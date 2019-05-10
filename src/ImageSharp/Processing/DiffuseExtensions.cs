@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Processing.Dithering
             this IImageProcessingContext source,
             IErrorDiffuser diffuser,
             float threshold,
-            ReadOnlySpan<Color> palette) =>
+            ReadOnlyMemory<Color> palette) =>
             source.ApplyProcessor(new ErrorDiffusionPaletteProcessor(diffuser, threshold, palette));
 
         /// <summary>
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Processing.Dithering
             this IImageProcessingContext source,
             IErrorDiffuser diffuser,
             float threshold,
-            ReadOnlySpan<Color> palette,
+            ReadOnlyMemory<Color> palette,
             Rectangle rectangle) =>
             source.ApplyProcessor(new ErrorDiffusionPaletteProcessor(diffuser, threshold, palette), rectangle);
     }

@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Processing
         public static IImageProcessingContext Dither(
             this IImageProcessingContext source,
             IOrderedDither dither,
-            ReadOnlySpan<Color> palette) =>
+            ReadOnlyMemory<Color> palette) =>
             source.ApplyProcessor(new OrderedDitherPaletteProcessor(dither, palette));
 
         /// <summary>
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Processing
         public static IImageProcessingContext Dither(
             this IImageProcessingContext source,
             IOrderedDither dither,
-            ReadOnlySpan<Color> palette,
+            ReadOnlyMemory<Color> palette,
             Rectangle rectangle) =>
             source.ApplyProcessor(new OrderedDitherPaletteProcessor(dither, palette), rectangle);
     }

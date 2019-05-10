@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp
         /// Gets a collection of colors as defined in the original second edition of Werner’s Nomenclature of Colours 1821.
         /// The hex codes were collected and defined by Nicholas Rougeux <see href="https://www.c82.net/werner"/>.
         /// </summary>
-        public static ReadOnlySpan<Color> WernerPalette => WernerPaletteLazy.Value;
+        public static ReadOnlyMemory<Color> WernerPalette => WernerPaletteLazy.Value;
 
         private static Color[] CreateWernerPalette() => new[]
         {

@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// The base class for all <see cref="IFrameQuantizer{TPixel}"/> implementations
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public abstract class FrameQuantizerBase<TPixel> : IFrameQuantizer<TPixel>
+    public abstract class FrameQuantizer<TPixel> : IFrameQuantizer<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         private Vector4[] paletteVector;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FrameQuantizerBase{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="FrameQuantizer{TPixel}"/> class.
         /// </summary>
         /// <param name="quantizer">The quantizer</param>
         /// <param name="singlePass">
@@ -44,11 +44,30 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// only call the <see cref="SecondPass(ImageFrame{TPixel}, Span{byte}, ReadOnlySpan{TPixel},  int, int)"/> method.
         /// If two passes are required, the code will also call <see cref="FirstPass(ImageFrame{TPixel}, int, int)"/>.
         /// </remarks>
-        protected FrameQuantizerBase(IQuantizer quantizer, bool singlePass)
+        protected FrameQuantizer(IQuantizer quantizer, bool singlePass)
         {
             Guard.NotNull(quantizer, nameof(quantizer));
 
             this.Diffuser = quantizer.Diffuser;
+            this.Dither = this.Diffuser != null;
+            this.singlePass = singlePass;
+        }
+        
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FrameQuantizer{TPixel}"/> class.
+        /// </summary>
+        /// <param name="diffuser">The diffuser</param>
+        /// <param name="singlePass">
+        /// If true, the quantization process only needs to loop through the source pixels once
+        /// </param>
+        /// <remarks>
+        /// If you construct this class with a <value>true</value> for <paramref name="singlePass"/>, then the code will
+        /// only call the <see cref="SecondPass(ImageFrame{TPixel}, Span{byte}, ReadOnlySpan{TPixel},  int, int)"/> method.
+        /// If two passes are required, the code will also call <see cref="FirstPass(ImageFrame{TPixel}, int, int)"/>.
+        /// </remarks>
+        protected FrameQuantizer(IErrorDiffuser diffuser, bool singlePass)
+        {
+            this.Diffuser = diffuser;
             this.Dither = this.Diffuser != null;
             this.singlePass = singlePass;
         }
@@ -77,22 +96,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
 
             // Collect the palette. Required before the second pass runs.
-            TPixel[] palette = this.GetPalette();
+            ReadOnlyMemory<TPixel> palette = this.GetPalette();
             this.paletteVector = new Vector4[palette.Length];
-            PixelOperations<TPixel>.Instance.ToVector4(image.Configuration, (ReadOnlySpan<TPixel>)palette, (Span<Vector4>)this.paletteVector, PixelConversionModifiers.Scale);
-            var quantizedFrame = new QuantizedFrame<TPixel>(image.MemoryAllocator, width, height, palette);
+            PixelOperations<TPixel>.Instance.ToVector4(image.Configuration, palette.Span, (Span<Vector4>)this.paletteVector, PixelConversionModifiers.Scale);
+
+            // TODO: Pass ReadOnlyMemory<T> instead of array!
+            var quantizedFrame = new QuantizedFrame<TPixel>(
+                image.MemoryAllocator,
+                width,
+                height,
+                palette.Span.ToArray());
 
             if (this.Dither)
             {
                 // We clone the image as we don't want to alter the original via dithering.
                 using (ImageFrame<TPixel> clone = image.Clone())
                 {
-                    this.SecondPass(clone, quantizedFrame.GetPixelSpan(), palette, width, height);
+                    this.SecondPass(clone, quantizedFrame.GetPixelSpan(), palette.Span, width, height);
                 }
             }
             else
             {
-                this.SecondPass(image, quantizedFrame.GetPixelSpan(), palette, width, height);
+                this.SecondPass(image, quantizedFrame.GetPixelSpan(), palette.Span, width, height);
             }
 
             return quantizedFrame;
@@ -134,7 +159,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <returns>
         /// <see cref="T:TPixel[]"/>
         /// </returns>
-        protected abstract TPixel[] GetPalette();
+        protected abstract ReadOnlyMemory<TPixel> GetPalette();
 
         /// <summary>
         /// Returns the index of the first instance of the transparent color in the palette.

@@ -16,7 +16,9 @@ namespace SixLabors.ImageSharp.Tests
     {
         public abstract class ImageLoadTestBase : IDisposable
         {
-            protected Image<Rgba32> returnImage;
+            protected Image<Rgba32> localStreamReturnImageRgba32;
+            
+            protected Image<Bgra4444> localStreamReturnImageAgnostic;
 
             protected Mock<IImageDecoder> localDecoder;
 
@@ -48,12 +50,14 @@ namespace SixLabors.ImageSharp.Tests
 
             protected ImageLoadTestBase()
             {
-                this.returnImage = new Image<Rgba32>(1, 1);
+                this.localStreamReturnImageRgba32 = new Image<Rgba32>(1, 1);
+                this.localStreamReturnImageAgnostic = new Image<Bgra4444>(1, 1);
 
                 this.localImageFormatMock = new Mock<IImageFormat>();
 
                 this.localDecoder = new Mock<IImageDecoder>();
                 this.localMimeTypeDetector = new MockImageFormatDetector(this.localImageFormatMock.Object);
+                
                 this.localDecoder.Setup(x => x.Decode<Rgba32>(It.IsAny<Configuration>(), It.IsAny<Stream>()))
                     .Callback<Configuration, Stream>((c, s) =>
                         {
@@ -63,7 +67,19 @@ namespace SixLabors.ImageSharp.Tests
                                 this.DecodedData = ms.ToArray();
                             }
                         })
-                    .Returns(this.returnImage);
+                    .Returns(this.localStreamReturnImageRgba32);
+                
+                this.localDecoder.Setup(x => x.Decode(It.IsAny<Configuration>(), It.IsAny<Stream>()))
+                    .Callback<Configuration, Stream>((c, s) =>
+                        {
+                            using (var ms = new MemoryStream())
+                            {
+                                s.CopyTo(ms);
+                                this.DecodedData = ms.ToArray();
+                            }
+                        })
+                    .Returns(this.localStreamReturnImageAgnostic);
+                
 
                 this.LocalConfiguration = new Configuration
                                               {
@@ -85,7 +101,8 @@ namespace SixLabors.ImageSharp.Tests
             public void Dispose()
             {
                 // clean up the global object;
-                this.returnImage?.Dispose();
+                this.localStreamReturnImageRgba32?.Dispose();
+                this.localStreamReturnImageAgnostic?.Dispose();
             }
         }
     }

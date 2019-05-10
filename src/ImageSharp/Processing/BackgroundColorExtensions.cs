@@ -8,7 +8,8 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extensions that allow the application of a background color to the <see cref="Image{TPixel}"/> type.
+    /// Defines extension methods to replace the background color of an <see cref="Image"/>
+    /// using Mutate/Clone.
     /// </summary>
     public static class BackgroundColorExtensions
     {

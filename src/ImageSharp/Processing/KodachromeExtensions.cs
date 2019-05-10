@@ -8,31 +8,28 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extensions that allow the recreation of an old Kodachrome camera effect to the <see cref="Image{TPixel}"/> type.
+    /// Defines extensions that allow the recreation of an old Kodachrome camera effect on an <see cref="Image"/>
+    /// using Mutate/Clone.
     /// </summary>
     public static class KodachromeExtensions
     {
         /// <summary>
         /// Alters the colors of the image recreating an old Kodachrome camera effect.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Kodachrome<TPixel>(this IImageProcessingContext<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new KodachromeProcessor<TPixel>());
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+        public static IImageProcessingContext Kodachrome(this IImageProcessingContext source)
+            => source.ApplyProcessor(new KodachromeProcessor());
 
         /// <summary>
         /// Alters the colors of the image recreating an old Kodachrome camera effect.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Kodachrome<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle)
-            where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new KodachromeProcessor<TPixel>(), rectangle);
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+        public static IImageProcessingContext Kodachrome(this IImageProcessingContext source, Rectangle rectangle)
+            => source.ApplyProcessor(new KodachromeProcessor(), rectangle);
     }
 }

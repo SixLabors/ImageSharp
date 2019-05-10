@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             var options = new PngEncoder();
 
             var testFile = TestFile.Create(imagePath);
-            using (Image<Rgba32> input = testFile.CreateImage())
+            using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
                 using (var memStream = new MemoryStream())
                 {
@@ -244,7 +244,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             var options = new PngEncoder();
 
             var testFile = TestFile.Create(imagePath);
-            using (Image<Rgba32> input = testFile.CreateImage())
+            using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
                 using (var memStream = new MemoryStream())
                 {
@@ -268,7 +268,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             var options = new PngEncoder();
 
             var testFile = TestFile.Create(imagePath);
-            using (Image<Rgba32> input = testFile.CreateImage())
+            using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
                 PngMetadata inMeta = input.Metadata.GetFormatMetadata(PngFormat.Instance);
                 Assert.True(inMeta.HasTrans);

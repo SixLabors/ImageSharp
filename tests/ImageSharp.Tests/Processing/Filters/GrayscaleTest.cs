@@ -16,13 +16,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
     public class GrayscaleTest : BaseImageOperationsExtensionTest
     {
         public static IEnumerable<object[]> ModeTheoryData = new[] {
-            new object[]{ new TestType<GrayscaleBt709Processor<Rgba32>>(), GrayscaleMode.Bt709 }
+            new object[]{ new TestType<GrayscaleBt709Processor>(), GrayscaleMode.Bt709 }
         };
 
         [Theory]
         [MemberData(nameof(ModeTheoryData))]
         public void Grayscale_mode_CorrectProcessor<T>(TestType<T> testType, GrayscaleMode mode)
-            where T : IImageProcessor<Rgba32>
+            where T : IImageProcessor
         {
             this.operations.Grayscale(mode);
             var p = this.Verify<T>();
@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
         [Theory]
         [MemberData(nameof(ModeTheoryData))]
         public void Grayscale_mode_rect_CorrectProcessor<T>(TestType<T> testType, GrayscaleMode mode)
-            where T : IImageProcessor<Rgba32>
+            where T : IImageProcessor
         {
             this.operations.Grayscale(mode, this.rect);
             this.Verify<T>(this.rect);
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
         public void Grayscale_rect_CorrectProcessor()
         {
             this.operations.Grayscale(this.rect);
-            this.Verify<GrayscaleBt709Processor<Rgba32>>(this.rect);
+            this.Verify<GrayscaleBt709Processor>(this.rect);
         }
     }
 }

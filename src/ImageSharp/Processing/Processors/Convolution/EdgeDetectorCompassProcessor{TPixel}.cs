@@ -19,71 +19,37 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// Defines a processor that detects edges within an image using a eight two dimensional matrices.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class EdgeDetectorCompassProcessor<TPixel> : ImageProcessor<TPixel>, IEdgeDetectorProcessor<TPixel>
+    internal class EdgeDetectorCompassProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="EdgeDetectorCompassProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="kernels">Gets the kernels to use.</param>
         /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection.</param>
-        protected EdgeDetectorCompassProcessor(bool grayscale) => this.Grayscale = grayscale;
+        internal EdgeDetectorCompassProcessor(CompassKernels kernels, bool grayscale)
+        {
+            this.Grayscale = grayscale;
+            this.Kernels = kernels;
+        }
 
-        /// <summary>
-        /// Gets the North gradient operator
-        /// </summary>
-        public abstract DenseMatrix<float> North { get; }
+        private CompassKernels Kernels { get; }
 
-        /// <summary>
-        /// Gets the NorthWest gradient operator
-        /// </summary>
-        public abstract DenseMatrix<float> NorthWest { get; }
-
-        /// <summary>
-        /// Gets the West gradient operator
-        /// </summary>
-        public abstract DenseMatrix<float> West { get; }
-
-        /// <summary>
-        /// Gets the SouthWest gradient operator
-        /// </summary>
-        public abstract DenseMatrix<float> SouthWest { get; }
-
-        /// <summary>
-        /// Gets the South gradient operator
-        /// </summary>
-        public abstract DenseMatrix<float> South { get; }
-
-        /// <summary>
-        /// Gets the SouthEast gradient operator
-        /// </summary>
-        public abstract DenseMatrix<float> SouthEast { get; }
-
-        /// <summary>
-        /// Gets the East gradient operator
-        /// </summary>
-        public abstract DenseMatrix<float> East { get; }
-
-        /// <summary>
-        /// Gets the NorthEast gradient operator
-        /// </summary>
-        public abstract DenseMatrix<float> NorthEast { get; }
-
-        /// <inheritdoc/>
-        public bool Grayscale { get; }
+        private bool Grayscale { get; }
 
         /// <inheritdoc/>
         protected override void BeforeFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             if (this.Grayscale)
             {
-                new GrayscaleBt709Processor<TPixel>(1F).Apply(source, sourceRectangle, configuration);
+                new GrayscaleBt709Processor(1F).ApplyToFrame(source, sourceRectangle, configuration);
             }
         }
 
         /// <inheritdoc />
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            DenseMatrix<float>[] kernels = { this.North, this.NorthWest, this.West, this.SouthWest, this.South, this.SouthEast, this.East, this.NorthEast };
+            DenseMatrix<float>[] kernels = this.Kernels.Flatten();
 
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;

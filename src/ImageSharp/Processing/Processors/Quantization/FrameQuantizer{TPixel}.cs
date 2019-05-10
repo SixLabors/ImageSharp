@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 
@@ -52,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.Dither = this.Diffuser != null;
             this.singlePass = singlePass;
         }
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="FrameQuantizer{TPixel}"/> class.
         /// </summary>
@@ -73,10 +74,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         /// <inheritdoc />
-        public bool Dither { get; }
+        public IErrorDiffuser Diffuser { get; }
 
         /// <inheritdoc />
-        public IErrorDiffuser Diffuser { get; }
+        public bool Dither { get; }
+
+        /// <inheritdoc/>
+        public virtual void Dispose()
+        {
+        }
 
         /// <inheritdoc/>
         public virtual QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image)
@@ -98,14 +104,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             // Collect the palette. Required before the second pass runs.
             ReadOnlyMemory<TPixel> palette = this.GetPalette();
             this.paletteVector = new Vector4[palette.Length];
-            PixelOperations<TPixel>.Instance.ToVector4(image.Configuration, palette.Span, (Span<Vector4>)this.paletteVector, PixelConversionModifiers.Scale);
+            PixelOperations<TPixel>.Instance.ToVector4(
+                image.Configuration,
+                palette.Span,
+                (Span<Vector4>)this.paletteVector,
+                PixelConversionModifiers.Scale);
 
-            // TODO: Pass ReadOnlyMemory<T> instead of array!
-            var quantizedFrame = new QuantizedFrame<TPixel>(
-                image.MemoryAllocator,
-                width,
-                height,
-                palette.Span.ToArray());
+            var quantizedFrame = new QuantizedFrame<TPixel>(image.MemoryAllocator, width, height, palette);
 
             if (this.Dither)
             {
@@ -123,11 +128,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             return quantizedFrame;
         }
 
-        /// <inheritdoc/>
-        public virtual void Dispose()
-        {
-        }
-
         /// <summary>
         /// Execute the first pass through the pixels in the image to create the palette.
         /// </summary>
@@ -139,19 +139,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         /// <summary>
-        /// Execute a second pass through the image to assign the pixels to a palette entry.
+        /// Returns the closest color from the palette to the given color by calculating the
+        /// Euclidean distance in the Rgba colorspace.
         /// </summary>
-        /// <param name="source">The source image.</param>
-        /// <param name="output">The output pixel array.</param>
-        /// <param name="palette">The output color palette.</param>
-        /// <param name="width">The width in pixels of the image.</param>
-        /// <param name="height">The height in pixels of the image.</param>
-        protected abstract void SecondPass(
-            ImageFrame<TPixel> source,
-            Span<byte> output,
-            ReadOnlySpan<TPixel> palette,
-            int width,
-            int height);
+        /// <param name="pixel">The color.</param>
+        /// <returns>The <see cref="int"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected byte GetClosestPixel(ref TPixel pixel)
+        {
+            // Check if the color is in the lookup table
+            if (this.distanceCache.TryGetValue(pixel, out byte value))
+            {
+                return value;
+            }
+
+            return this.GetClosestPixelSlow(ref pixel);
+        }
 
         /// <summary>
         /// Retrieve the palette for the quantized image.
@@ -185,22 +188,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         /// <summary>
-        /// Returns the closest color from the palette to the given color by calculating the
-        /// Euclidean distance in the Rgba colorspace.
+        /// Execute a second pass through the image to assign the pixels to a palette entry.
         /// </summary>
-        /// <param name="pixel">The color.</param>
-        /// <returns>The <see cref="int"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected byte GetClosestPixel(ref TPixel pixel)
-        {
-            // Check if the color is in the lookup table
-            if (this.distanceCache.TryGetValue(pixel, out byte value))
-            {
-                return value;
-            }
-
-            return this.GetClosestPixelSlow(ref pixel);
-        }
+        /// <param name="source">The source image.</param>
+        /// <param name="output">The output pixel array.</param>
+        /// <param name="palette">The output color palette.</param>
+        /// <param name="width">The width in pixels of the image.</param>
+        /// <param name="height">The height in pixels of the image.</param>
+        protected abstract void SecondPass(
+            ImageFrame<TPixel> source,
+            Span<byte> output,
+            ReadOnlySpan<TPixel> palette,
+            int width,
+            int height);
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private byte GetClosestPixelSlow(ref TPixel pixel)

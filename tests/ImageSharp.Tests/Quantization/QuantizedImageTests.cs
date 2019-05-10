@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -85,9 +87,10 @@ namespace SixLabors.ImageSharp.Tests
             // Transparent pixels are much more likely to be found at the end of a palette
             int index = -1;
             Rgba32 trans = default;
-            for (int i = quantized.Palette.Length - 1; i >= 0; i--)
+            ReadOnlySpan<TPixel> paletteSpan = quantized.Palette.Span;
+            for (int i = paletteSpan.Length - 1; i >= 0; i--)
             {
-                quantized.Palette[i].ToRgba32(ref trans);
+                paletteSpan[i].ToRgba32(ref trans);
 
                 if (trans.Equals(default))
                 {

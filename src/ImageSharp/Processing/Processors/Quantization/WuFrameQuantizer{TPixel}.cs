@@ -120,33 +120,31 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Initializes a new instance of the <see cref="WuFrameQuantizer{TPixel}"/> class.
         /// </summary>
+        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/>.</param>
         /// <param name="quantizer">The wu quantizer</param>
         /// <remarks>
         /// The Wu quantizer is a two pass algorithm. The initial pass sets up the 3-D color histogram,
         /// the second pass quantizes a color based on the position in the histogram.
         /// </remarks>
-        public WuFrameQuantizer(WuQuantizer quantizer)
-            : this(quantizer, quantizer.MaxColors)
+        public WuFrameQuantizer(MemoryAllocator memoryAllocator, WuQuantizer quantizer)
+            : this(memoryAllocator, quantizer, quantizer.MaxColors)
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WuFrameQuantizer{TPixel}"/> class.
         /// </summary>
+        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/>.</param>
         /// <param name="quantizer">The wu quantizer.</param>
         /// <param name="maxColors">The maximum number of colors to hold in the color palette.</param>
         /// <remarks>
         /// The Wu quantizer is a two pass algorithm. The initial pass sets up the 3-D color histogram,
         /// the second pass quantizes a color based on the position in the histogram.
         /// </remarks>
-        public WuFrameQuantizer(WuQuantizer quantizer, int maxColors)
-            : base(quantizer, false) => this.colors = maxColors;
-
-        /// <inheritdoc/>
-        public override QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image)
+        public WuFrameQuantizer(MemoryAllocator memoryAllocator, WuQuantizer quantizer, int maxColors)
+            : base(quantizer, false)
         {
-            Guard.NotNull(image, nameof(image));
-            MemoryAllocator memoryAllocator = image.MemoryAllocator;
+            Guard.NotNull(memoryAllocator, nameof(memoryAllocator));
 
             this.vwt = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
             this.vmr = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
@@ -156,7 +154,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.m2 = memoryAllocator.Allocate<double>(TableLength, AllocationOptions.Clean);
             this.tag = memoryAllocator.Allocate<byte>(TableLength, AllocationOptions.Clean);
 
-            return base.QuantizeFrame(image);
+            this.colors = maxColors;
         }
 
         /// <inheritdoc/>
@@ -169,6 +167,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.vma?.Dispose();
             this.m2?.Dispose();
             this.tag?.Dispose();
+
+            this.vwt = null;
+            this.vmr = null;
+            this.vmg = null;
+            this.vmb = null;
+            this.vma = null;
+            this.m2 = null;
+            this.tag = null;
         }
 
         internal ReadOnlyMemory<TPixel> AotGetPalette() => this.GetPalette();

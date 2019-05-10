@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                 Assert.Equal(ExifDataType.Long, profile.GetValue(ExifTag.PixelXDimension).DataType);
                 Assert.Equal(ExifDataType.Long, profile.GetValue(ExifTag.PixelYDimension).DataType);
 
-                TransformProcessorHelpers.UpdateDimensionalMetData(img);
+                TransformProcessorHelpers.UpdateDimensionalMetadata(img);
 
                 Assert.Equal(ExifDataType.Short, profile.GetValue(ExifTag.PixelXDimension).DataType);
                 Assert.Equal(ExifDataType.Short, profile.GetValue(ExifTag.PixelYDimension).DataType);

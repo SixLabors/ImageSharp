@@ -147,8 +147,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var comparer = ImageComparer.Tolerant(0, 0);
 
             using (Image<TPixel> expectedImage = provider.GetReferenceOutputImage<TPixel>(appendPixelTypeToFileName: false))
-            using (var pdfJsOriginalResult = Image.Load(pdfJsOriginalResultPath))
-            using (var pdfJsPortResult = Image.Load(sourceBytes, JpegDecoder))
+            using (var pdfJsOriginalResult = Image.Load<Rgba32>(pdfJsOriginalResultPath))
+            using (var pdfJsPortResult = Image.Load<Rgba32>(sourceBytes, JpegDecoder))
             {
                 ImageSimilarityReport originalReport = comparer.CompareImagesOrFrames(expectedImage, pdfJsOriginalResult);
                 ImageSimilarityReport portReport = comparer.CompareImagesOrFrames(expectedImage, pdfJsPortResult);

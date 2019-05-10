@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                             new Vector2(50, 300)
             };
 
-            using (Image<Rgba32> brushImage = TestFile.Create(TestImages.Bmp.Car).CreateImage())
+            using (Image<Rgba32> brushImage = TestFile.Create(TestImages.Bmp.Car).CreateRgba32Image())
             using (var image = new Image<Rgba32>(500, 500))
             {
                 var brush = new ImageBrush<Rgba32>(brushImage);

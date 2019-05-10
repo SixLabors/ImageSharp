@@ -21,12 +21,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         private readonly Vector4 divisorVector;
 
         /// <summary>
-        /// The matrix width
+        /// The matrix width.
         /// </summary>
         private readonly int matrixHeight;
 
         /// <summary>
-        /// The matrix height
+        /// The matrix height.
         /// </summary>
         private readonly int matrixWidth;
 
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         private readonly int startingOffset;
 
         /// <summary>
-        /// The diffusion matrix
+        /// The diffusion matrix.
         /// </summary>
         private readonly DenseMatrix<float> matrix;
 

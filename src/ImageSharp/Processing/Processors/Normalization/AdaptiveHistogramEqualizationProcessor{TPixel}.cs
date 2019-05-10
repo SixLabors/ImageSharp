@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -8,6 +8,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
@@ -20,18 +21,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
     /// To calculate the final equalized pixel value, the cdf value of four adjacent tiles will be interpolated.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class AdaptiveHistEqualizationProcessor<TPixel> : HistogramEqualizationProcessor<TPixel>
+    internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualizationProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="AdaptiveHistEqualizationProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="AdaptiveHistogramEqualizationProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="luminanceLevels">The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
         /// or 65536 for 16-bit grayscale images.</param>
         /// <param name="clipHistogram">Indicating whether to clip the histogram bins at a specific value.</param>
         /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels in the tile. Histogram bins which exceed this limit, will be capped at this value.</param>
         /// <param name="tiles">The number of tiles the image is split into (horizontal and vertically). Minimum value is 2. Maximum value is 100.</param>
-        public AdaptiveHistEqualizationProcessor(int luminanceLevels, bool clipHistogram, float clipLimitPercentage, int tiles)
+        public AdaptiveHistogramEqualizationProcessor(int luminanceLevels, bool clipHistogram, float clipLimitPercentage, int tiles)
             : base(luminanceLevels, clipHistogram, clipLimitPercentage)
         {
             Guard.MustBeGreaterThanOrEqualTo(tiles, 2, nameof(tiles));
@@ -76,52 +77,52 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     tileYStartPositions.Count,
                     new ParallelOptions() { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism },
                     index =>
-                {
-                    int cdfX = 0;
-                    int tileX = 0;
-                    int tileY = 0;
-                    int y = tileYStartPositions[index].y;
-                    int cdfYY = tileYStartPositions[index].cdfY;
-
-                    // It's unfortunate that we have to do this per iteration.
-                    ref TPixel sourceBase = ref source.GetPixelReference(0, 0);
-
-                    cdfX = 0;
-                    for (int x = halfTileWidth; x < sourceWidth - halfTileWidth; x += tileWidth)
-                    {
-                        tileY = 0;
-                        int yEnd = Math.Min(y + tileHeight, sourceHeight);
-                        int xEnd = Math.Min(x + tileWidth, sourceWidth);
-                        for (int dy = y; dy < yEnd; dy++)
                         {
-                            int dyOffSet = dy * sourceWidth;
-                            tileX = 0;
-                            for (int dx = x; dx < xEnd; dx++)
+                            int cdfX = 0;
+                            int tileX = 0;
+                            int tileY = 0;
+                            int y = tileYStartPositions[index].y;
+                            int cdfYY = tileYStartPositions[index].cdfY;
+
+                            // It's unfortunate that we have to do this per iteration.
+                            ref TPixel sourceBase = ref source.GetPixelReference(0, 0);
+
+                            cdfX = 0;
+                            for (int x = halfTileWidth; x < sourceWidth - halfTileWidth; x += tileWidth)
                             {
-                                ref TPixel pixel = ref Unsafe.Add(ref sourceBase, dyOffSet + dx);
-                                float luminanceEqualized = InterpolateBetweenFourTiles(
-                                    pixel,
-                                    cdfData,
-                                    this.Tiles,
-                                    this.Tiles,
-                                    tileX,
-                                    tileY,
-                                    cdfX,
-                                    cdfYY,
-                                    tileWidth,
-                                    tileHeight,
-                                    luminanceLevels);
+                                tileY = 0;
+                                int yEnd = Math.Min(y + tileHeight, sourceHeight);
+                                int xEnd = Math.Min(x + tileWidth, sourceWidth);
+                                for (int dy = y; dy < yEnd; dy++)
+                                {
+                                    int dyOffSet = dy * sourceWidth;
+                                    tileX = 0;
+                                    for (int dx = x; dx < xEnd; dx++)
+                                    {
+                                        ref TPixel pixel = ref Unsafe.Add(ref sourceBase, dyOffSet + dx);
+                                        float luminanceEqualized = InterpolateBetweenFourTiles(
+                                            pixel,
+                                            cdfData,
+                                            this.Tiles,
+                                            this.Tiles,
+                                            tileX,
+                                            tileY,
+                                            cdfX,
+                                            cdfYY,
+                                            tileWidth,
+                                            tileHeight,
+                                            luminanceLevels);
 
-                                pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
-                                tileX++;
+                                        pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
+                                        tileX++;
+                                    }
+
+                                    tileY++;
+                                }
+
+                                cdfX++;
                             }
-
-                            tileY++;
-                        }
-
-                        cdfX++;
-                    }
-                });
+                        });
 
                 ref TPixel pixelsBase = ref source.GetPixelReference(0, 0);
 
@@ -318,17 +319,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <returns>A re-mapped grey value.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         private static float InterpolateBetweenFourTiles(
-           TPixel sourcePixel,
-           CdfTileData cdfData,
-           int tileCountX,
-           int tileCountY,
-           int tileX,
-           int tileY,
-           int cdfX,
-           int cdfY,
-           int tileWidth,
-           int tileHeight,
-           int luminanceLevels)
+            TPixel sourcePixel,
+            CdfTileData cdfData,
+            int tileCountX,
+            int tileCountY,
+            int tileX,
+            int tileY,
+            int cdfX,
+            int cdfY,
+            int tileWidth,
+            int tileHeight,
+            int luminanceLevels)
         {
             int luminance = GetLuminance(sourcePixel, luminanceLevels);
             float tx = tileX / (float)(tileWidth - 1);
@@ -473,46 +474,46 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     this.tileYStartPositions.Count,
                     new ParallelOptions() { MaxDegreeOfParallelism = this.configuration.MaxDegreeOfParallelism },
                     index =>
-                {
-                    int cdfX = 0;
-                    int cdfY = this.tileYStartPositions[index].cdfY;
-                    int y = this.tileYStartPositions[index].y;
-                    int endY = Math.Min(y + tileHeight, sourceHeight);
-                    ref TPixel sourceBase = ref source.GetPixelReference(0, 0);
-                    ref int cdfMinBase = ref MemoryMarshal.GetReference(this.cdfMinBuffer2D.GetRowSpan(cdfY));
-
-                    using (IMemoryOwner<int> histogramBuffer = this.memoryAllocator.Allocate<int>(luminanceLevels))
-                    {
-                        Span<int> histogram = histogramBuffer.GetSpan();
-                        ref int histogramBase = ref MemoryMarshal.GetReference(histogram);
-
-                        for (int x = 0; x < sourceWidth; x += tileWidth)
                         {
-                            histogram.Clear();
-                            ref int cdfBase = ref MemoryMarshal.GetReference(this.GetCdfLutSpan(cdfX, index));
+                            int cdfX = 0;
+                            int cdfY = this.tileYStartPositions[index].cdfY;
+                            int y = this.tileYStartPositions[index].y;
+                            int endY = Math.Min(y + tileHeight, sourceHeight);
+                            ref TPixel sourceBase = ref source.GetPixelReference(0, 0);
+                            ref int cdfMinBase = ref MemoryMarshal.GetReference(this.cdfMinBuffer2D.GetRowSpan(cdfY));
 
-                            int xlimit = Math.Min(x + tileWidth, sourceWidth);
-                            for (int dy = y; dy < endY; dy++)
+                            using (IMemoryOwner<int> histogramBuffer = this.memoryAllocator.Allocate<int>(luminanceLevels))
                             {
-                                int dyOffset = dy * sourceWidth;
-                                for (int dx = x; dx < xlimit; dx++)
+                                Span<int> histogram = histogramBuffer.GetSpan();
+                                ref int histogramBase = ref MemoryMarshal.GetReference(histogram);
+
+                                for (int x = 0; x < sourceWidth; x += tileWidth)
                                 {
-                                    int luminace = GetLuminance(Unsafe.Add(ref sourceBase, dyOffset + dx), luminanceLevels);
-                                    histogram[luminace]++;
+                                    histogram.Clear();
+                                    ref int cdfBase = ref MemoryMarshal.GetReference(this.GetCdfLutSpan(cdfX, index));
+
+                                    int xlimit = Math.Min(x + tileWidth, sourceWidth);
+                                    for (int dy = y; dy < endY; dy++)
+                                    {
+                                        int dyOffset = dy * sourceWidth;
+                                        for (int dx = x; dx < xlimit; dx++)
+                                        {
+                                            int luminace = GetLuminance(Unsafe.Add(ref sourceBase, dyOffset + dx), luminanceLevels);
+                                            histogram[luminace]++;
+                                        }
+                                    }
+
+                                    if (processor.ClipHistogramEnabled)
+                                    {
+                                        processor.ClipHistogram(histogram, processor.ClipLimitPercentage, this.pixelsInTile);
+                                    }
+
+                                    Unsafe.Add(ref cdfMinBase, cdfX) = processor.CalculateCdf(ref cdfBase, ref histogramBase, histogram.Length - 1);
+
+                                    cdfX++;
                                 }
                             }
-
-                            if (processor.ClipHistogramEnabled)
-                            {
-                                processor.ClipHistogram(histogram, processor.ClipLimitPercentage, this.pixelsInTile);
-                            }
-
-                            Unsafe.Add(ref cdfMinBase, cdfX) = processor.CalculateCdf(ref cdfBase, ref histogramBase, histogram.Length - 1);
-
-                            cdfX++;
-                        }
-                    }
-                });
+                        });
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
@@ -531,8 +532,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 int cdfMin = this.cdfMinBuffer2D[tilesX, tilesY];
                 Span<int> cdfSpan = this.GetCdfLutSpan(tilesX, tilesY);
                 return (this.pixelsInTile - cdfMin) == 0
-                    ? cdfSpan[luminance] / this.pixelsInTile
-                    : cdfSpan[luminance] / (float)(this.pixelsInTile - cdfMin);
+                           ? cdfSpan[luminance] / this.pixelsInTile
+                           : cdfSpan[luminance] / (float)(this.pixelsInTile - cdfMin);
             }
 
             public void Dispose()

@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public void EntropyCropThresholdFloatEntropyCropProcessorWithThreshold(float threshold)
         {
             this.operations.EntropyCrop(threshold);
-            EntropyCropProcessor<Rgba32> processor = this.Verify<EntropyCropProcessor<Rgba32>>();
+            EntropyCropProcessor processor = this.Verify<EntropyCropProcessor>();
 
             Assert.Equal(threshold, processor.Threshold);
         }

@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <param name="width">The image width.</param>
         /// <param name="height">The image height.</param>
         /// <param name="palette">The color palette.</param>
-        public QuantizedFrame(MemoryAllocator memoryAllocator, int width, int height, TPixel[] palette)
+        public QuantizedFrame(MemoryAllocator memoryAllocator, int width, int height, ReadOnlyMemory<TPixel> palette)
         {
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Gets the color palette of this <see cref="QuantizedFrame{TPixel}"/>.
         /// </summary>
-        public TPixel[] Palette { get; private set; }
+        public ReadOnlyMemory<TPixel> Palette { get; private set; }
 
         /// <summary>
         /// Gets the pixels of this <see cref="QuantizedFrame{TPixel}"/>.

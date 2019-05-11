@@ -12,11 +12,11 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    public class FillPatternBrushTests : FileTestBase
+    public class FillPatternBrushTests
     {
         private void Test(string name, Rgba32 background, IBrush<Rgba32> brush, Rgba32[,] expectedPattern)
         {
-            string path = TestEnvironment.CreateOutputDirectory("Fill", "PatternBrush");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FillPatternBrushTests");
             using (var image = new Image<Rgba32>(20, 20))
             {
                 image.Mutate(x => x.Fill(background).Fill(brush));
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     }
                 }
 
-                image.Mutate(x => x.Resize(80, 80));
+                image.Mutate(x => x.Resize(80, 80, KnownResamplers.NearestNeighbor));
                 image.Save($"{path}/{name}x4.png");
             }
         }

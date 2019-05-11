@@ -15,14 +15,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
         public void Polaroid_amount_PolaroidProcessorDefaultsSet()
         {
             this.operations.Polaroid();
-            var processor = this.Verify<PolaroidProcessor<Rgba32>>();
+            var processor = this.Verify<PolaroidProcessor>();
         }
 
         [Fact]
         public void Polaroid_amount_rect_PolaroidProcessorDefaultsSet()
         {
             this.operations.Polaroid(this.rect);
-            var processor = this.Verify<PolaroidProcessor<Rgba32>>(this.rect);
+            var processor = this.Verify<PolaroidProcessor>(this.rect);
         }
     }
 }

@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData(TestImageWriteFormat.Png)]
         public void Constructor(TestImageWriteFormat imageFormat)
         {
-            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Calliphora).CreateImage();
+            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Calliphora).CreateRgba32Image();
 
             Assert.Null(image.Metadata.ExifProfile);
 
@@ -126,7 +126,7 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData(TestImageWriteFormat.Png)]
         public void ReadWriteInfinity(TestImageWriteFormat imageFormat)
         {
-            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage();
+            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();
             image.Metadata.ExifProfile.SetValue(ExifTag.ExposureBiasValue, new SignedRational(double.PositiveInfinity));
 
             image = WriteAndReadJpeg(image);
@@ -156,7 +156,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             var latitude = new Rational[] { new Rational(12.3), new Rational(4.56), new Rational(789.0) };
 
-            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage();
+            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();
             image.Metadata.ExifProfile.SetValue(ExifTag.Software, "ImageSharp");
 
             ExifValue value = image.Metadata.ExifProfile.GetValue(ExifTag.Software);
@@ -314,7 +314,7 @@ namespace SixLabors.ImageSharp.Tests
             // This image contains an 802 byte EXIF profile
             // It has a tag with an index offset of 18,481,152 bytes (overrunning the data)
 
-            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Progressive.Bad.ExifUndefType).CreateImage();
+            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Progressive.Bad.ExifUndefType).CreateRgba32Image();
             Assert.NotNull(image);
 
             ExifProfile profile = image.Metadata.ExifProfile;
@@ -333,7 +333,7 @@ namespace SixLabors.ImageSharp.Tests
         public void TestArrayValueWithUnspecifiedSize()
         {
             // This images contains array in the exif profile that has zero components.
-            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Issues.InvalidCast520).CreateImage();
+            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Issues.InvalidCast520).CreateRgba32Image();
 
             ExifProfile profile = image.Metadata.ExifProfile;
             Assert.NotNull(profile);
@@ -408,7 +408,7 @@ namespace SixLabors.ImageSharp.Tests
 
         internal static ExifProfile GetExifProfile()
         {
-            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage();
+            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();
 
             ExifProfile profile = image.Metadata.ExifProfile;
             Assert.NotNull(profile);

@@ -8,7 +8,8 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds dithering extensions to the <see cref="Image{TPixel}"/> type.
+    /// Defines dithering extensions to apply on an <see cref="Image{TPixel}"/>
+    /// using Mutate/Clone.
     /// </summary>
     public static class DitherExtensions
     {
@@ -17,7 +18,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Dither<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
             => Dither(source, KnownDitherers.BayerDither4x4);
@@ -28,7 +29,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="dither">The ordered ditherer.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Dither<TPixel>(this IImageProcessingContext<TPixel> source, IOrderedDither dither)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new OrderedDitherPaletteProcessor<TPixel>(dither));
@@ -40,7 +41,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image this method extends.</param>
         /// <param name="dither">The ordered ditherer.</param>
         /// <param name="palette">The palette to select substitute colors from.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Dither<TPixel>(this IImageProcessingContext<TPixel> source, IOrderedDither dither, TPixel[] palette)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new OrderedDitherPaletteProcessor<TPixel>(dither, palette));
@@ -54,7 +55,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Dither<TPixel>(this IImageProcessingContext<TPixel> source, IOrderedDither dither, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new OrderedDitherPaletteProcessor<TPixel>(dither), rectangle);
@@ -69,7 +70,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Dither<TPixel>(this IImageProcessingContext<TPixel> source, IOrderedDither dither, TPixel[] palette, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new OrderedDitherPaletteProcessor<TPixel>(dither, palette), rectangle);

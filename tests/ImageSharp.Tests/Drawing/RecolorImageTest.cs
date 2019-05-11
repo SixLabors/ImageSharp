@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                using (Image<Rgba32> image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateRgba32Image())
                 {
                     image.Mutate(x => x.Fill(brush));
                     image.Save($"{path}/{file.FileName}");
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                using (Image<Rgba32> image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateRgba32Image())
                 {
                     int imageHeight = image.Height;
                     image.Mutate(x => x.Fill(brush, new Rectangle(0, imageHeight / 2 - imageHeight / 4, image.Width, imageHeight / 2)));

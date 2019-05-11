@@ -9,7 +9,8 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds extensions that allow the application of a radial glow to the <see cref="Image{TPixel}"/> type.
+    /// Defines extensions that allow the application of a radial glow to an <see cref="Image{TPixel}"/>
+    /// using Mutate/Clone.
     /// </summary>
     public static class VignetteExtensions
     {
@@ -18,7 +19,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Vignette<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
             => Vignette(source, GraphicsOptions.Default);
@@ -29,7 +30,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color to set as the vignette.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Vignette<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color)
             where TPixel : struct, IPixel<TPixel>
             => Vignette(source, GraphicsOptions.Default, color);
@@ -41,7 +42,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image this method extends.</param>
         /// <param name="radiusX">The the x-radius.</param>
         /// <param name="radiusY">The the y-radius.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Vignette<TPixel>(this IImageProcessingContext<TPixel> source, float radiusX, float radiusY)
             where TPixel : struct, IPixel<TPixel>
             => Vignette(source, GraphicsOptions.Default, radiusX, radiusY);
@@ -54,7 +55,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Vignette<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
             => Vignette(source, GraphicsOptions.Default, rectangle);
@@ -70,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Vignette<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, float radiusX, float radiusY, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
             => source.Vignette(GraphicsOptions.Default, color, radiusX, radiusY, rectangle);
@@ -81,7 +82,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="options">The options effecting pixel blending.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Vignette<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
             => source.VignetteInternal(options, NamedColors<TPixel>.Black, ValueSize.PercentageOfWidth(.5f), ValueSize.PercentageOfHeight(.5f));
@@ -93,7 +94,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image this method extends.</param>
         /// <param name="options">The options effecting pixel blending.</param>
         /// <param name="color">The color to set as the vignette.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Vignette<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options, TPixel color)
             where TPixel : struct, IPixel<TPixel>
             => source.VignetteInternal(options, color, ValueSize.PercentageOfWidth(.5f), ValueSize.PercentageOfHeight(.5f));
@@ -106,7 +107,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="options">The options effecting pixel blending.</param>
         /// <param name="radiusX">The the x-radius.</param>
         /// <param name="radiusY">The the y-radius.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Vignette<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options, float radiusX, float radiusY)
             where TPixel : struct, IPixel<TPixel>
             => source.VignetteInternal(options, NamedColors<TPixel>.Black, radiusX, radiusY);
@@ -120,7 +121,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Vignette<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
             => source.VignetteInternal(options, NamedColors<TPixel>.Black, ValueSize.PercentageOfWidth(.5f), ValueSize.PercentageOfHeight(.5f), rectangle);
@@ -137,7 +138,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> Vignette<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options, TPixel color, float radiusX, float radiusY, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
             => source.VignetteInternal(options, color, radiusX, radiusY, rectangle);

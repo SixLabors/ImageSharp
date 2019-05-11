@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The image to update</param>
-        public static void UpdateDimensionalMetData<TPixel>(Image<TPixel> image)
+        public static void UpdateDimensionalMetadata<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             ExifProfile profile = image.Metadata.ExifProfile;

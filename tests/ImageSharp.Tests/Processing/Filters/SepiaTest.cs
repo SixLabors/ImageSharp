@@ -14,14 +14,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
         public void Sepia_amount_SepiaProcessorDefaultsSet()
         {
             this.operations.Sepia();
-            var processor = this.Verify<SepiaProcessor<Rgba32>>();
+            var processor = this.Verify<SepiaProcessor>();
         }
 
         [Fact]
         public void Sepia_amount_rect_SepiaProcessorDefaultsSet()
         {
             this.operations.Sepia(this.rect);
-            var processor = this.Verify<SepiaProcessor<Rgba32>>(this.rect);
+            var processor = this.Verify<SepiaProcessor>(this.rect);
         }
     }
 }

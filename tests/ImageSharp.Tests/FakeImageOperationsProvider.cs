@@ -67,11 +67,30 @@ namespace SixLabors.ImageSharp.Tests
                 return this.Source.Size();
             }
 
+            public IImageProcessingContext ApplyProcessor(IImageProcessor processor, Rectangle rectangle)
+            {
+                this.Applied.Add(new AppliedOperation()
+                                     {
+                                         Rectangle = rectangle,
+                                         NonGenericProcessor = processor
+                                     });
+                return this;
+            }
+
+            public IImageProcessingContext ApplyProcessor(IImageProcessor processor)
+            {
+                this.Applied.Add(new AppliedOperation()
+                                     {
+                                         NonGenericProcessor = processor
+                                     });
+                return this;
+            }
+
             public IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
             {
                 this.Applied.Add(new AppliedOperation
                 {
-                    Processor = processor,
+                    GenericProcessor = processor,
                     Rectangle = rectangle
                 });
                 return this;
@@ -81,7 +100,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 this.Applied.Add(new AppliedOperation
                 {
-                    Processor = processor
+                    GenericProcessor = processor
                 });
                 return this;
             }
@@ -89,7 +108,9 @@ namespace SixLabors.ImageSharp.Tests
             public struct AppliedOperation
             {
                 public Rectangle? Rectangle { get; set; }
-                public IImageProcessor<TPixel> Processor { get; set; }
+                public IImageProcessor<TPixel> GenericProcessor { get; set; }
+                
+                public IImageProcessor NonGenericProcessor { get; set; }
             }
         }
     }

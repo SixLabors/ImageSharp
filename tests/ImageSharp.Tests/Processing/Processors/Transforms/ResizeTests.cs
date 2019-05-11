@@ -40,8 +40,25 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 nameof(KnownResamplers.Lanczos5),
             };
 
+
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.07F);
 
+        [Fact]
+        public void Resize_PixelAgnostic()
+        {
+            var filePath = TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora);
+            
+            using (Image image = Image.Load(filePath))
+            {
+                image.Mutate(x => x.Resize(image.Size() / 2));
+                string path = System.IO.Path.Combine(
+                    TestEnvironment.CreateOutputDirectory(nameof(ResizeTests)),
+                    nameof(this.Resize_PixelAgnostic) + ".png");
+                
+                image.Save(path);
+            }
+        }
+        
         [Theory(
             Skip = "Debug only, enable manually"
             )]

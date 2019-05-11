@@ -18,11 +18,9 @@ namespace SixLabors.ImageSharp.Advanced
         /// <summary>
         /// Gets the configuration for the image.
         /// </summary>
-        /// <typeparam name="TPixel">The Pixel format.</typeparam>
         /// <param name="source">The source image.</param>
         /// <returns>Returns the configuration.</returns>
-        public static Configuration GetConfiguration<TPixel>(this Image<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
+        public static Configuration GetConfiguration(this Image source)
             => GetConfiguration((IConfigurable)source);
 
         /// <summary>

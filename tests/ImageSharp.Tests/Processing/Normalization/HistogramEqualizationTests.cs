@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                     Method = HistogramEqualizationMethod.AdaptiveSlidingWindow,
                     LuminanceLevels = 256,
                     ClipHistogram = true,
-                    Tiles = 15
+                    NumberOfTiles = 15
                 };
                 image.Mutate(x => x.HistogramEqualization(options));
                 image.DebugSave(provider);
@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                     Method = HistogramEqualizationMethod.AdaptiveTileInterpolation,
                     LuminanceLevels = 256,
                     ClipHistogram = true,
-                    Tiles = 10
+                    NumberOfTiles = 10
                 };
                 image.Mutate(x => x.HistogramEqualization(options));
                 image.DebugSave(provider);

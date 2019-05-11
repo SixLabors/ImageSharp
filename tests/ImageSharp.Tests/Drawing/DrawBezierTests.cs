@@ -11,13 +11,13 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    public class Beziers : FileTestBase
+    public class DrawBezierTests
     {
         [Fact]
         public void ImageShouldBeOverlayedByBezierLine()
         {
-            string path = TestEnvironment.CreateOutputDirectory("Drawing", "BezierLine");
-            using (var image = new Image<Rgba32>(500, 500))
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "DrawBezierTests");
+            using (var image = new Image<Rgba32>(350, 450))
             {
                 image.Mutate(x => x.BackgroundColor(Color.Blue));
                 image.Mutate(
@@ -51,11 +51,11 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedBezierLineWithOpacity()
         {
-            string path = TestEnvironment.CreateOutputDirectory("Drawing", "BezierLine");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "DrawBezierTests");
 
             var color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
-            using (var image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(350, 450))
             {
                 image.Mutate(x => x.BackgroundColor(Color.Blue));
                 image.Mutate(

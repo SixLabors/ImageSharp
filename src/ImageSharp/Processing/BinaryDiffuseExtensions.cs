@@ -9,7 +9,8 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Adds binary diffusion extensions to the <see cref="Image{TPixel}"/> type.
+    /// Defines extension methods to apply binary diffusion on an <see cref="Image{TPixel}"/>
+    /// using Mutate/Clone.
     /// </summary>
     public static class BinaryDiffuseExtensions
     {
@@ -20,7 +21,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image this method extends.</param>
         /// <param name="diffuser">The diffusion algorithm to apply.</param>
         /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> BinaryDiffuse<TPixel>(this IImageProcessingContext<TPixel> source, IErrorDiffuser diffuser, float threshold)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new BinaryErrorDiffusionProcessor<TPixel>(diffuser, threshold));
@@ -35,7 +36,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> BinaryDiffuse<TPixel>(this IImageProcessingContext<TPixel> source, IErrorDiffuser diffuser, float threshold, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new BinaryErrorDiffusionProcessor<TPixel>(diffuser, threshold), rectangle);
@@ -49,7 +50,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
         /// <param name="upperColor">The color to use for pixels that are above the threshold.</param>
         /// <param name="lowerColor">The color to use for pixels that are below the threshold</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> BinaryDiffuse<TPixel>(this IImageProcessingContext<TPixel> source, IErrorDiffuser diffuser, float threshold, TPixel upperColor, TPixel lowerColor)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new BinaryErrorDiffusionProcessor<TPixel>(diffuser, threshold, upperColor, lowerColor));
@@ -66,7 +67,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> BinaryDiffuse<TPixel>(this IImageProcessingContext<TPixel> source, IErrorDiffuser diffuser, float threshold, TPixel upperColor, TPixel lowerColor, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new BinaryErrorDiffusionProcessor<TPixel>(diffuser, threshold, upperColor, lowerColor), rectangle);

@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests
         private static ExifValue GetExifValue()
         {
             ExifProfile profile;
-            using (Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage())
+            using (Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image())
             {
                 profile = image.Metadata.ExifProfile;
             }

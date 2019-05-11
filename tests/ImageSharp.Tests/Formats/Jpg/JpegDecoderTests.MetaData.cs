@@ -216,7 +216,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             // Snake.jpg has both Exif and ICC profiles defined:
             var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Snake);
 
-            using (Image<Rgba32> image = testFile.CreateImage(decoder))
+            using (Image<Rgba32> image = testFile.CreateRgba32Image(decoder))
             {
                 if (ignoreMetaData)
                 {

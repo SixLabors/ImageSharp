@@ -12,8 +12,14 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp
 {
     /// <summary>
-    /// Represents a color value that is convertible to all <see cref="IPixel{TSelf}"/> implementations.
+    /// Represents a color value that is convertible to any <see cref="IPixel{TSelf}"/> type.
     /// </summary>
+    /// <remarks>
+    /// The internal representation and layout of this structure is hidden by intention.
+    /// It's not serializable, and it should not be considered as part of a contract.
+    /// Unlike System.Drawing.Color, <see cref="Color"/> has to be converted to a specific pixel value
+    /// to query the color components.
+    /// </remarks>
     public readonly partial struct Color : IEquatable<Color>
     {
         private readonly Rgba64 data;

@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="green">The green intensity.</param>
         /// <param name="blue">The blue intensity.</param>
         /// <returns>Returns a <typeparamref name="TPixel"/> that represents the color defined by the provided RGB values with 100% opacity.</returns>
-        public static TPixel FromRGB(byte red, byte green, byte blue) => FromRGBA(red, green, blue, 255);
+        public static TPixel FromRgb(byte red, byte green, byte blue) => FromRgba(red, green, blue, 255);
 
         /// <summary>
         /// Creates a new <typeparamref name="TPixel"/> representation from standard RGBA bytes.
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="blue">The blue intensity.</param>
         /// <param name="alpha">The alpha intensity.</param>
         /// <returns>Returns a <typeparamref name="TPixel"/> that represents the color defined by the provided RGBA values.</returns>
-        public static TPixel FromRGBA(byte red, byte green, byte blue, byte alpha)
+        public static TPixel FromRgba(byte red, byte green, byte blue, byte alpha)
         {
             TPixel color = default;
             color.FromRgba32(new Rgba32(red, green, blue, alpha));

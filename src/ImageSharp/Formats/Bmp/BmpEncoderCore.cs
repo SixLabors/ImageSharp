@@ -306,12 +306,15 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             where TPixel : struct, IPixel<TPixel>
         {
             using (IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.AllocateManagedByteBuffer(ColorPaletteSize8Bit, AllocationOptions.Clean))
-            using (QuantizedFrame<TPixel> quantized = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration, 256).QuantizeFrame(image))
+            using (IQuantizedFrame<TPixel> quantized = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration, 256).QuantizeFrame(image))
             {
                 Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
                 int idx = 0;
                 var color = default(Rgba32);
-                foreach (TPixel quantizedColor in quantized.Palette)
+                ReadOnlySpan<TPixel> paletteSpan = quantized.Palette.Span;
+
+                // TODO: Use bulk conversion here for better perf
+                foreach (TPixel quantizedColor in paletteSpan)
                 {
                     quantizedColor.ToRgba32(ref color);
                     colorPalette[idx] = color.B;
@@ -327,7 +330,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                 for (int y = image.Height - 1; y >= 0; y--)
                 {
-                    Span<byte> pixelSpan = quantized.GetRowSpan(y);
+                    ReadOnlySpan<byte> pixelSpan = quantized.GetRowSpan(y);
                     stream.Write(pixelSpan);
 
                     for (int i = 0; i < this.padding; i++)

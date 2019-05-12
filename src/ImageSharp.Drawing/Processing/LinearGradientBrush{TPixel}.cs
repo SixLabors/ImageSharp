@@ -14,15 +14,15 @@ namespace SixLabors.ImageSharp.Processing
     /// - a set of colors in relative distances to each other.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format</typeparam>
-    public sealed class LinearGradientBrush<TPixel> : GradientBrushBase<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public sealed class LinearGradientBrush : GradientBrushBase
+        
     {
         private readonly PointF p1;
 
         private readonly PointF p2;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="LinearGradientBrush{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="LinearGradientBrush"/> class.
         /// </summary>
         /// <param name="p1">Start point</param>
         /// <param name="p2">End point</param>
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing
             PointF p1,
             PointF p2,
             GradientRepetitionMode repetitionMode,
-            params ColorStop<TPixel>[] colorStops)
+            params ColorStop[] colorStops)
             : base(repetitionMode, colorStops)
         {
             this.p1 = p1;
@@ -40,13 +40,14 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <inheritdoc />
-        public override BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
-            => new LinearGradientBrushApplicator(source, this.p1, this.p2, this.ColorStops, this.RepetitionMode, options);
+        public override BrushApplicator<TPixel> CreateApplicator<TPixel>(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
+            => new LinearGradientBrushApplicator<TPixel>(source, this.p1, this.p2, this.ColorStops, this.RepetitionMode, options);
 
         /// <summary>
         /// The linear gradient brush applicator.
         /// </summary>
-        private sealed class LinearGradientBrushApplicator : GradientBrushApplicatorBase
+        private sealed class LinearGradientBrushApplicator<TPixel> : GradientBrushApplicatorBase<TPixel>
+            where TPixel : struct, IPixel<TPixel>
         {
             private readonly PointF start;
 
@@ -83,7 +84,7 @@ namespace SixLabors.ImageSharp.Processing
             private readonly float length;
 
             /// <summary>
-            /// Initializes a new instance of the <see cref="LinearGradientBrushApplicator" /> class.
+            /// Initializes a new instance of the <see cref="LinearGradientBrushApplicator{TPixel}" /> class.
             /// </summary>
             /// <param name="source">The source</param>
             /// <param name="start">start point of the gradient</param>
@@ -95,7 +96,7 @@ namespace SixLabors.ImageSharp.Processing
                 ImageFrame<TPixel> source,
                 PointF start,
                 PointF end,
-                ColorStop<TPixel>[] colorStops,
+                ColorStop[] colorStops,
                 GradientRepetitionMode repetitionMode,
                 GraphicsOptions options)
                 : base(source, options, colorStops, repetitionMode)

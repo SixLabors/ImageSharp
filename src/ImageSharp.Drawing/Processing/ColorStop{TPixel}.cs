@@ -10,17 +10,15 @@ namespace SixLabors.ImageSharp.Processing
     /// <summary>
     /// A struct that defines a single color stop.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
     [DebuggerDisplay("ColorStop({Ratio} -> {Color}")]
-    public struct ColorStop<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public readonly struct ColorStop
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ColorStop{TPixel}" /> struct.
+        /// Initializes a new instance of the <see cref="ColorStop" /> struct.
         /// </summary>
         /// <param name="ratio">Where should it be? 0 is at the start, 1 at the end of the Gradient.</param>
         /// <param name="color">What color should be used at that point?</param>
-        public ColorStop(float ratio, TPixel color)
+        public ColorStop(float ratio, in Color color)
         {
             this.Ratio = ratio;
             this.Color = color;
@@ -34,6 +32,6 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets the color to be used.
         /// </summary>
-        public TPixel Color { get; }
+        public Color Color { get; }
     }
 }

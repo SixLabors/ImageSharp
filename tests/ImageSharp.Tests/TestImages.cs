@@ -236,6 +236,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Bit1Pal1 = "Bmp/pal1p1.bmp";
             public const string Bit4 = "Bmp/pal4.bmp";
             public const string Bit8 = "Bmp/test8.bmp";
+            public const string Bit8Gs = "Bmp/pal8gs.bmp";
             public const string Bit8Inverted = "Bmp/test8-inverted.bmp";
             public const string Bit16 = "Bmp/test16.bmp";
             public const string Bit16Inverted = "Bmp/test16-inverted.bmp";

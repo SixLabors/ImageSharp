@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
         /// <summary>
         /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory
-        /// at row <paramref name="rowIndex"/> beginning from the the first pixel on that row.
+        /// at row <paramref name="rowIndex"/> beginning from the first pixel on that row.
         /// </summary>
         /// <param name="rowIndex">The row.</param>
         /// <returns>The <see cref="Span{T}"/></returns>

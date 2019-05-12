@@ -149,8 +149,7 @@ namespace SixLabors.ImageSharp
         /// filling with a solid color, the blending can be avoided by a plain color replacement.
         /// This method can be useful for such processors to select the fast path.
         /// </remarks>
-        internal bool IsOpaqueColorWithoutBlending<TPixel>(TPixel color)
-            where TPixel : struct, IPixel<TPixel>
+        internal bool IsOpaqueColorWithoutBlending(Color color)
         {
             if (this.ColorBlendingMode != PixelColorBlendingMode.Normal)
             {

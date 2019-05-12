@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                 graphics.InterpolationMode = InterpolationMode.Default;
                 graphics.SmoothingMode = SmoothingMode.AntiAlias;
 
-                using (var pen = new Pen(System.Drawing.Color.HotPink, 10))
+                using (var pen = new System.Drawing.Pen(System.Drawing.Color.HotPink, 10))
                 {
                     graphics.DrawBeziers(pen, new[] {
                         new PointF(10, 500),

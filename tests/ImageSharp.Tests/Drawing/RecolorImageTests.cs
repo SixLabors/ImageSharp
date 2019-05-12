@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             Color sourceColor = TestUtils.GetColorByName(sourceColorName);
             Color targetColor = TestUtils.GetColorByName(targetColorName);
-            var brush = new RecolorBrush<TPixel>(sourceColor.ToPixel<TPixel>(), targetColor.ToPixel<TPixel>(), threshold);
+            var brush = new RecolorBrush(sourceColor, targetColor, threshold);
 
             FormattableString testInfo = $"{sourceColorName}-{targetColorName}-{threshold}";
             provider.RunValidatingProcessorTest(x => x.Fill(brush), testInfo);
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             Color sourceColor = TestUtils.GetColorByName(sourceColorName);
             Color targetColor = TestUtils.GetColorByName(targetColorName);
-            var brush = new RecolorBrush<TPixel>(sourceColor.ToPixel<TPixel>(), targetColor.ToPixel<TPixel>(), threshold);
+            var brush = new RecolorBrush(sourceColor, targetColor, threshold);
 
             FormattableString testInfo = $"{sourceColorName}-{targetColorName}-{threshold}";
             provider.RunValidatingProcessorTest(x =>

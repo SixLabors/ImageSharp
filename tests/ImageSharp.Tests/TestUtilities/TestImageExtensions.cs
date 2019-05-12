@@ -55,17 +55,16 @@ namespace SixLabors.ImageSharp.Tests
                     });
         }
 
-        public static Image<TPixel> DebugSave<TPixel>(
-            this Image<TPixel> image,
+        public static void DebugSave(
+            this Image image,
             ITestImageProvider provider,
             FormattableString testOutputDetails,
             string extension = "png",
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true,
             IImageEncoder encoder = null)
-            where TPixel : struct, IPixel<TPixel>
         {
-            return image.DebugSave(
+            image.DebugSave(
                 provider,
                 (object)testOutputDetails,
                 extension,
@@ -77,7 +76,6 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Saves the image only when not running in the CI server.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format</typeparam>
         /// <param name="image">The image</param>
         /// <param name="provider">The image provider</param>
         /// <param name="testOutputDetails">Details to be concatenated to the test output file, describing the parameters of the test.</param>
@@ -85,15 +83,14 @@ namespace SixLabors.ImageSharp.Tests
         /// <param name="appendPixelTypeToFileName">A boolean indicating whether to append the pixel type to the  output file name.</param>
         /// <param name="appendSourceFileOrDescription">A boolean indicating whether to append <see cref="ITestImageProvider.SourceFileOrDescription"/> to the test output file name.</param>
         /// <param name="encoder">Custom encoder to use.</param>
-        public static Image<TPixel> DebugSave<TPixel>(
-            this Image<TPixel> image,
+        public static Image DebugSave(
+            this Image image,
             ITestImageProvider provider,
             object testOutputDetails = null,
             string extension = "png",
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true,
             IImageEncoder encoder = null)
-            where TPixel : struct, IPixel<TPixel>
         {
             if (TestEnvironment.RunsOnCI)
             {
@@ -111,37 +108,34 @@ namespace SixLabors.ImageSharp.Tests
             return image;
         }
 
-        public static Image<TPixel> DebugSave<TPixel>(
-            this Image<TPixel> image,
+        public static void DebugSave(
+            this Image image,
             ITestImageProvider provider,
             IImageEncoder encoder,
             FormattableString testOutputDetails,
             bool appendPixelTypeToFileName = true)
-            where TPixel : struct, IPixel<TPixel>
         {
-            return image.DebugSave(provider, encoder, (object)testOutputDetails, appendPixelTypeToFileName);
+            image.DebugSave(provider, encoder, (object)testOutputDetails, appendPixelTypeToFileName);
         }
 
         /// <summary>
         /// Saves the image only when not running in the CI server.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format</typeparam>
         /// <param name="image">The image</param>
         /// <param name="provider">The image provider</param>
         /// <param name="encoder">The image encoder</param>
         /// <param name="testOutputDetails">Details to be concatenated to the test output file, describing the parameters of the test.</param>
         /// <param name="appendPixelTypeToFileName">A boolean indicating whether to append the pixel type to the  output file name.</param>
-        public static Image<TPixel> DebugSave<TPixel>(
-            this Image<TPixel> image,
+        public static void DebugSave(
+            this Image image,
             ITestImageProvider provider,
             IImageEncoder encoder,
             object testOutputDetails = null,
             bool appendPixelTypeToFileName = true)
-            where TPixel : struct, IPixel<TPixel>
         {
             if (TestEnvironment.RunsOnCI)
             {
-                return image;
+                return;
             }
 
             // We are running locally then we want to save it out
@@ -150,7 +144,6 @@ namespace SixLabors.ImageSharp.Tests
                 encoder: encoder,
                 testOutputDetails: testOutputDetails,
                 appendPixelTypeToFileName: appendPixelTypeToFileName);
-            return image;
         }
 
         public static Image<TPixel> DebugSaveMultiFrame<TPixel>(

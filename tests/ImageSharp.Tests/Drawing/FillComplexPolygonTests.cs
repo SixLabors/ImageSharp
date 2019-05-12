@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             }
 
             provider.RunValidatingProcessorTest(
-                x => x.Fill(color.ToPixel<TPixel>(), clipped),
+                x => x.Fill(color, clipped),
                 testDetails,
                 appendPixelTypeToFileName: false,
                 appendSourceFileOrDescription: false);

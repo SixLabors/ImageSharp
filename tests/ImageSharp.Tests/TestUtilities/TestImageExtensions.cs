@@ -484,6 +484,20 @@ namespace SixLabors.ImageSharp.Tests
             
             return image;
         }
+        
+        /// <summary>
+        /// All pixels in all frames should be exactly equal to 'expectedPixelColor.ToPixel()'.
+        /// </summary>
+        public static Image<TPixel> ComparePixelBufferTo<TPixel>(this Image<TPixel> image, Color expectedPixelColor)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            foreach (ImageFrame<TPixel> imageFrame in image.Frames)
+            {
+                imageFrame.ComparePixelBufferTo(expectedPixelColor.ToPixel<TPixel>());
+            }
+            
+            return image;
+        }
 
         /// <summary>
         /// All pixels in the frame should be exactly equal to 'expectedPixel'.

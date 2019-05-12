@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 testDetails += "_Dashed";
             }
 
-            Pen<TPixel> pen = dashed ? Pens.Dash(color.ToPixel<TPixel>(), 5f) : Pens.Solid(color.ToPixel<TPixel>(), 5f);
+            Pen pen = dashed ? Pens.Dash(color, 5f) : Pens.Solid(color, 5f);
 
             provider.RunValidatingProcessorTest(
                 x => x.Draw(pen, clipped),

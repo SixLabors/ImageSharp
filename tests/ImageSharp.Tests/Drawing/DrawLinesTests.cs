@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             where TPixel : struct, IPixel<TPixel>
         {
             Color color = TestUtils.GetColorByName(colorName).WithAlpha(alpha);
-            Pen<TPixel> pen = new Pen<TPixel>(color.ToPixel<TPixel>(), thickness);
+            Pen pen = new Pen(color, thickness);
             
             DrawLinesImpl(provider, colorName, alpha, thickness, antialias, pen);
         }
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             where TPixel : struct, IPixel<TPixel>
         {
             Color color = TestUtils.GetColorByName(colorName).WithAlpha(alpha);
-            Pen<TPixel> pen = Pens.Dash(color.ToPixel<TPixel>(), thickness);
+            Pen pen = Pens.Dash(color, thickness);
             
             DrawLinesImpl(provider, colorName, alpha, thickness, antialias, pen);
         }
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             where TPixel : struct, IPixel<TPixel>
         {
             Color color = TestUtils.GetColorByName(colorName).WithAlpha(alpha);
-            Pen<TPixel> pen = Pens.Dot(color.ToPixel<TPixel>(), thickness);
+            Pen pen = Pens.Dot(color, thickness);
             
             DrawLinesImpl(provider, colorName, alpha, thickness, antialias, pen);
         }
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             where TPixel : struct, IPixel<TPixel>
         {
             Color color = TestUtils.GetColorByName(colorName).WithAlpha(alpha);
-            Pen<TPixel> pen = Pens.DashDot(color.ToPixel<TPixel>(), thickness);
+            Pen pen = Pens.DashDot(color, thickness);
             
             DrawLinesImpl(provider, colorName, alpha, thickness, antialias, pen);
         }
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             where TPixel : struct, IPixel<TPixel>
         {
             Color color = TestUtils.GetColorByName(colorName).WithAlpha(alpha);
-            Pen<TPixel> pen = Pens.DashDotDot(color.ToPixel<TPixel>(), thickness);
+            Pen pen = Pens.DashDotDot(color, thickness);
             
             DrawLinesImpl(provider, colorName, alpha, thickness, antialias, pen);
         }
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             float alpha,
             float thickness,
             bool antialias,
-            Pen<TPixel> pen)
+            Pen pen)
             where TPixel : struct, IPixel<TPixel>
         {
             SixLabors.Primitives.PointF[] simplePath = { new Vector2(10, 10), new Vector2(200, 150), new Vector2(50, 300) };

@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             FormattableString testDetails = $"{colorName}_A{alpha}_T{thickness}";
             
-            provider.RunValidatingProcessorTest( x => x.DrawBeziers(color.ToPixel<TPixel>(), 5f, points), 
+            provider.RunValidatingProcessorTest( x => x.DrawBeziers(color, 5f, points), 
                 testDetails,
                 appendSourceFileOrDescription: false,
                 appendPixelTypeToFileName: false);

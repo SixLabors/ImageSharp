@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             FormattableString outputDetails = $"{colorName}_A{alpha}{aa}";
             
             provider.RunValidatingProcessorTest(
-                c => c.FillPolygon(options, color.ToPixel<TPixel>(), simplePath),
+                c => c.FillPolygon(options, color, simplePath),
                 outputDetails,
                 appendSourceFileOrDescription: false);
         }
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             Color color = Color.LightGreen;
 
             provider.RunValidatingProcessorTest(
-                c => c.FillPolygon(color.ToPixel<TPixel>(), points),
+                c => c.FillPolygon(color, points),
                 appendSourceFileOrDescription: false,
                 appendPixelTypeToFileName: false);
         }
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 };
             Color color = Color.Yellow;
 
-            var brush = Brushes.Horizontal(color.ToPixel<TPixel>());
+            var brush = Brushes.Horizontal(color);
             
             provider.RunValidatingProcessorTest(
                 c => c.FillPolygon(brush, simplePath),
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             Color color = Color.White;
 
             provider.RunValidatingProcessorTest(
-                c => c.Fill(color.ToPixel<TPixel>(), polygon),
+                c => c.Fill(color, polygon),
                 appendSourceFileOrDescription: false);    
         }
         
@@ -132,7 +132,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             FormattableString testOutput = $"V({vertices})_R({radius})_Ang({angleDeg})";
             provider.RunValidatingProcessorTest(
-                c => c.Fill(color.ToPixel<TPixel>(), polygon),
+                c => c.Fill(color, polygon),
                 testOutput,
                 appendSourceFileOrDescription: false,
                 appendPixelTypeToFileName: false);
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             Color color = Color.Azure;
 
             provider.RunValidatingProcessorTest(
-                c => c.Fill(color.ToPixel<TPixel>(), polygon),
+                c => c.Fill(color, polygon),
                 appendSourceFileOrDescription: false,
                 appendPixelTypeToFileName: false);
         }

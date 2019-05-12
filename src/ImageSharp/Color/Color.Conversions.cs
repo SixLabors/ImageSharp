@@ -91,5 +91,8 @@ namespace SixLabors.ImageSharp
 
         [MethodImpl(InliningOptions.ShortMethod)]
         internal Bgr24 ToBgr24() => this.data.ToBgr24();
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal Vector4 ToVector4() => this.data.ToVector4();
     }
 }

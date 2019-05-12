@@ -13,14 +13,90 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 {
+    public class DrawImageProcessor : IImageProcessor
+    {
+        public DrawImageProcessor(
+            Image image,
+            Point location,
+            PixelColorBlendingMode colorBlendingMode,
+            PixelAlphaCompositionMode alphaCompositionMode,
+            float opacity)
+        {
+            this.Image = image;
+            this.Location = location;
+            this.ColorBlendingMode = colorBlendingMode;
+            this.AlphaCompositionMode = alphaCompositionMode;
+            this.Opacity = opacity;
+        }
+
+        /// <summary>
+        /// Gets the image to blend
+        /// </summary>
+        public Image Image { get; }
+
+        /// <summary>
+        /// Gets the location to draw the blended image
+        /// </summary>
+        public Point Location { get; }
+        
+        /// <summary>
+        /// Gets the blending mode to use when drawing the image.
+        /// </summary>
+        public PixelColorBlendingMode ColorBlendingMode { get; }
+        
+        /// <summary>
+        /// Gets the Alpha blending mode to use when drawing the image.
+        /// </summary>
+        public PixelAlphaCompositionMode AlphaCompositionMode { get; }
+        
+        /// <summary>
+        /// Gets the opacity of the image to blend
+        /// </summary>
+        public float Opacity { get; }
+
+        /// <inheritdoc />
+        public IImageProcessor<TPixelBg> CreatePixelSpecificProcessor<TPixelBg>()
+            where TPixelBg : struct, IPixel<TPixelBg>
+        {
+            var visitor = new ProcessorFactoryVisitor<TPixelBg>(this);
+            this.Image.AcceptVisitor(visitor);
+            return visitor.Result;
+        }
+
+        private class ProcessorFactoryVisitor<TPixelBg> : IImageVisitor
+            where TPixelBg : struct, IPixel<TPixelBg>
+        {
+            private readonly DrawImageProcessor definition;
+
+            public ProcessorFactoryVisitor(DrawImageProcessor definition)
+            {
+                this.definition = definition;
+            }
+
+            public IImageProcessor<TPixelBg> Result { get; private set; }
+            
+            public void Visit<TPixelFg>(Image<TPixelFg> image)
+                where TPixelFg : struct, IPixel<TPixelFg>
+            {
+                this.Result = new DrawImageProcessor<TPixelBg, TPixelFg>(
+                    image,
+                    this.definition.Location,
+                    this.definition.ColorBlendingMode,
+                    this.definition.AlphaCompositionMode,
+                    this.definition.Opacity
+                    );
+            }
+        }
+    }
+
     /// <summary>
     /// Combines two images together by blending the pixels.
     /// </summary>
-    /// <typeparam name="TPixelDst">The pixel format of destination image.</typeparam>
-    /// <typeparam name="TPixelSrc">The pixel format of source image.</typeparam>
-    internal class DrawImageProcessor<TPixelDst, TPixelSrc> : ImageProcessor<TPixelDst>
-        where TPixelDst : struct, IPixel<TPixelDst>
-        where TPixelSrc : struct, IPixel<TPixelSrc>
+    /// <typeparam name="TPixelBg">The pixel format of destination image.</typeparam>
+    /// <typeparam name="TPixelFg">The pixel format of source image.</typeparam>
+    internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
+        where TPixelBg : struct, IPixel<TPixelBg>
+        where TPixelFg : struct, IPixel<TPixelFg>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="DrawImageProcessor{TPixelDst, TPixelSrc}"/> class.
@@ -30,20 +106,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
         /// <param name="colorBlendingMode">The blending mode to use when drawing the image.</param>
         /// <param name="alphaCompositionMode">The Alpha blending mode to use when drawing the image.</param>
         /// <param name="opacity">The opacity of the image to blend. Must be between 0 and 1.</param>
-        public DrawImageProcessor(Image<TPixelSrc> image, Point location, PixelColorBlendingMode colorBlendingMode, PixelAlphaCompositionMode alphaCompositionMode, float opacity)
+        public DrawImageProcessor(
+            Image<TPixelFg> image,
+            Point location,
+            PixelColorBlendingMode colorBlendingMode,
+            PixelAlphaCompositionMode alphaCompositionMode,
+            float opacity)
         {
             Guard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
 
             this.Image = image;
             this.Opacity = opacity;
-            this.Blender = PixelOperations<TPixelDst>.Instance.GetPixelBlender(colorBlendingMode, alphaCompositionMode);
+            this.Blender = PixelOperations<TPixelBg>.Instance.GetPixelBlender(colorBlendingMode, alphaCompositionMode);
             this.Location = location;
         }
 
         /// <summary>
         /// Gets the image to blend
         /// </summary>
-        public Image<TPixelSrc> Image { get; }
+        public Image<TPixelFg> Image { get; }
 
         /// <summary>
         /// Gets the opacity of the image to blend
@@ -53,7 +134,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
         /// <summary>
         /// Gets the pixel blender
         /// </summary>
-        public PixelBlender<TPixelDst> Blender { get; }
+        public PixelBlender<TPixelBg> Blender { get; }
 
         /// <summary>
         /// Gets the location to draw the blended image
@@ -61,10 +142,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
         public Point Location { get; }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixelDst> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(
+            ImageFrame<TPixelBg> source,
+            Rectangle sourceRectangle,
+            Configuration configuration)
         {
-            Image<TPixelSrc> targetImage = this.Image;
-            PixelBlender<TPixelDst> blender = this.Blender;
+            Image<TPixelFg> targetImage = this.Image;
+            PixelBlender<TPixelBg> blender = this.Blender;
             int locationY = this.Location.Y;
 
             // Align start/end positions.
@@ -84,7 +168,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             // not a valid operation because rectangle does not overlap with this image.
             if (workingRect.Width <= 0 || workingRect.Height <= 0)
             {
-                throw new ImageProcessingException("Cannot draw image because the source image does not overlap the target image.");
+                throw new ImageProcessingException(
+                    "Cannot draw image because the source image does not overlap the target image.");
             }
 
             ParallelHelper.IterateRows(
@@ -94,10 +179,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                     {
                         for (int y = rows.Min; y < rows.Max; y++)
                         {
-                            Span<TPixelDst> background = source.GetPixelRowSpan(y).Slice(minX, width);
-                            Span<TPixelSrc> foreground =
+                            Span<TPixelBg> background = source.GetPixelRowSpan(y).Slice(minX, width);
+                            Span<TPixelFg> foreground =
                                 targetImage.GetPixelRowSpan(y - locationY).Slice(targetX, width);
-                            blender.Blend<TPixelSrc>(configuration, background, background, foreground, this.Opacity);
+                            blender.Blend<TPixelFg>(configuration, background, background, foreground, this.Opacity);
                         }
                     });
         }

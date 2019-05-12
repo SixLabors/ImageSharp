@@ -13,24 +13,15 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 {
-    /// <summary>
-    /// Using a brush and a shape fills shape with contents of brush the
-    /// </summary>
-    /// <typeparam name="TPixel">The type of the color.</typeparam>
-    /// <seealso cref="ImageProcessor{TPixel}" />
-    internal class FillRegionProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public class FillRegionProcessor : IImageProcessor
     {
-        private const float AntialiasFactor = 1f;
-        private const int DrawPadding = 1;
-
         /// <summary>
-        /// Initializes a new instance of the <see cref="FillRegionProcessor{TPixel}" /> class.
+        /// Initializes a new instance of the <see cref="FillRegionProcessor" /> class.
         /// </summary>
         /// <param name="brush">The details how to fill the region of interest.</param>
         /// <param name="region">The region of interest to be filled.</param>
         /// <param name="options">The configuration options.</param>
-        public FillRegionProcessor(IBrush<TPixel> brush, Region region, GraphicsOptions options)
+        public FillRegionProcessor(IBrush brush, Region region, GraphicsOptions options)
         {
             this.Region = region;
             this.Brush = brush;
@@ -40,7 +31,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
         /// <summary>
         /// Gets the brush.
         /// </summary>
-        public IBrush<TPixel> Brush { get; }
+        public IBrush Brush { get; }
 
         /// <summary>
         /// Gets the region that this processor applies to.
@@ -55,10 +46,35 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
         /// </value>
         public GraphicsOptions Options { get; }
 
+        /// <inheritdoc />
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+            where TPixel : struct, IPixel<TPixel>
+        {
+            return new FillRegionProcessor<TPixel>(this);
+        }
+    }
+    
+    /// <summary>
+    /// Using a brush and a shape fills shape with contents of brush the
+    /// </summary>
+    /// <typeparam name="TPixel">The type of the color.</typeparam>
+    /// <seealso cref="ImageProcessor{TPixel}" />
+    internal class FillRegionProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
+    {
+        private readonly FillRegionProcessor definition;
+
+        public FillRegionProcessor(FillRegionProcessor definition)
+        {
+            this.definition = definition;
+        }
+
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            Region region = this.Region;
+            GraphicsOptions options = this.definition.Options;
+            IBrush brush = this.definition.Brush;
+            Region region = this.definition.Region;
             Rectangle rect = region.Bounds;
 
             // Align start/end positions.
@@ -84,17 +100,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             // and this can cause missed fills when not using antialiasing.so we offset the pixel grid by 0.5 in the x & y direction thus causing the#
             // region to align with the pixel grid.
             float offset = 0.5f;
-            if (this.Options.Antialias)
+            if (options.Antialias)
             {
                 offset = 0f; // we are antialiasing skip offsetting as real antialiasing should take care of offset.
-                subpixelCount = this.Options.AntialiasSubpixelDepth;
+                subpixelCount = options.AntialiasSubpixelDepth;
                 if (subpixelCount < 4)
                 {
                     subpixelCount = 4;
                 }
             }
 
-            using (BrushApplicator<TPixel> applicator = this.Brush.CreateApplicator(source, rect, this.Options))
+            using (BrushApplicator<TPixel> applicator = brush.CreateApplicator(source, rect, options))
             {
                 int scanlineWidth = maxX - minX;
                 using (IMemoryOwner<float> bBuffer = source.MemoryAllocator.Allocate<float>(maxIntersections))
@@ -107,7 +123,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                     Span<float> buffer = bBuffer.GetSpan();
                     Span<float> scanline = bScanline.GetSpan();
 
-                    bool isSolidBrushWithoutBlending = this.IsSolidBrushWithoutBlending(out SolidBrush<TPixel> solidBrush);
+                    bool isSolidBrushWithoutBlending = this.IsSolidBrushWithoutBlending(out SolidBrush solidBrush);
+                    TPixel solidBrushColor = isSolidBrushWithoutBlending ? solidBrush.Color.ToPixel<TPixel>() : default;
 
                     for (int y = minY; y < maxY; y++)
                     {
@@ -168,7 +185,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 
                         if (scanlineDirty)
                         {
-                            if (!this.Options.Antialias)
+                            if (!options.Antialias)
                             {
                                 bool hasOnes = false;
                                 bool hasZeros = false;
@@ -190,7 +207,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                                 {
                                     if (hasOnes)
                                     {
-                                        source.GetPixelRowSpan(y).Slice(minX, scanlineWidth).Fill(solidBrush.Color);
+                                        source.GetPixelRowSpan(y).Slice(minX, scanlineWidth).Fill(solidBrushColor);
                                     }
 
                                     continue;
@@ -204,16 +221,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             }
         }
 
-        private bool IsSolidBrushWithoutBlending(out SolidBrush<TPixel> solidBrush)
+        private bool IsSolidBrushWithoutBlending(out SolidBrush solidBrush)
         {
-            solidBrush = this.Brush as SolidBrush<TPixel>;
+            solidBrush = this.definition.Brush as SolidBrush;
 
             if (solidBrush == null)
             {
                 return false;
             }
 
-            return this.Options.IsOpaqueColorWithoutBlending(solidBrush.Color);
+            return this.definition.Options.IsOpaqueColorWithoutBlending(solidBrush.Color);
         }
     }
 }

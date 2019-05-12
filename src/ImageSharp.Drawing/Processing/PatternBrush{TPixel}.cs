@@ -97,7 +97,11 @@ namespace SixLabors.ImageSharp.Processing
             RectangleF region,
             GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel> =>
-            new PatternBrushApplicator<TPixel>(source, this.pattern, this.patternVector, options);
+            new PatternBrushApplicator<TPixel>(
+                source,
+                this.pattern.ToPixelMatrix<TPixel>(source.Configuration),
+                this.patternVector,
+                options);
 
         /// <summary>
         /// The pattern brush applicator.
@@ -118,11 +122,10 @@ namespace SixLabors.ImageSharp.Processing
             /// <param name="pattern">The pattern.</param>
             /// <param name="patternVector">The patternVector.</param>
             /// <param name="options">The options</param>
-            public PatternBrushApplicator(ImageFrame<TPixel> source, in DenseMatrix<Color> pattern, DenseMatrix<Vector4> patternVector, GraphicsOptions options)
+            public PatternBrushApplicator(ImageFrame<TPixel> source, in DenseMatrix<TPixel> pattern, DenseMatrix<Vector4> patternVector, GraphicsOptions options)
                 : base(source, options)
             {
-                this.pattern = new DenseMatrix<TPixel>(pattern.Columns, pattern.Rows);
-                Color.ToPixel<TPixel>(source.Configuration, pattern.Data, this.pattern.Data);
+                this.pattern = pattern;
                 this.patternVector = patternVector;
             }
 

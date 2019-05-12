@@ -13,7 +13,6 @@ namespace SixLabors.ImageSharp.Processing
     /// Supported right now:
     /// - a set of colors in relative distances to each other.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format</typeparam>
     public sealed class LinearGradientBrush : GradientBrushBase
         
     {

@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             using (Image<TPixel> brushImage = Image.Load<TPixel>(TestFile.Create(brushImageName).Bytes))
             {
-                var brush = new ImageBrush<TPixel>(brushImage);
+                var brush = new ImageBrush(brushImage);
                 
                 provider.RunValidatingProcessorTest(
                     c => c.FillPolygon(brush, simplePath),

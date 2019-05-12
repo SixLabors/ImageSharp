@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             using (var src = new Image<Rgba32>(5, 5))
             {
-                var brush = new ImageBrush<Rgba32>(src);
+                var brush = new ImageBrush(src);
                 using (var dest = new Image<Rgba32>(10, 10))
                 {
                     dest.Mutate(c => c.Fill(brush, new Rectangle(0, 0, 10, 10)));

@@ -6,9 +6,10 @@ using System;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
+
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Drawing
 {
     [GroupOutput("Drawing")]
     public class RecolorImageTests

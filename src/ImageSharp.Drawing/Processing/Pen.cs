@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Processing
         private readonly float[] pattern;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Pen{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="Pen"/> class.
         /// </summary>
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Pen{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="Pen"/> class.
         /// </summary>
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Pen{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="Pen"/> class.
         /// </summary>
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Pen{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="Pen"/> class.
         /// </summary>
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>

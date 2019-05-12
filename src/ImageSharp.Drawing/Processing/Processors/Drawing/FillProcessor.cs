@@ -13,6 +13,26 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 {
+    public class FillProcessor : IImageProcessor
+    {
+        public FillProcessor(IBrush brush, GraphicsOptions options)
+        {
+            this.Brush = brush;
+            this.Options = options;
+        }
+
+        public IBrush Brush { get; }
+        
+        public GraphicsOptions Options { get; }
+
+        /// <inheritdoc />
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+            where TPixel : struct, IPixel<TPixel>
+        {
+            return new FillProcessor<TPixel>(this);
+        }
+    }
+    
     /// <summary>
     /// Using the brush as a source of pixels colors blends the brush color with source.
     /// </summary>
@@ -20,21 +40,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
     internal class FillProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        /// <summary>
-        /// The brush.
-        /// </summary>
-        private readonly IBrush<TPixel> brush;
-        private readonly GraphicsOptions options;
+        private readonly FillProcessor definition;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="FillProcessor{TPixel}"/> class.
-        /// </summary>
-        /// <param name="brush">The brush to source pixel colors from.</param>
-        /// <param name="options">The options</param>
-        public FillProcessor(IBrush<TPixel> brush, GraphicsOptions options)
+        public FillProcessor(FillProcessor definition)
         {
-            this.brush = brush;
-            this.options = options;
+            this.definition = definition;
         }
 
         /// <inheritdoc/>
@@ -55,11 +65,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 
             var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
 
+            IBrush brush = this.definition.Brush;
+            GraphicsOptions options = this.definition.Options;
+
             // If there's no reason for blending, then avoid it.
-            if (this.IsSolidBrushWithoutBlending(out SolidBrush<TPixel> solidBrush))
+            if (this.IsSolidBrushWithoutBlending(out SolidBrush solidBrush))
             {
                 ParallelExecutionSettings parallelSettings = configuration.GetParallelSettings().MultiplyMinimumPixelsPerTask(4);
 
+                TPixel colorPixel = solidBrush.Color.ToPixel<TPixel>();
+                
                 ParallelHelper.IterateRows(
                     workingRect,
                     parallelSettings,
@@ -67,7 +82,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                         {
                             for (int y = rows.Min; y < rows.Max; y++)
                             {
-                                source.GetPixelRowSpan(y).Slice(minX, width).Fill(solidBrush.Color);
+                                source.GetPixelRowSpan(y).Slice(minX, width).Fill(colorPixel);
                             }
                         });
             }
@@ -85,10 +100,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                 }
 
                 using (IMemoryOwner<float> amount = source.MemoryAllocator.Allocate<float>(width))
-                using (BrushApplicator<TPixel> applicator = this.brush.CreateApplicator(
+                using (BrushApplicator<TPixel> applicator = brush.CreateApplicator(
                     source,
                     sourceRectangle,
-                    this.options))
+                    options))
                 {
                     amount.GetSpan().Fill(1f);
 
@@ -109,16 +124,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             }
         }
 
-        private bool IsSolidBrushWithoutBlending(out SolidBrush<TPixel> solidBrush)
+        private bool IsSolidBrushWithoutBlending(out SolidBrush solidBrush)
         {
-            solidBrush = this.brush as SolidBrush<TPixel>;
+            solidBrush = this.definition.Brush as SolidBrush;
 
             if (solidBrush == null)
             {
                 return false;
             }
 
-            return this.options.IsOpaqueColorWithoutBlending(solidBrush.Color);
+            return this.definition.Options.IsOpaqueColorWithoutBlending(solidBrush.Color);
         }
     }
 }

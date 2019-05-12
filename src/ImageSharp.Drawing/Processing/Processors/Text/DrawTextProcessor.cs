@@ -15,17 +15,10 @@ using SixLabors.Shapes;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Text
 {
-    /// <summary>
-    /// Using the brush as a source of pixels colors blends the brush color with source.
-    /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class DrawTextProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public class DrawTextProcessor : IImageProcessor
     {
-        private CachingGlyphRenderer textRenderer;
-
         /// <summary>
-        /// Initializes a new instance of the <see cref="DrawTextProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="DrawTextProcessor"/> class.
         /// </summary>
         /// <param name="options">The options</param>
         /// <param name="text">The text we want to render</param>
@@ -33,7 +26,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
         /// <param name="brush">The brush to source pixel colors from.</param>
         /// <param name="pen">The pen to outline text with.</param>
         /// <param name="location">The location on the image to start drawing the text from.</param>
-        public DrawTextProcessor(TextGraphicsOptions options, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, PointF location)
+        public DrawTextProcessor(TextGraphicsOptions options, string text, Font font, IBrush brush, IPen pen, PointF location)
         {
             Guard.NotNull(text, nameof(text));
             Guard.NotNull(font, nameof(font));
@@ -54,7 +47,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
         /// <summary>
         /// Gets the brush.
         /// </summary>
-        public IBrush<TPixel> Brush { get; }
+        public IBrush Brush { get; }
 
         /// <summary>
         /// Gets the options
@@ -69,7 +62,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
         /// <summary>
         /// Gets the pen used for outlining the text, if Null then we will not outline
         /// </summary>
-        public IPen<TPixel> Pen { get; }
+        public IPen Pen { get; }
 
         /// <summary>
         /// Gets the font used to render the text.
@@ -80,6 +73,42 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
         /// Gets the location to draw the text at.
         /// </summary>
         public PointF Location { get; }
+
+        /// <inheritdoc />
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+            where TPixel : struct, IPixel<TPixel>
+        {
+            throw new NotImplementedException();
+        }
+    }
+    
+    /// <summary>
+    /// Using the brush as a source of pixels colors blends the brush color with source.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class DrawTextProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
+    {
+        private CachingGlyphRenderer textRenderer;
+
+        private readonly DrawTextProcessor definition;
+
+        public DrawTextProcessor(DrawTextProcessor definition)
+        {
+            this.definition = definition;
+        }
+
+        private TextGraphicsOptions Options => this.definition.Options;
+
+        private Font Font => this.definition.Font;
+
+        private PointF Location => this.definition.Location;
+
+        private string Text => this.definition.Text;
+
+        private IPen Pen => this.definition.Pen;
+
+        private IBrush Brush => this.definition.Brush;
 
         protected override void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
         {
@@ -115,7 +144,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
             Draw(this.textRenderer.FillOperations, this.Brush);
             Draw(this.textRenderer.OutlineOperations, this.Pen?.StrokeFill);
 
-            void Draw(List<DrawingOperation> operations, IBrush<TPixel> brush)
+            void Draw(List<DrawingOperation> operations, IBrush brush)
             {
                 if (operations?.Count > 0)
                 {

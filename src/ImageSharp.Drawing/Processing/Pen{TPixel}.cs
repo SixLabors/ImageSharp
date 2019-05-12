@@ -9,7 +9,6 @@ namespace SixLabors.ImageSharp.Processing
     /// <summary>
     /// Provides a pen that can apply a pattern to a line with a set brush and thickness
     /// </summary>
-    /// <typeparam name="TPixel">The type of the color.</typeparam>
     /// <remarks>
     /// The pattern will be in to the form of new float[]{ 1f, 2f, 0.5f} this will be
     /// converted into a pattern that is 3.5 times longer that the width with 3 sections
@@ -18,8 +17,7 @@ namespace SixLabors.ImageSharp.Processing
     /// section 3 will be width/2 long and will be filled
     /// the the pattern will immediately repeat without gap.
     /// </remarks>
-    public class Pen<TPixel> : IPen<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public class Pen : IPen
     {
         private readonly float[] pattern;
 
@@ -29,8 +27,8 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
         /// <param name="pattern">The pattern.</param>
-        public Pen(TPixel color, float width, float[] pattern)
-            : this(new SolidBrush<TPixel>(color), width, pattern)
+        public Pen(Color color, float width, float[] pattern)
+            : this(new SolidBrush(color), width, pattern)
         {
         }
 
@@ -40,7 +38,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
         /// <param name="pattern">The pattern.</param>
-        public Pen(IBrush<TPixel> brush, float width, float[] pattern)
+        public Pen(IBrush brush, float width, float[] pattern)
         {
             this.StrokeFill = brush;
             this.StrokeWidth = width;
@@ -52,8 +50,8 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
-        public Pen(TPixel color, float width)
-            : this(new SolidBrush<TPixel>(color), width)
+        public Pen(Color color, float width)
+            : this(new SolidBrush(color), width)
         {
         }
 
@@ -62,13 +60,13 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
-        public Pen(IBrush<TPixel> brush, float width)
+        public Pen(IBrush brush, float width)
             : this(brush, width, Pens.EmptyPattern)
         {
         }
 
         /// <inheritdoc/>
-        public IBrush<TPixel> StrokeFill { get; }
+        public IBrush StrokeFill { get; }
 
         /// <inheritdoc/>
         public float StrokeWidth { get; }

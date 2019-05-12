@@ -16,16 +16,15 @@ namespace SixLabors.ImageSharp.Processing
     /// Provides an implementation of a brush that can recolor an image
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public class RecolorBrush<TPixel> : IBrush<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public class RecolorBrush : IBrush
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="RecolorBrush{TPixel}" /> class.
+        /// Initializes a new instance of the <see cref="RecolorBrush" /> class.
         /// </summary>
         /// <param name="sourceColor">Color of the source.</param>
         /// <param name="targetColor">Color of the target.</param>
         /// <param name="threshold">The threshold as a value between 0 and 1.</param>
-        public RecolorBrush(TPixel sourceColor, TPixel targetColor, float threshold)
+        public RecolorBrush(Color sourceColor, Color targetColor, float threshold)
         {
             this.SourceColor = sourceColor;
             this.Threshold = threshold;
@@ -43,23 +42,33 @@ namespace SixLabors.ImageSharp.Processing
         /// <value>
         /// The color of the source.
         /// </value>
-        public TPixel SourceColor { get; }
+        public Color SourceColor { get; }
 
         /// <summary>
         /// Gets the target color.
         /// </summary>
-        public TPixel TargetColor { get; }
+        public Color TargetColor { get; }
 
         /// <inheritdoc />
-        public BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
+        public BrushApplicator<TPixel> CreateApplicator<TPixel>(
+            ImageFrame<TPixel> source,
+            RectangleF region,
+            GraphicsOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return new RecolorBrushApplicator(source, this.SourceColor, this.TargetColor, this.Threshold, options);
+            return new RecolorBrushApplicator<TPixel>(
+                source,
+                this.SourceColor.ToPixel<TPixel>(),
+                this.TargetColor.ToPixel<TPixel>(),
+                this.Threshold,
+                options);
         }
 
         /// <summary>
         /// The recolor brush applicator.
         /// </summary>
-        private class RecolorBrushApplicator : BrushApplicator<TPixel>
+        private class RecolorBrushApplicator<TPixel> : BrushApplicator<TPixel>
+            where TPixel : struct, IPixel<TPixel>
         {
             /// <summary>
             /// The source color.
@@ -79,7 +88,7 @@ namespace SixLabors.ImageSharp.Processing
             private readonly TPixel targetColorPixel;
 
             /// <summary>
-            /// Initializes a new instance of the <see cref="RecolorBrushApplicator" /> class.
+            /// Initializes a new instance of the <see cref="RecolorBrushApplicator{TPixel}" /> class.
             /// </summary>
             /// <param name="source">The source image.</param>
             /// <param name="sourceColor">Color of the source.</param>

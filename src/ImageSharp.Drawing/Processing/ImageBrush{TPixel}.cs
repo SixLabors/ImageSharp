@@ -15,40 +15,38 @@ namespace SixLabors.ImageSharp.Processing
     /// Provides an implementation of an image brush for painting images within areas.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public class ImageBrush<TPixel> : IBrush<TPixel>
-    where TPixel : struct, IPixel<TPixel>
+    public class ImageBrush<TPixel> : IBrush
     {
         /// <summary>
         /// The image to paint.
         /// </summary>
-        private readonly ImageFrame<TPixel> image;
+        private readonly Image image;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageBrush{TPixel}"/> class.
         /// </summary>
         /// <param name="image">The image.</param>
-        public ImageBrush(ImageFrame<TPixel> image)
+        public ImageBrush(Image image)
         {
             this.image = image;
         }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ImageBrush{TPixel}"/> class.
-        /// </summary>
-        /// <param name="image">The image.</param>
-        public ImageBrush(Image<TPixel> image)
-            : this(image.Frames.RootFrame)
-        {
-        }
-
         /// <inheritdoc />
-        public BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
-            => new ImageBrushApplicator(source, this.image, region, options);
+        public BrushApplicator<TPixel> CreateApplicator<TPixel>(
+            ImageFrame<TPixel> source,
+            RectangleF region,
+            GraphicsOptions options)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Image<TPixel> specificImage = (Image<TPixel>)this.image;
+            return new ImageBrushApplicator<TPixel>(source, specificImage.Frames.RootFrame, region, options);
+        }
 
         /// <summary>
         /// The image brush applicator.
         /// </summary>
-        private class ImageBrushApplicator : BrushApplicator<TPixel>
+        private class ImageBrushApplicator<TPixel> : BrushApplicator<TPixel>
+            where TPixel : struct, IPixel<TPixel>
         {
             /// <summary>
             /// The source image.

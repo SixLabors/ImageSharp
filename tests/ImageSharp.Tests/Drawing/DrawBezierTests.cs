@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Numerics;
 
 using SixLabors.ImageSharp.Memory;
@@ -11,82 +12,37 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
+    [GroupOutput("Drawing")]
     public class DrawBezierTests
     {
-        [Fact]
-        public void ImageShouldBeOverlayedByBezierLine()
+        public static readonly TheoryData<string, byte, float> DrawPathData = new TheoryData<string, byte, float>
+                                                                                  {
+                                                                                      { "White", 255, 1.5f },
+                                                                                      { "Red", 255, 3 },
+                                                                                      { "HotPink", 255, 5 },
+                                                                                      { "HotPink", 150, 5 },
+                                                                                      { "White", 255, 15 },
+                                                                                  };
+
+        [Theory]
+        [WithSolidFilledImages(nameof(DrawPathData), 300, 450, "Blue", PixelTypes.Rgba32)]
+        public void DrawBeziers<TPixel>(TestImageProvider<TPixel> provider, string colorName, byte alpha, float thickness)
+            where TPixel : struct, IPixel<TPixel>
         {
-            string path = TestEnvironment.CreateOutputDirectory("Drawing", "DrawBezierTests");
-            using (var image = new Image<Rgba32>(350, 450))
-            {
-                image.Mutate(x => x.BackgroundColor(Color.Blue));
-                image.Mutate(
-                    x => x.DrawBeziers(
-                        Rgba32.HotPink,
-                        5,
-                        new SixLabors.Primitives.PointF[]
-                            {
-                                new Vector2(10, 400), new Vector2(30, 10), new Vector2(240, 30), new Vector2(300, 400)
-                            }));
-                image.Save($"{path}/Simple.png");
+            var points = new SixLabors.Primitives.PointF[]
+                             {
+                                 new Vector2(10, 400), new Vector2(30, 10), new Vector2(240, 30), new Vector2(300, 400)
+                             };
+            Rgba32 rgba = TestUtils.GetColorByName(colorName);
+            rgba.A = alpha;
+            Color color = rgba;
 
-                Buffer2D<Rgba32> sourcePixels = image.GetRootFramePixelBuffer();
-                //top of curve
-                Assert.Equal(Rgba32.HotPink, sourcePixels[138, 115]);
-
-                //start points
-                Assert.Equal(Rgba32.HotPink, sourcePixels[10, 395]);
-                Assert.Equal(Rgba32.HotPink, sourcePixels[300, 395]);
-
-                //curve points should not be never be set
-                Assert.Equal(Rgba32.Blue, sourcePixels[30, 10]);
-                Assert.Equal(Rgba32.Blue, sourcePixels[240, 30]);
-
-                // inside shape should be empty
-                Assert.Equal(Rgba32.Blue, sourcePixels[200, 250]);
-            }
-        }
-
-
-        [Fact]
-        public void ImageShouldBeOverlayedBezierLineWithOpacity()
-        {
-            string path = TestEnvironment.CreateOutputDirectory("Drawing", "DrawBezierTests");
-
-            var color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
-
-            using (var image = new Image<Rgba32>(350, 450))
-            {
-                image.Mutate(x => x.BackgroundColor(Color.Blue));
-                image.Mutate(
-                    x => x.DrawBeziers(
-                        color,
-                        10,
-                        new SixLabors.Primitives.PointF[]
-                            {
-                                new Vector2(10, 400), new Vector2(30, 10), new Vector2(240, 30), new Vector2(300, 400)
-                            }));
-                image.Save($"{path}/Opacity.png");
-
-                //shift background color towards foreground color by the opacity amount
-                var mergedColor = new Rgba32(
-                    Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
-
-                Buffer2D<Rgba32> sourcePixels = image.GetRootFramePixelBuffer();
-                // top of curve
-                Assert.Equal(mergedColor, sourcePixels[138, 115]);
-
-                // start points
-                Assert.Equal(mergedColor, sourcePixels[10, 395]);
-                Assert.Equal(mergedColor, sourcePixels[300, 395]);
-
-                // curve points should not be never be set
-                Assert.Equal(Rgba32.Blue, sourcePixels[30, 10]);
-                Assert.Equal(Rgba32.Blue, sourcePixels[240, 30]);
-
-                // inside shape should be empty
-                Assert.Equal(Rgba32.Blue, sourcePixels[200, 250]);
-            }
+            FormattableString testDetails = $"{colorName}_A{alpha}_T{thickness}";
+            
+            provider.RunValidatingProcessorTest( x => x.DrawBeziers(color.ToPixel<TPixel>(), 5f, points), 
+                testDetails,
+                appendSourceFileOrDescription: false,
+                appendPixelTypeToFileName: false);
         }
     }
 }

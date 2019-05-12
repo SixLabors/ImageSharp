@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 {
     using static TestImages.Bmp;
 
-    public class BmpEncoderTests : FileTestBase
+    public class BmpEncoderTests
     {
         public static readonly TheoryData<BmpBitsPerPixel> BitsPerPixel =
         new TheoryData<BmpBitsPerPixel>

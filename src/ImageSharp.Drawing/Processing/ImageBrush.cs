@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -37,8 +38,14 @@ namespace SixLabors.ImageSharp.Processing
             GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            Image<TPixel> specificImage = (Image<TPixel>)this.image;
-            return new ImageBrushApplicator<TPixel>(source, specificImage.Frames.RootFrame, region, options);
+            if (this.image is Image<TPixel> specificImage)
+            {
+                return new ImageBrushApplicator<TPixel>(source, specificImage, region, options, false);
+            }
+
+            specificImage = this.image.CloneAs<TPixel>();
+            
+            return new ImageBrushApplicator<TPixel>(source, specificImage, region, options, true);
         }
 
         /// <summary>
@@ -47,10 +54,11 @@ namespace SixLabors.ImageSharp.Processing
         private class ImageBrushApplicator<TPixel> : BrushApplicator<TPixel>
             where TPixel : struct, IPixel<TPixel>
         {
-            /// <summary>
-            /// The source image.
-            /// </summary>
-            private readonly ImageFrame<TPixel> source;
+            private ImageFrame<TPixel> sourceFrame;
+
+            private Image<TPixel> sourceImage;
+
+            private readonly bool shouldDisposeImage;
 
             /// <summary>
             /// The y-length.
@@ -79,10 +87,18 @@ namespace SixLabors.ImageSharp.Processing
             /// <param name="image">The image.</param>
             /// <param name="region">The region.</param>
             /// <param name="options">The options</param>
-            public ImageBrushApplicator(ImageFrame<TPixel> target, ImageFrame<TPixel> image, RectangleF region, GraphicsOptions options)
+            /// <param name="shouldDisposeImage">Whether to dispose the image on disposal of the applicator.</param>
+            public ImageBrushApplicator(
+                ImageFrame<TPixel> target,
+                Image<TPixel> image,
+                RectangleF region,
+                GraphicsOptions options,
+                bool shouldDisposeImage)
                 : base(target, options)
             {
-                this.source = image;
+                this.sourceImage = image;
+                this.sourceFrame = image.Frames.RootFrame;
+                this.shouldDisposeImage = shouldDisposeImage;
                 this.xLength = image.Width;
                 this.yLength = image.Height;
                 this.offsetY = (int)MathF.Max(MathF.Floor(region.Top), 0);
@@ -103,13 +119,19 @@ namespace SixLabors.ImageSharp.Processing
                 {
                     int srcX = (x - this.offsetX) % this.xLength;
                     int srcY = (y - this.offsetY) % this.yLength;
-                    return this.source[srcX, srcY];
+                    return this.sourceFrame[srcX, srcY];
                 }
             }
 
             /// <inheritdoc />
             public override void Dispose()
             {
+                if (this.shouldDisposeImage)
+                {
+                    this.sourceImage?.Dispose();
+                    this.sourceImage = null;
+                    this.sourceFrame = null;
+                }
             }
 
             /// <inheritdoc />
@@ -124,7 +146,7 @@ namespace SixLabors.ImageSharp.Processing
 
                     int sourceY = (y - this.offsetY) % this.yLength;
                     int offsetX = x - this.offsetX;
-                    Span<TPixel> sourceRow = this.source.GetPixelRowSpan(sourceY);
+                    Span<TPixel> sourceRow = this.sourceFrame.GetPixelRowSpan(sourceY);
 
                     for (int i = 0; i < scanline.Length; i++)
                     {
@@ -137,7 +159,7 @@ namespace SixLabors.ImageSharp.Processing
 
                     Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
                     this.Blender.Blend(
-                        this.source.Configuration,
+                        this.sourceFrame.Configuration,
                         destinationRow,
                         destinationRow,
                         overlaySpan,

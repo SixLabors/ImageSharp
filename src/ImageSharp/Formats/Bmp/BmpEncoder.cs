@@ -4,13 +4,13 @@
 using System.IO;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
     /// Image encoder for writing an image to a stream as a Windows bitmap.
     /// </summary>
-    /// <remarks>The encoder can currently only write 24-bit rgb images to streams.</remarks>
     public sealed class BmpEncoder : IImageEncoder, IBmpEncoderOptions
     {
         /// <summary>
@@ -25,6 +25,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Instead a bitmap version 4 info header will be written with the BITFIELDS compression.
         /// </summary>
         public bool SupportTransparency { get; set; }
+
+        /// <summary>
+        /// Gets or sets the quantizer for reducing the color count for 8-Bit images.
+        /// Defaults to OctreeQuantizer.
+        /// </summary>
+        public IQuantizer Quantizer { get; set; }
 
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)

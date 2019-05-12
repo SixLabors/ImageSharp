@@ -15,7 +15,6 @@ namespace SixLabors.ImageSharp.Processing
     /// <summary>
     /// Provides an implementation of a brush that can recolor an image
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
     public class RecolorBrush : IBrush
     {
         /// <summary>

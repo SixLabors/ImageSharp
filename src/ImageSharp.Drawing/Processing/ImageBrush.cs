@@ -14,8 +14,7 @@ namespace SixLabors.ImageSharp.Processing
     /// <summary>
     /// Provides an implementation of an image brush for painting images within areas.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public class ImageBrush<TPixel> : IBrush
+    public class ImageBrush : IBrush
     {
         /// <summary>
         /// The image to paint.
@@ -23,7 +22,7 @@ namespace SixLabors.ImageSharp.Processing
         private readonly Image image;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageBrush{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="ImageBrush"/> class.
         /// </summary>
         /// <param name="image">The image.</param>
         public ImageBrush(Image image)
@@ -74,7 +73,7 @@ namespace SixLabors.ImageSharp.Processing
             private readonly int offsetX;
 
             /// <summary>
-            /// Initializes a new instance of the <see cref="ImageBrushApplicator"/> class.
+            /// Initializes a new instance of the <see cref="ImageBrushApplicator{TPixel}"/> class.
             /// </summary>
             /// <param name="target">The target image.</param>
             /// <param name="image">The image.</param>

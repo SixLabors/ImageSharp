@@ -143,6 +143,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
+        /// Converts an <see cref="Argb32"/> to <see cref="Color"/>.
+        /// </summary>
+        /// <param name="source">The <see cref="Argb32"/>.</param>
+        /// <returns>The <see cref="Color"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static implicit operator Color(Argb32 source) => new Color(source);
+
+        /// <summary>
+        /// Converts a <see cref="Color"/> to <see cref="Argb32"/>.
+        /// </summary>
+        /// <param name="color">The <see cref="Color"/>.</param>
+        /// <returns>The <see cref="Argb32"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static implicit operator Argb32(Color color) => color.ToArgb32();
+
+        /// <summary>
         /// Compares two <see cref="Argb32"/> objects for equality.
         /// </summary>
         /// <param name="left">The <see cref="Argb32"/> on the left side of the operand.</param>

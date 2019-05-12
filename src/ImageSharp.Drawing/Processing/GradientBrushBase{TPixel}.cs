@@ -13,16 +13,14 @@ namespace SixLabors.ImageSharp.Processing
     /// <summary>
     /// Base class for Gradient brushes
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format</typeparam>
-    public abstract class GradientBrushBase<TPixel> : IBrush<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public abstract class GradientBrushBase : IBrush
     {
-        /// <inheritdoc cref="IBrush{TPixel}"/>
+        /// <inheritdoc cref="IBrush"/>
         /// <param name="repetitionMode">Defines how the colors are repeated beyond the interval [0..1]</param>
         /// <param name="colorStops">The gradient colors.</param>
         protected GradientBrushBase(
             GradientRepetitionMode repetitionMode,
-            params ColorStop<TPixel>[] colorStops)
+            params ColorStop[] colorStops)
         {
             this.RepetitionMode = repetitionMode;
             this.ColorStops = colorStops;
@@ -36,25 +34,27 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets the list of color stops for this gradient.
         /// </summary>
-        protected ColorStop<TPixel>[] ColorStops { get; }
+        protected ColorStop[] ColorStops { get; }
 
-        /// <inheritdoc cref="IBrush{TPixel}" />
-        public abstract BrushApplicator<TPixel> CreateApplicator(
+        /// <inheritdoc />
+        public abstract BrushApplicator<TPixel> CreateApplicator<TPixel>(
             ImageFrame<TPixel> source,
             RectangleF region,
-            GraphicsOptions options);
+            GraphicsOptions options)
+            where TPixel : struct, IPixel<TPixel>;
 
         /// <summary>
         /// Base class for gradient brush applicators
         /// </summary>
-        protected abstract class GradientBrushApplicatorBase : BrushApplicator<TPixel>
+        protected abstract class GradientBrushApplicatorBase<TPixel> : BrushApplicator<TPixel>
+            where TPixel : struct, IPixel<TPixel>
         {
-            private readonly ColorStop<TPixel>[] colorStops;
+            private readonly ColorStop[] colorStops;
 
             private readonly GradientRepetitionMode repetitionMode;
 
             /// <summary>
-            /// Initializes a new instance of the <see cref="GradientBrushApplicatorBase"/> class.
+            /// Initializes a new instance of the <see cref="GradientBrushApplicatorBase{TPixel}"/> class.
             /// </summary>
             /// <param name="target">The target.</param>
             /// <param name="options">The options.</param>
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Processing
             protected GradientBrushApplicatorBase(
                 ImageFrame<TPixel> target,
                 GraphicsOptions options,
-                ColorStop<TPixel>[] colorStops,
+                ColorStop[] colorStops,
                 GradientRepetitionMode repetitionMode)
                 : base(target, options)
             {
@@ -111,11 +111,11 @@ namespace SixLabors.ImageSharp.Processing
                             throw new ArgumentOutOfRangeException();
                     }
 
-                    (ColorStop<TPixel> from, ColorStop<TPixel> to) = this.GetGradientSegment(positionOnCompleteGradient);
+                    (ColorStop from, ColorStop to) = this.GetGradientSegment(positionOnCompleteGradient);
 
                     if (from.Color.Equals(to.Color))
                     {
-                        return from.Color;
+                        return from.Color.ToPixel<TPixel>();
                     }
                     else
                     {
@@ -150,14 +150,14 @@ namespace SixLabors.ImageSharp.Processing
             /// </returns>
             protected abstract float PositionOnGradient(float x, float y);
 
-            private (ColorStop<TPixel> from, ColorStop<TPixel> to) GetGradientSegment(
+            private (ColorStop from, ColorStop to) GetGradientSegment(
                 float positionOnCompleteGradient)
             {
-                ColorStop<TPixel> localGradientFrom = this.colorStops[0];
-                ColorStop<TPixel> localGradientTo = default;
+                ColorStop localGradientFrom = this.colorStops[0];
+                ColorStop localGradientTo = default;
 
                 // TODO: ensure colorStops has at least 2 items (technically 1 would be okay, but that's no gradient)
-                foreach (ColorStop<TPixel> colorStop in this.colorStops)
+                foreach (ColorStop colorStop in this.colorStops)
                 {
                     localGradientTo = colorStop;
 

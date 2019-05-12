@@ -34,7 +34,6 @@ namespace SixLabors.ImageSharp.Processing
     ///  0
     /// </para>
     /// </remarks>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
     public class PatternBrush : IBrush
     {
         /// <summary>
@@ -44,7 +43,7 @@ namespace SixLabors.ImageSharp.Processing
         private readonly DenseMatrix<Vector4> patternVector;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PatternBrush{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="PatternBrush"/> class.
         /// </summary>
         /// <param name="foreColor">Color of the fore.</param>
         /// <param name="backColor">Color of the back.</param>
@@ -55,7 +54,7 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PatternBrush{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="PatternBrush"/> class.
         /// </summary>
         /// <param name="foreColor">Color of the fore.</param>
         /// <param name="backColor">Color of the back.</param>
@@ -85,7 +84,7 @@ namespace SixLabors.ImageSharp.Processing
         /// Initializes a new instance of the <see cref="PatternBrush{TPixel}"/> class.
         /// </summary>
         /// <param name="brush">The brush.</param>
-        internal PatternBrush(PatternBrush<Color> brush)
+        internal PatternBrush(PatternBrush brush)
         {
             this.pattern = brush.pattern;
             this.patternVector = brush.patternVector;

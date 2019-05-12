@@ -141,7 +141,6 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Evaluates if a given SOURCE color can completely replace a BACKDROP color given the current blending and composition settings.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format</typeparam>
         /// <param name="color">the color</param>
         /// <returns>true if the color can be considered opaque</returns>
         /// <remarks>

@@ -49,6 +49,8 @@ namespace SixLabors.ImageSharp.Tests
             
             Assert.False(c1 == c2);
             Assert.True(c1 != c2);
+            
+            Assert.False(c1.Equals(null));
         }
         
         [Fact]

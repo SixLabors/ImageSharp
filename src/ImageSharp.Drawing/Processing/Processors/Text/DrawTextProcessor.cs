@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
         public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            throw new NotImplementedException();
+            return new DrawTextProcessor<TPixel>(this);
         }
     }
     

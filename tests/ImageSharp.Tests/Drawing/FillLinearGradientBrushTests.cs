@@ -176,7 +176,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 // the result must be a black and white pattern, no other color should occur:
                 Assert.All(
                     Enumerable.Range(0, image.Width).Select(i => image[i, 0]),
-                    color => Assert.True(color.Equals(black) || color.Equals(white)));
+                    color => Assert.True(
+                        color.Equals(black.ToPixel<TPixel>()) || color.Equals(white.ToPixel<TPixel>())));
 
                 image.CompareToReferenceOutput(
                     TolerantComparer,

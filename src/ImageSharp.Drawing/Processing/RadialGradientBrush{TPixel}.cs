@@ -11,15 +11,14 @@ namespace SixLabors.ImageSharp.Processing
     /// <summary>
     /// A Circular Gradient Brush, defined by center point and radius.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public sealed class RadialGradientBrush<TPixel> : GradientBrushBase<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public sealed class RadialGradientBrush : GradientBrushBase
+        
     {
         private readonly PointF center;
 
         private readonly float radius;
 
-        /// <inheritdoc cref="GradientBrushBase{TPixel}" />
+        /// <inheritdoc cref="GradientBrushBase" />
         /// <param name="center">The center of the circular gradient and 0 for the color stops.</param>
         /// <param name="radius">The radius of the circular gradient and 1 for the color stops.</param>
         /// <param name="repetitionMode">Defines how the colors in the gradient are repeated.</param>
@@ -28,19 +27,19 @@ namespace SixLabors.ImageSharp.Processing
             PointF center,
             float radius,
             GradientRepetitionMode repetitionMode,
-            params ColorStop<TPixel>[] colorStops)
+            params ColorStop[] colorStops)
             : base(repetitionMode, colorStops)
         {
             this.center = center;
             this.radius = radius;
         }
 
-        /// <inheritdoc cref="CreateApplicator" />
-        public override BrushApplicator<TPixel> CreateApplicator(
+        /// <inheritdoc />
+        public override BrushApplicator<TPixel> CreateApplicator<TPixel>(
             ImageFrame<TPixel> source,
             RectangleF region,
             GraphicsOptions options) =>
-            new RadialGradientBrushApplicator(
+            new RadialGradientBrushApplicator<TPixel>(
                 source,
                 options,
                 this.center,
@@ -49,14 +48,15 @@ namespace SixLabors.ImageSharp.Processing
                 this.RepetitionMode);
 
         /// <inheritdoc />
-        private sealed class RadialGradientBrushApplicator : GradientBrushApplicatorBase
+        private sealed class RadialGradientBrushApplicator<TPixel> : GradientBrushApplicatorBase<TPixel>
+            where TPixel : struct, IPixel<TPixel>
         {
             private readonly PointF center;
 
             private readonly float radius;
 
             /// <summary>
-            /// Initializes a new instance of the <see cref="RadialGradientBrushApplicator" /> class.
+            /// Initializes a new instance of the <see cref="RadialGradientBrushApplicator{TPixel}" /> class.
             /// </summary>
             /// <param name="target">The target image</param>
             /// <param name="options">The options.</param>
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Processing
                 GraphicsOptions options,
                 PointF center,
                 float radius,
-                ColorStop<TPixel>[] colorStops,
+                ColorStop[] colorStops,
                 GradientRepetitionMode repetitionMode)
                 : base(target, options, colorStops, repetitionMode)
             {

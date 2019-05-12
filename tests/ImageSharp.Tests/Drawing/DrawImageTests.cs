@@ -91,7 +91,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 }
                 
                 image.DebugSave(provider, testInfo, encoder: encoder);
-                image.CompareToReferenceOutput(provider, testInfo);
+                image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.01f),
+                    provider,
+                    testInfo);
             }
         }
         
@@ -146,7 +148,10 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 image.Mutate(x => x.DrawImage(blend, position,  .75F));
                 
                 image.DebugSave(provider, appendSourceFileOrDescription: false, appendPixelTypeToFileName: false);
-                image.CompareToReferenceOutput(provider, appendSourceFileOrDescription: false, appendPixelTypeToFileName: false);
+                image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.002f),
+                    provider,
+                    appendSourceFileOrDescription: false, 
+                    appendPixelTypeToFileName: false);
             }
         }
 

@@ -118,6 +118,13 @@ namespace SixLabors.ImageSharp
         public static implicit operator Color(Bgr24 source) => new Color(source);
 
         /// <summary>
+        /// Converts an <see cref="Vector4"/> to <see cref="Color"/>.
+        /// </summary>
+        /// <param name="source">The <see cref="Vector4"/>.</param>
+        /// <returns>The <see cref="Color"/>.</returns>
+        public static explicit operator Color(Vector4 source) => new Color(source);
+
+        /// <summary>
         /// Converts a <see cref="Color"/> to <see cref="Rgba64"/>.
         /// </summary>
         /// <param name="color">The <see cref="Color"/>.</param>
@@ -158,5 +165,12 @@ namespace SixLabors.ImageSharp
         /// <param name="color">The <see cref="Color"/>.</param>
         /// <returns>The <see cref="Bgr24"/>.</returns>
         public static implicit operator Bgr24(Color color) => color.data.ToBgr24();
+
+        /// <summary>
+        /// Converts a <see cref="Color"/> to <see cref="Vector4"/>.
+        /// </summary>
+        /// <param name="color">The <see cref="Color"/>.</param>
+        /// <returns>The <see cref="Vector4"/>.</returns>
+        public static explicit operator Vector4(Color color) => color.data.ToVector4();
     }
 }

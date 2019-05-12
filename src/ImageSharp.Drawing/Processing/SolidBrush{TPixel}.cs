@@ -15,20 +15,18 @@ namespace SixLabors.ImageSharp.Processing
     /// <summary>
     /// Provides an implementation of a solid brush for painting solid color areas.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public class SolidBrush<TPixel> : IBrush<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public class SolidBrush : IBrush
     {
         /// <summary>
         /// The color to paint.
         /// </summary>
-        private readonly TPixel color;
+        private readonly Color color;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SolidBrush{TPixel}"/> class.
         /// </summary>
         /// <param name="color">The color.</param>
-        public SolidBrush(TPixel color)
+        public SolidBrush(Color color)
         {
             this.color = color;
         }
@@ -39,18 +37,20 @@ namespace SixLabors.ImageSharp.Processing
         /// <value>
         /// The color.
         /// </value>
-        public TPixel Color => this.color;
+        public Color Color => this.color;
 
         /// <inheritdoc />
-        public BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
+        public BrushApplicator<TPixel> CreateApplicator<TPixel>(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return new SolidBrushApplicator(source, this.color, options);
+            return new SolidBrushApplicator<TPixel>(source, this.color.ToPixel<TPixel>(), options);
         }
 
         /// <summary>
         /// The solid brush applicator.
         /// </summary>
-        private class SolidBrushApplicator : BrushApplicator<TPixel>
+        private class SolidBrushApplicator<TPixel> : BrushApplicator<TPixel>
+            where TPixel : struct, IPixel<TPixel>
         {
             /// <summary>
             /// Initializes a new instance of the <see cref="SolidBrushApplicator"/> class.

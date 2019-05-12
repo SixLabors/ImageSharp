@@ -35,13 +35,12 @@ namespace SixLabors.ImageSharp.Processing
     /// </para>
     /// </remarks>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public class PatternBrush<TPixel> : IBrush<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public class PatternBrush : IBrush
     {
         /// <summary>
         /// The pattern.
         /// </summary>
-        private readonly DenseMatrix<TPixel> pattern;
+        private readonly DenseMatrix<Color> pattern;
         private readonly DenseMatrix<Vector4> patternVector;
 
         /// <summary>
@@ -50,7 +49,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="foreColor">Color of the fore.</param>
         /// <param name="backColor">Color of the back.</param>
         /// <param name="pattern">The pattern.</param>
-        public PatternBrush(TPixel foreColor, TPixel backColor, bool[,] pattern)
+        public PatternBrush(Color foreColor, Color backColor, bool[,] pattern)
             : this(foreColor, backColor, new DenseMatrix<bool>(pattern))
         {
         }
@@ -61,11 +60,11 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="foreColor">Color of the fore.</param>
         /// <param name="backColor">Color of the back.</param>
         /// <param name="pattern">The pattern.</param>
-        internal PatternBrush(TPixel foreColor, TPixel backColor, in DenseMatrix<bool> pattern)
+        internal PatternBrush(Color foreColor, Color backColor, in DenseMatrix<bool> pattern)
         {
             var foreColorVector = foreColor.ToVector4();
             var backColorVector = backColor.ToVector4();
-            this.pattern = new DenseMatrix<TPixel>(pattern.Columns, pattern.Rows);
+            this.pattern = new DenseMatrix<Color>(pattern.Columns, pattern.Rows);
             this.patternVector = new DenseMatrix<Vector4>(pattern.Columns, pattern.Rows);
             for (int i = 0; i < pattern.Data.Length; i++)
             {
@@ -86,19 +85,25 @@ namespace SixLabors.ImageSharp.Processing
         /// Initializes a new instance of the <see cref="PatternBrush{TPixel}"/> class.
         /// </summary>
         /// <param name="brush">The brush.</param>
-        internal PatternBrush(PatternBrush<TPixel> brush)
+        internal PatternBrush(PatternBrush<Color> brush)
         {
             this.pattern = brush.pattern;
             this.patternVector = brush.patternVector;
         }
 
         /// <inheritdoc />
-        public BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options) => new PatternBrushApplicator(source, this.pattern, this.patternVector, options);
+        public BrushApplicator<TPixel> CreateApplicator<TPixel>(
+            ImageFrame<TPixel> source,
+            RectangleF region,
+            GraphicsOptions options)
+            where TPixel : struct, IPixel<TPixel> =>
+            new PatternBrushApplicator<TPixel>(source, this.pattern, this.patternVector, options);
 
         /// <summary>
         /// The pattern brush applicator.
         /// </summary>
-        private class PatternBrushApplicator : BrushApplicator<TPixel>
+        private class PatternBrushApplicator<TPixel> : BrushApplicator<TPixel>
+            where TPixel : struct, IPixel<TPixel>
         {
             /// <summary>
             /// The pattern.
@@ -107,16 +112,17 @@ namespace SixLabors.ImageSharp.Processing
             private readonly DenseMatrix<Vector4> patternVector;
 
             /// <summary>
-            /// Initializes a new instance of the <see cref="PatternBrushApplicator" /> class.
+            /// Initializes a new instance of the <see cref="PatternBrushApplicator{TPixel}" /> class.
             /// </summary>
             /// <param name="source">The source image.</param>
             /// <param name="pattern">The pattern.</param>
             /// <param name="patternVector">The patternVector.</param>
             /// <param name="options">The options</param>
-            public PatternBrushApplicator(ImageFrame<TPixel> source, in DenseMatrix<TPixel> pattern, DenseMatrix<Vector4> patternVector, GraphicsOptions options)
+            public PatternBrushApplicator(ImageFrame<TPixel> source, in DenseMatrix<Color> pattern, DenseMatrix<Vector4> patternVector, GraphicsOptions options)
                 : base(source, options)
             {
-                this.pattern = pattern;
+                this.pattern = new DenseMatrix<TPixel>(pattern.Columns, pattern.Rows);
+                Color.ToPixel<TPixel>(source.Configuration, pattern.Data, this.pattern.Data);
                 this.patternVector = patternVector;
             }
 

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.IO;
 
 using SixLabors.ImageSharp.Advanced;
@@ -9,6 +10,7 @@ using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
@@ -43,6 +45,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private const int Rgba32BlueMask = 0xFF;
 
+        /// <summary>
+        /// The color palette for an 8 bit image will have 256 entry's with 4 bytes for each entry.
+        /// </summary>
+        private const int ColorPaletteSize8Bit = 1024;
+
         private readonly MemoryAllocator memoryAllocator;
 
         private Configuration configuration;
@@ -57,6 +64,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private readonly bool writeV4Header;
 
         /// <summary>
+        /// The quantizer for reducing the color count for 8-Bit images.
+        /// </summary>
+        private readonly IQuantizer quantizer;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="BmpEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The encoder options.</param>
@@ -66,6 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.memoryAllocator = memoryAllocator;
             this.bitsPerPixel = options.BitsPerPixel;
             this.writeV4Header = options.SupportTransparency;
+            this.quantizer = options.Quantizer ?? new OctreeQuantizer(dither: true, maxColors: 256);
         }
 
         /// <summary>
@@ -142,11 +155,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 infoHeader.Compression = BmpCompression.BitFields;
             }
 
+            int colorPaletteSize = this.bitsPerPixel == BmpBitsPerPixel.Pixel8 ? ColorPaletteSize8Bit : 0;
+
             var fileHeader = new BmpFileHeader(
                 type: BmpConstants.TypeMarkers.Bitmap,
                 fileSize: BmpFileHeader.Size + infoHeaderSize + infoHeader.ImageSize,
                 reserved: 0,
-                offset: BmpFileHeader.Size + infoHeaderSize);
+                offset: BmpFileHeader.Size + infoHeaderSize + colorPaletteSize);
 
 #if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[infoHeaderSize];
@@ -197,6 +212,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                 case BmpBitsPerPixel.Pixel16:
                     this.Write16Bit(stream, pixels);
+                    break;
+
+                case BmpBitsPerPixel.Pixel8:
+                    this.Write8Bit(stream, image);
                     break;
             }
         }
@@ -273,6 +292,48 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         pixelSpan.Length);
 
                     stream.Write(row.Array, 0, row.Length());
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes an 8 Bit image with a color palette. The color palette has 256 entry's with 4 bytes for each entry.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
+        /// <param name="image"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
+        private void Write8Bit<TPixel>(Stream stream, ImageFrame<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.AllocateManagedByteBuffer(ColorPaletteSize8Bit, AllocationOptions.Clean))
+            using (QuantizedFrame<TPixel> quantized = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration, 256).QuantizeFrame(image))
+            {
+                Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
+                int idx = 0;
+                var color = default(Rgba32);
+                foreach (TPixel quantizedColor in quantized.Palette)
+                {
+                    quantizedColor.ToRgba32(ref color);
+                    colorPalette[idx] = color.B;
+                    colorPalette[idx + 1] = color.G;
+                    colorPalette[idx + 2] = color.R;
+
+                    // Padding byte, always 0
+                    colorPalette[idx + 3] = 0;
+                    idx += 4;
+                }
+
+                stream.Write(colorPalette);
+
+                for (int y = image.Height - 1; y >= 0; y--)
+                {
+                    Span<byte> pixelSpan = quantized.GetRowSpan(y);
+                    stream.Write(pixelSpan);
+
+                    for (int i = 0; i < this.padding; i++)
+                    {
+                        stream.WriteByte(0);
+                    }
                 }
             }
         }

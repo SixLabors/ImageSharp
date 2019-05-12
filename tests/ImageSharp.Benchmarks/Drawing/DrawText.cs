@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Benchmarks
             using (var image = new Image<Rgba32>(800, 800))
             {
                 var font = SixLabors.Fonts.SystemFonts.CreateFont("Arial", 12);
-                image.Mutate(x => x.ApplyProcessor(new DrawTextProcessor<Rgba32>(new TextGraphicsOptions(true) { WrapTextWidth = 780 }, TextToRender, font, Processing.Brushes.Solid(Rgba32.HotPink), null, new SixLabors.Primitives.PointF(10, 10))));
+                image.Mutate(x => x.ApplyProcessor(new DrawTextProcessor(new TextGraphicsOptions(true) { WrapTextWidth = 780 }, TextToRender, font, Processing.Brushes.Solid(Rgba32.HotPink), null, new SixLabors.Primitives.PointF(10, 10))));
             }
         }
 
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                 image.Mutate(x => DrawTextOldVersion(x, new TextGraphicsOptions(true) { WrapTextWidth = 780 }, TextToRender, font, Processing.Brushes.Solid(Rgba32.HotPink), null, new SixLabors.Primitives.PointF(10, 10)));
             }
 
-            IImageProcessingContext<TPixel> DrawTextOldVersion<TPixel>(IImageProcessingContext<TPixel> source, TextGraphicsOptions options, string text, SixLabors.Fonts.Font font, IBrush<TPixel> brush, IPen<TPixel> pen, SixLabors.Primitives.PointF location)
+            IImageProcessingContext<TPixel> DrawTextOldVersion<TPixel>(IImageProcessingContext<TPixel> source, TextGraphicsOptions options, string text, SixLabors.Fonts.Font font, IBrush brush, IPen pen, SixLabors.Primitives.PointF location)
                 where TPixel : struct, IPixel<TPixel>
             {
                 float dpiX = 72;

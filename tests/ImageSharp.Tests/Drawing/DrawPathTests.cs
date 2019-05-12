@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             FormattableString testDetails = $"{colorName}_A{alpha}_T{thickness}";
 
             provider.RunValidatingProcessorTest(
-                x => x.Draw(color.ToPixel<TPixel>(), thickness, path),
+                x => x.Draw(color, thickness, path),
                 testDetails,
                 appendPixelTypeToFileName: false,
                 appendSourceFileOrDescription: false);
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             where TPixel : struct, IPixel<TPixel>
         {
             Color color = Color.White;
-            Pen<TPixel> pen = Pens.Solid(color.ToPixel<TPixel>(), 5f);
+            Pen pen = Pens.Solid(color, 5f);
 
             provider.RunValidatingProcessorTest(
                 x =>

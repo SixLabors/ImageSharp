@@ -49,6 +49,8 @@ namespace SixLabors.ImageSharp.Processing
         internal abstract class GradientBrushApplicatorBase<TPixel> : BrushApplicator<TPixel>
             where TPixel : struct, IPixel<TPixel>
         {
+            private static readonly TPixel Transparent = Color.Transparent.ToPixel<TPixel>();
+
             private readonly ColorStop[] colorStops;
 
             private readonly GradientRepetitionMode repetitionMode;
@@ -103,7 +105,7 @@ namespace SixLabors.ImageSharp.Processing
                         case GradientRepetitionMode.DontFill:
                             if (positionOnCompleteGradient > 1 || positionOnCompleteGradient < 0)
                             {
-                                return NamedColors<TPixel>.Transparent;
+                                return Transparent;
                             }
 
                             break;

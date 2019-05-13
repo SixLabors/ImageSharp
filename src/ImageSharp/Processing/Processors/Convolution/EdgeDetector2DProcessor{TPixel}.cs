@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         {
             if (this.Grayscale)
             {
-                new GrayscaleBt709Processor(1F).ApplyToFrame(source, sourceRectangle, configuration);
+                new GrayscaleBt709Processor(1F).Apply(source, sourceRectangle, configuration);
             }
         }
     }

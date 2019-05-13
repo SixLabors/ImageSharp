@@ -20,8 +20,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
+                image.Mutate(x => x.BackgroundColor(Rgba32.Blue));
                 image.Mutate(
-                    x => x.BackgroundColor(Rgba32.Blue).DrawPolygon(
+                    x => x.DrawPolygon(
                         Rgba32.HotPink,
                         5,
                         new Vector2(10, 10),
@@ -54,7 +55,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                image.Mutate(x => x.BackgroundColor(Rgba32.Blue).DrawPolygon(color, 10, simplePath));
+                image.Mutate(x => x.BackgroundColor(Rgba32.Blue));
+                image.Mutate(x => x.DrawPolygon(color, 10, simplePath));
                 image.Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount
@@ -79,8 +81,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
+                image.Mutate(x => x.BackgroundColor(Rgba32.Blue));
                 image.Mutate(
-                    x => x.BackgroundColor(Rgba32.Blue).Draw(Rgba32.HotPink, 10, new Rectangle(10, 10, 190, 140)));
+                    x => x.Draw(Rgba32.HotPink, 10, new Rectangle(10, 10, 190, 140)));
                 image.Save($"{path}/Rectangle.png");
 
                 Buffer2D<Rgba32> sourcePixels = image.GetRootFramePixelBuffer();

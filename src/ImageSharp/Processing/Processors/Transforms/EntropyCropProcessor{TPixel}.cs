@@ -38,10 +38,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 Configuration configuration = source.GetConfiguration();
 
                 // Detect the edges.
-                new SobelProcessor(false).ApplyToFrame(temp, sourceRectangle, configuration);
+                new SobelProcessor(false).Apply(temp, sourceRectangle, configuration);
 
                 // Apply threshold binarization filter.
-                new BinaryThresholdProcessor<TPixel>(this.definition.Threshold).Apply(temp, sourceRectangle, configuration);
+                new BinaryThresholdProcessor(this.definition.Threshold).Apply(temp, sourceRectangle, configuration);
 
                 // Search for the first white pixels
                 rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);

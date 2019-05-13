@@ -31,6 +31,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <returns>
         /// A <see cref="QuantizedFrame{TPixel}"/> representing a quantized version of the image pixels.
         /// </returns>
-        QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image);
+        IQuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image);
     }
 }

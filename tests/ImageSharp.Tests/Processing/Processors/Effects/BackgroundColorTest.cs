@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         public void FullImage<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            provider.RunValidatingProcessorTest(x =>  x.BackgroundColor(NamedColors<TPixel>.HotPink));
+            provider.RunValidatingProcessorTest(x =>  x.BackgroundColor(Color.HotPink));
         }
 
         [Theory]
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
             where TPixel : struct, IPixel<TPixel>
         {
             provider.RunRectangleConstrainedValidatingProcessorTest(
-                (x, rect) => x.BackgroundColor(NamedColors<TPixel>.HotPink, rect));
+                (x, rect) => x.BackgroundColor(Color.HotPink, rect));
         }
     }
 }

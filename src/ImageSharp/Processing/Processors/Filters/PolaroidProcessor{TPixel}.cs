@@ -13,8 +13,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     internal class PolaroidProcessor<TPixel> : FilterProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private static readonly TPixel VeryDarkOrange = ColorBuilder<TPixel>.FromRGB(102, 34, 0);
-        private static readonly TPixel LightOrange = ColorBuilder<TPixel>.FromRGBA(255, 153, 102, 128);
+        private static readonly Color LightOrange = Color.FromRgba(255, 153, 102, 128);
+
+        private static readonly Color VeryDarkOrange = Color.FromRgb(102, 34, 0);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PolaroidProcessor{TPixel}"/> class.
@@ -26,10 +27,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         }
 
         /// <inheritdoc/>
-        protected override void AfterFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void AfterFrameApply(
+            ImageFrame<TPixel> source,
+            Rectangle sourceRectangle,
+            Configuration configuration)
         {
-            new VignetteProcessor<TPixel>(VeryDarkOrange).Apply(source, sourceRectangle, configuration);
-            new GlowProcessor<TPixel>(LightOrange, source.Width / 4F).Apply(source, sourceRectangle, configuration);
+            new VignetteProcessor(VeryDarkOrange).Apply(source, sourceRectangle, configuration);
+            new GlowProcessor(LightOrange, source.Width / 4F).Apply(source, sourceRectangle, configuration);
         }
     }
 }

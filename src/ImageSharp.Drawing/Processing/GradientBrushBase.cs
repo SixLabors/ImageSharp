@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Base class for gradient brush applicators
         /// </summary>
-        protected abstract class GradientBrushApplicatorBase<TPixel> : BrushApplicator<TPixel>
+        internal abstract class GradientBrushApplicatorBase<TPixel> : BrushApplicator<TPixel>
             where TPixel : struct, IPixel<TPixel>
         {
             private readonly ColorStop[] colorStops;

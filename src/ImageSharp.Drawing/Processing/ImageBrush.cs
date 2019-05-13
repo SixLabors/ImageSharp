@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Processing
             }
 
             specificImage = this.image.CloneAs<TPixel>();
-            
+
             return new ImageBrushApplicator<TPixel>(source, specificImage, region, options, true);
         }
 

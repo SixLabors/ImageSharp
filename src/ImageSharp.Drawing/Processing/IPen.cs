@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing
@@ -15,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing
         /// Gets the stroke fill.
         /// </summary>
         IBrush StrokeFill { get; }
-        
+
         /// <summary>
         /// Gets the width to apply to the stroke
         /// </summary>

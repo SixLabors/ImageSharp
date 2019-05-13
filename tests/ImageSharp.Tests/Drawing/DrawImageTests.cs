@@ -96,8 +96,26 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     testInfo);
             }
         }
-        
-        
+
+        [Theory]
+        [WithTestPatternImages(200, 200, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
+        public void DrawImageOfDifferentPixelType<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            byte[] brushData = TestFile.Create(TestImages.Png.Ducky).Bytes;
+
+            using (Image<TPixel> image = provider.GetImage())
+            using (Image brushImage = provider.PixelType == PixelTypes.Rgba32
+                                          ? (Image)Image.Load<Bgra32>(brushData)
+                                          : Image.Load<Rgba32>(brushData))
+            {
+                image.Mutate(c => c.DrawImage(brushImage, 0.5f));
+
+                image.DebugSave(provider, appendSourceFileOrDescription: false);
+                image.CompareToReferenceOutput(provider, appendSourceFileOrDescription: false);
+            }
+        }
+
         [Theory]
         [WithSolidFilledImages(100, 100, "White", PixelTypes.Rgba32, 0, 0)]
         [WithSolidFilledImages(100, 100, "White", PixelTypes.Rgba32, 25, 25)]

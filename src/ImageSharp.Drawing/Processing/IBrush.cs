@@ -9,16 +9,16 @@ namespace SixLabors.ImageSharp.Processing
     /// <summary>
     /// Brush represents a logical configuration of a brush which can be used to source pixel colors
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <remarks>
     /// A brush is a simple class that will return an <see cref="BrushApplicator{TPixel}" /> that will perform the
-    /// logic for converting a pixel location to a <typeparamref name="TPixel"/>.
+    /// logic for retrieving pixel values for specific locations.
     /// </remarks>
     public interface IBrush
     {
         /// <summary>
         /// Creates the applicator for this brush.
         /// </summary>
+        /// <typeparam name="TPixel">The pixel type.</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="region">The region the brush will be applied to.</param>
         /// <param name="options">The graphic options</param>

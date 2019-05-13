@@ -14,7 +14,6 @@ namespace SixLabors.ImageSharp.Processing
     /// - a set of colors in relative distances to each other.
     /// </summary>
     public sealed class LinearGradientBrush : GradientBrushBase
-        
     {
         private readonly PointF p1;
 
@@ -39,8 +38,17 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <inheritdoc />
-        public override BrushApplicator<TPixel> CreateApplicator<TPixel>(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
-            => new LinearGradientBrushApplicator<TPixel>(source, this.p1, this.p2, this.ColorStops, this.RepetitionMode, options);
+        public override BrushApplicator<TPixel> CreateApplicator<TPixel>(
+            ImageFrame<TPixel> source,
+            RectangleF region,
+            GraphicsOptions options) =>
+            new LinearGradientBrushApplicator<TPixel>(
+                source,
+                this.p1,
+                this.p2,
+                this.ColorStops,
+                this.RepetitionMode,
+                options);
 
         /// <summary>
         /// The linear gradient brush applicator.
@@ -137,9 +145,7 @@ namespace SixLabors.ImageSharp.Processing
                     float y4 = y + (k * this.alongX);
 
                     // get distance from (x4,y4) to start
-                    float distance = (float)Math.Sqrt(
-                        Math.Pow(x4 - this.start.X, 2)
-                        + Math.Pow(y4 - this.start.Y, 2));
+                    float distance = (float)Math.Sqrt(Math.Pow(x4 - this.start.X, 2) + Math.Pow(y4 - this.start.Y, 2));
 
                     // get and return ratio
                     float ratio = distance / this.length;

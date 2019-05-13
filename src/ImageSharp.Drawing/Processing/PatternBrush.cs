@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PatternBrush{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="PatternBrush"/> class.
         /// </summary>
         /// <param name="brush">The brush.</param>
         internal PatternBrush(PatternBrush brush)

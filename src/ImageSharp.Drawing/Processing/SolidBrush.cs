@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Processing
         private readonly Color color;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SolidBrush{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="SolidBrush"/> class.
         /// </summary>
         /// <param name="color">The color.</param>
         public SolidBrush(Color color)
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing
             where TPixel : struct, IPixel<TPixel>
         {
             /// <summary>
-            /// Initializes a new instance of the <see cref="SolidBrushApplicator"/> class.
+            /// Initializes a new instance of the <see cref="SolidBrushApplicator{TPixel}"/> class.
             /// </summary>
             /// <param name="source">The source image.</param>
             /// <param name="color">The color.</param>

@@ -12,7 +12,6 @@ namespace SixLabors.ImageSharp.Processing
     /// A Circular Gradient Brush, defined by center point and radius.
     /// </summary>
     public sealed class RadialGradientBrush : GradientBrushBase
-        
     {
         private readonly PointF center;
 

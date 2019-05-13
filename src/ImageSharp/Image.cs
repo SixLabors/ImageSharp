@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp
             EncodeVisitor visitor = new EncodeVisitor(encoder, stream);
             this.AcceptVisitor(visitor);
         }
-        
+
         /// <summary>
         /// Returns a copy of the image in the given pixel format.
         /// </summary>

@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing
     /// <summary>
     /// Defines extension that allow the adjustment of the contrast of an image via its histogram.
     /// </summary>
-    public static class HistogramEqualizationExtension
+    public static class HistogramEqualizationExtensions
     {
         /// <summary>
         /// Equalizes the histogram of an image to increases the contrast.

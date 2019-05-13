@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     internal class LomographProcessor<TPixel> : FilterProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private static readonly TPixel VeryDarkGreen = ColorBuilder<TPixel>.FromRGBA(0, 10, 0, 255);
+        private static readonly Color VeryDarkGreen = Color.FromRgba(0, 10, 0, 255);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LomographProcessor{TPixel}"/> class.
@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         /// <inheritdoc/>
         protected override void AfterFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            new VignetteProcessor<TPixel>(VeryDarkGreen).Apply(source, sourceRectangle, configuration);
+            new VignetteProcessor(VeryDarkGreen).Apply(source, sourceRectangle, configuration);
         }
     }
 }

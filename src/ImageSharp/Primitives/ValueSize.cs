@@ -7,7 +7,7 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Primitives
 {
     /// <summary>
-    /// Represents a value in relation to a value on the image
+    /// Represents a value in relation to a value on the image.
     /// </summary>
     internal readonly struct ValueSize : IEquatable<ValueSize>
     {

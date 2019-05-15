@@ -169,8 +169,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             TestBmpEncoderCore(
                 provider,
                 bitsPerPixel,
-                supportTransparency: false,
-                ImageComparer.TolerantPercentage(0.01f));
+                supportTransparency: false);
 
         [Theory]
         [WithFile(Bit8Gs, PixelTypes.Gray8, BmpBitsPerPixel.Pixel8)]
@@ -179,8 +178,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             TestBmpEncoderCore(
                 provider,
                 bitsPerPixel,
-                supportTransparency: true,
-                ImageComparer.TolerantPercentage(0.01f));
+                supportTransparency: true);
 
         [Theory]
         [WithFile(TestImages.Png.GrayAlpha2BitInterlaced, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel32)]

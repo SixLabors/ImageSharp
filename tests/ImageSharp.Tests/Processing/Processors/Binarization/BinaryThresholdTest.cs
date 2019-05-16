@@ -11,17 +11,24 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 {
     using SixLabors.ImageSharp.Processing;
 
-    public class BinaryThresholdTest : FileTestBase
+    public class BinaryThresholdTest
     {
         public static readonly TheoryData<float> BinaryThresholdValues
-        = new TheoryData<float>
+            = new TheoryData<float>
         {
             .25F,
             .75F
         };
+        
+        public static readonly string[] CommonTestImages =
+            {
+                TestImages.Png.CalliphoraPartial, TestImages.Png.Bike
+            };
+        
+        public const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Rgb24;
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(BinaryThresholdValues), DefaultPixelType)]
+        [WithFileCollection(nameof(CommonTestImages), nameof(BinaryThresholdValues), PixelTypes.Rgba32)]
         public void ImageShouldApplyBinaryThresholdFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -33,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(BinaryThresholdValues), DefaultPixelType)]
+        [WithFileCollection(nameof(CommonTestImages), nameof(BinaryThresholdValues), PixelTypes.Rgba32)]
         public void ImageShouldApplyBinaryThresholdInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {

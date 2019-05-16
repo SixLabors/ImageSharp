@@ -21,19 +21,13 @@ namespace SixLabors.ImageSharp.Tests
     {
         private readonly Image<Rgba32> image;
         private readonly FakeImageOperationsProvider provider;
-        private readonly IImageProcessor<Rgba32> processorImplementation;
-
         private readonly IImageProcessor processorDefinition;
-
-        public Configuration Configuration { get; private set; }
 
         public ImageOperationTests()
         {
             this.provider = new FakeImageOperationsProvider();
-            this.processorImplementation = new Mock<IImageProcessor<Rgba32>>().Object;
-            
+
             Mock<IImageProcessor> processorMock = new Mock<IImageProcessor>();
-            processorMock.Setup(p => p.CreatePixelSpecificProcessor<Rgba32>()).Returns(this.processorImplementation);
             this.processorDefinition = processorMock.Object;
             
             this.image = new Image<Rgba32>(new Configuration()
@@ -48,7 +42,9 @@ namespace SixLabors.ImageSharp.Tests
             this.image.Mutate(x => x.ApplyProcessor(this.processorDefinition));
 
             Assert.True(this.provider.HasCreated(this.image));
-            Assert.Contains(this.processorImplementation, this.provider.AppliedOperations(this.image).Select(x => x.GenericProcessor));
+            Assert.Contains(
+                this.processorDefinition,
+                this.provider.AppliedOperations(this.image).Select(x => x.NonGenericProcessor));
         }
 
         [Fact]
@@ -57,7 +53,9 @@ namespace SixLabors.ImageSharp.Tests
             this.image.Mutate(this.processorDefinition);
 
             Assert.True(this.provider.HasCreated(this.image));
-            Assert.Contains(this.processorImplementation, this.provider.AppliedOperations(this.image).Select(x => x.GenericProcessor));
+            Assert.Contains(
+                this.processorDefinition,
+                this.provider.AppliedOperations(this.image).Select(x => x.NonGenericProcessor));
         }
 
         [Fact]
@@ -66,7 +64,9 @@ namespace SixLabors.ImageSharp.Tests
             Image<Rgba32> returned = this.image.Clone(x => x.ApplyProcessor(this.processorDefinition));
 
             Assert.True(this.provider.HasCreated(returned));
-            Assert.Contains(this.processorImplementation, this.provider.AppliedOperations(returned).Select(x => x.GenericProcessor));
+            Assert.Contains(
+                this.processorDefinition,
+                this.provider.AppliedOperations(returned).Select(x => x.NonGenericProcessor));
         }
 
         [Fact]
@@ -75,7 +75,9 @@ namespace SixLabors.ImageSharp.Tests
             Image<Rgba32> returned = this.image.Clone(this.processorDefinition);
 
             Assert.True(this.provider.HasCreated(returned));
-            Assert.Contains(this.processorImplementation, this.provider.AppliedOperations(returned).Select(x => x.GenericProcessor));
+            Assert.Contains(
+                this.processorDefinition,
+                this.provider.AppliedOperations(returned).Select(x => x.NonGenericProcessor));
         }
 
         [Fact]
@@ -83,7 +85,9 @@ namespace SixLabors.ImageSharp.Tests
         {
             Image<Rgba32> returned = this.image.Clone(x => x.ApplyProcessor(this.processorDefinition));
             Assert.False(this.provider.HasCreated(this.image));
-            Assert.DoesNotContain(this.processorImplementation, this.provider.AppliedOperations(this.image).Select(x => x.GenericProcessor));
+            Assert.DoesNotContain(
+                this.processorDefinition,
+                this.provider.AppliedOperations(this.image).Select(x => x.NonGenericProcessor));
         }
 
         [Fact]
@@ -91,7 +95,9 @@ namespace SixLabors.ImageSharp.Tests
         {
             Image<Rgba32> returned = this.image.Clone(this.processorDefinition);
             Assert.False(this.provider.HasCreated(this.image));
-            Assert.DoesNotContain(this.processorImplementation, this.provider.AppliedOperations(this.image).Select(x => x.GenericProcessor));
+            Assert.DoesNotContain(
+                this.processorDefinition,
+                this.provider.AppliedOperations(this.image).Select(x => x.NonGenericProcessor));
         }
 
         [Fact]
@@ -99,7 +105,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             var operations = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(null, false);
             operations.ApplyProcessors(this.processorDefinition);
-            Assert.Contains(this.processorImplementation, operations.Applied.Select(x => x.GenericProcessor));
+            Assert.Contains(this.processorDefinition, operations.Applied.Select(x => x.NonGenericProcessor));
         }
 
         public void Dispose() => this.image.Dispose();

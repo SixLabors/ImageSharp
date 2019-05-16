@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Returns an <see cref="Image{TPixel}"/> instance to the test case with the necessary traits.
         /// </summary>
-        public Image<TPixel> GetImage(Action<IImageProcessingContext<TPixel>> operationsToApply)
+        public Image<TPixel> GetImage(Action<IImageProcessingContext> operationsToApply)
         {
             Image<TPixel> img = this.GetImage();
             img.Mutate(operationsToApply);

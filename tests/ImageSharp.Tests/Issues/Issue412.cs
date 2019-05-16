@@ -46,8 +46,9 @@ namespace SixLabors.ImageSharp.Tests.Issues
                 {
                     for (var x = 0; x < 40; x++)
                     {
+                        TPixel red = Color.Red.ToPixel<TPixel>();
 
-                        Assert.True(Color.Red.Equals(image[x, y]), $"expected {Color.Red} but found {image[x, y]} at [{x}, {y}]");
+                        Assert.True(red.Equals(image[x, y]), $"expected {Color.Red} but found {image[x, y]} at [{x}, {y}]");
                     }
                 }
             }

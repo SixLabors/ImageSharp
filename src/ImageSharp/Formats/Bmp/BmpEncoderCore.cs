@@ -311,68 +311,100 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
                 if (isGray8)
                 {
-                    for (byte i = 0; i <= 255; i++)
-                    {
-                        int idx = i * 4;
-                        colorPalette[idx] = i;
-                        colorPalette[idx + 1] = i;
-                        colorPalette[idx + 2] = i;
-
-                        // Padding byte, always 0
-                        colorPalette[idx + 3] = 0;
-                    }
-
-                    stream.Write(colorPalette);
-
-                    using (IMemoryOwner<byte> rowSpanBuffer = this.memoryAllocator.AllocateManagedByteBuffer(image.Width, AllocationOptions.Clean))
-                    {
-                        Span<byte> outputPixelRow = rowSpanBuffer.GetSpan();
-                        for (int y = image.Height - 1; y >= 0; y--)
-                        {
-                            Span<TPixel> inputPixelRow = image.GetPixelRowSpan(y);
-                            PixelOperations<TPixel>.Instance.ToGray8Bytes(this.configuration, inputPixelRow, outputPixelRow, image.Width);
-                            stream.Write(outputPixelRow);
-
-                            for (int i = 0; i < this.padding; i++)
-                            {
-                                stream.WriteByte(0);
-                            }
-                        }
-                    }
+                    this.Write8BitGray(stream, image, colorPalette);
                 }
                 else
                 {
-                    using (IQuantizedFrame<TPixel> quantized = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration, 256).QuantizeFrame(image))
+                    this.Write8BitColor(stream, image, colorPalette);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes an 8 Bit color image with a color palette. The color palette has 256 entry's with 4 bytes for each entry.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
+        /// <param name="image"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
+        /// <param name="colorPalette">A byte span of size 1024 for the color palette.</param>
+        private void Write8BitColor<TPixel>(Stream stream, ImageFrame<TPixel> image, Span<byte> colorPalette)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (IQuantizedFrame<TPixel> quantized = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration, 256).QuantizeFrame(image))
+            {
+                ReadOnlySpan<TPixel> quantizedColors = quantized.Palette.Span;
+                var color = default(Rgba32);
+
+                // TODO: Use bulk conversion here for better perf
+                int idx = 0;
+                foreach (TPixel quantizedColor in quantizedColors)
+                {
+                    quantizedColor.ToRgba32(ref color);
+                    colorPalette[idx] = color.B;
+                    colorPalette[idx + 1] = color.G;
+                    colorPalette[idx + 2] = color.R;
+
+                    // Padding byte, always 0.
+                    colorPalette[idx + 3] = 0;
+                    idx += 4;
+                }
+
+                stream.Write(colorPalette);
+
+                for (int y = image.Height - 1; y >= 0; y--)
+                {
+                    ReadOnlySpan<byte> pixelSpan = quantized.GetRowSpan(y);
+                    stream.Write(pixelSpan);
+
+                    for (int i = 0; i < this.padding; i++)
                     {
-                        ReadOnlySpan<TPixel> quantizedColors = quantized.Palette.Span;
-                        var color = default(Rgba32);
+                        stream.WriteByte(0);
+                    }
+                }
+            }
+        }
 
-                        // TODO: Use bulk conversion here for better perf
-                        int idx = 0;
-                        foreach (TPixel quantizedColor in quantizedColors)
-                        {
-                            quantizedColor.ToRgba32(ref color);
-                            colorPalette[idx] = color.B;
-                            colorPalette[idx + 1] = color.G;
-                            colorPalette[idx + 2] = color.R;
+        /// <summary>
+        /// Writes an 8 Bit gray image with a color palette. The color palette has 256 entry's with 4 bytes for each entry.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
+        /// <param name="image"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
+        /// <param name="colorPalette">A byte span of size 1024 for the color palette.</param>
+        private void Write8BitGray<TPixel>(Stream stream, ImageFrame<TPixel> image, Span<byte> colorPalette)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            // Create a color palette with 256 different gray values.
+            for (int i = 0; i <= 255; i++)
+            {
+                int idx = i * 4;
+                byte grayValue = (byte)i;
+                colorPalette[idx] = grayValue;
+                colorPalette[idx + 1] = grayValue;
+                colorPalette[idx + 2] = grayValue;
 
-                            // Padding byte, always 0
-                            colorPalette[idx + 3] = 0;
-                            idx += 4;
-                        }
+                // Padding byte, always 0.
+                colorPalette[idx + 3] = 0;
+            }
 
-                        stream.Write(colorPalette);
+            stream.Write(colorPalette);
 
-                        for (int y = image.Height - 1; y >= 0; y--)
-                        {
-                            ReadOnlySpan<byte> pixelSpan = quantized.GetRowSpan(y);
-                            stream.Write(pixelSpan);
+            using (IMemoryOwner<byte> rowSpanBuffer = this.memoryAllocator.AllocateManagedByteBuffer(image.Width, AllocationOptions.Clean))
+            {
+                Span<byte> outputPixelRow = rowSpanBuffer.GetSpan();
+                for (int y = image.Height - 1; y >= 0; y--)
+                {
+                    Span<TPixel> inputPixelRow = image.GetPixelRowSpan(y);
+                    PixelOperations<TPixel>.Instance.ToGray8Bytes(
+                        this.configuration,
+                        inputPixelRow,
+                        outputPixelRow,
+                        image.Width);
+                    stream.Write(outputPixelRow);
 
-                            for (int i = 0; i < this.padding; i++)
-                            {
-                                stream.WriteByte(0);
-                            }
-                        }
+                    for (int i = 0; i < this.padding; i++)
+                    {
+                        stream.WriteByte(0);
                     }
                 }
             }

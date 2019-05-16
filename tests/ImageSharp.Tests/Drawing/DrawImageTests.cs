@@ -112,7 +112,10 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 image.Mutate(c => c.DrawImage(brushImage, 0.5f));
 
                 image.DebugSave(provider, appendSourceFileOrDescription: false);
-                image.CompareToReferenceOutput(provider, appendSourceFileOrDescription: false);
+                image.CompareToReferenceOutput(
+                    ImageComparer.TolerantPercentage(0.01f),
+                    provider,
+                    appendSourceFileOrDescription: false);
             }
         }
 

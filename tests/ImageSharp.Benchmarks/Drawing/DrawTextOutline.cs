@@ -64,15 +64,14 @@ namespace SixLabors.ImageSharp.Benchmarks
                         new SixLabors.Primitives.PointF(10, 10)));
             }
 
-            IImageProcessingContext<TPixel> DrawTextOldVersion<TPixel>(
-                IImageProcessingContext<TPixel> source,
+            IImageProcessingContext DrawTextOldVersion(
+                IImageProcessingContext source,
                 TextGraphicsOptions options,
                 string text,
                 SixLabors.Fonts.Font font,
                 IBrush brush,
                 IPen pen,
                 SixLabors.Primitives.PointF location)
-                where TPixel : struct, IPixel<TPixel>
             {
                 var style = new SixLabors.Fonts.RendererOptions(font, options.DpiX, options.DpiY, location)
                 {

@@ -165,7 +165,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <param name="appendSourceFileOrDescription"></param>
         internal static void RunValidatingProcessorTest<TPixel>(
             this TestImageProvider<TPixel> provider,
-            Action<IImageProcessingContext<TPixel>> process,
+            Action<IImageProcessingContext> process,
             object testOutputDetails = null,
             ImageComparer comparer = null,
             bool appendPixelTypeToFileName = true,
@@ -202,7 +202,7 @@ namespace SixLabors.ImageSharp.Tests
 
         internal static void RunValidatingProcessorTest<TPixel>(
             this TestImageProvider<TPixel> provider,
-            Func<IImageProcessingContext<TPixel>, FormattableString> processAndGetTestOutputDetails,
+            Func<IImageProcessingContext, FormattableString> processAndGetTestOutputDetails,
             ImageComparer comparer = null,
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
@@ -241,7 +241,7 @@ namespace SixLabors.ImageSharp.Tests
 
         public static void RunValidatingProcessorTestOnWrappedMemoryImage<TPixel>(
             this TestImageProvider<TPixel> provider,
-            Action<IImageProcessingContext<TPixel>> process,
+            Action<IImageProcessingContext> process,
             object testOutputDetails = null,
             ImageComparer comparer = null,
             string useReferenceOutputFrom = null,
@@ -291,11 +291,11 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         /// <summary>
-        /// Same as <see cref="RunValidatingProcessorTest{TPixel}"/> but with an additional <see cref="Rectangle"/> parameter passed to 'process'
+        /// Same as 'RunValidatingProcessorTest{TPixel}' but with an additional <see cref="Rectangle"/> parameter passed to 'process'
         /// </summary>
         internal static void RunRectangleConstrainedValidatingProcessorTest<TPixel>(
             this TestImageProvider<TPixel> provider,
-            Action<IImageProcessingContext<TPixel>, Rectangle> process,
+            Action<IImageProcessingContext, Rectangle> process,
             object testOutputDetails = null,
             ImageComparer comparer = null)
             where TPixel : struct, IPixel<TPixel>
@@ -315,11 +315,11 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         /// <summary>
-        /// Same as <see cref="RunValidatingProcessorTest{TPixel}"/> but without the 'CompareToReferenceOutput()' step.
+        /// Same as 'RunValidatingProcessorTest{TPixel}' but without the 'CompareToReferenceOutput()' step.
         /// </summary>
         internal static void RunProcessorTest<TPixel>(
             this TestImageProvider<TPixel> provider,
-            Action<IImageProcessingContext<TPixel>> process,
+            Action<IImageProcessingContext> process,
             object testOutputDetails = null)
             where TPixel : struct, IPixel<TPixel>
         {

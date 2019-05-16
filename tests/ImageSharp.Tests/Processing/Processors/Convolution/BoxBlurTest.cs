@@ -9,9 +9,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
     [GroupOutput("Convolution")]
     public class BoxBlurTest : Basic1ParameterConvolutionTests
     {
-        protected override void Apply<TPixel>(IImageProcessingContext<TPixel> ctx, int value) => ctx.BoxBlur(value);
+        protected override void Apply(IImageProcessingContext ctx, int value) => ctx.BoxBlur(value);
 
-        protected override void Apply<TPixel>(IImageProcessingContext<TPixel> ctx, int value, Rectangle bounds) =>
+        protected override void Apply(IImageProcessingContext ctx, int value, Rectangle bounds) =>
             ctx.BoxBlur(value, bounds);
     }
 }

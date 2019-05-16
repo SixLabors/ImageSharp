@@ -9,10 +9,13 @@ using System.Numerics;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using SixLabors.Primitives;
 
 using Xunit;
 
@@ -21,39 +24,11 @@ namespace SixLabors.ImageSharp.Tests
     public static class TestImageExtensions
     {
         /// <summary>
-        /// TODO: This should be a common processing method! The image.Opacity(val) multiplies the alpha channel!
+        /// TODO: Consider adding this private processor to the library
         /// </summary>
-        /// <typeparam name="TPixel"></typeparam>
         /// <param name="ctx"></param>
-        public static void MakeOpaque<TPixel>(this IImageProcessingContext<TPixel> ctx)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            MemoryAllocator memoryAllocator = ctx.MemoryAllocator;
-
-            ctx.Apply(
-                img =>
-                    {
-                        Configuration configuration = img.GetConfiguration();
-                        using (Buffer2D<Vector4> temp = memoryAllocator.Allocate2D<Vector4>(img.Width, img.Height))
-                        {
-                            Span<Vector4> tempSpan = temp.GetSpan();
-                            foreach (ImageFrame<TPixel> frame in img.Frames)
-                            {
-                                Span<TPixel> pixelSpan = frame.GetPixelSpan();
-
-                                PixelOperations<TPixel>.Instance.ToVector4(configuration, pixelSpan, tempSpan, PixelConversionModifiers.Scale);
-
-                                for (int i = 0; i < tempSpan.Length; i++)
-                                {
-                                    ref Vector4 v = ref tempSpan[i];
-                                    v.W = 1F;
-                                }
-
-                                PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, tempSpan, pixelSpan, PixelConversionModifiers.Scale);
-                            }
-                        }
-                    });
-        }
+        public static void MakeOpaque(this IImageProcessingContext ctx) =>
+            ctx.ApplyProcessor(new MakeOpaqueProcessor());
 
         public static void DebugSave(
             this Image image,
@@ -702,5 +677,37 @@ namespace SixLabors.ImageSharp.Tests
             return image;
         }
 
+        private class MakeOpaqueProcessor : IImageProcessor
+        {
+            public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+                where TPixel : struct, IPixel<TPixel>
+            {
+                return new MakeOpaqueProcessor<TPixel>();
+            }
+        }
+
+        private class MakeOpaqueProcessor<TPixel> : ImageProcessor<TPixel>
+            where TPixel : struct, IPixel<TPixel>
+        {
+            protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+            {
+                ParallelHelper.IterateRowsWithTempBuffer<Vector4>(sourceRectangle, configuration,
+                    (rows, temp) =>
+                        {
+                            Span<Vector4> tempSpan = temp.Span;
+                            for (int y = rows.Min; y < rows.Max; y++)
+                            {
+                                var rowSpan = source.GetPixelRowSpan(y).Slice(sourceRectangle.Left, sourceRectangle.Width);
+                                PixelOperations<TPixel>.Instance.ToVector4(configuration, rowSpan, tempSpan, PixelConversionModifiers.Scale);
+                                for (int i = 0; i < tempSpan.Length; i++)
+                                {
+                                    ref Vector4 v = ref tempSpan[i];
+                                    v.W = 1F;
+                                }
+                                PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, tempSpan, rowSpan, PixelConversionModifiers.Scale);
+                            }
+                        });
+            }
+        }
     }
 }

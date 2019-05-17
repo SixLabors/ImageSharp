@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
@@ -36,9 +37,9 @@ namespace SixLabors.ImageSharp.Processing
             Guard.NotNull(operation, nameof(operation));
             Guard.NotNull(source, nameof(source));
 
-            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider.CreateImageProcessingContext(source, true);
+            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider
+                .CreateImageProcessingContext(source, true);
             operation(operationsRunner);
-            operationsRunner.Apply();
         }
 
         /// <summary>
@@ -53,9 +54,9 @@ namespace SixLabors.ImageSharp.Processing
             Guard.NotNull(operations, nameof(operations));
             Guard.NotNull(source, nameof(source));
 
-            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider.CreateImageProcessingContext(source, true);
+            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider
+                .CreateImageProcessingContext(source, true);
             operationsRunner.ApplyProcessors(operations);
-            operationsRunner.Apply();
         }
 
         /// <summary>
@@ -84,9 +85,10 @@ namespace SixLabors.ImageSharp.Processing
             Guard.NotNull(operation, nameof(operation));
             Guard.NotNull(source, nameof(source));
 
-            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider.CreateImageProcessingContext(source, false);
+            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider
+                .CreateImageProcessingContext(source, false);
             operation(operationsRunner);
-            return operationsRunner.Apply();
+            return operationsRunner.GetResultImage();
         }
 
         /// <summary>
@@ -102,9 +104,10 @@ namespace SixLabors.ImageSharp.Processing
             Guard.NotNull(operations, nameof(operations));
             Guard.NotNull(source, nameof(source));
 
-            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider.CreateImageProcessingContext(source, false);
+            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider
+                .CreateImageProcessingContext(source, false);
             operationsRunner.ApplyProcessors(operations);
-            return operationsRunner.Apply();
+            return operationsRunner.GetResultImage();
         }
 
         /// <summary>
@@ -113,7 +116,9 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image processing context.</param>
         /// <param name="operations">The operations to perform on the source.</param>
         /// <returns>The <see cref="IImageProcessor{TPixel}"/> to allow chaining of operations.</returns>
-        public static IImageProcessingContext ApplyProcessors(this IImageProcessingContext source, params IImageProcessor[] operations)
+        public static IImageProcessingContext ApplyProcessors(
+            this IImageProcessingContext source,
+            params IImageProcessor[] operations)
         {
             foreach (IImageProcessor p in operations)
             {
@@ -143,7 +148,7 @@ namespace SixLabors.ImageSharp.Processing
                 IInternalImageProcessingContext<TPixel> operationsRunner = image.GetConfiguration()
                     .ImageOperationsProvider.CreateImageProcessingContext(image, this.mutate);
                 this.operation(operationsRunner);
-                this.ResultImage = operationsRunner.Apply();
+                this.ResultImage = operationsRunner.GetResultImage();
             }
         }
     }

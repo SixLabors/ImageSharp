@@ -113,8 +113,8 @@ namespace SixLabors.ImageSharp.Tests
                     using (var memoryManager = new BitmapMemoryManager(bmp))
                     {
                         Memory<Bgra32> memory = memoryManager.Memory;
-                        Bgra32 bg = NamedColors<Bgra32>.Red;
-                        Bgra32 fg = NamedColors<Bgra32>.Green;
+                        Bgra32 bg = Color.Red;
+                        Bgra32 fg = Color.Green;
 
                         using (var image = Image.WrapMemory(memory, bmp.Width, bmp.Height))
                         {
@@ -144,8 +144,8 @@ namespace SixLabors.ImageSharp.Tests
                 using (var bmp = new Bitmap(51, 23))
                 {
                     var memoryManager = new BitmapMemoryManager(bmp);
-                    Bgra32 bg = NamedColors<Bgra32>.Red;
-                    Bgra32 fg = NamedColors<Bgra32>.Green;
+                    Bgra32 bg = Color.Red;
+                    Bgra32 fg = Color.Green;
 
                     using (var image = Image.WrapMemory(memoryManager, bmp.Width, bmp.Height))
                     {

@@ -11,13 +11,13 @@ namespace SixLabors.ImageSharp.Processing
     /// <summary>
     /// A Circular Gradient Brush, defined by center point and radius.
     /// </summary>
-    public sealed class RadialGradientBrush : GradientBrushBase
+    public sealed class RadialGradientBrush : GradientBrush
     {
         private readonly PointF center;
 
         private readonly float radius;
 
-        /// <inheritdoc cref="GradientBrushBase" />
+        /// <inheritdoc cref="GradientBrush" />
         /// <param name="center">The center of the circular gradient and 0 for the color stops.</param>
         /// <param name="radius">The radius of the circular gradient and 1 for the color stops.</param>
         /// <param name="repetitionMode">Defines how the colors in the gradient are repeated.</param>
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Processing
                 this.RepetitionMode);
 
         /// <inheritdoc />
-        private sealed class RadialGradientBrushApplicator<TPixel> : GradientBrushApplicatorBase<TPixel>
+        private sealed class RadialGradientBrushApplicator<TPixel> : GradientBrushApplicator<TPixel>
             where TPixel : struct, IPixel<TPixel>
         {
             private readonly PointF center;

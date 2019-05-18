@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Processing
     /// a point on the longest extension of the ellipse and
     /// the ratio between longest and shortest extension.
     /// </summary>
-    public sealed class EllipticGradientBrush : GradientBrushBase
+    public sealed class EllipticGradientBrush : GradientBrush
     {
         private readonly PointF center;
 
@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Processing
 
         private readonly float axisRatio;
 
-        /// <inheritdoc cref="GradientBrushBase" />
+        /// <inheritdoc cref="GradientBrush" />
         /// <param name="center">The center of the elliptical gradient and 0 for the color stops.</param>
         /// <param name="referenceAxisEnd">The end point of the reference axis of the ellipse.</param>
         /// <param name="axisRatio">
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Processing
                 this.RepetitionMode);
 
         /// <inheritdoc />
-        private sealed class RadialGradientBrushApplicator<TPixel> : GradientBrushApplicatorBase<TPixel>
+        private sealed class RadialGradientBrushApplicator<TPixel> : GradientBrushApplicator<TPixel>
             where TPixel : struct, IPixel<TPixel>
         {
             private readonly PointF center;

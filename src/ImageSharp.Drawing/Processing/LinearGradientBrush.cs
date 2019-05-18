@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing
     /// Supported right now:
     /// - a set of colors in relative distances to each other.
     /// </summary>
-    public sealed class LinearGradientBrush : GradientBrushBase
+    public sealed class LinearGradientBrush : GradientBrush
     {
         private readonly PointF p1;
 
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// The linear gradient brush applicator.
         /// </summary>
-        private sealed class LinearGradientBrushApplicator<TPixel> : GradientBrushApplicatorBase<TPixel>
+        private sealed class LinearGradientBrushApplicator<TPixel> : GradientBrushApplicator<TPixel>
             where TPixel : struct, IPixel<TPixel>
         {
             private readonly PointF start;

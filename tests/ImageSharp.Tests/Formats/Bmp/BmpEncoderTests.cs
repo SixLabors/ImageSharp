@@ -198,7 +198,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
                 using (var referenceImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
                 {
-                    referenceImage.CompareToReferenceOutput(ImageComparer.Exact, provider, extension: "bmp", appendPixelTypeToFileName: false);
+                    referenceImage.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.01f), provider, extension: "bmp", appendPixelTypeToFileName: false);
                 }
             }
         }
@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
                 using (var referenceImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
                 {
-                    referenceImage.CompareToReferenceOutput(ImageComparer.Exact, provider, extension: "bmp", appendPixelTypeToFileName: false);
+                    referenceImage.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.01f), provider, extension: "bmp", appendPixelTypeToFileName: false);
                 }
             }
         }

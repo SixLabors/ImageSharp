@@ -8,10 +8,10 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Drawing
 {
     [GroupOutput("Drawing")]
-    public class DrawImageTest : FileTestBase
+    public class DrawImageTests : FileTestBase
     {
         private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32;
 

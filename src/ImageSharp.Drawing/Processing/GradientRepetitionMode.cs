@@ -21,16 +21,16 @@ namespace SixLabors.ImageSharp.Processing
 
         /// <summary>
         /// Reflect the gradient.
-        /// Similar to <see cref="Repeat"/>, but each other repetition uses inverse order of <see cref="ColorStop{TPixel}"/>s.
+        /// Similar to <see cref="Repeat"/>, but each other repetition uses inverse order of <see cref="ColorStop"/>s.
         /// Used on a Black-White gradient, Reflect leads to Black->{gray}->White->{gray}->White...
         /// </summary>
         Reflect,
 
         /// <summary>
         /// With DontFill a gradient does not touch any pixel beyond it's borders.
-        /// For the <see cref="LinearGradientBrush{TPixel}" /> this is beyond the orthogonal through start and end,
+        /// For the <see cref="LinearGradientBrush" /> this is beyond the orthogonal through start and end,
         /// TODO For the cref="PolygonalGradientBrush" it's outside the polygon,
-        /// For <see cref="RadialGradientBrush{TPixel}" /> and <see cref="EllipticGradientBrush{TPixel}" /> it's beyond 1.0.
+        /// For <see cref="RadialGradientBrush" /> and <see cref="EllipticGradientBrush" /> it's beyond 1.0.
         /// </summary>
         DontFill
     }

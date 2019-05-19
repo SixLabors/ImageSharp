@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets the blend percentage
         /// </summary>
-        protected GraphicsOptions Options { get; private set; }
+        protected GraphicsOptions Options { get; }
 
         /// <summary>
         /// Gets the color for a single pixel.

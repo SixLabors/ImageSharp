@@ -47,10 +47,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
                 ValidatorComparer);
         }
 
-        protected abstract void Apply<TPixel>(IImageProcessingContext<TPixel> ctx, int value)
-            where TPixel : struct, IPixel<TPixel>;
+        protected abstract void Apply(IImageProcessingContext ctx, int value);
         
-        protected abstract void Apply<TPixel>(IImageProcessingContext<TPixel> ctx, int value, Rectangle bounds)
-            where TPixel : struct, IPixel<TPixel>;
+        protected abstract void Apply(IImageProcessingContext ctx, int value, Rectangle bounds);
     }
 }

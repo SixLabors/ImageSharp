@@ -27,8 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Overlays
             where TPixel : struct, IPixel<TPixel>
         {
             provider.Utility.TestGroupName = this.GetType().Name;
-            var f = (FieldInfo)typeof(Color).GetMember(colorName)[0];
-            Color color = (Color)f.GetValue(null);
+            Color color = TestUtils.GetColorByName(colorName);
 
             provider.RunValidatingProcessorTest(x => this.Apply(x, color), colorName, ValidatorComparer, appendPixelTypeToFileName: false);
         }

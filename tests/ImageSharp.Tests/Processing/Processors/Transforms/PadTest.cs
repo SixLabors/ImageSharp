@@ -7,10 +7,15 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
-    public class PadTest : FileTestBase
+    public class PadTest
     {
+        public static readonly string[] CommonTestImages =
+            {
+                TestImages.Png.CalliphoraPartial, TestImages.Png.Bike
+            };
+        
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
+        [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32)]
         public void ImageShouldPad<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

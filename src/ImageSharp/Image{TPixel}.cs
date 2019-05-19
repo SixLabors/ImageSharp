@@ -157,18 +157,9 @@ namespace SixLabors.ImageSharp
         /// Returns a copy of the image in the given pixel format.
         /// </summary>
         /// <typeparam name="TPixel2">The pixel format.</typeparam>
-        /// <returns>The <see cref="Image{TPixel2}"/></returns>
-        public Image<TPixel2> CloneAs<TPixel2>()
-            where TPixel2 : struct, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.Configuration);
-
-        /// <summary>
-        /// Returns a copy of the image in the given pixel format.
-        /// </summary>
-        /// <typeparam name="TPixel2">The pixel format.</typeparam>
         /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
         /// <returns>The <see cref="Image{TPixel2}"/>.</returns>
-        public Image<TPixel2> CloneAs<TPixel2>(Configuration configuration)
-            where TPixel2 : struct, IPixel<TPixel2>
+        public override Image<TPixel2> CloneAs<TPixel2>(Configuration configuration)
         {
             IEnumerable<ImageFrame<TPixel2>> clonedFrames = this.Frames.Select(x => x.CloneAs<TPixel2>(configuration));
             return new Image<TPixel2>(configuration, this.Metadata.DeepClone(), clonedFrames);

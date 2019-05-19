@@ -141,7 +141,6 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Evaluates if a given SOURCE color can completely replace a BACKDROP color given the current blending and composition settings.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format</typeparam>
         /// <param name="color">the color</param>
         /// <returns>true if the color can be considered opaque</returns>
         /// <remarks>
@@ -149,8 +148,7 @@ namespace SixLabors.ImageSharp
         /// filling with a solid color, the blending can be avoided by a plain color replacement.
         /// This method can be useful for such processors to select the fast path.
         /// </remarks>
-        internal bool IsOpaqueColorWithoutBlending<TPixel>(TPixel color)
-            where TPixel : struct, IPixel<TPixel>
+        internal bool IsOpaqueColorWithoutBlending(Color color)
         {
             if (this.ColorBlendingMode != PixelColorBlendingMode.Normal)
             {

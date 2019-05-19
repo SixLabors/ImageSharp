@@ -91,12 +91,12 @@ namespace SixLabors.ImageSharp.Benchmarks
             }
         }
 
-        protected abstract void ExecuteResizeOperation(IImageProcessingContext<TPixel> ctx);
+        protected abstract void ExecuteResizeOperation(IImageProcessingContext ctx);
     }
 
     public class Resize_Bicubic_Rgba32 : ResizeBenchmarkBase<Rgba32>
     {
-        protected override void ExecuteResizeOperation(IImageProcessingContext<Rgba32> ctx)
+        protected override void ExecuteResizeOperation(IImageProcessingContext ctx)
         {
             ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic);
         }
@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp.Benchmarks
 
     public class Resize_Bicubic_Bgra32 : ResizeBenchmarkBase<Bgra32>
     {
-        protected override void ExecuteResizeOperation(IImageProcessingContext<Bgra32> ctx)
+        protected override void ExecuteResizeOperation(IImageProcessingContext ctx)
         {
             ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic);
         }
@@ -171,7 +171,7 @@ namespace SixLabors.ImageSharp.Benchmarks
 
     public class Resize_Bicubic_Rgb24 : ResizeBenchmarkBase<Rgb24>
     {
-        protected override void ExecuteResizeOperation(IImageProcessingContext<Rgb24> ctx)
+        protected override void ExecuteResizeOperation(IImageProcessingContext ctx)
         {
             ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic);
         }
@@ -198,7 +198,7 @@ namespace SixLabors.ImageSharp.Benchmarks
 
     public class Resize_BicubicCompand_Rgba32 : ResizeBenchmarkBase<Rgba32>
     {
-        protected override void ExecuteResizeOperation(IImageProcessingContext<Rgba32> ctx)
+        protected override void ExecuteResizeOperation(IImageProcessingContext ctx)
         {
             ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic, true);
         }

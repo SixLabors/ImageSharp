@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             };
 
         [Theory]
-        [WithFile( TestImages.Png.Rainbow,nameof(BlendingModes), PixelTypes.Rgba32)]
+        [WithFile(TestImages.Png.Rainbow, nameof(BlendingModes), PixelTypes.Rgba32)]
         public void ImageBlendingMatchesSvgSpecExamples<TPixel>(TestImageProvider<TPixel> provider, PixelColorBlendingMode mode)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -54,13 +54,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     appendSourceFileOrDescription: false);
             }
         }
-        
+
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, TestImages.Png.Splash, PixelColorBlendingMode.Normal, 1f)]
         [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Bgr24, TestImages.Png.Bike, PixelColorBlendingMode.Normal, 1f)]
         [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, TestImages.Png.Splash, PixelColorBlendingMode.Normal, 0.75f)]
         [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, TestImages.Png.Splash, PixelColorBlendingMode.Normal, 0.25f)]
-        
+
         [WithTestPatternImages(400, 400, PixelTypes.Rgba32, TestImages.Png.Splash, PixelColorBlendingMode.Multiply, 0.5f)]
         [WithTestPatternImages(400, 400, PixelTypes.Rgba32, TestImages.Png.Splash, PixelColorBlendingMode.Add, 0.5f)]
         [WithTestPatternImages(400, 400, PixelTypes.Rgba32, TestImages.Png.Splash, PixelColorBlendingMode.Subtract, 0.5f)]
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             using (Image<TPixel> image = provider.GetImage())
             using (var blend = Image.Load<TPixel>(TestFile.Create(brushImage).Bytes))
             {
-                Size size = new Size(image.Width * 3 / 4, image.Height *3/ 4);
+                Size size = new Size(image.Width * 3 / 4, image.Height * 3 / 4);
                 Point position = new Point(image.Width / 8, image.Height / 8);
                 blend.Mutate(x => x.Resize(size.Width, size.Height, KnownResamplers.Bicubic));
                 image.Mutate(x => x.DrawImage(blend, position, mode, opacity));
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 {
                     encoder.BitDepth = PngBitDepth.Bit16;
                 }
-                
+
                 image.DebugSave(provider, testInfo, encoder: encoder);
                 image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.01f),
                     provider,
@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     testOutputDetails: $"{x}_{y}",
                     appendPixelTypeToFileName: false,
                     appendSourceFileOrDescription: false);
-                
+
                 background.CompareToReferenceOutput(
                     provider,
                     testOutputDetails: $"{x}_{y}",
@@ -146,7 +146,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     appendSourceFileOrDescription: false);
             }
         }
-        
+
         [Theory]
         [WithFile(TestImages.Png.Splash, PixelTypes.Rgba32)]
         public void DrawTransformed<TPixel>(TestImageProvider<TPixel> provider)
@@ -166,12 +166,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
                 // Lets center the matrix so we can tell whether any cut-off issues we may have belong to the drawing processor
                 var position = new Point((image.Width - blend.Width) / 2, (image.Height - blend.Height) / 2);
-                image.Mutate(x => x.DrawImage(blend, position,  .75F));
-                
+                image.Mutate(x => x.DrawImage(blend, position, .75F));
+
                 image.DebugSave(provider, appendSourceFileOrDescription: false, appendPixelTypeToFileName: false);
                 image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.002f),
                     provider,
-                    appendSourceFileOrDescription: false, 
+                    appendSourceFileOrDescription: false,
                     appendPixelTypeToFileName: false);
             }
         }
@@ -197,6 +197,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             }
         }
 
-        
+
     }
 }

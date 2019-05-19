@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.IO;
+using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
@@ -389,23 +390,15 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             stream.Write(colorPalette);
 
-            using (IMemoryOwner<byte> rowSpanBuffer = this.memoryAllocator.AllocateManagedByteBuffer(image.Width, AllocationOptions.Clean))
+            for (int y = image.Height - 1; y >= 0; y--)
             {
-                Span<byte> outputPixelRow = rowSpanBuffer.GetSpan();
-                for (int y = image.Height - 1; y >= 0; y--)
-                {
-                    Span<TPixel> inputPixelRow = image.GetPixelRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToGray8Bytes(
-                        this.configuration,
-                        inputPixelRow,
-                        outputPixelRow,
-                        image.Width);
-                    stream.Write(outputPixelRow);
+                ReadOnlySpan<TPixel> inputPixelRow = image.GetPixelRowSpan(y);
+                ReadOnlySpan<byte> outputPixelRow = MemoryMarshal.AsBytes(inputPixelRow);
+                stream.Write(outputPixelRow);
 
-                    for (int i = 0; i < this.padding; i++)
-                    {
-                        stream.WriteByte(0);
-                    }
+                for (int i = 0; i < this.padding; i++)
+                {
+                    stream.WriteByte(0);
                 }
             }
         }

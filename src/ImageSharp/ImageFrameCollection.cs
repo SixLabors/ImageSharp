@@ -10,6 +10,21 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
 {
+    public abstract class ImageFrameCollection : IEnumerable<ImageFrame>
+    {
+        public IEnumerator<ImageFrame> GetEnumerator()
+        {
+            throw new NotImplementedException();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return this.GetEnumerator();
+        }
+        
+        protected abstract 
+    }
+    
     /// <summary>
     /// Encapsulates a collection of <see cref="ImageFrame{T}"/> instances that make up an <see cref="Image{T}"/>.
     /// </summary>

@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp
     /// Represents a single frame in a animation.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public sealed class ImageFrame<TPixel> : IPixelSource<TPixel>, IDisposable
+    public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>, IDisposable
         where TPixel : struct, IPixel<TPixel>
     {
         private bool isDisposed;
@@ -78,15 +78,12 @@ namespace SixLabors.ImageSharp
         /// <param name="backgroundColor">The color to clear the image with.</param>
         /// <param name="metadata">The metadata.</param>
         internal ImageFrame(Configuration configuration, int width, int height, TPixel backgroundColor, ImageFrameMetadata metadata)
+            : base(configuration, width, height, metadata)
         {
-            Guard.NotNull(configuration, nameof(configuration));
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            this.Configuration = configuration;
-            this.MemoryAllocator = configuration.MemoryAllocator;
             this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(width, height);
-            this.Metadata = metadata ?? new ImageFrameMetadata();
             this.Clear(configuration.GetParallelOptions(), backgroundColor);
         }
 
@@ -111,16 +108,12 @@ namespace SixLabors.ImageSharp
         /// <param name="memorySource">The memory source.</param>
         /// <param name="metadata">The metadata.</param>
         internal ImageFrame(Configuration configuration, int width, int height, MemorySource<TPixel> memorySource, ImageFrameMetadata metadata)
+            : base(configuration, width, height, metadata)
         {
-            Guard.NotNull(configuration, nameof(configuration));
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
-            Guard.NotNull(metadata, nameof(metadata));
 
-            this.Configuration = configuration;
-            this.MemoryAllocator = configuration.MemoryAllocator;
             this.PixelBuffer = new Buffer2D<TPixel>(memorySource, width, height);
-            this.Metadata = metadata;
         }
 
         /// <summary>
@@ -129,26 +122,15 @@ namespace SixLabors.ImageSharp
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="source">The source.</param>
         internal ImageFrame(Configuration configuration, ImageFrame<TPixel> source)
+            : base(configuration, source.Width, source.Height, source.Metadata.DeepClone())
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(source, nameof(source));
 
-            this.Configuration = configuration;
-            this.MemoryAllocator = configuration.MemoryAllocator;
             this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(source.PixelBuffer.Width, source.PixelBuffer.Height);
             source.PixelBuffer.GetSpan().CopyTo(this.PixelBuffer.GetSpan());
-            this.Metadata = source.Metadata.DeepClone();
         }
 
-        /// <summary>
-        /// Gets the <see cref="MemoryAllocator" /> to use for buffer allocations.
-        /// </summary>
-        public MemoryAllocator MemoryAllocator { get; }
-
-        /// <summary>
-        /// Gets the <see cref="Configuration"/> instance associated with this <see cref="ImageFrame{TPixel}"/>.
-        /// </summary>
-        internal Configuration Configuration { get; }
 
         /// <summary>
         /// Gets the image pixels. Not private as Buffer2D requires an array in its constructor.
@@ -158,20 +140,6 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc/>
         Buffer2D<TPixel> IPixelSource<TPixel>.PixelBuffer => this.PixelBuffer;
 
-        /// <summary>
-        /// Gets the width.
-        /// </summary>
-        public int Width => this.PixelBuffer.Width;
-
-        /// <summary>
-        /// Gets the height.
-        /// </summary>
-        public int Height => this.PixelBuffer.Height;
-
-        /// <summary>
-        /// Gets the metadata of the frame.
-        /// </summary>
-        public ImageFrameMetadata Metadata { get; }
 
         /// <summary>
         /// Gets or sets the pixel at the specified position.
@@ -188,17 +156,6 @@ namespace SixLabors.ImageSharp
             set => this.PixelBuffer[x, y] = value;
         }
 
-        /// <summary>
-        /// Gets the size of the frame.
-        /// </summary>
-        /// <returns>The <see cref="Size"/></returns>
-        public Size Size() => new Size(this.Width, this.Height);
-
-        /// <summary>
-        /// Gets the bounds of the frame.
-        /// </summary>
-        /// <returns>The <see cref="Rectangle"/></returns>
-        public Rectangle Bounds() => new Rectangle(0, 0, this.Width, this.Height);
 
         /// <summary>
         /// Gets a reference to the pixel at the specified position.
@@ -237,7 +194,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Disposes the object and frees resources for the Garbage Collector.
         /// </summary>
-        internal void Dispose()
+        public override void Dispose()
         {
             if (this.isDisposed)
             {
@@ -325,8 +282,5 @@ namespace SixLabors.ImageSharp
                 span.Fill(value);
             }
         }
-
-        /// <inheritdoc/>
-        void IDisposable.Dispose() => this.Dispose();
     }
 }

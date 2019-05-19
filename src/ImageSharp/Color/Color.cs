@@ -120,6 +120,18 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Alters the alpha channel of the color, returning a new instance.
+        /// </summary>
+        /// <param name="alpha">The new value of alpha [0..1].</param>
+        /// <returns>The color having it's alpha channel altered.</returns>
+        public Color WithAlpha(float alpha)
+        {
+            Vector4 v = (Vector4)this;
+            v.W = alpha;
+            return new Color(v);
+        }
+
+        /// <summary>
         /// Gets the hexadecimal representation of the color instance in rrggbbaa form.
         /// </summary>
         /// <returns>A hexadecimal string representation of the value.</returns>

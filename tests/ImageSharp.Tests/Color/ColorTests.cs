@@ -14,6 +14,17 @@ namespace SixLabors.ImageSharp.Tests
     public partial class ColorTests
     {
         [Fact]
+        public void WithAlpha()
+        {
+            Color c1 = Color.FromRgba(111, 222, 55, 255);
+            Color c2 = c1.WithAlpha(0.5f);
+
+            Rgba32 expected = new Rgba32(111, 222, 55, 128);
+            
+            Assert.Equal(expected, (Rgba32)c2);
+        }
+        
+        [Fact]
         public void Equality_WhenTrue()
         {
             Color c1 = new Rgba64(100, 2000, 3000, 40000);

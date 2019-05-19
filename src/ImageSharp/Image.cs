@@ -89,6 +89,23 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Returns a copy of the image in the given pixel format.
+        /// </summary>
+        /// <typeparam name="TPixel2">The pixel format.</typeparam>
+        /// <returns>The <see cref="Image{TPixel2}"/></returns>
+        public Image<TPixel2> CloneAs<TPixel2>()
+            where TPixel2 : struct, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.Configuration);
+
+        /// <summary>
+        /// Returns a copy of the image in the given pixel format.
+        /// </summary>
+        /// <typeparam name="TPixel2">The pixel format.</typeparam>
+        /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
+        /// <returns>The <see cref="Image{TPixel2}"/>.</returns>
+        public abstract Image<TPixel2> CloneAs<TPixel2>(Configuration configuration)
+            where TPixel2 : struct, IPixel<TPixel2>;
+
+        /// <summary>
         /// Accept a <see cref="IImageVisitor"/>.
         /// Implemented by <see cref="Image{TPixel}"/> invoking <see cref="IImageVisitor.Visit{TPixel}"/>
         /// with the pixel type of the image.

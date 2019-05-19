@@ -149,8 +149,7 @@ namespace SixLabors.ImageSharp.Processing
             {
                 var vA = a - junction;
                 var vB = b - junction;
-                return (float)(Math.Atan2(vB.Y, vB.X)
-                       - Math.Atan2(vA.Y, vA.X));
+                return MathF.Atan2(vB.Y, vB.X) - MathF.Atan2(vA.Y, vA.X);
             }
 
             private float DistanceBetween(
@@ -162,7 +161,7 @@ namespace SixLabors.ImageSharp.Processing
 
                 float dY = p1.Y - p2.Y;
                 float dYsquared = dY * dY;
-                return (float)Math.Sqrt(dXsquared + dYsquared);
+                return MathF.Sqrt(dXsquared + dYsquared);
             }
         }
     }

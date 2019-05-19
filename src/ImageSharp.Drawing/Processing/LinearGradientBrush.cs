@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Processing
 
                 // some helpers:
                 this.alongsSquared = (this.alongX * this.alongX) + (this.alongY * this.alongY);
-                this.length = (float)Math.Sqrt(this.alongsSquared);
+                this.length = MathF.Sqrt(this.alongsSquared);
             }
 
             protected override float PositionOnGradient(float x, float y)
@@ -145,7 +145,7 @@ namespace SixLabors.ImageSharp.Processing
                     float y4 = y + (k * this.alongX);
 
                     // get distance from (x4,y4) to start
-                    float distance = (float)Math.Sqrt(Math.Pow(x4 - this.start.X, 2) + Math.Pow(y4 - this.start.Y, 2));
+                    float distance = MathF.Sqrt(MathF.Pow(x4 - this.start.X, 2) + MathF.Pow(y4 - this.start.Y, 2));
 
                     // get and return ratio
                     float ratio = distance / this.length;

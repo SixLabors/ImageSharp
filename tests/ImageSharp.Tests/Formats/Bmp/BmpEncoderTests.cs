@@ -3,10 +3,12 @@
 
 using System.IO;
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using Xunit;
@@ -169,8 +171,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             TestBmpEncoderCore(
                 provider,
                 bitsPerPixel,
-                supportTransparency: false,
-                ImageComparer.TolerantPercentage(0.01f));
+                supportTransparency: false);
 
         [Theory]
         [WithFile(Bit8Gs, PixelTypes.Gray8, BmpBitsPerPixel.Pixel8)]
@@ -179,8 +180,59 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             TestBmpEncoderCore(
                 provider,
                 bitsPerPixel,
-                supportTransparency: true,
-                ImageComparer.TolerantPercentage(0.01f));
+                supportTransparency: true);
+
+        [Theory]
+        [WithFile(Bit32Rgb, PixelTypes.Rgba32)]
+        public void Encode_8BitColor_WithWuQuantizer<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            if (!TestEnvironment.Is64BitProcess)
+            {
+                return;
+            }
+
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var encoder = new BmpEncoder
+                {
+                    BitsPerPixel = BmpBitsPerPixel.Pixel8,
+                    Quantizer = new WuQuantizer(256)
+                };
+                string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "bmp", encoder, appendPixelTypeToFileName: false);
+                IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
+                using (var referenceImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
+                {
+                    referenceImage.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.01f), provider, extension: "bmp", appendPixelTypeToFileName: false);
+                }
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit32Rgb, PixelTypes.Rgba32)]
+        public void Encode_8BitColor_WithOctreeQuantizer<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            if (!TestEnvironment.Is64BitProcess)
+            {
+                return;
+            }
+
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var encoder = new BmpEncoder
+                {
+                    BitsPerPixel = BmpBitsPerPixel.Pixel8,
+                    Quantizer = new OctreeQuantizer(256)
+                };
+                string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "bmp", encoder, appendPixelTypeToFileName: false);
+                IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
+                using (var referenceImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
+                {
+                    referenceImage.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.01f), provider, extension: "bmp", appendPixelTypeToFileName: false);
+                }
+            }
+        }
 
         [Theory]
         [WithFile(TestImages.Png.GrayAlpha2BitInterlaced, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel32)]

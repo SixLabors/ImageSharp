@@ -2,58 +2,37 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
+using SixLabors.Shapes;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
     [GroupOutput("Drawing")]
-    public class DrawImageTests : FileTestBase
+    public class DrawImageTests
     {
-        private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32;
-
-        public static readonly string[] TestFiles = {
-               TestImages.Jpeg.Baseline.Calliphora,
-               TestImages.Bmp.Car,
-               TestImages.Png.Splash,
-               TestImages.Gif.Rings
-        };
-
-        [Theory]
-        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelColorBlendingMode.Normal)]
-        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelColorBlendingMode.Multiply)]
-        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelColorBlendingMode.Add)]
-        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelColorBlendingMode.Subtract)]
-        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelColorBlendingMode.Screen)]
-        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelColorBlendingMode.Darken)]
-        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelColorBlendingMode.Lighten)]
-        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelColorBlendingMode.Overlay)]
-        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelColorBlendingMode.HardLight)]
-        public void ImageShouldApplyDrawImage<TPixel>(TestImageProvider<TPixel> provider, PixelColorBlendingMode mode)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage())
-            using (var blend = Image.Load<TPixel>(TestFile.Create(TestImages.Bmp.Car).Bytes))
+        public static readonly TheoryData<PixelColorBlendingMode> BlendingModes = new TheoryData<PixelColorBlendingMode>
             {
-                blend.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
-                image.Mutate(x => x.DrawImage(blend, new Point(image.Width / 4, image.Height / 4), mode, .75f));
-                image.DebugSave(provider, new { mode });
-            }
-        }
+                PixelColorBlendingMode.Normal,
+                PixelColorBlendingMode.Multiply,
+                PixelColorBlendingMode.Add,
+                PixelColorBlendingMode.Subtract,
+                PixelColorBlendingMode.Screen,
+                PixelColorBlendingMode.Darken,
+                PixelColorBlendingMode.Lighten,
+                PixelColorBlendingMode.Overlay,
+                PixelColorBlendingMode.HardLight,
+            };
 
         [Theory]
-        [WithFile(TestImages.Png.Rainbow, PixelTypes, PixelColorBlendingMode.Normal)]
-        [WithFile(TestImages.Png.Rainbow, PixelTypes, PixelColorBlendingMode.Multiply)]
-        [WithFile(TestImages.Png.Rainbow, PixelTypes, PixelColorBlendingMode.Add)]
-        [WithFile(TestImages.Png.Rainbow, PixelTypes, PixelColorBlendingMode.Subtract)]
-        [WithFile(TestImages.Png.Rainbow, PixelTypes, PixelColorBlendingMode.Screen)]
-        [WithFile(TestImages.Png.Rainbow, PixelTypes, PixelColorBlendingMode.Darken)]
-        [WithFile(TestImages.Png.Rainbow, PixelTypes, PixelColorBlendingMode.Lighten)]
-        [WithFile(TestImages.Png.Rainbow, PixelTypes, PixelColorBlendingMode.Overlay)]
-        [WithFile(TestImages.Png.Rainbow, PixelTypes, PixelColorBlendingMode.HardLight)]
+        [WithFile(TestImages.Png.Rainbow, nameof(BlendingModes), PixelTypes.Rgba32)]
         public void ImageBlendingMatchesSvgSpecExamples<TPixel>(TestImageProvider<TPixel> provider, PixelColorBlendingMode mode)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -61,13 +40,116 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             using (var source = Image.Load<TPixel>(TestFile.Create(TestImages.Png.Ducky).Bytes))
             {
                 background.Mutate(x => x.DrawImage(source, mode, 1F));
-                VerifyImage(provider, mode, background);
+                background.DebugSave(
+                    provider,
+                    new { mode = mode },
+                    appendPixelTypeToFileName: false,
+                    appendSourceFileOrDescription: false);
+
+                var comparer = ImageComparer.TolerantPercentage(0.01F);
+                background.CompareToReferenceOutput(comparer,
+                    provider,
+                    new { mode = mode },
+                    appendPixelTypeToFileName: false,
+                    appendSourceFileOrDescription: false);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelColorBlendingMode.Normal)]
-        public void ImageShouldDrawTransformedImage<TPixel>(TestImageProvider<TPixel> provider, PixelColorBlendingMode mode)
+        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, TestImages.Png.Splash, PixelColorBlendingMode.Normal, 1f)]
+        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Bgr24, TestImages.Png.Bike, PixelColorBlendingMode.Normal, 1f)]
+        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, TestImages.Png.Splash, PixelColorBlendingMode.Normal, 0.75f)]
+        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, TestImages.Png.Splash, PixelColorBlendingMode.Normal, 0.25f)]
+
+        [WithTestPatternImages(400, 400, PixelTypes.Rgba32, TestImages.Png.Splash, PixelColorBlendingMode.Multiply, 0.5f)]
+        [WithTestPatternImages(400, 400, PixelTypes.Rgba32, TestImages.Png.Splash, PixelColorBlendingMode.Add, 0.5f)]
+        [WithTestPatternImages(400, 400, PixelTypes.Rgba32, TestImages.Png.Splash, PixelColorBlendingMode.Subtract, 0.5f)]
+
+        [WithFile(TestImages.Png.Rgb48Bpp, PixelTypes.Rgba64, TestImages.Png.Splash, PixelColorBlendingMode.Normal, 1f)]
+        [WithFile(TestImages.Png.Rgb48Bpp, PixelTypes.Rgba64, TestImages.Png.Splash, PixelColorBlendingMode.Normal, 0.25f)]
+        public void WorksWithDifferentConfigurations<TPixel>(
+            TestImageProvider<TPixel> provider,
+            string brushImage,
+            PixelColorBlendingMode mode,
+            float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            using (var blend = Image.Load<TPixel>(TestFile.Create(brushImage).Bytes))
+            {
+                Size size = new Size(image.Width * 3 / 4, image.Height * 3 / 4);
+                Point position = new Point(image.Width / 8, image.Height / 8);
+                blend.Mutate(x => x.Resize(size.Width, size.Height, KnownResamplers.Bicubic));
+                image.Mutate(x => x.DrawImage(blend, position, mode, opacity));
+                FormattableString testInfo = $"{System.IO.Path.GetFileNameWithoutExtension(brushImage)}-{mode}-{opacity}";
+
+                PngEncoder encoder = new PngEncoder();
+
+                if (provider.PixelType == PixelTypes.Rgba64)
+                {
+                    encoder.BitDepth = PngBitDepth.Bit16;
+                }
+
+                image.DebugSave(provider, testInfo, encoder: encoder);
+                image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.01f),
+                    provider,
+                    testInfo);
+            }
+        }
+
+        [Theory]
+        [WithTestPatternImages(200, 200, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
+        public void DrawImageOfDifferentPixelType<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            byte[] brushData = TestFile.Create(TestImages.Png.Ducky).Bytes;
+
+            using (Image<TPixel> image = provider.GetImage())
+            using (Image brushImage = provider.PixelType == PixelTypes.Rgba32
+                                          ? (Image)Image.Load<Bgra32>(brushData)
+                                          : Image.Load<Rgba32>(brushData))
+            {
+                image.Mutate(c => c.DrawImage(brushImage, 0.5f));
+
+                image.DebugSave(provider, appendSourceFileOrDescription: false);
+                image.CompareToReferenceOutput(
+                    ImageComparer.TolerantPercentage(0.01f),
+                    provider,
+                    appendSourceFileOrDescription: false);
+            }
+        }
+
+        [Theory]
+        [WithSolidFilledImages(100, 100, "White", PixelTypes.Rgba32, 0, 0)]
+        [WithSolidFilledImages(100, 100, "White", PixelTypes.Rgba32, 25, 25)]
+        [WithSolidFilledImages(100, 100, "White", PixelTypes.Rgba32, 75, 50)]
+        [WithSolidFilledImages(100, 100, "White", PixelTypes.Rgba32, -25, -30)]
+        public void WorksWithDifferentLocations(TestImageProvider<Rgba32> provider, int x, int y)
+        {
+            using (Image<Rgba32> background = provider.GetImage())
+            using (var overlay = new Image<Rgba32>(50, 50))
+            {
+                overlay.Mutate(c => c.Fill(Rgba32.Black));
+
+                background.Mutate(c => c.DrawImage(overlay, new Point(x, y), PixelColorBlendingMode.Normal, 1F));
+
+                background.DebugSave(
+                    provider,
+                    testOutputDetails: $"{x}_{y}",
+                    appendPixelTypeToFileName: false,
+                    appendSourceFileOrDescription: false);
+
+                background.CompareToReferenceOutput(
+                    provider,
+                    testOutputDetails: $"{x}_{y}",
+                    appendPixelTypeToFileName: false,
+                    appendSourceFileOrDescription: false);
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.Splash, PixelTypes.Rgba32)]
+        public void DrawTransformed<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -84,73 +166,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
                 // Lets center the matrix so we can tell whether any cut-off issues we may have belong to the drawing processor
                 var position = new Point((image.Width - blend.Width) / 2, (image.Height - blend.Height) / 2);
-                image.Mutate(x => x.DrawImage(blend, position, mode, .75F));
-                image.DebugSave(provider, new[] { "Transformed" });
-            }
-        }
+                image.Mutate(x => x.DrawImage(blend, position, .75F));
 
-        [Theory]
-        [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32)]
-        public void ImageShouldHandleNegativeLocation(TestImageProvider<Rgba32> provider)
-        {
-            using (Image<Rgba32> background = provider.GetImage())
-            using (var overlay = new Image<Rgba32>(50, 50))
-            {
-                overlay.Mutate(x => x.Fill(Rgba32.Black));
-
-                const int xy = -25;
-                Rgba32 backgroundPixel = background[0, 0];
-                Rgba32 overlayPixel = overlay[Math.Abs(xy) + 1, Math.Abs(xy) + 1];
-
-                background.Mutate(x => x.DrawImage(overlay, new Point(xy, xy), PixelColorBlendingMode.Normal, 1F));
-
-                Assert.Equal(Rgba32.White, backgroundPixel);
-                Assert.Equal(overlayPixel, background[0, 0]);
-
-                background.DebugSave(provider, testOutputDetails: "Negative");
-            }
-        }
-
-        [Theory]
-        [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32)]
-        public void ImageShouldHandlePositiveLocation(TestImageProvider<Rgba32> provider)
-        {
-            using (Image<Rgba32> background = provider.GetImage())
-            using (var overlay = new Image<Rgba32>(50, 50))
-            {
-                overlay.Mutate(x => x.Fill(Rgba32.Black));
-
-                const int xy = 25;
-                Rgba32 backgroundPixel = background[xy - 1, xy - 1];
-                Rgba32 overlayPixel = overlay[0, 0];
-
-                background.Mutate(x => x.DrawImage(overlay, new Point(xy, xy), PixelColorBlendingMode.Normal, 1F));
-
-                Assert.Equal(Rgba32.White, backgroundPixel);
-                Assert.Equal(overlayPixel, background[xy, xy]);
-
-                background.DebugSave(provider, testOutputDetails: "Positive");
-            }
-        }
-        [Theory]
-        [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32)]
-        public void ImageShouldHandlePositiveLocationTruncatedOverlay(TestImageProvider<Rgba32> provider)
-        {
-            using (Image<Rgba32> background = provider.GetImage())
-            using (var overlay = new Image<Rgba32>(50, 50))
-            {
-                overlay.Mutate(x => x.Fill(Rgba32.Black));
-
-                const int xy = 75;
-                Rgba32 backgroundPixel = background[xy - 1, xy - 1];
-                Rgba32 overlayPixel = overlay[0, 0];
-
-                background.Mutate(x => x.DrawImage(overlay, new Point(xy, xy), PixelColorBlendingMode.Normal, 1F));
-
-                Assert.Equal(Rgba32.White, backgroundPixel);
-                Assert.Equal(overlayPixel, background[xy, xy]);
-
-                background.DebugSave(provider, testOutputDetails: "PositiveTruncated");
+                image.DebugSave(provider, appendSourceFileOrDescription: false, appendPixelTypeToFileName: false);
+                image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.002f),
+                    provider,
+                    appendSourceFileOrDescription: false,
+                    appendPixelTypeToFileName: false);
             }
         }
 
@@ -175,24 +197,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             }
         }
 
-        private static void VerifyImage<TPixel>(
-            TestImageProvider<TPixel> provider,
-            PixelColorBlendingMode mode,
-            Image<TPixel> img)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            img.DebugSave(
-                provider,
-                new { mode },
-                appendPixelTypeToFileName: false,
-                appendSourceFileOrDescription: false);
 
-            var comparer = ImageComparer.TolerantPercentage(0.01F, 3);
-            img.CompareFirstFrameToReferenceOutput(comparer,
-                provider,
-                new { mode },
-                appendPixelTypeToFileName: false,
-                appendSourceFileOrDescription: false);
-        }
     }
 }

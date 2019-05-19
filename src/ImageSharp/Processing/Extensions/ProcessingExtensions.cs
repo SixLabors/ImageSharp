@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to mutate.</param>
         /// <param name="operation">The operation to perform on the source.</param>
-        public static void Mutate<TPixel>(this Image<TPixel> source, Action<IImageProcessingContext<TPixel>> operation)
+        public static void Mutate<TPixel>(this Image<TPixel> source, Action<IImageProcessingContext> operation)
             where TPixel : struct, IPixel<TPixel>
         {
             Guard.NotNull(operation, nameof(operation));
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to mutate.</param>
         /// <param name="operations">The operations to perform on the source.</param>
-        public static void Mutate<TPixel>(this Image<TPixel> source, params IImageProcessor<TPixel>[] operations)
+        public static void Mutate<TPixel>(this Image<TPixel> source, params IImageProcessor[] operations)
             where TPixel : struct, IPixel<TPixel>
         {
             Guard.NotNull(operations, nameof(operations));
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image to clone.</param>
         /// <param name="operation">The operation to perform on the clone.</param>
         /// <returns>The new <see cref="SixLabors.ImageSharp.Image{TPixel}"/></returns>
-        public static Image<TPixel> Clone<TPixel>(this Image<TPixel> source, Action<IImageProcessingContext<TPixel>> operation)
+        public static Image<TPixel> Clone<TPixel>(this Image<TPixel> source, Action<IImageProcessingContext> operation)
             where TPixel : struct, IPixel<TPixel>
         {
             Guard.NotNull(operation, nameof(operation));
@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image to clone.</param>
         /// <param name="operations">The operations to perform on the clone.</param>
         /// <returns>The new <see cref="SixLabors.ImageSharp.Image{TPixel}"/></returns>
-        public static Image<TPixel> Clone<TPixel>(this Image<TPixel> source, params IImageProcessor<TPixel>[] operations)
+        public static Image<TPixel> Clone<TPixel>(this Image<TPixel> source, params IImageProcessor[] operations)
             where TPixel : struct, IPixel<TPixel>
         {
             Guard.NotNull(operations, nameof(operations));
@@ -122,14 +122,12 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Applies the given <see cref="IImageProcessor{TPixel}"/> collection against the context
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image processing context.</param>
         /// <param name="operations">The operations to perform on the source.</param>
         /// <returns>The <see cref="IImageProcessor{TPixel}"/> to allow chaining of operations.</returns>
-        public static IImageProcessingContext<TPixel> ApplyProcessors<TPixel>(this IImageProcessingContext<TPixel> source, params IImageProcessor<TPixel>[] operations)
-            where TPixel : struct, IPixel<TPixel>
+        public static IImageProcessingContext ApplyProcessors(this IImageProcessingContext source, params IImageProcessor[] operations)
         {
-            foreach (IImageProcessor<TPixel> p in operations)
+            foreach (IImageProcessor p in operations)
             {
                 source = source.ApplyProcessor(p);
             }

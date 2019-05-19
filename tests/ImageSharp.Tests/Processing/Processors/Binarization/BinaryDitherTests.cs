@@ -12,7 +12,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 {
-    public class BinaryDitherTests : FileTestBase
+    public class BinaryDitherTests
     {
         public static readonly string[] CommonTestImages =
             {
@@ -40,14 +40,15 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             { "Stucki", KnownDiffusers.Stucki },
         };
 
+        public const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Rgb24;
 
         private static IOrderedDither DefaultDitherer => KnownDitherers.BayerDither4x4;
 
         private static IErrorDiffuser DefaultErrorDiffuser => KnownDiffusers.Atkinson;
 
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), nameof(OrderedDitherers), DefaultPixelType)]
-        [WithTestPatternImages(nameof(OrderedDitherers), 100, 100, DefaultPixelType)]
+        [WithFileCollection(nameof(CommonTestImages), nameof(OrderedDitherers), PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(OrderedDitherers), 100, 100, PixelTypes.Rgba32)]
         public void BinaryDitherFilter_WorksWithAllDitherers<TPixel>(TestImageProvider<TPixel> provider, string name, IOrderedDither ditherer)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -59,8 +60,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         }
 
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), nameof(ErrorDiffusers), DefaultPixelType)]
-        [WithTestPatternImages(nameof(ErrorDiffusers), 100, 100, DefaultPixelType)]
+        [WithFileCollection(nameof(CommonTestImages), nameof(ErrorDiffusers), PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(ErrorDiffusers), 100, 100, PixelTypes.Rgba32)]
         public void DiffusionFilter_WorksWithAllErrorDiffusers<TPixel>(TestImageProvider<TPixel> provider, string name, IErrorDiffuser diffuser)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -72,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         }
 
         [Theory]
-        [WithFile(TestImages.Png.Bike, CommonNonDefaultPixelTypes)]
+        [WithFile(TestImages.Png.Bike, TestPixelTypes)]
         public void BinaryDitherFilter_ShouldNotDependOnSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -84,7 +85,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         }
 
         [Theory]
-        [WithFile(TestImages.Png.Bike, CommonNonDefaultPixelTypes)]
+        [WithFile(TestImages.Png.Bike, TestPixelTypes)]
         public void DiffusionFilter_ShouldNotDependOnSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -96,7 +97,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         }
 
         [Theory]
-        [WithFile(TestImages.Png.CalliphoraPartial, DefaultPixelType)]
+        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32)]
         public void ApplyDitherFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -113,7 +114,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         }
 
         [Theory]
-        [WithFile(TestImages.Png.CalliphoraPartial, DefaultPixelType)]
+        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32)]
         public void ApplyDiffusionFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

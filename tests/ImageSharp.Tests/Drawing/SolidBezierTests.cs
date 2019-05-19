@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.BackgroundColor(blue));
-                image.Mutate(x => x.Fill(hotPink.ToPixel<TPixel>(), new Polygon(new CubicBezierLineSegment(simplePath))));
+                image.Mutate(x => x.Fill(hotPink, new Polygon(new CubicBezierLineSegment(simplePath))));
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(provider);
             }

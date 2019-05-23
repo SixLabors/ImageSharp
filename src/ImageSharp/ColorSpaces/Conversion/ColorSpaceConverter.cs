@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         private readonly CieXyz targetLuvWhitePoint;
         private readonly CieXyz targetLabWhitePoint;
         private readonly CieXyz targetHunterLabWhitePoint;
-        private readonly RgbWorkingSpaceBase targetRgbWorkingSpace;
+        private readonly RgbWorkingSpace targetRgbWorkingSpace;
         private readonly IChromaticAdaptation chromaticAdaptation;
         private readonly bool performChromaticAdaptation;
         private readonly CieXyzAndLmsConverter cieXyzAndLmsConverter;

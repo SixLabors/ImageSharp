@@ -104,18 +104,11 @@ namespace SixLabors.ImageSharp
         /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
         /// </param>
         /// <returns>Returns a <see cref="Color"/> that represents the color defined by the provided RGBA hex string.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static Color FromHex(string hex)
         {
-            Guard.NotNullOrWhiteSpace(hex, nameof(hex));
+            Rgba32 rgba = Rgba32.FromHex(hex);
 
-            hex = ToRgbaHex(hex);
-
-            if (hex is null || !uint.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint packedValue))
-            {
-                throw new ArgumentException("Hexadecimal string is not in the correct format.", nameof(hex));
-            }
-
-            var rgba = new Rgba32(BinaryPrimitives.ReverseEndianness(packedValue));
             return new Color(rgba);
         }
 
@@ -188,43 +181,6 @@ namespace SixLabors.ImageSharp
         {
             ReadOnlySpan<Rgba64> rgba64Span = MemoryMarshal.Cast<Color, Rgba64>(source);
             PixelOperations<TPixel>.Instance.FromRgba64(Configuration.Default, rgba64Span, destination);
-        }
-
-        /// <summary>
-        /// Converts the specified hex value to an rrggbbaa hex value.
-        /// </summary>
-        /// <param name="hex">The hex value to convert.</param>
-        /// <returns>
-        /// A rrggbbaa hex value.
-        /// </returns>
-        private static string ToRgbaHex(string hex)
-        {
-            if (hex[0] == '#')
-            {
-                hex = hex.Substring(1);
-            }
-
-            if (hex.Length == 8)
-            {
-                return hex;
-            }
-
-            if (hex.Length == 6)
-            {
-                return hex + "FF";
-            }
-
-            if (hex.Length < 3 || hex.Length > 4)
-            {
-                return null;
-            }
-
-            char r = hex[0];
-            char g = hex[1];
-            char b = hex[2];
-            char a = hex.Length == 3 ? 'F' : hex[3];
-
-            return new string(new[] { r, r, g, g, b, b, a, a });
         }
     }
 }

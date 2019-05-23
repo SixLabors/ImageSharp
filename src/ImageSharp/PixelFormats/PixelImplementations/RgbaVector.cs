@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>
         /// The <see cref="RgbaVector"/>.
         /// </returns>
-        public static RgbaVector FromHex(string hex) => ColorBuilder<RgbaVector>.FromHex(hex);
+        public static RgbaVector FromHex(string hex) => Color.FromHex(hex).ToPixel<RgbaVector>();
 
         /// <inheritdoc />
         public PixelOperations<RgbaVector> CreatePixelOperations() => new PixelOperations();

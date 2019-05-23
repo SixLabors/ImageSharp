@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// Applies error diffusion based dithering using the Atkinson image dithering algorithm.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public sealed class AtkinsonDiffuser : ErrorDiffuserBase
+    public sealed class AtkinsonDiffuser : ErrorDiffuser
     {
         /// <summary>
         /// The diffusion matrix

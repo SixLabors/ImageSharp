@@ -13,12 +13,12 @@ namespace SixLabors.ImageSharp.Processing
     /// <summary>
     /// Base class for Gradient brushes
     /// </summary>
-    public abstract class GradientBrushBase : IBrush
+    public abstract class GradientBrush : IBrush
     {
         /// <inheritdoc cref="IBrush"/>
         /// <param name="repetitionMode">Defines how the colors are repeated beyond the interval [0..1]</param>
         /// <param name="colorStops">The gradient colors.</param>
-        protected GradientBrushBase(
+        protected GradientBrush(
             GradientRepetitionMode repetitionMode,
             params ColorStop[] colorStops)
         {
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Base class for gradient brush applicators
         /// </summary>
-        internal abstract class GradientBrushApplicatorBase<TPixel> : BrushApplicator<TPixel>
+        internal abstract class GradientBrushApplicator<TPixel> : BrushApplicator<TPixel>
             where TPixel : struct, IPixel<TPixel>
         {
             private static readonly TPixel Transparent = Color.Transparent.ToPixel<TPixel>();
@@ -56,13 +56,13 @@ namespace SixLabors.ImageSharp.Processing
             private readonly GradientRepetitionMode repetitionMode;
 
             /// <summary>
-            /// Initializes a new instance of the <see cref="GradientBrushApplicatorBase{TPixel}"/> class.
+            /// Initializes a new instance of the <see cref="GradientBrushApplicator{TPixel}"/> class.
             /// </summary>
             /// <param name="target">The target.</param>
             /// <param name="options">The options.</param>
             /// <param name="colorStops">An array of color stops sorted by their position.</param>
             /// <param name="repetitionMode">Defines if and how the gradient should be repeated.</param>
-            protected GradientBrushApplicatorBase(
+            protected GradientBrushApplicator(
                 ImageFrame<TPixel> target,
                 GraphicsOptions options,
                 ColorStop[] colorStops,

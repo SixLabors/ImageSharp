@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// <summary>
     /// The base class for performing error diffusion based dithering.
     /// </summary>
-    public abstract class ErrorDiffuserBase : IErrorDiffuser
+    public abstract class ErrorDiffuser : IErrorDiffuser
     {
         /// <summary>
         /// The vector to perform division.
@@ -41,11 +41,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         private readonly DenseMatrix<float> matrix;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ErrorDiffuserBase"/> class.
+        /// Initializes a new instance of the <see cref="ErrorDiffuser"/> class.
         /// </summary>
         /// <param name="matrix">The dithering matrix.</param>
         /// <param name="divisor">The divisor.</param>
-        internal ErrorDiffuserBase(in DenseMatrix<float> matrix, byte divisor)
+        internal ErrorDiffuser(in DenseMatrix<float> matrix, byte divisor)
         {
             Guard.MustBeGreaterThan(divisor, 0, nameof(divisor));
 

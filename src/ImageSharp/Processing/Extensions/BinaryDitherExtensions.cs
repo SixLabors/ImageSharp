@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="dither">The ordered ditherer.</param>
-        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext
             BinaryDither(this IImageProcessingContext source, IOrderedDither dither) =>
             source.ApplyProcessor(new BinaryOrderedDitherProcessor(dither));
@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="dither">The ordered ditherer.</param>
         /// <param name="upperColor">The color to use for pixels that are above the threshold.</param>
         /// <param name="lowerColor">The color to use for pixels that are below the threshold</param>
-        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext BinaryDither(
             this IImageProcessingContext source,
             IOrderedDither dither,
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext BinaryDither(
             this IImageProcessingContext source,
             IOrderedDither dither,
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
-        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext BinaryDither(
             this IImageProcessingContext source,
             IOrderedDither dither,

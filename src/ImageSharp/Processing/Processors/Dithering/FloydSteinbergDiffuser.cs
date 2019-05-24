@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// Applies error diffusion based dithering using the Floyd–Steinberg image dithering algorithm.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public sealed class FloydSteinbergDiffuser : ErrorDiffuserBase
+    public sealed class FloydSteinbergDiffuser : ErrorDiffuser
     {
         /// <summary>
         /// The diffusion matrix

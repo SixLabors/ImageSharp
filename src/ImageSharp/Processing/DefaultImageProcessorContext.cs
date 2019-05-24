@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing
     /// Performs processor application operations on the source image
     /// </summary>
     /// <typeparam name="TPixel">The pixel format</typeparam>
-    internal class DefaultInternalImageProcessorContext<TPixel> : IInternalImageProcessingContext<TPixel>
+    internal class DefaultImageProcessorContext<TPixel> : IInternalImageProcessingContext<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly bool mutate;
@@ -21,11 +21,11 @@ namespace SixLabors.ImageSharp.Processing
         private Image<TPixel> destination;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DefaultInternalImageProcessorContext{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="DefaultImageProcessorContext{TPixel}"/> class.
         /// </summary>
         /// <param name="source">The image.</param>
         /// <param name="mutate">The mutate.</param>
-        public DefaultInternalImageProcessorContext(Image<TPixel> source, bool mutate)
+        public DefaultImageProcessorContext(Image<TPixel> source, bool mutate)
         {
             this.mutate = mutate;
             this.source = source;
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Processing
         public MemoryAllocator MemoryAllocator => this.source.GetConfiguration().MemoryAllocator;
 
         /// <inheritdoc/>
-        public Image<TPixel> Apply()
+        public Image<TPixel> GetResultImage()
         {
             if (!this.mutate && this.destination is null)
             {
@@ -65,8 +65,7 @@ namespace SixLabors.ImageSharp.Processing
             return this.ApplyProcessor(processorImplementation);
         }
 
-        /// <inheritdoc/>
-        public IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
+        private IImageProcessingContext ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
         {
             if (!this.mutate && this.destination is null)
             {
@@ -86,8 +85,7 @@ namespace SixLabors.ImageSharp.Processing
             return this;
         }
 
-        /// <inheritdoc/>
-        public IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor)
+        private IImageProcessingContext ApplyProcessor(IImageProcessor<TPixel> processor)
         {
             return this.ApplyProcessor(processor, this.GetCurrentBounds());
         }

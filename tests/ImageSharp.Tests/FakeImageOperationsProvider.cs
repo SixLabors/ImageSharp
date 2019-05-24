@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public MemoryAllocator MemoryAllocator => this.Source.GetConfiguration().MemoryAllocator;
 
-            public Image<TPixel> Apply()
+            public Image<TPixel> GetResultImage()
             {
                 return this.Source;
             }
@@ -83,25 +83,6 @@ namespace SixLabors.ImageSharp.Tests
                                      {
                                          NonGenericProcessor = processor
                                      });
-                return this;
-            }
-
-            public IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
-            {
-                this.Applied.Add(new AppliedOperation
-                {
-                    GenericProcessor = processor,
-                    Rectangle = rectangle
-                });
-                return this;
-            }
-
-            public IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor)
-            {
-                this.Applied.Add(new AppliedOperation
-                {
-                    GenericProcessor = processor
-                });
                 return this;
             }
 

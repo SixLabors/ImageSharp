@@ -6,16 +6,16 @@ using System;
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {
     /// <summary>
-    /// Base class for all implementations of <see cref="RgbWorkingSpaceBase"/>.
+    /// Base class for all implementations of <see cref="RgbWorkingSpace"/>.
     /// </summary>
-    public abstract class RgbWorkingSpaceBase
+    public abstract class RgbWorkingSpace
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="RgbWorkingSpaceBase"/> class.
+        /// Initializes a new instance of the <see cref="RgbWorkingSpace"/> class.
         /// </summary>
         /// <param name="referenceWhite">The reference white point.</param>
         /// <param name="chromaticityCoordinates">The chromaticity of the rgb primaries.</param>
-        protected RgbWorkingSpaceBase(CieXyz referenceWhite, RgbPrimariesChromaticityCoordinates chromaticityCoordinates)
+        protected RgbWorkingSpace(CieXyz referenceWhite, RgbPrimariesChromaticityCoordinates chromaticityCoordinates)
         {
             this.WhitePoint = referenceWhite;
             this.ChromaticityCoordinates = chromaticityCoordinates;
@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
                 return true;
             }
 
-            if (obj is RgbWorkingSpaceBase other)
+            if (obj is RgbWorkingSpace other)
             {
                 return this.WhitePoint.Equals(other.WhitePoint)
                     && this.ChromaticityCoordinates.Equals(other.ChromaticityCoordinates);

@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// Initializes a new instance of the <see cref="CieXyzToLinearRgbConverter"/> class.
         /// </summary>
         /// <param name="workingSpace">The target working space.</param>
-        public CieXyzToLinearRgbConverter(RgbWorkingSpaceBase workingSpace)
+        public CieXyzToLinearRgbConverter(RgbWorkingSpace workingSpace)
         {
             this.TargetWorkingSpace = workingSpace;
 
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// <summary>
         /// Gets the target working space.
         /// </summary>
-        public RgbWorkingSpaceBase TargetWorkingSpace { get; }
+        public RgbWorkingSpace TargetWorkingSpace { get; }
 
         /// <summary>
         /// Performs the conversion from the <see cref="CieXyz"/> input to an instance of <see cref="LinearRgb"/> type.

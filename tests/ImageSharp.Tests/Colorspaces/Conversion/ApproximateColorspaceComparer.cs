@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         IEqualityComparer<CieXyChromaticityCoordinates>,
         IEqualityComparer<RgbPrimariesChromaticityCoordinates>,
         IEqualityComparer<GammaWorkingSpace>,
-        IEqualityComparer<RgbWorkingSpaceBase>
+        IEqualityComparer<RgbWorkingSpace>
     {
         private readonly float Epsilon;
 
@@ -222,14 +222,14 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         public int GetHashCode(GammaWorkingSpace obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
-        public bool Equals(RgbWorkingSpaceBase x, RgbWorkingSpaceBase y)
+        public bool Equals(RgbWorkingSpace x, RgbWorkingSpace y)
         {
             return this.Equals(x.WhitePoint, y.WhitePoint)
                 && this.Equals(x.ChromaticityCoordinates, y.ChromaticityCoordinates);
         }
 
         /// <inheritdoc/>
-        public int GetHashCode(RgbWorkingSpaceBase obj) => obj.GetHashCode();
+        public int GetHashCode(RgbWorkingSpace obj) => obj.GetHashCode();
 
         private bool Equals(float x, float y)
         {

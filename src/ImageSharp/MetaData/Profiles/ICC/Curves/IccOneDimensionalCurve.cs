@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Linq;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
@@ -52,7 +51,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             }
 
             return this.BreakPoints.AsSpan().SequenceEqual(other.BreakPoints)
-                && this.Segments.SequenceEqual(other.Segments);
+                && this.Segments.AsSpan().SequenceEqual(other.Segments);
         }
     }
 }

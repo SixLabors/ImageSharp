@@ -70,6 +70,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 
         private IccTagTableEntry[] WriteTagData(IccDataWriter writer, IccTagDataEntry[] entries)
         {
+            // TODO: Investigate cost of Linq GroupBy
             IEnumerable<IGrouping<IccTagDataEntry, IccTagDataEntry>> grouped = entries.GroupBy(t => t);
 
             // (Header size) + (entry count) + (nr of entries) * (size of table entry)

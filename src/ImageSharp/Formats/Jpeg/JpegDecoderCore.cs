@@ -4,7 +4,6 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
@@ -726,7 +725,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.InputStream.Read(this.temp, 0, length);
 
             // We only support 8-bit and 12-bit precision.
-            if (!this.supportedPrecisions.Contains(this.temp[0]))
+            if (Array.IndexOf(this.supportedPrecisions, this.temp[0]) == -1)
             {
                 JpegThrowHelper.ThrowImageFormatException("Only 8-Bit and 12-Bit precision supported.");
             }

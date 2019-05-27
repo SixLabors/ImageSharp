@@ -5,6 +5,7 @@ using System;
 using System.Linq;
 using System.Numerics;
 
+// TODO: Review the use of base IccTagDataEntry comparison.
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
@@ -206,7 +207,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
                 return false;
             }
 
-            return thisCurves.AsSpan().SequenceEqual(entryCurves);
+            return thisCurves.SequenceEqual(entryCurves);
         }
 
         private bool IsBMatrixMClutA()

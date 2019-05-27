@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Linq;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
@@ -17,9 +16,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// <param name="curves">An array with one dimensional curves</param>
         public IccCurveSetProcessElement(IccOneDimensionalCurve[] curves)
             : base(IccMultiProcessElementSignature.CurveSet, curves?.Length ?? 1, curves?.Length ?? 1)
-        {
-            this.Curves = curves ?? throw new ArgumentNullException(nameof(curves));
-        }
+            => this.Curves = curves ?? throw new ArgumentNullException(nameof(curves));
 
         /// <summary>
         /// Gets an array of one dimensional curves
@@ -31,16 +28,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         {
             if (base.Equals(other) && other is IccCurveSetProcessElement element)
             {
-                return this.Curves.SequenceEqual(element.Curves);
+                return this.Curves.AsSpan().SequenceEqual(element.Curves);
             }
 
             return false;
         }
 
         /// <inheritdoc />
-        public bool Equals(IccCurveSetProcessElement other)
-        {
-            return this.Equals((IccMultiProcessElement)other);
-        }
+        public bool Equals(IccCurveSetProcessElement other) => this.Equals((IccMultiProcessElement)other);
     }
 }

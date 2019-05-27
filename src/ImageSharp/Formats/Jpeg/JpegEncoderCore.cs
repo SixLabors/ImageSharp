@@ -4,7 +4,6 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -197,7 +196,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            ushort max = JpegConstants.MaxLength;
+            const ushort max = JpegConstants.MaxLength;
             if (image.Width >= max || image.Height >= max)
             {
                 throw new ImageFormatException($"Image is too large to encode at {image.Width}x{image.Height}.");
@@ -226,7 +225,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             InitQuantizationTable(1, scale, ref this.chrominanceQuantTable);
 
             // Compute number of components based on input image type.
-            int componentCount = 3;
+            const int componentCount = 3;
 
             // Write the Start Of Image marker.
             this.WriteApplicationHeader(metadata);
@@ -278,7 +277,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private static void InitQuantizationTable(int i, int scale, ref Block8x8F quant)
         {
             DebugGuard.MustBeBetweenOrEqualTo(i, 0, 1, nameof(i));
-            var unscaledQuant = (i == 0) ? UnscaledQuant_Luminance : UnscaledQuant_Chrominance;
+            ReadOnlySpan<byte> unscaledQuant = (i == 0) ? UnscaledQuant_Luminance : UnscaledQuant_Chrominance;
 
             for (int j = 0; j < Block8x8F.Size; j++)
             {
@@ -653,8 +652,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            const int MaxBytesApp1 = 65533;
-            const int MaxBytesWithExifId = 65527;
+            const int MaxBytesApp1 = 65533; // 64k - 2 padding bytes
+            const int MaxBytesWithExifId = 65527; // Max - 6 bytes for EXIF header.
 
             byte[] data = exifProfile?.ToByteArray();
 
@@ -663,31 +662,30 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            data = ProfileResolver.ExifMarker.Concat(data).ToArray();
-
-            int remaining = data.Length;
+            // We can write up to a maximum of 64 data to the initial marker so calculate boundaries.
+            int exifMarkerLength = ProfileResolver.ExifMarker.Length;
+            int remaining = exifMarkerLength + data.Length;
             int bytesToWrite = remaining > MaxBytesApp1 ? MaxBytesApp1 : remaining;
             int app1Length = bytesToWrite + 2;
 
+            // Write the app marker, EXIF marker, and data
             this.WriteApp1Header(app1Length);
-
-            // write the exif data
-            this.outputStream.Write(data, 0, bytesToWrite);
+            this.outputStream.Write(ProfileResolver.ExifMarker);
+            this.outputStream.Write(data, 0, bytesToWrite - exifMarkerLength);
             remaining -= bytesToWrite;
 
-            // if the exif data exceeds 64K, write it in multiple APP1 Markers
-            for (int idx = MaxBytesApp1; idx < data.Length; idx += MaxBytesWithExifId)
+            // If the exif data exceeds 64K, write it in multiple APP1 Markers
+            for (int idx = MaxBytesWithExifId; idx < data.Length; idx += MaxBytesWithExifId)
             {
                 bytesToWrite = remaining > MaxBytesWithExifId ? MaxBytesWithExifId : remaining;
-                app1Length = bytesToWrite + 2 + 6;
+                app1Length = bytesToWrite + 2 + exifMarkerLength;
 
                 this.WriteApp1Header(app1Length);
 
-                // write Exif00 marker
-                ProfileResolver.ExifMarker.AsSpan().CopyTo(this.buffer.AsSpan());
-                this.outputStream.Write(this.buffer, 0, 6);
+                // Write Exif00 marker
+                this.outputStream.Write(ProfileResolver.ExifMarker);
 
-                // write the exif data
+                // Write the exif data
                 this.outputStream.Write(data, idx, bytesToWrite);
 
                 remaining -= bytesToWrite;

@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Linq;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
@@ -68,18 +67,15 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 
         /// <inheritdoc/>
         public bool Equals(IccProfileDescription other) =>
-            this.DeviceManufacturer == other.DeviceManufacturer &&
-            this.DeviceModel == other.DeviceModel &&
-            this.DeviceAttributes == other.DeviceAttributes &&
-            this.TechnologyInformation == other.TechnologyInformation &&
-            this.DeviceManufacturerInfo.SequenceEqual(other.DeviceManufacturerInfo) &&
-            this.DeviceModelInfo.SequenceEqual(other.DeviceModelInfo);
+            this.DeviceManufacturer == other.DeviceManufacturer
+            && this.DeviceModel == other.DeviceModel
+            && this.DeviceAttributes == other.DeviceAttributes
+            && this.TechnologyInformation == other.TechnologyInformation
+            && this.DeviceManufacturerInfo.AsSpan().SequenceEqual(other.DeviceManufacturerInfo)
+            && this.DeviceModelInfo.AsSpan().SequenceEqual(other.DeviceModelInfo);
 
         /// <inheritdoc />
-        public override bool Equals(object obj)
-        {
-            return obj is IccProfileDescription other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is IccProfileDescription other && this.Equals(other);
 
         /// <inheritdoc />
         public override int GetHashCode()

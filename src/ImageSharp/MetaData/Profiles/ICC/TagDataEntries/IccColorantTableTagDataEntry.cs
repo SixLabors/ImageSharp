@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Linq;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
@@ -42,10 +41,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         public IccColorantTableEntry[] ColorantData { get; }
 
         /// <inheritdoc/>
-        public override bool Equals(IccTagDataEntry other)
-        {
-            return other is IccColorantTableTagDataEntry entry && this.Equals(entry);
-        }
+        public override bool Equals(IccTagDataEntry other) => other is IccColorantTableTagDataEntry entry && this.Equals(entry);
 
         /// <inheritdoc/>
         public bool Equals(IccColorantTableTagDataEntry other)
@@ -60,19 +56,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
                 return true;
             }
 
-            return base.Equals(other) && this.ColorantData.SequenceEqual(other.ColorantData);
+            return base.Equals(other) && this.ColorantData.AsSpan().SequenceEqual(other.ColorantData);
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is IccColorantTableTagDataEntry other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is IccColorantTableTagDataEntry other && this.Equals(other);
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(this.Signature, this.ColorantData);
-        }
+        public override int GetHashCode() => HashCode.Combine(this.Signature, this.ColorantData);
     }
 }

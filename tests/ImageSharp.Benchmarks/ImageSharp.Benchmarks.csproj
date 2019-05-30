@@ -23,10 +23,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" Version="$(BenchmarkDotNetPackageVersion)" />
-    <PackageReference Include="Colourful" Version="$(ColourfulPackageVersion)" />
-    <PackageReference Include="SixLabors.Shapes.Text" Version="$(SixLaborsShapesTextPackageVersion)" />
-    <PackageReference Include="System.Drawing.Common" Version="$(SystemDrawingCommonPackageVersion)" />
+    <PackageReference Include="BenchmarkDotNet" />
+    <PackageReference Include="Colourful" />
+    <PackageReference Include="SixLabors.Shapes.Text" />
+    <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
 
   <ItemGroup>

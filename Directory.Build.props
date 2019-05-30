@@ -69,34 +69,9 @@
     <UseSharedCompilation>true</UseSharedCompilation>
   </PropertyGroup>
 
-  <!-- Package versions for package references across all projects -->
-  <PropertyGroup>
-    <BenchmarkDotNetPackageVersion>0.11.5</BenchmarkDotNetPackageVersion>
-    <ColourfulPackageVersion>2.0.2</ColourfulPackageVersion>
-    <DotnetXUnitPackageVersion>2.3.1</DotnetXUnitPackageVersion>
-    <MagicNetQ16AnyCpuPackageVersion>7.12.0</MagicNetQ16AnyCpuPackageVersion>
-    <MicrosoftNetCompilersToolsetPackageVersion>3.1.0-beta2-final</MicrosoftNetCompilersToolsetPackageVersion>
-    <MicrosoftNetTestSdkPackageVersion>15.9.0</MicrosoftNetTestSdkPackageVersion>
-    <MoqPackageVersion>4.10.0</MoqPackageVersion>
-    <SixLaborsCorePackageVersion>1.0.0-dev000101</SixLaborsCorePackageVersion>
-    <SixLaborsFontsPackageVersion>1.0.0-beta0008</SixLaborsFontsPackageVersion>
-    <SixLaborsShapesTextPackageVersion>1.0.0-beta0007</SixLaborsShapesTextPackageVersion>
-    <SixLaborsShapesPackageVersion>1.0.0-beta0008</SixLaborsShapesPackageVersion>
-    <StyleCopAnalyzersPackageVersion>1.1.118</StyleCopAnalyzersPackageVersion>
-    <SystemDrawingCommonPackageVersion>4.5.1</SystemDrawingCommonPackageVersion>
-    <SystemIOCompressionPackageVersion>4.3.0</SystemIOCompressionPackageVersion>
-    <SystemIOUnmanagedMemoryStreamPackageVersion>4.3.0</SystemIOUnmanagedMemoryStreamPackageVersion>
-    <SystemRuntimeCompilerServicesUnsafePackageVersion>4.5.1</SystemRuntimeCompilerServicesUnsafePackageVersion>
-    <SystemThreadingTasksParallelPackageVersion>4.3.0</SystemThreadingTasksParallelPackageVersion>
-    <SystemValueTuplePackageVersion>4.5.0</SystemValueTuplePackageVersion>
-    <XUnitPackageVersion>2.3.1</XUnitPackageVersion>
-    <XUnitRunnerConsolePackageVersion>2.3.1</XUnitRunnerConsolePackageVersion>
-    <XUnitRunnerVisualStudioPackageVersion>2.3.1</XUnitRunnerVisualStudioPackageVersion>
-  </PropertyGroup>
-
   <!-- Package references which are consumed by all projects -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="$(MicrosoftNetCompilersToolsetPackageVersion)" IsImplicitlyDefined="true" />
+    <PackageReference Include="Microsoft.Net.Compilers.Toolset" IsImplicitlyDefined="true" />
   </ItemGroup>
 
 </Project>

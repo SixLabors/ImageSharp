@@ -22,9 +22,9 @@
   <Import Project="$(MSBuildThisFileDirectory)..\Directory.Build.props" />
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftNetTestSdkPackageVersion)" IsImplicitlyDefined="true" />
-    <PackageReference Include="XUnit" Version="$(XUnitPackageVersion)" IsImplicitlyDefined="true" />
-    <PackageReference Include="XUnit.Runner.VisualStudio" Version="$(XUnitRunnerVisualStudioPackageVersion)" IsImplicitlyDefined="true" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" IsImplicitlyDefined="true" />
+    <PackageReference Include="xunit" IsImplicitlyDefined="true" />
+    <PackageReference Include="xunit.runner.visualstudio" IsImplicitlyDefined="true" />
   </ItemGroup>
 
 </Project>

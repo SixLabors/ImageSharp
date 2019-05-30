@@ -74,7 +74,6 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 
-
 // Image.Load(string path) is a shortcut for our default type. 
 // Other pixel formats use Image.Load<TPixel>(string path))
 using (Image<Rgba32> image = Image.Load("foo.jpg"))

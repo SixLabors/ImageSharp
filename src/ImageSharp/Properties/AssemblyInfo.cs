@@ -3,9 +3,6 @@
 
 using System.Runtime.CompilerServices;
 
-// Ensure the other projects can see the internal helpers
-[assembly: InternalsVisibleTo("SixLabors.ImageSharp.Drawing")]
-
 // Redundant suppressing of SA1413 for Rider.
 [assembly:
     System.Diagnostics.CodeAnalysis.SuppressMessage(

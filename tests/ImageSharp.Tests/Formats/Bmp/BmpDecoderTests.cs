@@ -267,7 +267,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         }
 
         [Theory]
-        [WithFile(Rgba32bf56, PixelTypes.Rgba32)]
+        [WithFile(Rgba32bf56AdobeV3, PixelTypes.Rgba32)]
+        [WithFile(Rgb32h52AdobeV3, PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecodeAdobeBmpv3<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

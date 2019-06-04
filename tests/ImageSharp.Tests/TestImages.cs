@@ -267,7 +267,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string Rgb16565 = "Bmp/rgb16-565.bmp";
             public const string Rgb16565pal = "Bmp/rgb16-565pal.bmp";
             public const string Issue735 = "Bmp/issue735.bmp";
-            public const string Rgba32bf56 = "Bmp/rgba32h56.bmp";
+            public const string Rgba32bf56AdobeV3 = "Bmp/rgba32h56.bmp";
+            public const string Rgb32h52AdobeV3 = "Bmp/rgb32h52.bmp";
             public const string Rgba321010102 = "Bmp/rgba32-1010102.bmp";
             public const string RgbaAlphaBitfields = "Bmp/rgba32abf.bmp";
 

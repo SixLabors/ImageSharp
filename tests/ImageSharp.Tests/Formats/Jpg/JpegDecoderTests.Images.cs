@@ -17,6 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 // BUG: The following image has a high difference compared to the expected output:
                 // TestImages.Jpeg.Baseline.Jpeg420Small,
+                // TestImages.Jpeg.Issues.Fuzz.AccessViolationException922,
 
                 TestImages.Jpeg.Baseline.Jpeg444,
                 TestImages.Jpeg.Baseline.Bad.BadEOF,

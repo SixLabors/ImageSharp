@@ -24,10 +24,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 
         public static readonly string[] BitfieldsBmpFiles = BitFields;
 
-        public static readonly string[] Rle4Bitmaps = Rle4Set;
-
-        public static readonly string[] Rle8Bitmaps = Rle8Set;
-
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
         new TheoryData<string, int, int, PixelResolutionUnit>
         {
@@ -55,6 +51,80 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         [Theory]
         [WithFileCollection(nameof(BitfieldsBmpFiles), PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecodeBitfields<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit16Inverted, PixelTypes.Rgba32)]
+        [WithFile(Bit8Inverted, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_Inverted<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit1, PixelTypes.Rgba32)]
+        [WithFile(Bit1Pal1, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_1Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit4, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_4Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit8, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_8Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit16, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_16Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit32Rgb, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_32Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
@@ -104,6 +174,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 
         [Theory]
         [WithFile(RLE8, PixelTypes.Rgba32)]
+        [WithFile(RLE8Inverted, PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -160,6 +231,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 
         [Theory]
         [WithFile(WinBmpv2, PixelTypes.Rgba32)]
+        [WithFile(CoreHeader, PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecodeBmpv2<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -220,6 +292,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 
         [Theory]
         [WithFile(WinBmpv5, PixelTypes.Rgba32)]
+        [WithFile(V5Header, PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecodeBmpv5<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

@@ -315,7 +315,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                                 case RleSkippePixelHandling.Transparent:
                                     color.FromVector4(new Vector4(0.0f, 0.0f, 0.0f, 0.0f));
                                     break;
-                                case RleSkippePixelHandling.Black:
+
+                                // Default handling for skipped pixels is black (which is what System.Drawing is also doing).
                                 default:
                                     color.FromVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
                                     break;
@@ -882,11 +883,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             uint maxValueAlpha = 0xFFFFFFFF >> (32 - bitsAlphaMask);
             float invMaxValueAlpha = 1.0f / maxValueAlpha;
 
-            bool unusualBitMask = false;
-            if (bitsRedMask > 8 || bitsGreenMask > 8 || bitsBlueMask > 8 || invMaxValueAlpha > 8)
-            {
-                unusualBitMask = true;
-            }
+            bool unusualBitMask = bitsRedMask > 8 || bitsGreenMask > 8 || bitsBlueMask > 8 || invMaxValueAlpha > 8;
 
             using (IManagedByteBuffer buffer = this.memoryAllocator.AllocateManagedByteBuffer(stride))
             {
@@ -1027,7 +1024,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 {
                     byte[] bitfieldsBuffer = new byte[12];
                     this.stream.Read(bitfieldsBuffer, 0, 12);
-                    Span<byte> data = bitfieldsBuffer.AsSpan<byte>();
+                    Span<byte> data = bitfieldsBuffer.AsSpan();
                     this.infoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4));
                     this.infoHeader.GreenMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4));
                     this.infoHeader.BlueMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4));
@@ -1036,7 +1033,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 {
                     byte[] bitfieldsBuffer = new byte[16];
                     this.stream.Read(bitfieldsBuffer, 0, 16);
-                    Span<byte> data = bitfieldsBuffer.AsSpan<byte>();
+                    Span<byte> data = bitfieldsBuffer.AsSpan();
                     this.infoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4));
                     this.infoHeader.GreenMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4));
                     this.infoHeader.BlueMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4));

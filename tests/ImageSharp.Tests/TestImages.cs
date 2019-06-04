@@ -230,7 +230,11 @@ namespace SixLabors.ImageSharp.Tests
             public const string CoreHeader = "Bmp/BitmapCoreHeaderQR.bmp";
             public const string V5Header = "Bmp/BITMAPV5HEADER.bmp";
             public const string RLE8 = "Bmp/RunLengthEncoded.bmp";
+            public const string RLE8cut = "Bmp/pal8rlecut.bmp";
+            public const string RLE8delta = "Bmp/pal8rletrns.bmp";
             public const string RLE4 = "Bmp/pal4rle.bmp";
+            public const string RLE4cut = "Bmp/pal4rlecut.bmp";
+            public const string RLE4delta = "Bmp/pal4rletrns.bmp";
             public const string RLEInverted = "Bmp/RunLengthEncoded-inverted.bmp";
             public const string Bit1 = "Bmp/pal1.bmp";
             public const string Bit1Pal1 = "Bmp/pal1p1.bmp";
@@ -277,6 +281,21 @@ namespace SixLabors.ImageSharp.Tests
                   Issue735,
             };
 
+            public static readonly string[] Rle4Set
+                = {
+                          RLE4,
+                          RLE4cut,
+                          RLE4delta,
+                      };
+
+            public static readonly string[] Rle8Set
+                = {
+                          RLE8cut,
+                          RLE8delta,
+                          RLE8,
+                          RLEInverted,
+                      };
+
             public static readonly string[] All
             = {
                 Car,
@@ -284,9 +303,6 @@ namespace SixLabors.ImageSharp.Tests
                 NegHeight,
                 CoreHeader,
                 V5Header,
-                RLE4,
-                RLE8,
-                RLEInverted,
                 Bit1,
                 Bit1Pal1,
                 Bit4,

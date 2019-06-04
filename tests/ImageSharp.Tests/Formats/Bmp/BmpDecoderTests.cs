@@ -24,12 +24,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 
         public static readonly string[] BitfieldsBmpFiles = BitFields;
 
+        public static readonly string[] Rle4Bitmaps = Rle4Set;
+
+        public static readonly string[] Rle8Bitmaps = Rle8Set;
+
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
         new TheoryData<string, int, int, PixelResolutionUnit>
         {
-            { TestImages.Bmp.Car, 3780, 3780 , PixelResolutionUnit.PixelsPerMeter },
-            { TestImages.Bmp.V5Header, 3780, 3780 , PixelResolutionUnit.PixelsPerMeter },
-            { TestImages.Bmp.RLE8, 2835, 2835, PixelResolutionUnit.PixelsPerMeter }
+            { Car, 3780, 3780 , PixelResolutionUnit.PixelsPerMeter },
+            { V5Header, 3780, 3780 , PixelResolutionUnit.PixelsPerMeter },
+            { RLE8, 2835, 2835, PixelResolutionUnit.PixelsPerMeter }
         };
 
         [Theory]
@@ -54,6 +58,56 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(RLE4cut, PixelTypes.Rgba32)]
+        [WithFile(RLE4delta, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_RunLengthEncoded_4Bit_WithDelta<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleUndefinedPixelHandling = RleSkippePixelHandling.Black }))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(RLE4, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_RunLengthEncoded_4Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleUndefinedPixelHandling = RleSkippePixelHandling.Black }))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(RLE8cut, PixelTypes.Rgba32)]
+        [WithFile(RLE8delta, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit_WithDelta<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleUndefinedPixelHandling = RleSkippePixelHandling.Black }))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(RLE8, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleUndefinedPixelHandling = RleSkippePixelHandling.Black }))
             {
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider);
@@ -223,6 +277,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         [InlineData(Bit8, 8)]
         [InlineData(Bit8Inverted, 8)]
         [InlineData(Bit4, 4)]
+        [InlineData(Bit1, 1)]
+        [InlineData(Bit1Pal1, 1)]
         public void Identify(string imagePath, int expectedPixelSize)
         {
             var testFile = TestFile.Create(imagePath);

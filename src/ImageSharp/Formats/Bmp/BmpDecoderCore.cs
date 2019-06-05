@@ -1176,10 +1176,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             if (colorMapSize > 0)
             {
-                // 256 * 4
-                if (colorMapSize > 1024)
+                // Usually the color palette is 1024 byte (256 colors * 4), but the documentation does not mention a size limit.
+                // Make sure, that we will not read pass the bitmap offset (starting position of image data).
+                if ((this.stream.Position + colorMapSize) > this.fileHeader.Offset)
                 {
-                    BmpThrowHelper.ThrowImageFormatException($"Invalid bmp colormap size '{colorMapSize}'");
+                    BmpThrowHelper.ThrowImageFormatException(
+                        $"Reading the color map would read beyond the bitmap offset. Either the color map size '{colorMapSize}' is invalid or the bitmap offset.");
                 }
 
                 palette = new byte[colorMapSize];
@@ -1192,7 +1194,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int skipAmount = this.fileHeader.Offset - (int)this.stream.Position;
             if ((skipAmount + (int)this.stream.Position) > this.stream.Length)
             {
-                BmpThrowHelper.ThrowImageFormatException($"Invalid fileheader offset found. Offset is greater than the stream length.");
+                BmpThrowHelper.ThrowImageFormatException("Invalid fileheader offset found. Offset is greater than the stream length.");
             }
 
             if (skipAmount > 0)

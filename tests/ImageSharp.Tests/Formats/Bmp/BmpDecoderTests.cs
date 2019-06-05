@@ -267,6 +267,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         }
 
         [Theory]
+        [WithFile(OversizedPalette, PixelTypes.Rgba32)]
+        [WithFile(Rgb24LargePalette, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecodeOversizedPalette<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
         [WithFile(Rgba32bf56AdobeV3, PixelTypes.Rgba32)]
         [WithFile(Rgb32h52AdobeV3, PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecodeAdobeBmpv3<TPixel>(TestImageProvider<TPixel> provider)

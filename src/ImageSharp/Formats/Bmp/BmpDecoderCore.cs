@@ -1181,7 +1181,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 if ((this.stream.Position + colorMapSize) > this.fileHeader.Offset)
                 {
                     BmpThrowHelper.ThrowImageFormatException(
-                        $"Reading the color map would read beyond the bitmap offset. Either the color map size '{colorMapSize}' is invalid or the bitmap offset.");
+                        $"Reading the color map would read beyond the bitmap offset. Either the color map size of '{colorMapSize}' is invalid or the bitmap offset.");
                 }
 
                 palette = new byte[colorMapSize];

@@ -261,8 +261,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string Pal8Offset = "Bmp/pal8offs.bmp";
             public const string OversizedPalette = "Bmp/pal8oversizepal.bmp";
             public const string Rgb24LargePalette = "Bmp/rgb24largepal.bmp";
+            public const string InvalidPaletteSize = "Bmp/invalidPaletteSize.bmp";
 
-            // Bitmap images with compression type BITFIELDS
+            // Bitmap images with compression type BITFIELDS.
             public const string Rgb32bfdef = "Bmp/rgb32bfdef.bmp";
             public const string Rgb32bf = "Bmp/rgb32bf.bmp";
             public const string Rgb16bfdef = "Bmp/rgb16bfdef.bmp";
@@ -284,12 +285,32 @@ namespace SixLabors.ImageSharp.Tests
                   Issue735,
             };
 
-            public static readonly string[] All
+            public static readonly string[] Miscellaneous
             = {
                 Car,
                 F,
                 NegHeight
             };
+
+            public static readonly string[] Benchmark
+                = {
+                          Car,
+                          F,
+                          NegHeight,
+                          CoreHeader,
+                          V5Header,
+                          RLE4,
+                          RLE8,
+                          RLE8Inverted,
+                          Bit1,
+                          Bit1Pal1,
+                          Bit4,
+                          Bit8,
+                          Bit8Inverted,
+                          Bit16,
+                          Bit16Inverted,
+                          Bit32Rgb
+                      };
         }
 
         public static class Gif

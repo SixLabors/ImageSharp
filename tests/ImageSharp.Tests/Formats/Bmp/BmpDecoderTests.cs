@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -20,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
     {
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
 
-        public static readonly string[] AllBmpFiles = All;
+        public static readonly string[] MiscBmpFiles = Miscellaneous;
 
         public static readonly string[] BitfieldsBmpFiles = BitFields;
 
@@ -33,8 +34,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         };
 
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Rgba32)]
-        public void DecodeBmp<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(MiscBmpFiles), PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_MiscellaneousBitmaps<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
@@ -277,6 +278,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider);
             }
+        }
+
+        [Theory]
+        [WithFile(InvalidPaletteSize, PixelTypes.Rgba32)]
+        public void BmpDecoder_ThrowsException_OnInvalidPaletteSize<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Assert.Throws<ImageFormatException>( () => { using (Image<TPixel> image = provider.GetImage(new BmpDecoder())) { } });
         }
 
         [Theory]

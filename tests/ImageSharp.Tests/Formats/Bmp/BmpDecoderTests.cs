@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode_RunLengthEncoded_4Bit_WithDelta<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleUndefinedPixelHandling = RleSkippePixelHandling.Black }))
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
             {
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider);
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode_RunLengthEncoded_4Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleUndefinedPixelHandling = RleSkippePixelHandling.Black }))
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
             {
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider);
@@ -166,7 +166,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit_WithDelta<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleUndefinedPixelHandling = RleSkippePixelHandling.Black }))
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
             {
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider);
@@ -179,7 +179,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleUndefinedPixelHandling = RleSkippePixelHandling.Black }))
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
             {
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider);

@@ -307,12 +307,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         byte colorIdx = bufferRow[x];
                         if (undefinedPixels[x, y])
                         {
-                            switch (this.options.RleUndefinedPixelHandling)
+                            switch (this.options.RleSkippedPixelHandling)
                             {
-                                case RleSkippePixelHandling.FirstColorOfPalette:
+                                case RleSkippedPixelHandling.FirstColorOfPalette:
                                     color.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIdx * 4]));
                                     break;
-                                case RleSkippePixelHandling.Transparent:
+                                case RleSkippedPixelHandling.Transparent:
                                     color.FromVector4(new Vector4(0.0f, 0.0f, 0.0f, 0.0f));
                                     break;
 

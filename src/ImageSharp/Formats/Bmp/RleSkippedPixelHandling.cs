@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// <summary>
     /// Defines possible options, how skipped pixels during decoding of run length encoded bitmaps should be treated.
     /// </summary>
-    public enum RleSkippePixelHandling : int
+    public enum RleSkippedPixelHandling : int
     {
         /// <summary>
         /// Undefined pixels should be black. This is how System.Drawing handles undefined pixels.

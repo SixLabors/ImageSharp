@@ -22,9 +22,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     public sealed class BmpDecoder : IImageDecoder, IBmpDecoderOptions, IImageInfoDetector
     {
         /// <summary>
-        /// Gets or sets a value indicating how to deal with undefined pixels, which can occur during decoding run length encoded bitmaps.
+        /// Gets or sets a value indicating how to deal with skipped pixels, which can occur during decoding run length encoded bitmaps.
         /// </summary>
-        public RleSkippePixelHandling RleUndefinedPixelHandling { get; set; } = RleSkippePixelHandling.Black;
+        public RleSkippedPixelHandling RleSkippedPixelHandling { get; set; } = RleSkippedPixelHandling.Black;
 
         /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)

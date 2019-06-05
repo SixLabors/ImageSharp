@@ -9,8 +9,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     internal interface IBmpDecoderOptions
     {
         /// <summary>
-        /// Gets the value indicating how to deal with undefined pixels, which can occur during decoding run length encoded bitmaps.
+        /// Gets the value indicating how to deal with skipped pixels, which can occur during decoding run length encoded bitmaps.
         /// </summary>
-        RleSkippePixelHandling RleUndefinedPixelHandling { get; }
+        RleSkippedPixelHandling RleSkippedPixelHandling { get; }
     }
 }

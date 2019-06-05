@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
                 && string.Equals(this.Prefix, other.Prefix)
                 && string.Equals(this.Suffix, other.Suffix)
                 && this.VendorFlags == other.VendorFlags
-                && this.Colors.SequenceEqual(other.Colors);
+                && this.Colors.AsSpan().SequenceEqual(other.Colors);
         }
 
         /// <inheritdoc/>

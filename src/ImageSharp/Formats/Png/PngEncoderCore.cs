@@ -6,7 +6,6 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
@@ -231,7 +230,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             if (this.pngColorType == PngColorType.Palette)
             {
                 byte bits = (byte)this.pngBitDepth;
-                if (!ColorTypes[this.pngColorType.Value].Contains(bits))
+                if (Array.IndexOf(ColorTypes[this.pngColorType.Value], bits) == -1)
                 {
                     throw new NotSupportedException("Bit depth is not supported or not valid.");
                 }
@@ -268,7 +267,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             else
             {
                 this.bitDepth = (byte)this.pngBitDepth;
-                if (!ColorTypes[this.pngColorType.Value].Contains(this.bitDepth))
+                if (Array.IndexOf(ColorTypes[this.pngColorType.Value], this.bitDepth) == -1)
                 {
                     throw new NotSupportedException("Bit depth is not supported or not valid.");
                 }

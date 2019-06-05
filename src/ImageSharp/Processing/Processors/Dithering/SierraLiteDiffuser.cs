@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// Applies error diffusion based dithering using the SierraLite image dithering algorithm.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public sealed class SierraLiteDiffuser : ErrorDiffuserBase
+    public sealed class SierraLiteDiffuser : ErrorDiffuser
     {
         /// <summary>
         /// The diffusion matrix

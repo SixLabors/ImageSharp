@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Tests
 {
     public abstract class BaseImageOperationsExtensionTest
     {
-        protected readonly IImageProcessingContext<Rgba32> operations;
+        protected readonly IImageProcessingContext operations;
         private readonly FakeImageOperationsProvider.FakeImageOperations<Rgba32> internalOperations;
         protected readonly Rectangle rect;
         protected readonly GraphicsOptions options;

@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         public void Setup()
         {
             this.bulk = new GlowProcessor(Color.Beige, 800 * .5f, GraphicsOptions.Default);
-            this.parallel = new GlowProcessorParallel<Rgba32>(NamedColors<Rgba32>.Beige) { Radius = 800 * .5f, };
+            this.parallel = new GlowProcessorParallel<Rgba32>(Color.Beige) { Radius = 800 * .5f, };
         }
 
         [Benchmark(Description = "ImageSharp Glow - Bulk")]

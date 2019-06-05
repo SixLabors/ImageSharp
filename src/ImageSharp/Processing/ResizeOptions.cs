@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.Primitives;
 
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets or sets the center coordinates.
         /// </summary>
-        public IEnumerable<float> CenterCoordinates { get; set; } = Enumerable.Empty<float>();
+        public IEnumerable<float> CenterCoordinates { get; set; } = Array.Empty<float>();
 
         /// <summary>
         /// Gets or sets the target size.

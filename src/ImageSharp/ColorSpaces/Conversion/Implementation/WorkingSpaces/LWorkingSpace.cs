@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     /// <summary>
     /// L* working space.
     /// </summary>
-    public sealed class LWorkingSpace : RgbWorkingSpaceBase
+    public sealed class LWorkingSpace : RgbWorkingSpace
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="LWorkingSpace" /> class.

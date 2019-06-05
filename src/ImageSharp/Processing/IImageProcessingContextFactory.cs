@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Processing
         public IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Image<TPixel> source, bool mutate)
             where TPixel : struct, IPixel<TPixel>
         {
-            return new DefaultInternalImageProcessorContext<TPixel>(source, mutate);
+            return new DefaultImageProcessorContext<TPixel>(source, mutate);
         }
     }
 }

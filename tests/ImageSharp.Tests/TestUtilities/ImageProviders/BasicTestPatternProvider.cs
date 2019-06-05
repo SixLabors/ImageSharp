@@ -31,9 +31,9 @@ namespace SixLabors.ImageSharp.Tests
             {
                 var result = new Image<TPixel>(this.Configuration, this.Width, this.Height);
 
-                TPixel topLeftColor = NamedColors<TPixel>.Red;
-                TPixel topRightColor = NamedColors<TPixel>.Green;
-                TPixel bottomLeftColor = NamedColors<TPixel>.Blue;
+                TPixel topLeftColor = Color.Red.ToPixel<TPixel>();
+                TPixel topRightColor = Color.Green.ToPixel<TPixel>();
+                TPixel bottomLeftColor = Color.Blue.ToPixel<TPixel>();
 
                 // Transparent purple:
                 TPixel bottomRightColor = default;
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests
                     Span<TPixel> row = result.GetPixelRowSpan(y);
 
                     row.Slice(0, midX).Fill(topLeftColor);
-                    row.Slice(midX, this.Width-midX).Fill(topRightColor);
+                    row.Slice(midX, this.Width - midX).Fill(topRightColor);
                 }
 
                 for (int y = midY; y < this.Height; y++)
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests
                     Span<TPixel> row = result.GetPixelRowSpan(y);
 
                     row.Slice(0, midX).Fill(bottomLeftColor);
-                    row.Slice(midX, this.Width-midX).Fill(bottomRightColor);
+                    row.Slice(midX, this.Width - midX).Fill(bottomRightColor);
                 }
 
                 return result;

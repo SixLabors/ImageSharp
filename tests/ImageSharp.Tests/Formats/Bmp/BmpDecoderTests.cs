@@ -282,10 +282,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 
         [Theory]
         [WithFile(InvalidPaletteSize, PixelTypes.Rgba32)]
-        public void BmpDecoder_ThrowsException_OnInvalidPaletteSize<TPixel>(TestImageProvider<TPixel> provider)
+        public void BmpDecoder_ThrowsImageFormatException_OnInvalidPaletteSize<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             Assert.Throws<ImageFormatException>( () => { using (Image<TPixel> image = provider.GetImage(new BmpDecoder())) { } });
+        }
+
+        [Theory]
+        [WithFile(Rgb24jpeg, PixelTypes.Rgba32)]
+        [WithFile(Rgb24png, PixelTypes.Rgba32)]
+        public void BmpDecoder_ThrowsNotSupportedException_OnUnsupportedBitmaps<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Assert.Throws<NotSupportedException>(() => { using (Image<TPixel> image = provider.GetImage(new BmpDecoder())) { } });
         }
 
         [Theory]

@@ -144,7 +144,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
             {
                 image.DebugSave(provider);
-                image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder());
+                if (TestEnvironment.IsWindows)
+                {
+                    image.CompareToOriginal(provider);
+                }
             }
         }
 
@@ -156,7 +159,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
             {
                 image.DebugSave(provider);
-                image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder());
+                if (TestEnvironment.IsWindows)
+                {
+                    image.CompareToOriginal(provider);
+                }
             }
         }
 
@@ -169,7 +175,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
             {
                 image.DebugSave(provider);
-                image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder());
+                if (TestEnvironment.IsWindows)
+                {
+                    image.CompareToOriginal(provider);
+                }
             }
         }
 
@@ -182,7 +191,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
             {
                 image.DebugSave(provider);
-                image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder());
+                if (TestEnvironment.IsWindows)
+                {
+                    image.CompareToOriginal(provider);
+                }
             }
         }
 
@@ -276,7 +288,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
                 image.DebugSave(provider);
-                image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder());
+                if (TestEnvironment.IsWindows)
+                {
+                    image.CompareToOriginal(provider);
+                }
             }
         }
 

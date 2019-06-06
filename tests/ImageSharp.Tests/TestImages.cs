@@ -265,6 +265,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string InvalidPaletteSize = "Bmp/invalidPaletteSize.bmp";
             public const string Rgb24jpeg = "Bmp/rgb24jpeg.bmp";
             public const string Rgb24png = "Bmp/rgb24png.bmp";
+            public const string Rgba32v4 = "Bmp/rgba32v4.bmp";
 
             // Bitmap images with compression type BITFIELDS.
             public const string Rgb32bfdef = "Bmp/rgb32bfdef.bmp";

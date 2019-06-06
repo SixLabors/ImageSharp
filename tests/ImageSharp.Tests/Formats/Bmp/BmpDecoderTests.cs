@@ -41,7 +41,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
                 image.DebugSave(provider);
-
                 if (TestEnvironment.IsWindows)
                 {
                     image.CompareToOriginal(provider);
@@ -95,7 +94,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
                 image.DebugSave(provider);
-                image.CompareToOriginal(provider);
+                if (TestEnvironment.IsWindows)
+                {
+                    image.CompareToOriginal(provider);
+                }
             }
         }
 
@@ -126,6 +128,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         [Theory]
         [WithFile(Bit32Rgb, PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecode_32Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(Rgba32v4, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_32BitV4Header_Fast<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))

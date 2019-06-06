@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
                 image.DebugSave(provider);
-                image.CompareToOriginal(provider);
+                image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder());
             }
         }
 
@@ -144,7 +144,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
             {
                 image.DebugSave(provider);
-                image.CompareToOriginal(provider);
+                image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder());
             }
         }
 
@@ -156,7 +156,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
             {
                 image.DebugSave(provider);
-                image.CompareToOriginal(provider);
+                image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder());
             }
         }
 
@@ -169,7 +169,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
             {
                 image.DebugSave(provider);
-                image.CompareToOriginal(provider);
+                image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder());
             }
         }
 
@@ -182,7 +182,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
             {
                 image.DebugSave(provider);
-                image.CompareToOriginal(provider);
+                image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder());
             }
         }
 
@@ -276,7 +276,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
                 image.DebugSave(provider);
-                image.CompareToOriginal(provider);
+                image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder());
             }
         }
 

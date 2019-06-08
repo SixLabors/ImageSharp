@@ -20,7 +20,50 @@ namespace SixLabors.ImageSharp.Tests
             private ImageFrameCollection Collection => base.Collection;
 
             [Fact]
-            public void ImageFramesaLwaysHaveOneFrame()
+            public void AddFrame_OfDifferentPixelType()
+            {
+                using (Image<Bgra32> sourceImage = new Image<Bgra32>(
+                    this.Image.GetConfiguration(),
+                    this.Image.Width,
+                    this.Image.Height,
+                    (Bgra32)Color.Blue))
+                {
+                    this.Collection.AddFrame(sourceImage.Frames.RootFrame);
+                }
+
+                Rgba32[] expectedAllBlue =
+                    Enumerable.Repeat(Rgba32.Blue, this.Image.Width * this.Image.Height).ToArray();
+
+                Assert.Equal(2, this.Collection.Count);
+                ImageFrame<Rgba32> actualFrame = (ImageFrame<Rgba32>)this.Collection[1];
+
+                actualFrame.ComparePixelBufferTo(expectedAllBlue);
+            }
+
+            [Fact]
+            public void InsertFrame_OfDifferentPixelType()
+            {
+                using (Image<Bgra32> sourceImage = new Image<Bgra32>(
+                    this.Image.GetConfiguration(),
+                    this.Image.Width,
+                    this.Image.Height,
+                    (Bgra32)Color.Blue))
+                {
+                    this.Collection.InsertFrame(0, sourceImage.Frames.RootFrame);
+                }
+
+                Rgba32[] expectedAllBlue =
+                    Enumerable.Repeat(Rgba32.Blue, this.Image.Width * this.Image.Height).ToArray();
+
+                Assert.Equal(2, this.Collection.Count);
+                ImageFrame<Rgba32> actualFrame = (ImageFrame<Rgba32>)this.Collection[0];
+
+                actualFrame.ComparePixelBufferTo(expectedAllBlue);
+
+            }
+
+            [Fact]
+            public void Constructor_ShouldCreateOneFrame()
             {
                 Assert.Equal(1, this.Collection.Count);
             }
@@ -208,7 +251,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
-            public void Contains_TFalseIfNoneMember()
+            public void Contains_FalseIfNonMember()
             {
                 for (var i = 0; i < 9; i++)
                 {

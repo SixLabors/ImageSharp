@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests
         public class Generic : ImageFramesCollectionTests
         {
             [Fact]
-            public void ImageFramesaLwaysHaveOneFrame()
+            public void Constructor_ShouldCreateOneFrame()
             {
                 Assert.Equal(1, this.Collection.Count);
             }
@@ -330,7 +330,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
-            public void Contains_TFalseIfNoneMember()
+            public void Contains_FalseIfNonMember()
             {
                 for (var i = 0; i < 9; i++)
                 {

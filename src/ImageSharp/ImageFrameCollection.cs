@@ -9,20 +9,45 @@ namespace SixLabors.ImageSharp
 {
     public abstract class ImageFrameCollection : IEnumerable<ImageFrame>
     {
-        public IEnumerator<ImageFrame> GetEnumerator() => this.NonGenericGetEnumerator();
-
-        IEnumerator IEnumerable.GetEnumerator() => this.NonGenericGetEnumerator();
-
+        /// <summary>
+        /// Gets the number of frames.
+        /// </summary>
         public abstract int Count { get; }
 
+        /// <summary>
+        /// Gets the root frame.
+        /// </summary>
         public ImageFrame RootFrame => this.NonGenericRootFrame;
 
+        /// <summary>
+        /// Gets the root frame. (Implements <see cref="RootFrame"/>.)
+        /// </summary>
         protected abstract ImageFrame NonGenericRootFrame { get; }
 
+        /// <summary>
+        /// Gets the <see cref="ImageFrame"/> at the specified index.
+        /// </summary>
+        /// <value>
+        /// The <see cref="ImageFrame"/>.
+        /// </value>
+        /// <param name="index">The index.</param>
+        /// <returns>The <see cref="ImageFrame"/> at the specified index.</returns>
         public ImageFrame this[int index] => this.NonGenericGetFrame(index);
 
+        /// <summary>
+        /// Determines the index of a specific <paramref name="frame"/> in the <seealso cref="ImageFrameCollection"/>.
+        /// </summary>
+        /// <param name="frame">The <seealso cref="ImageFrame"/> to locate in the <seealso cref="ImageFrameCollection"/>.</param>
+        /// <returns>The index of item if found in the list; otherwise, -1.</returns>
         public abstract int IndexOf(ImageFrame frame);
 
+        /// <summary>
+        /// Clones and inserts the <paramref name="source"/> into the <seealso cref="ImageFrameCollection"/> at the specified <paramref name="index"/>.
+        /// </summary>
+        /// <param name="index">The zero-based index to insert the frame at.</param>
+        /// <param name="source">The <seealso cref="ImageFrame"/> to clone and insert into the <seealso cref="ImageFrameCollection"/>.</param>
+        /// <exception cref="ArgumentException">Frame must have the same dimensions as the image.</exception>
+        /// <returns>The cloned <see cref="ImageFrame"/>.</returns>
         public ImageFrame InsertFrame(int index, ImageFrame source) => this.NonGenericInsertFrame(index, source);
 
         /// <summary>
@@ -89,18 +114,59 @@ namespace SixLabors.ImageSharp
         /// </returns>
         public ImageFrame CreateFrame(Color backgroundColor) => this.NonGenericCreateFrame(backgroundColor);
 
+        /// <inheritdoc />
+        public IEnumerator<ImageFrame> GetEnumerator() => this.NonGenericGetEnumerator();
+
+        /// <inheritdoc/>
+        IEnumerator IEnumerable.GetEnumerator() => this.NonGenericGetEnumerator();
+
+        /// <summary>
+        /// Implements <see cref="GetEnumerator"/>.
+        /// </summary>
+        /// <returns>The enumerator.</returns>
         protected abstract IEnumerator<ImageFrame> NonGenericGetEnumerator();
 
+        /// <summary>
+        /// Implements the getter of the indexer.
+        /// </summary>
+        /// <param name="index">The index.</param>
+        /// <returns>The frame.</returns>
         protected abstract ImageFrame NonGenericGetFrame(int index);
 
+        /// <summary>
+        /// Implements <see cref="InsertFrame"/>.
+        /// </summary>
+        /// <param name="index">The index.</param>
+        /// <param name="source">The frame.</param>
+        /// <returns>The new frame.</returns>
         protected abstract ImageFrame NonGenericInsertFrame(int index, ImageFrame source);
 
+        /// <summary>
+        /// Implements <see cref="AddFrame"/>.
+        /// </summary>
+        /// <param name="source">The frame.</param>
+        /// <returns>The new frame.</returns>
         protected abstract ImageFrame NonGenericAddFrame(ImageFrame source);
 
+        /// <summary>
+        /// Implements <see cref="ExportFrame"/>.
+        /// </summary>
+        /// <param name="index">The index.</param>
+        /// <returns>The new image.</returns>
         protected abstract Image NonGenericExportFrame(int index);
 
+        /// <summary>
+        /// Implements <see cref="CloneFrame"/>.
+        /// </summary>
+        /// <param name="index">The index.</param>
+        /// <returns>The new image.</returns>
         protected abstract Image NonGenericCloneFrame(int index);
 
+        /// <summary>
+        /// Implements <see cref="CreateFrame()"/>.
+        /// </summary>
+        /// <param name="backgroundColor">The background color.</param>
+        /// <returns>The new frame.</returns>
         protected abstract ImageFrame NonGenericCreateFrame(Color backgroundColor);
     }
 }

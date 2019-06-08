@@ -382,63 +382,22 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     switch (cmd[1])
                     {
                         case RleEndOfBitmap:
-                        {
                             int skipEoB = buffer.Length - count;
-                            for (int i = count; i < count + skipEoB; i++)
-                            {
-                                undefinedPixels[i] = true;
-                            }
-
-                            int skippedRowIdx = count / w;
-                            int skippedRows = (skipEoB / w) - 1;
-                            int lastSkippedRow = Math.Min(skippedRowIdx + skippedRows, rowsWithUndefinedPixels.Length - 1);
-                            for (int i = skippedRowIdx; i <= lastSkippedRow; i++)
-                            {
-                                rowsWithUndefinedPixels[i] = true;
-                            }
+                            RleSkipEndOfBitmap(count, w, skipEoB, undefinedPixels, rowsWithUndefinedPixels);
 
                             return;
-                        }
 
                         case RleEndOfLine:
-                        {
-                            rowsWithUndefinedPixels[count / w] = true;
-                            int remainingPixelsInRow = count % w;
-                            if (remainingPixelsInRow > 0)
-                            {
-                                int skipEoL = w - remainingPixelsInRow;
-                                for (int i = count; i < count + skipEoL; i++)
-                                {
-                                    undefinedPixels[i] = true;
-                                }
-
-                                count += skipEoL;
-                            }
+                            count += RleSkipEndOfLine(count, w, undefinedPixels, rowsWithUndefinedPixels);
 
                             break;
-                        }
 
                         case RleDelta:
-                        {
                             int dx = this.stream.ReadByte();
                             int dy = this.stream.ReadByte();
-                            int skipDelta = (w * dy) + dx;
-                            for (int i = count; i < count + skipDelta; i++)
-                            {
-                                undefinedPixels[i] = true;
-                            }
-
-                            int skippedRowIdx = count / w;
-                            int lastSkippedRow = Math.Min(skippedRowIdx + dy, rowsWithUndefinedPixels.Length - 1);
-                            for (int i = skippedRowIdx; i <= lastSkippedRow; i++)
-                            {
-                                rowsWithUndefinedPixels[i] = true;
-                            }
-
-                            count += skipDelta;
+                            count += RleSkipDelta(count, w, dx, dy, undefinedPixels, rowsWithUndefinedPixels);
 
                             break;
-                        }
 
                         default:
                             // If the second byte > 2, we are in 'absolute mode'.
@@ -534,63 +493,22 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     switch (cmd[1])
                     {
                         case RleEndOfBitmap:
-                        {
                             int skipEoB = buffer.Length - count;
-                            for (int i = count; i < count + skipEoB; i++)
-                            {
-                                undefinedPixels[i] = true;
-                            }
-
-                            int skippedRowIdx = count / w;
-                            int skippedRows = skipEoB / w;
-                            int lastSkippedRow = Math.Min(skippedRowIdx + skippedRows, rowsWithUndefinedPixels.Length - 1);
-                            for (int i = skippedRowIdx; i <= lastSkippedRow; i++)
-                            {
-                                rowsWithUndefinedPixels[i] = true;
-                            }
+                            RleSkipEndOfBitmap(count, w, skipEoB, undefinedPixels, rowsWithUndefinedPixels);
 
                             return;
-                        }
 
                         case RleEndOfLine:
-                        {
-                            rowsWithUndefinedPixels[count / w] = true;
-                            int remainingPixelsInRow = count % w;
-                            if (remainingPixelsInRow > 0)
-                            {
-                                int skipEoL = w - remainingPixelsInRow;
-                                for (int i = count; i < count + skipEoL; i++)
-                                {
-                                    undefinedPixels[i] = true;
-                                }
-
-                                count += skipEoL;
-                            }
+                            count += RleSkipEndOfLine(count, w, undefinedPixels, rowsWithUndefinedPixels);
 
                             break;
-                        }
 
                         case RleDelta:
-                        {
                             int dx = this.stream.ReadByte();
                             int dy = this.stream.ReadByte();
-                            int skipDelta = (w * dy) + dx;
-                            for (int idx = count; idx < count + skipDelta; idx++)
-                            {
-                                undefinedPixels[idx] = true;
-                            }
-
-                            int skippedRowIdx = count / w;
-                            int lastSkippedRow = Math.Min(skippedRowIdx + dy, rowsWithUndefinedPixels.Length - 1);
-                            for (int i = skippedRowIdx; i <= lastSkippedRow; i++)
-                            {
-                                rowsWithUndefinedPixels[i] = true;
-                            }
-
-                            count += skipDelta;
+                            count += RleSkipDelta(count, w, dx, dy, undefinedPixels, rowsWithUndefinedPixels);
 
                             break;
-                        }
 
                         default:
                             // If the second byte > 2, we are in 'absolute mode'.
@@ -624,6 +542,95 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Keeps track of skipped / undefined pixels, when EndOfBitmap command occurs.
+        /// </summary>
+        /// <param name="count">The already processed pixel count.</param>
+        /// <param name="w">The width of the image.</param>
+        /// <param name="skipPixelCount">The skipped pixel count.</param>
+        /// <param name="undefinedPixels">The undefined pixels.</param>
+        /// <param name="rowsWithUndefinedPixels">Rows with undefined pixels.</param>
+        private static void RleSkipEndOfBitmap(
+            int count,
+            int w,
+            int skipPixelCount,
+            Span<bool> undefinedPixels,
+            Span<bool> rowsWithUndefinedPixels)
+        {
+            for (int i = count; i < count + skipPixelCount; i++)
+            {
+                undefinedPixels[i] = true;
+            }
+
+            int skippedRowIdx = count / w;
+            int skippedRows = (skipPixelCount / w) - 1;
+            int lastSkippedRow = Math.Min(skippedRowIdx + skippedRows, rowsWithUndefinedPixels.Length - 1);
+            for (int i = skippedRowIdx; i <= lastSkippedRow; i++)
+            {
+                rowsWithUndefinedPixels[i] = true;
+            }
+        }
+
+        /// <summary>
+        /// Keeps track of undefined / skipped pixels, when the EndOfLine command occurs.
+        /// </summary>
+        /// <param name="count">The already processed pixel count.</param>
+        /// <param name="w">The width of image.</param>
+        /// <param name="undefinedPixels">The undefined pixels.</param>
+        /// <param name="rowsWithUndefinedPixels">The rows with undefined pixels.</param>
+        /// <returns>The number of skipped pixels.</returns>
+        private static int RleSkipEndOfLine(int count, int w, Span<bool> undefinedPixels, Span<bool> rowsWithUndefinedPixels)
+        {
+            rowsWithUndefinedPixels[count / w] = true;
+            int remainingPixelsInRow = count % w;
+            if (remainingPixelsInRow > 0)
+            {
+                int skipEoL = w - remainingPixelsInRow;
+                for (int i = count; i < count + skipEoL; i++)
+                {
+                    undefinedPixels[i] = true;
+                }
+
+                return skipEoL;
+            }
+
+            return 0;
+        }
+
+        /// <summary>
+        /// Keeps track of undefined / skipped pixels, when the delta command occurs.
+        /// </summary>
+        /// <param name="count">The count.</param>
+        /// <param name="w">The width of the image.</param>
+        /// <param name="dx">Delta skip in x direction.</param>
+        /// <param name="dy">Delta skip in y direction.</param>
+        /// <param name="undefinedPixels">The undefined pixels.</param>
+        /// <param name="rowsWithUndefinedPixels">The rows with undefined pixels.</param>
+        /// <returns>The number of skipped pixels.</returns>
+        private static int RleSkipDelta(
+            int count,
+            int w,
+            int dx,
+            int dy,
+            Span<bool> undefinedPixels,
+            Span<bool> rowsWithUndefinedPixels)
+        {
+            int skipDelta = (w * dy) + dx;
+            for (int i = count; i < count + skipDelta; i++)
+            {
+                undefinedPixels[i] = true;
+            }
+
+            int skippedRowIdx = count / w;
+            int lastSkippedRow = Math.Min(skippedRowIdx + dy, rowsWithUndefinedPixels.Length - 1);
+            for (int i = skippedRowIdx; i <= lastSkippedRow; i++)
+            {
+                rowsWithUndefinedPixels[i] = true;
+            }
+
+            return skipDelta;
         }
 
         /// <summary>

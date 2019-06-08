@@ -151,8 +151,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         }
 
         [Theory]
-        [WithFile(RLE4cut, PixelTypes.Rgba32)]
-        [WithFile(RLE4delta, PixelTypes.Rgba32)]
+        [WithFile(RLE4Cut, PixelTypes.Rgba32)]
+        [WithFile(RLE4Delta, PixelTypes.Rgba32)]
+        [WithFile(Rle4Delta320240, PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecode_RunLengthEncoded_4Bit_WithDelta<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -184,8 +185,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         }
 
         [Theory]
-        [WithFile(RLE8cut, PixelTypes.Rgba32)]
-        [WithFile(RLE8delta, PixelTypes.Rgba32)]
+        [WithFile(RLE8Cut, PixelTypes.Rgba32)]
+        [WithFile(RLE8Delta, PixelTypes.Rgba32)]
+        [WithFile(Rle8Delta320240, PixelTypes.Rgba32)]
+        [WithFile(Rle8Blank160120, PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit_WithDelta_SystemDrawingRefDecoder<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -200,8 +203,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         }
 
         [Theory]
-        [WithFile(RLE8cut, PixelTypes.Rgba32)]
-        [WithFile(RLE8delta, PixelTypes.Rgba32)]
+        [WithFile(RLE8Cut, PixelTypes.Rgba32)]
+        [WithFile(RLE8Delta, PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit_WithDelta_MagickRefDecoder<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

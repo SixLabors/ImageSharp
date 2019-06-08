@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Formats.Bmp
@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     public enum RleSkippedPixelHandling : int
     {
         /// <summary>
-        /// Undefined pixels should be black. This is how System.Drawing handles undefined pixels.
+        /// Undefined pixels should be black. This is the default behavior and equal to how System.Drawing handles undefined pixels.
         /// </summary>
         Black = 0,
 

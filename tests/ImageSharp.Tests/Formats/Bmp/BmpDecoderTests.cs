@@ -221,10 +221,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette }))
             {
                 image.DebugSave(provider);
-                image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder());
+                image.CompareToOriginal(provider, new MagickReferenceDecoder());
             }
         }
 

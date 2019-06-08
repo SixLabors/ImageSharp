@@ -94,6 +94,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
                 image.DebugSave(provider);
+                // The Magick Reference Decoder can not decode 4-Bit bitmaps, so only execute this on windows.
                 if (TestEnvironment.IsWindows)
                 {
                     image.CompareToOriginal(provider);
@@ -158,6 +159,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
             {
                 image.DebugSave(provider);
+                // The Magick Reference Decoder can not decode 4-Bit bitmaps, so only execute this on windows.
                 if (TestEnvironment.IsWindows)
                 {
                     image.CompareToOriginal(provider);
@@ -173,6 +175,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
             {
                 image.DebugSave(provider);
+                // The Magick Reference Decoder can not decode 4-Bit bitmaps, so only execute this on windows.
                 if (TestEnvironment.IsWindows)
                 {
                     image.CompareToOriginal(provider);
@@ -183,7 +186,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         [Theory]
         [WithFile(RLE8cut, PixelTypes.Rgba32)]
         [WithFile(RLE8delta, PixelTypes.Rgba32)]
-        public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit_WithDelta<TPixel>(TestImageProvider<TPixel> provider)
+        public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit_WithDelta_SystemDrawingRefDecoder<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
@@ -191,8 +194,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 image.DebugSave(provider);
                 if (TestEnvironment.IsWindows)
                 {
-                    image.CompareToOriginal(provider);
+                    image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder());
                 }
+            }
+        }
+
+        [Theory]
+        [WithFile(RLE8cut, PixelTypes.Rgba32)]
+        [WithFile(RLE8delta, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit_WithDelta_MagickRefDecoder<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette }))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, new MagickReferenceDecoder());
             }
         }
 
@@ -205,10 +221,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
             {
                 image.DebugSave(provider);
-                if (TestEnvironment.IsWindows)
-                {
-                    image.CompareToOriginal(provider);
-                }
+                image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder());
             }
         }
 

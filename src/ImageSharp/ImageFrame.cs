@@ -4,6 +4,7 @@
 using System;
 
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
 
@@ -60,6 +61,10 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Rectangle"/></returns>
         public Rectangle Bounds() => new Rectangle(0, 0, this.Width, this.Height);
 
+        /// <inheritdoc />
         public abstract void Dispose();
+
+        internal abstract void CopyPixelsTo<TDestinationPixel>(Span<TDestinationPixel> destination)
+            where TDestinationPixel : struct, IPixel<TDestinationPixel>;
     }
 }

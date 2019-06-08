@@ -80,9 +80,10 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="ImageFrame{TPixel}"/> at the specified index.</returns>
         public new ImageFrame<TPixel> this[int index] => this.frames[index];
 
+        /// <inheritdoc />
         public override int IndexOf(ImageFrame frame)
         {
-            throw new NotImplementedException();
+            return frame is ImageFrame<TPixel> specific ? this.IndexOf(specific) : -1;
         }
 
         /// <summary>
@@ -138,6 +139,18 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Creates a new frame from the pixel data with the same dimensions as the other frames and inserts the
+        /// new frame at the end of the collection.
+        /// </summary>
+        /// <param name="source">The raw pixel data to generate the <seealso cref="ImageFrame{TPixel}"/> from.</param>
+        /// <returns>The new <see cref="ImageFrame{TPixel}"/>.</returns>
+        public ImageFrame<TPixel> AddFrame(TPixel[] source)
+        {
+            Guard.NotNull(source, nameof(source));
+            return this.AddFrame(source.AsSpan());
+        }
+
+        /// <summary>
         /// Removes the frame at the specified index and frees all freeable resources associated with it.
         /// </summary>
         /// <param name="index">The zero-based index of the frame to remove.</param>
@@ -154,10 +167,8 @@ namespace SixLabors.ImageSharp
             frame.Dispose();
         }
 
-        public override bool Contains(ImageFrame frame)
-        {
-            throw new NotImplementedException();
-        }
+        public override bool Contains(ImageFrame frame) =>
+            frame is ImageFrame<TPixel> specific && this.Contains(specific);
 
         /// <summary>
         /// Determines whether the <seealso cref="ImageFrameCollection{TPixel}"/> contains the <paramref name="frame"/>.
@@ -227,40 +238,36 @@ namespace SixLabors.ImageSharp
         /// </returns>
         public new ImageFrame<TPixel> CreateFrame() => this.CreateFrame(default);
 
-        protected override IEnumerator<ImageFrame> NonGenericGetEnumerator()
-        {
-            throw new NotImplementedException();
-        }
+        /// <inheritdoc />
+        protected override IEnumerator<ImageFrame> NonGenericGetEnumerator() => this.frames.GetEnumerator();
 
-        protected override ImageFrame NonGenericGetFrame(int index)
-        {
-            throw new NotImplementedException();
-        }
+        /// <inheritdoc />
+        protected override ImageFrame NonGenericGetFrame(int index) => this[index];
 
+        /// <inheritdoc />
         protected override ImageFrame NonGenericInsertFrame(int index, ImageFrame source)
         {
             throw new NotImplementedException();
         }
 
+        /// <inheritdoc />
         protected override ImageFrame NonGenericAddFrame(ImageFrame source)
         {
             throw new NotImplementedException();
         }
 
-        protected override Image NonGenericExportFrame(int index)
-        {
-            throw new NotImplementedException();
-        }
+        /// <inheritdoc />
+        protected override Image NonGenericExportFrame(int index) => this.ExportFrame(index);
 
-        protected override Image NonGenericCloneFrame(int index)
-        {
-            throw new NotImplementedException();
-        }
+        /// <inheritdoc />
+        protected override Image NonGenericCloneFrame(int index) => this.CloneFrame(index);
 
-        protected override ImageFrame NonGenericCreateFrame(Color backgroundColor)
-        {
-            throw new NotImplementedException();
-        }
+        /// <inheritdoc />
+        protected override ImageFrame NonGenericCreateFrame(Color backgroundColor) =>
+            this.CreateFrame(backgroundColor.ToPixel<TPixel>());
+
+        /// <inheritdoc />
+        protected override ImageFrame NonGenericCreateFrame() => this.CreateFrame();
 
         /// <summary>
         /// Creates a new <seealso cref="ImageFrame{TPixel}" /> and appends it to the end of the collection.

@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The new <see cref="ImageFrame{TPixel}" />.
         /// </returns>
-        public ImageFrame CreateFrame() => this.CreateFrame(Color.Black);
+        public ImageFrame CreateFrame() => this.NonGenericCreateFrame();
 
         /// <summary>
         /// Creates a new <seealso cref="ImageFrame{TPixel}" /> and appends it to the end of the collection.
@@ -161,6 +161,12 @@ namespace SixLabors.ImageSharp
         /// <param name="index">The index.</param>
         /// <returns>The new image.</returns>
         protected abstract Image NonGenericCloneFrame(int index);
+
+        /// <summary>
+        /// Implements <see cref="CreateFrame()"/>.
+        /// </summary>
+        /// <returns>The new frame.</returns>
+        protected abstract ImageFrame NonGenericCreateFrame();
 
         /// <summary>
         /// Implements <see cref="CreateFrame()"/>.

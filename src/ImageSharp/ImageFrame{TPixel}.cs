@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
@@ -206,6 +207,17 @@ namespace SixLabors.ImageSharp
 
             // Note disposing is done.
             this.isDisposed = true;
+        }
+
+        internal override void CopyPixelsTo<TDestinationPixel>(Span<TDestinationPixel> destination)
+        {
+            if (typeof(TPixel) == typeof(TDestinationPixel))
+            {
+                Span<TPixel> dest1 = MemoryMarshal.Cast<TDestinationPixel, TPixel>(destination);
+                this.PixelBuffer.Span.CopyTo(dest1);
+            }
+
+            PixelOperations<TPixel>.Instance.To(this.Configuration, this.PixelBuffer.Span, destination);
         }
 
         /// <inheritdoc/>

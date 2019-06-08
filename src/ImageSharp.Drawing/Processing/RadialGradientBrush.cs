@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Processing
             /// <returns>the position on the color gradient.</returns>
             protected override float PositionOnGradient(float x, float y)
             {
-                float distance = (float)Math.Sqrt(Math.Pow(this.center.X - x, 2) + Math.Pow(this.center.Y - y, 2));
+                float distance = MathF.Sqrt(MathF.Pow(this.center.X - x, 2) + MathF.Pow(this.center.Y - y, 2));
                 return distance / this.radius;
             }
 

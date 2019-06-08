@@ -88,7 +88,6 @@ namespace SixLabors.ImageSharp
         /// The new <see cref="ImageFrame{TPixel}" />.
         /// </returns>
         public ImageFrame CreateFrame(Color backgroundColor) => this.NonGenericCreateFrame(backgroundColor);
-        
 
         protected abstract IEnumerator<ImageFrame> NonGenericGetEnumerator();
 
@@ -99,9 +98,9 @@ namespace SixLabors.ImageSharp
         protected abstract ImageFrame NonGenericAddFrame(ImageFrame source);
 
         protected abstract Image NonGenericExportFrame(int index);
-        
+
         protected abstract Image NonGenericCloneFrame(int index);
-        
+
         protected abstract ImageFrame NonGenericCreateFrame(Color backgroundColor);
     }
 }

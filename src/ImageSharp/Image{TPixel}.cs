@@ -80,7 +80,12 @@ namespace SixLabors.ImageSharp
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="metadata">The images metadata.</param>
-        internal Image(Configuration configuration, MemorySource<TPixel> memorySource, int width, int height, ImageMetadata metadata)
+        internal Image(
+            Configuration configuration,
+            MemorySource<TPixel> memorySource,
+            int width,
+            int height,
+            ImageMetadata metadata)
             : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
         {
             this.Frames = new ImageFrameCollection<TPixel>(this, width, height, memorySource);
@@ -95,7 +100,12 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="backgroundColor">The color to initialize the pixels with.</param>
         /// <param name="metadata">The images metadata.</param>
-        internal Image(Configuration configuration, int width, int height, TPixel backgroundColor, ImageMetadata metadata)
+        internal Image(
+            Configuration configuration,
+            int width,
+            int height,
+            TPixel backgroundColor,
+            ImageMetadata metadata)
             : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
         {
             this.Frames = new ImageFrameCollection<TPixel>(this, width, height, backgroundColor);
@@ -114,10 +124,13 @@ namespace SixLabors.ImageSharp
             this.Frames = new ImageFrameCollection<TPixel>(this, frames);
         }
 
+        /// <inheritdoc />
+        protected override ImageFrameCollection NonGenericFrameCollection => this.Frames;
+
         /// <summary>
         /// Gets the frames.
         /// </summary>
-        public ImageFrameCollection<TPixel> Frames { get; }
+        public new ImageFrameCollection<TPixel> Frames { get; }
 
         /// <summary>
         /// Gets the root frame.

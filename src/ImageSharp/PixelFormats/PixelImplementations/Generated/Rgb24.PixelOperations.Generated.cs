@@ -11,6 +11,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 
+
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <content>
@@ -196,6 +197,15 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromRgb24(sp);
                 }
             }
+            /// <inheritdoc />
+            internal override void From<TSourcePixel>(
+                Configuration configuration,
+                ReadOnlySpan<TSourcePixel> sourcePixels,
+                Span<Rgb24> destinationPixels)
+            {
+                PixelOperations<TSourcePixel>.Instance.ToRgb24(configuration, sourcePixels, destinationPixels);
+            }
+
         }
     }
 }

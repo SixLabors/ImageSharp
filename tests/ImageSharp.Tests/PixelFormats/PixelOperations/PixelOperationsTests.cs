@@ -931,6 +931,18 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                         // ReSharper restore PossibleNullReferenceException
                     }
                 }
+                else if (typeof(TDest) == typeof(Gray16))
+                {
+                    // Minor difference is tolerated for 16 bit pixel values
+                    Span<Gray16> expected = MemoryMarshal.Cast<TDest, Gray16>(this.ExpectedDestBuffer.AsSpan());
+                    Span<Gray16> actual = MemoryMarshal.Cast<TDest, Gray16>(this.ActualDestBuffer.GetSpan());
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        int difference = expected[i].PackedValue - actual[i].PackedValue;
+                        Assert.True(Math.Abs(difference) < 2);
+                    }
+                }
                 else
                 {
                     Span<TDest> expected = this.ExpectedDestBuffer.AsSpan();

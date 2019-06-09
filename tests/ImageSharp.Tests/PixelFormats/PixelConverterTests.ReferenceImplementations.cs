@@ -49,17 +49,25 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 return d;
             }
 
-            internal static void To<TPixel, TDestinationPixel>(
+            internal static void To<TSourcePixel, TDestinationPixel>(
                 Configuration configuration,
-                ReadOnlySpan<TPixel> sourceColors,
-                Span<TDestinationPixel> destinationColors)
-                where TPixel : struct, IPixel<TPixel> where TDestinationPixel : struct, IPixel<TDestinationPixel>
+                ReadOnlySpan<TSourcePixel> sourcePixels,
+                Span<TDestinationPixel> destinationPixels)
+                where TSourcePixel : struct, IPixel<TSourcePixel> where TDestinationPixel : struct, IPixel<TDestinationPixel>
             {
                 Guard.NotNull(configuration, nameof(configuration));
-                Guard.DestinationShouldNotBeTooShort(sourceColors, destinationColors, nameof(destinationColors));
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
 
-                int count = sourceColors.Length;
-                ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourceColors);
+                int count = sourcePixels.Length;
+                ref TSourcePixel sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+
+                if (typeof(TSourcePixel) == typeof(TDestinationPixel))
+                {
+                    Span<TSourcePixel> uniformDest =
+                        MemoryMarshal.Cast<TDestinationPixel, TSourcePixel>(destinationPixels);
+                    sourcePixels.CopyTo(uniformDest);
+                    return;
+                }
 
                 // Gray8 and Gray16 are special implementations of IPixel in that they do not conform to the
                 // standard RGBA colorspace format and must be converted from RGBA using the special ITU BT709 algorithm.
@@ -68,10 +76,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 if (typeof(TDestinationPixel) == typeof(Gray16))
                 {
                     ref Gray16 gray16Ref = ref MemoryMarshal.GetReference(
-                                               MemoryMarshal.Cast<TDestinationPixel, Gray16>(destinationColors));
+                                               MemoryMarshal.Cast<TDestinationPixel, Gray16>(destinationPixels));
                     for (int i = 0; i < count; i++)
                     {
-                        ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
+                        ref TSourcePixel sp = ref Unsafe.Add(ref sourceRef, i);
                         ref Gray16 dp = ref Unsafe.Add(ref gray16Ref, i);
                         dp.ConvertFromRgbaScaledVector4(sp.ToScaledVector4());
                     }
@@ -82,10 +90,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 if (typeof(TDestinationPixel) == typeof(Gray8))
                 {
                     ref Gray8 gray8Ref = ref MemoryMarshal.GetReference(
-                                             MemoryMarshal.Cast<TDestinationPixel, Gray8>(destinationColors));
+                                             MemoryMarshal.Cast<TDestinationPixel, Gray8>(destinationPixels));
                     for (int i = 0; i < count; i++)
                     {
-                        ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
+                        ref TSourcePixel sp = ref Unsafe.Add(ref sourceRef, i);
                         ref Gray8 dp = ref Unsafe.Add(ref gray8Ref, i);
                         dp.ConvertFromRgbaScaledVector4(sp.ToScaledVector4());
                     }
@@ -94,10 +102,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 }
 
                 // Normal conversion
-                ref TDestinationPixel destRef = ref MemoryMarshal.GetReference(destinationColors);
+                ref TDestinationPixel destRef = ref MemoryMarshal.GetReference(destinationPixels);
                 for (int i = 0; i < count; i++)
                 {
-                    ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref TSourcePixel sp = ref Unsafe.Add(ref sourceRef, i);
                     ref TDestinationPixel dp = ref Unsafe.Add(ref destRef, i);
                     dp.FromScaledVector4(sp.ToScaledVector4());
                 }

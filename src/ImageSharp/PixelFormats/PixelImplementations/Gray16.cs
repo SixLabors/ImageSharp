@@ -176,9 +176,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * Max;
             this.PackedValue = ImageMaths.Get16BitBT709Luminance(
-                (ushort)MathF.Round(vector.X),
-                (ushort)MathF.Round(vector.Y),
-                (ushort)MathF.Round(vector.Z));
+                vector.X,
+                vector.Y,
+                vector.Z);
         }
     }
 }

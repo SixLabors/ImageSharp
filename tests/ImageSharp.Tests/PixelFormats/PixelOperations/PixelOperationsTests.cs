@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorSpaces.Companding;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 
 using Xunit;
 using Xunit.Abstractions;
@@ -245,7 +246,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 {
                     Vector4Utils.UnPremultiply(ref v);
                 }
-                
+
                 SRgbCompanding.Compress(ref v);
             }
 
@@ -276,6 +277,33 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 (s, d) => Operations.ToVector4(this.Configuration, s, d.GetSpan())
             );
         }
+
+
+        public static readonly TheoryData<IPixel> Generic_To_Data = new TheoryData<IPixel>
+                                                    {
+                                                        default(Rgba32),
+                                                        default(Bgra32),
+                                                        default(Rgb24),
+                                                        default(Gray8),
+                                                        default(Gray16),
+                                                        default(Rgb48),
+                                                        default(Rgba64)
+                                                    };
+
+        [Theory]
+        [MemberData(nameof(Generic_To_Data))]
+        public void Generic_To<TDestPixel>(TDestPixel dummy)
+            where TDestPixel : struct, IPixel<TDestPixel>
+        {
+            const int Count = 513;
+            TPixel[] source = CreatePixelTestData(Count);
+            TDestPixel[] expected = new TDestPixel[Count];
+
+            PixelConverterTests.ReferenceImplementations.To<TPixel, TDestPixel>(this.Configuration, source, expected);
+
+            TestOperation(source, expected, (s, d) => Operations.To(this.Configuration, (ReadOnlySpan<TPixel>)s, d.GetSpan()));
+        }
+
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]

@@ -51,10 +51,19 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private const int ColorPaletteSize8Bit = 1024;
 
+        /// <summary>
+        /// Used for allocating memory during processing operations.
+        /// </summary>
         private readonly MemoryAllocator memoryAllocator;
 
+        /// <summary>
+        /// The global configuration.
+        /// </summary>
         private Configuration configuration;
 
+        /// <summary>
+        /// The color depth, in number of bits per pixel.
+        /// </summary>
         private BmpBitsPerPixel? bitsPerPixel;
 
         /// <summary>

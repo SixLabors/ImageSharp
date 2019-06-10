@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -759,6 +760,93 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 (s, d) => Operations.ToRgba64Bytes(this.Configuration, s, d.GetSpan(), count)
             );
         }
+
+
+            [Theory]
+            [MemberData(nameof(ArraySizesData))]
+            public void FromGray8(int count)
+            {
+                byte[] sourceBytes = CreateByteTestData(count);
+                Gray8[] source = sourceBytes.Select(b => new Gray8(b)).ToArray();
+                var expected = new TPixel[count];
+
+
+                for (int i = 0; i < count; i++)
+                {
+                    expected[i].FromGray8(source[i]);
+                }
+
+                TestOperation(
+                    source,
+                    expected,
+                    (s, d) => Operations.FromGray8(this.Configuration, s, d.GetSpan())
+                );
+            }
+
+            [Theory]
+            [MemberData(nameof(ArraySizesData))]
+            public void ToGray8(int count)
+            {
+                TPixel[] source = CreatePixelTestData(count);
+                Gray8[] expected = new Gray8[count];
+
+                for (int i = 0; i < count; i++)
+                {
+                    expected[i].FromScaledVector4(source[i].ToScaledVector4());
+                }
+
+                TestOperation(
+                    source,
+                    expected,
+                    (s, d) => Operations.ToGray8(this.Configuration, s, d.GetSpan())
+                );
+            }
+
+            [Theory]
+            [MemberData(nameof(ArraySizesData))]
+            public void FromGray16(int count)
+            {
+                Gray16[] source = CreateVector4TestData(count).Select(v =>
+                {
+                    Gray16 g = default;
+                    g.FromVector4(v);
+                    return g;
+                }).ToArray();
+
+                var expected = new TPixel[count];
+
+                for (int i = 0; i < count; i++)
+                {
+                    int i2 = i * 2;
+                    expected[i].FromGray16(source[i]);
+                }
+
+                TestOperation(
+                    source,
+                    expected,
+                    (s, d) => Operations.FromGray16(this.Configuration, s, d.GetSpan())
+                );
+            }
+
+            [Theory]
+            [MemberData(nameof(ArraySizesData))]
+            public void ToGray16(int count)
+            {
+                TPixel[] source = CreatePixelTestData(count);
+                Gray16[] expected = new Gray16[count];
+                Gray16 gray = default;
+
+                for (int i = 0; i < count; i++)
+                {
+                    expected[i].FromScaledVector4(source[i].ToScaledVector4());
+                }
+
+                TestOperation(
+                    source,
+                    expected,
+                    (s, d) => Operations.ToGray16(this.Configuration, s, d.GetSpan())
+                );
+            }
 
         public delegate void RefAction<T1>(ref T1 arg1);
 

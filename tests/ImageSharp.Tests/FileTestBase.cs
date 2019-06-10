@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// A collection of all the bmp test images
         /// </summary>
-        public static IEnumerable<string> AllBmpFiles = TestImages.Bmp.All;
+        public static IEnumerable<string> AllBmpFiles = TestImages.Bmp.Benchmark;
 
         /// <summary>
         /// A collection of all the jpeg test images

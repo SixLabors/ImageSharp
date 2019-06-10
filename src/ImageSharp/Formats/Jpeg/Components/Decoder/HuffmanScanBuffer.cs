@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
 
                 v = (int)(x >> (JpegConstants.Huffman.RegisterSize - size));
-                symbol = h.Values[h.ValOffset[size] + v];
+                symbol = h.Values[(h.ValOffset[size] + v) & 0xFF];
             }
 
             this.remain -= size;

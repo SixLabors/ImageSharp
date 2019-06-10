@@ -253,7 +253,14 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc />
         protected override ImageFrame NonGenericAddFrame(ImageFrame source)
         {
-            throw new NotImplementedException();
+            if (source is ImageFrame<TPixel> compatibleSource)
+            {
+                return this.AddFrame(compatibleSource);
+            }
+
+            ImageFrame<TPixel> result = this.CreateFrame();
+            source.CopyPixelsTo(result.PixelBuffer.Span);
+            return result;
         }
 
         /// <inheritdoc />

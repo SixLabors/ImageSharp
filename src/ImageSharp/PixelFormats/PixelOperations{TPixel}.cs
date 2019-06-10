@@ -97,11 +97,30 @@ namespace SixLabors.ImageSharp.PixelFormats
             Span<TPixel> destinationPixels)
             where TSourcePixel : struct, IPixel<TSourcePixel>
         {
-            using (IMemoryOwner<Vector4> tempVectors = configuration.MemoryAllocator.Allocate<Vector4>(sourcePixels.Length))
+            const int SliceLength = 1024;
+            int numberOfSlices = sourcePixels.Length / SliceLength;
+            using (IMemoryOwner<Vector4> tempVectors = configuration.MemoryAllocator.Allocate<Vector4>(SliceLength))
             {
                 Span<Vector4> vectorSpan = tempVectors.GetSpan();
-                PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, sourcePixels, vectorSpan);
-                this.FromVector4Destructive(configuration, vectorSpan, destinationPixels);
+                for (int i = 0; i < numberOfSlices; i++)
+                {
+                    int start = i * SliceLength;
+                    ReadOnlySpan<TSourcePixel> s = sourcePixels.Slice(start, SliceLength);
+                    Span<TPixel> d = destinationPixels.Slice(start, SliceLength);
+                    PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, s, vectorSpan);
+                    this.FromVector4Destructive(configuration, vectorSpan, d);
+                }
+
+                int endOfCompleteSlices = numberOfSlices * SliceLength;
+                int remainder = sourcePixels.Length - endOfCompleteSlices;
+                if (remainder > 0)
+                {
+                    ReadOnlySpan<TSourcePixel> s = sourcePixels.Slice(endOfCompleteSlices);
+                    Span<TPixel> d = destinationPixels.Slice(endOfCompleteSlices);
+                    vectorSpan = vectorSpan.Slice(0, remainder);
+                    PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, s, vectorSpan);
+                    this.FromVector4Destructive(configuration, vectorSpan, d);
+                }
             }
         }
 

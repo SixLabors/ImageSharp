@@ -295,7 +295,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         public void Generic_To<TDestPixel>(TDestPixel dummy)
             where TDestPixel : struct, IPixel<TDestPixel>
         {
-            const int Count = 513;
+            const int Count = 2134;
             TPixel[] source = CreatePixelTestData(Count);
             TDestPixel[] expected = new TDestPixel[Count];
 

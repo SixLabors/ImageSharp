@@ -6,20 +6,13 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>SixLabors.ImageSharp.Benchmarks</RootNamespace>
     <TargetFrameworks>netcoreapp2.1;net472</TargetFrameworks>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net461'">
-    <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
-    <Prefer32Bit>false</Prefer32Bit>
+    <IsPackable>false</IsPackable>
+    <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="..\ImageSharp.Tests\TestImages.cs" Link="Tests\TestImages.cs" />
     <Compile Include="..\ImageSharp.Tests\TestUtilities\TestEnvironment.cs" Link="Tests\TestEnvironment.cs" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp2.1'">
-    <Compile Remove="Program.cs" />
   </ItemGroup>
 
   <ItemGroup>

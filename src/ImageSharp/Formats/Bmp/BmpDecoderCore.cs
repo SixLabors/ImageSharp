@@ -1167,7 +1167,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Reads the <see cref="BmpFileHeader"/> from the stream.
         /// </summary>
-        private void ReadFileHeader()
+        /// <returns>The color map size in bytes, if it could be determined by the file header. Otherwise -1.</returns>
+        private int ReadFileHeader()
         {
 #if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[BmpFileHeader.Size];
@@ -1191,11 +1192,20 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         BmpThrowHelper.ThrowNotSupportedException($"Unsupported bitmap file inside a BitmapArray file. File header bitmap type marker '{this.fileHeader.Type}'.");
                     }
 
+                    if (arrayHeader.OffsetToNext != 0)
+                    {
+                        int colorMapSizeBytes = arrayHeader.OffsetToNext - arrayHeader.Size;
+                        return colorMapSizeBytes;
+                    }
+
                     break;
+
                 default:
                     BmpThrowHelper.ThrowNotSupportedException($"ImageSharp does not support this BMP file. File header bitmap type marker '{this.fileHeader.Type}'.");
                     break;
             }
+
+            return -1;
         }
 
         /// <summary>
@@ -1207,7 +1217,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             this.stream = stream;
 
-            this.ReadFileHeader();
+            int colorMapSizeBytes = this.ReadFileHeader();
             this.ReadInfoHeader();
 
             // see http://www.drdobbs.com/architecture-and-design/the-bmp-file-format-part-1/184409517
@@ -1231,7 +1241,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     || this.infoHeader.BitsPerPixel == 4
                     || this.infoHeader.BitsPerPixel == 8)
                 {
-                    int colorMapSizeBytes = this.fileHeader.Offset - BmpFileHeader.Size - this.infoHeader.HeaderSize;
+                    if (colorMapSizeBytes == -1)
+                    {
+                        colorMapSizeBytes = this.fileHeader.Offset - BmpFileHeader.Size - this.infoHeader.HeaderSize;
+                    }
+
                     int colorCountForBitDepth = ImageMaths.GetColorCountForBitDepth(this.infoHeader.BitsPerPixel);
                     bytesPerColorMapEntry = colorMapSizeBytes / colorCountForBitDepth;
 

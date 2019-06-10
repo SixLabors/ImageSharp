@@ -261,7 +261,14 @@ namespace SixLabors.ImageSharp.Tests
             public const string Bit8Palette4 = "Bmp/pal8-0.bmp";
             public const string Os2v2Short = "Bmp/pal8os2v2-16.bmp";
             public const string Os2v2 = "Bmp/pal8os2v2.bmp";
-            public const string Os2BitmapArray = "Bmp/9S.BMP";
+            public const string Os2BitmapArray9s = "Bmp/9S.BMP";
+            public const string Os2BitmapArrayDiamond = "Bmp/DIAMOND.BMP";
+            public const string Os2BitmapArrayMarble = "Bmp/GMARBLE.BMP";
+            public const string Os2BitmapArraySkater = "Bmp/SKATER.BMP";
+            public const string Os2BitmapArraySpade = "Bmp/SPADE.BMP";
+            public const string Os2BitmapArraySunflower = "Bmp/SUNFLOW.BMP";
+            public const string Os2BitmapArrayWarpd = "Bmp/WARPD.BMP";
+            public const string Os2BitmapArrayPines = "Bmp/PINES.BMP";
             public const string LessThanFullSizedPalette = "Bmp/pal8os2sp.bmp";
             public const string Pal8Offset = "Bmp/pal8offs.bmp";
             public const string OversizedPalette = "Bmp/pal8oversizepal.bmp";

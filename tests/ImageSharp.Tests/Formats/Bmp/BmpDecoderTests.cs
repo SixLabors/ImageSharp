@@ -521,7 +521,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         }
 
         [Theory]
-        [WithFile(Os2BitmapArray, PixelTypes.Rgba32)]
+        [WithFile(Os2BitmapArray9s, PixelTypes.Rgba32)]
+        [WithFile(Os2BitmapArrayDiamond, PixelTypes.Rgba32)]
+        [WithFile(Os2BitmapArraySkater, PixelTypes.Rgba32)]
+        [WithFile(Os2BitmapArraySpade, PixelTypes.Rgba32)]
+        [WithFile(Os2BitmapArraySunflower, PixelTypes.Rgba32)]
+        [WithFile(Os2BitmapArrayMarble, PixelTypes.Rgba32)]
+        [WithFile(Os2BitmapArrayWarpd, PixelTypes.Rgba32)]
+        [WithFile(Os2BitmapArrayPines, PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecode_Os2BitmapArray<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

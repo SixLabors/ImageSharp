@@ -343,9 +343,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         }
 
         [Theory]
-        [WithFile(Rgba32bf56AdobeV3, PixelTypes.Rgba32)]
         [WithFile(Rgb32h52AdobeV3, PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecodeAdobeBmpv3<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, new MagickReferenceDecoder());
+            }
+        }
+
+        [Theory]
+        [WithFile(Rgba32bf56AdobeV3, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecodeAdobeBmpv3_WithAlpha<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
@@ -429,12 +440,35 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         [InlineData(Bit4, 4)]
         [InlineData(Bit1, 1)]
         [InlineData(Bit1Pal1, 1)]
-        public void Identify(string imagePath, int expectedPixelSize)
+        public void Identify_DetectsCorrectPixelType(string imagePath, int expectedPixelSize)
         {
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                Assert.Equal(expectedPixelSize, Image.Identify(stream)?.PixelType?.BitsPerPixel);
+                IImageInfo imageInfo = Image.Identify(stream);
+                Assert.NotNull(imageInfo);
+                Assert.Equal(expectedPixelSize, imageInfo.PixelType?.BitsPerPixel);
+            }
+        }
+
+        [Theory]
+        [InlineData(Bit32Rgb, 127, 64)]
+        [InlineData(Car, 600, 450)]
+        [InlineData(Bit16, 127, 64)]
+        [InlineData(Bit16Inverted, 127, 64)]
+        [InlineData(Bit8, 127, 64)]
+        [InlineData(Bit8Inverted, 127, 64)]
+        [InlineData(RLE8, 491, 272)]
+        [InlineData(RLE8Inverted, 491, 272)]
+        public void Identify_DetectsCorrectWidthAndHeight(string imagePath, int expectedWidth, int expectedHeight)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using (var stream = new MemoryStream(testFile.Bytes, false))
+            {
+                IImageInfo imageInfo = Image.Identify(stream);
+                Assert.NotNull(imageInfo);
+                Assert.Equal(expectedWidth, imageInfo.Width);
+                Assert.Equal(expectedHeight, imageInfo.Height);
             }
         }
 

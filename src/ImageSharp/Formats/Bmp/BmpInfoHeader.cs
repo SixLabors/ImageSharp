@@ -52,9 +52,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public const int SizeV4 = 108;
 
         /// <summary>
+        /// Defines the size of the BITMAPINFOHEADER (BMP Version 5) data structure in the bitmap file.
+        /// </summary>
+        public const int SizeV5 = 124;
+
+        /// <summary>
         /// Defines the size of the biggest supported header data structure in the bitmap file.
         /// </summary>
-        public const int MaxHeaderSize = SizeV4;
+        public const int MaxHeaderSize = SizeV5;
 
         /// <summary>
         /// Defines the size of the <see cref="HeaderSize"/> field.
@@ -406,7 +411,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <seealso href="http://www.fileformat.info/format/bmp/egff.htm"/>
         public static BmpInfoHeader ParseV4(ReadOnlySpan<byte> data)
         {
-            if (data.Length != SizeV4)
+            if (data.Length < SizeV4)
             {
                 throw new ArgumentException(nameof(data), $"Must be {SizeV4} bytes. Was {data.Length} bytes.");
             }

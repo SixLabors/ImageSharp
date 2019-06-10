@@ -1053,16 +1053,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.stream.Read(buffer, 0, BmpInfoHeader.HeaderSizeSize);
 
             int headerSize = BinaryPrimitives.ReadInt32LittleEndian(buffer);
-            if (headerSize < BmpInfoHeader.CoreSize)
+            if (headerSize < BmpInfoHeader.CoreSize || headerSize > BmpInfoHeader.MaxHeaderSize)
             {
                 BmpThrowHelper.ThrowNotSupportedException($"ImageSharp does not support this BMP file. HeaderSize is '{headerSize}'.");
-            }
-
-            int skipAmount = 0;
-            if (headerSize > BmpInfoHeader.MaxHeaderSize)
-            {
-                skipAmount = headerSize - BmpInfoHeader.MaxHeaderSize;
-                headerSize = BmpInfoHeader.MaxHeaderSize;
             }
 
             // Read the rest of the header.
@@ -1169,9 +1162,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 this.bmpMetadata.BitsPerPixel = (BmpBitsPerPixel)bitsPerPixel;
             }
-
-            // Skip the remaining header because we can't read those parts.
-            this.stream.Skip(skipAmount);
         }
 
         /// <summary>

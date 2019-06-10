@@ -465,8 +465,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             {
                 image.DebugSave(provider);
 
-                // TODO: Neither System.Drawing not MagickReferenceDecoder 
-                // can correctly decode this file.
+                // TODO: Neither System.Drawing or MagickReferenceDecoder can correctly decode this file.
                 // image.CompareToOriginal(provider);
             }
         }
@@ -484,6 +483,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 // but i think incorrectly. I have loaded the image with GIMP and exported as PNG.
                 // The results are the same as the image sharp implementation.
                 // image.CompareToOriginal(provider, new MagickReferenceDecoder());
+            }
+        }
+
+        [Theory]
+        [WithFile(Os2BitmapArray, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_Os2BitmapArray<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            {
+                image.DebugSave(provider);
+
+                // TODO: Neither System.Drawing or MagickReferenceDecoder can correctly decode this file.
+                // image.CompareToOriginal(provider);
             }
         }
     }

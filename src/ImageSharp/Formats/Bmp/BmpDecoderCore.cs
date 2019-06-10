@@ -1186,11 +1186,25 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 #endif
             this.stream.Read(buffer, 0, BmpFileHeader.Size);
 
-            this.fileHeader = BmpFileHeader.Parse(buffer);
-
-            if (this.fileHeader.Type != BmpConstants.TypeMarkers.Bitmap)
+            short fileTypeMarker = BinaryPrimitives.ReadInt16LittleEndian(buffer);
+            switch (fileTypeMarker)
             {
-                BmpThrowHelper.ThrowNotSupportedException($"ImageSharp does not support this BMP file. File header bitmap type marker '{this.fileHeader.Type}'.");
+                case BmpConstants.TypeMarkers.Bitmap:
+                    this.fileHeader = BmpFileHeader.Parse(buffer);
+                    break;
+                case BmpConstants.TypeMarkers.BitmapArray:
+                    var arrayHeader = BmpArrayFileHeader.Parse(buffer);
+                    this.stream.Read(buffer, 0, BmpFileHeader.Size);
+                    this.fileHeader = BmpFileHeader.Parse(buffer);
+                    if (this.fileHeader.Type != BmpConstants.TypeMarkers.Bitmap)
+                    {
+                        BmpThrowHelper.ThrowNotSupportedException($"Unsupported bitmap file inside a BitmapArray file. File header bitmap type marker '{this.fileHeader.Type}'.");
+                    }
+
+                    break;
+                default:
+                    BmpThrowHelper.ThrowNotSupportedException($"ImageSharp does not support this BMP file. File header bitmap type marker '{this.fileHeader.Type}'.");
+                    break;
             }
         }
 

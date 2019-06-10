@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 using System;
 using System.Buffers.Binary;
@@ -272,7 +272,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Parses the BITMAPCOREHEADER (BMP Version 2) consisting of the headerSize, width, height, planes, and bitsPerPixel fields (12 bytes).
         /// </summary>
         /// <param name="data">The data to parse.</param>
-        /// <returns>Parsed header</returns>
+        /// <returns>The parsed header.</returns>
         /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx"/>
         public static BmpInfoHeader ParseCore(ReadOnlySpan<byte> data)
         {
@@ -289,7 +289,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// are 4 bytes instead of 2, resulting in 16 bytes total.
         /// </summary>
         /// <param name="data">The data to parse.</param>
-        /// <returns>Parsed header</returns>
+        /// <returns>The parsed header.</returns>
         /// <seealso href="https://www.fileformat.info/format/os2bmp/egff.htm"/>
         public static BmpInfoHeader ParseOs22Short(ReadOnlySpan<byte> data)
         {

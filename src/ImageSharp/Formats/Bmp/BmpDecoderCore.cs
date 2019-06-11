@@ -1202,7 +1202,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     break;
 
                 default:
-                    BmpThrowHelper.ThrowNotSupportedException($"ImageSharp does not support this BMP file. File header bitmap type marker '{this.fileHeader.Type}'.");
+                    BmpThrowHelper.ThrowNotSupportedException($"ImageSharp does not support this BMP file. File header bitmap type marker '{fileTypeMarker}'.");
                     break;
             }
 

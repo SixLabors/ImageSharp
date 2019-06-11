@@ -1184,6 +1184,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     this.fileHeader = BmpFileHeader.Parse(buffer);
                     break;
                 case BmpConstants.TypeMarkers.BitmapArray:
+                    // The Array file header is followed by the bitmap file header of the first image.
                     var arrayHeader = BmpArrayFileHeader.Parse(buffer);
                     this.stream.Read(buffer, 0, BmpFileHeader.Size);
                     this.fileHeader = BmpFileHeader.Parse(buffer);
@@ -1232,7 +1233,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 this.infoHeader.Height = -this.infoHeader.Height;
             }
 
-            int colorMapSize = -1;
             int bytesPerColorMapEntry = 4;
 
             if (this.infoHeader.ClrUsed == 0)
@@ -1251,29 +1251,28 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                     // Edge case for less-than-full-sized palette: bytesPerColorMapEntry should be at least 3.
                     bytesPerColorMapEntry = Math.Max(bytesPerColorMapEntry, 3);
-                    colorMapSize = colorMapSizeBytes;
                 }
             }
             else
             {
-                colorMapSize = this.infoHeader.ClrUsed * bytesPerColorMapEntry;
+                colorMapSizeBytes = this.infoHeader.ClrUsed * bytesPerColorMapEntry;
             }
 
             palette = null;
 
-            if (colorMapSize > 0)
+            if (colorMapSizeBytes > 0)
             {
                 // Usually the color palette is 1024 byte (256 colors * 4), but the documentation does not mention a size limit.
                 // Make sure, that we will not read pass the bitmap offset (starting position of image data).
-                if ((this.stream.Position + colorMapSize) > this.fileHeader.Offset)
+                if ((this.stream.Position + colorMapSizeBytes) > this.fileHeader.Offset)
                 {
                     BmpThrowHelper.ThrowImageFormatException(
-                        $"Reading the color map would read beyond the bitmap offset. Either the color map size of '{colorMapSize}' is invalid or the bitmap offset.");
+                        $"Reading the color map would read beyond the bitmap offset. Either the color map size of '{colorMapSizeBytes}' is invalid or the bitmap offset.");
                 }
 
-                palette = new byte[colorMapSize];
+                palette = new byte[colorMapSizeBytes];
 
-                this.stream.Read(palette, 0, colorMapSize);
+                this.stream.Read(palette, 0, colorMapSizeBytes);
             }
 
             this.infoHeader.VerifyDimensions();

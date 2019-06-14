@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -62,6 +62,7 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream containing image information.</param>
         /// <param name="format">the mime type of the decoded image.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
         /// <returns>A new <see cref="Image"/>.</returns>>
         public static Image Load(Stream stream, out IImageFormat format) => Load(Configuration.Default, stream, out format);
 
@@ -71,6 +72,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
         /// <returns>A new <see cref="Image"/>.</returns>>
         public static Image Load(Stream stream) => Load(Configuration.Default, stream);
 
@@ -81,6 +83,7 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream containing image information.</param>
         /// <param name="decoder">The decoder.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
         /// <returns>A new <see cref="Image"/>.</returns>>
         public static Image Load(Stream stream, IImageDecoder decoder) => Load(Configuration.Default, stream, decoder);
 
@@ -92,6 +95,7 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream containing image information.</param>
         /// <param name="decoder">The decoder.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
         /// <returns>A new <see cref="Image"/>.</returns>>
         public static Image Load(Configuration config, Stream stream, IImageDecoder decoder) =>
             WithSeekableStream(config, stream, s => decoder.Decode(config, s));
@@ -102,6 +106,7 @@ namespace SixLabors.ImageSharp
         /// <param name="config">The config for the decoder.</param>
         /// <param name="stream">The stream containing image information.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
         /// <returns>A new <see cref="Image"/>.</returns>>
         public static Image Load(Configuration config, Stream stream) => Load(config, stream, out _);
 
@@ -110,6 +115,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
         public static Image<TPixel> Load<TPixel>(Stream stream)
@@ -122,6 +128,7 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream containing image information.</param>
         /// <param name="format">the mime type of the decoded image.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
         public static Image<TPixel> Load<TPixel>(Stream stream, out IImageFormat format)
@@ -134,6 +141,7 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream containing image information.</param>
         /// <param name="decoder">The decoder.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
         public static Image<TPixel> Load<TPixel>(Stream stream, IImageDecoder decoder)
@@ -147,6 +155,7 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream containing image information.</param>
         /// <param name="decoder">The decoder.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
         public static Image<TPixel> Load<TPixel>(Configuration config, Stream stream, IImageDecoder decoder)
@@ -159,6 +168,7 @@ namespace SixLabors.ImageSharp
         /// <param name="config">The configuration options.</param>
         /// <param name="stream">The stream containing image information.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
         public static Image<TPixel> Load<TPixel>(Configuration config, Stream stream)
@@ -172,6 +182,7 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream containing image information.</param>
         /// <param name="format">the mime type of the decoded image.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
         public static Image<TPixel> Load<TPixel>(Configuration config, Stream stream, out IImageFormat format)
@@ -195,7 +206,7 @@ namespace SixLabors.ImageSharp
                 sb.AppendLine($" - {val.Key.Name} : {val.Value.GetType().Name}");
             }
 
-            throw new NotSupportedException(sb.ToString());
+            throw new UnknownImageFormatException(sb.ToString());
         }
 
         /// <summary>
@@ -206,6 +217,7 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream containing image information.</param>
         /// <param name="format">the mime type of the decoded image.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image Load(Configuration config, Stream stream, out IImageFormat format)
         {
@@ -227,7 +239,7 @@ namespace SixLabors.ImageSharp
                 sb.AppendLine($" - {val.Key.Name} : {val.Value.GetType().Name}");
             }
 
-            throw new NotSupportedException(sb.ToString());
+            throw new UnknownImageFormatException(sb.ToString());
         }
 
         private static T WithSeekableStream<T>(Configuration config, Stream stream, Func<Stream, T> action)

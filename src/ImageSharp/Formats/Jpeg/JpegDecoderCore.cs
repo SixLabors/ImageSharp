@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -952,7 +952,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="values">The values</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         private void BuildHuffmanTable(HuffmanTable[] tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
-            => tables[index] = new HuffmanTable(this.configuration.MemoryAllocator, codeLengths, values);
+            => tables[index] = new HuffmanTable(codeLengths, values);
 
         /// <summary>
         /// Reads a <see cref="ushort"/> from the stream advancing it by two bytes

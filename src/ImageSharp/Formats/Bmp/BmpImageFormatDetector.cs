@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -22,7 +22,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
         {
-            return header.Length >= this.HeaderSize && BinaryPrimitives.ReadInt16LittleEndian(header) == BmpConstants.TypeMarkers.Bitmap;
+            short fileTypeMarker = BinaryPrimitives.ReadInt16LittleEndian(header);
+            return header.Length >= this.HeaderSize &&
+                   (fileTypeMarker == BmpConstants.TypeMarkers.Bitmap || fileTypeMarker == BmpConstants.TypeMarkers.BitmapArray);
         }
     }
 }

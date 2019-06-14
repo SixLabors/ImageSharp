@@ -15,14 +15,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Baseline.Jpeg400,
                 TestImages.Jpeg.Baseline.Testorig420,
 
-                // BUG: The following image has a high difference compared to the expected output:
+                // BUG: The following image has a high difference compared to the expected output: 1.0096%
                 // TestImages.Jpeg.Baseline.Jpeg420Small,
 
-                // BUG: While we can decode this image we do not return the same output as libjpeg
-                // based decoders and are inserting a number of lines equal to the corrupted lines
-                // below said lines.
-                // TestImages.Jpeg.Issues.Fuzz.AccessViolationException922,
-
+                TestImages.Jpeg.Issues.Fuzz.AccessViolationException922,
                 TestImages.Jpeg.Baseline.Jpeg444,
                 TestImages.Jpeg.Baseline.Bad.BadEOF,
                 TestImages.Jpeg.Baseline.MultiScanBaselineCMYK,

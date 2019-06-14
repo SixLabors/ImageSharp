@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 this.ParseProgressiveData();
             }
 
-            if (this.scanBuffer.BadMarker)
+            if (this.scanBuffer.HasBadMarker())
             {
                 this.stream.Position = this.scanBuffer.MarkerPosition;
             }
@@ -684,15 +684,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             if (this.restartInterval > 0 && (--this.todo) == 0)
             {
+                if (this.scanBuffer.Marker == JpegConstants.Markers.XFF)
+                {
+                    if (!this.scanBuffer.FindNextMarker())
+                    {
+                        return false;
+                    }
+                }
+
                 this.todo = this.restartInterval;
 
-                if (this.scanBuffer.HasRestart())
+                if (this.scanBuffer.HasRestartMarker())
                 {
                     this.Reset();
                     return true;
                 }
 
-                if (this.scanBuffer.Marker != JpegConstants.Markers.XFF)
+                if (this.scanBuffer.HasBadMarker())
                 {
                     this.stream.Position = this.scanBuffer.MarkerPosition;
                     this.Reset();

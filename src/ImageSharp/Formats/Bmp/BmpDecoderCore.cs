@@ -1053,16 +1053,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.stream.Read(buffer, 0, BmpInfoHeader.HeaderSizeSize);
 
             int headerSize = BinaryPrimitives.ReadInt32LittleEndian(buffer);
-            if (headerSize < BmpInfoHeader.CoreSize)
+            if (headerSize < BmpInfoHeader.CoreSize || headerSize > BmpInfoHeader.MaxHeaderSize)
             {
                 BmpThrowHelper.ThrowNotSupportedException($"ImageSharp does not support this BMP file. HeaderSize is '{headerSize}'.");
-            }
-
-            int skipAmount = 0;
-            if (headerSize > BmpInfoHeader.MaxHeaderSize)
-            {
-                skipAmount = headerSize - BmpInfoHeader.MaxHeaderSize;
-                headerSize = BmpInfoHeader.MaxHeaderSize;
             }
 
             // Read the rest of the header.
@@ -1169,15 +1162,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 this.bmpMetadata.BitsPerPixel = (BmpBitsPerPixel)bitsPerPixel;
             }
-
-            // Skip the remaining header because we can't read those parts.
-            this.stream.Skip(skipAmount);
         }
 
         /// <summary>
         /// Reads the <see cref="BmpFileHeader"/> from the stream.
         /// </summary>
-        private void ReadFileHeader()
+        /// <returns>The color map size in bytes, if it could be determined by the file header. Otherwise -1.</returns>
+        private int ReadFileHeader()
         {
 #if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[BmpFileHeader.Size];
@@ -1186,12 +1177,36 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 #endif
             this.stream.Read(buffer, 0, BmpFileHeader.Size);
 
-            this.fileHeader = BmpFileHeader.Parse(buffer);
-
-            if (this.fileHeader.Type != BmpConstants.TypeMarkers.Bitmap)
+            short fileTypeMarker = BinaryPrimitives.ReadInt16LittleEndian(buffer);
+            switch (fileTypeMarker)
             {
-                BmpThrowHelper.ThrowNotSupportedException($"ImageSharp does not support this BMP file. File header bitmap type marker '{this.fileHeader.Type}'.");
+                case BmpConstants.TypeMarkers.Bitmap:
+                    this.fileHeader = BmpFileHeader.Parse(buffer);
+                    break;
+                case BmpConstants.TypeMarkers.BitmapArray:
+                    // The Array file header is followed by the bitmap file header of the first image.
+                    var arrayHeader = BmpArrayFileHeader.Parse(buffer);
+                    this.stream.Read(buffer, 0, BmpFileHeader.Size);
+                    this.fileHeader = BmpFileHeader.Parse(buffer);
+                    if (this.fileHeader.Type != BmpConstants.TypeMarkers.Bitmap)
+                    {
+                        BmpThrowHelper.ThrowNotSupportedException($"Unsupported bitmap file inside a BitmapArray file. File header bitmap type marker '{this.fileHeader.Type}'.");
+                    }
+
+                    if (arrayHeader.OffsetToNext != 0)
+                    {
+                        int colorMapSizeBytes = arrayHeader.OffsetToNext - arrayHeader.Size;
+                        return colorMapSizeBytes;
+                    }
+
+                    break;
+
+                default:
+                    BmpThrowHelper.ThrowNotSupportedException($"ImageSharp does not support this BMP file. File header bitmap type marker '{fileTypeMarker}'.");
+                    break;
             }
+
+            return -1;
         }
 
         /// <summary>
@@ -1203,7 +1218,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             this.stream = stream;
 
-            this.ReadFileHeader();
+            int colorMapSizeBytes = this.ReadFileHeader();
             this.ReadInfoHeader();
 
             // see http://www.drdobbs.com/architecture-and-design/the-bmp-file-format-part-1/184409517
@@ -1218,7 +1233,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 this.infoHeader.Height = -this.infoHeader.Height;
             }
 
-            int colorMapSize = -1;
             int bytesPerColorMapEntry = 4;
 
             if (this.infoHeader.ClrUsed == 0)
@@ -1227,35 +1241,38 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     || this.infoHeader.BitsPerPixel == 4
                     || this.infoHeader.BitsPerPixel == 8)
                 {
-                    int colorMapSizeBytes = this.fileHeader.Offset - BmpFileHeader.Size - this.infoHeader.HeaderSize;
+                    if (colorMapSizeBytes == -1)
+                    {
+                        colorMapSizeBytes = this.fileHeader.Offset - BmpFileHeader.Size - this.infoHeader.HeaderSize;
+                    }
+
                     int colorCountForBitDepth = ImageMaths.GetColorCountForBitDepth(this.infoHeader.BitsPerPixel);
                     bytesPerColorMapEntry = colorMapSizeBytes / colorCountForBitDepth;
 
                     // Edge case for less-than-full-sized palette: bytesPerColorMapEntry should be at least 3.
                     bytesPerColorMapEntry = Math.Max(bytesPerColorMapEntry, 3);
-                    colorMapSize = colorMapSizeBytes;
                 }
             }
             else
             {
-                colorMapSize = this.infoHeader.ClrUsed * bytesPerColorMapEntry;
+                colorMapSizeBytes = this.infoHeader.ClrUsed * bytesPerColorMapEntry;
             }
 
             palette = null;
 
-            if (colorMapSize > 0)
+            if (colorMapSizeBytes > 0)
             {
                 // Usually the color palette is 1024 byte (256 colors * 4), but the documentation does not mention a size limit.
                 // Make sure, that we will not read pass the bitmap offset (starting position of image data).
-                if ((this.stream.Position + colorMapSize) > this.fileHeader.Offset)
+                if ((this.stream.Position + colorMapSizeBytes) > this.fileHeader.Offset)
                 {
                     BmpThrowHelper.ThrowImageFormatException(
-                        $"Reading the color map would read beyond the bitmap offset. Either the color map size of '{colorMapSize}' is invalid or the bitmap offset.");
+                        $"Reading the color map would read beyond the bitmap offset. Either the color map size of '{colorMapSizeBytes}' is invalid or the bitmap offset.");
                 }
 
-                palette = new byte[colorMapSize];
+                palette = new byte[colorMapSizeBytes];
 
-                this.stream.Read(palette, 0, colorMapSize);
+                this.stream.Read(palette, 0, colorMapSizeBytes);
             }
 
             this.infoHeader.VerifyDimensions();

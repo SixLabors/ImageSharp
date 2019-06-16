@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Tests
         /// </summary>
         /// <param name="width">The width of the requested image</param>
         /// <param name="height">The height of the requested image</param>
-        /// <param name="colorName">The referenced color name (name of property in <see cref="NamedColors{TPixel}")/></param>
+        /// <param name="colorName">The referenced color name (name of property in <see cref="Color"/>).</param>
         /// <param name="pixelTypes">The requested pixel types</param>
         /// <param name="additionalParameters">Additional theory parameter values</param>
         public WithSolidFilledImagesAttribute(
@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <param name="memberData">The member data to apply to theories</param>
         /// <param name="width">The width of the requested image</param>
         /// <param name="height">The height of the requested image</param>
-        /// <param name="colorName">The referenced color name (name of property in <see cref="NamedColors{TPixel}")/></param>
+        /// <param name="colorName">The referenced color name (name of property in <see cref="Color"/>).</param>
         /// <param name="pixelTypes">The requested pixel types</param>
         /// <param name="additionalParameters">Additional theory parameter values</param>
         public WithSolidFilledImagesAttribute(

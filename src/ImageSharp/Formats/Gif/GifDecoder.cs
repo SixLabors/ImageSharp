@@ -3,7 +3,7 @@
 
 using System.IO;
 using System.Text;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Gif
@@ -44,5 +44,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
             var decoder = new GifDecoderCore(configuration, this);
             return decoder.Identify(stream);
         }
+
+        /// <inheritdoc />
+        public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
     }
 }

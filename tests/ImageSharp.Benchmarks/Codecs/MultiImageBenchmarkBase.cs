@@ -1,7 +1,5 @@
-﻿// <copyright file="MultiImageBenchmarkBase.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
@@ -18,7 +16,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
     using System.Numerics;
 
     using BenchmarkDotNet.Attributes;
-
+    using BenchmarkDotNet.Diagnosers;
     using SixLabors.ImageSharp.Tests;
 
     using CoreImage = ImageSharp.Image;
@@ -30,7 +28,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             public Config()
             {
                 // Uncomment if you want to use any of the diagnoser
-                this.Add(new BenchmarkDotNet.Diagnosers.MemoryDiagnoser());
+                this.Add(MemoryDiagnoser.Default);
             }
 
             public class ShortClr : Benchmarks.Config
@@ -38,7 +36,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
                 public ShortClr()
                 {
                     this.Add(
-                        Job.Core.WithLaunchCount(1).WithWarmupCount(1).WithTargetCount(2)
+                        Job.Core.WithLaunchCount(1).WithWarmupCount(1).WithIterationCount(2)
                     );
                 }
             }
@@ -47,7 +45,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         protected Dictionary<string, byte[]> FileNamesToBytes = new Dictionary<string, byte[]>();
 
         protected Dictionary<string, Image<Rgba32>> FileNamesToImageSharpImages = new Dictionary<string, Image<Rgba32>>();
-        protected Dictionary<string, System.Drawing.Bitmap> FileNamesToSystemDrawingImages = new Dictionary<string, System.Drawing.Bitmap>();
+        protected Dictionary<string, Bitmap> FileNamesToSystemDrawingImages = new Dictionary<string, System.Drawing.Bitmap>();
 
         /// <summary>
         /// The values of this enum separate input files into categories
@@ -152,7 +150,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         {
             foreach (KeyValuePair<string, byte[]> kv in this.FileNames2Bytes)
             {
-                using (MemoryStream memoryStream = new MemoryStream(kv.Value))
+                using (var memoryStream = new MemoryStream(kv.Value))
                 {
                     try
                     {
@@ -179,7 +177,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
                     byte[] bytes = kv.Value;
                     string fn = kv.Key;
 
-                    using (MemoryStream ms1 = new MemoryStream(bytes))
+                    using (var ms1 = new MemoryStream(bytes))
                     {
                         this.FileNamesToImageSharpImages[fn] = CoreImage.Load<Rgba32>(ms1);
 
@@ -223,7 +221,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
             protected void ForEachImageSharpImage(Func<Image<Rgba32>, MemoryStream, object> operation)
             {
-                using (MemoryStream workStream = new MemoryStream())
+                using (var workStream = new MemoryStream())
                 {
 
                     this.ForEachImageSharpImage(
@@ -256,7 +254,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
             protected void ForEachSystemDrawingImage(Func<System.Drawing.Bitmap, MemoryStream, object> operation)
             {
-                using (MemoryStream workStream = new MemoryStream())
+                using (var workStream = new MemoryStream())
                 {
 
                     this.ForEachSystemDrawingImage(

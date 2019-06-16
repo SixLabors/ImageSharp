@@ -62,6 +62,12 @@ namespace SixLabors.ImageSharp.PixelFormats
         void FromArgb32(Argb32 source);
 
         /// <summary>
+        /// Initializes the pixel instance from an <see cref="Bgra5551"/> value.
+        /// </summary>
+        /// <param name="source">The <see cref="Bgra5551"/> value.</param>
+        void FromBgra5551(Bgra5551 source);
+
+        /// <summary>
         /// Initializes the pixel instance from an <see cref="Bgr24"/> value.
         /// </summary>
         /// <param name="source">The <see cref="Bgr24"/> value.</param>

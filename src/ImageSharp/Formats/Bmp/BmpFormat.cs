@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// <summary>
     /// Registers the image encoders, decoders and mime type detectors for the bmp format.
     /// </summary>
-    public sealed class BmpFormat : IImageFormat<BmpMetaData>
+    public sealed class BmpFormat : IImageFormat<BmpMetadata>
     {
         private BmpFormat()
         {
@@ -32,6 +32,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public IEnumerable<string> FileExtensions => BmpConstants.FileExtensions;
 
         /// <inheritdoc/>
-        public BmpMetaData CreateDefaultFormatMetaData() => new BmpMetaData();
+        public BmpMetadata CreateDefaultFormatMetadata() => new BmpMetadata();
     }
 }

@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp
     /// <content>
     /// Adds static methods allowing the creation of new image from raw pixel data.
     /// </content>
-    public static partial class Image
+    public abstract partial class Image
     {
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the raw <typeparamref name="TPixel"/> data.

@@ -3,7 +3,7 @@
 
 using System.Numerics;
 using SixLabors.Memory;
-using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Icc
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
 
         [Theory]
         [MemberData(nameof(IccTestDataMatrix.Matrix2D_DenseMatrixTestData), MemberType = typeof(IccTestDataMatrix))]
-        internal void WriteMatrix2D_DenseMatrix(byte[] expected, int xCount, int yCount, bool isSingle, DenseMatrix<float> data)
+        internal void WriteMatrix2D_DenseMatrix(byte[] expected, int xCount, int yCount, bool isSingle, in DenseMatrix<float> data)
         {
             IccDataWriter writer = CreateWriter();
 

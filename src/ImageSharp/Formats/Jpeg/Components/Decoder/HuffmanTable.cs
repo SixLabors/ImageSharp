@@ -1,148 +1,162 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
-using SixLabors.ImageSharp.Memory;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <summary>
-    /// Represents a Huffman Table
+    /// Represents a Huffman coding table containing basic coding data plus tables for accelerated computation.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     internal unsafe struct HuffmanTable
     {
-        private bool isDerived;
-
-        private readonly MemoryAllocator memoryAllocator;
-
-#pragma warning disable IDE0044 // Add readonly modifier
-        private fixed byte codeLengths[17];
-#pragma warning restore IDE0044 // Add readonly modifier
+        private bool isConfigured;
 
         /// <summary>
-        /// Gets the max code array.
+        /// Derived from the DHT marker. Sizes[k] = # of symbols with codes of length k bits; Sizes[0] is unused.
         /// </summary>
-        public fixed uint MaxCode[18];
+        public fixed byte Sizes[17];
 
         /// <summary>
-        /// Gets the value offset array.
-        /// </summary>
-        public fixed int ValOffset[18];
-
-        /// <summary>
-        /// Gets the huffman value array.
+        /// Derived from the DHT marker. Contains the symbols, in order of incremental code length.
         /// </summary>
         public fixed byte Values[256];
 
         /// <summary>
-        /// Gets the lookahead array.
+        /// Contains the largest code of length k (0 if none). MaxCode[17] is a sentinel to
+        /// ensure <see cref="HuffmanScanBuffer.DecodeHuffman"/> terminates.
         /// </summary>
-        public fixed byte Lookahead[512];
+        public fixed ulong MaxCode[18];
 
         /// <summary>
-        /// Gets the sizes array
+        /// Values[] offset for codes of length k  ValOffset[k] = Values[] index of 1st symbol of code length
+        /// k, less the smallest code of length k; so given a code of length k, the corresponding symbol is
+        /// Values[code + ValOffset[k]].
         /// </summary>
-        public fixed short Sizes[257];
+        public fixed int ValOffset[19];
+
+        /// <summary>
+        /// Contains the length of bits for the given k value.
+        /// </summary>
+        public fixed byte LookaheadSize[JpegConstants.Huffman.LookupSize];
+
+        /// <summary>
+        /// Lookahead table: indexed by the next <see cref="JpegConstants.Huffman.LookupBits"/> bits of
+        /// the input data stream.  If the next Huffman code is no more
+        /// than <see cref="JpegConstants.Huffman.LookupBits"/> bits long, we can obtain its length and
+        /// the corresponding symbol directly from this tables.
+        ///
+        /// The lower 8 bits of each table entry contain the number of
+        /// bits in the corresponding Huffman code, or <see cref="JpegConstants.Huffman.LookupBits"/> + 1
+        /// if too long.  The next 8 bits of each entry contain the symbol.
+        /// </summary>
+        public fixed byte LookaheadValue[JpegConstants.Huffman.LookupSize];
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HuffmanTable"/> struct.
         /// </summary>
-        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
         /// <param name="codeLengths">The code lengths</param>
         /// <param name="values">The huffman values</param>
-        public HuffmanTable(MemoryAllocator memoryAllocator, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
+        public HuffmanTable(ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
         {
-            this.isDerived = false;
-            this.memoryAllocator = memoryAllocator;
-            Unsafe.CopyBlockUnaligned(ref this.codeLengths[0], ref MemoryMarshal.GetReference(codeLengths), (uint)codeLengths.Length);
+            this.isConfigured = false;
+            Unsafe.CopyBlockUnaligned(ref this.Sizes[0], ref MemoryMarshal.GetReference(codeLengths), (uint)codeLengths.Length);
             Unsafe.CopyBlockUnaligned(ref this.Values[0], ref MemoryMarshal.GetReference(values), (uint)values.Length);
         }
 
         /// <summary>
-        /// Expands the HuffmanTable into its derived form.
+        /// Expands the HuffmanTable into its readable form.
         /// </summary>
-        public void Derive()
+        public void Configure()
         {
-            if (this.isDerived)
+            if (this.isConfigured)
             {
                 return;
             }
 
-            const int Length = 257;
-            using (IMemoryOwner<short> huffcode = this.memoryAllocator.Allocate<short>(Length))
+            Span<char> huffSize = stackalloc char[257];
+            Span<uint> huffCode = stackalloc uint[257];
+
+            // Figure C.1: make table of Huffman code length for each symbol
+            int p = 0;
+            for (int l = 1; l <= 16; l++)
             {
-                ref short huffcodeRef = ref MemoryMarshal.GetReference(huffcode.GetSpan());
-                ref byte codeLengthsRef = ref this.codeLengths[0];
-
-                // Figure C.1: make table of Huffman code length for each symbol
-                ref short sizesRef = ref this.Sizes[0];
-                short x = 0;
-                for (short i = 1; i < 17; i++)
+                int i = this.Sizes[l];
+                while (i-- != 0)
                 {
-                    byte length = Unsafe.Add(ref codeLengthsRef, i);
-                    for (short j = 0; j < length; j++)
-                    {
-                        Unsafe.Add(ref sizesRef, x++) = i;
-                    }
+                    huffSize[p++] = (char)l;
+                }
+            }
+
+            huffSize[p] = (char)0;
+
+            // Figure C.2: generate the codes themselves
+            uint code = 0;
+            int si = huffSize[0];
+            p = 0;
+            while (huffSize[p] != 0)
+            {
+                while (huffSize[p] == si)
+                {
+                    huffCode[p++] = code;
+                    code++;
                 }
 
-                Unsafe.Add(ref sizesRef, x) = 0;
+                code <<= 1;
+                si++;
+            }
 
-                // Figure C.2: generate the codes themselves
-                int si = 0;
-                ref int valOffsetRef = ref this.ValOffset[0];
-                ref uint maxcodeRef = ref this.MaxCode[0];
-
-                uint code = 0;
-                int k;
-                for (k = 1; k < 17; k++)
+            // Figure F.15: generate decoding tables for bit-sequential decoding
+            p = 0;
+            for (int l = 1; l <= 16; l++)
+            {
+                if (this.Sizes[l] != 0)
                 {
-                    // Compute delta to add to code to compute symbol id.
-                    Unsafe.Add(ref valOffsetRef, k) = (int)(si - code);
-                    if (Unsafe.Add(ref sizesRef, si) == k)
-                    {
-                        while (Unsafe.Add(ref sizesRef, si) == k)
-                        {
-                            Unsafe.Add(ref huffcodeRef, si++) = (short)code++;
-                        }
-                    }
-
-                    // Figure F.15: generate decoding tables for bit-sequential decoding.
-                    // Compute largest code + 1 for this size. preshifted as we need it later.
-                    Unsafe.Add(ref maxcodeRef, k) = code << (16 - k);
-                    code <<= 1;
+                    int offset = p - (int)huffCode[p];
+                    this.ValOffset[l] = offset;
+                    p += this.Sizes[l];
+                    this.MaxCode[l] = huffCode[p - 1]; // Maximum code of length l
+                    this.MaxCode[l] <<= 64 - l; // Left justify
+                    this.MaxCode[l] |= (1ul << (64 - l)) - 1;
                 }
-
-                Unsafe.Add(ref maxcodeRef, k) = 0xFFFFFFFF;
-
-                // Generate non-spec lookup tables to speed up decoding.
-                const int FastBits = ScanDecoder.FastBits;
-                ref byte lookaheadRef = ref this.Lookahead[0];
-                Unsafe.InitBlockUnaligned(ref lookaheadRef, 0xFF, 1 << FastBits); // Flag for non-accelerated
-
-                for (int i = 0; i < si; i++)
+                else
                 {
-                    int size = Unsafe.Add(ref sizesRef, i);
-                    if (size <= FastBits)
+                    this.MaxCode[l] = 0;
+                }
+            }
+
+            this.ValOffset[18] = 0;
+            this.MaxCode[17] = ulong.MaxValue; // Ensures huff decode terminates
+
+            // Compute lookahead tables to speed up decoding.
+            // First we set all the table entries to JpegConstants.Huffman.SlowBits, indicating "too long";
+            // then we iterate through the Huffman codes that are short enough and
+            // fill in all the entries that correspond to bit sequences starting
+            // with that code.
+            ref byte lookupSizeRef = ref this.LookaheadSize[0];
+            Unsafe.InitBlockUnaligned(ref lookupSizeRef, JpegConstants.Huffman.SlowBits, JpegConstants.Huffman.LookupSize);
+
+            p = 0;
+            for (int length = 1; length <= JpegConstants.Huffman.LookupBits; length++)
+            {
+                for (int i = 1; i <= this.Sizes[length]; i++, p++)
+                {
+                    // length = current code's length, p = its index in huffCode[] & Values[].
+                    // Generate left-justified code followed by all possible bit sequences
+                    int lookBits = (int)(huffCode[p] << (JpegConstants.Huffman.LookupBits - length));
+                    for (int ctr = 1 << (JpegConstants.Huffman.LookupBits - length); ctr > 0; ctr--)
                     {
-                        int fastOffset = FastBits - size;
-                        int fastCode = Unsafe.Add(ref huffcodeRef, i) << fastOffset;
-                        int fastMax = 1 << fastOffset;
-                        for (int left = 0; left < fastMax; left++)
-                        {
-                            Unsafe.Add(ref lookaheadRef, fastCode + left) = (byte)i;
-                        }
+                        this.LookaheadSize[lookBits] = (byte)length;
+                        this.LookaheadValue[lookBits] = this.Values[p];
+                        lookBits++;
                     }
                 }
             }
 
-            this.isDerived = true;
+            this.isConfigured = true;
         }
     }
 }

@@ -8,7 +8,7 @@ using System.IO;
 using System.Text;
 
 using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
@@ -202,11 +202,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             var testFile = TestFile.Create(TestImages.Png.Blur);
 
-            using (Image<Rgba32> image = testFile.CreateImage(options))
+            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
-                Assert.Equal(1, image.MetaData.Properties.Count);
-                Assert.Equal("Software", image.MetaData.Properties[0].Name);
-                Assert.Equal("paint.net 4.0.6", image.MetaData.Properties[0].Value);
+                Assert.Equal(1, image.Metadata.Properties.Count);
+                Assert.Equal("Software", image.Metadata.Properties[0].Name);
+                Assert.Equal("paint.net 4.0.6", image.Metadata.Properties[0].Value);
             }
         }
 
@@ -220,9 +220,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             var testFile = TestFile.Create(TestImages.Png.Blur);
 
-            using (Image<Rgba32> image = testFile.CreateImage(options))
+            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
-                Assert.Equal(0, image.MetaData.Properties.Count);
+                Assert.Equal(0, image.Metadata.Properties.Count);
             }
         }
 
@@ -236,10 +236,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             var testFile = TestFile.Create(TestImages.Png.Blur);
 
-            using (Image<Rgba32> image = testFile.CreateImage(options))
+            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
-                Assert.Equal(1, image.MetaData.Properties.Count);
-                Assert.Equal("潓瑦慷敲", image.MetaData.Properties[0].Name);
+                Assert.Equal(1, image.Metadata.Properties.Count);
+                Assert.Equal("潓瑦慷敲", image.Metadata.Properties[0].Name);
             }
         }
 
@@ -270,7 +270,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 var decoder = new PngDecoder();
                 using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
                 {
-                    ImageMetaData meta = image.MetaData;
+                    ImageMetadata meta = image.Metadata;
                     Assert.Equal(xResolution, meta.HorizontalResolution);
                     Assert.Equal(yResolution, meta.VerticalResolution);
                     Assert.Equal(resolutionUnit, meta.ResolutionUnits);
@@ -287,7 +287,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             {
                 var decoder = new PngDecoder();
                 IImageInfo image = decoder.Identify(Configuration.Default, stream);
-                ImageMetaData meta = image.MetaData;
+                ImageMetadata meta = image.Metadata;
                 Assert.Equal(xResolution, meta.HorizontalResolution);
                 Assert.Equal(yResolution, meta.VerticalResolution);
                 Assert.Equal(resolutionUnit, meta.ResolutionUnits);

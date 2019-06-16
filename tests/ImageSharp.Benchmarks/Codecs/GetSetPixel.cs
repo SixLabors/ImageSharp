@@ -10,11 +10,11 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
     public class GetSetPixel : BenchmarkBase
     {
         [Benchmark(Baseline = true, Description = "System.Drawing GetSet pixel")]
-        public Color ResizeSystemDrawing()
+        public System.Drawing.Color ResizeSystemDrawing()
         {
             using (var source = new Bitmap(400, 400))
             {
-                source.SetPixel(200, 200, Color.White);
+                source.SetPixel(200, 200, System.Drawing.Color.White);
                 return source.GetPixel(200, 200);
             }
         }

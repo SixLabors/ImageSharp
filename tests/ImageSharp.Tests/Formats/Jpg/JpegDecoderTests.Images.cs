@@ -15,9 +15,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Baseline.Jpeg400,
                 TestImages.Jpeg.Baseline.Testorig420,
 
-                // BUG: The following image has a high difference compared to the expected output:
+                // BUG: The following image has a high difference compared to the expected output: 1.0096%
                 // TestImages.Jpeg.Baseline.Jpeg420Small,
 
+                TestImages.Jpeg.Issues.Fuzz.AccessViolationException922,
                 TestImages.Jpeg.Baseline.Jpeg444,
                 TestImages.Jpeg.Baseline.Bad.BadEOF,
                 TestImages.Jpeg.Baseline.MultiScanBaselineCMYK,
@@ -31,8 +32,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Issues.ExifGetString750Load,
                 TestImages.Jpeg.Issues.ExifGetString750Transform,
 
-                // LibJpeg can open this despite the invalid desity units.
+                // LibJpeg can open this despite the invalid density units.
                 TestImages.Jpeg.Issues.Fuzz.ArgumentOutOfRangeException825B,
+
+                // LibJpeg can open this despite incorrect colorspace metadata.
+                TestImages.Jpeg.Issues.IncorrectColorspace855,
 
                 // High depth images
                 TestImages.Jpeg.Baseline.Testorig12bit,

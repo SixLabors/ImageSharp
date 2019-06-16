@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// <summary>
     /// Applies error diffusion based dithering using the Stevenson-Arce image dithering algorithm.
     /// </summary>
-    public sealed class StevensonArceDiffuser : ErrorDiffuserBase
+    public sealed class StevensonArceDiffuser : ErrorDiffuser
     {
         /// <summary>
         /// The diffusion matrix

@@ -8,6 +8,9 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
 {
+    /// <content>
+    /// Contains methods for loading raw pixel data.
+    /// </content>
     public partial class ImageFrame
     {
         /// <summary>

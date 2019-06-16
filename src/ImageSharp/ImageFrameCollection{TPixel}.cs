@@ -1,5 +1,5 @@
-// // Copyright (c) Six Labors and contributors.
-// // Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Collections;
@@ -12,7 +12,8 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp
 {
     /// <summary>
-    /// Encapsulates a collection of <see cref="ImageFrame{T}"/> instances that make up an <see cref="Image{T}"/>.
+    /// Encapsulates a pixel-specific collection of <see cref="ImageFrame{T}"/> instances
+    /// that make up an <see cref="Image{T}"/>.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumerable<ImageFrame<TPixel>>
@@ -68,6 +69,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         public new ImageFrame<TPixel> RootFrame => this.frames.Count > 0 ? this.frames[0] : null;
 
+        /// <inheritdoc />
         protected override ImageFrame NonGenericRootFrame { get; }
 
         /// <summary>
@@ -167,6 +169,7 @@ namespace SixLabors.ImageSharp
             frame.Dispose();
         }
 
+        /// <inheritdoc />
         public override bool Contains(ImageFrame frame) =>
             frame is ImageFrame<TPixel> specific && this.Contains(specific);
 

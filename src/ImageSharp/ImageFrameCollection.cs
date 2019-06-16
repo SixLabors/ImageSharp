@@ -7,6 +7,10 @@ using System.Collections.Generic;
 
 namespace SixLabors.ImageSharp
 {
+    /// <summary>
+    /// Encapsulates a pixel-agnostic collection of <see cref="ImageFrame"/> instances
+    /// that make up an <see cref="Image"/>.
+    /// </summary>
     public abstract class ImageFrameCollection : IEnumerable<ImageFrame>
     {
         /// <summary>

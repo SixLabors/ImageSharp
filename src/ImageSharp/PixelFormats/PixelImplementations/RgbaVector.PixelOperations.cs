@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             {
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
-                ref Vector4 sourceBaseRef = ref Unsafe.As<RgbaVector, Vector4>( ref MemoryMarshal.GetReference(sourcePixels));
+                ref Vector4 sourceBaseRef = ref Unsafe.As<RgbaVector, Vector4>(ref MemoryMarshal.GetReference(sourcePixels));
                 ref Gray8 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
                 for (int i = 0; i < sourcePixels.Length; i++)
@@ -64,9 +64,9 @@ namespace SixLabors.ImageSharp.PixelFormats
 
             internal override void ToGray16(Configuration configuration, ReadOnlySpan<RgbaVector> sourcePixels, Span<Gray16> destPixels)
             {
-                base.ToGray16(configuration, sourcePixels, destPixels);Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
-                ref Vector4 sourceBaseRef = ref Unsafe.As<RgbaVector, Vector4>( ref MemoryMarshal.GetReference(sourcePixels));
+                ref Vector4 sourceBaseRef = ref Unsafe.As<RgbaVector, Vector4>(ref MemoryMarshal.GetReference(sourcePixels));
                 ref Gray16 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
                 for (int i = 0; i < sourcePixels.Length; i++)

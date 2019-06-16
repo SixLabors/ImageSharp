@@ -16,7 +16,9 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp
 {
     /// <summary>
-    /// Represents a single frame in a animation.
+    /// Represents a pixel-specific image frame containing all pixel data and <see cref="ImageFrameMetadata"/>.
+    /// In case of animated formats like gif, it contains the single frame in a animation.
+    /// In all other cases it is the only frame of the image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>, IDisposable
@@ -132,7 +134,6 @@ namespace SixLabors.ImageSharp
             source.PixelBuffer.GetSpan().CopyTo(this.PixelBuffer.GetSpan());
         }
 
-
         /// <summary>
         /// Gets the image pixels. Not private as Buffer2D requires an array in its constructor.
         /// </summary>
@@ -140,7 +141,6 @@ namespace SixLabors.ImageSharp
 
         /// <inheritdoc/>
         Buffer2D<TPixel> IPixelSource<TPixel>.PixelBuffer => this.PixelBuffer;
-
 
         /// <summary>
         /// Gets or sets the pixel at the specified position.
@@ -156,7 +156,6 @@ namespace SixLabors.ImageSharp
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set => this.PixelBuffer[x, y] = value;
         }
-
 
         /// <summary>
         /// Gets a reference to the pixel at the specified position.

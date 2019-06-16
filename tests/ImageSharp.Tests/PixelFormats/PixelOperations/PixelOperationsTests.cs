@@ -834,7 +834,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             {
                 TPixel[] source = CreatePixelTestData(count);
                 Gray16[] expected = new Gray16[count];
-                Gray16 gray = default;
 
                 for (int i = 0; i < count; i++)
                 {

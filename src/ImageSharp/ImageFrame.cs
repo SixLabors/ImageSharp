@@ -10,8 +10,20 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
 {
+    /// <summary>
+    /// Represents a pixel-agnostic image frame containing all pixel data and <see cref="ImageFrameMetadata"/>.
+    /// In case of animated formats like gif, it contains the single frame in a animation.
+    /// In all other cases it is the only frame of the image.
+    /// </summary>
     public abstract partial class ImageFrame : IDisposable
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageFrame"/> class.
+        /// </summary>
+        /// <param name="configuration">The <see cref="Configuration"/>.</param>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
+        /// <param name="metadata">The <see cref="ImageFrameMetadata"/>.</param>
         protected ImageFrame(Configuration configuration, int width, int height, ImageFrameMetadata metadata)
         {
             Guard.NotNull(configuration, nameof(configuration));

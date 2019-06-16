@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             private new Image Image => base.Image;
 
-            private ImageFrameCollection Collection => base.Collection;
+            private new ImageFrameCollection Collection => base.Collection;
 
             [Fact]
             public void AddFrame_OfDifferentPixelType()

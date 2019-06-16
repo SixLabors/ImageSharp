@@ -6,12 +6,12 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    public abstract partial class ImageFramesCollectionTests : IDisposable
+    public abstract partial class ImageFrameCollectionTests : IDisposable
     {
         protected Image<Rgba32> Image { get; }
         protected ImageFrameCollection<Rgba32> Collection { get; }
 
-        public ImageFramesCollectionTests()
+        public ImageFrameCollectionTests()
         {
             // Needed to get English exception messages, which are checked in several tests.
             System.Threading.Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo("en-US");

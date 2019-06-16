@@ -5,15 +5,17 @@ using System;
 using System.Linq;
 
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.PixelFormats;
 
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    public abstract partial class ImageFramesCollectionTests
+    public abstract partial class ImageFrameCollectionTests
     {
-        public class NonGeneric : ImageFramesCollectionTests
+        [GroupOutput("ImageFramesCollectionTests")]
+        public class NonGeneric : ImageFrameCollectionTests
         {
             private new Image Image => base.Image;
 
@@ -260,6 +262,45 @@ namespace SixLabors.ImageSharp.Tests
 
                 var frame = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
                 Assert.False(this.Image.Frames.Contains(frame));
+            }
+
+            /// <summary>
+            /// Integration test for end-to end API validation.
+            /// </summary>
+            [Theory]
+            [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
+            public void ConstructGif_FromDifferentPixelTypes<TPixel>(TestImageProvider<TPixel> provider)
+                where TPixel : struct, IPixel<TPixel>
+            {
+                using (Image source = provider.GetImage())
+                using (Image<TPixel> dest = new Image<TPixel>(source.GetConfiguration(), source.Width, source.Height))
+                {
+                    // Giphy.gif has 5 frames
+
+                    ImportFrameAs<Bgra32>(source.Frames, dest.Frames, 0);
+                    ImportFrameAs<Argb32>(source.Frames, dest.Frames, 1);
+                    ImportFrameAs<Rgba64>(source.Frames, dest.Frames, 2);
+                    ImportFrameAs<Rgba32>(source.Frames, dest.Frames, 3);
+                    ImportFrameAs<Bgra32>(source.Frames, dest.Frames, 4);
+
+                    // Drop the original empty root frame:
+                    dest.Frames.RemoveFrame(0);
+
+                    dest.DebugSave(provider, appendSourceFileOrDescription: false, extension: "gif");
+                    dest.CompareToOriginal(provider);
+                }
+            }
+
+            private static void ImportFrameAs<TPixel>(ImageFrameCollection source, ImageFrameCollection destination, int index)
+                where TPixel : struct, IPixel<TPixel>
+            {
+                using (Image temp = source.CloneFrame(index))
+                {
+                    using (Image<TPixel> temp2 = temp.CloneAs<TPixel>())
+                    {
+                        destination.AddFrame(temp2.Frames.RootFrame);
+                    }
+                }
             }
         }
     }

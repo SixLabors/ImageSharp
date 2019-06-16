@@ -11,9 +11,10 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    public abstract partial class ImageFramesCollectionTests
+    public abstract partial class ImageFrameCollectionTests
     {
-        public class Generic : ImageFramesCollectionTests
+        [GroupOutput("ImageFramesCollectionTests")]
+        public class Generic : ImageFrameCollectionTests
         {
             [Fact]
             public void Constructor_ShouldCreateOneFrame()

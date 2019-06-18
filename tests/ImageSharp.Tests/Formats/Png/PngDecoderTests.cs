@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 // ReSharper disable InconsistentNaming
@@ -42,7 +42,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             TestImages.Png.Rgb24BppTrans,
             TestImages.Png.GrayAlpha8Bit,
             TestImages.Png.Gray1BitTrans,
-            TestImages.Png.Bad.ZlibOverflow
+            TestImages.Png.Bad.ZlibOverflow,
+            TestImages.Png.Bad.ZlibOverflow2
         };
 
         public static readonly string[] TestImages48Bpp =

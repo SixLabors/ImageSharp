@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Formats.Bmp
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// Two bytes are one data record. If the first byte is not zero, the
-        /// next two half bytes will be repeated as much as the value of the first byte.
+        /// next byte will be repeated as much as the value of the first byte.
         /// If the first byte is zero, the record has different meanings, depending
         /// on the second byte. If the second byte is zero, it is the end of the row,
         /// if it is one, it is the end of the image.
@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// Two bytes are one data record. If the first byte is not zero, the
-        /// next byte will be repeated as much as the value of the first byte.
+        /// next two half bytes will be repeated as much as the value of the first byte.
         /// If the first byte is zero, the record has different meanings, depending
         /// on the second byte. If the second byte is zero, it is the end of the row,
         /// if it is one, it is the end of the image.
@@ -60,6 +60,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Specifies that the bitmap is not compressed and that the color table consists of four DWORD color
         /// masks that specify the red, green, blue, and alpha components of each pixel.
         /// </summary>
-        BI_ALPHABITFIELDS = 6
+        BI_ALPHABITFIELDS = 6,
+
+        /// <summary>
+        /// Similar to run length encoding of 4 and 8 bit.
+        /// The only difference is that run values encoded are three bytes in size (one byte per RGB color component),
+        /// rather than four or eight bits in size.
+        /// </summary>
+        RLE24 = 7,
     }
 }

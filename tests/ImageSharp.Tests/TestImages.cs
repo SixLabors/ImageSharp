@@ -230,6 +230,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string NegHeight = "Bmp/neg_height.bmp";
             public const string CoreHeader = "Bmp/BitmapCoreHeaderQR.bmp";
             public const string V5Header = "Bmp/BITMAPV5HEADER.bmp";
+            public const string RLE24 = "Bmp/rgb24rle24.bmp";
+            public const string RLE24Cut = "Bmp/rle24rlecut.bmp";
+            public const string RLE24Delta = "Bmp/rle24rlecut.bmp";
             public const string RLE8 = "Bmp/RunLengthEncoded.bmp";
             public const string RLE8Cut = "Bmp/pal8rlecut.bmp";
             public const string RLE8Delta = "Bmp/pal8rletrns.bmp";

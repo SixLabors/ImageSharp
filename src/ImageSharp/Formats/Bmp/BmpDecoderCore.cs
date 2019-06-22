@@ -79,6 +79,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private BmpFileHeader fileHeader;
 
         /// <summary>
+        /// Indicates which bitmap file marker was read.
+        /// </summary>
+        private BmpFileMarkerType fileMarkerType;
+
+        /// <summary>
         /// The info header containing detailed information about the bitmap.
         /// </summary>
         private BmpInfoHeader infoHeader;
@@ -1330,8 +1335,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Reads the <see cref="BmpFileHeader"/> from the stream.
         /// </summary>
-        /// <returns>The color map size in bytes, if it could be determined by the file header. Otherwise -1.</returns>
-        private int ReadFileHeader()
+        private void ReadFileHeader()
         {
 #if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[BmpFileHeader.Size];
@@ -1344,22 +1348,19 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             switch (fileTypeMarker)
             {
                 case BmpConstants.TypeMarkers.Bitmap:
+                    this.fileMarkerType = BmpFileMarkerType.Bitmap;
                     this.fileHeader = BmpFileHeader.Parse(buffer);
                     break;
                 case BmpConstants.TypeMarkers.BitmapArray:
-                    // The Array file header is followed by the bitmap file header of the first image.
-                    var arrayHeader = BmpArrayFileHeader.Parse(buffer);
+                    this.fileMarkerType = BmpFileMarkerType.BitmapArray;
+
+                    // Because we only decode the first bitmap in the array, the array header will be ignored.
+                    // The bitmap file header of the first image follows the array header.
                     this.stream.Read(buffer, 0, BmpFileHeader.Size);
                     this.fileHeader = BmpFileHeader.Parse(buffer);
                     if (this.fileHeader.Type != BmpConstants.TypeMarkers.Bitmap)
                     {
                         BmpThrowHelper.ThrowNotSupportedException($"Unsupported bitmap file inside a BitmapArray file. File header bitmap type marker '{this.fileHeader.Type}'.");
-                    }
-
-                    if (arrayHeader.OffsetToNext != 0)
-                    {
-                        int colorMapSizeBytes = arrayHeader.OffsetToNext - arrayHeader.Size;
-                        return colorMapSizeBytes;
                     }
 
                     break;
@@ -1368,8 +1369,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     BmpThrowHelper.ThrowNotSupportedException($"ImageSharp does not support this BMP file. File header bitmap type marker '{fileTypeMarker}'.");
                     break;
             }
-
-            return -1;
         }
 
         /// <summary>
@@ -1381,7 +1380,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             this.stream = stream;
 
-            int colorMapSizeBytes = this.ReadFileHeader();
+            this.ReadFileHeader();
             this.ReadInfoHeader();
 
             // see http://www.drdobbs.com/architecture-and-design/the-bmp-file-format-part-1/184409517
@@ -1397,23 +1396,34 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
 
             int bytesPerColorMapEntry = 4;
-
+            int colorMapSizeBytes = -1;
             if (this.infoHeader.ClrUsed == 0)
             {
                 if (this.infoHeader.BitsPerPixel == 1
                     || this.infoHeader.BitsPerPixel == 4
                     || this.infoHeader.BitsPerPixel == 8)
                 {
-                    if (colorMapSizeBytes == -1)
+                    switch (this.fileMarkerType)
                     {
-                        colorMapSizeBytes = this.fileHeader.Offset - BmpFileHeader.Size - this.infoHeader.HeaderSize;
+                        case BmpFileMarkerType.Bitmap:
+                            colorMapSizeBytes = this.fileHeader.Offset - BmpFileHeader.Size - this.infoHeader.HeaderSize;
+                            int colorCountForBitDepth = ImageMaths.GetColorCountForBitDepth(this.infoHeader.BitsPerPixel);
+                            bytesPerColorMapEntry = colorMapSizeBytes / colorCountForBitDepth;
+
+                            // Edge case for less-than-full-sized palette: bytesPerColorMapEntry should be at least 3.
+                            bytesPerColorMapEntry = Math.Max(bytesPerColorMapEntry, 3);
+
+                            break;
+                        case BmpFileMarkerType.BitmapArray:
+                        case BmpFileMarkerType.ColorIcon:
+                        case BmpFileMarkerType.ColorPointer:
+                        case BmpFileMarkerType.Icon:
+                        case BmpFileMarkerType.Pointer:
+                            // OS/2 bitmaps always have 3 colors per color palette entry.
+                            bytesPerColorMapEntry = 3;
+                            colorMapSizeBytes = ImageMaths.GetColorCountForBitDepth(this.infoHeader.BitsPerPixel) * bytesPerColorMapEntry;
+                            break;
                     }
-
-                    int colorCountForBitDepth = ImageMaths.GetColorCountForBitDepth(this.infoHeader.BitsPerPixel);
-                    bytesPerColorMapEntry = colorMapSizeBytes / colorCountForBitDepth;
-
-                    // Edge case for less-than-full-sized palette: bytesPerColorMapEntry should be at least 3.
-                    bytesPerColorMapEntry = Math.Max(bytesPerColorMapEntry, 3);
                 }
             }
             else

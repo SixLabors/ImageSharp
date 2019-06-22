@@ -265,6 +265,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Bit8Palette4 = "Bmp/pal8-0.bmp";
             public const string Os2v2Short = "Bmp/pal8os2v2-16.bmp";
             public const string Os2v2 = "Bmp/pal8os2v2.bmp";
+            public const string Os2BitmapArray = "Bmp/ba-bm.bmp";
             public const string Os2BitmapArray9s = "Bmp/9S.BMP";
             public const string Os2BitmapArrayDiamond = "Bmp/DIAMOND.BMP";
             public const string Os2BitmapArrayMarble = "Bmp/GMARBLE.BMP";

@@ -63,10 +63,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         BI_ALPHABITFIELDS = 6,
 
         /// <summary>
+        /// OS/2 specific compression type.
         /// Similar to run length encoding of 4 and 8 bit.
         /// The only difference is that run values encoded are three bytes in size (one byte per RGB color component),
         /// rather than four or eight bits in size.
+        ///
+        /// Note: Because compression value of 4 is ambiguous for BI_RGB for windows and RLE24 for OS/2, the enum value is remapped
+        /// to a different value.
         /// </summary>
-        RLE24 = 7,
+        RLE24 = 100,
     }
 }

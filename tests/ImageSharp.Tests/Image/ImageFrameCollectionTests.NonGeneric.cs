@@ -311,6 +311,8 @@ namespace SixLabors.ImageSharp.Tests
 
             private static void CompareGifMetadata(ImageFrame a, ImageFrame b)
             {
+                // TODO: all metadata classes should be equatable!
+
                 GifFrameMetadata aData = a.Metadata.GetFormatMetadata(GifFormat.Instance);
                 GifFrameMetadata bData = b.Metadata.GetFormatMetadata(GifFormat.Instance);
 

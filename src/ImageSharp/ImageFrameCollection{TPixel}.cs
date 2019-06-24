@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp
         public new ImageFrame<TPixel> RootFrame => this.frames.Count > 0 ? this.frames[0] : null;
 
         /// <inheritdoc />
-        protected override ImageFrame NonGenericRootFrame { get; }
+        protected override ImageFrame NonGenericRootFrame => this.RootFrame;
 
         /// <summary>
         /// Gets the <see cref="ImageFrame{TPixel}"/> at the specified index.
@@ -258,6 +258,8 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc />
         protected override ImageFrame NonGenericInsertFrame(int index, ImageFrame source)
         {
+            Guard.NotNull(source, nameof(source));
+
             if (source is ImageFrame<TPixel> compatibleSource)
             {
                 return this.InsertFrame(index, compatibleSource);
@@ -271,6 +273,8 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc />
         protected override ImageFrame NonGenericAddFrame(ImageFrame source)
         {
+            Guard.NotNull(source, nameof(source));
+
             if (source is ImageFrame<TPixel> compatibleSource)
             {
                 return this.AddFrame(compatibleSource);

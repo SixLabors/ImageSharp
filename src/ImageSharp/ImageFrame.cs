@@ -49,12 +49,12 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the width.
         /// </summary>
-        public int Width { get; }
+        public int Width { get; private set; }
 
         /// <summary>
         /// Gets the height.
         /// </summary>
-        public int Height { get; }
+        public int Height { get; private set; }
 
         /// <summary>
         /// Gets the metadata of the frame.
@@ -78,5 +78,14 @@ namespace SixLabors.ImageSharp
 
         internal abstract void CopyPixelsTo<TDestinationPixel>(Span<TDestinationPixel> destination)
             where TDestinationPixel : struct, IPixel<TDestinationPixel>;
+
+        /// <summary>
+        /// Updates the size of the image frame.
+        /// </summary>
+        internal void UpdateSize(Size size)
+        {
+            this.Width = size.Width;
+            this.Height = size.Height;
+        }
     }
 }

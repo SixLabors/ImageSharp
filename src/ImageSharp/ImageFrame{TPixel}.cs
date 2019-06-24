@@ -193,6 +193,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(pixelSource, nameof(pixelSource));
 
             Buffer2D<TPixel>.SwapOrCopyContent(this.PixelBuffer, pixelSource.PixelBuffer);
+            this.UpdateSize(this.PixelBuffer.Size());
         }
 
         /// <summary>

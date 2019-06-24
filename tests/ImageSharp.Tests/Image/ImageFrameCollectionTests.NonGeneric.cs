@@ -2,6 +2,7 @@
 // // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Drawing.Imaging;
 using System.Linq;
 
 using SixLabors.ImageSharp.Advanced;
@@ -288,6 +289,11 @@ namespace SixLabors.ImageSharp.Tests
 
                     dest.DebugSave(provider, appendSourceFileOrDescription: false, extension: "gif");
                     dest.CompareToOriginal(provider);
+
+                    for (int i = 0; i < 5; i++)
+                    {
+                        CompareGifMetadata(source.Frames[i], dest.Frames[i]);
+                    }
                 }
             }
 
@@ -301,6 +307,16 @@ namespace SixLabors.ImageSharp.Tests
                         destination.AddFrame(temp2.Frames.RootFrame);
                     }
                 }
+            }
+
+            private static void CompareGifMetadata(ImageFrame a, ImageFrame b)
+            {
+                GifFrameMetadata aData = a.Metadata.GetFormatMetadata(GifFormat.Instance);
+                GifFrameMetadata bData = b.Metadata.GetFormatMetadata(GifFormat.Instance);
+
+                Assert.Equal(aData.DisposalMethod, bData.DisposalMethod);
+                Assert.Equal(aData.FrameDelay, bData.FrameDelay);
+                Assert.Equal(aData.ColorTableLength, bData.ColorTableLength);
             }
         }
     }

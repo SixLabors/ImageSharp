@@ -56,8 +56,12 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="metadata">The metadata.</param>
         internal ImageFrame(Configuration configuration, int width, int height, ImageFrameMetadata metadata)
-            : this(configuration, width, height, default(TPixel), metadata)
+            : base(configuration, width, height, metadata)
         {
+            Guard.MustBeGreaterThan(width, 0, nameof(width));
+            Guard.MustBeGreaterThan(height, 0, nameof(height));
+
+            this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(width, height, AllocationOptions.Clean);
         }
 
         /// <summary>

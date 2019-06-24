@@ -239,7 +239,15 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The new <see cref="ImageFrame{TPixel}" />.
         /// </returns>
-        public new ImageFrame<TPixel> CreateFrame() => this.CreateFrame(default);
+        public new ImageFrame<TPixel> CreateFrame()
+        {
+            var frame = new ImageFrame<TPixel>(
+                this.parent.GetConfiguration(),
+                this.RootFrame.Width,
+                this.RootFrame.Height);
+            this.frames.Add(frame);
+            return frame;
+        }
 
         /// <inheritdoc />
         protected override IEnumerator<ImageFrame> NonGenericGetEnumerator() => this.frames.GetEnumerator();
@@ -250,7 +258,14 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc />
         protected override ImageFrame NonGenericInsertFrame(int index, ImageFrame source)
         {
-            throw new NotImplementedException();
+            if (source is ImageFrame<TPixel> compatibleSource)
+            {
+                return this.InsertFrame(index, compatibleSource);
+            }
+
+            ImageFrame<TPixel> result = this.CopyNonCompatibleFrame(source);
+            this.frames.Insert(index, result);
+            return result;
         }
 
         /// <inheritdoc />
@@ -261,8 +276,8 @@ namespace SixLabors.ImageSharp
                 return this.AddFrame(compatibleSource);
             }
 
-            ImageFrame<TPixel> result = this.CreateFrame();
-            source.CopyPixelsTo(result.PixelBuffer.Span);
+            ImageFrame<TPixel> result = this.CopyNonCompatibleFrame(source);
+            this.frames.Add(result);
             return result;
         }
 
@@ -324,6 +339,16 @@ namespace SixLabors.ImageSharp
             }
 
             this.frames.Clear();
+        }
+
+        private ImageFrame<TPixel> CopyNonCompatibleFrame(ImageFrame source)
+        {
+            ImageFrame<TPixel> result = new ImageFrame<TPixel>(
+                this.parent.GetConfiguration(),
+                source.Size(),
+                source.Metadata.DeepClone());
+            source.CopyPixelsTo(result.PixelBuffer.Span);
+            return result;
         }
     }
 }

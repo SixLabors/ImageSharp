@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Description>Low level primitives for use across Six Labors projects..</Description>
+        <Description>Low level primitives for use across Six Labors projects.</Description>
         <VersionPrefix Condition="$(packageversion) != ''">$(packageversion)</VersionPrefix>
         <VersionPrefix Condition="$(packageversion) == ''">0.1.0-alpha2</VersionPrefix>
         <Authors>Six Labors</Authors>

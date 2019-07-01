@@ -229,6 +229,22 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         }
 
         [Theory]
+        [WithFile(RLE24, PixelTypes.Rgba32)]
+        [WithFile(RLE24Cut, PixelTypes.Rgba32)]
+        [WithFile(RLE24Delta, PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_RunLengthEncoded_24Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new BmpDecoder() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
+            {
+                image.DebugSave(provider);
+
+                // TODO: Neither System.Drawing nor MagickReferenceDecoder decode this file.
+                // image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
         [WithFile(RgbaAlphaBitfields, PixelTypes.Rgba32)]
         public void BmpDecoder_CanDecodeAlphaBitfields<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
@@ -521,6 +537,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         }
 
         [Theory]
+        [WithFile(Os2BitmapArray, PixelTypes.Rgba32)]
         [WithFile(Os2BitmapArray9s, PixelTypes.Rgba32)]
         [WithFile(Os2BitmapArrayDiamond, PixelTypes.Rgba32)]
         [WithFile(Os2BitmapArraySkater, PixelTypes.Rgba32)]

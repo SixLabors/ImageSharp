@@ -231,6 +231,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string NegHeight = "Bmp/neg_height.bmp";
             public const string CoreHeader = "Bmp/BitmapCoreHeaderQR.bmp";
             public const string V5Header = "Bmp/BITMAPV5HEADER.bmp";
+            public const string RLE24 = "Bmp/rgb24rle24.bmp";
+            public const string RLE24Cut = "Bmp/rle24rlecut.bmp";
+            public const string RLE24Delta = "Bmp/rle24rlecut.bmp";
             public const string RLE8 = "Bmp/RunLengthEncoded.bmp";
             public const string RLE8Cut = "Bmp/pal8rlecut.bmp";
             public const string RLE8Delta = "Bmp/pal8rletrns.bmp";
@@ -262,6 +265,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Bit8Palette4 = "Bmp/pal8-0.bmp";
             public const string Os2v2Short = "Bmp/pal8os2v2-16.bmp";
             public const string Os2v2 = "Bmp/pal8os2v2.bmp";
+            public const string Os2BitmapArray = "Bmp/ba-bm.bmp";
             public const string Os2BitmapArray9s = "Bmp/9S.BMP";
             public const string Os2BitmapArrayDiamond = "Bmp/DIAMOND.BMP";
             public const string Os2BitmapArrayMarble = "Bmp/GMARBLE.BMP";

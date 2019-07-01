@@ -5,6 +5,16 @@
     <AssemblyName>SixLabors.ImageSharp</AssemblyName>
     <AssemblyTitle>SixLabors.ImageSharp</AssemblyTitle>
     <Description>A cross-platform library for the processing of image files; written in C#</Description>
+    <NeutralLanguage>en</NeutralLanguage>
+
+    <VersionPrefix Condition="$(packageversion) != ''">$(packageversion)</VersionPrefix>
+    <VersionPrefix Condition="$(packageversion) == ''">0.0.1</VersionPrefix>
+
+    <TargetFrameworks>netcoreapp2.1;netstandard1.3;netstandard2.0;net472</TargetFrameworks>
+
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AssemblyName>SixLabors.ImageSharp</AssemblyName>
     <PackageId>SixLabors.ImageSharp</PackageId>
     <PackageTags>Image Resize Crop Gif Jpg Jpeg Bitmap Png Core</PackageTags>
     <RootNamespace>SixLabors.ImageSharp</RootNamespace>

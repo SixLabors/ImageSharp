@@ -45,7 +45,7 @@
 *.svg               text        eol=lf
 *.targets           text        eol=lf
 *.tt                text        eol=lf
-*.ttinclude         text        eol=lf
+*.ttinclude         text        eol=crlf
 *.txt               text        eol=lf
 *.vb                text        eol=lf
 *.yml               text        eol=lf

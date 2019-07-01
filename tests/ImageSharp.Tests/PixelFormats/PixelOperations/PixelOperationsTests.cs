@@ -3,12 +3,14 @@
 
 using System;
 using System.Buffers;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorSpaces.Companding;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 
 using Xunit;
 using Xunit.Abstractions;
@@ -245,7 +247,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 {
                     Vector4Utils.UnPremultiply(ref v);
                 }
-                
+
                 SRgbCompanding.Compress(ref v);
             }
 
@@ -276,6 +278,33 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 (s, d) => Operations.ToVector4(this.Configuration, s, d.GetSpan())
             );
         }
+
+
+        public static readonly TheoryData<IPixel> Generic_To_Data = new TheoryData<IPixel>
+                                                    {
+                                                        default(Rgba32),
+                                                        default(Bgra32),
+                                                        default(Rgb24),
+                                                        default(Gray8),
+                                                        default(Gray16),
+                                                        default(Rgb48),
+                                                        default(Rgba64)
+                                                    };
+
+        [Theory]
+        [MemberData(nameof(Generic_To_Data))]
+        public void Generic_To<TDestPixel>(TDestPixel dummy)
+            where TDestPixel : struct, IPixel<TDestPixel>
+        {
+            const int Count = 2134;
+            TPixel[] source = CreatePixelTestData(Count);
+            TDestPixel[] expected = new TDestPixel[Count];
+
+            PixelConverterTests.ReferenceImplementations.To<TPixel, TDestPixel>(this.Configuration, source, expected);
+
+            TestOperation(source, expected, (s, d) => Operations.To(this.Configuration, (ReadOnlySpan<TPixel>)s, d.GetSpan()));
+        }
+
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
@@ -732,6 +761,92 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             );
         }
 
+
+            [Theory]
+            [MemberData(nameof(ArraySizesData))]
+            public void FromGray8(int count)
+            {
+                byte[] sourceBytes = CreateByteTestData(count);
+                Gray8[] source = sourceBytes.Select(b => new Gray8(b)).ToArray();
+                var expected = new TPixel[count];
+
+
+                for (int i = 0; i < count; i++)
+                {
+                    expected[i].FromGray8(source[i]);
+                }
+
+                TestOperation(
+                    source,
+                    expected,
+                    (s, d) => Operations.FromGray8(this.Configuration, s, d.GetSpan())
+                );
+            }
+
+            [Theory]
+            [MemberData(nameof(ArraySizesData))]
+            public void ToGray8(int count)
+            {
+                TPixel[] source = CreatePixelTestData(count);
+                Gray8[] expected = new Gray8[count];
+
+                for (int i = 0; i < count; i++)
+                {
+                    expected[i].FromScaledVector4(source[i].ToScaledVector4());
+                }
+
+                TestOperation(
+                    source,
+                    expected,
+                    (s, d) => Operations.ToGray8(this.Configuration, s, d.GetSpan())
+                );
+            }
+
+            [Theory]
+            [MemberData(nameof(ArraySizesData))]
+            public void FromGray16(int count)
+            {
+                Gray16[] source = CreateVector4TestData(count).Select(v =>
+                {
+                    Gray16 g = default;
+                    g.FromVector4(v);
+                    return g;
+                }).ToArray();
+
+                var expected = new TPixel[count];
+
+                for (int i = 0; i < count; i++)
+                {
+                    int i2 = i * 2;
+                    expected[i].FromGray16(source[i]);
+                }
+
+                TestOperation(
+                    source,
+                    expected,
+                    (s, d) => Operations.FromGray16(this.Configuration, s, d.GetSpan())
+                );
+            }
+
+            [Theory]
+            [MemberData(nameof(ArraySizesData))]
+            public void ToGray16(int count)
+            {
+                TPixel[] source = CreatePixelTestData(count);
+                Gray16[] expected = new Gray16[count];
+
+                for (int i = 0; i < count; i++)
+                {
+                    expected[i].FromScaledVector4(source[i].ToScaledVector4());
+                }
+
+                TestOperation(
+                    source,
+                    expected,
+                    (s, d) => Operations.ToGray16(this.Configuration, s, d.GetSpan())
+                );
+            }
+
         public delegate void RefAction<T1>(ref T1 arg1);
 
         internal static Vector4[] CreateExpectedVector4Data(TPixel[] source, RefAction<Vector4> vectorModifier = null)
@@ -901,6 +1016,18 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                         // ReSharper disable PossibleNullReferenceException
                         Assert.Equal(expected[i], actual[i], comparer);
                         // ReSharper restore PossibleNullReferenceException
+                    }
+                }
+                else if (typeof(TDest) == typeof(Gray16))
+                {
+                    // Minor difference is tolerated for 16 bit pixel values
+                    Span<Gray16> expected = MemoryMarshal.Cast<TDest, Gray16>(this.ExpectedDestBuffer.AsSpan());
+                    Span<Gray16> actual = MemoryMarshal.Cast<TDest, Gray16>(this.ActualDestBuffer.GetSpan());
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        int difference = expected[i].PackedValue - actual[i].PackedValue;
+                        Assert.True(Math.Abs(difference) < 2);
                     }
                 }
                 else

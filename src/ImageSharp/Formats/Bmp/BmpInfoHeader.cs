@@ -388,8 +388,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 case 2:
                     infoHeader.Compression = BmpCompression.RLE4;
                     break;
+                case 4:
+                    infoHeader.Compression = BmpCompression.RLE24;
+                    break;
                 default:
-                    BmpThrowHelper.ThrowImageFormatException($"Compression type is not supported. ImageSharp only supports uncompressed, RLE4 and RLE8.");
+                    // Compression type 3 (1DHuffman) is not supported.
+                    BmpThrowHelper.ThrowImageFormatException("Compression type is not supported. ImageSharp only supports uncompressed, RLE4, RLE8 and RLE24.");
                     break;
             }
 

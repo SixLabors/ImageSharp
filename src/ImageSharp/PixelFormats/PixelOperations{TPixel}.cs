@@ -7,6 +7,8 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
+using SixLabors.ImageSharp.Memory;
+
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <summary>
@@ -89,63 +91,56 @@ namespace SixLabors.ImageSharp.PixelFormats
             Span<Vector4> destVectors) =>
             this.ToVector4(configuration, sourcePixels, destVectors, PixelConversionModifiers.None);
 
+        internal virtual void From<TSourcePixel>(
+            Configuration configuration,
+            ReadOnlySpan<TSourcePixel> sourcePixels,
+            Span<TPixel> destinationPixels)
+            where TSourcePixel : struct, IPixel<TSourcePixel>
+        {
+            const int SliceLength = 1024;
+            int numberOfSlices = sourcePixels.Length / SliceLength;
+            using (IMemoryOwner<Vector4> tempVectors = configuration.MemoryAllocator.Allocate<Vector4>(SliceLength))
+            {
+                Span<Vector4> vectorSpan = tempVectors.GetSpan();
+                for (int i = 0; i < numberOfSlices; i++)
+                {
+                    int start = i * SliceLength;
+                    ReadOnlySpan<TSourcePixel> s = sourcePixels.Slice(start, SliceLength);
+                    Span<TPixel> d = destinationPixels.Slice(start, SliceLength);
+                    PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, s, vectorSpan);
+                    this.FromVector4Destructive(configuration, vectorSpan, d);
+                }
+
+                int endOfCompleteSlices = numberOfSlices * SliceLength;
+                int remainder = sourcePixels.Length - endOfCompleteSlices;
+                if (remainder > 0)
+                {
+                    ReadOnlySpan<TSourcePixel> s = sourcePixels.Slice(endOfCompleteSlices);
+                    Span<TPixel> d = destinationPixels.Slice(endOfCompleteSlices);
+                    vectorSpan = vectorSpan.Slice(0, remainder);
+                    PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, s, vectorSpan);
+                    this.FromVector4Destructive(configuration, vectorSpan, d);
+                }
+            }
+        }
+
         /// <summary>
-        /// Converts 'sourceColors.Length' pixels from 'sourceColors' into 'destinationColors'.
+        /// Converts 'sourcePixels.Length' pixels from 'sourcePixels' into 'destinationPixels'.
         /// </summary>
         /// <typeparam name="TDestinationPixel">The destination pixel type.</typeparam>
-        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-        /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destinationColors">The <see cref="Span{T}"/> to the destination colors.</param>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
+        /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
+        /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
         internal virtual void To<TDestinationPixel>(
             Configuration configuration,
-            ReadOnlySpan<TPixel> sourceColors,
-            Span<TDestinationPixel> destinationColors)
+            ReadOnlySpan<TPixel> sourcePixels,
+            Span<TDestinationPixel> destinationPixels)
             where TDestinationPixel : struct, IPixel<TDestinationPixel>
         {
             Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(sourceColors, destinationColors, nameof(destinationColors));
+            Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
 
-            int count = sourceColors.Length;
-            ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourceColors);
-
-            // Gray8 and Gray16 are special implementations of IPixel in that they do not conform to the
-            // standard RGBA colorspace format and must be converted from RGBA using the special ITU BT709 algorithm.
-            // One of the requirements of FromScaledVector4/ToScaledVector4 is that it unaware of this and
-            // packs/unpacks the pixel without and conversion so we employ custom methods do do this.
-            if (typeof(TDestinationPixel) == typeof(Gray16))
-            {
-                ref Gray16 gray16Ref = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<TDestinationPixel, Gray16>(destinationColors));
-                for (int i = 0; i < count; i++)
-                {
-                    ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
-                    ref Gray16 dp = ref Unsafe.Add(ref gray16Ref, i);
-                    dp.ConvertFromRgbaScaledVector4(sp.ToScaledVector4());
-                }
-
-                return;
-            }
-
-            if (typeof(TDestinationPixel) == typeof(Gray8))
-            {
-                ref Gray8 gray8Ref = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<TDestinationPixel, Gray8>(destinationColors));
-                for (int i = 0; i < count; i++)
-                {
-                    ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
-                    ref Gray8 dp = ref Unsafe.Add(ref gray8Ref, i);
-                    dp.ConvertFromRgbaScaledVector4(sp.ToScaledVector4());
-                }
-
-                return;
-            }
-
-            // Normal conversion
-            ref TDestinationPixel destRef = ref MemoryMarshal.GetReference(destinationColors);
-            for (int i = 0; i < count; i++)
-            {
-                ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
-                ref TDestinationPixel dp = ref Unsafe.Add(ref destRef, i);
-                dp.FromScaledVector4(sp.ToScaledVector4());
-            }
+            PixelOperations<TDestinationPixel>.Instance.From(configuration, sourcePixels, destinationPixels);
         }
     }
 }

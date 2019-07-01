@@ -39,22 +39,22 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private const int DefaultRgb16BMask = 0x1F;
 
         /// <summary>
-        /// RLE8 flag value that indicates following byte has special meaning.
+        /// RLE flag value that indicates following byte has special meaning.
         /// </summary>
         private const int RleCommand = 0x00;
 
         /// <summary>
-        /// RLE8 flag value marking end of a scan line.
+        /// RLE flag value marking end of a scan line.
         /// </summary>
         private const int RleEndOfLine = 0x00;
 
         /// <summary>
-        /// RLE8 flag value marking end of bitmap data.
+        /// RLE flag value marking end of bitmap data.
         /// </summary>
         private const int RleEndOfBitmap = 0x01;
 
         /// <summary>
-        /// RLE8 flag value marking the start of [x,y] offset instruction.
+        /// RLE flag value marking the start of [x,y] offset instruction.
         /// </summary>
         private const int RleDelta = 0x02;
 
@@ -77,6 +77,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// The file header containing general information.
         /// </summary>
         private BmpFileHeader fileHeader;
+
+        /// <summary>
+        /// Indicates which bitmap file marker was read.
+        /// </summary>
+        private BmpFileMarkerType fileMarkerType;
 
         /// <summary>
         /// The info header containing detailed information about the bitmap.
@@ -167,6 +172,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         }
 
                         break;
+
+                    case BmpCompression.RLE24:
+                        this.ReadRle24(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+
+                        break;
+
                     case BmpCompression.RLE8:
                     case BmpCompression.RLE4:
                         this.ReadRle(this.infoHeader.Compression, pixels, palette, this.infoHeader.Width, this.infoHeader.Height, inverted);
@@ -342,6 +353,75 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         for (int x = 0; x < width; x++)
                         {
                             color.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[bufferRow[x] * 4]));
+                            pixelRow[x] = color;
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Looks up color values and builds the image from de-compressed RLE24.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
+        /// <param name="width">The width of the bitmap.</param>
+        /// <param name="height">The height of the bitmap.</param>
+        /// <param name="inverted">Whether the bitmap is inverted.</param>
+        private void ReadRle24<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel color = default;
+            using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * 3, AllocationOptions.Clean))
+            using (Buffer2D<bool> undefinedPixels = this.memoryAllocator.Allocate2D<bool>(width, height, AllocationOptions.Clean))
+            using (IMemoryOwner<bool> rowsWithUndefinedPixels = this.memoryAllocator.Allocate<bool>(height, AllocationOptions.Clean))
+            {
+                Span<bool> rowsWithUndefinedPixelsSpan = rowsWithUndefinedPixels.Memory.Span;
+                Span<byte> bufferSpan = buffer.GetSpan();
+                this.UncompressRle24(width, bufferSpan, undefinedPixels.GetSpan(), rowsWithUndefinedPixelsSpan);
+                for (int y = 0; y < height; y++)
+                {
+                    int newY = Invert(y, height, inverted);
+                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+                    bool rowHasUndefinedPixels = rowsWithUndefinedPixelsSpan[y];
+                    if (rowHasUndefinedPixels)
+                    {
+                        // Slow path with undefined pixels.
+                        for (int x = 0; x < width; x++)
+                        {
+                            int idx = (y * width * 3) + (x * 3);
+                            if (undefinedPixels[x, y])
+                            {
+                                switch (this.options.RleSkippedPixelHandling)
+                                {
+                                    case RleSkippedPixelHandling.FirstColorOfPalette:
+                                        color.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));
+                                        break;
+                                    case RleSkippedPixelHandling.Transparent:
+                                        color.FromVector4(Vector4.Zero);
+                                        break;
+
+                                    // Default handling for skipped pixels is black (which is what System.Drawing is also doing).
+                                    default:
+                                        color.FromVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
+                                        break;
+                                }
+                            }
+                            else
+                            {
+                                color.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));
+                            }
+
+                            pixelRow[x] = color;
+                        }
+                    }
+                    else
+                    {
+                        // Fast path without any undefined pixels.
+                        for (int x = 0; x < width; x++)
+                        {
+                            int idx = (y * width * 3) + (x * 3);
+                            color.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));
                             pixelRow[x] = color;
                         }
                     }
@@ -545,7 +625,95 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Keeps track of skipped / undefined pixels, when EndOfBitmap command occurs.
+        /// Produce uncompressed bitmap data from a RLE24 stream.
+        /// </summary>
+        /// <remarks>
+        /// <br/>If first byte is 0, the second byte may have special meaning.
+        /// <br/>Otherwise, the first byte is the length of the run and following three bytes are the color for the run.
+        /// </remarks>
+        /// <param name="w">The width of the bitmap.</param>
+        /// <param name="buffer">Buffer for uncompressed data.</param>
+        /// <param name="undefinedPixels">Keeps track of skipped and therefore undefined pixels.</param>
+        /// <param name="rowsWithUndefinedPixels">Keeps track of rows, which have undefined pixels.</param>
+        private void UncompressRle24(int w, Span<byte> buffer, Span<bool> undefinedPixels, Span<bool> rowsWithUndefinedPixels)
+        {
+#if NETCOREAPP2_1
+            Span<byte> cmd = stackalloc byte[2];
+#else
+            byte[] cmd = new byte[2];
+#endif
+            int uncompressedPixels = 0;
+
+            while (uncompressedPixels < buffer.Length)
+            {
+                if (this.stream.Read(cmd, 0, cmd.Length) != 2)
+                {
+                    BmpThrowHelper.ThrowImageFormatException("Failed to read 2 bytes from stream while uncompressing RLE24 bitmap.");
+                }
+
+                if (cmd[0] == RleCommand)
+                {
+                    switch (cmd[1])
+                    {
+                        case RleEndOfBitmap:
+                            int skipEoB = (buffer.Length - (uncompressedPixels * 3)) / 3;
+                            RleSkipEndOfBitmap(uncompressedPixels, w, skipEoB, undefinedPixels, rowsWithUndefinedPixels);
+
+                            return;
+
+                        case RleEndOfLine:
+                            uncompressedPixels += RleSkipEndOfLine(uncompressedPixels, w, undefinedPixels, rowsWithUndefinedPixels);
+
+                            break;
+
+                        case RleDelta:
+                            int dx = this.stream.ReadByte();
+                            int dy = this.stream.ReadByte();
+                            uncompressedPixels += RleSkipDelta(uncompressedPixels, w, dx, dy, undefinedPixels, rowsWithUndefinedPixels);
+
+                            break;
+
+                        default:
+                            // If the second byte > 2, we are in 'absolute mode'.
+                            // Take this number of bytes from the stream as uncompressed data.
+                            int length = cmd[1];
+
+                            byte[] run = new byte[length * 3];
+
+                            this.stream.Read(run, 0, run.Length);
+
+                            run.AsSpan().CopyTo(buffer.Slice(start: uncompressedPixels * 3));
+
+                            uncompressedPixels += length;
+
+                            // Absolute mode data is aligned to two-byte word-boundary.
+                            int padding = run.Length & 1;
+
+                            this.stream.Skip(padding);
+
+                            break;
+                    }
+                }
+                else
+                {
+                    int max = uncompressedPixels + cmd[0];
+                    byte blueIdx = cmd[1];
+                    byte greenIdx = (byte)this.stream.ReadByte();
+                    byte redIdx = (byte)this.stream.ReadByte();
+
+                    int bufferIdx = uncompressedPixels * 3;
+                    for (; uncompressedPixels < max; uncompressedPixels++)
+                    {
+                        buffer[bufferIdx++] = blueIdx;
+                        buffer[bufferIdx++] = greenIdx;
+                        buffer[bufferIdx++] = redIdx;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Keeps track of skipped / undefined pixels, when the EndOfBitmap command occurs.
         /// </summary>
         /// <param name="count">The already processed pixel count.</param>
         /// <param name="w">The width of the image.</param>
@@ -576,7 +744,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Keeps track of undefined / skipped pixels, when the EndOfLine command occurs.
         /// </summary>
-        /// <param name="count">The already processed pixel count.</param>
+        /// <param name="count">The already uncompressed pixel count.</param>
         /// <param name="w">The width of image.</param>
         /// <param name="undefinedPixels">The undefined pixels.</param>
         /// <param name="rowsWithUndefinedPixels">The rows with undefined pixels.</param>
@@ -1167,8 +1335,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Reads the <see cref="BmpFileHeader"/> from the stream.
         /// </summary>
-        /// <returns>The color map size in bytes, if it could be determined by the file header. Otherwise -1.</returns>
-        private int ReadFileHeader()
+        private void ReadFileHeader()
         {
 #if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[BmpFileHeader.Size];
@@ -1181,22 +1348,19 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             switch (fileTypeMarker)
             {
                 case BmpConstants.TypeMarkers.Bitmap:
+                    this.fileMarkerType = BmpFileMarkerType.Bitmap;
                     this.fileHeader = BmpFileHeader.Parse(buffer);
                     break;
                 case BmpConstants.TypeMarkers.BitmapArray:
-                    // The Array file header is followed by the bitmap file header of the first image.
-                    var arrayHeader = BmpArrayFileHeader.Parse(buffer);
+                    this.fileMarkerType = BmpFileMarkerType.BitmapArray;
+
+                    // Because we only decode the first bitmap in the array, the array header will be ignored.
+                    // The bitmap file header of the first image follows the array header.
                     this.stream.Read(buffer, 0, BmpFileHeader.Size);
                     this.fileHeader = BmpFileHeader.Parse(buffer);
                     if (this.fileHeader.Type != BmpConstants.TypeMarkers.Bitmap)
                     {
                         BmpThrowHelper.ThrowNotSupportedException($"Unsupported bitmap file inside a BitmapArray file. File header bitmap type marker '{this.fileHeader.Type}'.");
-                    }
-
-                    if (arrayHeader.OffsetToNext != 0)
-                    {
-                        int colorMapSizeBytes = arrayHeader.OffsetToNext - arrayHeader.Size;
-                        return colorMapSizeBytes;
                     }
 
                     break;
@@ -1205,8 +1369,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     BmpThrowHelper.ThrowNotSupportedException($"ImageSharp does not support this BMP file. File header bitmap type marker '{fileTypeMarker}'.");
                     break;
             }
-
-            return -1;
         }
 
         /// <summary>
@@ -1218,7 +1380,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             this.stream = stream;
 
-            int colorMapSizeBytes = this.ReadFileHeader();
+            this.ReadFileHeader();
             this.ReadInfoHeader();
 
             // see http://www.drdobbs.com/architecture-and-design/the-bmp-file-format-part-1/184409517
@@ -1234,23 +1396,34 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
 
             int bytesPerColorMapEntry = 4;
-
+            int colorMapSizeBytes = -1;
             if (this.infoHeader.ClrUsed == 0)
             {
                 if (this.infoHeader.BitsPerPixel == 1
                     || this.infoHeader.BitsPerPixel == 4
                     || this.infoHeader.BitsPerPixel == 8)
                 {
-                    if (colorMapSizeBytes == -1)
+                    switch (this.fileMarkerType)
                     {
-                        colorMapSizeBytes = this.fileHeader.Offset - BmpFileHeader.Size - this.infoHeader.HeaderSize;
+                        case BmpFileMarkerType.Bitmap:
+                            colorMapSizeBytes = this.fileHeader.Offset - BmpFileHeader.Size - this.infoHeader.HeaderSize;
+                            int colorCountForBitDepth = ImageMaths.GetColorCountForBitDepth(this.infoHeader.BitsPerPixel);
+                            bytesPerColorMapEntry = colorMapSizeBytes / colorCountForBitDepth;
+
+                            // Edge case for less-than-full-sized palette: bytesPerColorMapEntry should be at least 3.
+                            bytesPerColorMapEntry = Math.Max(bytesPerColorMapEntry, 3);
+
+                            break;
+                        case BmpFileMarkerType.BitmapArray:
+                        case BmpFileMarkerType.ColorIcon:
+                        case BmpFileMarkerType.ColorPointer:
+                        case BmpFileMarkerType.Icon:
+                        case BmpFileMarkerType.Pointer:
+                            // OS/2 bitmaps always have 3 colors per color palette entry.
+                            bytesPerColorMapEntry = 3;
+                            colorMapSizeBytes = ImageMaths.GetColorCountForBitDepth(this.infoHeader.BitsPerPixel) * bytesPerColorMapEntry;
+                            break;
                     }
-
-                    int colorCountForBitDepth = ImageMaths.GetColorCountForBitDepth(this.infoHeader.BitsPerPixel);
-                    bytesPerColorMapEntry = colorMapSizeBytes / colorCountForBitDepth;
-
-                    // Edge case for less-than-full-sized palette: bytesPerColorMapEntry should be at least 3.
-                    bytesPerColorMapEntry = Math.Max(bytesPerColorMapEntry, 3);
                 }
             }
             else

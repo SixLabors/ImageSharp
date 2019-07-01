@@ -53,6 +53,11 @@ namespace SixLabors.ImageSharp
         /// </summary>
         protected Configuration Configuration { get; }
 
+        /// <summary>
+        /// Gets the <see cref="ImageFrameCollection"/> implementing the public <see cref="Frames"/> property.
+        /// </summary>
+        protected abstract ImageFrameCollection NonGenericFrameCollection { get; }
+
         /// <inheritdoc/>
         public PixelTypeInfo PixelType { get; }
 
@@ -64,6 +69,11 @@ namespace SixLabors.ImageSharp
 
         /// <inheritdoc/>
         public ImageMetadata Metadata { get; }
+
+        /// <summary>
+        /// Gets the frames of the image as (non-generic) <see cref="ImageFrameCollection"/>.
+        /// </summary>
+        public ImageFrameCollection Frames => this.NonGenericFrameCollection;
 
         /// <summary>
         /// Gets the pixel buffer.

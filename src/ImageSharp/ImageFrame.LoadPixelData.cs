@@ -9,9 +9,9 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp
 {
     /// <content>
-    /// Adds static methods allowing the creation of new image from raw pixel data.
+    /// Contains methods for loading raw pixel data.
     /// </content>
-    internal static class ImageFrame
+    public partial class ImageFrame
     {
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given byte array in <typeparamref name="TPixel"/> format.
@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the final image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static ImageFrame<TPixel> LoadPixelData<TPixel>(Configuration configuration, ReadOnlySpan<byte> data, int width, int height)
+        internal static ImageFrame<TPixel> LoadPixelData<TPixel>(Configuration configuration, ReadOnlySpan<byte> data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
             => LoadPixelData(configuration, MemoryMarshal.Cast<byte, TPixel>(data), width, height);
 
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the final image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static ImageFrame<TPixel> LoadPixelData<TPixel>(Configuration configuration, ReadOnlySpan<TPixel> data, int width, int height)
+        internal static ImageFrame<TPixel> LoadPixelData<TPixel>(Configuration configuration, ReadOnlySpan<TPixel> data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
             int count = width * height;

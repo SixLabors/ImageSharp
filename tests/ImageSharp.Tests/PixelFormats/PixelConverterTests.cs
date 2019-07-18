@@ -5,7 +5,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
-    public abstract class PixelConverterTests
+    public abstract partial class PixelConverterTests
     {
         public static readonly TheoryData<byte, byte, byte, byte> RgbaData =
             new TheoryData<byte, byte, byte, byte>
@@ -120,40 +120,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 uint expectedPacked = ReferenceImplementations.MakeRgba32(r, g, b, a).PackedValue;
 
                 Assert.Equal(expectedPacked, actualPacked);
-            }
-        }
-
-
-        private static class ReferenceImplementations
-        {
-            public static Rgba32 MakeRgba32(byte r, byte g, byte b, byte a)
-            {
-                Rgba32 d = default;
-                d.R = r;
-                d.G = g;
-                d.B = b;
-                d.A = a;
-                return d;
-            }
-
-            public static Argb32 MakeArgb32(byte r, byte g, byte b, byte a)
-            {
-                Argb32 d = default;
-                d.R = r;
-                d.G = g;
-                d.B = b;
-                d.A = a;
-                return d;
-            }
-
-            public static Bgra32 MakeBgra32(byte r, byte g, byte b, byte a)
-            {
-                Bgra32 d = default;
-                d.R = r;
-                d.G = g;
-                d.B = b;
-                d.A = a;
-                return d;
             }
         }
     }

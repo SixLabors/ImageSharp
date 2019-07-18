@@ -11,14 +11,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         [Fact]
         public void CloneIsDeep()
         {
-            var meta = new GifMetaData()
+            var meta = new GifMetadata()
             {
                 RepeatCount = 1,
                 ColorTableMode = GifColorTableMode.Global,
                 GlobalColorTableLength = 2
             };
 
-            var clone = (GifMetaData)meta.DeepClone();
+            var clone = (GifMetadata)meta.DeepClone();
 
             clone.RepeatCount = 2;
             clone.ColorTableMode = GifColorTableMode.Local;

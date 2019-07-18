@@ -58,6 +58,10 @@ namespace SixLabors.ImageSharp.Tests
 
         Rgb48 = 1 << 21,
 
+        Bgra5551 = 1 << 22,
+
+        Gray8 = 1 << 23,
+
         // TODO: Add multi-flag entries by rules defined in PackedPixelConverterHelper
 
         // "All" is handled as a separate, individual case instead of using bitwise OR

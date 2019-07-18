@@ -1,28 +1,30 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp2.1;net461</TargetFrameworks>
-    <OutputType>Exe</OutputType>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <RootNamespace>SixLabors.ImageSharp.Benchmarks</RootNamespace>
     <AssemblyName>ImageSharp.Benchmarks</AssemblyName>
-    <LangVersion>7.3</LangVersion>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>SixLabors.ImageSharp.Benchmarks</RootNamespace>
+    <TargetFrameworks>netcoreapp2.1;net472</TargetFrameworks>
+    <IsPackable>false</IsPackable>
+    <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(TargetFramework)'=='net461'">
-    <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
+
   <ItemGroup>
     <Compile Include="..\ImageSharp.Tests\TestImages.cs" Link="Tests\TestImages.cs" />
     <Compile Include="..\ImageSharp.Tests\TestUtilities\TestEnvironment.cs" Link="Tests\TestEnvironment.cs" />
   </ItemGroup>
-  <ItemGroup>    
-    <PackageReference Include="BenchmarkDotNet" Version="0.11.3" />
-    <PackageReference Include="Colourful" Version="2.0.0" />
-    <PackageReference Include="SixLabors.Shapes.Text" Version="1.0.0-beta0007" />
-    <PackageReference Include="System.Drawing.Common" Version="4.5.0" />
-  </ItemGroup>
+
   <ItemGroup>
-    <ProjectReference Include="..\..\src\ImageSharp.Drawing\ImageSharp.Drawing.csproj" />
-    <ProjectReference Include="..\..\src\ImageSharp\ImageSharp.csproj" />
+    <PackageReference Include="BenchmarkDotNet" />
+    <PackageReference Include="Colourful" />
+    <PackageReference Include="SixLabors.Shapes.Text" />
+    <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ImageSharp\ImageSharp.csproj" />
+    <ProjectReference Include="..\..\src\ImageSharp.Drawing\ImageSharp.Drawing.csproj" />
+  </ItemGroup>
+
 </Project>

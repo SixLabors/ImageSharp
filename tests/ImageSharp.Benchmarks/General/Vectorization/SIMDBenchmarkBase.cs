@@ -1,10 +1,10 @@
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
+using BenchmarkDotNet.Attributes;
+
 namespace ImageSharp.Benchmarks.General.Vectorization
 {
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
-    using BenchmarkDotNet.Attributes;
-
     public abstract class SIMDBenchmarkBase<T>
         where T : struct
     {
@@ -19,7 +19,6 @@ namespace ImageSharp.Benchmarks.General.Vectorization
         protected virtual T GetTestValue() => default(T);
 
         protected virtual Vector<T> GetTestVector() => new Vector<T>(this.GetTestValue());
-        
 
         [Params(32)]
         public int InputSize { get; set; }

@@ -21,15 +21,15 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                TPixel red = NamedColors<TPixel>.Red;
+                Color red = Color.Red;
 
                 var unicolorRadialGradientBrush =
-                    new RadialGradientBrush<TPixel>(
+                    new RadialGradientBrush(
                         new SixLabors.Primitives.Point(0, 0),
                         100,
                         GradientRepetitionMode.None,
-                        new ColorStop<TPixel>(0, red),
-                        new ColorStop<TPixel>(1, red));
+                        new ColorStop(0, red),
+                        new ColorStop(1, red));
 
                 image.Mutate(x => x.Fill(unicolorRadialGradientBrush));
 
@@ -56,12 +56,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 TolerantComparer,
                 image =>
                     {
-                        var brush = new RadialGradientBrush<TPixel>(
+                        var brush = new RadialGradientBrush(
                             new SixLabors.Primitives.Point(centerX, centerY),
                             image.Width / 2f,
                             GradientRepetitionMode.None,
-                            new ColorStop<TPixel>(0, NamedColors<TPixel>.Red),
-                            new ColorStop<TPixel>(1, NamedColors<TPixel>.Yellow));
+                            new ColorStop(0, Color.Red),
+                            new ColorStop(1, Color.Yellow));
 
                         image.Mutate(x => x.Fill(brush));
                     },

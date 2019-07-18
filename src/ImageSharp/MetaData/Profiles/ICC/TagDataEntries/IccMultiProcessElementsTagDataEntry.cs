@@ -4,7 +4,7 @@
 using System;
 using System.Linq;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// This structure represents a color transform, containing
@@ -57,10 +57,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
-        {
-            var entry = other as IccMultiProcessElementsTagDataEntry;
-            return entry != null && this.Equals(entry);
-        }
+            => other is IccMultiProcessElementsTagDataEntry entry && this.Equals(entry);
 
         /// <inheritdoc/>
         public bool Equals(IccMultiProcessElementsTagDataEntry other)
@@ -78,14 +75,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             return base.Equals(other)
                 && this.InputChannelCount == other.InputChannelCount
                 && this.OutputChannelCount == other.OutputChannelCount
-                && this.Data.SequenceEqual(other.Data);
+                && this.Data.AsSpan().SequenceEqual(other.Data);
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is IccMultiProcessElementsTagDataEntry other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is IccMultiProcessElementsTagDataEntry other && this.Equals(other);
 
         /// <inheritdoc/>
         public override int GetHashCode()

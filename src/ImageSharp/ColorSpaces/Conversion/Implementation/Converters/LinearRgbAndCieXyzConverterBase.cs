@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// </summary>
         /// <param name="workingSpace">The Rgb working space.</param>
         /// <returns>The <see cref="Matrix4x4"/> based on the chromaticity and working space.</returns>
-        public static Matrix4x4 GetRgbToCieXyzMatrix(RgbWorkingSpaceBase workingSpace)
+        public static Matrix4x4 GetRgbToCieXyzMatrix(RgbWorkingSpace workingSpace)
         {
             DebugGuard.NotNull(workingSpace, nameof(workingSpace));
             RgbPrimariesChromaticityCoordinates chromaticity = workingSpace.ChromaticityCoordinates;

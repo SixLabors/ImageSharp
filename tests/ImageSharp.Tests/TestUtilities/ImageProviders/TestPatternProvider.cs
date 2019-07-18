@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Net.Mime;
 using System.Numerics;
 
 using SixLabors.ImageSharp.Memory;
@@ -20,13 +21,25 @@ namespace SixLabors.ImageSharp.Tests
         {
             static readonly Dictionary<string, Image<TPixel>> TestImages = new Dictionary<string, Image<TPixel>>();
 
+            private static TPixel[] BlackWhitePixels = new[] {
+                                                                     Color.Black.ToPixel<TPixel>(),
+                                                                     Color.White.ToPixel<TPixel>()
+                                                                 };
+
+            private static TPixel[] PinkBluePixels = new[] {
+                                                                   Color.HotPink.ToPixel<TPixel>(),
+                                                                   Color.Blue.ToPixel<TPixel>()
+                                                               };
+
             public TestPatternProvider(int width, int height)
                 : base(width, height)
             {
             }
 
+            /// <summary>
+            /// This parameterless constructor is needed for xUnit deserialization
+            /// </summary>
             public TestPatternProvider()
-                : base()
             {
             }
 
@@ -42,9 +55,8 @@ namespace SixLabors.ImageSharp.Tests
                         DrawTestPattern(image);
                         TestImages.Add(this.SourceFileOrDescription, image);
                     }
+                    return TestImages[this.SourceFileOrDescription].Clone(this.Configuration);
                 }
-
-                return TestImages[this.SourceFileOrDescription].Clone();
             }
 
             /// <summary>
@@ -78,12 +90,6 @@ namespace SixLabors.ImageSharp.Tests
                     stride = 1;
                 }
 
-                TPixel[] c =
-                {
-                    NamedColors<TPixel>.HotPink,
-                    NamedColors<TPixel>.Blue
-                };
-
                 for (int y = top; y < bottom; y++)
                 {
                     int p = 0;
@@ -92,9 +98,9 @@ namespace SixLabors.ImageSharp.Tests
                         if (x % stride == 0)
                         {
                             p++;
-                            p = p % c.Length;
+                            p = p % PinkBluePixels.Length;
                         }
-                        pixels[x, y] = c[p];
+                        pixels[x, y] = PinkBluePixels[p];
                     }
                 }
             }
@@ -111,11 +117,6 @@ namespace SixLabors.ImageSharp.Tests
                 int top = 0;
                 int bottom = pixels.Height / 2;
                 int stride = pixels.Width / 6;
-                TPixel[] c = 
-                {
-                    NamedColors<TPixel>.Black,
-                    NamedColors<TPixel>.White
-                };
 
                 int p = 0;
                 for (int y = top; y < bottom; y++)
@@ -123,7 +124,7 @@ namespace SixLabors.ImageSharp.Tests
                     if (y % stride == 0)
                     {
                         p++;
-                        p = p % c.Length;
+                        p = p % BlackWhitePixels.Length;
                     }
                     int pstart = p;
                     for (int x = left; x < right; x++)
@@ -131,9 +132,9 @@ namespace SixLabors.ImageSharp.Tests
                         if (x % stride == 0)
                         {
                             p++;
-                            p = p % c.Length;
+                            p = p % BlackWhitePixels.Length;
                         }
-                        pixels[x, y] = c[p];
+                        pixels[x, y] = BlackWhitePixels[p];
                     }
                     p = pstart;
                 }

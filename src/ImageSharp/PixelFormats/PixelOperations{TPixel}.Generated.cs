@@ -657,5 +657,77 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             this.ToRgba64(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Rgba64>(destBytes));
         }
+
+        /// <summary>
+        /// Converts all pixels in 'source` span of <see cref="Bgra5551"/> into a span of <typeparamref name="TPixel"/>-s.
+        /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
+        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Bgra5551"/> data.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        internal virtual void FromBgra5551(Configuration configuration, ReadOnlySpan<Bgra5551> source, Span<TPixel> destPixels)
+        {
+            Guard.DestinationShouldNotBeTooShort(source, destPixels, nameof(destPixels));
+            
+            ref Bgra5551 sourceBaseRef = ref MemoryMarshal.GetReference(source);
+            ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
+
+            for (int i = 0; i < source.Length; i++)
+            {
+                ref Bgra5551 sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+
+                dp.FromBgra5551(sp);
+            }
+        }
+
+        /// <summary>
+        /// A helper for <see cref="FromBgra5551(Configuration, ReadOnlySpan{Bgra5551}, Span{TPixel})"/> that expects a byte span.
+        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Bgra5551"/> layout.
+        /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
+        /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void FromBgra5551Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
+        {
+            this.FromBgra5551(configuration, MemoryMarshal.Cast<byte, Bgra5551>(sourceBytes).Slice(0, count), destPixels);
+        }
+
+        /// <summary>
+        /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Bgra5551"/>-s.
+        /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
+        /// <param name="sourcePixels">The span of source pixels</param>
+        /// <param name="destPixels">The destination span of <see cref="Bgra5551"/> data.</param>
+        internal virtual void ToBgra5551(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<Bgra5551> destPixels)
+        {
+            Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
+
+            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
+            ref Bgra5551 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
+
+            for (int i = 0; i < sourcePixels.Length; i++)
+            {
+                ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref Bgra5551 dp = ref Unsafe.Add(ref destBaseRef, i);
+
+                dp.FromScaledVector4(sp.ToScaledVector4());
+            }
+        }
+
+        /// <summary>
+        /// A helper for <see cref="ToBgra5551(Configuration, ReadOnlySpan{TPixel}, Span{Bgra5551})"/> that expects a byte span as destination.
+        /// The layout of the data in 'destBytes' must be compatible with <see cref="Bgra5551"/> layout.
+        /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
+        /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
+        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void ToBgra5551Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+        {
+            this.ToBgra5551(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Bgra5551>(destBytes));
+        }
     }
 }

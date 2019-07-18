@@ -7,7 +7,7 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Primitives
 {
     /// <summary>
-    /// Represents a value in relation to a value on the image
+    /// Represents a value in relation to a value on the image.
     /// </summary>
     internal readonly struct ValueSize : IEquatable<ValueSize>
     {
@@ -28,22 +28,22 @@ namespace SixLabors.ImageSharp.Primitives
         }
 
         /// <summary>
-        /// Enumerates the different value types
+        /// Enumerates the different value types.
         /// </summary>
         public enum ValueSizeType
         {
             /// <summary>
-            /// The value is the final return value
+            /// The value is the final return value.
             /// </summary>
             Absolute,
 
             /// <summary>
-            /// The value is a percentage of the image width
+            /// The value is a percentage of the image width.
             /// </summary>
             PercentageOfWidth,
 
             /// <summary>
-            /// The value is a percentage of the images height
+            /// The value is a percentage of the images height.
             /// </summary>
             PercentageOfHeight
         }
@@ -59,11 +59,10 @@ namespace SixLabors.ImageSharp.Primitives
         public ValueSizeType Type { get; }
 
         /// <summary>
-        /// Implicitly converts a float into an absolute value
+        /// Implicitly converts a float into an absolute value.
         /// </summary>
         /// <param name="f">the value to use as the absolute figure.</param>
-        public static implicit operator ValueSize(float f)
-            => Absolute(f);
+        public static implicit operator ValueSize(float f) => Absolute(f);
 
         /// <summary>
         /// Create a new ValueSize with as a PercentageOfWidth type with value set to percentage.
@@ -89,7 +88,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// Create a new ValueSize with as a Absolute type with value set to value.
         /// </summary>
         /// <param name="value">The value.</param>
-        /// <returns>a Values size with type Absolute(</returns>
+        /// <returns>a Values size with type Absolute.</returns>
         public static ValueSize Absolute(float value)
         {
             return new ValueSize(value, ValueSizeType.Absolute);
@@ -99,7 +98,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// Calculates the specified size.
         /// </summary>
         /// <param name="size">The size.</param>
-        /// <returns>The calculated value</returns>
+        /// <returns>The calculated value.</returns>
         public float Calculate(Size size)
         {
             switch (this.Type)
@@ -115,10 +114,7 @@ namespace SixLabors.ImageSharp.Primitives
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"{this.Value} - {this.Type}";
-        }
+        public override string ToString() => $"{this.Value} - {this.Type}";
 
         /// <inheritdoc/>
         public override bool Equals(object obj)

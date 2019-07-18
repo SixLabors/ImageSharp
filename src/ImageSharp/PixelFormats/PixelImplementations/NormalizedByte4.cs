@@ -112,6 +112,10 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void FromGray8(Gray8 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc/>
@@ -164,10 +168,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             vector = Vector4.Clamp(vector, MinusOne, Vector4.One) * Half;
 
-            uint byte4 = ((uint)Math.Round(vector.X) & 0xFF) << 0;
-            uint byte3 = ((uint)Math.Round(vector.Y) & 0xFF) << 8;
-            uint byte2 = ((uint)Math.Round(vector.Z) & 0xFF) << 16;
-            uint byte1 = ((uint)Math.Round(vector.W) & 0xFF) << 24;
+            uint byte4 = ((uint)MathF.Round(vector.X) & 0xFF) << 0;
+            uint byte3 = ((uint)MathF.Round(vector.Y) & 0xFF) << 8;
+            uint byte2 = ((uint)MathF.Round(vector.Z) & 0xFF) << 16;
+            uint byte1 = ((uint)MathF.Round(vector.W) & 0xFF) << 24;
 
             return byte4 | byte3 | byte2 | byte1;
         }

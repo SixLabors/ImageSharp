@@ -14,14 +14,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Effects
         public void Invert_InvertProcessorDefaultsSet()
         {
             this.operations.Invert();
-            var processor = this.Verify<InvertProcessor<Rgba32>>();
+            var processor = this.Verify<InvertProcessor>();
         }
 
         [Fact]
         public void Pixelate_rect_PixelateProcessorDefaultsSet()
         {
             this.operations.Invert(this.rect);
-            var processor = this.Verify<InvertProcessor<Rgba32>>(this.rect);
+            var processor = this.Verify<InvertProcessor>(this.rect);
         }
     }
 }

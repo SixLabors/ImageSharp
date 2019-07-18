@@ -263,7 +263,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// Performs the bulk conversion from <see cref="Hsl"/> into <see cref="Hsv"/>
         /// </summary>
         /// <param name="source">The span to the source colors</param>
-        /// <param name="destination">The span to the destination colors</param>
+        /// <param name="destination">The span to the destination colors.</param>
         public void Convert(ReadOnlySpan<Hsl> source, Span<Hsv> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));

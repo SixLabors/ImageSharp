@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {
     /// <summary>
-    /// Color converter between <see cref="LinearRgb"/> and <see cref="Rgb"/>
+    /// Color converter between <see cref="LinearRgb"/> and <see cref="Rgb"/>.
     /// </summary>
     internal sealed class LinearRgbToRgbConverter
     {
@@ -14,16 +14,15 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// Performs the conversion from the <see cref="LinearRgb"/> input to an instance of <see cref="Rgb"/> type.
         /// </summary>
         /// <param name="input">The input color instance.</param>
-        /// <returns>The converted result</returns>
+        /// <returns>The converted result.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public Rgb Convert(in LinearRgb input)
         {
-            var vector = input.ToVector3();
-            vector.X = input.WorkingSpace.Compress(vector.X);
-            vector.Y = input.WorkingSpace.Compress(vector.Y);
-            vector.Z = input.WorkingSpace.Compress(vector.Z);
-
-            return new Rgb(vector, input.WorkingSpace);
+            return new Rgb(
+                r: input.WorkingSpace.Compress(input.R),
+                g: input.WorkingSpace.Compress(input.G),
+                b: input.WorkingSpace.Compress(input.B),
+                workingSpace: input.WorkingSpace);
         }
     }
 }

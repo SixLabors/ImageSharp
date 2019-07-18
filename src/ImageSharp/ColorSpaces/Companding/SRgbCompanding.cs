@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.ColorSpaces.Companding
 {
     /// <summary>
-    /// Implements sRGB companding
+    /// Implements sRGB companding.
     /// </summary>
     /// <remarks>
     /// For more info see:
@@ -30,9 +30,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
             for (int i = 0; i < vectors.Length; i++)
             {
                 ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
-                v.X = Expand(v.X);
-                v.Y = Expand(v.Y);
-                v.Z = Expand(v.Z);
+                Expand(ref v);
             }
         }
 
@@ -48,9 +46,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
             for (int i = 0; i < vectors.Length; i++)
             {
                 ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
-                v.X = Compress(v.X);
-                v.Y = Compress(v.Y);
-                v.Z = Compress(v.Z);
+                Compress(ref v);
             }
         }
 
@@ -58,17 +54,25 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
         /// Expands a companded vector to its linear equivalent with respect to the energy.
         /// </summary>
         /// <param name="vector">The vector.</param>
-        /// <returns>The <see cref="Vector4"/> representing the linear channel values.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static Vector4 Expand(Vector4 vector) => new Vector4(Expand(vector.X), Expand(vector.Y), Expand(vector.Z), vector.W);
+        public static void Expand(ref Vector4 vector)
+        {
+            vector.X = Expand(vector.X);
+            vector.Y = Expand(vector.Y);
+            vector.Z = Expand(vector.Z);
+        }
 
         /// <summary>
         /// Compresses an uncompanded vector (linear) to its nonlinear equivalent.
         /// </summary>
         /// <param name="vector">The vector.</param>
-        /// <returns>The <see cref="Vector4"/> representing the nonlinear channel values.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static Vector4 Compress(Vector4 vector) => new Vector4(Compress(vector.X), Compress(vector.Y), Compress(vector.Z), vector.W);
+        public static void Compress(ref Vector4 vector)
+        {
+            vector.X = Compress(vector.X);
+            vector.Y = Compress(vector.Y);
+            vector.Z = Compress(vector.Z);
+        }
 
         /// <summary>
         /// Expands a companded channel to its linear equivalent with respect to the energy.

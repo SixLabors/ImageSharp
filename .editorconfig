@@ -1,20 +1,371 @@
-# top-most EditorConfig file
+###############################################################################
+# EditorConfig is awesome: http://EditorConfig.org
+###############################################################################
+
+###############################################################################
+# Top-most EditorConfig file
+###############################################################################
 root = true
 
-[*.cs]
+###############################################################################
+# Set default behavior to:
+#   a UTF-8 encoding,
+#   Unix-style line endings,
+#   a newline ending the file,
+#   4 space indentation, and
+#   trimming of trailing whitespace
+###############################################################################
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
 indent_style = space
 indent_size = 4
-csharp_style_var_for_built_in_types = false:warning
-csharp_style_var_elsewhere = false:warning
-csharp_style_var_when_type_is_apparent = true:warning
+trim_trailing_whitespace = true
+
+###############################################################################
+# Set file behavior to:
+#   2 space indentation
+###############################################################################
+[*.{cmd,config,csproj,json,props,ps1,resx,sh,targets}]
+indent_size = 2
+
+###############################################################################
+# Set file behavior to:
+#   Windows-style line endings, and
+#   tabular indentation
+###############################################################################
+[*.sln]
 end_of_line = crlf
+indent_style = tab
+
+###############################################################################
+# Set dotnet naming rules to:
+#    suggest async members be pascal case suffixed with Async
+#    suggest const declarations be pascal case
+#    suggest interfaces be pascal case prefixed with I
+#    suggest parameters be camel case
+#    suggest private and internal static fields be camel case
+#    suggest private and internal fields be camel case
+#    suggest public and protected declarations be pascal case
+#    suggest static readonly declarations be pascal case
+#    suggest type parameters be prefixed with T
+###############################################################################
+[*.cs]
+dotnet_naming_rule.async_members_should_be_pascal_case_suffixed_with_async.severity = suggestion
+dotnet_naming_rule.async_members_should_be_pascal_case_suffixed_with_async.style = pascal_case_suffixed_with_async
+dotnet_naming_rule.async_members_should_be_pascal_case_suffixed_with_async.symbols = async_members
+
+dotnet_naming_rule.const_declarations_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.const_declarations_should_be_pascal_case.style = pascal_case
+dotnet_naming_rule.const_declarations_should_be_pascal_case.symbols = const_declarations
+
+dotnet_naming_rule.interfaces_should_be_pascal_case_prefixed_with_i.severity = suggestion
+dotnet_naming_rule.interfaces_should_be_pascal_case_prefixed_with_i.style = pascal_case_prefixed_with_i
+dotnet_naming_rule.interfaces_should_be_pascal_case_prefixed_with_i.symbols = interfaces
+
+dotnet_naming_rule.parameters_should_be_camel_case.severity = suggestion
+dotnet_naming_rule.parameters_should_be_camel_case.style = camel_case
+dotnet_naming_rule.parameters_should_be_camel_case.symbols = parameters
+
+dotnet_naming_rule.private_and_internal_static_fields_should_be_camel_case.severity = suggestion
+dotnet_naming_rule.private_and_internal_static_fields_should_be_camel_case.style = camel_case
+dotnet_naming_rule.private_and_internal_static_fields_should_be_camel_case.symbols = private_and_internal_static_fields
+
+dotnet_naming_rule.private_and_internal_fields_should_be_camel_case.severity = suggestion
+dotnet_naming_rule.private_and_internal_fields_should_be_camel_case.style = camel_case
+dotnet_naming_rule.private_and_internal_fields_should_be_camel_case.symbols = private_and_internal_fields
+
+dotnet_naming_rule.public_and_protected_declarations_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.public_and_protected_declarations_should_be_pascal_case.style = pascal_case
+dotnet_naming_rule.public_and_protected_declarations_should_be_pascal_case.symbols = public_and_protected_declarations
+
+dotnet_naming_rule.static_readonly_declarations_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.static_readonly_declarations_should_be_pascal_case.style = pascal_case
+dotnet_naming_rule.static_readonly_declarations_should_be_pascal_case.symbols = static_readonly_declarations
+
+dotnet_naming_rule.type_parameters_should_be_pascal_case_prefixed_with_t.severity = suggestion
+dotnet_naming_rule.type_parameters_should_be_pascal_case_prefixed_with_t.style = pascal_case_prefixed_with_t
+dotnet_naming_rule.type_parameters_should_be_pascal_case_prefixed_with_t.symbols = type_parameters
+
+###############################################################################
+# Set dotnet naming styles to define:
+#   camel case
+#   pascal case
+#   pascal case suffixed with Async
+#   pascal case prefixed with I
+#   pascal case prefixed with T
+###############################################################################
+[*.cs]
+dotnet_naming_style.camel_case.capitalization = camel_case
+
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+dotnet_naming_style.pascal_case_suffixed_with_async.capitalization = pascal_case
+dotnet_naming_style.pascal_case_suffixed_with_async.required_suffix = Async
+
+dotnet_naming_style.pascal_case_prefixed_with_i.capitalization = pascal_case
+dotnet_naming_style.pascal_case_prefixed_with_i.required_prefix = I
+
+dotnet_naming_style.pascal_case_prefixed_with_t.capitalization = pascal_case
+dotnet_naming_style.pascal_case_prefixed_with_t.required_prefix = T
+
+###############################################################################
+# Set dotnet naming symbols to:
+#   async members
+#   const declarations
+#   interfaces
+#   private and internal fields
+#   private and internal static fields
+#   public and protected declarations
+#   static readonly declarations
+#   type parameters
+###############################################################################
+[*.cs]
+dotnet_naming_symbols.async_members.required_modifiers = async
+
+dotnet_naming_symbols.const_declarations.required_modifiers = const
+
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+
+dotnet_naming_symbols.parameters.applicable_kinds = parameter
+
+dotnet_naming_symbols.private_and_internal_fields.applicable_accessibilities = private, internal
+dotnet_naming_symbols.private_and_internal_fields.applicable_kinds = field
+
+dotnet_naming_symbols.private_and_internal_static_fields.applicable_accessibilities = private, internal
+dotnet_naming_symbols.private_and_internal_static_fields.applicable_kinds = field
+dotnet_naming_symbols.private_and_internal_static_fields.required_modifiers = static
+
+dotnet_naming_symbols.public_and_protected_declarations.applicable_accessibilities = public, protected
+
+dotnet_naming_symbols.static_readonly_declarations.required_modifiers = static, readonly
+
+dotnet_naming_symbols.type_parameters.applicable_kinds = type_parameter
+
+###############################################################################
+# Set dotnet sort options to:
+#   do not separate import directives into groups, and
+#   sort system directives first
+###############################################################################
+[*.cs]
+dotnet_separate_import_directive_groups = false
 dotnet_sort_system_directives_first = true
+
+###############################################################################
+# Set dotnet style options to:
+#   suggest null-coalescing expressions,
+#   suggest collection-initializers,
+#   suggest explicit tuple names,
+#   suggest null-propogation
+#   suggest object-initializers,
+#   generate parentheses in arithmetic binary operators for clarity,
+#   generate parentheses in other binary operators for clarity,
+#   don't generate parentheses in other operators if unnecessary,
+#   generate parentheses in relational binary operators for clarity,
+#   warn when not using predefined-types for locals, parameters, and members,
+#   generate predefined-types of type names for member access,
+#   generate auto properties,
+#   suggest compound assignment,
+#   generate conditional expression over assignment,
+#   generate conditional expression over return,
+#   suggest inferred anonymous types,
+#   suggest inferred tuple names,
+#   suggest 'is null' checks over '== null',
+#   don't generate 'this.' and 'Me.' for events,
+#   warn when not using 'this.' and 'Me.' for fields,
+#   warn when not using 'this.' and 'Me.' for methods,
+#   warn when not using 'this.' and 'Me.' for properties,
+#   suggest readonly fields, and
+#   generate accessibility modifiers for non interface members
+###############################################################################
+[*.cs]
+dotnet_style_coalesce_expression = true:suggestion
+dotnet_style_collection_initializer = true:suggestion
+dotnet_style_explicit_tuple_names = true:suggestion
+dotnet_style_null_propagation = true:suggestion
+dotnet_style_object_initializer = true:suggestion
+
+dotnet_style_parentheses_in_arithmetic_binary_operators = always_for_clarity:silent
+dotnet_style_parentheses_in_other_binary_operators = always_for_clarity:silent
+dotnet_style_parentheses_in_other_operators = never_if_unnecessary:silent
+dotnet_style_parentheses_in_relational_binary_operators = always_for_clarity:silent
+
 dotnet_style_predefined_type_for_locals_parameters_members = true:warning
-dotnet_style_predefined_type_for_member_access = true:warning
+dotnet_style_predefined_type_for_member_access = true:silent
+
+dotnet_style_prefer_auto_properties = true:silent
+dotnet_style_prefer_compound_assignment = true:suggestion
+dotnet_style_prefer_conditional_expression_over_assignment = true:silent
+dotnet_style_prefer_conditional_expression_over_return = true:silent
+dotnet_style_prefer_inferred_anonymous_type_member_names = true:suggestion
+dotnet_style_prefer_inferred_tuple_names = true:suggestion
+dotnet_style_prefer_is_null_check_over_reference_equality_method = true:suggestion
+
+dotnet_style_qualification_for_event = false:silent
 dotnet_style_qualification_for_field = true:warning
 dotnet_style_qualification_for_method = true:warning
 dotnet_style_qualification_for_property = true:warning
 
-[*.tt]
-indent_style = space
-indent_size = 4
+dotnet_style_readonly_field = true:suggestion
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:silent
+
+###############################################################################
+# Set dotnet style options to:
+#   suggest removing all unused parameters
+###############################################################################
+[*.cs]
+dotnet_code_quality_unused_parameters = all:suggestion
+
+###############################################################################
+# Set csharp indent options to:
+#   indent block contents,
+#   not indent braces,
+#   indent case contents,
+#   not indent case contents when block,
+#   indent labels one less than the current, and
+#   indent switch labels
+###############################################################################
+[*.cs]
+csharp_indent_block_contents = true
+csharp_indent_braces = false
+csharp_indent_case_contents = true
+csharp_indent_case_contents_when_block = false
+csharp_indent_labels = one_less_than_current
+csharp_indent_switch_labels = true
+
+###############################################################################
+# Set csharp new-line options to:
+#   insert a new-line before "catch",
+#   insert a new-line before "else",
+#   insert a new-line before "finally",
+#   insert a new-line before members in anonymous-types,
+#   insert a new-line before members in object-initializers, and
+#   insert a new-line before all open braces
+###############################################################################
+[*.cs]
+csharp_new_line_before_catch = true
+csharp_new_line_before_else = true
+csharp_new_line_before_finally = true
+
+csharp_new_line_before_members_in_anonymous_types = true
+csharp_new_line_before_members_in_object_initializers = true
+
+csharp_new_line_before_open_brace = all
+
+###############################################################################
+# Set csharp preserve options to:
+#   preserve single-line blocks, and
+#   preserve single-line statements
+###############################################################################
+[*.cs]
+csharp_preserve_single_line_blocks = true
+csharp_preserve_single_line_statements = true
+
+###############################################################################
+# Set csharp space options to:
+#   remove any space after a cast,
+#   add a space after the colon in an inheritance clause,
+#   add a space after a comma,
+#   remove any space after a dot,
+#   add a space after keywords in control flow statements,
+#   add a space after a semicolon in a "for" statement,
+#   add a space before and after binary operators,
+#   remove space around declaration statements,
+#   add a space before the colon in an inheritance clause,
+#   remove any space before a comma,
+#   remove any space before a dot,
+#   remove any space before an open square-bracket,
+#   remove any space before a semicolon in a "for" statement,
+#   remove any space between empty square-brackets,
+#   remove any space between a method call's empty parameter list parenthesis,
+#   remove any space between a method call's name and its opening parenthesis,
+#   remove any space between a method call's parameter list parenthesis,
+#   remove any space between a method declaration's empty parameter list parenthesis,
+#   remove any space between a method declaration's name and its openening parenthesis,
+#   remove any space between a method declaration's parameter list parenthesis,
+#   remove any space between parentheses, and
+#   remove any space between square brackets
+###############################################################################
+[*.cs]
+csharp_space_after_cast = false
+csharp_space_after_colon_in_inheritance_clause = true
+csharp_space_after_comma = true
+csharp_space_after_dot = false
+csharp_space_after_keywords_in_control_flow_statements = true
+csharp_space_after_semicolon_in_for_statement = true
+
+csharp_space_around_binary_operators = before_and_after
+csharp_space_around_declaration_statements = do_not_ignore
+
+csharp_space_before_colon_in_inheritance_clause = true
+csharp_space_before_comma = false
+csharp_space_before_dot = false
+csharp_space_before_open_square_brackets = false
+csharp_space_before_semicolon_in_for_statement = false
+
+csharp_space_between_empty_square_brackets = false
+csharp_space_between_method_call_empty_parameter_list_parentheses = false
+csharp_space_between_method_call_name_and_opening_parenthesis = false
+csharp_space_between_method_call_parameter_list_parentheses = false
+csharp_space_between_method_declaration_empty_parameter_list_parentheses = false
+csharp_space_between_method_declaration_name_and_open_parenthesis = false
+csharp_space_between_method_declaration_parameter_list_parentheses = false
+csharp_space_between_parentheses = false
+csharp_space_between_square_brackets = false
+
+###############################################################################
+# Set csharp style options to:
+#   generate braces,
+#   suggest simple default expressions,
+#   generate a preferred modifier order,
+#   suggest conditional delegate calls,
+#   suggest deconstructed variable declarations,
+#   generate expression-bodied accessors,
+#   don't generate expression-bodied constructors,
+#   generate expression-bodied indexers,
+#   generate expression-bodied lambdas,
+#   don't generate expression-bodied methods,
+#   don't generate expression-bodied operators,
+#   generate expression-bodied properties,
+#   suggest inlined variable declarations,
+#   suggest local over anonymous functions,
+#   suggest pattern-matching over "as" with "null" check,
+#   suggest pattern-matching over "is" with "cast" check,
+#   suggest throw expressions,
+#   generate a discard variable for unused value expression statements,
+#   suggest a discard variable for unused assignments,
+#   warn when using var for built-in types,
+#   warn when using var when the type is not apparent, and
+#   warn when not using var when the type is apparent
+###############################################################################
+[*.cs]
+csharp_prefer_braces = true:silent
+csharp_prefer_simple_default_expression = true:suggestion
+csharp_preferred_modifier_order = public,private,protected,internal,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,volatile,async:silent
+
+csharp_style_conditional_delegate_call = true:suggestion
+csharp_style_deconstructed_variable_declaration = true:suggestion
+
+csharp_style_expression_bodied_accessors = true:silent
+csharp_style_expression_bodied_constructors = false:silent
+csharp_style_expression_bodied_indexers = true:silent
+csharp_style_expression_bodied_lambdas = true:silent
+csharp_style_expression_bodied_methods = false:silent
+csharp_style_expression_bodied_operators = false:silent
+csharp_style_expression_bodied_properties = true:silent
+
+csharp_style_inlined_variable_declaration = true:suggestion
+
+csharp_style_pattern_local_over_anonymous_function = true:suggestion
+csharp_style_pattern_matching_over_as_with_null_check = true:suggestion
+csharp_style_pattern_matching_over_is_with_cast_check = true:suggestion
+
+csharp_style_throw_expression = true:suggestion
+
+csharp_style_unused_value_expression_statement_preference = discard_variable:silent
+csharp_style_unused_value_assignment_preference = discard_variable:suggestion
+
+csharp_style_var_for_built_in_types = false:warning
+csharp_style_var_elsewhere = false:warning
+csharp_style_var_when_type_is_apparent = true:warning

@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 
 namespace SixLabors.ImageSharp.Tests
@@ -8,6 +9,7 @@ namespace SixLabors.ImageSharp.Tests
     /// <summary>
     /// The test base class for reading and writing to files.
     /// </summary>
+    [Obsolete("See: https://github.com/SixLabors/ImageSharp/issues/868")]
     public abstract class FileTestBase
     {
         /// <summary>
@@ -26,7 +28,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// A collection of all the bmp test images
         /// </summary>
-        public static IEnumerable<string> AllBmpFiles = TestImages.Bmp.All;
+        public static IEnumerable<string> AllBmpFiles = TestImages.Bmp.Benchmark;
 
         /// <summary>
         /// A collection of all the jpeg test images

@@ -10,17 +10,17 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.ColorSpaces
 {
     /// <summary>
-    /// Represents an RGB color with specified <see cref="RgbWorkingSpaceBase"/> working space.
+    /// Represents an RGB color with specified <see cref="RgbWorkingSpace"/> working space.
     /// </summary>
     public readonly struct Rgb : IEquatable<Rgb>
     {
+        /// <summary>
+        /// The default rgb working space.
+        /// </summary>
+        public static readonly RgbWorkingSpace DefaultWorkingSpace = RgbWorkingSpaces.SRgb;
+
         private static readonly Vector3 Min = Vector3.Zero;
         private static readonly Vector3 Max = Vector3.One;
-
-        /// <summary>
-        /// The default rgb working space
-        /// </summary>
-        public static readonly RgbWorkingSpaceBase DefaultWorkingSpace = RgbWorkingSpaces.SRgb;
 
         /// <summary>
         /// Gets the red component.
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <summary>
         /// Gets the Rgb color space <seealso cref="RgbWorkingSpaces"/>
         /// </summary>
-        public readonly RgbWorkingSpaceBase WorkingSpace;
+        public readonly RgbWorkingSpace WorkingSpace;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgb"/> struct.
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="b">The blue component ranging between 0 and 1.</param>
         /// <param name="workingSpace">The rgb working space.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Rgb(float r, float g, float b, RgbWorkingSpaceBase workingSpace)
+        public Rgb(float r, float g, float b, RgbWorkingSpace workingSpace)
             : this(new Vector3(r, g, b), workingSpace)
         {
         }
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="vector">The vector representing the r, g, b components.</param>
         /// <param name="workingSpace">The rgb working space.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Rgb(Vector3 vector, RgbWorkingSpaceBase workingSpace)
+        public Rgb(Vector3 vector, RgbWorkingSpace workingSpace)
         {
             vector = Vector3.Clamp(vector, Min, Max);
             this.R = vector.X;

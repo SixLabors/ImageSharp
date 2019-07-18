@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
 {
     /// <summary>
     /// Represents an Hunter LAB color.
-    /// <see href="https://en.wikipedia.org/wiki/Lab_color_space"/>
+    /// <see href="https://en.wikipedia.org/wiki/Lab_color_space"/>.
     /// </summary>
     public readonly struct HunterLab : IEquatable<HunterLab>
     {
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public readonly float B;
 
         /// <summary>
-        /// Gets the reference white point of this color
+        /// Gets the reference white point of this color.
         /// </summary>
         public readonly CieXyz WhitePoint;
 
@@ -117,10 +117,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(this.L, this.A, this.B, this.WhitePoint);
-        }
+        public override int GetHashCode() => HashCode.Combine(this.L, this.A, this.B, this.WhitePoint);
 
         /// <inheritdoc/>
         public override string ToString() => FormattableString.Invariant($"HunterLab({this.L:#0.##}, {this.A:#0.##}, {this.B:#0.##})");

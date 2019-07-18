@@ -4,7 +4,7 @@
 using System;
 using System.Linq;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// The chromaticity tag type provides basic chromaticity data
@@ -80,10 +80,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public double[][] ChannelValues { get; }
 
         /// <inheritdoc/>
-        public override bool Equals(IccTagDataEntry other)
-        {
-            return other is IccChromaticityTagDataEntry entry && this.Equals(entry);
-        }
+        public override bool Equals(IccTagDataEntry other) => other is IccChromaticityTagDataEntry entry && this.Equals(entry);
 
         /// <inheritdoc/>
         public bool Equals(IccChromaticityTagDataEntry other)
@@ -102,10 +99,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is IccChromaticityTagDataEntry other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is IccChromaticityTagDataEntry other && this.Equals(other);
 
         /// <inheritdoc/>
         public override int GetHashCode()
@@ -162,7 +156,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
             for (int i = 0; i < this.ChannelValues.Length; i++)
             {
-                if (!this.ChannelValues[i].SequenceEqual(entry.ChannelValues[i]))
+                if (!this.ChannelValues[i].AsSpan().SequenceEqual(entry.ChannelValues[i]))
                 {
                     return false;
                 }

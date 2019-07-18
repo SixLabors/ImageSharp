@@ -12,31 +12,31 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     internal static class ProfileResolver
     {
         /// <summary>
-        /// Describes the EXIF specific markers
+        /// Describes the JFIF specific markers.
         /// </summary>
         public static readonly byte[] JFifMarker = Encoding.ASCII.GetBytes("JFIF\0");
 
         /// <summary>
-        /// Describes the EXIF specific markers
+        /// Describes the ICC specific markers.
         /// </summary>
         public static readonly byte[] IccMarker = Encoding.ASCII.GetBytes("ICC_PROFILE\0");
 
         /// <summary>
-        /// Describes the ICC specific markers
+        /// Describes the EXIF specific markers.
         /// </summary>
         public static readonly byte[] ExifMarker = Encoding.ASCII.GetBytes("Exif\0\0");
 
         /// <summary>
-        /// Describes Adobe specific markers <see href="http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe"/>
+        /// Describes Adobe specific markers <see href="http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe"/>.
         /// </summary>
         public static readonly byte[] AdobeMarker = Encoding.ASCII.GetBytes("Adobe");
 
         /// <summary>
-        /// Returns a value indicating whether the passed bytes are a match to the profile identifier
+        /// Returns a value indicating whether the passed bytes are a match to the profile identifier.
         /// </summary>
-        /// <param name="bytesToCheck">The bytes to check</param>
-        /// <param name="profileIdentifier">The profile identifier</param>
-        /// <returns>The <see cref="bool"/></returns>
+        /// <param name="bytesToCheck">The bytes to check.</param>
+        /// <param name="profileIdentifier">The profile identifier.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
         public static bool IsProfile(ReadOnlySpan<byte> bytesToCheck, ReadOnlySpan<byte> profileIdentifier)
         {
             return bytesToCheck.Length >= profileIdentifier.Length

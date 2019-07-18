@@ -99,6 +99,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
+        /// Converts an <see cref="Bgra32"/> to <see cref="Color"/>.
+        /// </summary>
+        /// <param name="source">The <see cref="Bgra32"/>.</param>
+        /// <returns>The <see cref="Color"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static implicit operator Color(Bgra32 source) => new Color(source);
+
+        /// <summary>
+        /// Converts a <see cref="Color"/> to <see cref="Bgra32"/>.
+        /// </summary>
+        /// <param name="color">The <see cref="Color"/>.</param>
+        /// <returns>The <see cref="Bgra32"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static implicit operator Bgra32(Color color) => color.ToBgra32();
+
+        /// <summary>
         /// Compares two <see cref="Bgra32"/> objects for equality.
         /// </summary>
         /// <param name="left">The <see cref="Bgra32"/> on the left side of the operand.</param>
@@ -158,6 +174,10 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.B = source.B;
             this.A = byte.MaxValue;
         }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

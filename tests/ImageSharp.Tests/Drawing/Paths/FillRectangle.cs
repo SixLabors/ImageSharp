@@ -12,15 +12,15 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
     public class FillRectangle : BaseImageOperationsExtensionTest
     {
         GraphicsOptions noneDefault = new GraphicsOptions();
-        Rgba32 color = Rgba32.HotPink;
-        SolidBrush<Rgba32> brush = Brushes.Solid(Rgba32.HotPink);
+        Color color = Color.HotPink;
+        SolidBrush brush = Brushes.Solid(Rgba32.HotPink);
         SixLabors.Primitives.Rectangle rectangle = new SixLabors.Primitives.Rectangle(10, 10, 77, 76);
 
         [Fact]
         public void CorrectlySetsBrushAndRectangle()
         {
             this.operations.Fill(this.brush, this.rectangle);
-            FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>();
+            FillRegionProcessor processor = this.Verify<FillRegionProcessor>();
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         public void CorrectlySetsBrushRectangleAndOptions()
         {
             this.operations.Fill(this.noneDefault, this.brush, this.rectangle);
-            FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>();
+            FillRegionProcessor processor = this.Verify<FillRegionProcessor>();
 
             Assert.Equal(this.noneDefault, processor.Options);
 
@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         public void CorrectlySetsColorAndRectangle()
         {
             this.operations.Fill(this.color, this.rectangle);
-            FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>();
+            FillRegionProcessor processor = this.Verify<FillRegionProcessor>();
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
             Assert.Equal(rect.Size.Width, this.rectangle.Width);
             Assert.Equal(rect.Size.Height, this.rectangle.Height);
 
-            SolidBrush<Rgba32> brush = Assert.IsType<SolidBrush<Rgba32>>(processor.Brush);
+            SolidBrush brush = Assert.IsType<SolidBrush>(processor.Brush);
             Assert.Equal(this.color, brush.Color);
         }
 
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         public void CorrectlySetsColorRectangleAndOptions()
         {
             this.operations.Fill(this.noneDefault, this.color, this.rectangle);
-            FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>();
+            FillRegionProcessor processor = this.Verify<FillRegionProcessor>();
 
             Assert.Equal(this.noneDefault, processor.Options);
 
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
             Assert.Equal(rect.Size.Width, this.rectangle.Width);
             Assert.Equal(rect.Size.Height, this.rectangle.Height);
 
-            SolidBrush<Rgba32> brush = Assert.IsType<SolidBrush<Rgba32>>(processor.Brush);
+            SolidBrush brush = Assert.IsType<SolidBrush>(processor.Brush);
             Assert.Equal(this.color, brush.Color);
         }
     }

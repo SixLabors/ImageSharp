@@ -3,7 +3,7 @@
 
 using System.Linq;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// Provides methods to write ICC data types
@@ -163,10 +163,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// </summary>
         /// <param name="value">The entry to write</param>
         /// <returns>The number of bytes written</returns>
-        public int WriteUnknownTagDataEntry(IccUnknownTagDataEntry value)
-        {
-            return this.WriteArray(value.Data);
-        }
+        public int WriteUnknownTagDataEntry(IccUnknownTagDataEntry value) => this.WriteArray(value.Data);
 
         /// <summary>
         /// Writes a <see cref="IccChromaticityTagDataEntry"/>
@@ -269,10 +266,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// </summary>
         /// <param name="value">The entry to write</param>
         /// <returns>The number of bytes written</returns>
-        public int WriteDateTimeTagDataEntry(IccDateTimeTagDataEntry value)
-        {
-            return this.WriteDateTime(value.Value);
-        }
+        public int WriteDateTimeTagDataEntry(IccDateTimeTagDataEntry value) => this.WriteDateTime(value.Value);
 
         /// <summary>
         /// Writes a <see cref="IccLut16TagDataEntry"/>
@@ -563,6 +557,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             long tpos = this.dataStream.Position;
             this.dataStream.Position += cultureCount * 12;
 
+            // TODO: Investigate cost of Linq GroupBy
             IGrouping<string, IccLocalizedString>[] texts = value.Texts.GroupBy(t => t.Text).ToArray();
 
             uint[] offset = new uint[texts.Length];
@@ -625,7 +620,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             long tpos = this.dataStream.Position;
             this.dataStream.Position += value.Data.Length * 8;
 
-            IccPositionNumber[] posTable = new IccPositionNumber[value.Data.Length];
+            var posTable = new IccPositionNumber[value.Data.Length];
             for (int i = 0; i < value.Data.Length; i++)
             {
                 uint offset = (uint)(this.dataStream.Position - start);
@@ -673,10 +668,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// </summary>
         /// <param name="value">The entry to write</param>
         /// <returns>The number of bytes written</returns>
-        public int WriteParametricCurveTagDataEntry(IccParametricCurveTagDataEntry value)
-        {
-            return this.WriteParametricCurve(value.Curve);
-        }
+        public int WriteParametricCurveTagDataEntry(IccParametricCurveTagDataEntry value) => this.WriteParametricCurve(value.Curve);
 
         /// <summary>
         /// Writes a <see cref="IccProfileSequenceDescTagDataEntry"/>
@@ -793,20 +785,14 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// </summary>
         /// <param name="value">The entry to write</param>
         /// <returns>The number of bytes written</returns>
-        public int WriteSignatureTagDataEntry(IccSignatureTagDataEntry value)
-        {
-            return this.WriteAsciiString(value.SignatureData, 4, false);
-        }
+        public int WriteSignatureTagDataEntry(IccSignatureTagDataEntry value) => this.WriteAsciiString(value.SignatureData, 4, false);
 
         /// <summary>
         /// Writes a <see cref="IccTextTagDataEntry"/>
         /// </summary>
         /// <param name="value">The entry to write</param>
         /// <returns>The number of bytes written</returns>
-        public int WriteTextTagDataEntry(IccTextTagDataEntry value)
-        {
-            return this.WriteAsciiString(value.Text);
-        }
+        public int WriteTextTagDataEntry(IccTextTagDataEntry value) => this.WriteAsciiString(value.Text);
 
         /// <summary>
         /// Writes a <see cref="IccUFix16ArrayTagDataEntry"/>
@@ -829,40 +815,28 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// </summary>
         /// <param name="value">The entry to write</param>
         /// <returns>The number of bytes written</returns>
-        public int WriteUInt16ArrayTagDataEntry(IccUInt16ArrayTagDataEntry value)
-        {
-            return this.WriteArray(value.Data);
-        }
+        public int WriteUInt16ArrayTagDataEntry(IccUInt16ArrayTagDataEntry value) => this.WriteArray(value.Data);
 
         /// <summary>
         /// Writes a <see cref="IccUInt32ArrayTagDataEntry"/>
         /// </summary>
         /// <param name="value">The entry to write</param>
         /// <returns>The number of bytes written</returns>
-        public int WriteUInt32ArrayTagDataEntry(IccUInt32ArrayTagDataEntry value)
-        {
-            return this.WriteArray(value.Data);
-        }
+        public int WriteUInt32ArrayTagDataEntry(IccUInt32ArrayTagDataEntry value) => this.WriteArray(value.Data);
 
         /// <summary>
         /// Writes a <see cref="IccUInt64ArrayTagDataEntry"/>
         /// </summary>
         /// <param name="value">The entry to write</param>
         /// <returns>The number of bytes written</returns>
-        public int WriteUInt64ArrayTagDataEntry(IccUInt64ArrayTagDataEntry value)
-        {
-            return this.WriteArray(value.Data);
-        }
+        public int WriteUInt64ArrayTagDataEntry(IccUInt64ArrayTagDataEntry value) => this.WriteArray(value.Data);
 
         /// <summary>
         /// Writes a <see cref="IccUInt8ArrayTagDataEntry"/>
         /// </summary>
         /// <param name="value">The entry to write</param>
         /// <returns>The number of bytes written</returns>
-        public int WriteUInt8ArrayTagDataEntry(IccUInt8ArrayTagDataEntry value)
-        {
-            return this.WriteArray(value.Data);
-        }
+        public int WriteUInt8ArrayTagDataEntry(IccUInt8ArrayTagDataEntry value) => this.WriteArray(value.Data);
 
         /// <summary>
         /// Writes a <see cref="IccViewingConditionsTagDataEntry"/>

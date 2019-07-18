@@ -11,6 +11,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 
+
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <content>
@@ -42,29 +43,16 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void FromVector4(Configuration configuration, ReadOnlySpan<Vector4> sourceVectors, Span<Bgra32> destPixels)
+            internal override void FromVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Bgra32> destPixels, PixelConversionModifiers modifiers)
             {
-                Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, false);
+                Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, modifiers.Remove(PixelConversionModifiers.Scale));
             }
 
             /// <inheritdoc />
-            internal override void ToVector4(Configuration configuration, ReadOnlySpan<Bgra32> sourcePixels, Span<Vector4> destVectors)
+            internal override void ToVector4(Configuration configuration, ReadOnlySpan<Bgra32> sourcePixels, Span<Vector4> destVectors, PixelConversionModifiers modifiers)
             {
-                Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, false);
+                Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, modifiers.Remove(PixelConversionModifiers.Scale));
             }
-
-            /// <inheritdoc />
-            internal override void FromScaledVector4(Configuration configuration, ReadOnlySpan<Vector4> sourceVectors, Span<Bgra32> destPixels)
-            {
-                Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, true);
-            }
-
-            /// <inheritdoc />
-            internal override void ToScaledVector4(Configuration configuration, ReadOnlySpan<Bgra32> sourcePixels, Span<Vector4> destVectors)
-            {
-                Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, true);
-            }
-
             /// <inheritdoc />
             internal override void ToRgba32(Configuration configuration, ReadOnlySpan<Bgra32> sourcePixels, Span<Rgba32> destPixels)
             {
@@ -235,6 +223,15 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromBgra32(sp);
                 }
             }
+            /// <inheritdoc />
+            internal override void From<TSourcePixel>(
+                Configuration configuration,
+                ReadOnlySpan<TSourcePixel> sourcePixels,
+                Span<Bgra32> destinationPixels)
+            {
+                PixelOperations<TSourcePixel>.Instance.ToBgra32(configuration, sourcePixels, destinationPixels);
+            }
+
         }
     }
 }

@@ -2,9 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Linq;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// This type represents an array of unsigned 64bit integers.
@@ -26,10 +25,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <param name="data">The array data</param>
         /// <param name="tagSignature">Tag Signature</param>
         public IccUInt64ArrayTagDataEntry(ulong[] data, IccProfileTag tagSignature)
-            : base(IccTypeSignature.UInt64Array, tagSignature)
-        {
-            this.Data = data ?? throw new ArgumentNullException(nameof(data));
-        }
+            : base(IccTypeSignature.UInt64Array, tagSignature) => this.Data = data ?? throw new ArgumentNullException(nameof(data));
 
         /// <summary>
         /// Gets the array data
@@ -37,10 +33,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public ulong[] Data { get; }
 
         /// <inheritdoc/>
-        public override bool Equals(IccTagDataEntry other)
-        {
-            return other is IccUInt64ArrayTagDataEntry entry && this.Equals(entry);
-        }
+        public override bool Equals(IccTagDataEntry other) => other is IccUInt64ArrayTagDataEntry entry && this.Equals(entry);
 
         /// <inheritdoc/>
         public bool Equals(IccUInt64ArrayTagDataEntry other)
@@ -59,10 +52,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is IccUInt64ArrayTagDataEntry other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is IccUInt64ArrayTagDataEntry other && this.Equals(other);
 
         /// <inheritdoc/>
         public override int GetHashCode() => HashCode.Combine(this.Signature, this.Data);

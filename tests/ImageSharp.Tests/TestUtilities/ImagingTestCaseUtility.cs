@@ -152,21 +152,19 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Encodes image by the format matching the required extension, than saves it to the recommended output file.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format of the image</typeparam>
         /// <param name="image">The image instance</param>
         /// <param name="extension">The requested extension</param>
         /// <param name="encoder">Optional encoder</param>
         /// <param name="appendPixelTypeToFileName">A value indicating whether to append the pixel type to the test output file name</param>
         /// <param name="appendSourceFileOrDescription">A boolean indicating whether to append <see cref="ITestImageProvider.SourceFileOrDescription"/> to the test output file name.</param>
         /// <param name="testOutputDetails">Additional information to append to the test output file name</param>
-        public string SaveTestOutputFile<TPixel>(
-            Image<TPixel> image,
+        public string SaveTestOutputFile(
+            Image image,
             string extension = null,
             IImageEncoder encoder = null,
             object testOutputDetails = null,
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
-            where TPixel : struct, IPixel<TPixel>
         {
             string path = this.GetTestOutputFileName(
                 extension,

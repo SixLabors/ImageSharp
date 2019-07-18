@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Dithering;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 {
@@ -14,21 +15,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal sealed class PaletteFrameQuantizer<TPixel> : FrameQuantizerBase<TPixel>
+    internal sealed class PaletteFrameQuantizer<TPixel> : FrameQuantizer<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// The reduced image palette.
         /// </summary>
-        private readonly TPixel[] palette;
+        private readonly ReadOnlyMemory<TPixel> palette;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteFrameQuantizer{TPixel}"/> class.
         /// </summary>
-        /// <param name="quantizer">The palette quantizer.</param>
+        /// <param name="diffuser">The palette quantizer.</param>
         /// <param name="colors">An array of all colors in the palette.</param>
-        public PaletteFrameQuantizer(IQuantizer quantizer, TPixel[] colors)
-            : base(quantizer, true) => this.palette = colors;
+        public PaletteFrameQuantizer(IErrorDiffuser diffuser, ReadOnlyMemory<TPixel> colors)
+            : base(diffuser, true) => this.palette = colors;
 
         /// <inheritdoc/>
         protected override void SecondPass(
@@ -85,7 +86,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected override TPixel[] GetPalette() => this.palette;
+        protected override ReadOnlyMemory<TPixel> GetPalette() => this.palette;
 
         /// <summary>
         /// Process the pixel in the second pass of the algorithm

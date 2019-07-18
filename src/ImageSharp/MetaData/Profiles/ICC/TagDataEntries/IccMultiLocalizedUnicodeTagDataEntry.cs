@@ -2,9 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Linq;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// This tag structure contains a set of records each referencing
@@ -56,7 +55,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return true;
             }
 
-            return base.Equals(other) && this.Texts.SequenceEqual(other.Texts);
+            return base.Equals(other) && this.Texts.AsSpan().SequenceEqual(other.Texts);
         }
 
         /// <inheritdoc/>

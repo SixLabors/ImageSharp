@@ -10,11 +10,16 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {
-    public class DetectEdgesTest : FileTestBase
+    [GroupOutput("Convolution")]
+    public class DetectEdgesTest
     {
+        // I think our comparison is not accurate enough (nor can be) for RgbaVector.
+        // The image pixels are identical according to BeyondCompare.
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0456F);
 
-        public static readonly string[] CommonTestImages = { TestImages.Png.Bike };
+        public static readonly string[] TestImages = { Tests.TestImages.Png.Bike };
+        
+        public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
 
         public static readonly TheoryData<EdgeDetectionOperators> DetectEdgesFilters = new TheoryData<EdgeDetectionOperators>
         {
@@ -31,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         };
 
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
+        [WithFileCollection(nameof(TestImages), PixelTypes.Rgba32)]
         public void DetectEdges_WorksOnWrappedMemoryImage<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -42,12 +47,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
                         var bounds = new Rectangle(10, 10, size.Width / 2, size.Height / 2);
                         ctx.DetectEdges(bounds);
                     },
+                comparer: ValidatorComparer,
                 useReferenceOutputFrom: nameof(this.DetectEdges_InBox));
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(DetectEdgesFilters), 100, 100, DefaultPixelType)]
-        [WithFileCollection(nameof(CommonTestImages), nameof(DetectEdgesFilters), DefaultPixelType)]
+        [WithTestPatternImages(nameof(DetectEdgesFilters), 100, 100, PixelTypes.Rgba32)]
+        [WithFileCollection(nameof(TestImages), nameof(DetectEdgesFilters), PixelTypes.Rgba32)]
         public void DetectEdges_WorksWithAllFilters<TPixel>(TestImageProvider<TPixel> provider, EdgeDetectionOperators detector)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -60,7 +66,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         }
 
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), CommonNonDefaultPixelTypes)]
+        [WithFileCollection(nameof(TestImages), CommonNonDefaultPixelTypes)]
         public void DetectEdges_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -73,7 +79,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         }
 
         [Theory]
-        [WithFile(TestImages.Gif.Giphy, DefaultPixelType)]
+        [WithFile(Tests.TestImages.Gif.Giphy, PixelTypes.Rgba32)]
         public void DetectEdges_IsAppliedToAllFrames<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -85,7 +91,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         }
 
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
+        [WithFileCollection(nameof(TestImages), PixelTypes.Rgba32)]
         public void DetectEdges_InBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

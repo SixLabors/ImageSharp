@@ -2,9 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Linq;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// Description of a profile within a sequence.
@@ -34,14 +33,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
         /// <inheritdoc />
         public bool Equals(IccProfileSequenceIdentifier other) =>
-            this.Id.Equals(other.Id) &&
-            this.Description.SequenceEqual(other.Description);
+            this.Id.Equals(other.Id)
+            && this.Description.AsSpan().SequenceEqual(other.Description);
 
         /// <inheritdoc />
-        public override bool Equals(object obj)
-        {
-            return obj is IccProfileSequenceIdentifier other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is IccProfileSequenceIdentifier other && this.Equals(other);
 
         /// <inheritdoc />
         public override int GetHashCode() => HashCode.Combine(this.Id, this.Description);

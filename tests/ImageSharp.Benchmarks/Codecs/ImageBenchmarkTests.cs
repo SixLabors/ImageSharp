@@ -1,7 +1,5 @@
-﻿// <copyright file="ImageBenchmarkTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
 // This file contains small, cheap and "unit test" benchmarks to test MultiImageBenchmarkBase.
 // Need this because there are no real test cases for the common benchmark utility stuff.

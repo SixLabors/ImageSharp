@@ -22,6 +22,20 @@ using System.Runtime.InteropServices;
     // Types with Rgba32-combatible to/from Vector4 conversion
     static readonly string[] Rgba32CompatibleTypes = { "Argb32", "Bgra32", "Rgb24", "Bgr24" };
 
+    void GenerateGenericConverterMethods(string pixelType)
+    {
+#>
+            /// <inheritdoc />
+            internal override void From<TSourcePixel>(
+                Configuration configuration,
+                ReadOnlySpan<TSourcePixel> sourcePixels,
+                Span<<#=pixelType#>> destinationPixels)
+            {
+                PixelOperations<TSourcePixel>.Instance.To<#=pixelType#>(configuration, sourcePixels, destinationPixels);
+            }
+<#+
+    }
+
     void GenerateDefaultSelfConversionMethods(string pixelType)
     {
 #>
@@ -107,33 +121,25 @@ using System.Runtime.InteropServices;
 <#+
     }
 
-    void GenerateRgba32CompatibleVector4ConversionMethods(string pixelType)
+    void GenerateRgba32CompatibleVector4ConversionMethods(string pixelType, bool hasAlpha)
     {
+           string removeTheseModifiers = "PixelConversionModifiers.Scale";
+           if (!hasAlpha)
+           {
+               removeTheseModifiers += " | PixelConversionModifiers.Premultiply";
+           }
 #>
             /// <inheritdoc />
-            internal override void FromVector4(Configuration configuration, ReadOnlySpan<Vector4> sourceVectors, Span<<#=pixelType#>> destPixels)
+            internal override void FromVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<<#=pixelType#>> destPixels, PixelConversionModifiers modifiers)
             {
-                Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, false);
+                Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, modifiers.Remove(<#=removeTheseModifiers#>));
             }
 
             /// <inheritdoc />
-            internal override void ToVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> sourcePixels, Span<Vector4> destVectors)
+            internal override void ToVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> sourcePixels, Span<Vector4> destVectors, PixelConversionModifiers modifiers)
             {
-                Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, false);
+                Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, modifiers.Remove(<#=removeTheseModifiers#>));
             }
-
-            /// <inheritdoc />
-            internal override void FromScaledVector4(Configuration configuration, ReadOnlySpan<Vector4> sourceVectors, Span<<#=pixelType#>> destPixels)
-            {
-                Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, true);
-            }
-
-            /// <inheritdoc />
-            internal override void ToScaledVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> sourcePixels, Span<Vector4> destVectors)
-            {
-                Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, true);
-            }
-
 <#+
     }
 
@@ -143,7 +149,7 @@ using System.Runtime.InteropServices;
 
         if (Rgba32CompatibleTypes.Contains(pixelType))
         {
-            GenerateRgba32CompatibleVector4ConversionMethods(pixelType);
+            GenerateRgba32CompatibleVector4ConversionMethods(pixelType, pixelType.EndsWith("32"));
         }
 
         var matching32BitTypes = Optimized32BitTypes.Contains(pixelType) ?
@@ -163,5 +169,7 @@ using System.Runtime.InteropServices;
         {
             GenerateDefaultConvertToMethod(pixelType, destPixelType);
         }
+
+        GenerateGenericConverterMethods(pixelType);
     }
 #>

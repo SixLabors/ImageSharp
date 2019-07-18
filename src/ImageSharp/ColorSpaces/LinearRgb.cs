@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 namespace SixLabors.ImageSharp.ColorSpaces
 {
     /// <summary>
-    /// Represents an linear Rgb color with specified <see cref="RgbWorkingSpaceBase"/> working space
+    /// Represents an linear Rgb color with specified <see cref="RgbWorkingSpace"/> working space
     /// </summary>
     public readonly struct LinearRgb : IEquatable<LinearRgb>
     {
@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <summary>
         /// The default LinearRgb working space.
         /// </summary>
-        public static readonly RgbWorkingSpaceBase DefaultWorkingSpace = RgbWorkingSpaces.SRgb;
+        public static readonly RgbWorkingSpace DefaultWorkingSpace = RgbWorkingSpaces.SRgb;
 
         /// <summary>
         /// Gets the red component.
@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <summary>
         /// Gets the LinearRgb color space <seealso cref="RgbWorkingSpaces"/>
         /// </summary>
-        public readonly RgbWorkingSpaceBase WorkingSpace;
+        public readonly RgbWorkingSpace WorkingSpace;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LinearRgb"/> struct.
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="b">The blue component ranging between 0 and 1.</param>
         /// <param name="workingSpace">The rgb working space.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public LinearRgb(float r, float g, float b, RgbWorkingSpaceBase workingSpace)
+        public LinearRgb(float r, float g, float b, RgbWorkingSpace workingSpace)
             : this(new Vector3(r, g, b), workingSpace)
         {
         }
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="vector">The vector representing the r, g, b components.</param>
         /// <param name="workingSpace">The LinearRgb working space.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public LinearRgb(Vector3 vector, RgbWorkingSpaceBase workingSpace)
+        public LinearRgb(Vector3 vector, RgbWorkingSpace workingSpace)
         {
             // Clamp to 0-1 range.
             vector = Vector3.Clamp(vector, Min, Max);

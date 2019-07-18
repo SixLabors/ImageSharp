@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
                 return;
             }
 
-            string[] testFiles = TestImages.Bmp.All
+            string[] testFiles = TestImages.Bmp.Benchmark
                 .Concat(new[] { TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk }).ToArray();
 
             Image<Rgba32>[] testImages = testFiles.Select(

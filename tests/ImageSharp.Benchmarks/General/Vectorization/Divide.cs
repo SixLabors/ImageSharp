@@ -1,10 +1,9 @@
+using System.Numerics;
+
+using BenchmarkDotNet.Attributes;
+
 namespace ImageSharp.Benchmarks.General.Vectorization
 {
-    using System;
-    using System.Numerics;
-
-    using BenchmarkDotNet.Attributes;
-
     public class DivFloat : SIMDBenchmarkBase<float>.Divide
     {
         protected override float GetTestValue() => 42;

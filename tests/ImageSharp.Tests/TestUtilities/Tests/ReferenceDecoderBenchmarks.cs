@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
                     {
                         foreach (string testFile in testFiles)
                         {
-                            Image<Rgba32> image = TestFile.Create(testFile).CreateImage(decoder);
+                            Image<Rgba32> image = TestFile.Create(testFile).CreateRgba32Image(decoder);
                             image.Dispose();
                         }
                     },

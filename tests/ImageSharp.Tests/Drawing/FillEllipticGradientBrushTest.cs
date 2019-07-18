@@ -23,18 +23,18 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel red = NamedColors<TPixel>.Red;
+            Color red = Color.Red;
 
             using (Image<TPixel> image = provider.GetImage())
             {
                 var unicolorLinearGradientBrush =
-                    new EllipticGradientBrush<TPixel>(
+                    new EllipticGradientBrush(
                         new SixLabors.Primitives.Point(0, 0),
                         new SixLabors.Primitives.Point(10, 0),
                         1.0f,
                         GradientRepetitionMode.None,
-                        new ColorStop<TPixel>(0, red),
-                        new ColorStop<TPixel>(1, red));
+                        new ColorStop(0, red),
+                        new ColorStop(1, red));
 
                 image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
 
@@ -58,22 +58,22 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             float ratio)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel yellow = NamedColors<TPixel>.Yellow;
-            TPixel red = NamedColors<TPixel>.Red;
-            TPixel black = NamedColors<TPixel>.Black;
+            Color yellow = Color.Yellow;
+            Color red = Color.Red;
+            Color black = Color.Black;
 
             provider.VerifyOperation(
                 TolerantComparer,
                 image =>
                     {
-                        var unicolorLinearGradientBrush = new EllipticGradientBrush<TPixel>(
+                        var unicolorLinearGradientBrush = new EllipticGradientBrush(
                             new SixLabors.Primitives.Point(image.Width / 2, image.Height / 2),
                             new SixLabors.Primitives.Point(image.Width / 2, (image.Width * 2) / 3),
                             ratio,
                             GradientRepetitionMode.None,
-                            new ColorStop<TPixel>(0, yellow),
-                            new ColorStop<TPixel>(1, red),
-                            new ColorStop<TPixel>(1, black));
+                            new ColorStop(0, yellow),
+                            new ColorStop(1, red),
+                            new ColorStop(1, black));
 
                         image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
                     },
@@ -114,9 +114,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 TolerantComparer,
                 image =>
                     {
-                        TPixel yellow = NamedColors<TPixel>.Yellow;
-                        TPixel red = NamedColors<TPixel>.Red;
-                        TPixel black = NamedColors<TPixel>.Black;
+                        Color yellow = Color.Yellow;
+                        Color red = Color.Red;
+                        Color black = Color.Black;
 
                         var center = new SixLabors.Primitives.Point(image.Width / 2, image.Height / 2);
 
@@ -128,14 +128,14 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         int axisX = center.X + (int)-(offsetY * sin);
                         int axisY = center.Y + (int)(offsetY * cos);
 
-                        var unicolorLinearGradientBrush = new EllipticGradientBrush<TPixel>(
+                        var unicolorLinearGradientBrush = new EllipticGradientBrush(
                             center,
                             new SixLabors.Primitives.Point(axisX, axisY),
                             ratio,
                             GradientRepetitionMode.None,
-                            new ColorStop<TPixel>(0, yellow),
-                            new ColorStop<TPixel>(1, red),
-                            new ColorStop<TPixel>(1, black));
+                            new ColorStop(0, yellow),
+                            new ColorStop(1, red),
+                            new ColorStop(1, black));
 
                         image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
                     },

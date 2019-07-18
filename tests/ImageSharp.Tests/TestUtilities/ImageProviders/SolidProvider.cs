@@ -35,6 +35,9 @@ namespace SixLabors.ImageSharp.Tests
                 this.a = a;
             }
 
+            /// <summary>
+            /// This parameterless constructor is needed for xUnit deserialization
+            /// </summary>
             public SolidProvider()
                 : base()
             {
@@ -50,8 +53,7 @@ namespace SixLabors.ImageSharp.Tests
             public override Image<TPixel> GetImage()
             {
                 Image<TPixel> image = base.GetImage();
-                TPixel color = default(TPixel);
-                color.FromRgba32(new Rgba32(this.r, this.g, this.b, this.a));
+                Color color = new Rgba32(this.r, this.g, this.b, this.a);
 
                 image.Mutate(x => x.Fill(color));
                 return image;

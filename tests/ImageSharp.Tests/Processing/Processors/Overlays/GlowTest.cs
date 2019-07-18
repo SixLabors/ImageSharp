@@ -10,59 +10,14 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Overlays
 {
-    public class GlowTest : FileTestBase
+    [GroupOutput("Overlays")]
+    public class GlowTest : OverlayTestBase
     {
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyGlowFilter<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Glow());
-                image.DebugSave(provider);
-            }
-        }
+        protected override void Apply(IImageProcessingContext ctx, Color color) => ctx.Glow(color);
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyGlowFilterColor<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Glow(NamedColors<TPixel>.Orange));
-                image.DebugSave(provider);
-            }
-        }
+        protected override void Apply(IImageProcessingContext ctx, float radiusX, float radiusY) =>
+            ctx.Glow(radiusX);
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyGlowFilterRadius<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Glow(image.Width / 4F));
-                image.DebugSave(provider);
-            }
-        }
-
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyGlowFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> source = provider.GetImage())
-            using (var image = source.Clone())
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
-
-                image.Mutate(x => x.Glow(bounds));
-                image.DebugSave(provider);
-
-                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
-            }
-        }
+        protected override void Apply(IImageProcessingContext ctx, Rectangle rect) => ctx.Glow(rect);
     }
 }

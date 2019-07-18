@@ -6,20 +6,29 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// <summary>
     /// Provides Bmp specific metadata information for the image.
     /// </summary>
-    public class BmpMetaData : IDeepCloneable
+    public class BmpMetadata : IDeepCloneable
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="BmpMetaData"/> class.
+        /// Initializes a new instance of the <see cref="BmpMetadata"/> class.
         /// </summary>
-        public BmpMetaData()
+        public BmpMetadata()
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BmpMetaData"/> class.
+        /// Initializes a new instance of the <see cref="BmpMetadata"/> class.
         /// </summary>
         /// <param name="other">The metadata to create an instance from.</param>
-        private BmpMetaData(BmpMetaData other) => this.BitsPerPixel = other.BitsPerPixel;
+        private BmpMetadata(BmpMetadata other)
+        {
+            this.BitsPerPixel = other.BitsPerPixel;
+            this.InfoHeaderType = other.InfoHeaderType;
+        }
+
+        /// <summary>
+        /// Gets or sets the bitmap info header type.
+        /// </summary>
+        public BmpInfoHeaderType InfoHeaderType { get; set; }
 
         /// <summary>
         /// Gets or sets the number of bits per pixel.
@@ -27,7 +36,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public BmpBitsPerPixel BitsPerPixel { get; set; } = BmpBitsPerPixel.Pixel24;
 
         /// <inheritdoc/>
-        public IDeepCloneable DeepClone() => new BmpMetaData(this);
+        public IDeepCloneable DeepClone() => new BmpMetadata(this);
 
         // TODO: Colors used once we support encoding palette bmps.
     }

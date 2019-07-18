@@ -36,6 +36,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             { nameof(KnownResamplers.Bicubic), 40, 50 },
             { nameof(KnownResamplers.Bicubic), 500, 200 },
             { nameof(KnownResamplers.Bicubic), 200, 500 },
+            { nameof(KnownResamplers.Bicubic), 3032, 400 },
 
             { nameof(KnownResamplers.Bicubic), 10, 25 },
 
@@ -93,7 +94,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             GenerateImageResizeData();
 
 
-        [Theory(Skip = "Only for debugging and development")]
+        [Theory(
+            Skip = "Only for debugging and development"
+            )]
         [MemberData(nameof(KernelMapData))]
         public void PrintNonNormalizedKernelMap(string resamplerName, int srcSize, int destSize)
         {
@@ -130,7 +133,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             var referenceMap = ReferenceKernelMap.Calculate(resampler, destSize, srcSize);
             var kernelMap = ResizeKernelMap.Calculate(resampler, destSize, srcSize, Configuration.Default.MemoryAllocator);
 
+            
+
 #if DEBUG
+            this.Output.WriteLine(kernelMap.Info);
             this.Output.WriteLine($"Expected KernelMap:\n{PrintKernelMap(referenceMap)}\n");
             this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");
 #endif
@@ -146,8 +152,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                     referenceKernel.Length == kernel.Length,
                     $"referenceKernel.Length != kernel.Length: {referenceKernel.Length} != {kernel.Length}");
                 Assert.True(
-                    referenceKernel.Left == kernel.Left,
-                    $"referenceKernel.Left != kernel.Left: {referenceKernel.Left} != {kernel.Left}");
+                    referenceKernel.Left == kernel.StartIndex,
+                    $"referenceKernel.Left != kernel.Left: {referenceKernel.Left} != {kernel.StartIndex}");
                 float[] expectedValues = referenceKernel.Values;
                 Span<float> actualValues = kernel.Values;
 

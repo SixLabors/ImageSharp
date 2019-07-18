@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Gets the horizontal downsampling hint used for DCT encoding
         /// 0x0 : (none - Chop)
-        /// Bit 15 : Encoded with Blend=1 downsampling
+        /// Bit 15 : Encoded with Blend=1 downsampling.
         /// </summary>
         public short APP14Flags0 { get; }
 
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// Converts the specified byte array representation of an Adobe marker to its <see cref="AdobeMarker"/> equivalent and
         /// returns a value that indicates whether the conversion succeeded.
         /// </summary>
-        /// <param name="bytes">The byte array containing metadata to parse</param>
+        /// <param name="bytes">The byte array containing metadata to parse.</param>
         /// <param name="marker">The marker to return.</param>
         public static bool TryParse(byte[] bytes, out AdobeMarker marker)
         {

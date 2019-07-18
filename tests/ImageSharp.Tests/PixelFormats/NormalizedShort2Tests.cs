@@ -69,5 +69,19 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // assert
             Assert.Equal(expected, actual);
         }
+
+        [Fact]
+        public void NormalizedShort2_FromBgra5551()
+        {
+            // arrange
+            var normalizedShort2 = default(NormalizedShort2);
+            var expected = new Vector4(1, 1, 0, 1);
+
+            // act
+            normalizedShort2.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // assert
+            Assert.Equal(expected, normalizedShort2.ToVector4());
+        }
     }
 }

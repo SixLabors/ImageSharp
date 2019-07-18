@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromScaledVector4(Vector4 vector) => this.FromVector4(vector);
+        public void FromScaledVector4(Vector4 vector) => this.ConvertFromRgbaScaledVector4(vector);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -67,15 +67,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromVector4(Vector4 vector)
-        {
-            vector = Vector4.Max(Min, vector);
-            vector = Vector4.Min(Max, vector);
-
-            float roundedSum = Vector4.Dot(vector, Accumulator);
-
-            this.PackedValue = (byte)roundedSum;
-        }
+        public void FromVector4(Vector4 vector) => this.ConvertFromRgbaScaledVector4(vector);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -96,6 +88,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromBgra32(Bgra32 source) => this.PackedValue = ImageMaths.Get8BitBT709Luminance(source.R, source.G, source.B);
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

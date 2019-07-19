@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -8,6 +8,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
+
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
@@ -300,6 +302,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.WritePhysicalChunk(stream, metadata);
             this.WriteGammaChunk(stream);
             this.WriteExifChunk(stream, metadata);
+            this.WriteTextChunks(stream, metadata);
             this.WriteDataChunks(image.Frames.RootFrame, quantized, stream);
             this.WriteEndChunk(stream);
             stream.Flush();
@@ -735,6 +738,24 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 meta.SyncProfiles();
                 this.WriteChunk(stream, PngChunkType.Exif, meta.ExifProfile.ToByteArray());
+            }
+        }
+
+        /// <summary>
+        /// Writes the tEXt chunks to the stream.
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <param name="meta">The image metadata.</param>
+        private void WriteTextChunks(Stream stream, ImageMetadata meta)
+        {
+            foreach (ImageProperty imageProperty in meta.Properties)
+            {
+                Span<byte> bytesName = Encoding.ASCII.GetBytes(imageProperty.Name);
+                Span<byte> bytesStrValue = Encoding.ASCII.GetBytes(imageProperty.Value);
+                Span<byte> outputBytes = new byte[bytesName.Length + bytesStrValue.Length + 1];
+                bytesName.CopyTo(outputBytes);
+                bytesStrValue.CopyTo(outputBytes.Slice(bytesName.Length + 1));
+                this.WriteChunk(stream, PngChunkType.Text, outputBytes.ToArray());
             }
         }
 

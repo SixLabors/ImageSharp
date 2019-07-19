@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -1048,7 +1048,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Attempts to read the length of the next chunk.
         /// </summary>
         /// <returns>
-        /// Whether the the length was read.
+        /// Whether the length was read.
         /// </returns>
         private bool TryReadChunkLength(out int result)
         {

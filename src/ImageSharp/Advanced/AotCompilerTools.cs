@@ -1,12 +1,15 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Advanced
 {
@@ -15,8 +18,10 @@ namespace SixLabors.ImageSharp.Advanced
     /// compiled on demand by a JIT compiler. This means there are a few limitations with respect to generics,
     /// these are caused because not every possible generic instantiation can be determined up front at compile time.
     /// The Aot Compiler is designed to overcome the limitations of this compiler.
+    /// None of the methods in this class should ever be called, the code only has to exist at compile-time to be picked up by the AoT compiler.
+    /// (Very similar to the LinkerIncludes.cs technique used in Xamarin.Android projects.)
     /// </summary>
-    public static class AotCompilerTools
+    internal static class AotCompilerTools
     {
         static AotCompilerTools()
         {
@@ -25,21 +30,59 @@ namespace SixLabors.ImageSharp.Advanced
             System.Runtime.CompilerServices.Unsafe.SizeOf<float>();
             System.Runtime.CompilerServices.Unsafe.SizeOf<double>();
             System.Runtime.CompilerServices.Unsafe.SizeOf<byte>();
+            System.Runtime.CompilerServices.Unsafe.SizeOf<int>();
             System.Runtime.CompilerServices.Unsafe.SizeOf<Block8x8>();
             System.Runtime.CompilerServices.Unsafe.SizeOf<Vector4>();
+        }
+
+        /// <summary>
+        /// This is the method that seeds the AoT compiler.
+        /// None of these seed methods needs to actually be called to seed the compiler.
+        /// The calls just need to be present when the code is compiled, and each implementation will be built.
+        /// </summary>
+        private static void SeedEverything()
+        {
+            Seed<Alpha8>();
+            Seed<Argb32>();
+            Seed<Bgr24>();
+            Seed<Bgr565>();
+            Seed<Bgra32>();
+            Seed<Bgra4444>();
+            Seed<Bgra5551>();
+            Seed<Byte4>();
+            Seed<Gray16>();
+            Seed<Gray8>();
+            Seed<HalfSingle>();
+            Seed<HalfVector2>();
+            Seed<HalfVector4>();
+            Seed<NormalizedByte2>();
+            Seed<NormalizedByte4>();
+            Seed<NormalizedShort2>();
+            Seed<NormalizedShort4>();
+            Seed<Rg32>();
+            Seed<Rgb24>();
+            Seed<Rgb48>();
+            Seed<Rgba1010102>();
+            Seed<Rgba32>();
+            Seed<Rgba64>();
+            Seed<RgbaVector>();
+            Seed<Short2>();
+            Seed<Short4>();
         }
 
         /// <summary>
         /// Seeds the compiler using the given pixel format.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        public static void Seed<TPixel>()
+        private static void Seed<TPixel>()
              where TPixel : struct, IPixel<TPixel>
         {
             // This is we actually call all the individual methods you need to seed.
             AotCompileOctreeQuantizer<TPixel>();
             AotCompileWuQuantizer<TPixel>();
             AotCompileDithering<TPixel>();
+            AotCompilePixelOperations<TPixel>();
+            AotCompileResizeOperations<TPixel>();
 
             System.Runtime.CompilerServices.Unsafe.SizeOf<TPixel>();
 
@@ -49,34 +92,6 @@ namespace SixLabors.ImageSharp.Advanced
             AotCodec<TPixel>(new Formats.Jpeg.JpegDecoder(), new Formats.Jpeg.JpegEncoder());
 
             // TODO: Do the discovery work to figure out what works and what doesn't.
-        }
-
-        /// <summary>
-        /// Seeds the compiler using the given pixel formats.
-        /// </summary>
-        /// <typeparam name="TPixel">The first pixel format.</typeparam>
-        /// <typeparam name="TPixel2">The second pixel format.</typeparam>
-        public static void Seed<TPixel, TPixel2>()
-             where TPixel : struct, IPixel<TPixel>
-             where TPixel2 : struct, IPixel<TPixel2>
-        {
-            Seed<TPixel>();
-            Seed<TPixel2>();
-        }
-
-        /// <summary>
-        /// Seeds the compiler using the given pixel formats.
-        /// </summary>
-        /// <typeparam name="TPixel">The first pixel format.</typeparam>
-        /// <typeparam name="TPixel2">The second pixel format.</typeparam>
-        /// <typeparam name="TPixel3">The third pixel format.</typeparam>
-        public static void Seed<TPixel, TPixel2, TPixel3>()
-             where TPixel : struct, IPixel<TPixel>
-             where TPixel2 : struct, IPixel<TPixel2>
-             where TPixel3 : struct, IPixel<TPixel3>
-        {
-            Seed<TPixel, TPixel2>();
-            Seed<TPixel3>();
         }
 
         /// <summary>
@@ -145,6 +160,29 @@ namespace SixLabors.ImageSharp.Advanced
             catch
             {
             }
+        }
+
+        /// <summary>
+        /// This method pre-seeds the PixelOperations engine for the AoT compiler on iOS.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        private static void AotCompilePixelOperations<TPixel>()
+            where TPixel : struct, IPixel<TPixel>
+        {
+            var pixelOp = new PixelOperations<TPixel>();
+            pixelOp.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.Clear);
+        }
+
+        /// <summary>
+        /// This method pre-seeds the ResizeProcessor for the AoT compiler on iOS.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        private static void AotCompileResizeOperations<TPixel>()
+            where TPixel : struct, IPixel<TPixel>
+        {
+            var resizeProcessor = new ResizeProcessor(new ResizeOptions(), new Size());
+            var genericResizeProcessor = new ResizeProcessor<TPixel>(resizeProcessor.CreatePixelSpecificProcessor<TPixel>() as ResizeProcessor);
+            genericResizeProcessor.AotCreateDestination(new Image<TPixel>(0, 0), new Rectangle());
         }
     }
 }

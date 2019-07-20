@@ -5,6 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -880,7 +881,18 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             int zeroIndex = data.IndexOf((byte)0);
 
-            string name = this.textEncoding.GetString(data.Slice(0, zeroIndex));
+            // Keywords are restricted to 1 to 79 bytes in length.
+            if (zeroIndex <= 0 || zeroIndex > 79)
+            {
+                return;
+            }
+
+            ReadOnlySpan<byte> keywordBytes = data.Slice(0, zeroIndex);
+            if (this.TryGetKeywordValue(keywordBytes, out string name))
+            {
+                return;
+            }
+
             string value = this.textEncoding.GetString(data.Slice(zeroIndex + 1));
 
             metadata.Properties.Add(new ImageProperty(name, value));
@@ -899,8 +911,17 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             int zeroIndex = data.IndexOf((byte)0);
+            if (zeroIndex <= 0 || zeroIndex > 79)
+            {
+                return;
+            }
 
-            string name = this.textEncoding.GetString(data.Slice(0, zeroIndex));
+            ReadOnlySpan<byte> keywordBytes = data.Slice(0, zeroIndex);
+            if (this.TryGetKeywordValue(keywordBytes, out string name))
+            {
+                return;
+            }
+
             byte compression = data[zeroIndex + 1];
             if (compression != 0)
             {
@@ -1104,6 +1125,34 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             result = default;
+
+            return false;
+        }
+
+        /// <summary>
+        /// Tries to reads a text chunk keyword, which have some restrictions to be valid:
+        /// Keywords shall contain only printable Latin-1 characters and should not have leading or trailing whitespace.
+        /// See: https://www.w3.org/TR/PNG/#11zTXt
+        /// </summary>
+        /// <param name="keywordBytes">The keyword bytes.</param>
+        /// <param name="name">The name.</param>
+        /// <returns>True, if the keyword could be read and is valid.</returns>
+        private bool TryGetKeywordValue(ReadOnlySpan<byte> keywordBytes, out string name)
+        {
+            name = string.Empty;
+
+            // Keywords shall contain only printable Latin-1.
+            if (keywordBytes.ToArray().Any(c => !((c >= 32 && c <= 126) || (c >= 161 && c <= 255))))
+            {
+                return true;
+            }
+
+            // Keywords should not be empty or have leading or trailing whitespace.
+            name = this.textEncoding.GetString(keywordBytes);
+            if (string.IsNullOrWhiteSpace(name) || name.StartsWith(" ") || name.EndsWith(" "))
+            {
+                return true;
+            }
 
             return false;
         }

@@ -57,6 +57,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
+        [WithFile(TestImages.Png.InvalidTextData, PixelTypes.Rgba32)]
+        public void Decoder_IgnoresInvalidTextData<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+            {
+                ImageMetadata meta = image.Metadata;
+                Assert.DoesNotContain(meta.Properties, m => m.Value.Equals("leading space"));
+                Assert.DoesNotContain(meta.Properties, m => m.Value.Equals("trailing space"));
+                Assert.DoesNotContain(meta.Properties, m => m.Value.Equals("space"));
+                Assert.DoesNotContain(meta.Properties, m => m.Value.Equals("empty"));
+                Assert.DoesNotContain(meta.Properties, m => m.Value.Equals("invalid characters"));
+                Assert.DoesNotContain(meta.Properties, m => m.Value.Equals("too large"));
+            }
+        }
+
+        [Theory]
         [WithFile(TestImages.Png.PngWithMetaData, PixelTypes.Rgba32)]
         public void Encoder_PreservesTextData<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>

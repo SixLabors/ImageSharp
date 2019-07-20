@@ -750,11 +750,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             foreach (ImageProperty imageProperty in meta.Properties)
             {
-                Span<byte> bytesName = Encoding.ASCII.GetBytes(imageProperty.Name);
-                Span<byte> bytesStrValue = Encoding.ASCII.GetBytes(imageProperty.Value);
-                Span<byte> outputBytes = new byte[bytesName.Length + bytesStrValue.Length + 1];
-                bytesName.CopyTo(outputBytes);
-                bytesStrValue.CopyTo(outputBytes.Slice(bytesName.Length + 1));
+                Span<byte> outputBytes = new byte[imageProperty.Name.Length + imageProperty.Value.Length + 1];
+                Encoding.ASCII.GetBytes(imageProperty.Name).CopyTo(outputBytes);
+                Encoding.ASCII.GetBytes(imageProperty.Value).CopyTo(outputBytes.Slice(imageProperty.Name.Length + 1));
                 this.WriteChunk(stream, PngChunkType.Text, outputBytes.ToArray());
             }
         }

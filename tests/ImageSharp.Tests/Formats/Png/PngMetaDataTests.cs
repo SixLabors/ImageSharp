@@ -47,10 +47,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         {
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
             {
-                Assert.Contains(image.Metadata.Properties, m => m.Name.Equals("Comment"));
-                Assert.Contains(image.Metadata.Properties, m => m.Name.Equals("Author"));
-                Assert.Contains(image.Metadata.Properties, m => m.Name.Equals("Copyright"));
-                Assert.Contains(image.Metadata.Properties, m => m.Name.Equals("Title"));
+                ImageMetadata meta = image.Metadata;
+                Assert.Contains(meta.Properties, m => m.Name.Equals("Comment") && m.Value.Equals("comment"));
+                Assert.Contains(meta.Properties, m => m.Name.Equals("Author") && m.Value.Equals("ImageSharp"));
+                Assert.Contains(meta.Properties, m => m.Name.Equals("Copyright") && m.Value.Equals("ImageSharp"));
+                Assert.Contains(meta.Properties, m => m.Name.Equals("Title") && m.Value.Equals("unittest"));
+                Assert.Contains(meta.Properties, m => m.Name.Equals("Description") && m.Value.Equals("compressed-text"));
             }
         }
 
@@ -69,16 +71,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, memoryStream))
                 {
                     ImageMetadata meta = image.Metadata;
-                    Assert.Contains(meta.Properties, m => m.Name.Equals("Comment"));
-                    Assert.Contains(meta.Properties, m => m.Name.Equals("Author"));
-                    Assert.Contains(meta.Properties, m => m.Name.Equals("Copyright"));
-                    Assert.Contains(meta.Properties, m => m.Name.Equals("Title"));
+                    Assert.Contains(meta.Properties, m => m.Name.Equals("Comment") && m.Value.Equals("comment"));
+                    Assert.Contains(meta.Properties, m => m.Name.Equals("Author") && m.Value.Equals("ImageSharp"));
+                    Assert.Contains(meta.Properties, m => m.Name.Equals("Copyright") && m.Value.Equals("ImageSharp"));
+                    Assert.Contains(meta.Properties, m => m.Name.Equals("Title") && m.Value.Equals("unittest"));
                 }
             }
         }
 
         [Fact]
-        public void Decode_IgnoreMetadataIsFalse_TextChunckIsRead()
+        public void Decode_IgnoreMetadataIsFalse_TextChunkIsRead()
         {
             var options = new PngDecoder()
                           {

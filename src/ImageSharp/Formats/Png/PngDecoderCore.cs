@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers.Binary;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -205,6 +206,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 break;
                             case PngChunkType.Text:
                                 this.ReadTextChunk(metadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                break;
+                            case PngChunkType.CompressedText:
+                                this.ReadCompressedTextChunk(metadata, chunk.Data.Array.AsSpan(0, chunk.Length));
                                 break;
                             case PngChunkType.Exif:
                                 if (!this.ignoreMetadata)
@@ -880,6 +884,46 @@ namespace SixLabors.ImageSharp.Formats.Png
             string value = this.textEncoding.GetString(data.Slice(zeroIndex + 1));
 
             metadata.Properties.Add(new ImageProperty(name, value));
+        }
+
+        /// <summary>
+        /// Reads the compressed text chunk. Contains a uncompressed keyword and a compressed text string.
+        /// </summary>
+        /// <param name="metadata">The metadata to decode to.</param>
+        /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
+        private void ReadCompressedTextChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
+        {
+            if (this.ignoreMetadata)
+            {
+                return;
+            }
+
+            int zeroIndex = data.IndexOf((byte)0);
+
+            string name = this.textEncoding.GetString(data.Slice(0, zeroIndex));
+            byte compression = data[zeroIndex + 1];
+            if (compression != 0)
+            {
+                // Only compression method 0 is supported (zlib datastream with deflate compression).
+                return;
+            }
+
+            ReadOnlySpan<byte> compressedData = data.Slice(zeroIndex + 2);
+            using (var memoryStream = new MemoryStream(compressedData.ToArray()))
+            using (var inflateStream = new ZlibInflateStream(memoryStream, () => 0))
+            {
+                inflateStream.AllocateNewBytes(compressedData.Length);
+                var uncompressedBytes = new List<byte>();
+                int byteRead = inflateStream.CompressedStream.ReadByte();
+                while (byteRead != -1)
+                {
+                    uncompressedBytes.Add((byte)byteRead);
+                    byteRead = inflateStream.CompressedStream.ReadByte();
+                }
+
+                string value = this.textEncoding.GetString(uncompressedBytes.ToArray());
+                metadata.Properties.Add(new ImageProperty(name, value));
+            }
         }
 
         /// <summary>

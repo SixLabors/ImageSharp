@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -195,7 +195,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             var options = new GifDecoder
             {
                 TextEncoding = Encoding.Unicode
-            };
+            }; 
 
             var testFile = TestFile.Create(TestImages.Gif.Rings);
 

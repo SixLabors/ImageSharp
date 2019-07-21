@@ -141,23 +141,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             }
         }
 
-        [Fact]
-        public void Decode_TextEncodingSetToUnicode_TextIsReadWithCorrectEncoding()
-        {
-            var options = new PngDecoder()
-                          {
-                              TextEncoding = Encoding.Unicode
-                          };
-
-            var testFile = TestFile.Create(TestImages.Png.Blur);
-
-            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
-            {
-                Assert.Equal(1, image.Metadata.Properties.Count);
-                Assert.Equal("潓瑦慷敲", image.Metadata.Properties[0].Name);
-            }
-        }
-
         [Theory]
         [MemberData(nameof(RatioFiles))]
         public void Decode_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)

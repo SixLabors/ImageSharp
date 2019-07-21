@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -173,6 +174,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// The buffer for the Paeth filter
         /// </summary>
         private IManagedByteBuffer paeth;
+
+        /// <summary>
+        /// Latin encoding is used for text chunks.
+        /// </summary>
+        private Encoding latinEncoding = Encoding.GetEncoding("ISO-8859-1");
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PngEncoderCore"/> class.
@@ -750,10 +756,26 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             foreach (ImageProperty imageProperty in meta.Properties)
             {
-                Span<byte> outputBytes = new byte[imageProperty.Name.Length + imageProperty.Value.Length + 1];
-                Encoding.ASCII.GetBytes(imageProperty.Name).CopyTo(outputBytes);
-                Encoding.ASCII.GetBytes(imageProperty.Value).CopyTo(outputBytes.Slice(imageProperty.Name.Length + 1));
-                this.WriteChunk(stream, PngChunkType.Text, outputBytes.ToArray());
+                const int MaxAnsiCode = 255;
+                bool hasUnicodeCharacters = imageProperty.Value.Any(c => c > MaxAnsiCode);
+                if (hasUnicodeCharacters)
+                {
+                    // Write iTXt chunk.
+                    byte[] keywordBytes = this.latinEncoding.GetBytes(imageProperty.Name);
+                    byte[] textBytes = Encoding.UTF8.GetBytes(imageProperty.Value);
+                    Span<byte> outputBytes = new byte[keywordBytes.Length + textBytes.Length + 5];
+                    keywordBytes.CopyTo(outputBytes);
+                    textBytes.CopyTo(outputBytes.Slice(keywordBytes.Length + 5));
+                    this.WriteChunk(stream, PngChunkType.InternationalText, outputBytes.ToArray());
+                }
+                else
+                {
+                    // Write tEXt chunk.
+                    Span<byte> outputBytes = new byte[imageProperty.Name.Length + imageProperty.Value.Length + 1];
+                    this.latinEncoding.GetBytes(imageProperty.Name).CopyTo(outputBytes);
+                    this.latinEncoding.GetBytes(imageProperty.Value).CopyTo(outputBytes.Slice(imageProperty.Name.Length + 1));
+                    this.WriteChunk(stream, PngChunkType.Text, outputBytes.ToArray());
+                }
             }
         }
 

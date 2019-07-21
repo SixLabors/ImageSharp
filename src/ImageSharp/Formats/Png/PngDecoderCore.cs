@@ -132,6 +132,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         private PngChunk? nextChunk;
 
         /// <summary>
+        /// Latin encoding is used for text chunks.
+        /// </summary>
+        private Encoding latinEncoding = Encoding.GetEncoding("ISO-8859-1");
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
@@ -891,12 +896,12 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             ReadOnlySpan<byte> keywordBytes = data.Slice(0, zeroIndex);
-            if (this.TryGetKeywordValue(keywordBytes, out string name))
+            if (this.TryReadTextKeyword(keywordBytes, out string name))
             {
                 return;
             }
 
-            string value = Encoding.ASCII.GetString(data.Slice(zeroIndex + 1));
+            string value = this.latinEncoding.GetString(data.Slice(zeroIndex + 1));
 
             metadata.Properties.Add(new ImageProperty(name, value));
         }
@@ -927,7 +932,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             ReadOnlySpan<byte> keywordBytes = data.Slice(0, zeroIndex);
-            if (this.TryGetKeywordValue(keywordBytes, out string name))
+            if (this.TryReadTextKeyword(keywordBytes, out string name))
             {
                 return;
             }
@@ -945,7 +950,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     byteRead = inflateStream.CompressedStream.ReadByte();
                 }
 
-                string value = Encoding.ASCII.GetString(uncompressedBytes.ToArray());
+                string value = this.latinEncoding.GetString(uncompressedBytes.ToArray());
                 metadata.Properties.Add(new ImageProperty(name, value));
             }
         }
@@ -953,7 +958,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Reads a iTXt chunk, which contains international text data. It contains:
         /// - A uncompressed keyword.
-        /// - Compression flag indicating if a compression is used.
+        /// - Compression flag, indicating if a compression is used.
         /// - Compression method.
         /// - Language tag (optional).
         /// - A translated keyword (optional).
@@ -994,14 +999,14 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return;
             }
 
-            string language = Encoding.ASCII.GetString(data.Slice(langStartIdx, languageLength));
+            string language = this.latinEncoding.GetString(data.Slice(langStartIdx, languageLength));
 
             int translatedKeywordStartIdx = langStartIdx + languageLength + 1;
             int translatedKeywordLength = data.Slice(translatedKeywordStartIdx).IndexOf((byte)0);
-            string translatedKeyword = Encoding.ASCII.GetString(data.Slice(translatedKeywordStartIdx, translatedKeywordLength));
+            string translatedKeyword = this.latinEncoding.GetString(data.Slice(translatedKeywordStartIdx, translatedKeywordLength));
 
             ReadOnlySpan<byte> keywordBytes = data.Slice(0, zeroIndexKeyword);
-            if (this.TryGetKeywordValue(keywordBytes, out string name))
+            if (this.TryReadTextKeyword(keywordBytes, out string name))
             {
                 return;
             }
@@ -1223,7 +1228,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="keywordBytes">The keyword bytes.</param>
         /// <param name="name">The name.</param>
         /// <returns>True, if the keyword could be read and is valid.</returns>
-        private bool TryGetKeywordValue(ReadOnlySpan<byte> keywordBytes, out string name)
+        private bool TryReadTextKeyword(ReadOnlySpan<byte> keywordBytes, out string name)
         {
             name = string.Empty;
 
@@ -1234,7 +1239,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             // Keywords should not be empty or have leading or trailing whitespace.
-            name = Encoding.ASCII.GetString(keywordBytes);
+            name = this.latinEncoding.GetString(keywordBytes);
             if (string.IsNullOrWhiteSpace(name) || name.StartsWith(" ") || name.EndsWith(" "))
             {
                 return true;

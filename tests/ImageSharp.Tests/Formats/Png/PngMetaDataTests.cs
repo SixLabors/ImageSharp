@@ -53,23 +53,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 Assert.Contains(meta.Properties, m => m.Name.Equals("Copyright") && m.Value.Equals("ImageSharp"));
                 Assert.Contains(meta.Properties, m => m.Name.Equals("Title") && m.Value.Equals("unittest"));
                 Assert.Contains(meta.Properties, m => m.Name.Equals("Description") && m.Value.Equals("compressed-text"));
-            }
-        }
-
-        [Theory]
-        [WithFile(TestImages.Png.InvalidTextData, PixelTypes.Rgba32)]
-        public void Decoder_IgnoresInvalidTextData<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
-            {
-                ImageMetadata meta = image.Metadata;
-                Assert.DoesNotContain(meta.Properties, m => m.Value.Equals("leading space"));
-                Assert.DoesNotContain(meta.Properties, m => m.Value.Equals("trailing space"));
-                Assert.DoesNotContain(meta.Properties, m => m.Value.Equals("space"));
-                Assert.DoesNotContain(meta.Properties, m => m.Value.Equals("empty"));
-                Assert.DoesNotContain(meta.Properties, m => m.Value.Equals("invalid characters"));
-                Assert.DoesNotContain(meta.Properties, m => m.Value.Equals("too large"));
+                Assert.Contains(meta.Properties, m => m.Name.Equals("International") && m.Value.Equals("'e', mu'tlheghvam, ghaH yu'"));
+                Assert.Contains(meta.Properties, m => m.Name.Equals("CompressedInternational") && m.Value.Equals("la plume de la mante"));
+                Assert.Contains(meta.Properties, m => m.Name.Equals("CompressedInternational2") && m.Value.Equals("這是一個考驗"));
+                Assert.Contains(meta.Properties, m => m.Name.Equals("NoLang") && m.Value.Equals("this text chunk is missing a language tag"));
+                Assert.Contains(meta.Properties, m => m.Name.Equals("NoTranslatedKeyword") && m.Value.Equals("dieser chunk hat kein übersetztes Schlüßelwort"));
             }
         }
 
@@ -93,6 +81,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     Assert.Contains(meta.Properties, m => m.Name.Equals("Copyright") && m.Value.Equals("ImageSharp"));
                     Assert.Contains(meta.Properties, m => m.Name.Equals("Title") && m.Value.Equals("unittest"));
                 }
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.InvalidTextData, PixelTypes.Rgba32)]
+        public void Decoder_IgnoresInvalidTextData<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+            {
+                ImageMetadata meta = image.Metadata;
+                Assert.DoesNotContain(meta.Properties, m => m.Value.Equals("leading space"));
+                Assert.DoesNotContain(meta.Properties, m => m.Value.Equals("trailing space"));
+                Assert.DoesNotContain(meta.Properties, m => m.Value.Equals("space"));
+                Assert.DoesNotContain(meta.Properties, m => m.Value.Equals("empty"));
+                Assert.DoesNotContain(meta.Properties, m => m.Value.Equals("invalid characters"));
+                Assert.DoesNotContain(meta.Properties, m => m.Value.Equals("too large"));
             }
         }
 

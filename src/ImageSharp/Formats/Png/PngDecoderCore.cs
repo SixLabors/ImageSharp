@@ -211,6 +211,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                             case PngChunkType.CompressedText:
                                 this.ReadCompressedTextChunk(metadata, chunk.Data.Array.AsSpan(0, chunk.Length));
                                 break;
+                            case PngChunkType.InternationalText:
+                                this.ReadInternationalTextChunk(metadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                break;
                             case PngChunkType.Exif:
                                 if (!this.ignoreMetadata)
                                 {
@@ -893,7 +896,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return;
             }
 
-            string value = this.textEncoding.GetString(data.Slice(zeroIndex + 1));
+            string value = Encoding.ASCII.GetString(data.Slice(zeroIndex + 1));
 
             metadata.Properties.Add(new ImageProperty(name, value));
         }
@@ -916,16 +919,16 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return;
             }
 
-            ReadOnlySpan<byte> keywordBytes = data.Slice(0, zeroIndex);
-            if (this.TryGetKeywordValue(keywordBytes, out string name))
+            byte compressionMethod = data[zeroIndex + 1];
+            if (compressionMethod != 0)
             {
+                // Only compression method 0 is supported (zlib datastream with deflate compression).
                 return;
             }
 
-            byte compression = data[zeroIndex + 1];
-            if (compression != 0)
+            ReadOnlySpan<byte> keywordBytes = data.Slice(0, zeroIndex);
+            if (this.TryGetKeywordValue(keywordBytes, out string name))
             {
-                // Only compression method 0 is supported (zlib datastream with deflate compression).
                 return;
             }
 
@@ -942,7 +945,90 @@ namespace SixLabors.ImageSharp.Formats.Png
                     byteRead = inflateStream.CompressedStream.ReadByte();
                 }
 
-                string value = this.textEncoding.GetString(uncompressedBytes.ToArray());
+                string value = Encoding.ASCII.GetString(uncompressedBytes.ToArray());
+                metadata.Properties.Add(new ImageProperty(name, value));
+            }
+        }
+
+        /// <summary>
+        /// Reads a iTXt chunk, which contains international text data. It contains:
+        /// - A uncompressed keyword.
+        /// - Compression flag indicating if a compression is used.
+        /// - Compression method.
+        /// - Language tag (optional).
+        /// - A translated keyword (optional).
+        /// - Text data, which is either compressed or uncompressed.
+        /// </summary>
+        /// <param name="metadata">The metadata to decode to.</param>
+        /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
+        private void ReadInternationalTextChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
+        {
+            if (this.ignoreMetadata)
+            {
+                return;
+            }
+
+            int zeroIndexKeyword = data.IndexOf((byte)0);
+            if (zeroIndexKeyword <= 0 || zeroIndexKeyword > 79)
+            {
+                return;
+            }
+
+            byte compressionFlag = data[zeroIndexKeyword + 1];
+            if (!(compressionFlag == 0 || compressionFlag == 1))
+            {
+                return;
+            }
+
+            byte compressionMethod = data[zeroIndexKeyword + 2];
+            if (compressionMethod != 0)
+            {
+                // Only compression method 0 is supported (zlib datastream with deflate compression).
+                return;
+            }
+
+            int langStartIdx = zeroIndexKeyword + 3;
+            int languageLength = data.Slice(langStartIdx).IndexOf((byte)0);
+            if (languageLength < 0)
+            {
+                return;
+            }
+
+            string language = Encoding.ASCII.GetString(data.Slice(langStartIdx, languageLength));
+
+            int translatedKeywordStartIdx = langStartIdx + languageLength + 1;
+            int translatedKeywordLength = data.Slice(translatedKeywordStartIdx).IndexOf((byte)0);
+            string translatedKeyword = Encoding.ASCII.GetString(data.Slice(translatedKeywordStartIdx, translatedKeywordLength));
+
+            ReadOnlySpan<byte> keywordBytes = data.Slice(0, zeroIndexKeyword);
+            if (this.TryGetKeywordValue(keywordBytes, out string name))
+            {
+                return;
+            }
+
+            int dataStartIdx = translatedKeywordStartIdx + translatedKeywordLength + 1;
+            if (compressionFlag == 1)
+            {
+                ReadOnlySpan<byte> compressedData = data.Slice(dataStartIdx);
+                using (var memoryStream = new MemoryStream(compressedData.ToArray()))
+                using (var inflateStream = new ZlibInflateStream(memoryStream, () => 0))
+                {
+                    inflateStream.AllocateNewBytes(compressedData.Length);
+                    var uncompressedBytes = new List<byte>();
+                    int byteRead = inflateStream.CompressedStream.ReadByte();
+                    while (byteRead != -1)
+                    {
+                        uncompressedBytes.Add((byte)byteRead);
+                        byteRead = inflateStream.CompressedStream.ReadByte();
+                    }
+
+                    string value = Encoding.UTF8.GetString(uncompressedBytes.ToArray());
+                    metadata.Properties.Add(new ImageProperty(name, value));
+                }
+            }
+            else
+            {
+                string value = Encoding.UTF8.GetString(data.Slice(dataStartIdx));
                 metadata.Properties.Add(new ImageProperty(name, value));
             }
         }
@@ -1148,7 +1234,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             // Keywords should not be empty or have leading or trailing whitespace.
-            name = this.textEncoding.GetString(keywordBytes);
+            name = Encoding.ASCII.GetString(keywordBytes);
             if (string.IsNullOrWhiteSpace(name) || name.StartsWith(" ") || name.EndsWith(" "))
             {
                 return true;

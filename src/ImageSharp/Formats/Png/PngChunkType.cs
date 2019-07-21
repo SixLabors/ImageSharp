@@ -63,6 +63,12 @@ namespace SixLabors.ImageSharp.Formats.Png
         CompressedText = 0x7A545874U,
 
         /// <summary>
+        /// The iTXt chunk contains International textual data. It contains a keyword, an optional language tag, an optional translated keyword
+        /// and the actual text string, which can be compressed or uncompressed.
+        /// </summary>
+        InternationalText = 0x69545874U,
+
+        /// <summary>
         /// The tRNS chunk specifies that the image uses simple transparency:
         /// either alpha values associated with palette entries (for indexed-color images)
         /// or a single transparent color (for grayscale and true color images).

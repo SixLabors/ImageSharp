@@ -119,9 +119,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
+                PngMetadata formatMeta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
+
                 Assert.Equal(1, image.Metadata.Properties.Count);
                 Assert.Equal("Software", image.Metadata.Properties[0].Name);
                 Assert.Equal("paint.net 4.0.6", image.Metadata.Properties[0].Value);
+                Assert.Equal(0.4545d, formatMeta.Gamma, precision: 4);
             }
         }
 

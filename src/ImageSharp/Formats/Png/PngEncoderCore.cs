@@ -754,10 +754,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="meta">The image metadata.</param>
         private void WriteTextChunks(Stream stream, ImageMetadata meta)
         {
+            const int MaxLatinCode = 255;
             foreach (ImageProperty imageProperty in meta.Properties)
             {
-                const int MaxAnsiCode = 255;
-                bool hasUnicodeCharacters = imageProperty.Value.Any(c => c > MaxAnsiCode);
+                bool hasUnicodeCharacters = imageProperty.Value.Any(c => c > MaxLatinCode);
                 if (hasUnicodeCharacters)
                 {
                     // Write iTXt chunk.
@@ -770,11 +770,31 @@ namespace SixLabors.ImageSharp.Formats.Png
                 }
                 else
                 {
-                    // Write tEXt chunk.
-                    Span<byte> outputBytes = new byte[imageProperty.Name.Length + imageProperty.Value.Length + 1];
-                    this.latinEncoding.GetBytes(imageProperty.Name).CopyTo(outputBytes);
-                    this.latinEncoding.GetBytes(imageProperty.Value).CopyTo(outputBytes.Slice(imageProperty.Name.Length + 1));
-                    this.WriteChunk(stream, PngChunkType.Text, outputBytes.ToArray());
+                    if (imageProperty.Value.Length > 100)
+                    {
+                        // Write zTXt chunk.
+                        using (var memoryStream = new MemoryStream())
+                        {
+                            using (var deflateStream = new ZlibDeflateStream(memoryStream, this.compressionLevel))
+                            {
+                                deflateStream.Write(this.latinEncoding.GetBytes(imageProperty.Value));
+                            }
+
+                            byte[] compressedData = memoryStream.ToArray();
+                            Span<byte> outputBytes = new byte[imageProperty.Name.Length + compressedData.Length + 2];
+                            this.latinEncoding.GetBytes(imageProperty.Name).CopyTo(outputBytes);
+                            compressedData.CopyTo(outputBytes.Slice(imageProperty.Name.Length + 2));
+                            this.WriteChunk(stream, PngChunkType.CompressedText, outputBytes.ToArray());
+                        }
+                    }
+                    else
+                    {
+                        // Write tEXt chunk.
+                        Span<byte> outputBytes = new byte[imageProperty.Name.Length + imageProperty.Value.Length + 1];
+                        this.latinEncoding.GetBytes(imageProperty.Name).CopyTo(outputBytes);
+                        this.latinEncoding.GetBytes(imageProperty.Value).CopyTo(outputBytes.Slice(imageProperty.Name.Length + 1));
+                        this.WriteChunk(stream, PngChunkType.Text, outputBytes.ToArray());
+                    }
                 }
             }
         }

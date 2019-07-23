@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
@@ -36,7 +36,12 @@ namespace SixLabors.ImageSharp.Formats.Png
         public int CompressionLevel { get; set; } = 6;
 
         /// <summary>
-        /// Gets or sets the gamma value, that will be written the the image.
+        /// Gets or sets the threshold of characters in text metadata, when compression should be used. Defaults to 500.
+        /// </summary>
+        public int CompressTextThreshold { get; set; } = 500;
+
+        /// <summary>
+        /// Gets or sets the gamma value, that will be written the image.
         /// </summary>
         public float? Gamma { get; set; }
 

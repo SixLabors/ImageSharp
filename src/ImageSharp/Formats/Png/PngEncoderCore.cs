@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
-        /// The configuration instance for the decoding operation
+        /// The configuration instance for the decoding operation.
         /// </summary>
         private Configuration configuration;
 
@@ -76,9 +76,14 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly PngFilterMethod pngFilterMethod;
 
         /// <summary>
-        /// Gets or sets the CompressionLevel value
+        /// Gets or sets the CompressionLevel value.
         /// </summary>
         private readonly int compressionLevel;
+
+        /// <summary>
+        /// The threshold of characters in text metadata, when compression should be used.
+        /// </summary>
+        private readonly int compressTextThreshold;
 
         /// <summary>
         /// Gets or sets the alpha threshold value
@@ -91,12 +96,12 @@ namespace SixLabors.ImageSharp.Formats.Png
         private IQuantizer quantizer;
 
         /// <summary>
-        /// Gets or sets a value indicating whether to write the gamma chunk
+        /// Gets or sets a value indicating whether to write the gamma chunk.
         /// </summary>
         private bool writeGamma;
 
         /// <summary>
-        /// The png bit depth
+        /// The png bit depth.
         /// </summary>
         private PngBitDepth? pngBitDepth;
 
@@ -199,6 +204,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.gamma = options.Gamma;
             this.quantizer = options.Quantizer;
             this.threshold = options.Threshold;
+            this.compressTextThreshold = options.CompressTextThreshold;
         }
 
         /// <summary>
@@ -748,7 +754,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <summary>
-        /// Writes the tEXt chunks to the stream.
+        /// Writes a text chunk to the stream. Can be either a tTXt, iTXt or zTXt chunk,
+        /// depending whether the text contains none latin character or should be compressed.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="meta">The image metadata.</param>
@@ -762,30 +769,30 @@ namespace SixLabors.ImageSharp.Formats.Png
                 {
                     // Write iTXt chunk.
                     byte[] keywordBytes = this.latinEncoding.GetBytes(imageProperty.Name);
-                    byte[] textBytes = Encoding.UTF8.GetBytes(imageProperty.Value);
+                    byte[] textBytes = imageProperty.Value.Length > this.compressTextThreshold ? this.GetCompressedTextBytes(Encoding.UTF8.GetBytes(imageProperty.Value)) : Encoding.UTF8.GetBytes(imageProperty.Value);
+
+                    // Note: The optional language tag and the translated keyword will be omitted.
                     Span<byte> outputBytes = new byte[keywordBytes.Length + textBytes.Length + 5];
+                    if (imageProperty.Value.Length > this.compressTextThreshold)
+                    {
+                        // Indicate that the text is compressed.
+                        outputBytes[keywordBytes.Length + 1] = 1;
+                    }
+
                     keywordBytes.CopyTo(outputBytes);
                     textBytes.CopyTo(outputBytes.Slice(keywordBytes.Length + 5));
                     this.WriteChunk(stream, PngChunkType.InternationalText, outputBytes.ToArray());
                 }
                 else
                 {
-                    if (imageProperty.Value.Length > 100)
+                    if (imageProperty.Value.Length > this.compressTextThreshold)
                     {
                         // Write zTXt chunk.
-                        using (var memoryStream = new MemoryStream())
-                        {
-                            using (var deflateStream = new ZlibDeflateStream(memoryStream, this.compressionLevel))
-                            {
-                                deflateStream.Write(this.latinEncoding.GetBytes(imageProperty.Value));
-                            }
-
-                            byte[] compressedData = memoryStream.ToArray();
-                            Span<byte> outputBytes = new byte[imageProperty.Name.Length + compressedData.Length + 2];
-                            this.latinEncoding.GetBytes(imageProperty.Name).CopyTo(outputBytes);
-                            compressedData.CopyTo(outputBytes.Slice(imageProperty.Name.Length + 2));
-                            this.WriteChunk(stream, PngChunkType.CompressedText, outputBytes.ToArray());
-                        }
+                        byte[] compressedData = this.GetCompressedTextBytes(this.latinEncoding.GetBytes(imageProperty.Value));
+                        Span<byte> outputBytes = new byte[imageProperty.Name.Length + compressedData.Length + 2];
+                        this.latinEncoding.GetBytes(imageProperty.Name).CopyTo(outputBytes);
+                        compressedData.CopyTo(outputBytes.Slice(imageProperty.Name.Length + 2));
+                        this.WriteChunk(stream, PngChunkType.CompressedText, outputBytes.ToArray());
                     }
                     else
                     {
@@ -796,6 +803,25 @@ namespace SixLabors.ImageSharp.Formats.Png
                         this.WriteChunk(stream, PngChunkType.Text, outputBytes.ToArray());
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Compresses a given text using Zlib compression.
+        /// </summary>
+        /// <param name="textBytes">The text bytes to compress.</param>
+        /// <returns>The compressed text byte array.</returns>
+        private byte[] GetCompressedTextBytes(byte[] textBytes)
+        {
+            using (var memoryStream = new MemoryStream())
+            {
+                using (var deflateStream = new ZlibDeflateStream(memoryStream, this.compressionLevel))
+                {
+                    deflateStream.Write(textBytes);
+                }
+
+                byte[] compressedData = memoryStream.ToArray();
+                return compressedData;
             }
         }
 

@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-using System.Text;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -54,6 +53,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 Assert.Contains(meta.Properties, m => m.Name.Equals("Title") && m.Value.Equals("unittest"));
                 Assert.Contains(meta.Properties, m => m.Name.Equals("Description") && m.Value.Equals("compressed-text"));
                 Assert.Contains(meta.Properties, m => m.Name.Equals("International") && m.Value.Equals("'e', mu'tlheghvam, ghaH yu'"));
+                Assert.Contains(meta.Properties, m => m.Name.Equals("International2") && m.Value.Equals("ИМАГЕШАРП"));
                 Assert.Contains(meta.Properties, m => m.Name.Equals("CompressedInternational") && m.Value.Equals("la plume de la mante"));
                 Assert.Contains(meta.Properties, m => m.Name.Equals("CompressedInternational2") && m.Value.Equals("這是一個考驗"));
                 Assert.Contains(meta.Properties, m => m.Name.Equals("NoLang") && m.Value.Equals("this text chunk is missing a language tag"));
@@ -82,6 +82,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     Assert.Contains(meta.Properties, m => m.Name.Equals("Title") && m.Value.Equals("unittest"));
                     Assert.Contains(meta.Properties, m => m.Name.Equals("Description") && m.Value.Equals("compressed-text"));
                     Assert.Contains(meta.Properties, m => m.Name.Equals("International") && m.Value.Equals("'e', mu'tlheghvam, ghaH yu'"));
+                    Assert.Contains(meta.Properties, m => m.Name.Equals("International2") && m.Value.Equals("ИМАГЕШАРП"));
                     Assert.Contains(meta.Properties, m => m.Name.Equals("CompressedInternational") && m.Value.Equals("la plume de la mante"));
                     Assert.Contains(meta.Properties, m => m.Name.Equals("CompressedInternational2") && m.Value.Equals("這是一個考驗"));
                     Assert.Contains(meta.Properties, m => m.Name.Equals("NoLang") && m.Value.Equals("this text chunk is missing a language tag"));
@@ -104,6 +105,34 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 Assert.DoesNotContain(meta.Properties, m => m.Value.Equals("empty"));
                 Assert.DoesNotContain(meta.Properties, m => m.Value.Equals("invalid characters"));
                 Assert.DoesNotContain(meta.Properties, m => m.Value.Equals("too large"));
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.PngWithMetaData, PixelTypes.Rgba32)]
+        public void Encode_UseCompression_WhenTextChunkIsGreaterThenThreshold_Works<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            var decoder = new PngDecoder();
+            using (Image<TPixel> input = provider.GetImage(decoder))
+            using (var memoryStream = new MemoryStream())
+            {
+                var expectedText = new ImageProperty("large-text", new string('c', 100));
+                var expectedTextNoneLatin = new ImageProperty("large-text-non-latin", new string('Ф', 100));
+                input.Metadata.Properties.Add(expectedText);
+                input.Metadata.Properties.Add(expectedTextNoneLatin);
+                input.Save(memoryStream, new PngEncoder()
+                                         {
+                                            CompressTextThreshold = 50
+                                         });
+
+                memoryStream.Position = 0;
+                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, memoryStream))
+                {
+                    ImageMetadata meta = image.Metadata;
+                    Assert.Contains(meta.Properties, m => m.Name.Equals(expectedText.Name) && m.Value.Equals(expectedText.Value));
+                    Assert.Contains(meta.Properties, m => m.Name.Equals(expectedTextNoneLatin.Name) && m.Value.Equals(expectedTextNoneLatin.Value));
+                }
             }
         }
 

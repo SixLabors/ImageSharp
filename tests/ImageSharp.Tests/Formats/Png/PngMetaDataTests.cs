@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
         [Theory]
         [WithFile(TestImages.Png.PngWithMetaData, PixelTypes.Rgba32)]
-        public void Encode_UseCompression_WhenTextChunkIsGreaterThenThreshold_Works<TPixel>(TestImageProvider<TPixel> provider)
+        public void Encode_UseCompression_WhenTextIsGreaterThenThreshold_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             var decoder = new PngDecoder();

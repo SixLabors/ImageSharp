@@ -938,21 +938,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             ReadOnlySpan<byte> compressedData = data.Slice(zeroIndex + 2);
-            using (var memoryStream = new MemoryStream(compressedData.ToArray()))
-            using (var inflateStream = new ZlibInflateStream(memoryStream, () => 0))
-            {
-                inflateStream.AllocateNewBytes(compressedData.Length);
-                var uncompressedBytes = new List<byte>();
-                int byteRead = inflateStream.CompressedStream.ReadByte();
-                while (byteRead != -1)
-                {
-                    uncompressedBytes.Add((byte)byteRead);
-                    byteRead = inflateStream.CompressedStream.ReadByte();
-                }
-
-                string value = this.latinEncoding.GetString(uncompressedBytes.ToArray());
-                metadata.Properties.Add(new ImageProperty(name, value));
-            }
+            metadata.Properties.Add(new ImageProperty(name, this.UncompressTextData(compressedData, this.latinEncoding)));
         }
 
         /// <summary>
@@ -1015,26 +1001,36 @@ namespace SixLabors.ImageSharp.Formats.Png
             if (compressionFlag == 1)
             {
                 ReadOnlySpan<byte> compressedData = data.Slice(dataStartIdx);
-                using (var memoryStream = new MemoryStream(compressedData.ToArray()))
-                using (var inflateStream = new ZlibInflateStream(memoryStream, () => 0))
-                {
-                    inflateStream.AllocateNewBytes(compressedData.Length);
-                    var uncompressedBytes = new List<byte>();
-                    int byteRead = inflateStream.CompressedStream.ReadByte();
-                    while (byteRead != -1)
-                    {
-                        uncompressedBytes.Add((byte)byteRead);
-                        byteRead = inflateStream.CompressedStream.ReadByte();
-                    }
-
-                    string value = Encoding.UTF8.GetString(uncompressedBytes.ToArray());
-                    metadata.Properties.Add(new ImageProperty(name, value));
-                }
+                metadata.Properties.Add(new ImageProperty(name, this.UncompressTextData(compressedData, Encoding.UTF8)));
             }
             else
             {
                 string value = Encoding.UTF8.GetString(data.Slice(dataStartIdx));
                 metadata.Properties.Add(new ImageProperty(name, value));
+            }
+        }
+
+        /// <summary>
+        /// Decompresses a zlib text.
+        /// </summary>
+        /// <param name="compressedData">Compressed text data bytes.</param>
+        /// <param name="encoding">The string encoding to use.</param>
+        /// <returns>A string.</returns>
+        private string UncompressTextData(ReadOnlySpan<byte> compressedData, Encoding encoding)
+        {
+            using (var memoryStream = new MemoryStream(compressedData.ToArray()))
+            using (var inflateStream = new ZlibInflateStream(memoryStream, () => 0))
+            {
+                inflateStream.AllocateNewBytes(compressedData.Length);
+                var uncompressedBytes = new List<byte>();
+                int byteRead = inflateStream.CompressedStream.ReadByte();
+                while (byteRead != -1)
+                {
+                    uncompressedBytes.Add((byte)byteRead);
+                    byteRead = inflateStream.CompressedStream.ReadByte();
+                }
+
+                return encoding.GetString(uncompressedBytes.ToArray());
             }
         }
 

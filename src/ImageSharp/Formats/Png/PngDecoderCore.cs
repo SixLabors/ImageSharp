@@ -42,11 +42,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly Configuration configuration;
 
         /// <summary>
-        /// Gets the encoding to use
-        /// </summary>
-        private readonly Encoding textEncoding;
-
-        /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
         private readonly bool ignoreMetadata;
@@ -72,22 +67,22 @@ namespace SixLabors.ImageSharp.Formats.Png
         private int bytesPerPixel;
 
         /// <summary>
-        /// The number of bytes per sample
+        /// The number of bytes per sample.
         /// </summary>
         private int bytesPerSample;
 
         /// <summary>
-        /// The number of bytes per scanline
+        /// The number of bytes per scanline.
         /// </summary>
         private int bytesPerScanline;
 
         /// <summary>
-        /// The palette containing color information for indexed png's
+        /// The palette containing color information for indexed png's.
         /// </summary>
         private byte[] palette;
 
         /// <summary>
-        /// The palette containing alpha channel color information for indexed png's
+        /// The palette containing alpha channel color information for indexed png's.
         /// </summary>
         private byte[] paletteAlpha;
 
@@ -97,37 +92,37 @@ namespace SixLabors.ImageSharp.Formats.Png
         private bool isEndChunkReached;
 
         /// <summary>
-        /// Previous scanline processed
+        /// Previous scanline processed.
         /// </summary>
         private IManagedByteBuffer previousScanline;
 
         /// <summary>
-        /// The current scanline that is being processed
+        /// The current scanline that is being processed.
         /// </summary>
         private IManagedByteBuffer scanline;
 
         /// <summary>
-        /// The index of the current scanline being processed
+        /// The index of the current scanline being processed.
         /// </summary>
         private int currentRow = Adam7.FirstRow[0];
 
         /// <summary>
-        /// The current pass for an interlaced PNG
+        /// The current pass for an interlaced PNG.
         /// </summary>
         private int pass;
 
         /// <summary>
-        /// The current number of bytes read in the current scanline
+        /// The current number of bytes read in the current scanline.
         /// </summary>
         private int currentRowBytesRead;
 
         /// <summary>
-        /// Gets or sets the png color type
+        /// Gets or sets the png color type.
         /// </summary>
         private PngColorType pngColorType;
 
         /// <summary>
-        /// The next chunk of data to return
+        /// The next chunk of data to return.
         /// </summary>
         private PngChunk? nextChunk;
 
@@ -145,7 +140,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             this.configuration = configuration ?? Configuration.Default;
             this.memoryAllocator = this.configuration.MemoryAllocator;
-            this.textEncoding = options.TextEncoding ?? PngConstants.DefaultEncoding;
             this.ignoreMetadata = options.IgnoreMetadata;
         }
 
@@ -1023,11 +1017,11 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 inflateStream.AllocateNewBytes(compressedData.Length);
                 var uncompressedBytes = new List<byte>();
-                int byteRead = inflateStream.CompressedStream.ReadByte();
-                while (byteRead != -1)
+                int bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
+                while (bytesRead != 0)
                 {
-                    uncompressedBytes.Add((byte)byteRead);
-                    byteRead = inflateStream.CompressedStream.ReadByte();
+                    uncompressedBytes.AddRange(this.buffer.AsSpan().Slice(0, bytesRead).ToArray());
+                    bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
                 }
 
                 return encoding.GetString(uncompressedBytes.ToArray());

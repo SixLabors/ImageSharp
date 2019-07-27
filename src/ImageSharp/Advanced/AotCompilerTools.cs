@@ -180,9 +180,9 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileResizeOperations<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            var resizeProcessor = new ResizeProcessor(new ResizeOptions(), new Size());
+            var resizeProcessor = new ResizeProcessor(new ResizeOptions(), default);
             var genericResizeProcessor = new ResizeProcessor<TPixel>(resizeProcessor.CreatePixelSpecificProcessor<TPixel>() as ResizeProcessor);
-            genericResizeProcessor.AotCreateDestination(new Image<TPixel>(0, 0), new Rectangle());
+            genericResizeProcessor.AotCreateDestination(new Image<TPixel>(0, 0), default);
         }
     }
 }

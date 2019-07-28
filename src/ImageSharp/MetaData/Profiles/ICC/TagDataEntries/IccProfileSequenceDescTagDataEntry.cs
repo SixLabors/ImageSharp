@@ -2,9 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Linq;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// This type is an array of structures, each of which contains information
@@ -29,9 +28,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <param name="tagSignature">Tag Signature</param>
         public IccProfileSequenceDescTagDataEntry(IccProfileDescription[] descriptions, IccProfileTag tagSignature)
             : base(IccTypeSignature.ProfileSequenceDesc, tagSignature)
-        {
-            this.Descriptions = descriptions ?? throw new ArgumentNullException(nameof(descriptions));
-        }
+            => this.Descriptions = descriptions ?? throw new ArgumentNullException(nameof(descriptions));
 
         /// <summary>
         /// Gets the profile descriptions
@@ -40,9 +37,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
-        {
-            return other is IccProfileSequenceDescTagDataEntry entry && this.Equals(entry);
-        }
+            => other is IccProfileSequenceDescTagDataEntry entry && this.Equals(entry);
 
         /// <inheritdoc />
         public bool Equals(IccProfileSequenceDescTagDataEntry other)
@@ -57,14 +52,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return true;
             }
 
-            return base.Equals(other) && this.Descriptions.SequenceEqual(other.Descriptions);
+            return base.Equals(other) && this.Descriptions.AsSpan().SequenceEqual(other.Descriptions);
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj)
-        {
-            return obj is IccProfileSequenceDescTagDataEntry other && this.Equals(other);
-        }
+            => obj is IccProfileSequenceDescTagDataEntry other && this.Equals(other);
 
         /// <inheritdoc />
         public override int GetHashCode() => HashCode.Combine(this.Signature, this.Descriptions);

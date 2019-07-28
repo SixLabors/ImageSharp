@@ -18,14 +18,14 @@ namespace SixLabors.ImageSharp.Tests
         public void Lomograph_amount_LomographProcessorDefaultsSet()
         {
             this.operations.Lomograph();
-            var processor = this.Verify<LomographProcessor<Rgba32>>();
+            var processor = this.Verify<LomographProcessor>();
         }
 
         [Fact]
         public void Lomograph_amount_rect_LomographProcessorDefaultsSet()
         {
             this.operations.Lomograph(this.rect);
-            var processor = this.Verify<LomographProcessor<Rgba32>>(this.rect);
+            var processor = this.Verify<LomographProcessor>(this.rect);
         }
     }
 }

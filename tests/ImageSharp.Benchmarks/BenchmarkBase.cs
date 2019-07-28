@@ -1,7 +1,8 @@
-﻿namespace SixLabors.ImageSharp.Benchmarks
-{
-    using SixLabors.ImageSharp.Formats;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
+namespace SixLabors.ImageSharp.Benchmarks
+{
     /// <summary>
     /// The image benchmark base class.
     /// </summary>

@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public void AutoOrient_AutoOrientProcessor()
         {
             this.operations.AutoOrient();
-            this.Verify<AutoOrientProcessor<Rgba32>>();
+            this.Verify<AutoOrientProcessor>();
         }
     }
 }

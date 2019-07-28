@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Formats.Gif;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
@@ -19,14 +19,14 @@ namespace SixLabors.ImageSharp.Tests
             const int colorTableLength = 128;
             const GifDisposalMethod disposalMethod = GifDisposalMethod.RestoreToBackground;
 
-            var metaData = new ImageFrameMetaData();
-            GifFrameMetaData gifFrameMetaData = metaData.GetFormatMetaData(GifFormat.Instance);
+            var metaData = new ImageFrameMetadata();
+            GifFrameMetadata gifFrameMetaData = metaData.GetFormatMetadata(GifFormat.Instance);
             gifFrameMetaData.FrameDelay = frameDelay;
             gifFrameMetaData.ColorTableLength = colorTableLength;
             gifFrameMetaData.DisposalMethod = disposalMethod;
 
-            var clone = new ImageFrameMetaData(metaData);
-            GifFrameMetaData cloneGifFrameMetaData = clone.GetFormatMetaData(GifFormat.Instance);
+            var clone = new ImageFrameMetadata(metaData);
+            GifFrameMetadata cloneGifFrameMetaData = clone.GetFormatMetadata(GifFormat.Instance);
 
             Assert.Equal(frameDelay, cloneGifFrameMetaData.FrameDelay);
             Assert.Equal(colorTableLength, cloneGifFrameMetaData.ColorTableLength);
@@ -36,9 +36,9 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void CloneIsDeep()
         {
-            var metaData = new ImageFrameMetaData();
-            ImageFrameMetaData clone = metaData.DeepClone();
-            Assert.False(metaData.GetFormatMetaData(GifFormat.Instance).Equals(clone.GetFormatMetaData(GifFormat.Instance)));
+            var metaData = new ImageFrameMetadata();
+            ImageFrameMetadata clone = metaData.DeepClone();
+            Assert.False(metaData.GetFormatMetadata(GifFormat.Instance).Equals(clone.GetFormatMetadata(GifFormat.Instance)));
         }
     }
 }

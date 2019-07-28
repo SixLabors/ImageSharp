@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// Entry of ICC colorant table
@@ -35,22 +35,22 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <summary>
-        /// Gets the colorant name
+        /// Gets the colorant name.
         /// </summary>
         public string Name { get; }
 
         /// <summary>
-        /// Gets the first PCS value
+        /// Gets the first PCS value.
         /// </summary>
         public ushort Pcs1 { get; }
 
         /// <summary>
-        /// Gets the second PCS value
+        /// Gets the second PCS value.
         /// </summary>
         public ushort Pcs2 { get; }
 
         /// <summary>
-        /// Gets the third PCS value
+        /// Gets the third PCS value.
         /// </summary>
         public ushort Pcs3 { get; }
 
@@ -110,9 +110,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"{this.Name}: {this.Pcs1}; {this.Pcs2}; {this.Pcs3}";
-        }
+        public override string ToString() => $"{this.Name}: {this.Pcs1}; {this.Pcs2}; {this.Pcs3}";
     }
 }

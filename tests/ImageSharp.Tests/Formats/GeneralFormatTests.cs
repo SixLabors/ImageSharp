@@ -27,8 +27,8 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.MetaData.VerticalResolution = 150;
-                image.MetaData.HorizontalResolution = 150;
+                image.Metadata.VerticalResolution = 150;
+                image.Metadata.HorizontalResolution = 150;
                 image.DebugSave(provider);
             }
         }
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                using (Image<Rgba32> image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateRgba32Image())
                 {
                     string filename = path + "/" + file.FileNameWithoutExtension + ".txt";
                     File.WriteAllText(filename, image.ToBase64String(PngFormat.Instance));
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                using (Image<Rgba32> image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateRgba32Image())
                 {
                     image.Save($"{path}/{file.FileName}");
                 }
@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                using (Image<Rgba32> image = file.CreateImage())
+                using (Image<Rgba32> image = file.CreateRgba32Image())
                 {
                     using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.bmp"))
                     {

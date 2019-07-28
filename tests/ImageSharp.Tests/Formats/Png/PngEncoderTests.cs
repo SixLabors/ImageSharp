@@ -7,7 +7,7 @@ using System.Linq;
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             var options = new PngEncoder();
 
             var testFile = TestFile.Create(imagePath);
-            using (Image<Rgba32> input = testFile.CreateImage())
+            using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
                 using (var memStream = new MemoryStream())
                 {
@@ -228,7 +228,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        ImageMetaData meta = output.MetaData;
+                        ImageMetadata meta = output.Metadata;
                         Assert.Equal(xResolution, meta.HorizontalResolution);
                         Assert.Equal(yResolution, meta.VerticalResolution);
                         Assert.Equal(resolutionUnit, meta.ResolutionUnits);
@@ -244,7 +244,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             var options = new PngEncoder();
 
             var testFile = TestFile.Create(imagePath);
-            using (Image<Rgba32> input = testFile.CreateImage())
+            using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
                 using (var memStream = new MemoryStream())
                 {
@@ -253,7 +253,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        PngMetaData meta = output.MetaData.GetFormatMetaData(PngFormat.Instance);
+                        PngMetadata meta = output.Metadata.GetFormatMetadata(PngFormat.Instance);
 
                         Assert.Equal(pngBitDepth, meta.BitDepth);
                     }
@@ -268,9 +268,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             var options = new PngEncoder();
 
             var testFile = TestFile.Create(imagePath);
-            using (Image<Rgba32> input = testFile.CreateImage())
+            using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
-                PngMetaData inMeta = input.MetaData.GetFormatMetaData(PngFormat.Instance);
+                PngMetadata inMeta = input.Metadata.GetFormatMetadata(PngFormat.Instance);
                 Assert.True(inMeta.HasTrans);
 
                 using (var memStream = new MemoryStream())
@@ -279,7 +279,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        PngMetaData outMeta = output.MetaData.GetFormatMetaData(PngFormat.Instance);
+                        PngMetadata outMeta = output.Metadata.GetFormatMetadata(PngFormat.Instance);
                         Assert.True(outMeta.HasTrans);
 
                         switch (pngColorType)

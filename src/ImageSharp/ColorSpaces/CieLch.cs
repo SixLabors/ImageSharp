@@ -13,14 +13,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// </summary>
     public readonly struct CieLch : IEquatable<CieLch>
     {
-        private static readonly Vector3 Min = new Vector3(0, -200, 0);
-        private static readonly Vector3 Max = new Vector3(100, 200, 360);
-
         /// <summary>
         /// D50 standard illuminant.
         /// Used when reference white is not specified explicitly.
         /// </summary>
         public static readonly CieXyz DefaultWhitePoint = Illuminants.D50;
+
+        private static readonly Vector3 Min = new Vector3(0, -200, 0);
+        private static readonly Vector3 Max = new Vector3(100, 200, 360);
 
         /// <summary>
         /// Gets the lightness dimension.

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -17,9 +17,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     internal unsafe struct ZigZag
     {
         /// <summary>
+        /// When reading corrupted data, the Huffman decoders could attempt
+        /// to reference an entry beyond the end of this array (if the decoded
+        /// zero run length reaches past the end of the block).  To prevent
+        /// wild stores without adding an inner-loop test, we put some extra
+        /// "63"s after the real entries.  This will cause the extra coefficient
+        /// to be stored in location 63 of the block, not somewhere random.
+        /// The worst case would be a run-length of 15, which means we need 16
+        /// fake entries.
+        /// </summary>
+        private const int Size = 64 + 16;
+
+        /// <summary>
         /// Copy of <see cref="Unzig"/> in a value type
         /// </summary>
-        public fixed byte Data[64];
+        public fixed byte Data[Size];
 
         /// <summary>
         /// Unzig maps from the zigzag ordering to the natural ordering. For example,
@@ -27,22 +39,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// value is 16, which means first column (16%8 == 0) and third row (16/8 == 2).
         /// </summary>
         private static readonly byte[] Unzig =
+        new byte[Size]
         {
-            0,
-            1, 8,
-            16, 9, 2,
-            3, 10, 17, 24,
-            32, 25, 18, 11, 4,
-            5, 12, 19, 26, 33, 40,
-            48, 41, 34, 27, 20, 13, 6,
-            7, 14, 21, 28, 35, 42, 49, 56,
-            57, 50, 43, 36, 29, 22, 15,
-            23, 30, 37, 44, 51, 58,
-            59, 52, 45, 38, 31,
-            39, 46, 53, 60,
-            61, 54, 47,
-            55, 62,
-            63
+            0,  1,  8, 16,  9,  2,  3, 10,
+            17, 24, 32, 25, 18, 11,  4,  5,
+            12, 19, 26, 33, 40, 48, 41, 34,
+            27, 20, 13,  6,  7, 14, 21, 28,
+            35, 42, 49, 56, 57, 50, 43, 36,
+            29, 22, 15, 23, 30, 37, 44, 51,
+            58, 59, 52, 45, 38, 31, 39, 46,
+            53, 60, 61, 54, 47, 55, 62, 63,
+            63, 63, 63, 63, 63, 63, 63, 63, // Extra entries for safety in decoder
+            63, 63, 63, 63, 63, 63, 63, 63
         };
 
         /// <summary>
@@ -68,7 +76,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         {
             ZigZag result = default;
             byte* unzigPtr = result.Data;
-            Marshal.Copy(Unzig, 0, (IntPtr)unzigPtr, 64);
+            Marshal.Copy(Unzig, 0, (IntPtr)unzigPtr, Size);
             return result;
         }
 
@@ -79,7 +87,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         {
             Block8x8F result = default;
 
-            for (int i = 0; i < 64; i++)
+            for (int i = 0; i < Block8x8F.Size; i++)
             {
                 result[Unzig[i]] = qt[i];
             }

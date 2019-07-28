@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Memory;
 
@@ -72,14 +72,14 @@ namespace SixLabors.ImageSharp.Tests
 
                 byte dirtyValue = 123;
                 configuration.MemoryAllocator = new TestMemoryAllocator(dirtyValue);
-                var metadata = new ImageMetaData();
+                var metadata = new ImageMetadata();
 
                 using (Image<Gray8> image = Image.CreateUninitialized<Gray8>(configuration, 21, 22, metadata))
                 {
                     Assert.Equal(21, image.Width);
                     Assert.Equal(22, image.Height);
                     Assert.Same(configuration, image.GetConfiguration());
-                    Assert.Same(metadata, image.MetaData);
+                    Assert.Same(metadata, image.Metadata);
 
                     Assert.Equal(dirtyValue, image[5, 5].PackedValue);
                 }

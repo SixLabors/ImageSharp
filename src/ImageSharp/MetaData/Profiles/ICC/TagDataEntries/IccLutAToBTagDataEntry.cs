@@ -5,7 +5,8 @@ using System;
 using System.Linq;
 using System.Numerics;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+// TODO: Review the use of base IccTagDataEntry comparison.
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// This structure represents a color transform.
@@ -15,12 +16,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <summary>
         /// Initializes a new instance of the <see cref="IccLutAToBTagDataEntry"/> class.
         /// </summary>
-        /// <param name="curveA">A Curve</param>
-        /// <param name="clutValues">CLUT</param>
-        /// <param name="curveM">M Curve</param>
+        /// <param name="curveB">B Curve</param>
         /// <param name="matrix3x3">Two dimensional conversion matrix (3x3)</param>
         /// <param name="matrix3x1">One dimensional conversion matrix (3x1)</param>
-        /// <param name="curveB">B Curve</param>
+        /// <param name="curveM">M Curve</param>
+        /// <param name="clutValues">CLUT</param>
+        /// <param name="curveA">A Curve</param>
         public IccLutAToBTagDataEntry(
             IccTagDataEntry[] curveB,
             float[,] matrix3x3,
@@ -35,12 +36,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <summary>
         /// Initializes a new instance of the <see cref="IccLutAToBTagDataEntry"/> class.
         /// </summary>
-        /// <param name="curveA">A Curve</param>
-        /// <param name="clutValues">CLUT</param>
-        /// <param name="curveM">M Curve</param>
+        /// <param name="curveB">B Curve</param>
         /// <param name="matrix3x3">Two dimensional conversion matrix (3x3)</param>
         /// <param name="matrix3x1">One dimensional conversion matrix (3x1)</param>
-        /// <param name="curveB">B Curve</param>
+        /// <param name="curveM">M Curve</param>
+        /// <param name="clutValues">CLUT</param>
+        /// <param name="curveA">A Curve</param>
         /// <param name="tagSignature">Tag Signature</param>
         public IccLutAToBTagDataEntry(
             IccTagDataEntry[] curveB,
@@ -145,10 +146,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccTagDataEntry[] CurveA { get; }
 
         /// <inheritdoc/>
-        public override bool Equals(IccTagDataEntry other)
-        {
-            return other is IccLutAToBTagDataEntry entry && this.Equals(entry);
-        }
+        public override bool Equals(IccTagDataEntry other) => other is IccLutAToBTagDataEntry entry && this.Equals(entry);
 
         /// <inheritdoc/>
         public bool Equals(IccLutAToBTagDataEntry other)
@@ -169,23 +167,18 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 && this.Matrix3x3.Equals(other.Matrix3x3)
                 && this.Matrix3x1.Equals(other.Matrix3x1)
                 && this.ClutValues.Equals(other.ClutValues)
-                && this.EqualsCurve(this.CurveB, other.CurveB)
-                && this.EqualsCurve(this.CurveM, other.CurveM)
-                && this.EqualsCurve(this.CurveA, other.CurveA);
+                && EqualsCurve(this.CurveB, other.CurveB)
+                && EqualsCurve(this.CurveM, other.CurveM)
+                && EqualsCurve(this.CurveA, other.CurveA);
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is IccLutAToBTagDataEntry other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is IccLutAToBTagDataEntry other && this.Equals(other);
 
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-#pragma warning disable SA1129 // Do not use default value type constructor
-            var hashCode = new HashCode();
-#pragma warning restore SA1129 // Do not use default value type constructor
+            HashCode hashCode = default;
 
             hashCode.Add(this.Signature);
             hashCode.Add(this.InputChannelCount);
@@ -200,7 +193,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             return hashCode.ToHashCode();
         }
 
-        private bool EqualsCurve(IccTagDataEntry[] thisCurves, IccTagDataEntry[] entryCurves)
+        private static bool EqualsCurve(IccTagDataEntry[] thisCurves, IccTagDataEntry[] entryCurves)
         {
             bool thisNull = thisCurves is null;
             bool entryNull = entryCurves is null;
@@ -243,10 +236,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 && this.CurveA != null;
         }
 
-        private bool IsB()
-        {
-            return this.CurveB != null;
-        }
+        private bool IsB() => this.CurveB != null;
 
         private void VerifyCurve(IccTagDataEntry[] curves, string name)
         {

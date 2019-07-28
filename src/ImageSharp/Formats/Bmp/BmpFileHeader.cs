@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     internal readonly struct BmpFileHeader
     {
         /// <summary>
-        /// Defines of the data structure in the bitmap file.
+        /// Defines the size of the data structure in the bitmap file.
         /// </summary>
         public const int Size = 14;
 

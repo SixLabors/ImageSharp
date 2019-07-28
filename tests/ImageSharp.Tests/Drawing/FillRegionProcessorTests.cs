@@ -8,6 +8,7 @@ using System;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 using Xunit;
 using SixLabors.ImageSharp.Processing.Processors.Drawing;
@@ -30,14 +31,14 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             var bounds = new Rectangle(0, 0, 1, 1);
 
-            var brush = new Mock<IBrush<Rgba32>>();
+            var brush = new Mock<IBrush>();
             var region = new MockRegion2(bounds);
 
             var options = new GraphicsOptions(antialias)
             {
                 AntialiasSubpixelDepth = 1
             };
-            var processor = new FillRegionProcessor<Rgba32>(brush.Object, region, options);
+            var processor = new FillRegionProcessor(brush.Object, region, options);
             var img = new Image<Rgba32>(1, 1);
             processor.Apply(img, bounds);
 
@@ -48,9 +49,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void FillOffCanvas()
         {
             var bounds = new Rectangle(-100, -10, 10, 10);
-            var brush = new Mock<IBrush<Rgba32>>();
+            var brush = new Mock<IBrush>();
             var options = new GraphicsOptions(true);
-            var processor = new FillRegionProcessor<Rgba32>(brush.Object, new MockRegion1(), options);
+            var processor = new FillRegionProcessor(brush.Object, new MockRegion1(), options);
             var img = new Image<Rgba32>(10, 10);
             processor.Apply(img, bounds);
         }
@@ -61,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             using (var img = new Image<Rgba32>(10, 10))
             {
-                img.Mutate(x => x.DrawLines(new Pen<Rgba32>(Rgba32.Black, 10), new SixLabors.Primitives.PointF[] {
+                img.Mutate(x => x.DrawLines(new Pen(Rgba32.Black, 10), new SixLabors.Primitives.PointF[] {
                     new Vector2(-10, 5),
                     new Vector2(20, 5),
                 }));

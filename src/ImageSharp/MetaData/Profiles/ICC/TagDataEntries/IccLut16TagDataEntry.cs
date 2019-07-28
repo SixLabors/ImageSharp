@@ -2,10 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Linq;
 using System.Numerics;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// This structure represents a color transform using tables
@@ -71,7 +70,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             bool is3By3 = matrix.GetLength(0) == 3 && matrix.GetLength(1) == 3;
             Guard.IsTrue(is3By3, nameof(matrix), "Matrix must have a size of three by three");
 
-            this.Matrix = this.CreateMatrix(matrix);
+            this.Matrix = CreateMatrix(matrix);
             this.InputValues = inputValues ?? throw new ArgumentNullException(nameof(inputValues));
             this.ClutValues = clutValues ?? throw new ArgumentNullException(nameof(clutValues));
             this.OutputValues = outputValues ?? throw new ArgumentNullException(nameof(outputValues));
@@ -111,10 +110,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccLut[] OutputValues { get; }
 
         /// <inheritdoc/>
-        public override bool Equals(IccTagDataEntry other)
-        {
-            return other is IccLut16TagDataEntry entry && this.Equals(entry);
-        }
+        public override bool Equals(IccTagDataEntry other) => other is IccLut16TagDataEntry entry && this.Equals(entry);
 
         /// <inheritdoc/>
         public bool Equals(IccLut16TagDataEntry other)
@@ -131,16 +127,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
             return base.Equals(other)
                 && this.Matrix.Equals(other.Matrix)
-                && this.InputValues.SequenceEqual(other.InputValues)
+                && this.InputValues.AsSpan().SequenceEqual(other.InputValues)
                 && this.ClutValues.Equals(other.ClutValues)
-                && this.OutputValues.SequenceEqual(other.OutputValues);
+                && this.OutputValues.AsSpan().SequenceEqual(other.OutputValues);
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is IccLut16TagDataEntry other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is IccLut16TagDataEntry other && this.Equals(other);
 
         /// <inheritdoc/>
         public override int GetHashCode()
@@ -153,7 +146,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 this.OutputValues);
         }
 
-        private Matrix4x4 CreateMatrix(float[,] matrix)
+        private static Matrix4x4 CreateMatrix(float[,] matrix)
         {
             return new Matrix4x4(
                 matrix[0, 0],

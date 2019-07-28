@@ -38,5 +38,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return decoder.Identify(stream);
             }
         }
+
+        /// <inheritdoc />
+        public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
     }
 }

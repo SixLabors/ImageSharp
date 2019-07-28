@@ -5,7 +5,6 @@ using System;
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
@@ -35,6 +34,17 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="ushort"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static ushort Get16BitBT709Luminance(ushort r, ushort g, ushort b) =>
+            (ushort)((r * .2126F) + (g * .7152F) + (b * .0722F));
+
+        /// <summary>
+        /// Gets the luminance from the rgb components using the formula as specified by ITU-R Recommendation BT.709.
+        /// </summary>
+        /// <param name="r">The red component.</param>
+        /// <param name="g">The green component.</param>
+        /// <param name="b">The blue component.</param>
+        /// <returns>The <see cref="ushort"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static ushort Get16BitBT709Luminance(float r, float g, float b) =>
             (ushort)((r * .2126F) + (g * .7152F) + (b * .0722F));
 
         /// <summary>

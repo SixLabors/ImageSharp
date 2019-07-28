@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
         /// </summary>
-        /// <param name="dither">Whether to apply dithering to the output image</param>
+        /// <param name="dither">Whether to apply dithering to the output image.</param>
         public OctreeQuantizer(bool dither)
             : this(GetDiffuser(dither), QuantizerConstants.MaxColors)
         {
@@ -44,7 +44,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
         /// </summary>
-        /// <param name="diffuser">The error diffusion algorithm, if any, to apply to the output image</param>
+        /// <param name="maxColors">The maximum number of colors to hold in the color palette.</param>
+        /// <param name="dither">Whether to apply dithering to the output image.</param>
+        public OctreeQuantizer(bool dither, int maxColors)
+            : this(GetDiffuser(dither), maxColors)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
+        /// </summary>
+        /// <param name="diffuser">The error diffusion algorithm, if any, to apply to the output image.</param>
         public OctreeQuantizer(IErrorDiffuser diffuser)
             : this(diffuser, QuantizerConstants.MaxColors)
         {
@@ -53,8 +63,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
         /// </summary>
-        /// <param name="diffuser">The error diffusion algorithm, if any, to apply to the output image</param>
-        /// <param name="maxColors">The maximum number of colors to hold in the color palette</param>
+        /// <param name="diffuser">The error diffusion algorithm, if any, to apply to the output image.</param>
+        /// <param name="maxColors">The maximum number of colors to hold in the color palette.</param>
         public OctreeQuantizer(IErrorDiffuser diffuser, int maxColors)
         {
             this.Diffuser = diffuser;

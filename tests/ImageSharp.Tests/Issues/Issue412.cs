@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Issues
                         {
                             context.DrawLines(
                                 new GraphicsOptions(false),
-                                NamedColors<TPixel>.Black,
+                                Color.Black,
                                 1,
                                 new[]
                                 {
@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Issues
 
                             context.DrawLines(
                                 new GraphicsOptions(false),
-                                NamedColors<TPixel>.Red,
+                                Color.Red,
                                 1,
                                 new[]
                                 {
@@ -46,8 +46,9 @@ namespace SixLabors.ImageSharp.Tests.Issues
                 {
                     for (var x = 0; x < 40; x++)
                     {
+                        TPixel red = Color.Red.ToPixel<TPixel>();
 
-                        Assert.True(NamedColors<TPixel>.Red.Equals(image[x, y]), $"expected {NamedColors<TPixel>.Red} but found {image[x, y]} at [{x}, {y}]");
+                        Assert.True(red.Equals(image[x, y]), $"expected {Color.Red} but found {image[x, y]} at [{x}, {y}]");
                     }
                 }
             }

@@ -51,6 +51,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
+        /// Converts an <see cref="Bgr24"/> to <see cref="Color"/>.
+        /// </summary>
+        /// <param name="source">The <see cref="Bgr24"/>.</param>
+        /// <returns>The <see cref="Color"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static implicit operator Color(Bgr24 source) => new Color(source);
+
+        /// <summary>
+        /// Converts a <see cref="Color"/> to <see cref="Bgr24"/>.
+        /// </summary>
+        /// <param name="color">The <see cref="Color"/>.</param>
+        /// <returns>The <see cref="Bgr24"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static implicit operator Bgr24(Color color) => color.ToBgr24();
+
+        /// <summary>
         /// Compares two <see cref="Bgr24"/> objects for equality.
         /// </summary>
         /// <param name="left">The <see cref="Bgr24"/> on the left side of the operand.</param>
@@ -108,6 +124,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromBgr24(Bgr24 source) => this = source;
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

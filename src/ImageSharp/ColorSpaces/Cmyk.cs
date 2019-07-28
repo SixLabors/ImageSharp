@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public static bool operator ==(Cmyk left, Cmyk right) => left.Equals(right);
 
         /// <summary>
-        /// Compares two <see cref="Cmyk"/> objects for inequality
+        /// Compares two <see cref="Cmyk"/> objects for inequality.
         /// </summary>
         /// <param name="left">The <see cref="Cmyk"/> on the left side of the operand.</param>
         /// <param name="right">The <see cref="Cmyk"/> on the right side of the operand.</param>

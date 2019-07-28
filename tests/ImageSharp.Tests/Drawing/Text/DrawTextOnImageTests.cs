@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             where TPixel : struct, IPixel<TPixel>
         {
             Font font = CreateFont("OpenSans-Regular.ttf", 36);
-            TPixel color = NamedColors<TPixel>.Black;
+            Color color = Color.Black;
             float padding = 5;
             var text = "A short piece of text";
 
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             where TPixel : struct, IPixel<TPixel>
         {
             Font font = CreateFont(fontName, fontSize);
-            TPixel color = NamedColors<TPixel>.Black;
+            Color color = Color.Black;
 
             provider.VerifyOperation(
                 TextDrawingComparer,
@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
                 HorizontalAlignment = HorizontalAlignment.Left,
             };
 
-            TPixel color = NamedColors<TPixel>.Black;
+            Color color = Color.Black;
 
             // Based on the reported 0.0270% difference with AccuracyMultiple = 8
             // We should avoid quality regressions leading to higher difference!
@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             where TPixel : struct, IPixel<TPixel>
         {
             Font font = CreateFont(fontName, fontSize);
-            TPixel color = NamedColors<TPixel>.Black;
+            Color color = Color.Black;
 
             provider.VerifyOperation(
                 OutlinedTextDrawingComparer,
@@ -186,7 +186,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             where TPixel : struct, IPixel<TPixel>
         {
             Font font = CreateFont(fontName, fontSize);
-            TPixel color = NamedColors<TPixel>.Black;
+            Color color = Color.Black;
 
             provider.VerifyOperation(
                 OutlinedTextDrawingComparer,
@@ -217,7 +217,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             var comparer = ImageComparer.TolerantPercentage(0.2f);
 
             provider.RunValidatingProcessorTest(
-                x => x.DrawText(textOptions, text, font, NamedColors<TPixel>.Black, new PointF(10, 50)),
+                x => x.DrawText(textOptions, text, font, Color.Black, new PointF(10, 50)),
                 details,
                 comparer,
                 appendPixelTypeToFileName: false,

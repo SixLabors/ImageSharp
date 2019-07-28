@@ -33,11 +33,11 @@ namespace SixLabors.ImageSharp.Sandbox46
         /// </param>
         public static void Main(string[] args)
         {
-            RunJpegColorProfilingTests();
+            // RunJpegColorProfilingTests();
 
             // RunDecodeJpegProfilingTests();
             // RunToVector4ProfilingTest();
-            // RunResizeProfilingTest();
+            RunResizeProfilingTest();
 
             Console.ReadLine();
         }
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Sandbox46
         private static void RunResizeProfilingTest()
         {
             var test = new ResizeProfilingBenchmarks(new ConsoleOutput());
-            test.ResizeBicubic(2000, 2000);
+            test.ResizeBicubic(4000, 4000);
         }
 
         private static void RunToVector4ProfilingTest()

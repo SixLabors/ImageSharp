@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public void CopyBlocksToColorBuffer()
         {
             var blockPp = new JpegBlockPostProcessor(this.ImagePostProcessor.RawJpeg, this.Component);
-            float maximumValue = (float)Math.Pow(2, this.ImagePostProcessor.RawJpeg.Precision) - 1;
+            float maximumValue = MathF.Pow(2, this.ImagePostProcessor.RawJpeg.Precision) - 1;
 
             for (int y = 0; y < this.BlockRowsPerStep; y++)
             {

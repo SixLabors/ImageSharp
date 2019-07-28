@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromScaledVector4(Vector4 vector) => this.FromVector4(vector);
+        public void FromScaledVector4(Vector4 vector) => this.ConvertFromRgbaScaledVector4(vector);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -62,11 +62,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromVector4(Vector4 vector)
-        {
-            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * Max * Average;
-            this.PackedValue = (ushort)MathF.Round(vector.X + vector.Y + vector.Z);
-        }
+        public void FromVector4(Vector4 vector) => this.ConvertFromRgbaScaledVector4(vector);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -105,6 +101,10 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ImageMaths.UpscaleFrom8BitTo16Bit(source.G),
                 ImageMaths.UpscaleFrom8BitTo16Bit(source.B));
         }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -172,9 +172,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * Max;
             this.PackedValue = ImageMaths.Get16BitBT709Luminance(
-                (ushort)MathF.Round(vector.X),
-                (ushort)MathF.Round(vector.Y),
-                (ushort)MathF.Round(vector.Z));
+                vector.X,
+                vector.Y,
+                vector.Z);
         }
     }
 }

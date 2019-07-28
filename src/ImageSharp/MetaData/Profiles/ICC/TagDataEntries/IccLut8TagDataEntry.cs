@@ -5,7 +5,7 @@ using System;
 using System.Linq;
 using System.Numerics;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// This structure represents a color transform using tables
@@ -114,10 +114,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccLut[] OutputValues { get; }
 
         /// <inheritdoc/>
-        public override bool Equals(IccTagDataEntry other)
-        {
-            return other is IccLut8TagDataEntry entry && this.Equals(entry);
-        }
+        public override bool Equals(IccTagDataEntry other) => other is IccLut8TagDataEntry entry && this.Equals(entry);
 
         /// <inheritdoc/>
         public bool Equals(IccLut8TagDataEntry other)
@@ -134,16 +131,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
             return base.Equals(other)
                 && this.Matrix.Equals(other.Matrix)
-                && this.InputValues.SequenceEqual(other.InputValues)
+                && this.InputValues.AsSpan().SequenceEqual(other.InputValues)
                 && this.ClutValues.Equals(other.ClutValues)
-                && this.OutputValues.SequenceEqual(other.OutputValues);
+                && this.OutputValues.AsSpan().SequenceEqual(other.OutputValues);
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is IccLut8TagDataEntry other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is IccLut8TagDataEntry other && this.Equals(other);
 
         /// <inheritdoc/>
         public override int GetHashCode()

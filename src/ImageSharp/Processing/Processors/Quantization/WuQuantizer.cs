@@ -72,14 +72,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <inheritdoc />
         public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration)
             where TPixel : struct, IPixel<TPixel>
-            => new WuFrameQuantizer<TPixel>(this);
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            return new WuFrameQuantizer<TPixel>(configuration.MemoryAllocator, this);
+        }
 
         /// <inheritdoc/>
         public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration, int maxColors)
             where TPixel : struct, IPixel<TPixel>
         {
+            Guard.NotNull(configuration, nameof(configuration));
             maxColors = maxColors.Clamp(QuantizerConstants.MinColors, QuantizerConstants.MaxColors);
-            return new WuFrameQuantizer<TPixel>(this, maxColors);
+            return new WuFrameQuantizer<TPixel>(configuration.MemoryAllocator, this, maxColors);
         }
 
         private static IErrorDiffuser GetDiffuser(bool dither) => dither ? KnownDiffusers.FloydSteinberg : null;

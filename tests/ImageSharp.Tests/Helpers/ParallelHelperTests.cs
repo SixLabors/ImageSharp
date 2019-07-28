@@ -9,6 +9,7 @@ using System.Threading;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
 
@@ -333,6 +334,40 @@ namespace SixLabors.ImageSharp.Tests.Helpers
                 // Assert:
                 TestImageExtensions.CompareBuffers(expected.Span, actual.Span);
             }
+        }
+
+        [Theory]
+        [InlineData(0, 10)]
+        [InlineData(10, 0)]
+        [InlineData(-10, 10)]
+        [InlineData(10, -10)]
+        public void IterateRowsRequiresValidRectangle(int width, int height)
+        {
+            var parallelSettings = new ParallelExecutionSettings();
+
+            var rect = new Rectangle(0, 0, width, height);
+
+            ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
+                () => ParallelHelper.IterateRows(rect, parallelSettings, (rows) => { }));
+
+            Assert.Contains(width <= 0 ? "Width" : "Height", ex.Message);
+        }
+
+        [Theory]
+        [InlineData(0, 10)]
+        [InlineData(10, 0)]
+        [InlineData(-10, 10)]
+        [InlineData(10, -10)]
+        public void IterateRowsWithTempBufferRequiresValidRectangle(int width, int height)
+        {
+            var parallelSettings = new ParallelExecutionSettings();
+
+            var rect = new Rectangle(0, 0, width, height);
+
+            ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
+                () => ParallelHelper.IterateRowsWithTempBuffer<Rgba32>(rect, parallelSettings, (rows, memory) => { }));
+
+            Assert.Contains(width <= 0 ? "Width" : "Height", ex.Message);
         }
     }
 }

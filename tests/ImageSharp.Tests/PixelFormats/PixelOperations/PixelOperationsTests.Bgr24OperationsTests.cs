@@ -15,6 +15,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public Bgr24OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
+                this.HasAlpha = false;
             }
 
             [Fact]

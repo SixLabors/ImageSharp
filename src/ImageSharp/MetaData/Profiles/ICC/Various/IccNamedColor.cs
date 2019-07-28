@@ -2,9 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Linq;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// A specific color with a name
@@ -55,10 +54,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator ==(IccNamedColor left, IccNamedColor right)
-        {
-            return left.Equals(right);
-        }
+        public static bool operator ==(IccNamedColor left, IccNamedColor right) => left.Equals(right);
 
         /// <summary>
         /// Compares two <see cref="IccNamedColor"/> objects for equality.
@@ -68,23 +64,17 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator !=(IccNamedColor left, IccNamedColor right)
-        {
-            return !left.Equals(right);
-        }
+        public static bool operator !=(IccNamedColor left, IccNamedColor right) => !left.Equals(right);
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is IccNamedColor other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is IccNamedColor other && this.Equals(other);
 
         /// <inheritdoc/>
         public bool Equals(IccNamedColor other)
         {
             return this.Name.Equals(other.Name)
-                && this.PcsCoordinates.SequenceEqual(other.PcsCoordinates)
-                && this.DeviceCoordinates.SequenceEqual(other.DeviceCoordinates);
+                && this.PcsCoordinates.AsSpan().SequenceEqual(other.PcsCoordinates)
+                && this.DeviceCoordinates.AsSpan().SequenceEqual(other.DeviceCoordinates);
         }
 
         /// <inheritdoc/>

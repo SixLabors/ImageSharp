@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal sealed class OctreeFrameQuantizer<TPixel> : FrameQuantizerBase<TPixel>
+    internal sealed class OctreeFrameQuantizer<TPixel> : FrameQuantizer<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -136,10 +136,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
         }
 
-        internal TPixel[] AotGetPalette() => this.GetPalette();
+        internal ReadOnlyMemory<TPixel> AotGetPalette() => this.GetPalette();
 
         /// <inheritdoc/>
-        protected override TPixel[] GetPalette() => this.octree.Palletize(this.colors);
+        protected override ReadOnlyMemory<TPixel> GetPalette() => this.octree.Palletize(this.colors);
 
         /// <summary>
         /// Process the pixel in the second pass of the algorithm.

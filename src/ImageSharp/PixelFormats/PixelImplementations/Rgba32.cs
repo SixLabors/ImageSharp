@@ -1,6 +1,9 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Buffers.Binary;
+using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -133,13 +136,16 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         public Rgb24 Rgb
         {
-            // If this is changed to ShortMethod then several jpeg encoding tests fail
-            // on 32 bit Net 4.6.2 and NET 4.7.1
-            [MethodImpl(InliningOptions.ColdPath)]
-            get => Unsafe.As<Rgba32, Rgb24>(ref this);
+            [MethodImpl(InliningOptions.ShortMethod)]
+            get => new Rgb24(this.R, this.G, this.B);
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            set => Unsafe.As<Rgba32, Rgb24>(ref this) = value;
+            set
+            {
+                this.R = value.R;
+                this.G = value.G;
+                this.B = value.B;
+            }
         }
 
         /// <summary>
@@ -168,6 +174,22 @@ namespace SixLabors.ImageSharp.PixelFormats
             [MethodImpl(InliningOptions.ShortMethod)]
             set => this.Rgba = value;
         }
+
+        /// <summary>
+        /// Converts an <see cref="Rgba32"/> to <see cref="Color"/>.
+        /// </summary>
+        /// <param name="source">The <see cref="Rgba32"/>.</param>
+        /// <returns>The <see cref="Color"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static implicit operator Color(Rgba32 source) => new Color(source);
+
+        /// <summary>
+        /// Converts a <see cref="Color"/> to <see cref="Rgba32"/>.
+        /// </summary>
+        /// <param name="color">The <see cref="Color"/>.</param>
+        /// <returns>The <see cref="Rgba32"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static implicit operator Rgba32(Color color) => color.ToRgba32();
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="ColorSpaces.Rgb"/> to a
@@ -217,7 +239,20 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>
         /// The <see cref="Rgba32"/>.
         /// </returns>
-        public static Rgba32 FromHex(string hex) => ColorBuilder<Rgba32>.FromHex(hex);
+        public static Rgba32 FromHex(string hex)
+        {
+            Guard.NotNullOrWhiteSpace(hex, nameof(hex));
+
+            hex = ToRgbaHex(hex);
+
+            if (hex is null || !uint.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint packedValue))
+            {
+                throw new ArgumentException("Hexadecimal string is not in the correct format.", nameof(hex));
+            }
+
+            packedValue = BinaryPrimitives.ReverseEndianness(packedValue);
+            return Unsafe.As<uint, Rgba32>(ref packedValue);
+        }
 
         /// <inheritdoc />
         public PixelOperations<Rgba32> CreatePixelOperations() => new PixelOperations();
@@ -265,6 +300,10 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.B = source.B;
             this.A = source.A;
         }
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -405,6 +444,43 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.G = (byte)vector.Y;
             this.B = (byte)vector.Z;
             this.A = (byte)vector.W;
+        }
+
+        /// <summary>
+        /// Converts the specified hex value to an rrggbbaa hex value.
+        /// </summary>
+        /// <param name="hex">The hex value to convert.</param>
+        /// <returns>
+        /// A rrggbbaa hex value.
+        /// </returns>
+        private static string ToRgbaHex(string hex)
+        {
+            if (hex[0] == '#')
+            {
+                hex = hex.Substring(1);
+            }
+
+            if (hex.Length == 8)
+            {
+                return hex;
+            }
+
+            if (hex.Length == 6)
+            {
+                return hex + "FF";
+            }
+
+            if (hex.Length < 3 || hex.Length > 4)
+            {
+                return null;
+            }
+
+            char r = hex[0];
+            char g = hex[1];
+            char b = hex[2];
+            char a = hex.Length == 3 ? 'F' : hex[3];
+
+            return new string(new[] { r, r, g, g, b, b, a, a });
         }
     }
 }

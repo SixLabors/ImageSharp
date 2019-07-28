@@ -136,5 +136,8 @@ namespace SixLabors.ImageSharp.PixelFormats
     GenerateFromMethods("Rgba64");
     GenerateToDestFormatMethods("Rgba64");
 
+    GenerateFromMethods("Bgra5551");
+    GenerateToDestFormatMethods("Bgra5551");
+
 #>    }
 }

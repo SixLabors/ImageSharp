@@ -14,14 +14,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
         public void BlackWhite_CorrectProcessor()
         {
             this.operations.BlackWhite();
-            BlackWhiteProcessor<Rgba32> p = this.Verify<BlackWhiteProcessor<Rgba32>>();
+            BlackWhiteProcessor p = this.Verify<BlackWhiteProcessor>();
         }
 
         [Fact]
         public void BlackWhite_rect_CorrectProcessor()
         {
             this.operations.BlackWhite(this.rect);
-            BlackWhiteProcessor<Rgba32> p = this.Verify<BlackWhiteProcessor<Rgba32>>(this.rect);
+            BlackWhiteProcessor p = this.Verify<BlackWhiteProcessor>(this.rect);
         }
     }
 }

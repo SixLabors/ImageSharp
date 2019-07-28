@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// Entry of ICC tag table
@@ -24,17 +24,17 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <summary>
-        /// Gets the signature of the tag
+        /// Gets the signature of the tag.
         /// </summary>
         public IccProfileTag Signature { get; }
 
         /// <summary>
-        /// Gets the offset of entry in bytes
+        /// Gets the offset of entry in bytes.
         /// </summary>
         public uint Offset { get; }
 
         /// <summary>
-        /// Gets the size of entry in bytes
+        /// Gets the size of entry in bytes.
         /// </summary>
         public uint DataSize { get; }
 
@@ -69,10 +69,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is IccTagTableEntry other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is IccTagTableEntry other && this.Equals(other);
 
         /// <inheritdoc/>
         public bool Equals(IccTagTableEntry other) =>
@@ -81,15 +78,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             this.DataSize.Equals(other.DataSize);
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(this.Signature, this.Offset, this.DataSize);
-        }
+        public override int GetHashCode() => HashCode.Combine(this.Signature, this.Offset, this.DataSize);
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"{this.Signature} (Offset: {this.Offset}; Size: {this.DataSize})";
-        }
+        public override string ToString() => $"{this.Signature} (Offset: {this.Offset}; Size: {this.DataSize})";
     }
 }

@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.ColorSpaces.Conversion;
 namespace SixLabors.ImageSharp.ColorSpaces.Companding
 {
     /// <summary>
-    /// Implements L* companding
+    /// Implements L* companding.
     /// </summary>
     /// <remarks>
     /// For more info see:
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
         /// <returns>The <see cref="float"/> representing the linear channel value.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static float Expand(float channel)
-            => channel <= 0.08 ? 100 * channel / CieConstants.Kappa : ImageMaths.Pow3((channel + 0.16F) / 1.16F);
+            => channel <= 0.08F ? (100F * channel) / CieConstants.Kappa : ImageMaths.Pow3((channel + 0.16F) / 1.16F);
 
         /// <summary>
         /// Compresses an uncompanded channel (linear) to its nonlinear equivalent.
@@ -33,6 +33,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
         /// <returns>The <see cref="float"/> representing the nonlinear channel value.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static float Compress(float channel)
-            => channel <= CieConstants.Epsilon ? channel * CieConstants.Kappa / 100F : MathF.Pow(1.16F * channel, 0.3333333F) - 0.16F;
+            => channel <= CieConstants.Epsilon ? (channel * CieConstants.Kappa) / 100F : (1.16F * MathF.Pow(channel, 0.3333333F)) - 0.16F;
     }
 }

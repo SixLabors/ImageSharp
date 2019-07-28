@@ -17,10 +17,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         private static readonly RgbToLinearRgbConverter RgbToLinearRgbConverter = new RgbToLinearRgbConverter();
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="CieLab"/> into <see cref="LinearRgb"/>
+        /// Performs the bulk conversion from <see cref="CieLab"/> into <see cref="LinearRgb"/>.
         /// </summary>
-        /// <param name="source">The span to the source colors</param>
-        /// <param name="destination">The span to the destination colors</param>
+        /// <param name="source">The span to the source colors.</param>
+        /// <param name="destination">The span to the destination colors.</param>
         public void Convert(ReadOnlySpan<CieLab> source, Span<LinearRgb> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
@@ -38,10 +38,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="CieLch"/> into <see cref="LinearRgb"/>
+        /// Performs the bulk conversion from <see cref="CieLch"/> into <see cref="LinearRgb"/>.
         /// </summary>
-        /// <param name="source">The span to the source colors</param>
-        /// <param name="destination">The span to the destination colors</param>
+        /// <param name="source">The span to the source colors.</param>
+        /// <param name="destination">The span to the destination colors.</param>
         public void Convert(ReadOnlySpan<CieLch> source, Span<LinearRgb> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
@@ -59,10 +59,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="CieLchuv"/> into <see cref="LinearRgb"/>
+        /// Performs the bulk conversion from <see cref="CieLchuv"/> into <see cref="LinearRgb"/>.
         /// </summary>
-        /// <param name="source">The span to the source colors</param>
-        /// <param name="destination">The span to the destination colors</param>
+        /// <param name="source">The span to the source colors.</param>
+        /// <param name="destination">The span to the destination colors.</param>
         public void Convert(ReadOnlySpan<CieLchuv> source, Span<LinearRgb> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
@@ -80,10 +80,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="CieLuv"/> into <see cref="LinearRgb"/>
+        /// Performs the bulk conversion from <see cref="CieLuv"/> into <see cref="LinearRgb"/>.
         /// </summary>
-        /// <param name="source">The span to the source colors</param>
-        /// <param name="destination">The span to the destination colors</param>
+        /// <param name="source">The span to the source colors.</param>
+        /// <param name="destination">The span to the destination colors.</param>
         public void Convert(ReadOnlySpan<CieLuv> source, Span<LinearRgb> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
@@ -101,10 +101,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="CieXyy"/> into <see cref="LinearRgb"/>
+        /// Performs the bulk conversion from <see cref="CieXyy"/> into <see cref="LinearRgb"/>.
         /// </summary>
-        /// <param name="source">The span to the source colors</param>
-        /// <param name="destination">The span to the destination colors</param>
+        /// <param name="source">The span to the source colors.</param>
+        /// <param name="destination">The span to the destination colors.</param>
         public void Convert(ReadOnlySpan<CieXyy> source, Span<LinearRgb> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
@@ -122,10 +122,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="CieXyz"/> into <see cref="LinearRgb"/>
+        /// Performs the bulk conversion from <see cref="CieXyz"/> into <see cref="LinearRgb"/>.
         /// </summary>
-        /// <param name="source">The span to the source colors</param>
-        /// <param name="destination">The span to the destination colors</param>
+        /// <param name="source">The span to the source colors.</param>
+        /// <param name="destination">The span to the destination colors.</param>
         public void Convert(ReadOnlySpan<CieXyz> source, Span<LinearRgb> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
@@ -143,10 +143,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="Cmyk"/> into <see cref="LinearRgb"/>
+        /// Performs the bulk conversion from <see cref="Cmyk"/> into <see cref="LinearRgb"/>.
         /// </summary>
-        /// <param name="source">The span to the source colors</param>
-        /// <param name="destination">The span to the destination colors</param>
+        /// <param name="source">The span to the source colors.</param>
+        /// <param name="destination">The span to the destination colors.</param>
         public void Convert(ReadOnlySpan<Cmyk> source, Span<LinearRgb> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
@@ -164,10 +164,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="Hsl"/> into <see cref="LinearRgb"/>
+        /// Performs the bulk conversion from <see cref="Hsl"/> into <see cref="LinearRgb"/>.
         /// </summary>
-        /// <param name="source">The span to the source colors</param>
-        /// <param name="destination">The span to the destination colors</param>
+        /// <param name="source">The span to the source colors.</param>
+        /// <param name="destination">The span to the destination colors.</param>
         public void Convert(ReadOnlySpan<Hsl> source, Span<LinearRgb> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
@@ -185,10 +185,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="Hsv"/> into <see cref="LinearRgb"/>
+        /// Performs the bulk conversion from <see cref="Hsv"/> into <see cref="LinearRgb"/>.
         /// </summary>
-        /// <param name="source">The span to the source colors</param>
-        /// <param name="destination">The span to the destination colors</param>
+        /// <param name="source">The span to the source colors.</param>
+        /// <param name="destination">The span to the destination colors.</param>
         public void Convert(ReadOnlySpan<Hsv> source, Span<LinearRgb> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
@@ -206,10 +206,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="HunterLab"/> into <see cref="LinearRgb"/>
+        /// Performs the bulk conversion from <see cref="HunterLab"/> into <see cref="LinearRgb"/>.
         /// </summary>
-        /// <param name="source">The span to the source colors</param>
-        /// <param name="destination">The span to the destination colors</param>
+        /// <param name="source">The span to the source colors.</param>
+        /// <param name="destination">The span to the destination colors.</param>
         public void Convert(ReadOnlySpan<HunterLab> source, Span<LinearRgb> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
@@ -227,10 +227,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="Lms"/> into <see cref="LinearRgb"/>
+        /// Performs the bulk conversion from <see cref="Lms"/> into <see cref="LinearRgb"/>.
         /// </summary>
-        /// <param name="source">The span to the source colors</param>
-        /// <param name="destination">The span to the destination colors</param>
+        /// <param name="source">The span to the source colors.</param>
+        /// <param name="destination">The span to the destination colors.</param>
         public void Convert(ReadOnlySpan<Lms> source, Span<LinearRgb> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
@@ -248,7 +248,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="Lms"/> into <see cref="LinearRgb"/>
+        /// Performs the bulk conversion from <see cref="Lms"/> into <see cref="LinearRgb"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
@@ -269,7 +269,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="YCbCr"/> into <see cref="LinearRgb"/>
+        /// Performs the bulk conversion from <see cref="YCbCr"/> into <see cref="LinearRgb"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
@@ -290,7 +290,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="CieLab"/> into a <see cref="LinearRgb"/>
+        /// Converts a <see cref="CieLab"/> into a <see cref="LinearRgb"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
@@ -301,7 +301,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="CieLch"/> into a <see cref="LinearRgb"/>
+        /// Converts a <see cref="CieLch"/> into a <see cref="LinearRgb"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
@@ -312,7 +312,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="CieLchuv"/> into a <see cref="LinearRgb"/>
+        /// Converts a <see cref="CieLchuv"/> into a <see cref="LinearRgb"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
@@ -323,7 +323,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="CieLuv"/> into a <see cref="LinearRgb"/>
+        /// Converts a <see cref="CieLuv"/> into a <see cref="LinearRgb"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
@@ -345,7 +345,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="CieXyz"/> into a <see cref="LinearRgb"/>
+        /// Converts a <see cref="CieXyz"/> into a <see cref="LinearRgb"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
@@ -359,7 +359,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="Cmyk"/> into a <see cref="LinearRgb"/>
+        /// Converts a <see cref="Cmyk"/> into a <see cref="LinearRgb"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
@@ -370,7 +370,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="Hsl"/> into a <see cref="LinearRgb"/>
+        /// Converts a <see cref="Hsl"/> into a <see cref="LinearRgb"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
@@ -381,7 +381,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="Hsv"/> into a <see cref="LinearRgb"/>
+        /// Converts a <see cref="Hsv"/> into a <see cref="LinearRgb"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
@@ -392,7 +392,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="HunterLab"/> into a <see cref="LinearRgb"/>
+        /// Converts a <see cref="HunterLab"/> into a <see cref="LinearRgb"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
@@ -403,7 +403,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="Lms"/> into a <see cref="LinearRgb"/>
+        /// Converts a <see cref="Lms"/> into a <see cref="LinearRgb"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>
@@ -425,7 +425,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="YCbCr"/> into a <see cref="LinearRgb"/>
+        /// Converts a <see cref="YCbCr"/> into a <see cref="LinearRgb"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="LinearRgb"/></returns>

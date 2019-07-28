@@ -276,5 +276,19 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // assert
             Assert.Equal(expected, actual);
         }
+
+        [Fact]
+        public void Rgba32_FromBgra5551()
+        {
+            // arrange
+            var rgb = default(Rgba32);
+            uint expected = 0xFFFFFFFF;
+
+            // act
+            rgb.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // assert
+            Assert.Equal(expected, rgb.PackedValue);
+        }
     }
 }

@@ -1,35 +1,27 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Buffers;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 {
     /// <summary>
-    /// Applies a global histogram equalization to the image.
+    /// Defines a processor that normalizes the histogram of an image.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class HistogramEqualizationProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public abstract class HistogramEqualizationProcessor : IImageProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="HistogramEqualizationProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="HistogramEqualizationProcessor"/> class.
         /// </summary>
         /// <param name="luminanceLevels">The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
         /// or 65536 for 16-bit grayscale images.</param>
-        public HistogramEqualizationProcessor(int luminanceLevels)
+        /// <param name="clipHistogram">Indicates, if histogram bins should be clipped.</param>
+        /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels in the tile. Histogram bins which exceed this limit, will be capped at this value.</param>
+        protected HistogramEqualizationProcessor(int luminanceLevels, bool clipHistogram, float clipLimitPercentage)
         {
-            Guard.MustBeGreaterThan(luminanceLevels, 0, nameof(luminanceLevels));
-
             this.LuminanceLevels = luminanceLevels;
+            this.ClipHistogram = clipHistogram;
+            this.ClipLimitPercentage = clipLimitPercentage;
         }
 
         /// <summary>
@@ -37,92 +29,64 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// </summary>
         public int LuminanceLevels { get; }
 
-        /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
-        {
-            MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
-            int numberOfPixels = source.Width * source.Height;
-            Span<TPixel> pixels = source.GetPixelSpan();
-
-            // Build the histogram of the grayscale levels.
-            using (IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
-            using (IMemoryOwner<int> cdfBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
-            {
-                Span<int> histogram = histogramBuffer.GetSpan();
-                for (int i = 0; i < pixels.Length; i++)
-                {
-                    TPixel sourcePixel = pixels[i];
-                    int luminance = this.GetLuminance(sourcePixel, this.LuminanceLevels);
-                    histogram[luminance]++;
-                }
-
-                // Calculate the cumulative distribution function, which will map each input pixel to a new value.
-                Span<int> cdf = cdfBuffer.GetSpan();
-                int cdfMin = this.CalculateCdf(cdf, histogram);
-
-                // Apply the cdf to each pixel of the image
-                float numberOfPixelsMinusCdfMin = numberOfPixels - cdfMin;
-                for (int i = 0; i < pixels.Length; i++)
-                {
-                    TPixel sourcePixel = pixels[i];
-
-                    int luminance = this.GetLuminance(sourcePixel, this.LuminanceLevels);
-                    float luminanceEqualized = cdf[luminance] / numberOfPixelsMinusCdfMin;
-
-                    pixels[i].FromVector4(new Vector4(luminanceEqualized));
-                }
-            }
-        }
+        /// <summary>
+        /// Gets a value indicating whether to clip the histogram bins at a specific value.
+        /// </summary>
+        public bool ClipHistogram { get; }
 
         /// <summary>
-        /// Calculates the cumulative distribution function.
+        /// Gets the histogram clip limit in percent of the total pixels in the tile. Histogram bins which exceed this limit, will be capped at this value.
         /// </summary>
-        /// <param name="cdf">The array holding the cdf.</param>
-        /// <param name="histogram">The histogram of the input image.</param>
-        /// <returns>The first none zero value of the cdf.</returns>
-        private int CalculateCdf(Span<int> cdf, Span<int> histogram)
-        {
-            // Calculate the cumulative histogram
-            int histSum = 0;
-            for (int i = 0; i < histogram.Length; i++)
-            {
-                histSum += histogram[i];
-                cdf[i] = histSum;
-            }
+        public float ClipLimitPercentage { get; }
 
-            // Get the first none zero value of the cumulative histogram
-            int cdfMin = 0;
-            for (int i = 0; i < histogram.Length; i++)
+        /// <inheritdoc />
+        public abstract IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+            where TPixel : struct, IPixel<TPixel>;
+
+        /// <summary>
+        /// Creates the <see cref="HistogramEqualizationProcessor"/> that implements the algorithm
+        /// defined by the given <see cref="HistogramEqualizationOptions"/>.
+        /// </summary>
+        /// <param name="options">The <see cref="HistogramEqualizationOptions"/>.</param>
+        /// <returns>The <see cref="HistogramEqualizationProcessor"/>.</returns>
+        public static HistogramEqualizationProcessor FromOptions(HistogramEqualizationOptions options)
+        {
+            HistogramEqualizationProcessor processor;
+
+            switch (options.Method)
             {
-                if (cdf[i] != 0)
-                {
-                    cdfMin = cdf[i];
+                case HistogramEqualizationMethod.Global:
+                    processor = new GlobalHistogramEqualizationProcessor(
+                        options.LuminanceLevels,
+                        options.ClipHistogram,
+                        options.ClipLimitPercentage);
                     break;
-                }
+
+                case HistogramEqualizationMethod.AdaptiveTileInterpolation:
+                    processor = new AdaptiveHistogramEqualizationProcessor(
+                        options.LuminanceLevels,
+                        options.ClipHistogram,
+                        options.ClipLimitPercentage,
+                        options.NumberOfTiles);
+                    break;
+
+                case HistogramEqualizationMethod.AdaptiveSlidingWindow:
+                    processor = new AdaptiveHistogramEqualizationSlidingWindowProcessor(
+                        options.LuminanceLevels,
+                        options.ClipHistogram,
+                        options.ClipLimitPercentage,
+                        options.NumberOfTiles);
+                    break;
+
+                default:
+                    processor = new GlobalHistogramEqualizationProcessor(
+                        options.LuminanceLevels,
+                        options.ClipHistogram,
+                        options.ClipLimitPercentage);
+                    break;
             }
 
-            // Creating the lookup table: subtracting cdf min, so we do not need to do that inside the for loop
-            for (int i = 0; i < histogram.Length; i++)
-            {
-                cdf[i] = Math.Max(0, cdf[i] - cdfMin);
-            }
-
-            return cdfMin;
-        }
-
-        /// <summary>
-        /// Convert the pixel values to grayscale using ITU-R Recommendation BT.709.
-        /// </summary>
-        /// <param name="sourcePixel">The pixel to get the luminance from</param>
-        /// <param name="luminanceLevels">The number of luminance levels (256 for 8 bit, 65536 for 16 bit grayscale images)</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private int GetLuminance(TPixel sourcePixel, int luminanceLevels)
-        {
-            // Convert to grayscale using ITU-R Recommendation BT.709
-            var vector = sourcePixel.ToVector4();
-            int luminance = Convert.ToInt32(((.2126F * vector.X) + (.7152F * vector.Y) + (.0722F * vector.Y)) * (luminanceLevels - 1));
-
-            return luminance;
+            return processor;
         }
     }
 }

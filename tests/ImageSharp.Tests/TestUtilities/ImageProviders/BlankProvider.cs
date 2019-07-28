@@ -20,6 +20,9 @@ namespace SixLabors.ImageSharp.Tests
                 this.Height = height;
             }
 
+            /// <summary>
+            /// This parameterless constructor is needed for xUnit deserialization
+            /// </summary>
             public BlankProvider()
             {
                 this.Width = 100;
@@ -32,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests
 
             protected int Width { get; private set; }
 
-            public override Image<TPixel> GetImage() => new Image<TPixel>(this.Width, this.Height);
+            public override Image<TPixel> GetImage() => new Image<TPixel>(this.Configuration, this.Width, this.Height);
 
 
             public override void Deserialize(IXunitSerializationInfo info)

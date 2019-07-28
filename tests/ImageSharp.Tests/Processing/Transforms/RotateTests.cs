@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public void RotateDegreesFloatRotateProcessorWithAnglesSet(float angle)
         {
             this.operations.Rotate(angle);
-            RotateProcessor<Rgba32> processor = this.Verify<RotateProcessor<Rgba32>>();
+            RotateProcessor processor = this.Verify<RotateProcessor>();
 
             Assert.Equal(angle, processor.Degrees);
         }
@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public void RotateRotateTypeRotateProcessorWithAnglesConvertedFromEnum(RotateMode angle, float expectedAngle)
         {
             this.operations.Rotate(angle); // is this api needed ???
-            RotateProcessor<Rgba32> processor = this.Verify<RotateProcessor<Rgba32>>();
+            RotateProcessor processor = this.Verify<RotateProcessor>();
 
             Assert.Equal(expectedAngle, processor.Degrees);
         }

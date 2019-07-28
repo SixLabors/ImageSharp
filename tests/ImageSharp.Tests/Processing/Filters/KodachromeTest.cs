@@ -14,14 +14,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
         public void Kodachrome_amount_KodachromeProcessorDefaultsSet()
         {
             this.operations.Kodachrome();
-            var processor = this.Verify<KodachromeProcessor<Rgba32>>();
+            var processor = this.Verify<KodachromeProcessor>();
         }
 
         [Fact]
         public void Kodachrome_amount_rect_KodachromeProcessorDefaultsSet()
         {
             this.operations.Kodachrome(this.rect);
-            var processor = this.Verify<KodachromeProcessor<Rgba32>>(this.rect);
+            var processor = this.Verify<KodachromeProcessor>(this.rect);
         }
     }
 }

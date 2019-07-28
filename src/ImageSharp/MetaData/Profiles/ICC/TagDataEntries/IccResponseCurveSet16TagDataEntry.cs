@@ -4,7 +4,7 @@
 using System;
 using System.Linq;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// The purpose of this tag type is to provide a mechanism to relate physical
@@ -51,10 +51,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccResponseCurve[] Curves { get; }
 
         /// <inheritdoc/>
-        public override bool Equals(IccTagDataEntry other)
-        {
-            return other is IccResponseCurveSet16TagDataEntry entry && this.Equals(entry);
-        }
+        public override bool Equals(IccTagDataEntry other) => other is IccResponseCurveSet16TagDataEntry entry && this.Equals(entry);
 
         /// <inheritdoc />
         public bool Equals(IccResponseCurveSet16TagDataEntry other)
@@ -71,14 +68,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
             return base.Equals(other)
                 && this.ChannelCount == other.ChannelCount
-                && this.Curves.SequenceEqual(other.Curves);
+                && this.Curves.AsSpan().SequenceEqual(other.Curves);
         }
 
         /// <inheritdoc />
-        public override bool Equals(object obj)
-        {
-            return obj is IccResponseCurveSet16TagDataEntry other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is IccResponseCurveSet16TagDataEntry other && this.Equals(other);
 
         /// <inheritdoc />
         public override int GetHashCode()

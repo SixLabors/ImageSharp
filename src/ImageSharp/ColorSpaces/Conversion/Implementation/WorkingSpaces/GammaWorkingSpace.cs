@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     /// <summary>
     /// The gamma working space.
     /// </summary>
-    public class GammaWorkingSpace : RgbWorkingSpaceBase
+    public sealed class GammaWorkingSpace : RgbWorkingSpace
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="GammaWorkingSpace" /> class.

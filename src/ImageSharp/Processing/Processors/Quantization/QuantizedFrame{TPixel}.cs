@@ -8,14 +8,13 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 
-// TODO: Consider pooling the TPixel palette also. For Rgba48+ this would end up on th LOH if 256 colors.
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 {
     /// <summary>
     /// Represents a quantized image frame where the pixels indexed by a color palette.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public class QuantizedFrame<TPixel> : IDisposable
+    public class QuantizedFrame<TPixel> : IQuantizedFrame<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private IMemoryOwner<byte> pixels;
@@ -27,7 +26,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <param name="width">The image width.</param>
         /// <param name="height">The image height.</param>
         /// <param name="palette">The color palette.</param>
-        public QuantizedFrame(MemoryAllocator memoryAllocator, int width, int height, TPixel[] palette)
+        internal QuantizedFrame(MemoryAllocator memoryAllocator, int width, int height, ReadOnlyMemory<TPixel> palette)
         {
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
@@ -51,23 +50,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Gets the color palette of this <see cref="QuantizedFrame{TPixel}"/>.
         /// </summary>
-        public TPixel[] Palette { get; private set; }
+        public ReadOnlyMemory<TPixel> Palette { get; private set; }
 
         /// <summary>
         /// Gets the pixels of this <see cref="QuantizedFrame{TPixel}"/>.
         /// </summary>
         /// <returns>The <see cref="Span{T}"/></returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Span<byte> GetPixelSpan() => this.pixels.GetSpan();
-
-        /// <summary>
-        /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory
-        /// at row <paramref name="rowIndex"/> beginning from the the first pixel on that row.
-        /// </summary>
-        /// <param name="rowIndex">The row.</param>
-        /// <returns>The <see cref="Span{T}"/></returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public Span<byte> GetRowSpan(int rowIndex) => this.GetPixelSpan().Slice(rowIndex * this.Width, this.Width);
+        public ReadOnlySpan<byte> GetPixelSpan() => this.pixels.GetSpan();
 
         /// <inheritdoc/>
         public void Dispose()
@@ -76,5 +66,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.pixels = null;
             this.Palette = null;
         }
+
+        /// <summary>
+        /// Get the non-readonly span of pixel data so <see cref="FrameQuantizer{TPixel}"/> can fill it.
+        /// </summary>
+        internal Span<byte> GetWritablePixelSpan() => this.pixels.GetSpan();
     }
 }

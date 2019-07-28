@@ -1,8 +1,8 @@
+using System.Numerics;
+using BenchmarkDotNet.Attributes;
+
 namespace ImageSharp.Benchmarks.General.Vectorization
 {
-    using System.Numerics;
-    using BenchmarkDotNet.Attributes;
-
     public class MulUInt32 : SIMDBenchmarkBase<uint>.Multiply
     {
         protected override uint GetTestValue() => 42u;

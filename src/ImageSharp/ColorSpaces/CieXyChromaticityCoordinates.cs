@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.ColorSpaces
 {
     /// <summary>
-    /// Represents the coordinates of CIEXY chromaticity space
+    /// Represents the coordinates of CIEXY chromaticity space.
     /// </summary>
     public readonly struct CieXyChromaticityCoordinates : IEquatable<CieXyChromaticityCoordinates>
     {

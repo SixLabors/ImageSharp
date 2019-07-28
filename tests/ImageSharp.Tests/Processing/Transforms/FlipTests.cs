@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public void Flip_degreesFloat_RotateProcessorWithAnglesSetAndExpandTrue(FlipMode flip)
         {
             this.operations.Flip(flip);
-            FlipProcessor<Rgba32> flipProcessor = this.Verify<FlipProcessor<Rgba32>>();
+            FlipProcessor flipProcessor = this.Verify<FlipProcessor>();
 
             Assert.Equal(flip, flipProcessor.FlipMode);
         }

@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 
@@ -10,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// Provides methods to allow the execution of the quantization process on an image frame.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public interface IFrameQuantizer<TPixel>
+    public interface IFrameQuantizer<TPixel> : IDisposable
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -30,6 +31,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <returns>
         /// A <see cref="QuantizedFrame{TPixel}"/> representing a quantized version of the image pixels.
         /// </returns>
-        QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image);
+        IQuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image);
     }
 }

@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     /// <summary>
     /// Rec. 709 (ITU-R Recommendation BT.709) working space.
     /// </summary>
-    public sealed class Rec709WorkingSpace : RgbWorkingSpaceBase
+    public sealed class Rec709WorkingSpace : RgbWorkingSpace
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Rec709WorkingSpace" /> class.

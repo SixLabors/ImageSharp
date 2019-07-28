@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 using Xunit;
 
@@ -10,7 +11,7 @@ namespace SixLabors.ImageSharp.Tests
 {
     public abstract class BaseImageOperationsExtensionTest
     {
-        protected readonly IImageProcessingContext<Rgba32> operations;
+        protected readonly IImageProcessingContext operations;
         private readonly FakeImageOperationsProvider.FakeImageOperations<Rgba32> internalOperations;
         protected readonly Rectangle rect;
         protected readonly GraphicsOptions options;
@@ -33,7 +34,12 @@ namespace SixLabors.ImageSharp.Tests
 
             FakeImageOperationsProvider.FakeImageOperations<Rgba32>.AppliedOperation operation = this.internalOperations.Applied[index];
 
-            return Assert.IsType<T>(operation.Processor);
+            if (operation.NonGenericProcessor != null)
+            {
+                return Assert.IsType<T>(operation.NonGenericProcessor);
+            }
+            
+            return Assert.IsType<T>(operation.GenericProcessor);
         }
 
         public T Verify<T>(Rectangle rect, int index = 0)
@@ -43,7 +49,13 @@ namespace SixLabors.ImageSharp.Tests
             FakeImageOperationsProvider.FakeImageOperations<Rgba32>.AppliedOperation operation = this.internalOperations.Applied[index];
 
             Assert.Equal(rect, operation.Rectangle);
-            return Assert.IsType<T>(operation.Processor);
+            
+            if (operation.NonGenericProcessor != null)
+            {
+                return Assert.IsType<T>(operation.NonGenericProcessor);
+            }
+            
+            return Assert.IsType<T>(operation.GenericProcessor);
         }
     }
 }

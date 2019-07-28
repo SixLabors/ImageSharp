@@ -113,6 +113,10 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void FromRgba32(Rgba32 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
@@ -145,7 +149,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public override string ToString()
         {
             var vector = this.ToVector4();
-            return FormattableString.Invariant($"Bgra5551({vector.X:#0.##}, {vector.Y:#0.##}, {vector.Z:#0.##}, {vector.W:#0.##})");
+            return FormattableString.Invariant($"Byte4({vector.X:#0.##}, {vector.Y:#0.##}, {vector.Z:#0.##}, {vector.W:#0.##})");
         }
 
         /// <summary>

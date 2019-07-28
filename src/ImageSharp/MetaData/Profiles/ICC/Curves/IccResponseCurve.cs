@@ -2,10 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Linq;
 using System.Numerics;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// A response curve
@@ -65,10 +64,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <inheritdoc />
-        public override bool Equals(object obj)
-        {
-            return obj is IccResponseCurve other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is IccResponseCurve other && this.Equals(other);
 
         /// <inheritdoc />
         public override int GetHashCode()
@@ -88,7 +84,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
             for (int i = 0; i < this.ResponseArrays.Length; i++)
             {
-                if (!this.ResponseArrays[i].SequenceEqual(other.ResponseArrays[i]))
+                if (!this.ResponseArrays[i].AsSpan().SequenceEqual(other.ResponseArrays[i]))
                 {
                     return false;
                 }

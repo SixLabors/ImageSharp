@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 
@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp
     /// <content>
     /// Adds static methods allowing the decoding of new images.
     /// </content>
-    public static partial class Image
+    public abstract partial class Image
     {
         /// <summary>
         /// Creates an <see cref="Image{TPixel}"/> instance backed by an uninitialized memory buffer.
@@ -22,16 +22,16 @@ namespace SixLabors.ImageSharp
         /// The image might be filled with memory garbage.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
-        /// <param name="configuration">The <see cref="Configuration"/></param>
+        /// <param name="configuration">The <see cref="ImageSharp.Configuration"/></param>
         /// <param name="width">The width of the image</param>
         /// <param name="height">The height of the image</param>
-        /// <param name="metadata">The <see cref="ImageMetaData"/></param>
+        /// <param name="metadata">The <see cref="ImageMetadata"/></param>
         /// <returns>The result <see cref="Image{TPixel}"/></returns>
         internal static Image<TPixel> CreateUninitialized<TPixel>(
             Configuration configuration,
             int width,
             int height,
-            ImageMetaData metadata)
+            ImageMetadata metadata)
             where TPixel : struct, IPixel<TPixel>
         {
             Buffer2D<TPixel> uninitializedMemoryBuffer =
@@ -100,6 +100,18 @@ namespace SixLabors.ImageSharp
             }
 
             Image<TPixel> img = decoder.Decode<TPixel>(config, stream);
+            return (img, format);
+        }
+
+        private static (Image img, IImageFormat format) Decode(Stream stream, Configuration config)
+        {
+            IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
+            if (decoder is null)
+            {
+                return (null, null);
+            }
+
+            Image img = decoder.Decode(config, stream);
             return (img, format);
         }
 

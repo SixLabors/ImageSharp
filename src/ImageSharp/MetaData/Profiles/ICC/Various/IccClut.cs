@@ -4,7 +4,7 @@
 using System;
 using System.Linq;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// Color Lookup Table
@@ -134,10 +134,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is IccClut other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is IccClut other && this.Equals(other);
 
         /// <inheritdoc/>
         public override int GetHashCode()

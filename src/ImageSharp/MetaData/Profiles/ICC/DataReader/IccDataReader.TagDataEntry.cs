@@ -5,7 +5,7 @@ using System;
 using System.Globalization;
 using System.Numerics;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// Provides methods to read ICC data types

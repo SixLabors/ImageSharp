@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// Gets or sets the target working space used *when creating* RGB colors. (RGB colors on the input already contain the working space information)
         /// Defaults to: <see cref="Rgb.DefaultWorkingSpace"/>.
         /// </summary>
-        public RgbWorkingSpaceBase TargetRgbWorkingSpace { get; set; } = Rgb.DefaultWorkingSpace;
+        public RgbWorkingSpace TargetRgbWorkingSpace { get; set; } = Rgb.DefaultWorkingSpace;
 
         /// <summary>
         /// Gets or sets the chromatic adaptation method used. When <value>null</value>, no adaptation will be performed.

@@ -1,12 +1,14 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
+
+using System;
 
 namespace SixLabors.ImageSharp.Primitives
 {
     /// <summary>
     /// A <see langword="struct"/> that contains parameters to apply a bokeh blur filter
     /// </summary>
-    internal readonly struct BokehBlurParameters
+    internal readonly struct BokehBlurParameters : IEquatable<BokehBlurParameters>
     {
         /// <summary>
         /// The size of the convolution kernel to use when applying the bokeh blur
@@ -27,6 +29,24 @@ namespace SixLabors.ImageSharp.Primitives
         {
             this.Radius = radius;
             this.Components = components;
+        }
+
+        /// <inheritdoc/>
+        public bool Equals(BokehBlurParameters other)
+        {
+            return this.Radius.Equals(other.Radius) && this.Components.Equals(other.Components);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj) => obj is BokehBlurParameters other && this.Equals(other);
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (this.Radius.GetHashCode() * 397) ^ this.Components.GetHashCode();
+            }
         }
     }
 }

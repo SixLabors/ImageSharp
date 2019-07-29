@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Primitives
+namespace SixLabors.ImageSharp.Processing.Processors.Convolution.Parameters
 {
     /// <summary>
     /// A <see langword="struct"/> that contains parameters to apply a bokeh blur filter

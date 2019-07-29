@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
+using SixLabors.ImageSharp.Processing.Processors.Convolution.Parameters;
 using SixLabors.Memory;
 using SixLabors.Primitives;
 

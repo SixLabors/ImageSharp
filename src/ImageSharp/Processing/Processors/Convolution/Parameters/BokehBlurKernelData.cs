@@ -3,7 +3,9 @@
 
 using System.Numerics;
 
-namespace SixLabors.ImageSharp.Primitives
+using SixLabors.ImageSharp.Primitives;
+
+namespace SixLabors.ImageSharp.Processing.Processors.Convolution.Parameters
 {
     /// <summary>
     /// A <see langword="struct"/> that contains data about a set of bokeh blur kernels

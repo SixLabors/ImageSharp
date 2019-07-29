@@ -3,7 +3,7 @@
 
 using System;
 using System.IO;
-
+using System.Linq;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
@@ -13,6 +13,9 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
+
     /// <summary>
     /// Tests the <see cref="Image"/> class.
     /// </summary>

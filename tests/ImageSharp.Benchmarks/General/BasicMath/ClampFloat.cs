@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Running;
 
 namespace SixLabors.ImageSharp.Benchmarks.General.BasicMath
 {

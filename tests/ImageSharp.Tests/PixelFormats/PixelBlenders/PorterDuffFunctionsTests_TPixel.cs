@@ -9,6 +9,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
 {
+    using SixLabors.Memory;
+
     public class PorterDuffFunctionsTestsTPixel
     {
         private static Span<T> AsSpan<T>(T value)

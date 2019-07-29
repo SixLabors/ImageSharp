@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -56,7 +56,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
             }
 
             // Make sure the kernel components are the same
-            var processor = new BokehBlurProcessor<Rgb24>(10);
+            var definition = new BokehBlurProcessor(10, BokehBlurProcessor.DefaultComponents, BokehBlurProcessor.DefaultGamma);
+            var processor = new BokehBlurProcessor<Rgb24>(definition);
             Assert.Equal(components.Count, processor.Kernels.Count);
             foreach ((Complex64[] a, Complex64[] b) in components.Zip(processor.Kernels, (a, b) => (a, b)))
             {

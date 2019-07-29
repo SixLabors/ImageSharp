@@ -2,7 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
+using System.Collections.Generic;
+using System.Text;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.PixelFormats.PixelBlenders;
 using SixLabors.ImageSharp.Tests.TestUtilities;

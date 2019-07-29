@@ -2,15 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-<<<<<<< HEAD
 using System.Numerics;
 using System.Reflection;
-=======
-
->>>>>>> Removed unused using directives
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;

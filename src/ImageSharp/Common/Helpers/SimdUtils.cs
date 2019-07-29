@@ -7,6 +7,9 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tuples;
+
 namespace SixLabors.ImageSharp
 {
     /// <summary>

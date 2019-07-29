@@ -44,7 +44,7 @@
 *.sql               text        eol=lf
 *.svg               text        eol=lf
 *.targets           text        eol=lf
-*.tt                text        eol=lf
+*.tt                text        eol=crlf
 *.ttinclude         text        eol=crlf
 *.txt               text        eol=lf
 *.vb                text        eol=lf

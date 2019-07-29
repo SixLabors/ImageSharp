@@ -463,6 +463,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 configuration,
                 rows =>
                     {
+                        Vector4 low = Vector4.Zero;
+                        var high = new Vector4(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
+
                         for (int y = rows.Min; y < rows.Max; y++)
                         {
                             Span<Vector4> targetRowSpan = sourceValues.GetRowSpan(y).Slice(startX);
@@ -472,9 +475,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                             for (int x = 0; x < width; x++)
                             {
                                 ref Vector4 v = ref Unsafe.Add(ref baseRef, x);
-                                v.X = MathF.Pow(v.X.Clamp(0, float.PositiveInfinity), expGamma);
-                                v.Y = MathF.Pow(v.Y.Clamp(0, float.PositiveInfinity), expGamma);
-                                v.Z = MathF.Pow(v.Z.Clamp(0, float.PositiveInfinity), expGamma);
+                                var clamp = Vector4.Clamp(v, low, high);
+                                v.X = MathF.Pow(clamp.X, expGamma);
+                                v.Y = MathF.Pow(clamp.Y, expGamma);
+                                v.Z = MathF.Pow(clamp.Z, expGamma);
                             }
 
                             PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, targetRowSpan.Slice(0, width), targetPixelSpan, PixelConversionModifiers.Premultiply);

@@ -1,6 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -9,7 +10,7 @@ namespace SixLabors.ImageSharp.Primitives
     /// <summary>
     /// A vector with 4 values of type <see cref="Complex64"/>.
     /// </summary>
-    internal struct ComplexVector4
+    internal struct ComplexVector4 : IEquatable<ComplexVector4>
     {
         /// <summary>
         /// The real part of the complex vector
@@ -40,5 +41,23 @@ namespace SixLabors.ImageSharp.Primitives
         /// <returns>The resulting <see cref="Vector4"/> value</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public Vector4 WeightedSum(float a, float b) => (this.Real * a) + (this.Imaginary * b);
+
+        /// <inheritdoc/>
+        public bool Equals(ComplexVector4 other)
+        {
+            return this.Real.Equals(other.Real) && this.Imaginary.Equals(other.Imaginary);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj) => obj is ComplexVector4 other && this.Equals(other);
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (this.Real.GetHashCode() * 397) ^ this.Imaginary.GetHashCode();
+            }
+        }
     }
 }

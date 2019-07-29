@@ -210,8 +210,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                 // Fill in the complex kernel values
                 Unsafe.Add(ref baseRef, i) = new Complex64(
-                    (float)(Math.Exp(-a * value) * Math.Cos(b * value)),
-                    (float)(Math.Exp(-a * value) * Math.Sin(b * value)));
+                    MathF.Exp(-a * value) * MathF.Cos(b * value),
+                    MathF.Exp(-a * value) * MathF.Sin(b * value));
             }
 
             return kernel;
@@ -223,7 +223,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         private void NormalizeKernels()
         {
             // Calculate the complex weighted sum
-            double total = 0;
+            float total = 0;
             Span<Complex64[]> kernelsSpan = this.kernels.AsSpan();
             ref Complex64[] baseKernelsRef = ref MemoryMarshal.GetReference(kernelsSpan);
             ref Vector4 baseParamsRef = ref MemoryMarshal.GetReference(this.kernelParameters.AsSpan());
@@ -249,7 +249,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             }
 
             // Normalize the kernels
-            float scalar = (float)(1f / Math.Sqrt(total));
+            float scalar = 1f / MathF.Sqrt(total);
             for (int i = 0; i < kernelsSpan.Length; i++)
             {
                 ref Complex64[] kernelsRef = ref Unsafe.Add(ref baseKernelsRef, i);
@@ -424,9 +424,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                             for (int x = 0; x < width; x++)
                             {
                                 ref Vector4 v = ref Unsafe.Add(ref baseRef, x);
-                                v.X = (float)Math.Pow(v.X, gamma);
-                                v.Y = (float)Math.Pow(v.Y, gamma);
-                                v.Z = (float)Math.Pow(v.Z, gamma);
+                                v.X = MathF.Pow(v.X, gamma);
+                                v.Y = MathF.Pow(v.Y, gamma);
+                                v.Z = MathF.Pow(v.Z, gamma);
                             }
 
                             PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan.Slice(0, length), targetRowSpan);
@@ -472,9 +472,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                             for (int x = 0; x < width; x++)
                             {
                                 ref Vector4 v = ref Unsafe.Add(ref baseRef, x);
-                                v.X = (float)Math.Pow(v.X.Clamp(0, float.PositiveInfinity), expGamma);
-                                v.Y = (float)Math.Pow(v.Y.Clamp(0, float.PositiveInfinity), expGamma);
-                                v.Z = (float)Math.Pow(v.Z.Clamp(0, float.PositiveInfinity), expGamma);
+                                v.X = MathF.Pow(v.X.Clamp(0, float.PositiveInfinity), expGamma);
+                                v.Y = MathF.Pow(v.Y.Clamp(0, float.PositiveInfinity), expGamma);
+                                v.Z = MathF.Pow(v.Z.Clamp(0, float.PositiveInfinity), expGamma);
                             }
 
                             PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, targetRowSpan.Slice(0, width), targetPixelSpan, PixelConversionModifiers.Premultiply);

@@ -118,10 +118,16 @@ Alternatively, you can work from command line and/or with a lightweight editor o
 - [Visual Studio Code](https://code.visualstudio.com/) with [C# Extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode.csharp)
 - [.NET Core](https://www.microsoft.com/net/core#linuxubuntu)
 
-To clone ImageSharp locally, click the "Clone in Windows" button above or run the following git commands:
+To clone ImageSharp locally, click the "Clone in [YOUR_OS]" button above or run the following git commands:
 
 ```bash
 git clone https://github.com/SixLabors/ImageSharp
+```
+
+If working with Windows please ensure that you have enabled log file paths in git (run as Administrator).
+
+```bash
+git config --system core.longpaths true
 ```
 
 ### Submodules

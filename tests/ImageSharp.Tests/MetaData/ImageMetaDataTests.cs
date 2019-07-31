@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Formats.Gif;
@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.Primitives;
 
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.MetaData
 {
     /// <summary>
     /// Tests the <see cref="ImageMetadata"/> class.
@@ -22,19 +22,22 @@ namespace SixLabors.ImageSharp.Tests
             var metaData = new ImageMetadata();
 
             var exifProfile = new ExifProfile();
-            var imageProperty = new ImageProperty("name", "value");
+            var pngTextData = new PngTextData("name", "value", "foo", "bar");
+            var gifTextData = new GifTextData("name", "value");
 
             metaData.ExifProfile = exifProfile;
             metaData.HorizontalResolution = 4;
             metaData.VerticalResolution = 2;
-            metaData.Properties.Add(imageProperty);
+            metaData.PngTextProperties.Add(pngTextData);
+            metaData.GifTextProperties.Add(gifTextData);
 
             ImageMetadata clone = metaData.DeepClone();
 
             Assert.Equal(exifProfile.ToByteArray(), clone.ExifProfile.ToByteArray());
             Assert.Equal(4, clone.HorizontalResolution);
             Assert.Equal(2, clone.VerticalResolution);
-            Assert.Equal(imageProperty, clone.Properties[0]);
+            Assert.Equal(pngTextData, clone.PngTextProperties[0]);
+            Assert.Equal(gifTextData, clone.GifTextProperties[0]);
         }
 
         [Fact]
@@ -43,12 +46,14 @@ namespace SixLabors.ImageSharp.Tests
             var metaData = new ImageMetadata();
 
             var exifProfile = new ExifProfile();
-            var imageProperty = new ImageProperty("name", "value");
+            var pngTextData = new PngTextData("name", "value", "foo", "bar");
+            var gifTextData = new GifTextData("name", "value");
 
             metaData.ExifProfile = exifProfile;
             metaData.HorizontalResolution = 4;
             metaData.VerticalResolution = 2;
-            metaData.Properties.Add(imageProperty);
+            metaData.PngTextProperties.Add(pngTextData);
+            metaData.GifTextProperties.Add(gifTextData);
 
             ImageMetadata clone = metaData.DeepClone();
             clone.HorizontalResolution = 2;
@@ -57,7 +62,8 @@ namespace SixLabors.ImageSharp.Tests
             Assert.False(metaData.ExifProfile.Equals(clone.ExifProfile));
             Assert.False(metaData.HorizontalResolution.Equals(clone.HorizontalResolution));
             Assert.False(metaData.VerticalResolution.Equals(clone.VerticalResolution));
-            Assert.False(metaData.Properties.Equals(clone.Properties));
+            Assert.False(metaData.GifTextProperties.Equals(clone.GifTextProperties));
+            Assert.False(metaData.PngTextProperties.Equals(clone.PngTextProperties));
             Assert.False(metaData.GetFormatMetadata(GifFormat.Instance).Equals(clone.GetFormatMetadata(GifFormat.Instance)));
         }
 

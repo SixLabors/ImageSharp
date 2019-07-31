@@ -762,25 +762,30 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void WriteTextChunks(Stream stream, ImageMetadata meta)
         {
             const int MaxLatinCode = 255;
-            foreach (ImageProperty imageProperty in meta.Properties)
+            foreach (PngTextData imageProperty in meta.PngTextProperties)
             {
                 bool hasUnicodeCharacters = imageProperty.Value.Any(c => c > MaxLatinCode);
-                if (hasUnicodeCharacters)
+                if (hasUnicodeCharacters || (!string.IsNullOrWhiteSpace(imageProperty.LanguageTag) || !string.IsNullOrWhiteSpace(imageProperty.TranslatedKeyword)))
                 {
                     // Write iTXt chunk.
-                    byte[] keywordBytes = this.latinEncoding.GetBytes(imageProperty.Name);
+                    byte[] keywordBytes = this.latinEncoding.GetBytes(imageProperty.Keyword);
                     byte[] textBytes = imageProperty.Value.Length > this.compressTextThreshold ? this.GetCompressedTextBytes(Encoding.UTF8.GetBytes(imageProperty.Value)) : Encoding.UTF8.GetBytes(imageProperty.Value);
+                    byte[] translatedKeyword = Encoding.UTF8.GetBytes(imageProperty.TranslatedKeyword);
+                    byte[] languageTag = this.latinEncoding.GetBytes(imageProperty.LanguageTag);
 
-                    // Note: The optional language tag and the translated keyword will be omitted.
-                    Span<byte> outputBytes = new byte[keywordBytes.Length + textBytes.Length + 5];
+                    Span<byte> outputBytes = new byte[keywordBytes.Length + textBytes.Length + translatedKeyword.Length + languageTag.Length + 5];
+                    keywordBytes.CopyTo(outputBytes);
                     if (imageProperty.Value.Length > this.compressTextThreshold)
                     {
                         // Indicate that the text is compressed.
                         outputBytes[keywordBytes.Length + 1] = 1;
                     }
 
-                    keywordBytes.CopyTo(outputBytes);
-                    textBytes.CopyTo(outputBytes.Slice(keywordBytes.Length + 5));
+                    int keywordStart = keywordBytes.Length + 3;
+                    languageTag.CopyTo(outputBytes.Slice(keywordStart));
+                    int translatedKeywordStart = keywordStart + languageTag.Length + 1;
+                    translatedKeyword.CopyTo(outputBytes.Slice(translatedKeywordStart));
+                    textBytes.CopyTo(outputBytes.Slice(translatedKeywordStart + translatedKeyword.Length + 1));
                     this.WriteChunk(stream, PngChunkType.InternationalText, outputBytes.ToArray());
                 }
                 else
@@ -789,17 +794,17 @@ namespace SixLabors.ImageSharp.Formats.Png
                     {
                         // Write zTXt chunk.
                         byte[] compressedData = this.GetCompressedTextBytes(this.latinEncoding.GetBytes(imageProperty.Value));
-                        Span<byte> outputBytes = new byte[imageProperty.Name.Length + compressedData.Length + 2];
-                        this.latinEncoding.GetBytes(imageProperty.Name).CopyTo(outputBytes);
-                        compressedData.CopyTo(outputBytes.Slice(imageProperty.Name.Length + 2));
+                        Span<byte> outputBytes = new byte[imageProperty.Keyword.Length + compressedData.Length + 2];
+                        this.latinEncoding.GetBytes(imageProperty.Keyword).CopyTo(outputBytes);
+                        compressedData.CopyTo(outputBytes.Slice(imageProperty.Keyword.Length + 2));
                         this.WriteChunk(stream, PngChunkType.CompressedText, outputBytes.ToArray());
                     }
                     else
                     {
                         // Write tEXt chunk.
-                        Span<byte> outputBytes = new byte[imageProperty.Name.Length + imageProperty.Value.Length + 1];
-                        this.latinEncoding.GetBytes(imageProperty.Name).CopyTo(outputBytes);
-                        this.latinEncoding.GetBytes(imageProperty.Value).CopyTo(outputBytes.Slice(imageProperty.Name.Length + 1));
+                        Span<byte> outputBytes = new byte[imageProperty.Keyword.Length + imageProperty.Value.Length + 1];
+                        this.latinEncoding.GetBytes(imageProperty.Keyword).CopyTo(outputBytes);
+                        this.latinEncoding.GetBytes(imageProperty.Value).CopyTo(outputBytes.Slice(imageProperty.Keyword.Length + 1));
                         this.WriteChunk(stream, PngChunkType.Text, outputBytes.ToArray());
                     }
                 }

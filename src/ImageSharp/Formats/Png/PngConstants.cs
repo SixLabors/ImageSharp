@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -54,5 +54,15 @@ namespace SixLabors.ImageSharp.Formats.Png
             [PngColorType.GrayscaleWithAlpha] = new byte[] { 8, 16 },
             [PngColorType.RgbWithAlpha] = new byte[] { 8, 16 }
         };
+
+        /// <summary>
+        /// The maximum length of keyword in a text chunk is 79 bytes.
+        /// </summary>
+        public const int MaxTextKeywordLength = 79;
+
+        /// <summary>
+        /// The minimum length of a keyword in a text chunk is 1 byte.
+        /// </summary>
+        public const int MinTextKeywordLength = 1;
     }
 }

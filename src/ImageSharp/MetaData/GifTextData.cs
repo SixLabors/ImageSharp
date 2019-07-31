@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -10,14 +10,14 @@ namespace SixLabors.ImageSharp.Metadata
     /// the copyright information, the date, where the image was created
     /// or some other information.
     /// </summary>
-    public readonly struct ImageProperty : IEquatable<ImageProperty>
+    public readonly struct GifTextData : IEquatable<GifTextData>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageProperty"/> struct.
+        /// Initializes a new instance of the <see cref="GifTextData"/> struct.
         /// </summary>
         /// <param name="name">The name of the property.</param>
         /// <param name="value">The value of the property.</param>
-        public ImageProperty(string name, string value)
+        public GifTextData(string name, string value)
         {
             Guard.NotNullOrWhiteSpace(name, nameof(name));
 
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Metadata
         }
 
         /// <summary>
-        /// Gets the name of this <see cref="ImageProperty"/> indicating which kind of
+        /// Gets the name of this <see cref="GifTextData"/> indicating which kind of
         /// information this property stores.
         /// </summary>
         /// <example>
@@ -36,44 +36,44 @@ namespace SixLabors.ImageSharp.Metadata
         public string Name { get; }
 
         /// <summary>
-        /// Gets the value of this <see cref="ImageProperty"/>.
+        /// Gets the value of this <see cref="GifTextData"/>.
         /// </summary>
         public string Value { get; }
 
         /// <summary>
-        /// Compares two <see cref="ImageProperty"/> objects. The result specifies whether the values
-        /// of the <see cref="ImageProperty.Name"/> or <see cref="ImageProperty.Value"/> properties of the two
-        /// <see cref="ImageProperty"/> objects are equal.
+        /// Compares two <see cref="GifTextData"/> objects. The result specifies whether the values
+        /// of the <see cref="GifTextData.Name"/> or <see cref="GifTextData.Value"/> properties of the two
+        /// <see cref="GifTextData"/> objects are equal.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="ImageProperty"/> on the left side of the operand.
+        /// The <see cref="GifTextData"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="ImageProperty"/> on the right side of the operand.
+        /// The <see cref="GifTextData"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator ==(ImageProperty left, ImageProperty right)
+        public static bool operator ==(GifTextData left, GifTextData right)
         {
             return left.Equals(right);
         }
 
         /// <summary>
-        /// Compares two <see cref="ImageProperty"/> objects. The result specifies whether the values
-        /// of the <see cref="ImageProperty.Name"/> or <see cref="ImageProperty.Value"/> properties of the two
-        /// <see cref="ImageProperty"/> objects are unequal.
+        /// Compares two <see cref="GifTextData"/> objects. The result specifies whether the values
+        /// of the <see cref="GifTextData.Name"/> or <see cref="GifTextData.Value"/> properties of the two
+        /// <see cref="GifTextData"/> objects are unequal.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="ImageProperty"/> on the left side of the operand.
+        /// The <see cref="GifTextData"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="ImageProperty"/> on the right side of the operand.
+        /// The <see cref="GifTextData"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator !=(ImageProperty left, ImageProperty right)
+        public static bool operator !=(GifTextData left, GifTextData right)
         {
             return !(left == right);
         }
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Metadata
         /// </returns>
         public override bool Equals(object obj)
         {
-            return obj is ImageProperty other && this.Equals(other);
+            return obj is GifTextData other && this.Equals(other);
         }
 
         /// <summary>
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Metadata
         /// True if the current object is equal to the <paramref name="other"/> parameter; otherwise, false.
         /// </returns>
         /// <param name="other">An object to compare with this object.</param>
-        public bool Equals(ImageProperty other)
+        public bool Equals(GifTextData other)
         {
             return this.Name.Equals(other.Name) && Equals(this.Value, other.Value);
         }

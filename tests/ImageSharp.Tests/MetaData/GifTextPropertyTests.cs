@@ -1,14 +1,14 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using SixLabors.ImageSharp.Metadata;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.MetaData
 {
     /// <summary>
-    /// Tests the <see cref="ImageProperty"/> class.
+    /// Tests the <see cref="PngTextData"/> class.
     /// </summary>
     public class ImagePropertyTests
     {
@@ -18,8 +18,8 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void AreEqual()
         {
-            var property1 = new ImageProperty("Foo", "Bar");
-            var property2 = new ImageProperty("Foo", "Bar");
+            var property1 = new GifTextData("Foo", "Bar");
+            var property2 = new GifTextData("Foo", "Bar");
 
             Assert.Equal(property1, property2);
             Assert.True(property1 == property2);
@@ -31,10 +31,10 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void AreNotEqual()
         {
-            var property1 = new ImageProperty("Foo", "Bar");
-            var property2 = new ImageProperty("Foo", "Foo");
-            var property3 = new ImageProperty("Bar", "Bar");
-            var property4 = new ImageProperty("Foo", null);
+            var property1 = new GifTextData("Foo", "Bar");
+            var property2 = new GifTextData("Foo", "Foo");
+            var property3 = new GifTextData("Bar", "Bar");
+            var property4 = new GifTextData("Foo", null);
 
             Assert.False(property1.Equals("Foo"));
 
@@ -51,9 +51,9 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ConstructorThrowsWhenNameIsNullOrEmpty()
         {
-            Assert.Throws<ArgumentNullException>(() => new ImageProperty(null, "Foo"));
+            Assert.Throws<ArgumentNullException>(() => new GifTextData(null, "Foo"));
 
-            Assert.Throws<ArgumentException>(() => new ImageProperty(string.Empty, "Foo"));
+            Assert.Throws<ArgumentException>(() => new GifTextData(string.Empty, "Foo"));
         }
 
         /// <summary>
@@ -62,11 +62,11 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ConstructorAssignsProperties()
         {
-            var property = new ImageProperty("Foo", null);
+            var property = new GifTextData("Foo", null);
             Assert.Equal("Foo", property.Name);
             Assert.Null(property.Value);
 
-            property = new ImageProperty("Foo", string.Empty);
+            property = new GifTextData("Foo", string.Empty);
             Assert.Equal(string.Empty, property.Value);
         }
     }

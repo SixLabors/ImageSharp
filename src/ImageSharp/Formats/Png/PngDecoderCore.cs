@@ -5,7 +5,6 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -129,7 +128,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Latin encoding is used for text chunks.
         /// </summary>
-        private Encoding latinEncoding = Encoding.GetEncoding("ISO-8859-1");
+        private static readonly Encoding LatinEncoding = Encoding.GetEncoding("ISO-8859-1");
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
@@ -884,20 +883,20 @@ namespace SixLabors.ImageSharp.Formats.Png
             int zeroIndex = data.IndexOf((byte)0);
 
             // Keywords are restricted to 1 to 79 bytes in length.
-            if (zeroIndex <= 0 || zeroIndex > 79)
+            if (zeroIndex < PngConstants.MinTextKeywordLength || zeroIndex > PngConstants.MaxTextKeywordLength)
             {
                 return;
             }
 
             ReadOnlySpan<byte> keywordBytes = data.Slice(0, zeroIndex);
-            if (this.TryReadTextKeyword(keywordBytes, out string name))
+            if (!this.TryReadTextKeyword(keywordBytes, out string name))
             {
                 return;
             }
 
-            string value = this.latinEncoding.GetString(data.Slice(zeroIndex + 1));
+            string value = LatinEncoding.GetString(data.Slice(zeroIndex + 1));
 
-            metadata.Properties.Add(new ImageProperty(name, value));
+            metadata.PngTextProperties.Add(new PngTextData(name, value, string.Empty, string.Empty));
         }
 
         /// <summary>
@@ -913,7 +912,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             int zeroIndex = data.IndexOf((byte)0);
-            if (zeroIndex <= 0 || zeroIndex > 79)
+            if (zeroIndex < PngConstants.MinTextKeywordLength || zeroIndex > PngConstants.MaxTextKeywordLength)
             {
                 return;
             }
@@ -926,13 +925,13 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             ReadOnlySpan<byte> keywordBytes = data.Slice(0, zeroIndex);
-            if (this.TryReadTextKeyword(keywordBytes, out string name))
+            if (!this.TryReadTextKeyword(keywordBytes, out string name))
             {
                 return;
             }
 
             ReadOnlySpan<byte> compressedData = data.Slice(zeroIndex + 2);
-            metadata.Properties.Add(new ImageProperty(name, this.UncompressTextData(compressedData, this.latinEncoding)));
+            metadata.PngTextProperties.Add(new PngTextData(name, this.UncompressTextData(compressedData, LatinEncoding), string.Empty, string.Empty));
         }
 
         /// <summary>
@@ -954,7 +953,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             int zeroIndexKeyword = data.IndexOf((byte)0);
-            if (zeroIndexKeyword <= 0 || zeroIndexKeyword > 79)
+            if (zeroIndexKeyword < PngConstants.MinTextKeywordLength || zeroIndexKeyword > PngConstants.MaxTextKeywordLength)
             {
                 return;
             }
@@ -979,14 +978,14 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return;
             }
 
-            string language = this.latinEncoding.GetString(data.Slice(langStartIdx, languageLength));
+            string language = LatinEncoding.GetString(data.Slice(langStartIdx, languageLength));
 
             int translatedKeywordStartIdx = langStartIdx + languageLength + 1;
             int translatedKeywordLength = data.Slice(translatedKeywordStartIdx).IndexOf((byte)0);
-            string translatedKeyword = this.latinEncoding.GetString(data.Slice(translatedKeywordStartIdx, translatedKeywordLength));
+            string translatedKeyword = LatinEncoding.GetString(data.Slice(translatedKeywordStartIdx, translatedKeywordLength));
 
             ReadOnlySpan<byte> keywordBytes = data.Slice(0, zeroIndexKeyword);
-            if (this.TryReadTextKeyword(keywordBytes, out string name))
+            if (!this.TryReadTextKeyword(keywordBytes, out string name))
             {
                 return;
             }
@@ -995,17 +994,17 @@ namespace SixLabors.ImageSharp.Formats.Png
             if (compressionFlag == 1)
             {
                 ReadOnlySpan<byte> compressedData = data.Slice(dataStartIdx);
-                metadata.Properties.Add(new ImageProperty(name, this.UncompressTextData(compressedData, Encoding.UTF8)));
+                metadata.PngTextProperties.Add(new PngTextData(name, this.UncompressTextData(compressedData, Encoding.UTF8), language, translatedKeyword));
             }
             else
             {
                 string value = Encoding.UTF8.GetString(data.Slice(dataStartIdx));
-                metadata.Properties.Add(new ImageProperty(name, value));
+                metadata.PngTextProperties.Add(new PngTextData(name, value, language, translatedKeyword));
             }
         }
 
         /// <summary>
-        /// Decompresses a zlib text.
+        /// Decompresses a byte array with zlib compressed text data.
         /// </summary>
         /// <param name="compressedData">Compressed text data bytes.</param>
         /// <param name="encoding">The string encoding to use.</param>
@@ -1017,6 +1016,8 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 inflateStream.AllocateNewBytes(compressedData.Length);
                 var uncompressedBytes = new List<byte>();
+
+                // Note: this uses the a buffer which is only 4 bytes long to read the stream, maybe allocating a larger buffer makes sense here.
                 int bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
                 while (bytesRead != 0)
                 {
@@ -1223,19 +1224,22 @@ namespace SixLabors.ImageSharp.Formats.Png
             name = string.Empty;
 
             // Keywords shall contain only printable Latin-1.
-            if (keywordBytes.ToArray().Any(c => !((c >= 32 && c <= 126) || (c >= 161 && c <= 255))))
+            foreach (byte c in keywordBytes)
             {
-                return true;
+                if (!((c >= 32 && c <= 126) || (c >= 161 && c <= 255)))
+                {
+                    return false;
+                }
             }
 
             // Keywords should not be empty or have leading or trailing whitespace.
-            name = this.latinEncoding.GetString(keywordBytes);
+            name = LatinEncoding.GetString(keywordBytes);
             if (string.IsNullOrWhiteSpace(name) || name.StartsWith(" ") || name.EndsWith(" "))
             {
-                return true;
+                return false;
             }
 
-            return false;
+            return true;
         }
 
         private void SwapBuffers()

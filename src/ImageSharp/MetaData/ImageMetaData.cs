@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -63,9 +63,14 @@ namespace SixLabors.ImageSharp.Metadata
                 this.formatMetadata.Add(meta.Key, meta.Value.DeepClone());
             }
 
-            foreach (ImageProperty property in other.Properties)
+            foreach (GifTextData property in other.GifTextProperties)
             {
-                this.Properties.Add(property);
+                this.GifTextProperties.Add(property);
+            }
+
+            foreach (PngTextData property in other.PngTextProperties)
+            {
+                this.PngTextProperties.Add(property);
             }
 
             this.ExifProfile = other.ExifProfile?.DeepClone();
@@ -128,9 +133,14 @@ namespace SixLabors.ImageSharp.Metadata
         public IccProfile IccProfile { get; set; }
 
         /// <summary>
-        /// Gets the list of properties for storing meta information about this image.
+        /// Gets the list of gif text properties for storing meta information about this image.
         /// </summary>
-        public IList<ImageProperty> Properties { get; } = new List<ImageProperty>();
+        public IList<GifTextData> GifTextProperties { get; } = new List<GifTextData>();
+
+        /// <summary>
+        /// Gets the list of png text properties for storing meta information about this image.
+        /// </summary>
+        public IList<PngTextData> PngTextProperties { get; } = new List<PngTextData>();
 
         /// <summary>
         /// Gets the metadata value associated with the specified key.
@@ -162,11 +172,28 @@ namespace SixLabors.ImageSharp.Metadata
         /// <param name="name">The name of the property to lookup.</param>
         /// <param name="result">The property, if found, with the provided name.</param>
         /// <returns>Whether the property was found.</returns>
-        internal bool TryGetProperty(string name, out ImageProperty result)
+        internal bool TryGetGifTextProperty(string name, out GifTextData result)
         {
-            foreach (ImageProperty property in this.Properties)
+            foreach (GifTextData property in this.GifTextProperties)
             {
                 if (property.Name == name)
+                {
+                    result = property;
+
+                    return true;
+                }
+            }
+
+            result = default;
+
+            return false;
+        }
+
+        internal bool TryGetPngTextProperty(string keyword, out PngTextData result)
+        {
+            foreach (PngTextData property in this.PngTextProperties)
+            {
+                if (property.Keyword == keyword)
                 {
                     result = property;
 

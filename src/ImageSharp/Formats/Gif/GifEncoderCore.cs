@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -335,7 +335,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="stream">The stream to write to.</param>
         private void WriteComments(ImageMetadata metadata, Stream stream)
         {
-            if (!metadata.TryGetProperty(GifConstants.Comments, out ImageProperty property)
+            if (!metadata.TryGetGifTextProperty(GifConstants.Comments, out GifTextData property)
                 || string.IsNullOrEmpty(property.Value))
             {
                 return;

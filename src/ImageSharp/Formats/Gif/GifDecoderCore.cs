@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -334,7 +334,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 {
                     this.stream.Read(commentsBuffer.Array, 0, length);
                     string comments = this.TextEncoding.GetString(commentsBuffer.Array, 0, length);
-                    this.metadata.Properties.Add(new ImageProperty(GifConstants.Comments, comments));
+                    this.metadata.GifTextProperties.Add(new GifTextData(GifConstants.Comments, comments));
                 }
             }
         }

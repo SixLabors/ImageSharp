@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
@@ -92,9 +92,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        Assert.Equal(1, output.Metadata.Properties.Count);
-                        Assert.Equal("Comments", output.Metadata.Properties[0].Name);
-                        Assert.Equal("ImageSharp", output.Metadata.Properties[0].Value);
+                        Assert.Equal(1, output.Metadata.GifTextProperties.Count);
+                        Assert.Equal("Comments", output.Metadata.GifTextProperties[0].Name);
+                        Assert.Equal("ImageSharp", output.Metadata.GifTextProperties[0].Value);
                     }
                 }
             }
@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
-                input.Metadata.Properties.Clear();
+                input.Metadata.GifTextProperties.Clear();
                 using (var memStream = new MemoryStream())
                 {
                     input.SaveAsGif(memStream, options);
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        Assert.Equal(0, output.Metadata.Properties.Count);
+                        Assert.Equal(0, output.Metadata.GifTextProperties.Count);
                     }
                 }
             }
@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             using (var input = new Image<Rgba32>(1, 1))
             {
                 string comments = new string('c', 256);
-                input.Metadata.Properties.Add(new ImageProperty("Comments", comments));
+                input.Metadata.GifTextProperties.Add(new GifTextData("Comments", comments));
 
                 using (var memStream = new MemoryStream())
                 {
@@ -138,9 +138,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        Assert.Equal(1, output.Metadata.Properties.Count);
-                        Assert.Equal("Comments", output.Metadata.Properties[0].Name);
-                        Assert.Equal(255, output.Metadata.Properties[0].Value.Length);
+                        Assert.Equal(1, output.Metadata.GifTextProperties.Count);
+                        Assert.Equal("Comments", output.Metadata.GifTextProperties[0].Name);
+                        Assert.Equal(255, output.Metadata.GifTextProperties[0].Value.Length);
                     }
                 }
             }

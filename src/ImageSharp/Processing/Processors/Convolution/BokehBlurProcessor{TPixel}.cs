@@ -36,7 +36,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         private readonly float gamma;
 
         /// <summary>
-        /// The maximum size of the kernel in either direction.
+        /// The execution mode to use when applying the effect
+        /// </summary>
+        private readonly BokehBlurExecutionMode executionMode;
+
+        /// <summary>
+        /// The maximum size of the kernel in either direction
         /// </summary>
         private readonly int kernelSize;
 
@@ -75,6 +80,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             this.kernelSize = (this.radius * 2) + 1;
             this.componentsCount = definition.Components;
             this.gamma = definition.Gamma;
+            this.executionMode = definition.ExecutionMode;
 
             // Reuse the initialized values from the cache, if possible
             var parameters = new BokehBlurParameters(this.radius, this.componentsCount);

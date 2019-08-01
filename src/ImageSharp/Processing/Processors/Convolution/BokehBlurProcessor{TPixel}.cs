@@ -278,12 +278,26 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             // Create a 0-filled buffer to use to store the result of the component convolutions
             using (Buffer2D<Vector4> processing = configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size(), AllocationOptions.Clean))
             {
-                // Create the temporary complex buffers to store the results of each convolution component to aggregate
-                using (Buffer2D<ComplexVector4>
-                    firstPassValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()),
-                    secondPassBuffer = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
+                if (this.executionMode == BokehBlurExecutionMode.PreferLowMemoryUsage)
                 {
-                    this.OnFrameApplyCore(source, sourceRectangle, configuration, processing, firstPassValues, secondPassBuffer);
+                    // Memory usage priority: allocate a shared buffer and execute the second convolution in sequential mode
+                    using (Buffer2D<ComplexVector4> buffer = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Width, source.Height + this.radius))
+                    {
+                        Buffer2D<ComplexVector4> firstPassBuffer = buffer.Slice(this.radius, source.Height);
+                        Buffer2D<ComplexVector4> secondPassBuffer = buffer.Slice(0, source.Height);
+
+                        this.OnFrameApplyCore(source, sourceRectangle, configuration, processing, firstPassBuffer, secondPassBuffer);
+                    }
+                }
+                else
+                {
+                    // Performance priority: allocate two independent buffers and execute both convolutions in parallel mode
+                    using (Buffer2D<ComplexVector4>
+                        firstPassValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()),
+                        secondPassBuffer = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
+                    {
+                        this.OnFrameApplyCore(source, sourceRectangle, configuration, processing, firstPassValues, secondPassBuffer);
+                    }
                 }
 
                 // Apply the inverse gamma exposure pass, and write the final pixel data
@@ -396,6 +410,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
             int width = workingRectangle.Width;
+
+            if (this.executionMode == BokehBlurExecutionMode.PreferLowMemoryUsage)
+            {
+                configuration = configuration.Clone();
+                configuration.MaxDegreeOfParallelism = 1;
+            }
 
             ParallelHelper.IterateRows(
                 workingRectangle,

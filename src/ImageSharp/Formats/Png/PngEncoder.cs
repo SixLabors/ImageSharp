@@ -36,9 +36,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         public int CompressionLevel { get; set; } = 6;
 
         /// <summary>
-        /// Gets or sets the threshold of characters in text metadata, when compression should be used. Defaults to 500.
+        /// Gets or sets the threshold of characters in text metadata, when compression should be used. Defaults to 1024.
         /// </summary>
-        public int CompressTextThreshold { get; set; } = 500;
+        public int CompressTextThreshold { get; set; } = 1024;
 
         /// <summary>
         /// Gets or sets the gamma value, that will be written the image.

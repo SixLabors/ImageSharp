@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -50,12 +50,12 @@ namespace SixLabors.ImageSharp.Formats.Png
         public float Gamma { get; set; }
 
         /// <summary>
-        /// Gets or sets the Rgb 24 transparent color. This represents any color in an 8 bit Rgb24 encoded png that should be transparent
+        /// Gets or sets the Rgb24 transparent color. This represents any color in an 8 bit Rgb24 encoded png that should be transparent
         /// </summary>
         public Rgb24? TransparentRgb24 { get; set; }
 
         /// <summary>
-        /// Gets or sets the Rgb 48 transparent color. This represents any color in a 16 bit Rgb24 encoded png that should be transparent
+        /// Gets or sets the Rgb48 transparent color. This represents any color in a 16 bit Rgb24 encoded png that should be transparent
         /// </summary>
         public Rgb48? TransparentRgb48 { get; set; }
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public static readonly Encoding DefaultEncoding = Encoding.ASCII;
 
         /// <summary>
-        /// The list of mimetypes that equate to a png.
+        /// The list of MIME types that equate to a png.
         /// </summary>
         public static readonly IEnumerable<string> MimeTypes = new[] { "image/png" };
 
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         };
 
         /// <summary>
-        /// The header bytes as a big endian coded ulong.
+        /// The header bytes as a big-endian coded ulong.
         /// </summary>
         public const ulong HeaderValue = 0x89504E470D0A1A0AUL;
 

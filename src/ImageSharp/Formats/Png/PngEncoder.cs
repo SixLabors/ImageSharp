@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public int CompressionLevel { get; set; } = 6;
 
         /// <summary>
-        /// Gets or sets the gamma value, that will be written the the image.
+        /// Gets or sets the gamma value, that will be written the image.
         /// </summary>
         public float? Gamma { get; set; }
 
@@ -52,6 +52,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         public byte Threshold { get; set; } = 255;
 
         /// <summary>
+        /// Gets or sets a value indicating whether this instance should write an Adam7 interlaced image.
+        /// </summary>
+        public PngInterlaceMode? InterlaceMethod { get; set; } = PngInterlaceMode.None;
+
+        /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -60,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var encoder = new PngEncoderCore(image.GetMemoryAllocator(), this))
+            using (var encoder = new PngEncoderCore(image.GetMemoryAllocator(), image.GetConfiguration(), new PngEncoderOptions(this)))
             {
                 encoder.Encode(image, stream);
             }

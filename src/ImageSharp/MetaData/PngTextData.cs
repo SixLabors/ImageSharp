@@ -23,7 +23,8 @@ namespace SixLabors.ImageSharp.Metadata
         {
             Guard.NotNullOrWhiteSpace(keyword, nameof(keyword));
 
-            this.Keyword = keyword;
+            // No leading or trailing whitespace is allowed in keywords.
+            this.Keyword = keyword.Trim();
             this.Value = value;
             this.LanguageTag = languageTag;
             this.TranslatedKeyword = translatedKeyword;

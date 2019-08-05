@@ -517,20 +517,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                         for (int y = rows.Min; y < rows.Max; y++)
                         {
-                            Span<Vector4> targetRowSpan = sourceValues.GetRowSpan(y).Slice(startX);
                             Span<TPixel> targetPixelSpan = targetPixels.GetRowSpan(y).Slice(startX);
-                            ref Vector4 baseRef = ref MemoryMarshal.GetReference(targetRowSpan);
+                            Span<Vector4> sourceRowSpan = sourceValues.GetRowSpan(y).Slice(startX);
+                            ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceRowSpan);
 
                             for (int x = 0; x < width; x++)
                             {
-                                ref Vector4 v = ref Unsafe.Add(ref baseRef, x);
+                                ref Vector4 v = ref Unsafe.Add(ref sourceRef, x);
                                 var clamp = Vector4.Clamp(v, low, high);
                                 v.X = MathF.Pow(clamp.X, expGamma);
                                 v.Y = MathF.Pow(clamp.Y, expGamma);
                                 v.Z = MathF.Pow(clamp.Z, expGamma);
                             }
 
-                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, targetRowSpan.Slice(0, width), targetPixelSpan, PixelConversionModifiers.Premultiply);
+                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, sourceRowSpan.Slice(0, width), targetPixelSpan, PixelConversionModifiers.Premultiply);
                         }
                     });
         }

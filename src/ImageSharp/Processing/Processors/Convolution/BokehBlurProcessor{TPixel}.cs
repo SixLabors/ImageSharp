@@ -454,7 +454,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
             int width = workingRectangle.Width;
-            float gamma = this.gamma;
+            float exp = this.gamma;
 
             ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
                 workingRectangle,
@@ -473,9 +473,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                             for (int x = 0; x < width; x++)
                             {
                                 ref Vector4 v = ref Unsafe.Add(ref baseRef, x);
-                                v.X = MathF.Pow(v.X, gamma);
-                                v.Y = MathF.Pow(v.Y, gamma);
-                                v.Z = MathF.Pow(v.Z, gamma);
+                                v.X = MathF.Pow(v.X, exp);
+                                v.Y = MathF.Pow(v.Y, exp);
+                                v.Z = MathF.Pow(v.Z, exp);
                             }
 
                             PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan.Slice(0, length), targetRowSpan);

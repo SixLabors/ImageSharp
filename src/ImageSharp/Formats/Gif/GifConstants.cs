@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -72,9 +72,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public const string Comments = "Comments";
 
         /// <summary>
-        /// The maximum comment length.
+        /// The maximum length of a comment data sub-block is 255.
         /// </summary>
-        public const int MaxCommentLength = 1024 * 8;
+        public const int MaxCommentDataBlockLength = 255;
 
         /// <summary>
         /// The image descriptor label <value>,</value>.

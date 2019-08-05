@@ -345,6 +345,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Leo = "Gif/leo.gif";
             public const string Ratio4x1 = "Gif/base_4x1.gif";
             public const string Ratio1x4 = "Gif/base_1x4.gif";
+            public const string LargeComment = "Gif/large_comment.gif";
 
             public static class Issues
             {

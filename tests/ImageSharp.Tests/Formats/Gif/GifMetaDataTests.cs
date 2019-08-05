@@ -94,6 +94,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             }
         }
 
+        [Fact]
+        public void Decode_CanDecodeLargeTextComment()
+        {
+            var options = new GifDecoder();
+            var testFile = TestFile.Create(TestImages.Gif.LargeComment);
+
+            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
+            {
+                Assert.Equal(1, image.Metadata.GifTextProperties.Count);
+                Assert.Equal(new string('c', 350), image.Metadata.GifTextProperties[0].Value);
+            }
+        }
+
         [Theory]
         [MemberData(nameof(RatioFiles))]
         public void Identify_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)

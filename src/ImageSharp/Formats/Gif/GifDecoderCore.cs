@@ -319,9 +319,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             while ((length = this.stream.ReadByte()) != 0)
             {
-                if (length > GifConstants.MaxCommentLength)
+                if (length > GifConstants.MaxCommentDataBlockLength)
                 {
-                    throw new ImageFormatException($"Gif comment length '{length}' exceeds max '{GifConstants.MaxCommentLength}'");
+                    throw new ImageFormatException($"Gif comment length '{length}' exceeds max '{GifConstants.MaxCommentDataBlockLength}' of comment data block");
                 }
 
                 if (this.IgnoreMetadata)

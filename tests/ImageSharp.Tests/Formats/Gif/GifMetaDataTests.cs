@@ -55,9 +55,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
-                Assert.Equal(1, image.Metadata.GifTextProperties.Count);
-                Assert.Equal("Comments", image.Metadata.GifTextProperties[0].Name);
-                Assert.Equal("ImageSharp", image.Metadata.GifTextProperties[0].Value);
+                Assert.Equal(1, image.Metadata.GifComments.Count);
+                Assert.Equal("ImageSharp", image.Metadata.GifComments[0]);
             }
         }
 
@@ -73,7 +72,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
-                Assert.Equal(0, image.Metadata.GifTextProperties.Count);
+                Assert.Equal(0, image.Metadata.GifComments.Count);
             }
         }
 
@@ -89,8 +88,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
-                Assert.Equal(1, image.Metadata.GifTextProperties.Count);
-                Assert.Equal("浉条卥慨灲", image.Metadata.GifTextProperties[0].Value);
+                Assert.Equal(1, image.Metadata.GifComments.Count);
+                Assert.Equal("浉条卥慨灲", image.Metadata.GifComments[0]);
             }
         }
 
@@ -102,8 +101,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
-                Assert.Equal(1, image.Metadata.GifTextProperties.Count);
-                Assert.Equal(new string('c', 350), image.Metadata.GifTextProperties[0].Value);
+                Assert.Equal(2, image.Metadata.GifComments.Count);
+                Assert.Equal(new string('c', 255), image.Metadata.GifComments[0]);
+                Assert.Equal(new string('c', 94), image.Metadata.GifComments[1]);
+            }
+        }
+
+        [Fact]
+        public void Encode_PreservesTextData()
+        {
+            var decoder = new GifDecoder();
+            var testFile = TestFile.Create(TestImages.Gif.LargeComment);
+
+            using (Image<Rgba32> input = testFile.CreateRgba32Image(decoder))
+            using (var memoryStream = new MemoryStream())
+            {
+                input.Save(memoryStream, new GifEncoder());
+                memoryStream.Position = 0;
+
+                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, memoryStream))
+                {
+                    Assert.Equal(2, image.Metadata.GifComments.Count);
+                    Assert.Equal(new string('c', 255), image.Metadata.GifComments[0]);
+                    Assert.Equal(new string('c', 94), image.Metadata.GifComments[1]);
+                }
             }
         }
 

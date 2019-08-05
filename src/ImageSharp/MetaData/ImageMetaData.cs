@@ -63,15 +63,12 @@ namespace SixLabors.ImageSharp.Metadata
                 this.formatMetadata.Add(meta.Key, meta.Value.DeepClone());
             }
 
-            foreach (GifTextData property in other.GifTextProperties)
-            {
-                this.GifTextProperties.Add(property);
-            }
-
             foreach (PngTextData property in other.PngTextProperties)
             {
                 this.PngTextProperties.Add(property);
             }
+
+            this.GifComments.AddRange(other.GifComments);
 
             this.ExifProfile = other.ExifProfile?.DeepClone();
             this.IccProfile = other.IccProfile?.DeepClone();
@@ -133,9 +130,9 @@ namespace SixLabors.ImageSharp.Metadata
         public IccProfile IccProfile { get; set; }
 
         /// <summary>
-        /// Gets the list of gif text properties for storing meta information about this image.
+        /// Gets the list of gif text comments for storing meta information about this image.
         /// </summary>
-        public IList<GifTextData> GifTextProperties { get; } = new List<GifTextData>();
+        public List<string> GifComments { get; } = new List<string>();
 
         /// <summary>
         /// Gets the list of png text properties for storing meta information about this image.
@@ -165,29 +162,6 @@ namespace SixLabors.ImageSharp.Metadata
 
         /// <inheritdoc/>
         public ImageMetadata DeepClone() => new ImageMetadata(this);
-
-        /// <summary>
-        /// Looks up a property with the provided name.
-        /// </summary>
-        /// <param name="name">The name of the property to lookup.</param>
-        /// <param name="result">The property, if found, with the provided name.</param>
-        /// <returns>Whether the property was found.</returns>
-        internal bool TryGetGifTextProperty(string name, out GifTextData result)
-        {
-            foreach (GifTextData property in this.GifTextProperties)
-            {
-                if (property.Name == name)
-                {
-                    result = property;
-
-                    return true;
-                }
-            }
-
-            result = default;
-
-            return false;
-        }
 
         internal bool TryGetPngTextProperty(string keyword, out PngTextData result)
         {

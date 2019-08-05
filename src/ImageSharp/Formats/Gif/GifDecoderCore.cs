@@ -321,7 +321,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             {
                 if (length > GifConstants.MaxCommentDataBlockLength)
                 {
-                    throw new ImageFormatException($"Gif comment length '{length}' exceeds max '{GifConstants.MaxCommentDataBlockLength}' of comment data block");
+                    throw new ImageFormatException($"Gif comment length '{length}' exceeds max '{GifConstants.MaxCommentDataBlockLength}' of a comment data block");
                 }
 
                 if (this.IgnoreMetadata)
@@ -333,8 +333,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 using (IManagedByteBuffer commentsBuffer = this.MemoryAllocator.AllocateManagedByteBuffer(length))
                 {
                     this.stream.Read(commentsBuffer.Array, 0, length);
-                    string comments = this.TextEncoding.GetString(commentsBuffer.Array, 0, length);
-                    this.metadata.GifTextProperties.Add(new GifTextData(GifConstants.Comments, comments));
+                    string comment = this.TextEncoding.GetString(commentsBuffer.Array, 0, length);
+                    this.metadata.GifComments.Add(comment);
                 }
             }
         }

@@ -92,55 +92,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        Assert.Equal(1, output.Metadata.GifTextProperties.Count);
-                        Assert.Equal("Comments", output.Metadata.GifTextProperties[0].Name);
-                        Assert.Equal("ImageSharp", output.Metadata.GifTextProperties[0].Value);
-                    }
-                }
-            }
-        }
-
-        [Fact]
-        public void Encode_IgnoreMetadataIsTrue_CommentsAreNotWritten()
-        {
-            var options = new GifEncoder();
-
-            var testFile = TestFile.Create(TestImages.Gif.Rings);
-
-            using (Image<Rgba32> input = testFile.CreateRgba32Image())
-            {
-                input.Metadata.GifTextProperties.Clear();
-                using (var memStream = new MemoryStream())
-                {
-                    input.SaveAsGif(memStream, options);
-
-                    memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
-                    {
-                        Assert.Equal(0, output.Metadata.GifTextProperties.Count);
-                    }
-                }
-            }
-        }
-
-        [Fact]
-        public void Encode_WhenCommentIsTooLong_CommentIsTrimmed()
-        {
-            using (var input = new Image<Rgba32>(1, 1))
-            {
-                string comments = new string('c', 256);
-                input.Metadata.GifTextProperties.Add(new GifTextData("Comments", comments));
-
-                using (var memStream = new MemoryStream())
-                {
-                    input.Save(memStream, new GifEncoder());
-
-                    memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
-                    {
-                        Assert.Equal(1, output.Metadata.GifTextProperties.Count);
-                        Assert.Equal("Comments", output.Metadata.GifTextProperties[0].Name);
-                        Assert.Equal(255, output.Metadata.GifTextProperties[0].Value.Length);
+                        Assert.Equal(1, output.Metadata.GifComments.Count);
+                        Assert.Equal("ImageSharp", output.Metadata.GifComments[0]);
                     }
                 }
             }

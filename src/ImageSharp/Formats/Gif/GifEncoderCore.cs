@@ -335,22 +335,23 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="stream">The stream to write to.</param>
         private void WriteComments(ImageMetadata metadata, Stream stream)
         {
-            if (!metadata.TryGetGifTextProperty(GifConstants.Comments, out GifTextData property)
-                || string.IsNullOrEmpty(property.Value))
+            if (metadata.GifComments.Count == 0)
             {
                 return;
             }
 
-            byte[] comments = this.textEncoding.GetBytes(property.Value);
-
-            int count = Math.Min(comments.Length, 255);
-
             this.buffer[0] = GifConstants.ExtensionIntroducer;
             this.buffer[1] = GifConstants.CommentLabel;
-            this.buffer[2] = (byte)count;
+            stream.Write(this.buffer, 0, 2);
 
-            stream.Write(this.buffer, 0, 3);
-            stream.Write(comments, 0, count);
+            foreach (string comment in metadata.GifComments)
+            {
+                byte[] commentBytes = this.textEncoding.GetBytes(comment);
+                int commentLength = Math.Min(comment.Length, 255);
+                stream.WriteByte((byte)commentLength);
+                stream.Write(commentBytes, 0, commentLength);
+            }
+
             stream.WriteByte(GifConstants.Terminator);
         }
 

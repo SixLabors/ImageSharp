@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 PngMetadata formatMeta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
 
                 Assert.Equal(1, image.Metadata.PngTextProperties.Count);
-                Assert.Equal(0, image.Metadata.GifTextProperties.Count);
+                Assert.Equal(0, image.Metadata.GifComments.Count);
                 Assert.Equal("Software", image.Metadata.PngTextProperties[0].Keyword);
                 Assert.Equal("paint.net 4.0.6", image.Metadata.PngTextProperties[0].Value);
                 Assert.Equal(0.4545d, formatMeta.Gamma, precision: 4);
@@ -173,7 +173,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
                 Assert.Equal(0, image.Metadata.PngTextProperties.Count);
-                Assert.Equal(0, image.Metadata.GifTextProperties.Count);
+                Assert.Equal(0, image.Metadata.GifComments.Count);
             }
         }
 

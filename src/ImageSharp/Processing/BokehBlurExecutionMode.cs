@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Processing.Processors.Convolution.Parameters
+using SixLabors.ImageSharp.Processing.Processors.Convolution;
+
+namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
     /// An <see langword="enum"/> that indicates execution options for the <see cref="BokehBlurProcessor"/>.

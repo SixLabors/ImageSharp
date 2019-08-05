@@ -3,8 +3,6 @@
 
 using System;
 
-using SixLabors.ImageSharp.Processing.Processors.Binarization;
-
 namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 {
     /// <summary>

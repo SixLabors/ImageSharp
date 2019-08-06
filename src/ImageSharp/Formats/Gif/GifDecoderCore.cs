@@ -317,11 +317,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             int length;
 
+            var stringBuilder = new StringBuilder();
             while ((length = this.stream.ReadByte()) != 0)
             {
-                if (length > GifConstants.MaxCommentDataBlockLength)
+                if (length > GifConstants.MaxCommentSubBlockLength)
                 {
-                    throw new ImageFormatException($"Gif comment length '{length}' exceeds max '{GifConstants.MaxCommentDataBlockLength}' of a comment data block");
+                    throw new ImageFormatException($"Gif comment length '{length}' exceeds max '{GifConstants.MaxCommentSubBlockLength}' of a comment data block");
                 }
 
                 if (this.IgnoreMetadata)
@@ -333,9 +334,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 using (IManagedByteBuffer commentsBuffer = this.MemoryAllocator.AllocateManagedByteBuffer(length))
                 {
                     this.stream.Read(commentsBuffer.Array, 0, length);
-                    string comment = this.TextEncoding.GetString(commentsBuffer.Array, 0, length);
-                    this.metadata.GifComments.Add(comment);
+                    string commentPart = this.TextEncoding.GetString(commentsBuffer.Array, 0, length);
+                    stringBuilder.Append(commentPart);
                 }
+            }
+
+            if (stringBuilder.Length > 0)
+            {
+                this.metadata.GifComments.Add(stringBuilder.ToString());
             }
         }
 

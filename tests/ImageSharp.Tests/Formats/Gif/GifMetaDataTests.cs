@@ -102,8 +102,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
                 Assert.Equal(2, image.Metadata.GifComments.Count);
-                Assert.Equal(new string('c', 255), image.Metadata.GifComments[0]);
-                Assert.Equal(new string('c', 94), image.Metadata.GifComments[1]);
+                Assert.Equal(new string('c', 349), image.Metadata.GifComments[0]);
+                Assert.Equal("ImageSharp", image.Metadata.GifComments[1]);
             }
         }
 
@@ -122,8 +122,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, memoryStream))
                 {
                     Assert.Equal(2, image.Metadata.GifComments.Count);
-                    Assert.Equal(new string('c', 255), image.Metadata.GifComments[0]);
-                    Assert.Equal(new string('c', 94), image.Metadata.GifComments[1]);
+                    Assert.Equal(new string('c', 349), image.Metadata.GifComments[0]);
+                    Assert.Equal("ImageSharp", image.Metadata.GifComments[1]);
                 }
             }
         }

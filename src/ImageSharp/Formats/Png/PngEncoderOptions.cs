@@ -8,7 +8,6 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// <summary>
     /// The options structure for the <see cref="PngEncoderCore"/>.
     /// </summary>
-    /// <seealso cref="SixLabors.ImageSharp.Formats.Png.IPngEncoderOptions" />
     internal class PngEncoderOptions : IPngEncoderOptions
     {
         /// <summary>

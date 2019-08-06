@@ -248,8 +248,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         ref Complex64 jRef = ref Unsafe.Add(ref valueRef, j);
                         ref Complex64 kRef = ref Unsafe.Add(ref valueRef, k);
                         total +=
-                            (paramsRef.Z * ((jRef.Real * kRef.Real) - (jRef.Imaginary * kRef.Imaginary))) +
-                            (paramsRef.W * ((jRef.Real * kRef.Imaginary) + (jRef.Imaginary * kRef.Real)));
+                            (paramsRef.Z * ((jRef.Real * kRef.Real) - (jRef.Imaginary * kRef.Imaginary)))
+                            + (paramsRef.W * ((jRef.Real * kRef.Imaginary) + (jRef.Imaginary * kRef.Real)));
                     }
                 }
             }
@@ -282,19 +282,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 {
                     // Memory usage priority: allocate a shared buffer and execute the second convolution in sequential mode
                     using (Buffer2D<ComplexVector4> buffer = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Width, source.Height + this.radius))
+                    using (Buffer2D<ComplexVector4> firstPassBuffer = buffer.Slice(this.radius, source.Height))
+                    using (Buffer2D<ComplexVector4> secondPassBuffer = buffer.Slice(0, source.Height))
                     {
-                        Buffer2D<ComplexVector4> firstPassBuffer = buffer.Slice(this.radius, source.Height);
-                        Buffer2D<ComplexVector4> secondPassBuffer = buffer.Slice(0, source.Height);
-
                         this.OnFrameApplyCore(source, sourceRectangle, configuration, processing, firstPassBuffer, secondPassBuffer);
                     }
                 }
                 else
                 {
                     // Performance priority: allocate two independent buffers and execute both convolutions in parallel mode
-                    using (Buffer2D<ComplexVector4>
-                        firstPassValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()),
-                        secondPassBuffer = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
+                    using (Buffer2D<ComplexVector4> firstPassValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
+                    using (Buffer2D<ComplexVector4> secondPassBuffer = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
                     {
                         this.OnFrameApplyCore(source, sourceRectangle, configuration, processing, firstPassValues, secondPassBuffer);
                     }

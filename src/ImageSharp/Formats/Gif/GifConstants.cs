@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The maximum length of a comment data sub-block is 255.
         /// </summary>
-        public const int MaxCommentDataBlockLength = 255;
+        public const int MaxCommentSubBlockLength = 255;
 
         /// <summary>
         /// The image descriptor label <value>,</value>.

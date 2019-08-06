@@ -340,19 +340,44 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 return;
             }
 
-            this.buffer[0] = GifConstants.ExtensionIntroducer;
-            this.buffer[1] = GifConstants.CommentLabel;
-            stream.Write(this.buffer, 0, 2);
-
             foreach (string comment in metadata.GifComments)
             {
-                byte[] commentBytes = this.textEncoding.GetBytes(comment);
-                int commentLength = Math.Min(comment.Length, 255);
-                stream.WriteByte((byte)commentLength);
-                stream.Write(commentBytes, 0, commentLength);
-            }
+                this.buffer[0] = GifConstants.ExtensionIntroducer;
+                this.buffer[1] = GifConstants.CommentLabel;
+                stream.Write(this.buffer, 0, 2);
 
-            stream.WriteByte(GifConstants.Terminator);
+                // Comment will be stored in chunks of 255 bytes, if it exceeds this size.
+                ReadOnlySpan<char> commentSpan = comment.AsSpan();
+                int idx = 0;
+                for (; idx <= comment.Length - GifConstants.MaxCommentSubBlockLength; idx += GifConstants.MaxCommentSubBlockLength)
+                {
+                    WriteCommentSubBlock(stream, commentSpan, idx, GifConstants.MaxCommentSubBlockLength);
+                }
+
+                // Write the length bytes, if any, to another sub block.
+                if (idx < comment.Length)
+                {
+                    int remaining = comment.Length - idx;
+                    WriteCommentSubBlock(stream, commentSpan, idx, remaining);
+                }
+
+                stream.WriteByte(GifConstants.Terminator);
+            }
+        }
+
+        /// <summary>
+        /// Writes a comment sub-block to the stream.
+        /// </summary>
+        /// <param name="stream">The stream to write to.</param>
+        /// <param name="commentSpan">Comment as a Span.</param>
+        /// <param name="idx">Current start index.</param>
+        /// <param name="length">The length of the string to write. Should not exceed 255 bytes.</param>
+        private static void WriteCommentSubBlock(Stream stream, ReadOnlySpan<char> commentSpan, int idx, int length)
+        {
+            string subComment = commentSpan.Slice(idx, length).ToString();
+            byte[] subCommentBytes = Encoding.ASCII.GetBytes(subComment);
+            stream.WriteByte((byte)length);
+            stream.Write(subCommentBytes, 0, length);
         }
 
         /// <summary>

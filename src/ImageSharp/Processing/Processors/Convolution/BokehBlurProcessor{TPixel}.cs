@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -68,7 +69,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// The mapping of initialized complex kernels and parameters, to speed up the initialization of new <see cref="BokehBlurProcessor{TPixel}"/> instances
         /// </summary>
-        private static readonly Dictionary<BokehBlurParameters, BokehBlurKernelData> Cache = new Dictionary<BokehBlurParameters, BokehBlurKernelData>();
+        private static readonly ConcurrentDictionary<BokehBlurParameters, BokehBlurKernelData> Cache = new ConcurrentDictionary<BokehBlurParameters, BokehBlurKernelData>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BokehBlurProcessor{TPixel}"/> class.
@@ -98,7 +99,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 this.NormalizeKernels();
 
                 // Store them in the cache for future use
-                Cache.Add(parameters, new BokehBlurKernelData(this.kernelParameters, this.kernelsScale, this.kernels));
+                Cache.TryAdd(parameters, new BokehBlurKernelData(this.kernelParameters, this.kernelsScale, this.kernels));
             }
         }
 

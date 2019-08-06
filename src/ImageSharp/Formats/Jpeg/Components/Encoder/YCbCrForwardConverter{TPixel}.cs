@@ -4,7 +4,6 @@
 using System;
 using System.Runtime.CompilerServices;
 
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder

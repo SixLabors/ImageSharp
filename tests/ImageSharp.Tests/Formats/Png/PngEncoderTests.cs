@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 // ReSharper disable InconsistentNaming
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
@@ -134,7 +133,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             where TPixel : struct, IPixel<TPixel>
         {
             foreach (PngInterlaceMode interlaceMode in InterlaceMode)
-            { 
+            {
                 TestPngEncoderCore(
                 provider,
                 PngColorType.RgbWithAlpha,

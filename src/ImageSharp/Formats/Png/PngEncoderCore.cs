@@ -85,32 +85,32 @@ namespace SixLabors.ImageSharp.Formats.Png
         private int height;
 
         /// <summary>
-        /// The previous scanline.
+        /// The raw data of previous scanline.
         /// </summary>
         private IManagedByteBuffer previousScanline;
 
         /// <summary>
-        /// The raw scanline.
+        /// The raw data of current scanline.
         /// </summary>
         private IManagedByteBuffer currentScanline;
 
         /// <summary>
-        /// The common buffer for the filters
+        /// The common buffer for the filters.
         /// </summary>
         private IManagedByteBuffer filterBuffer;
 
         /// <summary>
-        /// The buffer for the sub filter
+        /// The ext buffer for the sub filter, <see cref="PngFilterMethod.Adaptive"/>.
         /// </summary>
         private IManagedByteBuffer subFilter;
 
         /// <summary>
-        /// The buffer for the average filter
+        /// The ext buffer for the average filter, <see cref="PngFilterMethod.Adaptive"/>.
         /// </summary>
         private IManagedByteBuffer averageFilter;
 
         /// <summary>
-        /// The buffer for the Paeth filter
+        /// The ext buffer for the Paeth filter, <see cref="PngFilterMethod.Adaptive"/>.
         /// </summary>
         private IManagedByteBuffer paethFilter;
 
@@ -390,7 +390,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <summary>
-        /// Apply filter for the pixel bytes.
+        /// Apply filter for the raw scanline.
         /// </summary>
         private IManagedByteBuffer FilterPixelBytes()
         {
@@ -780,9 +780,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 int resultLength = this.filterBuffer.Length();
 
                 this.subFilter = this.memoryAllocator.AllocateManagedByteBuffer(resultLength, AllocationOptions.Clean);
-
                 this.averageFilter = this.memoryAllocator.AllocateManagedByteBuffer(resultLength, AllocationOptions.Clean);
-
                 this.paethFilter = this.memoryAllocator.AllocateManagedByteBuffer(resultLength, AllocationOptions.Clean);
             }
         }
@@ -827,7 +825,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 int startRow = Adam7.FirstRow[pass];
                 int startCol = Adam7.FirstColumn[pass];
-                int blockHeight = Adam7.ComputeBlockHeight(height, pass);
+                ////int blockHeight = Adam7.ComputeBlockHeight(height, pass);
                 int blockWidth = Adam7.ComputeBlockWidth(width, pass);
 
                 int bytesPerScanline = this.bytesPerPixel <= 1
@@ -883,7 +881,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 int startRow = Adam7.FirstRow[pass];
                 int startCol = Adam7.FirstColumn[pass];
-                int blockHeight = Adam7.ComputeBlockHeight(height, pass);
+                ////int blockHeight = Adam7.ComputeBlockHeight(height, pass);
                 int blockWidth = Adam7.ComputeBlockWidth(width, pass);
 
                 int bytesPerScanline = this.bytesPerPixel <= 1

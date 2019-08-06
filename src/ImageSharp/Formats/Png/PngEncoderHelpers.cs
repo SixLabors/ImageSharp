@@ -7,6 +7,9 @@ using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Png
 {
+    /// <summary>
+    /// The helper methods for <see cref="PngEncoderCore"/> class.
+    /// </summary>
     internal static class PngEncoderHelpers
     {
         /// <summary>

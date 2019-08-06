@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.Processing.Processors.Quantization;
 namespace SixLabors.ImageSharp.Formats.Png
 {
     /// <summary>
-    /// The PNG encoder options helper methods class.
+    /// The helper methods for the PNG encoder options.
     /// </summary>
     internal static class PngEncoderOptionsHelpers
     {

@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 using SixLabors.ImageSharp.Formats.Gif;
@@ -29,7 +31,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             {
                 RepeatCount = 1,
                 ColorTableMode = GifColorTableMode.Global,
-                GlobalColorTableLength = 2
+                GlobalColorTableLength = 2,
+                Comments = new List<string>() { "Foo" }
+
             };
 
             var clone = (GifMetadata)meta.DeepClone();
@@ -37,26 +41,29 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             clone.RepeatCount = 2;
             clone.ColorTableMode = GifColorTableMode.Local;
             clone.GlobalColorTableLength = 1;
+            clone.Comments[0] = "Bar";
 
             Assert.False(meta.RepeatCount.Equals(clone.RepeatCount));
             Assert.False(meta.ColorTableMode.Equals(clone.ColorTableMode));
             Assert.False(meta.GlobalColorTableLength.Equals(clone.GlobalColorTableLength));
+            Assert.False(meta.Comments.SequenceEqual(clone.Comments));
         }
 
         [Fact]
         public void Decode_IgnoreMetadataIsFalse_CommentsAreRead()
         {
             var options = new GifDecoder
-                          {
-                              IgnoreMetadata = false
-                          };
+            {
+                IgnoreMetadata = false
+            };
 
             var testFile = TestFile.Create(TestImages.Gif.Rings);
 
             using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
-                Assert.Equal(1, image.Metadata.GifComments.Count);
-                Assert.Equal("ImageSharp", image.Metadata.GifComments[0]);
+                GifMetadata metadata = image.Metadata.GetFormatMetadata(GifFormat.Instance);
+                Assert.Equal(1, metadata.Comments.Count);
+                Assert.Equal("ImageSharp", metadata.Comments[0]);
             }
         }
 
@@ -64,32 +71,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public void Decode_IgnoreMetadataIsTrue_CommentsAreIgnored()
         {
             var options = new GifDecoder
-                          {
-                              IgnoreMetadata = true
-                          };
+            {
+                IgnoreMetadata = true
+            };
 
             var testFile = TestFile.Create(TestImages.Gif.Rings);
 
             using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
-                Assert.Equal(0, image.Metadata.GifComments.Count);
-            }
-        }
-
-        [Fact]
-        public void Decode_TextEncodingSetToUnicode_TextIsReadWithCorrectEncoding()
-        {
-            var options = new GifDecoder
-                          {
-                              TextEncoding = Encoding.Unicode
-                          };
-
-            var testFile = TestFile.Create(TestImages.Gif.Rings);
-
-            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
-            {
-                Assert.Equal(1, image.Metadata.GifComments.Count);
-                Assert.Equal("浉条卥慨灲", image.Metadata.GifComments[0]);
+                GifMetadata metadata = image.Metadata.GetFormatMetadata(GifFormat.Instance);
+                Assert.Equal(0, metadata.Comments.Count);
             }
         }
 
@@ -101,9 +92,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
-                Assert.Equal(2, image.Metadata.GifComments.Count);
-                Assert.Equal(new string('c', 349), image.Metadata.GifComments[0]);
-                Assert.Equal("ImageSharp", image.Metadata.GifComments[1]);
+                GifMetadata metadata = image.Metadata.GetFormatMetadata(GifFormat.Instance);
+                Assert.Equal(2, metadata.Comments.Count);
+                Assert.Equal(new string('c', 349), metadata.Comments[0]);
+                Assert.Equal("ImageSharp", metadata.Comments[1]);
             }
         }
 
@@ -121,9 +113,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
                 using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, memoryStream))
                 {
-                    Assert.Equal(2, image.Metadata.GifComments.Count);
-                    Assert.Equal(new string('c', 349), image.Metadata.GifComments[0]);
-                    Assert.Equal("ImageSharp", image.Metadata.GifComments[1]);
+                    GifMetadata metadata = image.Metadata.GetFormatMetadata(GifFormat.Instance);
+                    Assert.Equal(2, metadata.Comments.Count);
+                    Assert.Equal(new string('c', 349), metadata.Comments[0]);
+                    Assert.Equal("ImageSharp", metadata.Comments[1]);
                 }
             }
         }

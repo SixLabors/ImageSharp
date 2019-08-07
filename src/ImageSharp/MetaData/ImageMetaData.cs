@@ -68,8 +68,6 @@ namespace SixLabors.ImageSharp.Metadata
                 this.PngTextProperties.Add(property);
             }
 
-            this.GifComments.AddRange(other.GifComments);
-
             this.ExifProfile = other.ExifProfile?.DeepClone();
             this.IccProfile = other.IccProfile?.DeepClone();
         }
@@ -128,11 +126,6 @@ namespace SixLabors.ImageSharp.Metadata
         /// Gets or sets the list of ICC profiles.
         /// </summary>
         public IccProfile IccProfile { get; set; }
-
-        /// <summary>
-        /// Gets the list of gif text comments for storing meta information about this image.
-        /// </summary>
-        public List<string> GifComments { get; } = new List<string>();
 
         /// <summary>
         /// Gets the list of png text properties for storing meta information about this image.

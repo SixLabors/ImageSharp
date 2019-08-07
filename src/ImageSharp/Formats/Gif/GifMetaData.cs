@@ -1,5 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
+
+using System.Collections.Generic;
 
 namespace SixLabors.ImageSharp.Formats.Gif
 {
@@ -24,6 +26,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.RepeatCount = other.RepeatCount;
             this.ColorTableMode = other.ColorTableMode;
             this.GlobalColorTableLength = other.GlobalColorTableLength;
+
+            for (int i = 0; i < other.Comments.Count; i++)
+            {
+                this.Comments.Add(other.Comments[i]);
+            }
         }
 
         /// <summary>
@@ -43,6 +50,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Gets or sets the length of the global color table if present.
         /// </summary>
         public int GlobalColorTableLength { get; set; }
+
+        /// <summary>
+        /// Gets or sets the the list of comments about the graphics, credits, descriptions or any
+        /// other type of non-control and non-graphic data.
+        /// </summary>
+        public IList<string> Comments { get; set; } = new List<string>();
 
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new GifMetadata(this);

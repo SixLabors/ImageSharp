@@ -92,8 +92,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        Assert.Equal(1, output.Metadata.GifComments.Count);
-                        Assert.Equal("ImageSharp", output.Metadata.GifComments[0]);
+                        GifMetadata metadata = output.Metadata.GetFormatMetadata(GifFormat.Instance);
+                        Assert.Equal(1, metadata.Comments.Count);
+                        Assert.Equal("ImageSharp", metadata.Comments[0]);
                     }
                 }
             }

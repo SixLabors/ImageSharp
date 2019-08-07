@@ -77,7 +77,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="options">The decoder options.</param>
         public GifDecoderCore(Configuration configuration, IGifDecoderOptions options)
         {
-            this.TextEncoding = options.TextEncoding ?? GifConstants.DefaultEncoding;
             this.IgnoreMetadata = options.IgnoreMetadata;
             this.DecodingMode = options.DecodingMode;
             this.configuration = configuration ?? Configuration.Default;
@@ -87,11 +86,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
         public bool IgnoreMetadata { get; internal set; }
-
-        /// <summary>
-        /// Gets the text encoding
-        /// </summary>
-        public Encoding TextEncoding { get; }
 
         /// <summary>
         /// Gets the decoding mode for multi-frame images
@@ -334,14 +328,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 using (IManagedByteBuffer commentsBuffer = this.MemoryAllocator.AllocateManagedByteBuffer(length))
                 {
                     this.stream.Read(commentsBuffer.Array, 0, length);
-                    string commentPart = this.TextEncoding.GetString(commentsBuffer.Array, 0, length);
+                    string commentPart = GifConstants.Encoding.GetString(commentsBuffer.Array, 0, length);
                     stringBuilder.Append(commentPart);
                 }
             }
 
             if (stringBuilder.Length > 0)
             {
-                this.metadata.GifComments.Add(stringBuilder.ToString());
+                this.gifMetadata.Comments.Add(stringBuilder.ToString());
             }
         }
 

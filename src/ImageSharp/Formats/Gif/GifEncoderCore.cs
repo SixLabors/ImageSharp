@@ -38,11 +38,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private readonly byte[] buffer = new byte[20];
 
         /// <summary>
-        /// The text encoding used to write comments.
-        /// </summary>
-        private readonly Encoding textEncoding;
-
-        /// <summary>
         /// The quantizer used to generate the color palette.
         /// </summary>
         private readonly IQuantizer quantizer;
@@ -58,11 +53,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private int bitDepth;
 
         /// <summary>
-        /// Gif specific metadata.
-        /// </summary>
-        private GifMetadata gifMetadata;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
         /// </summary>
         /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
@@ -70,7 +60,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public GifEncoderCore(MemoryAllocator memoryAllocator, IGifEncoderOptions options)
         {
             this.memoryAllocator = memoryAllocator;
-            this.textEncoding = options.TextEncoding ?? GifConstants.DefaultEncoding;
             this.quantizer = options.Quantizer;
             this.colorTableMode = options.ColorTableMode;
         }
@@ -90,8 +79,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.configuration = image.GetConfiguration();
 
             ImageMetadata metadata = image.Metadata;
-            this.gifMetadata = metadata.GetFormatMetadata(GifFormat.Instance);
-            this.colorTableMode = this.colorTableMode ?? this.gifMetadata.ColorTableMode;
+            GifMetadata gifMetadata = metadata.GetFormatMetadata(GifFormat.Instance);
+            this.colorTableMode = this.colorTableMode ?? gifMetadata.ColorTableMode;
             bool useGlobalTable = this.colorTableMode == GifColorTableMode.Global;
 
             // Quantize the image returning a palette.
@@ -117,12 +106,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
             }
 
             // Write the comments.
-            this.WriteComments(metadata, stream);
+            this.WriteComments(gifMetadata, stream);
 
             // Write application extension to allow additional frames.
             if (image.Frames.Count > 1)
             {
-                this.WriteApplicationExtension(stream, this.gifMetadata.RepeatCount);
+                this.WriteApplicationExtension(stream, gifMetadata.RepeatCount);
             }
 
             if (useGlobalTable)
@@ -333,14 +322,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <param name="metadata">The metadata to be extract the comment data.</param>
         /// <param name="stream">The stream to write to.</param>
-        private void WriteComments(ImageMetadata metadata, Stream stream)
+        private void WriteComments(GifMetadata metadata, Stream stream)
         {
-            if (metadata.GifComments.Count == 0)
+            if (metadata.Comments.Count == 0)
             {
                 return;
             }
 
-            foreach (string comment in metadata.GifComments)
+            foreach (string comment in metadata.Comments)
             {
                 this.buffer[0] = GifConstants.ExtensionIntroducer;
                 this.buffer[1] = GifConstants.CommentLabel;
@@ -375,7 +364,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private static void WriteCommentSubBlock(Stream stream, ReadOnlySpan<char> commentSpan, int idx, int length)
         {
             string subComment = commentSpan.Slice(idx, length).ToString();
-            byte[] subCommentBytes = Encoding.ASCII.GetBytes(subComment);
+            byte[] subCommentBytes = GifConstants.Encoding.GetBytes(subComment);
             stream.WriteByte((byte)length);
             stream.Write(subCommentBytes, 0, length);
         }

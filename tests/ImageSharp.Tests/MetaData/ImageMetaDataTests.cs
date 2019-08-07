@@ -25,13 +25,11 @@ namespace SixLabors.ImageSharp.Tests.MetaData
 
             var exifProfile = new ExifProfile();
             var pngTextData = new PngTextData("name", "value", "foo", "bar");
-            var gifTextData = new List<string>() { "test" }; 
 
             metaData.ExifProfile = exifProfile;
             metaData.HorizontalResolution = 4;
             metaData.VerticalResolution = 2;
             metaData.PngTextProperties.Add(pngTextData);
-            metaData.GifComments.AddRange(gifTextData);
 
             ImageMetadata clone = metaData.DeepClone();
 
@@ -39,7 +37,6 @@ namespace SixLabors.ImageSharp.Tests.MetaData
             Assert.Equal(4, clone.HorizontalResolution);
             Assert.Equal(2, clone.VerticalResolution);
             Assert.Equal(pngTextData, clone.PngTextProperties[0]);
-            Assert.Equal(gifTextData[0], clone.GifComments[0]);
         }
 
         [Fact]
@@ -49,13 +46,11 @@ namespace SixLabors.ImageSharp.Tests.MetaData
 
             var exifProfile = new ExifProfile();
             var pngTextData = new PngTextData("name", "value", "foo", "bar");
-            var gifTextData = new List<string>() { "test" };
 
             metaData.ExifProfile = exifProfile;
             metaData.HorizontalResolution = 4;
             metaData.VerticalResolution = 2;
             metaData.PngTextProperties.Add(pngTextData);
-            metaData.GifComments.AddRange(gifTextData);
 
             ImageMetadata clone = metaData.DeepClone();
             clone.HorizontalResolution = 2;
@@ -64,9 +59,7 @@ namespace SixLabors.ImageSharp.Tests.MetaData
             Assert.False(metaData.ExifProfile.Equals(clone.ExifProfile));
             Assert.False(metaData.HorizontalResolution.Equals(clone.HorizontalResolution));
             Assert.False(metaData.VerticalResolution.Equals(clone.VerticalResolution));
-            Assert.False(metaData.GifComments.Equals(clone.GifComments));
             Assert.False(metaData.PngTextProperties.Equals(clone.PngTextProperties));
-            Assert.False(metaData.GetFormatMetadata(GifFormat.Instance).Equals(clone.GetFormatMetadata(GifFormat.Instance)));
         }
 
         [Fact]

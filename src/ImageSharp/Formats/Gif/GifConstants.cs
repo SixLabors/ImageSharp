@@ -67,11 +67,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public const byte CommentLabel = 0xFE;
 
         /// <summary>
-        /// The name of the property inside the image properties for the comments.
-        /// </summary>
-        public const string Comments = "Comments";
-
-        /// <summary>
         /// The maximum length of a comment data sub-block is 255.
         /// </summary>
         public const int MaxCommentSubBlockLength = 255;
@@ -102,9 +97,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public const byte EndIntroducer = 0x3B;
 
         /// <summary>
-        /// Gets the default encoding to use when reading comments.
+        /// Gets the character encoding to use when reading and writing comments - (ASCII 7bit).
         /// </summary>
-        public static readonly Encoding DefaultEncoding = Encoding.ASCII;
+        public static readonly Encoding Encoding = Encoding.ASCII;
 
         /// <summary>
         /// The list of mimetypes that equate to a gif.

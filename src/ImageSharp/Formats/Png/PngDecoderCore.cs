@@ -1,8 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Buffers.Binary;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -40,11 +41,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly Configuration configuration;
 
         /// <summary>
-        /// Gets the encoding to use
-        /// </summary>
-        private readonly Encoding textEncoding;
-
-        /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
         private readonly bool ignoreMetadata;
@@ -70,22 +66,22 @@ namespace SixLabors.ImageSharp.Formats.Png
         private int bytesPerPixel;
 
         /// <summary>
-        /// The number of bytes per sample
+        /// The number of bytes per sample.
         /// </summary>
         private int bytesPerSample;
 
         /// <summary>
-        /// The number of bytes per scanline
+        /// The number of bytes per scanline.
         /// </summary>
         private int bytesPerScanline;
 
         /// <summary>
-        /// The palette containing color information for indexed png's
+        /// The palette containing color information for indexed png's.
         /// </summary>
         private byte[] palette;
 
         /// <summary>
-        /// The palette containing alpha channel color information for indexed png's
+        /// The palette containing alpha channel color information for indexed png's.
         /// </summary>
         private byte[] paletteAlpha;
 
@@ -95,37 +91,37 @@ namespace SixLabors.ImageSharp.Formats.Png
         private bool isEndChunkReached;
 
         /// <summary>
-        /// Previous scanline processed
+        /// Previous scanline processed.
         /// </summary>
         private IManagedByteBuffer previousScanline;
 
         /// <summary>
-        /// The current scanline that is being processed
+        /// The current scanline that is being processed.
         /// </summary>
         private IManagedByteBuffer scanline;
 
         /// <summary>
-        /// The index of the current scanline being processed
+        /// The index of the current scanline being processed.
         /// </summary>
         private int currentRow = Adam7.FirstRow[0];
 
         /// <summary>
-        /// The current pass for an interlaced PNG
+        /// The current pass for an interlaced PNG.
         /// </summary>
         private int pass;
 
         /// <summary>
-        /// The current number of bytes read in the current scanline
+        /// The current number of bytes read in the current scanline.
         /// </summary>
         private int currentRowBytesRead;
 
         /// <summary>
-        /// Gets or sets the png color type
+        /// Gets or sets the png color type.
         /// </summary>
         private PngColorType pngColorType;
 
         /// <summary>
-        /// The next chunk of data to return
+        /// The next chunk of data to return.
         /// </summary>
         private PngChunk? nextChunk;
 
@@ -138,7 +134,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             this.configuration = configuration ?? Configuration.Default;
             this.memoryAllocator = this.configuration.MemoryAllocator;
-            this.textEncoding = options.TextEncoding ?? PngConstants.DefaultEncoding;
             this.ignoreMetadata = options.IgnoreMetadata;
         }
 
@@ -204,7 +199,13 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 this.AssignTransparentMarkers(alpha, pngMetadata);
                                 break;
                             case PngChunkType.Text:
-                                this.ReadTextChunk(metadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                this.ReadTextChunk(pngMetadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                break;
+                            case PngChunkType.CompressedText:
+                                this.ReadCompressedTextChunk(pngMetadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                break;
+                            case PngChunkType.InternationalText:
+                                this.ReadInternationalTextChunk(pngMetadata, chunk.Data.Array.AsSpan(0, chunk.Length));
                                 break;
                             case PngChunkType.Exif:
                                 if (!this.ignoreMetadata)
@@ -271,7 +272,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 this.SkipChunkDataAndCrc(chunk);
                                 break;
                             case PngChunkType.Text:
-                                this.ReadTextChunk(metadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                this.ReadTextChunk(pngMetadata, chunk.Data.Array.AsSpan(0, chunk.Length));
                                 break;
                             case PngChunkType.End:
                                 this.isEndChunkReached = true;
@@ -653,7 +654,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         this.header,
                         scanlineSpan,
                         rowSpan,
-                        pngMetadata.HasTrans,
+                        pngMetadata.HasTransparency,
                         pngMetadata.TransparentGray16.GetValueOrDefault(),
                         pngMetadata.TransparentGray8.GetValueOrDefault());
 
@@ -687,7 +688,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         rowSpan,
                         this.bytesPerPixel,
                         this.bytesPerSample,
-                        pngMetadata.HasTrans,
+                        pngMetadata.HasTransparency,
                         pngMetadata.TransparentRgb48.GetValueOrDefault(),
                         pngMetadata.TransparentRgb24.GetValueOrDefault());
 
@@ -737,7 +738,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         rowSpan,
                         pixelOffset,
                         increment,
-                        pngMetadata.HasTrans,
+                        pngMetadata.HasTransparency,
                         pngMetadata.TransparentGray16.GetValueOrDefault(),
                         pngMetadata.TransparentGray8.GetValueOrDefault());
 
@@ -776,7 +777,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         increment,
                         this.bytesPerPixel,
                         this.bytesPerSample,
-                        pngMetadata.HasTrans,
+                        pngMetadata.HasTransparency,
                         pngMetadata.TransparentRgb48.GetValueOrDefault(),
                         pngMetadata.TransparentRgb24.GetValueOrDefault());
 
@@ -816,7 +817,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         ushort bc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(4, 2));
 
                         pngMetadata.TransparentRgb48 = new Rgb48(rc, gc, bc);
-                        pngMetadata.HasTrans = true;
+                        pngMetadata.HasTransparency = true;
                         return;
                     }
 
@@ -824,7 +825,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     byte g = ReadByteLittleEndian(alpha, 2);
                     byte b = ReadByteLittleEndian(alpha, 4);
                     pngMetadata.TransparentRgb24 = new Rgb24(r, g, b);
-                    pngMetadata.HasTrans = true;
+                    pngMetadata.HasTransparency = true;
                 }
             }
             else if (this.pngColorType == PngColorType.Grayscale)
@@ -840,7 +841,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         pngMetadata.TransparentGray8 = new Gray8(ReadByteLittleEndian(alpha, 0));
                     }
 
-                    pngMetadata.HasTrans = true;
+                    pngMetadata.HasTransparency = true;
                 }
             }
         }
@@ -867,7 +868,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="metadata">The metadata to decode to.</param>
         /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
-        private void ReadTextChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
+        private void ReadTextChunk(PngMetadata metadata, ReadOnlySpan<byte> data)
         {
             if (this.ignoreMetadata)
             {
@@ -876,10 +877,151 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             int zeroIndex = data.IndexOf((byte)0);
 
-            string name = this.textEncoding.GetString(data.Slice(0, zeroIndex));
-            string value = this.textEncoding.GetString(data.Slice(zeroIndex + 1));
+            // Keywords are restricted to 1 to 79 bytes in length.
+            if (zeroIndex < PngConstants.MinTextKeywordLength || zeroIndex > PngConstants.MaxTextKeywordLength)
+            {
+                return;
+            }
 
-            metadata.Properties.Add(new ImageProperty(name, value));
+            ReadOnlySpan<byte> keywordBytes = data.Slice(0, zeroIndex);
+            if (!this.TryReadTextKeyword(keywordBytes, out string name))
+            {
+                return;
+            }
+
+            string value = PngConstants.Encoding.GetString(data.Slice(zeroIndex + 1));
+
+            metadata.TextData.Add(new PngTextData(name, value, string.Empty, string.Empty));
+        }
+
+        /// <summary>
+        /// Reads the compressed text chunk. Contains a uncompressed keyword and a compressed text string.
+        /// </summary>
+        /// <param name="metadata">The metadata to decode to.</param>
+        /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
+        private void ReadCompressedTextChunk(PngMetadata metadata, ReadOnlySpan<byte> data)
+        {
+            if (this.ignoreMetadata)
+            {
+                return;
+            }
+
+            int zeroIndex = data.IndexOf((byte)0);
+            if (zeroIndex < PngConstants.MinTextKeywordLength || zeroIndex > PngConstants.MaxTextKeywordLength)
+            {
+                return;
+            }
+
+            byte compressionMethod = data[zeroIndex + 1];
+            if (compressionMethod != 0)
+            {
+                // Only compression method 0 is supported (zlib datastream with deflate compression).
+                return;
+            }
+
+            ReadOnlySpan<byte> keywordBytes = data.Slice(0, zeroIndex);
+            if (!this.TryReadTextKeyword(keywordBytes, out string name))
+            {
+                return;
+            }
+
+            ReadOnlySpan<byte> compressedData = data.Slice(zeroIndex + 2);
+            metadata.TextData.Add(new PngTextData(name, this.UncompressTextData(compressedData, PngConstants.Encoding), string.Empty, string.Empty));
+        }
+
+        /// <summary>
+        /// Reads a iTXt chunk, which contains international text data. It contains:
+        /// - A uncompressed keyword.
+        /// - Compression flag, indicating if a compression is used.
+        /// - Compression method.
+        /// - Language tag (optional).
+        /// - A translated keyword (optional).
+        /// - Text data, which is either compressed or uncompressed.
+        /// </summary>
+        /// <param name="metadata">The metadata to decode to.</param>
+        /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
+        private void ReadInternationalTextChunk(PngMetadata metadata, ReadOnlySpan<byte> data)
+        {
+            if (this.ignoreMetadata)
+            {
+                return;
+            }
+
+            int zeroIndexKeyword = data.IndexOf((byte)0);
+            if (zeroIndexKeyword < PngConstants.MinTextKeywordLength || zeroIndexKeyword > PngConstants.MaxTextKeywordLength)
+            {
+                return;
+            }
+
+            byte compressionFlag = data[zeroIndexKeyword + 1];
+            if (!(compressionFlag == 0 || compressionFlag == 1))
+            {
+                return;
+            }
+
+            byte compressionMethod = data[zeroIndexKeyword + 2];
+            if (compressionMethod != 0)
+            {
+                // Only compression method 0 is supported (zlib datastream with deflate compression).
+                return;
+            }
+
+            int langStartIdx = zeroIndexKeyword + 3;
+            int languageLength = data.Slice(langStartIdx).IndexOf((byte)0);
+            if (languageLength < 0)
+            {
+                return;
+            }
+
+            string language = PngConstants.LanguageEncoding.GetString(data.Slice(langStartIdx, languageLength));
+
+            int translatedKeywordStartIdx = langStartIdx + languageLength + 1;
+            int translatedKeywordLength = data.Slice(translatedKeywordStartIdx).IndexOf((byte)0);
+            string translatedKeyword = PngConstants.TranslatedEncoding.GetString(data.Slice(translatedKeywordStartIdx, translatedKeywordLength));
+
+            ReadOnlySpan<byte> keywordBytes = data.Slice(0, zeroIndexKeyword);
+            if (!this.TryReadTextKeyword(keywordBytes, out string keyword))
+            {
+                return;
+            }
+
+            int dataStartIdx = translatedKeywordStartIdx + translatedKeywordLength + 1;
+            if (compressionFlag == 1)
+            {
+                ReadOnlySpan<byte> compressedData = data.Slice(dataStartIdx);
+                metadata.TextData.Add(new PngTextData(keyword, this.UncompressTextData(compressedData, PngConstants.TranslatedEncoding), language, translatedKeyword));
+            }
+            else
+            {
+                string value = PngConstants.TranslatedEncoding.GetString(data.Slice(dataStartIdx));
+                metadata.TextData.Add(new PngTextData(keyword, value, language, translatedKeyword));
+            }
+        }
+
+        /// <summary>
+        /// Decompresses a byte array with zlib compressed text data.
+        /// </summary>
+        /// <param name="compressedData">Compressed text data bytes.</param>
+        /// <param name="encoding">The string encoding to use.</param>
+        /// <returns>A string.</returns>
+        private string UncompressTextData(ReadOnlySpan<byte> compressedData, Encoding encoding)
+        {
+            using (var memoryStream = new MemoryStream(compressedData.ToArray()))
+            using (var inflateStream = new ZlibInflateStream(memoryStream, () => 0))
+            {
+                inflateStream.AllocateNewBytes(compressedData.Length);
+                var uncompressedBytes = new List<byte>();
+
+                // Note: this uses the a buffer which is only 4 bytes long to read the stream, maybe allocating a larger buffer makes sense here.
+                int bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
+                while (bytesRead != 0)
+                {
+                    uncompressedBytes.AddRange(this.buffer.AsSpan().Slice(0, bytesRead).ToArray());
+                    bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
+                }
+
+                return encoding.GetString(uncompressedBytes.ToArray());
+            }
         }
 
         /// <summary>
@@ -1048,7 +1190,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Attempts to read the length of the next chunk.
         /// </summary>
         /// <returns>
-        /// Whether the the length was read.
+        /// Whether the length was read.
         /// </returns>
         private bool TryReadChunkLength(out int result)
         {
@@ -1062,6 +1204,37 @@ namespace SixLabors.ImageSharp.Formats.Png
             result = default;
 
             return false;
+        }
+
+        /// <summary>
+        /// Tries to reads a text chunk keyword, which have some restrictions to be valid:
+        /// Keywords shall contain only printable Latin-1 characters and should not have leading or trailing whitespace.
+        /// See: https://www.w3.org/TR/PNG/#11zTXt
+        /// </summary>
+        /// <param name="keywordBytes">The keyword bytes.</param>
+        /// <param name="name">The name.</param>
+        /// <returns>True, if the keyword could be read and is valid.</returns>
+        private bool TryReadTextKeyword(ReadOnlySpan<byte> keywordBytes, out string name)
+        {
+            name = string.Empty;
+
+            // Keywords shall contain only printable Latin-1.
+            foreach (byte c in keywordBytes)
+            {
+                if (!((c >= 32 && c <= 126) || (c >= 161 && c <= 255)))
+                {
+                    return false;
+                }
+            }
+
+            // Keywords should not be empty or have leading or trailing whitespace.
+            name = PngConstants.Encoding.GetString(keywordBytes);
+            if (string.IsNullOrWhiteSpace(name) || name.StartsWith(" ") || name.EndsWith(" "))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private void SwapBuffers()

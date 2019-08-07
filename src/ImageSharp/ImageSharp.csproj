@@ -14,11 +14,9 @@
 
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <AssemblyName>SixLabors.ImageSharp</AssemblyName>
     <PackageId>SixLabors.ImageSharp</PackageId>
     <PackageTags>Image Resize Crop Gif Jpg Jpeg Bitmap Png Core</PackageTags>
     <RootNamespace>SixLabors.ImageSharp</RootNamespace>
-    <TargetFrameworks>netcoreapp2.1;netstandard1.3;netstandard2.0;net472</TargetFrameworks>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' OR '$(TargetFramework)' == 'net472' ">

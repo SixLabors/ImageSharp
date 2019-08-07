@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void DrawPath<TPixel>(TestImageProvider<TPixel> provider, string colorName, byte alpha, float thickness)
             where TPixel : struct, IPixel<TPixel>
         {
-            var linerSegment = new LinearLineSegment(
+            var linearSegment = new LinearLineSegment(
                 new Vector2(10, 10),
                 new Vector2(200, 150),
                 new Vector2(50, 300));
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 new Vector2(60, 10),
                 new Vector2(10, 400));
 
-            var path = new Path(linerSegment, bezierSegment);
+            var path = new Path(linearSegment, bezierSegment);
 
             Rgba32 rgba = TestUtils.GetColorByName(colorName);
             rgba.A = alpha;

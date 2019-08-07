@@ -96,9 +96,9 @@ namespace SixLabors.ImageSharp.Advanced
 
         /// <summary>
         /// This method doesn't actually do anything but serves an important purpose...
-        /// If you are running ImageSharp on iOS and try to call SaveAsGif, it will throw an excepion:
+        /// If you are running ImageSharp on iOS and try to call SaveAsGif, it will throw an exception:
         /// "Attempting to JIT compile method... OctreeFrameQuantizer.ConstructPalette... while running in aot-only mode."
-        /// The reason this happens is the SaveAsGif method makes haevy use of generics, which are too confusing for the AoT
+        /// The reason this happens is the SaveAsGif method makes heavy use of generics, which are too confusing for the AoT
         /// compiler used on Xamarin.iOS. It spins up the JIT compiler to try and figure it out, but that is an illegal op on
         /// iOS so it bombs out.
         /// If you are getting the above error, you need to call this method, which will pre-seed the AoT compiler with the

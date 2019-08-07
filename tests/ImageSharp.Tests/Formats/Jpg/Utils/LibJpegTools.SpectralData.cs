@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
     internal static partial class LibJpegTools
     {
         /// <summary>
-        /// Stores spectral jpeg compoent data in libjpeg-compatible style.
+        /// Stores spectral jpeg component data in libjpeg-compatible style.
         /// </summary>
         public class SpectralData : IEquatable<SpectralData>
         {

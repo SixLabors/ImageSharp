@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         /// Rounds a rational number defined as dividend/divisor into an integer
         /// </summary>
         /// <param name="dividend">The dividend</param>
-        /// <param name="divisor">The divisior</param>
+        /// <param name="divisor">The divisor</param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int RationalRound(int dividend, int divisor)

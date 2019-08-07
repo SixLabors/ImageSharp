@@ -34,13 +34,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 new Vector2(10, 10),
                 new Vector2(200, 150),
                 new Vector2(50, 300));
-            var bazierSegment = new CubicBezierLineSegment(
+            var bezierSegment = new CubicBezierLineSegment(
                 new Vector2(50, 300),
                 new Vector2(500, 500),
                 new Vector2(60, 10),
                 new Vector2(10, 400));
 
-            var path = new Path(linerSegment, bazierSegment);
+            var path = new Path(linerSegment, bezierSegment);
 
             Rgba32 rgba = TestUtils.GetColorByName(colorName);
             rgba.A = alpha;

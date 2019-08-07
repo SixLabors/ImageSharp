@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests
             DecodeOperation[] discovered = this.DecodeCalls.Where(x => x.IsMatch(marker, config, typeof(TestPixelForAgnosticDecode))).ToArray();
 
 
-            Assert.True(discovered.Any(), "No calls to decode on this formate with the proveded options happend");
+            Assert.True(discovered.Any(), "No calls to decode on this format with the provided options happened");
 
             foreach (DecodeOperation d in discovered)
             {
@@ -237,7 +237,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public void Encode<TPixel>(Image<TPixel> image, Stream stream) where TPixel : struct, IPixel<TPixel>
             {
-                // TODO record this happend so we can verify it.
+                // TODO record this happened so we can verify it.
             }
         }
 

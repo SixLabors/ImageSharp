@@ -3,7 +3,6 @@
 
 using System.Collections.Generic;
 
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Filters;
 using SixLabors.ImageSharp.Processing.Processors;

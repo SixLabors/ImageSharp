@@ -3,7 +3,6 @@
 
 // ReSharper disable InconsistentNaming
 
-using System.Buffers.Binary;
 using System.IO;
 using System.Text;
 

@@ -34,8 +34,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             {
                 var encoder = new GifEncoder()
                 {
-                    // Use the palette quantizer without dithering to ensure results 
-                    // are consistant
+                    // Use the palette quantizer without dithering to ensure results
+                    // are consistent
                     Quantizer = new WebSafePaletteQuantizer(false)
                 };
 

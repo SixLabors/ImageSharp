@@ -49,11 +49,11 @@ namespace SixLabors.ImageSharp.Tests.Memory
             [Theory]
             [InlineData(false)]
             [InlineData(true)]
-            public void WhenOwnershipIsTransfered_ShouldDisposeMemoryOwner(bool isInternalMemorySource)
+            public void WhenOwnershipIsTransferred_ShouldDisposeMemoryOwner(bool isInternalMemorySource)
             {
                 var mmg = new TestMemoryManager<int>(new int[10]);
                 var bmg = new MemorySource<int>(mmg, isInternalMemorySource);
-                
+
                 bmg.Dispose();
                 Assert.True(mmg.IsDisposed);
             }
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 Assert.False(mmg.IsDisposed);
             }
         }
-        
+
         public class SwapOrCopyContent
         {
             private MemoryAllocator MemoryAllocator { get; } = new TestMemoryAllocator();
@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 MemorySource<Rgba32> source = sourceIsOwner
                                                    ? new MemorySource<Rgba32>(sourceOwner, isInternalMemorySource)
                                                    : new MemorySource<Rgba32>(sourceOwner.Memory);
-                
+
                 sourceOwner.Memory.Span[10] = color;
 
                 // Act:
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 Assert.ThrowsAny<InvalidOperationException>(
                     () => MemorySource<Rgba32>.SwapOrCopyContent(ref dest, ref source)
                 );
-                
+
                 Assert.Equal(color, source.Memory.Span[10]);
                 Assert.NotEqual(color, dest.Memory.Span[10]);
             }

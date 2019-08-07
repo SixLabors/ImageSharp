@@ -41,12 +41,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             clone.RepeatCount = 2;
             clone.ColorTableMode = GifColorTableMode.Local;
             clone.GlobalColorTableLength = 1;
-            clone.Comments[0] = "Bar";
 
             Assert.False(meta.RepeatCount.Equals(clone.RepeatCount));
             Assert.False(meta.ColorTableMode.Equals(clone.ColorTableMode));
             Assert.False(meta.GlobalColorTableLength.Equals(clone.GlobalColorTableLength));
-            Assert.False(meta.Comments.SequenceEqual(clone.Comments));
+            Assert.False(meta.Comments.Equals(clone.Comments));
+            Assert.True(meta.Comments.SequenceEqual(clone.Comments));
         }
 
         [Fact]

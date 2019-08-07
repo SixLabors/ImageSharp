@@ -3,12 +3,12 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Metadata
+namespace SixLabors.ImageSharp.Formats.Png
 {
     /// <summary>
-    /// Stores text data about a image, like the name of the author,
-    /// the copyright information, the date, where the image was created
-    /// or some other information.
+    /// Stores text data contained in the iTXt, tEXt, and zTXt chunks.
+    /// Used for conveying textual information associated with the image, like the name of the author,
+    /// the copyright information, the date, where the image was created, or some other information.
     /// </summary>
     public readonly struct PngTextData : IEquatable<PngTextData>
     {

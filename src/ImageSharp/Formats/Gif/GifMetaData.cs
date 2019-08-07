@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public int GlobalColorTableLength { get; set; }
 
         /// <summary>
-        /// Gets or sets the the list of comments about the graphics, credits, descriptions or any
+        /// Gets or sets the the collection of comments about the graphics, credits, descriptions or any
         /// other type of non-control and non-graphic data.
         /// </summary>
         public IList<string> Comments { get; set; } = new List<string>();

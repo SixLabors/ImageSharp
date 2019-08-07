@@ -7,25 +7,38 @@ using System.Text;
 namespace SixLabors.ImageSharp.Formats.Png
 {
     /// <summary>
-    /// Defines png constants defined in the specification.
+    /// Defines Png constants defined in the specification.
     /// </summary>
     internal static class PngConstants
     {
         /// <summary>
-        /// The default encoding for text metadata.
+        /// The character encoding to use when reading and writing textual data keywords and text - (Latin-1 ISO-8859-1).
         /// </summary>
-        public static readonly Encoding DefaultEncoding = Encoding.ASCII;
+        public static readonly Encoding Encoding = Encoding.GetEncoding("ISO-8859-1");
 
         /// <summary>
-        /// The list of mimetypes that equate to a png.
+        /// The character encoding to use when reading and writing language tags within iTXt chunks - (ASCII 7bit).
+        /// </summary>
+        public static readonly Encoding LanguageEncoding = Encoding.ASCII;
+
+        /// <summary>
+        /// The character encoding to use when reading and writing translated textual data keywords and text - (UTF8).
+        /// </summary>
+        public static readonly Encoding TranslatedEncoding = Encoding.UTF8;
+
+        /// <summary>
+        /// The list of mimetypes that equate to a Png.
         /// </summary>
         public static readonly IEnumerable<string> MimeTypes = new[] { "image/png" };
 
         /// <summary>
-        /// The list of file extensions that equate to a png.
+        /// The list of file extensions that equate to a Png.
         /// </summary>
         public static readonly IEnumerable<string> FileExtensions = new[] { "png" };
 
+        /// <summary>
+        /// The header bytes identifying a Png.
+        /// </summary>
         public static readonly byte[] HeaderBytes =
         {
              0x89, // Set the high bit.

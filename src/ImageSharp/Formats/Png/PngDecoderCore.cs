@@ -126,11 +126,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         private PngChunk? nextChunk;
 
         /// <summary>
-        /// Latin encoding is used for text chunks.
-        /// </summary>
-        private static readonly Encoding LatinEncoding = Encoding.GetEncoding("ISO-8859-1");
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
@@ -204,13 +199,13 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 this.AssignTransparentMarkers(alpha, pngMetadata);
                                 break;
                             case PngChunkType.Text:
-                                this.ReadTextChunk(metadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                this.ReadTextChunk(pngMetadata, chunk.Data.Array.AsSpan(0, chunk.Length));
                                 break;
                             case PngChunkType.CompressedText:
-                                this.ReadCompressedTextChunk(metadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                this.ReadCompressedTextChunk(pngMetadata, chunk.Data.Array.AsSpan(0, chunk.Length));
                                 break;
                             case PngChunkType.InternationalText:
-                                this.ReadInternationalTextChunk(metadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                this.ReadInternationalTextChunk(pngMetadata, chunk.Data.Array.AsSpan(0, chunk.Length));
                                 break;
                             case PngChunkType.Exif:
                                 if (!this.ignoreMetadata)
@@ -277,7 +272,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 this.SkipChunkDataAndCrc(chunk);
                                 break;
                             case PngChunkType.Text:
-                                this.ReadTextChunk(metadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                this.ReadTextChunk(pngMetadata, chunk.Data.Array.AsSpan(0, chunk.Length));
                                 break;
                             case PngChunkType.End:
                                 this.isEndChunkReached = true;
@@ -659,7 +654,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         this.header,
                         scanlineSpan,
                         rowSpan,
-                        pngMetadata.HasTrans,
+                        pngMetadata.HasTransparency,
                         pngMetadata.TransparentGray16.GetValueOrDefault(),
                         pngMetadata.TransparentGray8.GetValueOrDefault());
 
@@ -693,7 +688,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         rowSpan,
                         this.bytesPerPixel,
                         this.bytesPerSample,
-                        pngMetadata.HasTrans,
+                        pngMetadata.HasTransparency,
                         pngMetadata.TransparentRgb48.GetValueOrDefault(),
                         pngMetadata.TransparentRgb24.GetValueOrDefault());
 
@@ -743,7 +738,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         rowSpan,
                         pixelOffset,
                         increment,
-                        pngMetadata.HasTrans,
+                        pngMetadata.HasTransparency,
                         pngMetadata.TransparentGray16.GetValueOrDefault(),
                         pngMetadata.TransparentGray8.GetValueOrDefault());
 
@@ -782,7 +777,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         increment,
                         this.bytesPerPixel,
                         this.bytesPerSample,
-                        pngMetadata.HasTrans,
+                        pngMetadata.HasTransparency,
                         pngMetadata.TransparentRgb48.GetValueOrDefault(),
                         pngMetadata.TransparentRgb24.GetValueOrDefault());
 
@@ -822,7 +817,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         ushort bc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(4, 2));
 
                         pngMetadata.TransparentRgb48 = new Rgb48(rc, gc, bc);
-                        pngMetadata.HasTrans = true;
+                        pngMetadata.HasTransparency = true;
                         return;
                     }
 
@@ -830,7 +825,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     byte g = ReadByteLittleEndian(alpha, 2);
                     byte b = ReadByteLittleEndian(alpha, 4);
                     pngMetadata.TransparentRgb24 = new Rgb24(r, g, b);
-                    pngMetadata.HasTrans = true;
+                    pngMetadata.HasTransparency = true;
                 }
             }
             else if (this.pngColorType == PngColorType.Grayscale)
@@ -846,7 +841,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         pngMetadata.TransparentGray8 = new Gray8(ReadByteLittleEndian(alpha, 0));
                     }
 
-                    pngMetadata.HasTrans = true;
+                    pngMetadata.HasTransparency = true;
                 }
             }
         }
@@ -873,7 +868,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="metadata">The metadata to decode to.</param>
         /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
-        private void ReadTextChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
+        private void ReadTextChunk(PngMetadata metadata, ReadOnlySpan<byte> data)
         {
             if (this.ignoreMetadata)
             {
@@ -894,9 +889,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return;
             }
 
-            string value = LatinEncoding.GetString(data.Slice(zeroIndex + 1));
+            string value = PngConstants.Encoding.GetString(data.Slice(zeroIndex + 1));
 
-            metadata.PngTextProperties.Add(new PngTextData(name, value, string.Empty, string.Empty));
+            metadata.TextData.Add(new PngTextData(name, value, string.Empty, string.Empty));
         }
 
         /// <summary>
@@ -904,7 +899,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="metadata">The metadata to decode to.</param>
         /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
-        private void ReadCompressedTextChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
+        private void ReadCompressedTextChunk(PngMetadata metadata, ReadOnlySpan<byte> data)
         {
             if (this.ignoreMetadata)
             {
@@ -931,7 +926,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             ReadOnlySpan<byte> compressedData = data.Slice(zeroIndex + 2);
-            metadata.PngTextProperties.Add(new PngTextData(name, this.UncompressTextData(compressedData, LatinEncoding), string.Empty, string.Empty));
+            metadata.TextData.Add(new PngTextData(name, this.UncompressTextData(compressedData, PngConstants.Encoding), string.Empty, string.Empty));
         }
 
         /// <summary>
@@ -945,7 +940,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="metadata">The metadata to decode to.</param>
         /// <param name="data">The <see cref="T:Span"/> containing the data.</param>
-        private void ReadInternationalTextChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
+        private void ReadInternationalTextChunk(PngMetadata metadata, ReadOnlySpan<byte> data)
         {
             if (this.ignoreMetadata)
             {
@@ -978,14 +973,14 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return;
             }
 
-            string language = LatinEncoding.GetString(data.Slice(langStartIdx, languageLength));
+            string language = PngConstants.LanguageEncoding.GetString(data.Slice(langStartIdx, languageLength));
 
             int translatedKeywordStartIdx = langStartIdx + languageLength + 1;
             int translatedKeywordLength = data.Slice(translatedKeywordStartIdx).IndexOf((byte)0);
-            string translatedKeyword = LatinEncoding.GetString(data.Slice(translatedKeywordStartIdx, translatedKeywordLength));
+            string translatedKeyword = PngConstants.TranslatedEncoding.GetString(data.Slice(translatedKeywordStartIdx, translatedKeywordLength));
 
             ReadOnlySpan<byte> keywordBytes = data.Slice(0, zeroIndexKeyword);
-            if (!this.TryReadTextKeyword(keywordBytes, out string name))
+            if (!this.TryReadTextKeyword(keywordBytes, out string keyword))
             {
                 return;
             }
@@ -994,12 +989,12 @@ namespace SixLabors.ImageSharp.Formats.Png
             if (compressionFlag == 1)
             {
                 ReadOnlySpan<byte> compressedData = data.Slice(dataStartIdx);
-                metadata.PngTextProperties.Add(new PngTextData(name, this.UncompressTextData(compressedData, Encoding.UTF8), language, translatedKeyword));
+                metadata.TextData.Add(new PngTextData(keyword, this.UncompressTextData(compressedData, PngConstants.TranslatedEncoding), language, translatedKeyword));
             }
             else
             {
-                string value = Encoding.UTF8.GetString(data.Slice(dataStartIdx));
-                metadata.PngTextProperties.Add(new PngTextData(name, value, language, translatedKeyword));
+                string value = PngConstants.TranslatedEncoding.GetString(data.Slice(dataStartIdx));
+                metadata.TextData.Add(new PngTextData(keyword, value, language, translatedKeyword));
             }
         }
 
@@ -1233,7 +1228,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             // Keywords should not be empty or have leading or trailing whitespace.
-            name = LatinEncoding.GetString(keywordBytes);
+            name = PngConstants.Encoding.GetString(keywordBytes);
             if (string.IsNullOrWhiteSpace(name) || name.StartsWith(" ") || name.EndsWith(" "))
             {
                 return false;

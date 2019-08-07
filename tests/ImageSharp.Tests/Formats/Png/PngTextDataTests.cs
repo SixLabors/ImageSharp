@@ -2,15 +2,15 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Formats.Png;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.MetaData
+namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
     /// <summary>
     /// Tests the <see cref="PngTextData"/> class.
     /// </summary>
-    public class PngTextPropertyTests
+    public class PngTextDataTests
     {
         /// <summary>
         /// Tests the equality operators for inequality.
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests.MetaData
             Assert.Null(property.Value);
             Assert.Equal("unit", property.LanguageTag);
             Assert.Equal("test", property.TranslatedKeyword);
-            
+
             property = new PngTextData("Foo", string.Empty, string.Empty, null);
             Assert.Equal("Foo", property.Keyword);
             Assert.Equal(string.Empty, property.Value);

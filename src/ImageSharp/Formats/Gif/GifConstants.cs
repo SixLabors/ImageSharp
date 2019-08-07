@@ -7,7 +7,7 @@ using System.Text;
 namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
-    /// Constants that define specific points within a gif.
+    /// Constants that define specific points within a Gif.
     /// </summary>
     internal static class GifConstants
     {
@@ -97,17 +97,17 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public const byte EndIntroducer = 0x3B;
 
         /// <summary>
-        /// Gets the character encoding to use when reading and writing comments - (ASCII 7bit).
+        /// The character encoding to use when reading and writing comments - (ASCII 7bit).
         /// </summary>
         public static readonly Encoding Encoding = Encoding.ASCII;
 
         /// <summary>
-        /// The list of mimetypes that equate to a gif.
+        /// The collection of mimetypes that equate to a Gif.
         /// </summary>
         public static readonly IEnumerable<string> MimeTypes = new[] { "image/gif" };
 
         /// <summary>
-        /// The list of file extensions that equate to a gif.
+        /// The collection of file extensions that equate to a Gif.
         /// </summary>
         public static readonly IEnumerable<string> FileExtensions = new[] { "gif" };
     }

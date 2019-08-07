@@ -63,11 +63,6 @@ namespace SixLabors.ImageSharp.Metadata
                 this.formatMetadata.Add(meta.Key, meta.Value.DeepClone());
             }
 
-            foreach (PngTextData property in other.PngTextProperties)
-            {
-                this.PngTextProperties.Add(property);
-            }
-
             this.ExifProfile = other.ExifProfile?.DeepClone();
             this.IccProfile = other.IccProfile?.DeepClone();
         }
@@ -128,11 +123,6 @@ namespace SixLabors.ImageSharp.Metadata
         public IccProfile IccProfile { get; set; }
 
         /// <summary>
-        /// Gets the list of png text properties for storing meta information about this image.
-        /// </summary>
-        public IList<PngTextData> PngTextProperties { get; } = new List<PngTextData>();
-
-        /// <summary>
         /// Gets the metadata value associated with the specified key.
         /// </summary>
         /// <typeparam name="TFormatMetadata">The type of metadata.</typeparam>
@@ -155,23 +145,6 @@ namespace SixLabors.ImageSharp.Metadata
 
         /// <inheritdoc/>
         public ImageMetadata DeepClone() => new ImageMetadata(this);
-
-        internal bool TryGetPngTextProperty(string keyword, out PngTextData result)
-        {
-            foreach (PngTextData property in this.PngTextProperties)
-            {
-                if (property.Keyword == keyword)
-                {
-                    result = property;
-
-                    return true;
-                }
-            }
-
-            result = default;
-
-            return false;
-        }
 
         /// <summary>
         /// Synchronizes the profiles with the current metadata.

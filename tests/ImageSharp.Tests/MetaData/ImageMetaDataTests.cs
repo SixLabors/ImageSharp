@@ -24,33 +24,27 @@ namespace SixLabors.ImageSharp.Tests.MetaData
             var metaData = new ImageMetadata();
 
             var exifProfile = new ExifProfile();
-            var pngTextData = new PngTextData("name", "value", "foo", "bar");
 
             metaData.ExifProfile = exifProfile;
             metaData.HorizontalResolution = 4;
             metaData.VerticalResolution = 2;
-            metaData.PngTextProperties.Add(pngTextData);
 
             ImageMetadata clone = metaData.DeepClone();
 
             Assert.Equal(exifProfile.ToByteArray(), clone.ExifProfile.ToByteArray());
             Assert.Equal(4, clone.HorizontalResolution);
             Assert.Equal(2, clone.VerticalResolution);
-            Assert.Equal(pngTextData, clone.PngTextProperties[0]);
         }
 
         [Fact]
         public void CloneIsDeep()
         {
-            var metaData = new ImageMetadata();
-
-            var exifProfile = new ExifProfile();
-            var pngTextData = new PngTextData("name", "value", "foo", "bar");
-
-            metaData.ExifProfile = exifProfile;
-            metaData.HorizontalResolution = 4;
-            metaData.VerticalResolution = 2;
-            metaData.PngTextProperties.Add(pngTextData);
+            var metaData = new ImageMetadata
+            {
+                ExifProfile = new ExifProfile(),
+                HorizontalResolution = 4,
+                VerticalResolution = 2
+            };
 
             ImageMetadata clone = metaData.DeepClone();
             clone.HorizontalResolution = 2;
@@ -59,7 +53,6 @@ namespace SixLabors.ImageSharp.Tests.MetaData
             Assert.False(metaData.ExifProfile.Equals(clone.ExifProfile));
             Assert.False(metaData.HorizontalResolution.Equals(clone.HorizontalResolution));
             Assert.False(metaData.VerticalResolution.Equals(clone.VerticalResolution));
-            Assert.False(metaData.PngTextProperties.Equals(clone.PngTextProperties));
         }
 
         [Fact]
@@ -101,15 +94,17 @@ namespace SixLabors.ImageSharp.Tests.MetaData
             exifProfile.SetValue(ExifTag.XResolution, new Rational(200));
             exifProfile.SetValue(ExifTag.YResolution, new Rational(300));
 
-            var image = new Image<Rgba32>(1, 1);
-            image.Metadata.ExifProfile = exifProfile;
-            image.Metadata.HorizontalResolution = 400;
-            image.Metadata.VerticalResolution = 500;
+            using (var image = new Image<Rgba32>(1, 1))
+            {
+                image.Metadata.ExifProfile = exifProfile;
+                image.Metadata.HorizontalResolution = 400;
+                image.Metadata.VerticalResolution = 500;
 
-            image.Metadata.SyncProfiles();
+                image.Metadata.SyncProfiles();
 
-            Assert.Equal(400, ((Rational)image.Metadata.ExifProfile.GetValue(ExifTag.XResolution).Value).ToDouble());
-            Assert.Equal(500, ((Rational)image.Metadata.ExifProfile.GetValue(ExifTag.YResolution).Value).ToDouble());
+                Assert.Equal(400, ((Rational)image.Metadata.ExifProfile.GetValue(ExifTag.XResolution).Value).ToDouble());
+                Assert.Equal(500, ((Rational)image.Metadata.ExifProfile.GetValue(ExifTag.YResolution).Value).ToDouble());
+            }
         }
     }
 }

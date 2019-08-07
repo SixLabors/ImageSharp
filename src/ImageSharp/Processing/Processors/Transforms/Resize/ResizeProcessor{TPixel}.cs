@@ -1,13 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
@@ -63,6 +59,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// Gets a value indicating whether to compress or expand individual pixel color values on processing.
         /// </summary>
         public bool Compand => this.parameterSource.Compand;
+
+        /// <summary>
+        /// This is a shim for tagging the CreateDestination virtual generic method for the AoT iOS compiler.
+        /// This method should never be referenced outside of the AotCompiler code.
+        /// </summary>
+        /// <param name="source">Passed through as source to the CreateDestination method.</param>
+        /// <param name="sourceRectangle">Passed through as sourceRectangle to the CreateDestination method.</param>
+        /// <returns>The result returned from CreateDestination.</returns>
+        internal Image<TPixel> AotCreateDestination(Image<TPixel> source, Rectangle sourceRectangle) => this.CreateDestination(source, sourceRectangle);
 
         /// <inheritdoc/>
         protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)

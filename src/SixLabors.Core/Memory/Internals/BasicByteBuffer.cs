@@ -9,9 +9,9 @@ namespace SixLabors.Memory.Internals
     internal sealed class BasicByteBuffer : BasicArrayBuffer<byte>, IManagedByteBuffer
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="BasicByteBuffer"/> class
+        /// Initializes a new instance of the <see cref="BasicByteBuffer"/> class.
         /// </summary>
-        /// <param name="array">The byte array</param>
+        /// <param name="array">The byte array.</param>
         internal BasicByteBuffer(byte[] array)
             : base(array)
         {

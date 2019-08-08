@@ -15,7 +15,7 @@ namespace SixLabors.Primitives.Tests
         [Fact]
         public void DefaultConstructorTest()
         {
-            Assert.Equal(Size.Empty, default(Size));
+            Assert.Equal(default, Size.Empty);
         }
 
         [Theory]

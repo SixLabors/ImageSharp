@@ -210,7 +210,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Convert salars to byte-s and copy to dest,
+        /// Convert scalars to byte-s and copy to dest,
         /// </summary>
         /// <param name="blockPtr">Pointer to block</param>
         /// <param name="dest">Destination</param>

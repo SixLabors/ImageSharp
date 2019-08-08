@@ -19,14 +19,14 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
     public class FillRegionProcessorTests
     {
-        
+
         [Theory]
         [InlineData(true, 1, 4)]
         [InlineData(true, 2, 4)]
         [InlineData(true, 5, 5)]
         [InlineData(true, 8, 8)]
         [InlineData(false, 8, 4)]
-        [InlineData(false, 16, 4)] // we always do 4 sub=pixels when antialising is off.
+        [InlineData(false, 16, 4)] // we always do 4 sub=pixels when antialiasing is off.
         public void MinimumAntialiasSubpixelDepth(bool antialias, int antialiasSubpixelDepth, int expectedAntialiasSubpixelDepth)
         {
             var bounds = new Rectangle(0, 0, 1, 1);

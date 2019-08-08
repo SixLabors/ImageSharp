@@ -70,12 +70,12 @@ namespace SixLabors.ImageSharp.Processing
 
         /// <summary>
         /// Gets the Robidoux sampler. This algorithm developed by Nicolas Robidoux providing a very good equilibrium between
-        /// detail preservation (sharpness) and smoothness comprable to <see cref="MitchellNetravali"/>.
+        /// detail preservation (sharpness) and smoothness comparable to <see cref="MitchellNetravali"/>.
         /// </summary>
         public static IResampler Robidoux { get; } = new RobidouxResampler();
 
         /// <summary>
-        /// Gets the Robidoux Sharp sampler. A sharpend form of the <see cref="Robidoux"/> sampler
+        /// Gets the Robidoux Sharp sampler. A sharpened form of the <see cref="Robidoux"/> sampler
         /// </summary>
         public static IResampler RobidouxSharp { get; } = new RobidouxSharpResampler();
 
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Processing
         public static IResampler Triangle { get; } = new TriangleResampler();
 
         /// <summary>
-        /// Gets the Welch sampler. A high speed algorthm that delivers very sharpened results.
+        /// Gets the Welch sampler. A high speed algorithm that delivers very sharpened results.
         /// </summary>
         public static IResampler Welch { get; } = new WelchResampler();
     }

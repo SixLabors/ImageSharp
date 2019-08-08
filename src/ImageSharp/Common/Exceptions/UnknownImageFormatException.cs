@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp
 {
     /// <summary>
     /// The exception that is thrown when the library tries to load
-    /// an image which has an unkown format.
+    /// an image which has an unknown format.
     /// </summary>
     public sealed class UnknownImageFormatException : ImageFormatException
     {

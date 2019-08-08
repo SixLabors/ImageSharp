@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests
     public class TestFormat : IConfigurationModule, IImageFormat
     {
         private readonly Dictionary<Type, object> sampleImages = new Dictionary<Type, object>();
-        
+
         // We should not change Configuration.Default in individual tests!
         // Create new configuration instances with new Configuration(TestFormat.GlobalTestFormat) instead!
         public static TestFormat GlobalTestFormat { get; } = new TestFormat();
@@ -58,20 +58,20 @@ namespace SixLabors.ImageSharp.Tests
             DecodeOperation[] discovered = this.DecodeCalls.Where(x => x.IsMatch(marker, config, typeof(TPixel))).ToArray();
 
 
-            Assert.True(discovered.Any(), "No calls to decode on this formate with the proveded options happend");
+            Assert.True(discovered.Any(), "No calls to decode on this format with the provided options happened");
 
             foreach (DecodeOperation d in discovered)
             {
                 this.DecodeCalls.Remove(d);
             }
         }
-        
+
         public void VerifyAgnosticDecodeCall(byte[] marker, Configuration config)
         {
             DecodeOperation[] discovered = this.DecodeCalls.Where(x => x.IsMatch(marker, config, typeof(TestPixelForAgnosticDecode))).ToArray();
 
 
-            Assert.True(discovered.Any(), "No calls to decode on this formate with the proveded options happend");
+            Assert.True(discovered.Any(), "No calls to decode on this format with the provided options happened");
 
             foreach (DecodeOperation d in discovered)
             {
@@ -139,7 +139,7 @@ namespace SixLabors.ImageSharp.Tests
             public byte[] marker;
             internal Configuration config;
 
-            public Type pixelType; 
+            public Type pixelType;
 
             public bool IsMatch(byte[] testMarker, Configuration config, Type pixelType)
             {
@@ -218,7 +218,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             public bool IsSupportedFileFormat(Span<byte> header) => testFormat.IsSupportedFileFormat(header);
-            
+
             public Image Decode(Configuration configuration, Stream stream) => this.Decode<TestPixelForAgnosticDecode>(configuration, stream);
         }
 
@@ -237,11 +237,11 @@ namespace SixLabors.ImageSharp.Tests
 
             public void Encode<TPixel>(Image<TPixel> image, Stream stream) where TPixel : struct, IPixel<TPixel>
             {
-                // TODO record this happend so we can verify it.
+                // TODO record this happened so we can verify it.
             }
         }
-        
-        
+
+
         struct TestPixelForAgnosticDecode : IPixel<TestPixelForAgnosticDecode>
         {
             public PixelOperations<TestPixelForAgnosticDecode> CreatePixelOperations() => new PixelOperations<TestPixelForAgnosticDecode>();

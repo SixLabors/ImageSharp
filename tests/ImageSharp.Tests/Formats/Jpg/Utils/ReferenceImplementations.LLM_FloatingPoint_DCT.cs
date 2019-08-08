@@ -14,14 +14,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         /// <summary>
         /// Contains port of non-optimized methods in:
         /// https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp
-        /// 
+        ///
         /// *** Paper ***
         /// paper LLM89
-        /// C. Loeffler, A. Ligtenberg, and G. S. Moschytz, 
+        /// C. Loeffler, A. Ligtenberg, and G. S. Moschytz,
         /// "Practical fast 1-D DCT algorithms with 11 multiplications,"
         /// Proc. Int'l. Conf. on Acoustics, Speech, and Signal Processing (ICASSP89), pp. 988-991, 1989.
-        /// 
-        /// The main purpose of this code is testing and documentation, it is intented to be similar to it's original counterpart.
+        ///
+        /// The main purpose of this code is testing and documentation, it is intended to be similar to it's original counterpart.
         /// DO NOT clean it!
         /// DO NOT StyleCop it!
         /// </summary>

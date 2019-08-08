@@ -4,7 +4,7 @@
 using System;
 using SixLabors.ImageSharp.Primitives;
 
-// Many of these matrices are tranlated from Chromium project where
+// Many of these matrices are translated from Chromium project where
 // SkScalar[] is memory-mapped to a row-major matrix.
 // The following translates to our column-major form:
 //

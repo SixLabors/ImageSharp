@@ -498,8 +498,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                                         int dyOffset = dy * sourceWidth;
                                         for (int dx = x; dx < xlimit; dx++)
                                         {
-                                            int luminace = GetLuminance(Unsafe.Add(ref sourceBase, dyOffset + dx), luminanceLevels);
-                                            histogram[luminace]++;
+                                            int luminance = GetLuminance(Unsafe.Add(ref sourceBase, dyOffset + dx), luminanceLevels);
+                                            histogram[luminance]++;
                                         }
                                     }
 

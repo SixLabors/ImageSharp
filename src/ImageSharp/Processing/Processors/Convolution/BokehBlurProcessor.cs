@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         public float Gamma { get; }
 
         /// <summary>
-        /// Gets the exection mode to use when applying the effect.
+        /// Gets the execution mode to use when applying the effect.
         /// </summary>
         public BokehBlurExecutionMode ExecutionMode { get; }
 

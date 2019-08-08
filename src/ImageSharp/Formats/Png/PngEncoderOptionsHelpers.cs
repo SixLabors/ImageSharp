@@ -30,6 +30,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             options.Gamma = options.Gamma ?? pngMetadata.Gamma;
             options.ColorType = options.ColorType ?? pngMetadata.ColorType;
             options.BitDepth = options.BitDepth ?? pngMetadata.BitDepth;
+            options.InterlaceMethod = options.InterlaceMethod ?? pngMetadata.InterlaceMethod;
 
             use16Bit = options.BitDepth == PngBitDepth.Bit16;
             bytesPerPixel = CalculateBytesPerPixel(options.ColorType, use16Bit);
@@ -125,7 +126,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Calculates the correct number of bytes per pixel for the given color type.
         /// </summary>
-        /// <returns>Bytes per pixel</returns>
+        /// <returns>Bytes per pixel.</returns>
         private static int CalculateBytesPerPixel(PngColorType? pngColorType, bool use16Bit)
         {
             switch (pngColorType)

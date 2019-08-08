@@ -24,6 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 ? PngFilterMethod.None
                 : PngFilterMethod.Paeth);
             this.CompressionLevel = source.CompressionLevel;
+            this.TextCompressionThreshold = source.TextCompressionThreshold;
             this.Gamma = source.Gamma;
             this.Quantizer = source.Quantizer;
             this.Threshold = source.Threshold;
@@ -37,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public PngBitDepth? BitDepth { get; set; }
 
         /// <summary>
-        /// Gets or sets the color type
+        /// Gets or sets the color type.
         /// </summary>
         public PngColorType? ColorType { get; set; }
 
@@ -51,6 +52,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <remarks>Defaults to 6.</remarks>
         /// </summary>
         public int CompressionLevel { get; }
+
+        /// <inheritdoc/>
+        public int TextCompressionThreshold { get; }
 
         /// <summary>
         /// Gets or sets the gamma value, that will be written the image.
@@ -71,8 +75,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         public byte Threshold { get; }
 
         /// <summary>
-        /// Gets a value indicating whether this instance should write an Adam7 interlaced image.
+        /// Gets or sets a value indicating whether this instance should write an Adam7 interlaced image.
         /// </summary>
-        public PngInterlaceMode? InterlaceMethod { get; }
+        public PngInterlaceMode? InterlaceMethod { get; set; }
     }
 }

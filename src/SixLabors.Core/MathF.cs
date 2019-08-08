@@ -219,7 +219,7 @@ namespace System
         /// <paramref name="f" /> parameter Return value Zero or positive The positive square root of <paramref name="f" />.
         /// Negative <see cref="F:System.Single.NaN" />Equals <see cref="F:System.Single.NaN" />
         /// <see cref="F:System.Single.NaN" />Equals <see cref="F:System.Single.PositiveInfinity" />
-        /// <see cref="F:System.Single.PositiveInfinity" />
+        /// <see cref="F:System.Single.PositiveInfinity" />.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Sqrt(float f)

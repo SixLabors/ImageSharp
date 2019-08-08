@@ -15,7 +15,7 @@ namespace SixLabors.Tests.Helpers
         /// <summary>
         /// Initializes a new instance of the <see cref="FloatRoundingComparer"/> struct.
         /// </summary>
-        /// <param name="precision">The number of decimal places (valid values: 0-7)</param>
+        /// <param name="precision">The number of decimal places (valid values: 0-7).</param>
         public FloatRoundingComparer(int precision)
         {
             Guard.MustBeBetweenOrEqualTo(precision, 0, 7, nameof(precision));
@@ -23,7 +23,7 @@ namespace SixLabors.Tests.Helpers
         }
 
         /// <summary>
-        /// Gets the number of decimal places (valid values: 0-7)
+        /// Gets the number of decimal places (valid values: 0-7).
         /// </summary>
         public int Precision { get; }
 

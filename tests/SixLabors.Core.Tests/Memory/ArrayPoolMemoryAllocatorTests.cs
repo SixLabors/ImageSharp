@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 // ReSharper disable InconsistentNaming
-
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;

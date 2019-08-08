@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.IO
         Stream OpenRead(string path);
 
         /// <summary>
-        /// Creates or opens a file and returns it as a writeable stream as defined by the path.
+        /// Creates or opens a file and returns it as a writable stream as defined by the path.
         /// </summary>
         /// <param name="path">Path to the file to open.</param>
         /// <returns>A stream representing the file to open.</returns>

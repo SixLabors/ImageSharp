@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
         [Theory]
         [WithSolidFilledImages(nameof(BlendData), 16, 16, "Red", PixelTypes.Rgba32)]
-        public void BlendFillColorOverBackround<TPixel>(
+        public void BlendFillColorOverBackground<TPixel>(
             TestImageProvider<TPixel> provider,
             bool triggerFillRegion,
             string newColorName,

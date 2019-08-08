@@ -13,7 +13,7 @@ namespace SixLabors.Primitives.Tests
         [Fact]
         public void DefaultConstructorTest()
         {
-            Assert.Equal(Point.Empty, default(Point));
+            Assert.Equal(default, Point.Empty);
         }
 
         [Theory]

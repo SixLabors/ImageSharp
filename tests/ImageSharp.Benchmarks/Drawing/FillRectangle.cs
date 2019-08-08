@@ -24,13 +24,13 @@ namespace SixLabors.ImageSharp.Benchmarks
                 graphics.InterpolationMode = InterpolationMode.Default;
                 graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 graphics.FillRectangle(System.Drawing.Brushes.HotPink, new Rectangle(10, 10, 190, 140));
-                
+
                 return destination.Size;
             }
         }
 
         [Benchmark(Description = "ImageSharp Fill Rectangle")]
-        public CoreSize FillRactangleCore()
+        public CoreSize FillRectangleCore()
         {
             using (var image = new Image<Rgba32>(800, 800))
             {

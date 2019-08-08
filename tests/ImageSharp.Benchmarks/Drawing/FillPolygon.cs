@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         }
 
         [Benchmark(Description = "ImageSharp Fill Polygon - cached shape")]
-        public void DrawSolidPolygonCoreCahced()
+        public void DrawSolidPolygonCoreCached()
         {
             using (var image = new Image<Rgba32>(800, 800))
             {

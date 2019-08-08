@@ -1,8 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-using System.Text;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -14,11 +13,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
     /// </summary>
     public sealed class GifEncoder : IImageEncoder, IGifEncoderOptions
     {
-        /// <summary>
-        /// Gets or sets the encoding that should be used when writing comments.
-        /// </summary>
-        public Encoding TextEncoding { get; set; } = GifConstants.DefaultEncoding;
-
         /// <summary>
         /// Gets or sets the quantizer for reducing the color count.
         /// Defaults to the <see cref="OctreeQuantizer"/>

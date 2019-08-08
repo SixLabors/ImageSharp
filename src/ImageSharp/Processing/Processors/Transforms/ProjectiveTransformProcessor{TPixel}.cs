@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         {
             Matrix4x4 transformMatrix = this.definition.TransformMatrix;
 
-            // Handle tranforms that result in output identical to the original.
+            // Handle transforms that result in output identical to the original.
             if (transformMatrix.Equals(default) || transformMatrix.Equals(Matrix4x4.Identity))
             {
                 // The clone will be blank here copy all the pixel data over

@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         }
 
         [Fact]
-        public void FillsForEachACharachterWhenBrushSetAndNotPen()
+        public void FillsForEachACharacterWhenBrushSetAndNotPen()
         {
             this.operations.DrawText(
                 new TextGraphicsOptions(true),
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         }
 
         [Fact]
-        public void FillsForEachACharachterWhenBrushSetAndNotPenDefaultOptions()
+        public void FillsForEachACharacterWhenBrushSetAndNotPenDefaultOptions()
         {
             this.operations.DrawText("123", this.Font, Brushes.Solid(Color.Red), null, Vector2.Zero);
 
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         }
 
         [Fact]
-        public void FillsForEachACharachterWhenBrushSet()
+        public void FillsForEachACharacterWhenBrushSet()
         {
             this.operations.DrawText(new TextGraphicsOptions(true), "123", this.Font, Brushes.Solid(Color.Red), Vector2.Zero);
 
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         }
 
         [Fact]
-        public void FillsForEachACharachterWhenBrushSetDefaultOptions()
+        public void FillsForEachACharacterWhenBrushSetDefaultOptions()
         {
             this.operations.DrawText("123", this.Font, Brushes.Solid(Color.Red), Vector2.Zero);
 
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         }
 
         [Fact]
-        public void FillsForEachACharachterWhenColorSet()
+        public void FillsForEachACharacterWhenColorSet()
         {
             this.operations.DrawText(new TextGraphicsOptions(true), "123", this.Font, Color.Red, Vector2.Zero);
 
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         }
 
         [Fact]
-        public void FillsForEachACharachterWhenColorSetDefaultOptions()
+        public void FillsForEachACharacterWhenColorSetDefaultOptions()
         {
             this.operations.DrawText("123", this.Font, Color.Red, Vector2.Zero);
 
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         }
 
         [Fact]
-        public void DrawForEachACharachterWhenPenSetAndNotBrush()
+        public void DrawForEachACharacterWhenPenSetAndNotBrush()
         {
             this.operations.DrawText(
                 new TextGraphicsOptions(true),
@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         }
 
         [Fact]
-        public void DrawForEachACharachterWhenPenSetAndNotBrushDefaultOptions()
+        public void DrawForEachACharacterWhenPenSetAndNotBrushDefaultOptions()
         {
             this.operations.DrawText("123", this.Font, null, Pens.Dash(Color.Red, 1), Vector2.Zero);
 
@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         }
 
         [Fact]
-        public void DrawForEachACharachterWhenPenSet()
+        public void DrawForEachACharacterWhenPenSet()
         {
             this.operations.DrawText(new TextGraphicsOptions(true), "123", this.Font, Pens.Dash(Color.Red, 1), Vector2.Zero);
 
@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         }
 
         [Fact]
-        public void DrawForEachACharachterWhenPenSetDefaultOptions()
+        public void DrawForEachACharacterWhenPenSetDefaultOptions()
         {
             this.operations.DrawText("123", this.Font, Pens.Dash(Color.Red, 1), Vector2.Zero);
 
@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         }
 
         [Fact]
-        public void DrawForEachACharachterWhenPenSetAndFillFroEachWhenBrushSet()
+        public void DrawForEachACharacterWhenPenSetAndFillFroEachWhenBrushSet()
         {
             this.operations.DrawText(
                 new TextGraphicsOptions(true),

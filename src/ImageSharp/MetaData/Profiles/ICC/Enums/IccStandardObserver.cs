@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// <summary>
         /// Unknown observer
         /// </summary>
-        Unkown = 0,
+        Unknown = 0,
 
         /// <summary>
         /// CIE 1931 observer

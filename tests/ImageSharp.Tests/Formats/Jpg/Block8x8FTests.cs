@@ -186,13 +186,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public void TranposeInto_Benchmark()
+        public void TransposeInto_Benchmark()
         {
             var source = new BufferHolder();
             source.Buffer.LoadFrom(Create8x8FloatData());
             var dest = new BufferHolder();
 
-            this.Output.WriteLine($"TranposeInto_PinningImpl_Benchmark X {Times} ...");
+            this.Output.WriteLine($"TransposeInto_PinningImpl_Benchmark X {Times} ...");
             var sw = Stopwatch.StartNew();
 
             for (int i = 0; i < Times; i++)
@@ -201,7 +201,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             sw.Stop();
-            this.Output.WriteLine($"TranposeInto_PinningImpl_Benchmark finished in {sw.ElapsedMilliseconds} ms");
+            this.Output.WriteLine($"TransposeInto_PinningImpl_Benchmark finished in {sw.ElapsedMilliseconds} ms");
         }
 
         private static float[] Create8x8ColorCropTestData()

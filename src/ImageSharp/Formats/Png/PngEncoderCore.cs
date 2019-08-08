@@ -889,7 +889,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             for (int y = 0; y < this.height; y++)
             {
-                IManagedByteBuffer r = this.EncodePixelRow((ReadOnlySpan<TPixel>)pixels.GetPixelRowSpan(y), quantized, y);
+                IManagedByteBuffer r = this.EncodePixelRow(pixels.GetPixelRowSpan(y), quantized, y);
                 deflateStream.Write(r.Array, 0, resultLength);
 
                 IManagedByteBuffer temp = this.currentScanline;
@@ -995,7 +995,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         }
 
                         // encode data
-                        IManagedByteBuffer r = this.EncodeAdam7IndexedPixelRow((ReadOnlySpan<byte>)destSpan);
+                        IManagedByteBuffer r = this.EncodeAdam7IndexedPixelRow(destSpan);
                         deflateStream.Write(r.Array, 0, resultLength);
                     }
                 }

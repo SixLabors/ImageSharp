@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         };
 
         /// <summary>
-        /// The header bytes as a big endian coded ulong.
+        /// The header bytes as a big-endian coded ulong.
         /// </summary>
         public const ulong HeaderValue = 0x89504E470D0A1A0AUL;
 

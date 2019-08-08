@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Gets the threshold of characters in text metadata, when compression should be used.
         /// </summary>
-        int CompressTextThreshold { get; }
+        int TextCompressionThreshold { get; }
 
         /// <summary>
         /// Gets the gamma value, that will be written the image.
@@ -52,5 +52,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Gets the transparency threshold.
         /// </summary>
         byte Threshold { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance should write an Adam7 interlaced image.
+        /// </summary>
+        PngInterlaceMode? InterlaceMethod { get; }
     }
 }

@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly byte[] buffer = new byte[4];
 
         /// <summary>
-        /// Reusable crc for validating chunks.
+        /// Reusable CRC for validating chunks.
         /// </summary>
         private readonly Crc32 crc = new Crc32();
 
@@ -106,12 +106,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private int currentRow = Adam7.FirstRow[0];
 
         /// <summary>
-        /// The current pass for an interlaced PNG.
-        /// </summary>
-        private int pass;
-
-        /// <summary>
-        /// The current number of bytes read in the current scanline.
+        /// The current number of bytes read in the current scanline
         /// </summary>
         private int currentRowBytesRead;
 
@@ -551,13 +546,15 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void DecodeInterlacedPixelData<TPixel>(Stream compressedStream, ImageFrame<TPixel> image, PngMetadata pngMetadata)
             where TPixel : struct, IPixel<TPixel>
         {
+            int pass = 0;
+            int width = this.header.Width;
             while (true)
             {
-                int numColumns = Adam7.ComputeColumns(this.header.Width, this.pass);
+                int numColumns = Adam7.ComputeColumns(width, pass);
 
                 if (numColumns == 0)
                 {
-                    this.pass++;
+                    pass++;
 
                     // This pass contains no data; skip to next pass
                     continue;
@@ -605,23 +602,23 @@ namespace SixLabors.ImageSharp.Formats.Png
                     }
 
                     Span<TPixel> rowSpan = image.GetPixelRowSpan(this.currentRow);
-                    this.ProcessInterlacedDefilteredScanline(this.scanline.GetSpan(), rowSpan, pngMetadata, Adam7.FirstColumn[this.pass], Adam7.ColumnIncrement[this.pass]);
+                    this.ProcessInterlacedDefilteredScanline(this.scanline.GetSpan(), rowSpan, pngMetadata, Adam7.FirstColumn[pass], Adam7.ColumnIncrement[pass]);
 
                     this.SwapBuffers();
 
-                    this.currentRow += Adam7.RowIncrement[this.pass];
+                    this.currentRow += Adam7.RowIncrement[pass];
                 }
 
-                this.pass++;
+                pass++;
                 this.previousScanline.Clear();
 
-                if (this.pass < 7)
+                if (pass < 7)
                 {
-                    this.currentRow = Adam7.FirstRow[this.pass];
+                    this.currentRow = Adam7.FirstRow[pass];
                 }
                 else
                 {
-                    this.pass = 0;
+                    pass = 0;
                     break;
                 }
             }
@@ -859,6 +856,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             pngMetadata.BitDepth = (PngBitDepth)this.header.BitDepth;
             pngMetadata.ColorType = this.header.ColorType;
+            pngMetadata.InterlaceMethod = this.header.InterlaceMethod;
 
             this.pngColorType = this.header.ColorType;
         }
@@ -1202,7 +1200,6 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             result = default;
-
             return false;
         }
 

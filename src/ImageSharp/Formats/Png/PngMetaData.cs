@@ -27,6 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.BitDepth = other.BitDepth;
             this.ColorType = other.ColorType;
             this.Gamma = other.Gamma;
+            this.InterlaceMethod = other.InterlaceMethod;
             this.HasTransparency = other.HasTransparency;
             this.TransparentGray8 = other.TransparentGray8;
             this.TransparentGray16 = other.TransparentGray16;
@@ -51,27 +52,36 @@ namespace SixLabors.ImageSharp.Formats.Png
         public PngColorType ColorType { get; set; } = PngColorType.RgbWithAlpha;
 
         /// <summary>
+        /// Gets or sets a value indicating whether this instance should write an Adam7 interlaced image.
+        /// </summary>
+        public PngInterlaceMode? InterlaceMethod { get; set; } = PngInterlaceMode.None;
+
+        /// <summary>
         /// Gets or sets the gamma value for the image.
         /// </summary>
         public float Gamma { get; set; }
 
         /// <summary>
-        /// Gets or sets the Rgb 24 transparent color. This represents any color in an 8 bit Rgb24 encoded png that should be transparent
+        /// Gets or sets the Rgb24 transparent color.
+        /// This represents any color in an 8 bit Rgb24 encoded png that should be transparent.
         /// </summary>
         public Rgb24? TransparentRgb24 { get; set; }
 
         /// <summary>
-        /// Gets or sets the Rgb 48 transparent color. This represents any color in a 16 bit Rgb24 encoded png that should be transparent
+        /// Gets or sets the Rgb48 transparent color.
+        /// This represents any color in a 16 bit Rgb24 encoded png that should be transparent.
         /// </summary>
         public Rgb48? TransparentRgb48 { get; set; }
 
         /// <summary>
-        /// Gets or sets the 8 bit grayscale transparent color. This represents any color in an 8 bit grayscale encoded png that should be transparent
+        /// Gets or sets the 8 bit grayscale transparent color.
+        /// This represents any color in an 8 bit grayscale encoded png that should be transparent.
         /// </summary>
         public Gray8? TransparentGray8 { get; set; }
 
         /// <summary>
-        /// Gets or sets the 16 bit grayscale transparent color. This represents any color in a 16 bit grayscale encoded png that should be transparent
+        /// Gets or sets the 16 bit grayscale transparent color.
+        /// This represents any color in a 16 bit grayscale encoded png that should be transparent.
         /// </summary>
         public Gray16? TransparentGray16 { get; set; }
 

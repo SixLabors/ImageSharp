@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -77,7 +77,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="options">The decoder options.</param>
         public GifDecoderCore(Configuration configuration, IGifDecoderOptions options)
         {
-            this.TextEncoding = options.TextEncoding ?? GifConstants.DefaultEncoding;
             this.IgnoreMetadata = options.IgnoreMetadata;
             this.DecodingMode = options.DecodingMode;
             this.configuration = configuration ?? Configuration.Default;
@@ -87,11 +86,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
         public bool IgnoreMetadata { get; internal set; }
-
-        /// <summary>
-        /// Gets the text encoding
-        /// </summary>
-        public Encoding TextEncoding { get; }
 
         /// <summary>
         /// Gets the decoding mode for multi-frame images
@@ -317,11 +311,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             int length;
 
+            var stringBuilder = new StringBuilder();
             while ((length = this.stream.ReadByte()) != 0)
             {
-                if (length > GifConstants.MaxCommentLength)
+                if (length > GifConstants.MaxCommentSubBlockLength)
                 {
-                    throw new ImageFormatException($"Gif comment length '{length}' exceeds max '{GifConstants.MaxCommentLength}'");
+                    throw new ImageFormatException($"Gif comment length '{length}' exceeds max '{GifConstants.MaxCommentSubBlockLength}' of a comment data block");
                 }
 
                 if (this.IgnoreMetadata)
@@ -333,9 +328,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 using (IManagedByteBuffer commentsBuffer = this.MemoryAllocator.AllocateManagedByteBuffer(length))
                 {
                     this.stream.Read(commentsBuffer.Array, 0, length);
-                    string comments = this.TextEncoding.GetString(commentsBuffer.Array, 0, length);
-                    this.metadata.Properties.Add(new ImageProperty(GifConstants.Comments, comments));
+                    string commentPart = GifConstants.Encoding.GetString(commentsBuffer.Array, 0, length);
+                    stringBuilder.Append(commentPart);
                 }
+            }
+
+            if (stringBuilder.Length > 0)
+            {
+                this.gifMetadata.Comments.Add(stringBuilder.ToString());
             }
         }
 

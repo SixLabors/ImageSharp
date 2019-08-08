@@ -298,7 +298,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
                 PngMetadata inMeta = input.Metadata.GetFormatMetadata(PngFormat.Instance);
-                Assert.True(inMeta.HasTrans);
+                Assert.True(inMeta.HasTransparency);
 
                 using (var memStream = new MemoryStream())
                 {
@@ -307,7 +307,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
                         PngMetadata outMeta = output.Metadata.GetFormatMetadata(PngFormat.Instance);
-                        Assert.True(outMeta.HasTrans);
+                        Assert.True(outMeta.HasTransparency);
 
                         switch (pngColorType)
                         {

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Png
@@ -26,11 +27,16 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.BitDepth = other.BitDepth;
             this.ColorType = other.ColorType;
             this.Gamma = other.Gamma;
-            this.HasTrans = other.HasTrans;
+            this.HasTransparency = other.HasTransparency;
             this.TransparentGray8 = other.TransparentGray8;
             this.TransparentGray16 = other.TransparentGray16;
             this.TransparentRgb24 = other.TransparentRgb24;
             this.TransparentRgb48 = other.TransparentRgb48;
+
+            for (int i = 0; i < other.TextData.Count; i++)
+            {
+                this.TextData.Add(other.TextData[i]);
+            }
         }
 
         /// <summary>
@@ -70,11 +76,39 @@ namespace SixLabors.ImageSharp.Formats.Png
         public Gray16? TransparentGray16 { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the image has transparency chunk and markers were decoded
+        /// Gets or sets a value indicating whether the image contains a transparency chunk and markers were decoded.
         /// </summary>
-        public bool HasTrans { get; set; }
+        public bool HasTransparency { get; set; }
+
+        /// <summary>
+        /// Gets or sets the collection of text data stored within the  iTXt, tEXt, and zTXt chunks.
+        /// Used for conveying textual information associated with the image.
+        /// </summary>
+        public IList<PngTextData> TextData { get; set; } = new List<PngTextData>();
+
+        /// <summary>
+        /// Gets the list of png text properties for storing meta information about this image.
+        /// </summary>
+        public IList<PngTextData> PngTextProperties { get; } = new List<PngTextData>();
 
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new PngMetadata(this);
+
+        internal bool TryGetPngTextProperty(string keyword, out PngTextData result)
+        {
+            for (int i = 0; i < this.TextData.Count; i++)
+            {
+                if (this.TextData[i].Keyword == keyword)
+                {
+                    result = this.TextData[i];
+
+                    return true;
+                }
+            }
+
+            result = default;
+
+            return false;
+        }
     }
 }

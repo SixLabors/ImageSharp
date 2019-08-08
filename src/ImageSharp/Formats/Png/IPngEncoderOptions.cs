@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Processing.Processors.Quantization;
 namespace SixLabors.ImageSharp.Formats.Png
 {
     /// <summary>
-    /// The options available for manipulating the encoder pipeline
+    /// The options available for manipulating the encoder pipeline.
     /// </summary>
     internal interface IPngEncoderOptions
     {
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         PngBitDepth? BitDepth { get; }
 
         /// <summary>
-        /// Gets the color type
+        /// Gets the color type.
         /// </summary>
         PngColorType? ColorType { get; }
 
@@ -31,6 +31,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <remarks>Defaults to 6.</remarks>
         /// </summary>
         int CompressionLevel { get; }
+
+        /// <summary>
+        /// Gets the threshold of characters in text metadata, when compression should be used.
+        /// </summary>
+        int TextCompressionThreshold { get; }
 
         /// <summary>
         /// Gets the gamma value, that will be written the image.

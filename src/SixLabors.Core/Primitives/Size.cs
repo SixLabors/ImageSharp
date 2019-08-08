@@ -25,7 +25,7 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Initializes a new instance of the <see cref="Size"/> struct.
         /// </summary>
-        /// <param name="value">The width and height of the size</param>
+        /// <param name="value">The width and height of the size.</param>
         public Size(int value)
             : this()
         {
@@ -47,7 +47,7 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Initializes a new instance of the <see cref="Size"/> struct.
         /// </summary>
-        /// <param name="size">The size</param>
+        /// <param name="size">The size.</param>
         public Size(Size size)
             : this()
         {
@@ -58,7 +58,7 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Initializes a new instance of the <see cref="Size"/> struct from the given <see cref="Point"/>.
         /// </summary>
-        /// <param name="point">The point</param>
+        /// <param name="point">The point.</param>
         public Size(Point point)
         {
             this.Width = point.X;
@@ -84,14 +84,14 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Creates a <see cref="SizeF"/> with the dimensions of the specified <see cref="Size"/>.
         /// </summary>
-        /// <param name="size">The point</param>
+        /// <param name="size">The point.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator SizeF(Size size) => new SizeF(size.Width, size.Height);
 
         /// <summary>
         /// Converts the given <see cref="Size"/> into a <see cref="Point"/>.
         /// </summary>
-        /// <param name="size">The size</param>
+        /// <param name="size">The size.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static explicit operator Point(Size size) => new Point(size.Width, size.Height);
 
@@ -101,7 +101,7 @@ namespace SixLabors.Primitives
         /// <param name="left">The size on the left hand of the operand.</param>
         /// <param name="right">The size on the right hand of the operand.</param>
         /// <returns>
-        /// The <see cref="Size"/>
+        /// The <see cref="Size"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Size operator +(Size left, Size right) => Add(left, right);
@@ -112,7 +112,7 @@ namespace SixLabors.Primitives
         /// <param name="left">The size on the left hand of the operand.</param>
         /// <param name="right">The size on the right hand of the operand.</param>
         /// <returns>
-        /// The <see cref="Size"/>
+        /// The <see cref="Size"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Size operator -(Size left, Size right) => Subtract(left, right);
@@ -201,39 +201,39 @@ namespace SixLabors.Primitives
         /// </summary>
         /// <param name="left">The size on the left hand of the operand.</param>
         /// <param name="right">The size on the right hand of the operand.</param>
-        /// <returns>The <see cref="Size"/></returns>
+        /// <returns>The <see cref="Size"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Size Add(Size left, Size right) => new Size(unchecked(left.Width + right.Width), unchecked(left.Height + right.Height));
 
         /// <summary>
-        /// Contracts a <see cref="Size"/> by another <see cref="Size"/>
+        /// Contracts a <see cref="Size"/> by another <see cref="Size"/>.
         /// </summary>
         /// <param name="left">The size on the left hand of the operand.</param>
         /// <param name="right">The size on the right hand of the operand.</param>
-        /// <returns>The <see cref="Size"/></returns>
+        /// <returns>The <see cref="Size"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Size Subtract(Size left, Size right) => new Size(unchecked(left.Width - right.Width), unchecked(left.Height - right.Height));
 
         /// <summary>
         /// Converts a <see cref="SizeF"/> to a <see cref="Size"/> by performing a ceiling operation on all the dimensions.
         /// </summary>
-        /// <param name="size">The size</param>
-        /// <returns>The <see cref="Size"/></returns>
+        /// <param name="size">The size.</param>
+        /// <returns>The <see cref="Size"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Size Ceiling(SizeF size) => new Size(unchecked((int)MathF.Ceiling(size.Width)), unchecked((int)MathF.Ceiling(size.Height)));
 
         /// <summary>
         /// Converts a <see cref="SizeF"/> to a <see cref="Size"/> by performing a round operation on all the dimensions.
         /// </summary>
-        /// <param name="size">The size</param>
-        /// <returns>The <see cref="Size"/></returns>
+        /// <param name="size">The size.</param>
+        /// <returns>The <see cref="Size"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Size Round(SizeF size) => new Size(unchecked((int)MathF.Round(size.Width)), unchecked((int)MathF.Round(size.Height)));
 
         /// <summary>
         /// Transforms a size by the given matrix.
         /// </summary>
-        /// <param name="size">The source size</param>
+        /// <param name="size">The source size.</param>
         /// <param name="matrix">The transformation matrix.</param>
         /// <returns>A transformed size.</returns>
         public static SizeF Transform(Size size, Matrix3x2 matrix)
@@ -246,16 +246,16 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Converts a <see cref="SizeF"/> to a <see cref="Size"/> by performing a round operation on all the dimensions.
         /// </summary>
-        /// <param name="size">The size</param>
-        /// <returns>The <see cref="Size"/></returns>
+        /// <param name="size">The size.</param>
+        /// <returns>The <see cref="Size"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Size Truncate(SizeF size) => new Size(unchecked((int)size.Width), unchecked((int)size.Height));
 
         /// <summary>
-        /// Deconstructs this size into two integers
+        /// Deconstructs this size into two integers.
         /// </summary>
-        /// <param name="width">The out value for the width</param>
-        /// <param name="height">The out value for the height</param>
+        /// <param name="width">The out value for the width.</param>
+        /// <param name="height">The out value for the height.</param>
         public void Deconstruct(out int width, out int height)
         {
             width = this.Width;

@@ -13,8 +13,8 @@ namespace SixLabors.Memory
         /// <summary>
         /// Allocates an <see cref="IMemoryOwner{T}" />, holding a <see cref="System.Memory{T}"/> of length <paramref name="length"/>.
         /// </summary>
-        /// <typeparam name="T">Type of the data stored in the buffer</typeparam>
-        /// <param name="length">Size of the buffer to allocate</param>
+        /// <typeparam name="T">Type of the data stored in the buffer.</typeparam>
+        /// <param name="length">Size of the buffer to allocate.</param>
         /// <param name="options">The allocation options.</param>
         /// <returns>A buffer of values of type <typeparamref name="T"/>.</returns>
         public abstract IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
@@ -23,9 +23,9 @@ namespace SixLabors.Memory
         /// <summary>
         /// Allocates an <see cref="IManagedByteBuffer"/>.
         /// </summary>
-        /// <param name="length">The requested buffer length</param>
+        /// <param name="length">The requested buffer length.</param>
         /// <param name="options">The allocation options.</param>
-        /// <returns>The <see cref="IManagedByteBuffer"/></returns>
+        /// <returns>The <see cref="IManagedByteBuffer"/>.</returns>
         public abstract IManagedByteBuffer AllocateManagedByteBuffer(int length, AllocationOptions options = AllocationOptions.None);
 
         /// <summary>

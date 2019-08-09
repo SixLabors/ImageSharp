@@ -16,11 +16,11 @@ namespace SixLabors.ImageSharp.Tests
         public class Load_FromStream_Throws : IDisposable
         {
             private static readonly byte[] Data = new byte[] { 0x01 };
-            
+
             private MemoryStream Stream { get; } = new MemoryStream(Data);
-            
+
             [Fact]
-            public void Image_Load_Throws_UknownImageFormatException()
+            public void Image_Load_Throws_UnknownImageFormatException()
             {
                 Assert.Throws<UnknownImageFormatException>(() =>
                 {
@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
-            public void Image_Load_T_Throws_UknownImageFormatException()
+            public void Image_Load_T_Throws_UnknownImageFormatException()
             {
                 Assert.Throws<UnknownImageFormatException>(() =>
                 {

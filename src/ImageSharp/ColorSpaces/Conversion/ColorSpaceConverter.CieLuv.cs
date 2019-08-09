@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLab"/></returns>
         public CieLuv ToCieLuv(in CieLchuv color)
         {
-            // Conversion (perserving white point)
+            // Conversion (preserving white point)
             CieLuv unadapted = CieLchuvToCieLuvConverter.Convert(color);
 
             // Adaptation

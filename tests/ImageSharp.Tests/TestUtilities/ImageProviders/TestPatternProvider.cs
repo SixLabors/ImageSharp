@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             /// <summary>
-            /// Fills the bottom left quadrent with 3 horizental bars in Red, Green and Blue with a alpha gradient from left (transparent) to right (solid).
+            /// Fills the bottom left quadrant with 3 horizontal bars in Red, Green and Blue with a alpha gradient from left (transparent) to right (solid).
             /// </summary>
             /// <param name="pixels"></param>
             private static void TransparentGradients(Buffer2D<TPixel> pixels)
@@ -185,7 +185,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             /// <summary>
-            /// Fills the bottom right quadrant with all the colors producable by converting itterating over a uint and unpacking it.
+            /// Fills the bottom right quadrant with all the colors producible by converting iterating over a uint and unpacking it.
             /// A better algorithm could be used but it works
             /// </summary>
             /// <param name="pixels"></param>

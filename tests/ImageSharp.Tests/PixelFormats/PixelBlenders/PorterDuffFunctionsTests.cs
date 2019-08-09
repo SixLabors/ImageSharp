@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             VectorAssert.Equal(expected, actual, 5);
         }
 
-        public static TheoryData<TestVector4, TestVector4, float, TestVector4> SubstractFunctionData = new TheoryData<TestVector4, TestVector4, float, TestVector4>() {
+        public static TheoryData<TestVector4, TestVector4, float, TestVector4> SubtractFunctionData = new TheoryData<TestVector4, TestVector4, float, TestVector4>() {
             { new TestVector4(1,1,1,1), new TestVector4(1,1,1,1), 1, new TestVector4(0,0,0,1) },
             { new TestVector4(1,1,1,1), new TestVector4(0,0,0,.8f), .5f, new TestVector4(1,1,1, 1f) },
             {
@@ -73,8 +73,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
         };
 
         [Theory]
-        [MemberData(nameof(SubstractFunctionData))]
-        public void SubstractFunction(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
+        [MemberData(nameof(SubtractFunctionData))]
+        public void SubtractFunction(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
         {
             Vector4 actual = PorterDuffFunctions.SubtractSrcOver((Vector4)back, source, amount);
             VectorAssert.Equal(expected, actual, 5);

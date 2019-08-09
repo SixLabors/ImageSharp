@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 // ReSharper disable InconsistentNaming
@@ -11,7 +11,7 @@ using SixLabors.ImageSharp.Formats.Jpeg.Components;
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
     /// <summary>
-    /// This class contains simplified (unefficient) reference implementations to produce verification data for unit tests
+    /// This class contains simplified (inefficient) reference implementations to produce verification data for unit tests
     /// Floating point DCT code Ported from https://github.com/norishigefukushima/dct_simd
     /// </summary>
     internal static partial class ReferenceImplementations

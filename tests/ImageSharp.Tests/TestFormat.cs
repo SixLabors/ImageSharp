@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -213,7 +213,7 @@ namespace SixLabors.ImageSharp.Tests
                     pixelType = typeof(TPixel)
                 });
 
-                // TODO record this happend so we can verify it.
+                // TODO record this happened so we can verify it.
                 return this.testFormat.Sample<TPixel>();
             }
 

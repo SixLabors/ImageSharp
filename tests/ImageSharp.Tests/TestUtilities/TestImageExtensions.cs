@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -538,7 +538,7 @@ namespace SixLabors.ImageSharp.Tests
         /// Utility method for doing the following in one step:
         /// 1. Executing an operation (taken as a delegate)
         /// 2. Executing DebugSave()
-        /// 3. Executing CopareToReferenceOutput()
+        /// 3. Executing CompareToReferenceOutput()
         /// </summary>
         internal static void VerifyOperation<TPixel>(
             this TestImageProvider<TPixel> provider,
@@ -571,7 +571,7 @@ namespace SixLabors.ImageSharp.Tests
         /// Utility method for doing the following in one step:
         /// 1. Executing an operation (taken as a delegate)
         /// 2. Executing DebugSave()
-        /// 3. Executing CopareToReferenceOutput()
+        /// 3. Executing CompareToReferenceOutput()
         /// </summary>
         internal static void VerifyOperation<TPixel>(
             this TestImageProvider<TPixel> provider,
@@ -593,7 +593,7 @@ namespace SixLabors.ImageSharp.Tests
         /// Utility method for doing the following in one step:
         /// 1. Executing an operation (taken as a delegate)
         /// 2. Executing DebugSave()
-        /// 3. Executing CopareToReferenceOutput()
+        /// 3. Executing CompareToReferenceOutput()
         /// </summary>
         internal static void VerifyOperation<TPixel>(
             this TestImageProvider<TPixel> provider,
@@ -615,7 +615,7 @@ namespace SixLabors.ImageSharp.Tests
         /// Utility method for doing the following in one step:
         /// 1. Executing an operation (taken as a delegate)
         /// 2. Executing DebugSave()
-        /// 3. Executing CopareToReferenceOutput()
+        /// 3. Executing CompareToReferenceOutput()
         /// </summary>
         internal static void VerifyOperation<TPixel>(
             this TestImageProvider<TPixel> provider,

@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
     public partial class JpegDecoderTests
     {
-        // TODO: A JPEGsnoop & metadata expert should review if the Exif/Icc expectations are correct. 
+        // TODO: A JPEGsnoop & metadata expert should review if the Exif/Icc expectations are correct.
         // I'm seeing several entries with Exif-related names in images where we do not decode an exif profile. (- Anton)
         public static readonly TheoryData<bool, string, int, bool, bool> MetaDataTestData =
         new TheoryData<bool, string, int, bool, bool>

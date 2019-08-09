@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             /// <summary>
             /// Original: https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L239
-            /// Applyies IDCT transformation on "s" copying transformed values to "d", using temporary block "temp"
+            /// Applies IDCT transformation on "s" copying transformed values to "d", using temporary block "temp"
             /// </summary>
             /// <param name="s"></param>
             /// <param name="d"></param>

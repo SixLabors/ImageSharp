@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -118,9 +118,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             switch (value.Signature)
             {
                 case IccCurveSegmentSignature.FormulaCurve:
-                    return count + this.WriteFormulaCurveElement(value as IccFormulaCurveElement);
+                    return count + this.WriteFormulaCurveElement((IccFormulaCurveElement)value);
                 case IccCurveSegmentSignature.SampledCurve:
-                    return count + this.WriteSampledCurveElement(value as IccSampledCurveElement);
+                    return count + this.WriteSampledCurveElement((IccSampledCurveElement)value);
                 default:
                     throw new InvalidIccProfileException($"Invalid CurveSegment type of {value.Signature}");
             }

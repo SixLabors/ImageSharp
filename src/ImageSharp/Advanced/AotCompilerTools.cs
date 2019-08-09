@@ -181,7 +181,7 @@ namespace SixLabors.ImageSharp.Advanced
             where TPixel : struct, IPixel<TPixel>
         {
             var resizeProcessor = new ResizeProcessor(new ResizeOptions(), default);
-            var genericResizeProcessor = new ResizeProcessor<TPixel>(resizeProcessor.CreatePixelSpecificProcessor<TPixel>() as ResizeProcessor);
+            var genericResizeProcessor = new ResizeProcessor<TPixel>((ResizeProcessor)resizeProcessor.CreatePixelSpecificProcessor<TPixel>());
             genericResizeProcessor.AotCreateDestination(new Image<TPixel>(0, 0), default);
         }
     }

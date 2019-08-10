@@ -49,8 +49,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
-            int numberOfPixels = source.Width * source.Height;
-            Span<TPixel> pixels = source.GetPixelSpan();
 
             var parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism };
             int tileWidth = source.Width / this.Tiles;

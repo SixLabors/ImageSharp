@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -526,9 +526,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         {
             int start = this.currentIndex - 8;
 
-            // TODO: Why are we storing variable
-            ushort inChannelCount = this.ReadUInt16();
-            ushort outChannelCount = this.ReadUInt16();
+            this.ReadUInt16();
+            this.ReadUInt16();
             uint elementCount = this.ReadUInt32();
 
             var positionTable = new IccPositionNumber[elementCount];

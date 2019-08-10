@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -417,16 +417,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             return this.TryReadSpan(2, out ReadOnlySpan<byte> span)
                 ? this.ConvertToShort(span)
                 : default;
-        }
-
-        private string ReadString(int length)
-        {
-            if (this.TryReadSpan(length, out ReadOnlySpan<byte> span) && span.Length != 0)
-            {
-                return this.ConvertToString(span);
-            }
-
-            return null;
         }
 
         private void GetThumbnail(uint offset)

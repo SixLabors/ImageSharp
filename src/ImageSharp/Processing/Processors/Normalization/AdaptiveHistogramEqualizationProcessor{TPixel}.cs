@@ -51,10 +51,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         {
             int sourceWidth = source.Width;
             int sourceHeight = source.Height;
-            int numberOfPixels = sourceWidth * sourceHeight;
             int tileWidth = (int)MathF.Ceiling(sourceWidth / (float)this.Tiles);
             int tileHeight = (int)MathF.Ceiling(sourceHeight / (float)this.Tiles);
-            int pixelsInTile = tileWidth * tileHeight;
             int halfTileWidth = tileWidth / 2;
             int halfTileHeight = tileHeight / 2;
             int luminanceLevels = this.LuminanceLevels;
@@ -467,7 +465,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 int tileWidth = this.tileWidth;
                 int tileHeight = this.tileHeight;
                 int luminanceLevels = this.luminanceLevels;
-                MemoryAllocator memoryAllocator = this.memoryAllocator;
 
                 Parallel.For(
                     0,

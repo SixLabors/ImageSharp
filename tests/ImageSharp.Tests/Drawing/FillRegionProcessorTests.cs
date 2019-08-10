@@ -12,6 +12,7 @@ using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 using Xunit;
 using SixLabors.ImageSharp.Processing.Processors.Drawing;
+using SixLabors.Shapes;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
@@ -65,6 +66,24 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 img.Mutate(x => x.DrawLines(new Pen(Rgba32.Black, 10),
                     new Vector2(-10, 5),
                     new Vector2(20, 5)));
+            }
+        }
+
+        [Fact]
+        public void DoesNotThrowFillingTriangle()
+        {
+            using(var image = new Image<Rgba32>(28, 28))
+            {
+                var path = new Polygon(
+                    new LinearLineSegment(new PointF(17.11f, 13.99659f), new PointF(14.01433f, 27.06201f)),
+                    new LinearLineSegment(new PointF(14.01433f, 27.06201f), new PointF(13.79267f, 14.00023f)),
+                    new LinearLineSegment(new PointF(13.79267f, 14.00023f), new PointF(17.11f, 13.99659f))
+                );
+
+                image.Mutate(ctx =>
+                {
+                    ctx.Fill(Rgba32.White, path);
+                });
             }
         }
 

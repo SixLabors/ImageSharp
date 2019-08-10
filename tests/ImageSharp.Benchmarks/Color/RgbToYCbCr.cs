@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -228,7 +228,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         }
 
         /// <summary>
-        /// This should perform better. Coreclr emmitted Vector.Dot() code lacks the vectorization even with IsHardwareAccelerated == true.
+        /// This should perform better. Coreclr emitted Vector.Dot() code lacks the vectorization even with IsHardwareAccelerated == true.
         /// Kept this benchmark because maybe it will be improved in a future CLR release.
         /// <see>
         ///     <cref>https://www.gamedev.net/topic/673396-c-systemnumericsvectors-slow/</cref>

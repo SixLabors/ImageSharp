@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -144,7 +144,7 @@ namespace SixLabors.ImageSharp.Benchmarks
             {
                 amount = amount.Clamp(0, 1);
 
-                // Santize on zero alpha
+                // Sanitize on zero alpha
                 if (Math.Abs(backdrop.W) < Constants.Epsilon)
                 {
                     source.W *= amount;

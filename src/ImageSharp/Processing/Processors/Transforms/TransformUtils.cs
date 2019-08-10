@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Matrix4x4 matrix = Matrix4x4.Identity;
 
             /*
-             * SkMatrix is layed out in the following manner:
+             * SkMatrix is laid out in the following manner:
              *
              * [ ScaleX  SkewY   Persp0 ]
              * [ SkewX   ScaleY  Persp1 ]
@@ -329,7 +329,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int width = rectangle.Left < 0 ? rectangle.Right : Math.Max(rectangle.Width, rectangle.Right);
 
             // If location in either direction is translated to a negative value equal to or exceeding the
-            // dimensions in eith direction we need to reassign the dimension.
+            // dimensions in either direction we need to reassign the dimension.
             if (height <= 0)
             {
                 height = rectangle.Height;

@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Memory
             => buffer.GetSpan().Length;
 
         /// <summary>
-        /// Gets a <see cref="Span{T}"/> to an offseted position inside the buffer.
+        /// Gets a <see cref="Span{T}"/> to an offsetted position inside the buffer.
         /// </summary>
         /// <param name="buffer">The buffer</param>
         /// <param name="start">The start</param>

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -33,8 +33,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
         public static readonly string[] SmokeTestResamplerNames =
             {
-                nameof(KnownResamplers.NearestNeighbor), 
-                nameof(KnownResamplers.Bicubic), 
+                nameof(KnownResamplers.NearestNeighbor),
+                nameof(KnownResamplers.Bicubic),
                 nameof(KnownResamplers.Box),
                 nameof(KnownResamplers.Lanczos5),
             };
@@ -46,18 +46,18 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void Resize_PixelAgnostic()
         {
             var filePath = TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora);
-            
+
             using (Image image = Image.Load(filePath))
             {
                 image.Mutate(x => x.Resize(image.Size() / 2));
                 string path = System.IO.Path.Combine(
                     TestEnvironment.CreateOutputDirectory(nameof(ResizeTests)),
                     nameof(this.Resize_PixelAgnostic) + ".png");
-                
+
                 image.Save(path);
             }
         }
-        
+
         [Theory(
             Skip = "Debug only, enable manually"
             )]
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.DebugSave(provider, appendPixelTypeToFileName: false);
             }
         }
-        
+
         [Theory]
         [WithBasicTestPatternImages(15, 12, PixelTypes.Rgba32, 2, 3, 1, 2)]
         [WithBasicTestPatternImages(2, 256, PixelTypes.Rgba32, 1, 1, 1, 8)]
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             // [WithBasicTestPatternImages(15, 12, PixelTypes.Rgba32, 2, 3, 1, 2)] means:
             // resizing: (15, 12) -> (10, 6)
             // kernel dimensions: (3, 4)
-            
+
 
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -122,9 +122,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             using (Image<TPixel> image0 = provider.GetImage())
             {
                 Size destSize = image0.Size() / 4;
-                
+
                 Configuration configuration = Configuration.CreateDefaultInstance();
-                
+
                 int workingBufferSizeHintInBytes = workingBufferLimitInRows * destSize.Width * SizeOfVector4;
                 TestMemoryAllocator allocator = new TestMemoryAllocator();
                 configuration.MemoryAllocator = allocator;
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                     Configuration.Default.MemoryAllocator);
                 int minimumWorkerAllocationInBytes =  verticalKernelMap.MaxDiameter * 2 * destSize.Width * SizeOfVector4;
                 verticalKernelMap.Dispose();
-                
+
                 using (Image<TPixel> image = image0.Clone(configuration))
                 {
                     image.Mutate(x => x.Resize(destSize, KnownResamplers.Bicubic, false));
@@ -151,12 +151,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                         provider,
                         testOutputDetails: workingBufferLimitInRows,
                         appendPixelTypeToFileName: false);
-                    
+
                     Assert.NotEmpty(allocator.AllocationLog);
 
                     int maxAllocationSize = allocator.AllocationLog.Where(
                         e => e.ElementType == typeof(Vector4)).Max(e => e.LengthInBytes);
-                    
+
                     Assert.True(maxAllocationSize <= Math.Max(workingBufferSizeHintInBytes, minimumWorkerAllocationInBytes));
                 }
             }
@@ -284,7 +284,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         {
             IResampler sampler = TestUtils.GetResampler(samplerName);
 
-            // NeirestNeighbourResampler is producing slightly different results With classic .NET framework on 32bit
+            // NearestNeighbourResampler is producing slightly different results With classic .NET framework on 32bit
             // most likely because of differences in numeric behavior.
             // The difference is well visible when comparing output for
             // Resize_WorksWithAllResamplers_TestPattern301x1180_NearestNeighbor-300x480.png
@@ -297,7 +297,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
             // Let's make the working buffer size non-default:
             provider.Configuration.WorkingBufferSizeHintInBytes = 16 * 1024 * SizeOfVector4;
-            
+
             provider.RunValidatingProcessorTest(
                 ctx =>
                     {

@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Net.Mime;
 using System.Numerics;
 
 using SixLabors.ImageSharp.Memory;

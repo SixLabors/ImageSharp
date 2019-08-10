@@ -10,7 +10,6 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorSpaces.Companding;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 
 using Xunit;
 using Xunit.Abstractions;

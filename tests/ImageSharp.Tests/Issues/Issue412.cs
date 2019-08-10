@@ -23,21 +23,15 @@ namespace SixLabors.ImageSharp.Tests.Issues
                                 new GraphicsOptions(false),
                                 Color.Black,
                                 1,
-                                new[]
-                                {
                                 new PointF(i, 0.1066f),
-                                new PointF(i, 10.1066f)
-                                });
+                                new PointF(i, 10.1066f));
 
                             context.DrawLines(
                                 new GraphicsOptions(false),
                                 Color.Red,
                                 1,
-                                new[]
-                                {
                                 new PointF(i, 15.1066f),
-                                new PointF(i, 25.1066f)
-                                });
+                                new PointF(i, 25.1066f));
                         }
                     });
 

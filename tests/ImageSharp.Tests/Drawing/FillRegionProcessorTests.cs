@@ -62,10 +62,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             using (var img = new Image<Rgba32>(10, 10))
             {
-                img.Mutate(x => x.DrawLines(new Pen(Rgba32.Black, 10), new SixLabors.Primitives.PointF[] {
+                img.Mutate(x => x.DrawLines(new Pen(Rgba32.Black, 10),
                     new Vector2(-10, 5),
-                    new Vector2(20, 5),
-                }));
+                    new Vector2(20, 5)));
             }
         }
 

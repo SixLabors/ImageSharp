@@ -11,10 +11,6 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Advanced
 {
-    using System.Buffers;
-
-    using SixLabors.Memory;
-
     public class AdvancedImageExtensionsTests
     {
         public class GetPixelMemory

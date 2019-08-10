@@ -70,6 +70,32 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         }
 
         [Fact]
+        public void DoesNotThrowForIssue928()
+        {
+            var rectText = new RectangleF(0, 0, 2000, 2000);
+            using (Image<Rgba32> img = new Image<Rgba32>((int)rectText.Width, (int)rectText.Height))
+            {
+                img.Mutate(x => x.Fill(Rgba32.Transparent));
+
+                img.Mutate(ctx => {
+                    ctx.DrawLines(
+                        Rgba32.Red,
+                        0.984252f,
+                        new PointF(104.762581f, 1074.99365f),
+                        new PointF(104.758667f, 1075.01721f),
+                        new PointF(104.757675f, 1075.04114f),
+                        new PointF(104.759628f, 1075.065f),
+                        new PointF(104.764488f, 1075.08838f),
+                        new PointF(104.772186f, 1075.111f),
+                        new PointF(104.782608f, 1075.13245f),
+                        new PointF(104.782608f, 1075.13245f)
+                        );
+                    }
+                );
+            }
+        }
+
+        [Fact]
         public void DoesNotThrowFillingTriangle()
         {
             using(var image = new Image<Rgba32>(28, 28))

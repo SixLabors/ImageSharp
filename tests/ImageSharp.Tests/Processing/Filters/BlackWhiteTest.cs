@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Processing;
@@ -13,14 +13,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
         public void BlackWhite_CorrectProcessor()
         {
             this.operations.BlackWhite();
-            BlackWhiteProcessor p = this.Verify<BlackWhiteProcessor>();
+            this.Verify<BlackWhiteProcessor>();
         }
 
         [Fact]
         public void BlackWhite_rect_CorrectProcessor()
         {
             this.operations.BlackWhite(this.rect);
-            BlackWhiteProcessor p = this.Verify<BlackWhiteProcessor>(this.rect);
+            this.Verify<BlackWhiteProcessor>(this.rect);
         }
     }
 }

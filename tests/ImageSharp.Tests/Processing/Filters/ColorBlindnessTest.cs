@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
             where T : IImageProcessor
         {
             this.operations.ColorBlindness(colorBlindness);
-            T p = this.Verify<T>();
+            this.Verify<T>();
         }
         [Theory]
         [MemberData(nameof(TheoryData))]
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
             where T : IImageProcessor
         {
             this.operations.ColorBlindness(colorBlindness, this.rect);
-            T p = this.Verify<T>(this.rect);
+            this.Verify<T>(this.rect);
         }
     }
 }

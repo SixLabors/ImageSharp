@@ -332,7 +332,7 @@ namespace SixLabors.ImageSharp.Tests
         private static void EnsureCustomConfigurationIsApplied<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var image1 = provider.GetImage())
+            using (provider.GetImage())
             {
                 var customConfiguration = Configuration.CreateDefaultInstance();
                 provider.Configuration = customConfiguration;

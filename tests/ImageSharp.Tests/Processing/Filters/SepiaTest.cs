@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Processing;
@@ -13,14 +13,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
         public void Sepia_amount_SepiaProcessorDefaultsSet()
         {
             this.operations.Sepia();
-            var processor = this.Verify<SepiaProcessor>();
+            this.Verify<SepiaProcessor>();
         }
 
         [Fact]
         public void Sepia_amount_rect_SepiaProcessorDefaultsSet()
         {
             this.operations.Sepia(this.rect);
-            var processor = this.Verify<SepiaProcessor>(this.rect);
+            this.Verify<SepiaProcessor>(this.rect);
         }
     }
 }

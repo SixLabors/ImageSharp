@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -14,14 +14,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
 {
     public class DrawText : BaseImageOperationsExtensionTest
     {
-        Rgba32 color = Color.HotPink;
-
-        SolidBrush brush = Brushes.Solid(Color.HotPink);
-
-        IPath path = new SixLabors.Shapes.Path(
-            new LinearLineSegment(
-                new SixLabors.Primitives.PointF[] { new Vector2(10, 10), new Vector2(20, 10), new Vector2(20, 10), new Vector2(30, 10), }));
-
         private readonly FontCollection FontCollection;
 
         private readonly Font Font;
@@ -103,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
                 Pens.Dash(Color.Red, 1),
                 Vector2.Zero);
 
-            var processor = this.Verify<DrawTextProcessor>(0);
+            this.Verify<DrawTextProcessor>(0);
         }
 
         [Fact]
@@ -111,7 +103,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         {
             this.operations.DrawText("123", this.Font, null, Pens.Dash(Color.Red, 1), Vector2.Zero);
 
-            var processor = this.Verify<DrawTextProcessor>(0);
+            this.Verify<DrawTextProcessor>(0);
         }
 
         [Fact]
@@ -119,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         {
             this.operations.DrawText(new TextGraphicsOptions(true), "123", this.Font, Pens.Dash(Color.Red, 1), Vector2.Zero);
 
-            var processor = this.Verify<DrawTextProcessor>(0);
+            this.Verify<DrawTextProcessor>(0);
         }
 
         [Fact]

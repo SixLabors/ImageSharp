@@ -20,9 +20,6 @@ namespace SixLabors.ImageSharp.Tests
 
             private byte[] ActualImageBytes => TestFile.Create(TestImages.Bmp.F).Bytes;
 
-            private ReadOnlySpan<byte> ActualImageSpan => this.ActualImageBytes.AsSpan();
-
-            
             [Theory]
             [InlineData(false)]
             [InlineData(true)]

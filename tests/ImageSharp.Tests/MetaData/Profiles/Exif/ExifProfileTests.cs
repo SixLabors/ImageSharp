@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -373,7 +373,7 @@ namespace SixLabors.ImageSharp.Tests
         public void ProfileToByteArray()
         {
             // arrange
-            byte[] exifBytesWithExifCode = ProfileResolver.ExifMarker.Concat(ExifConstants.LittleEndianByteOrderMarker).ToArray();
+            ProfileResolver.ExifMarker.Concat(ExifConstants.LittleEndianByteOrderMarker).ToArray();
             byte[] exifBytesWithoutExifCode = ExifConstants.LittleEndianByteOrderMarker;
             ExifProfile expectedProfile = CreateExifProfile();
             var expectedProfileTags = expectedProfile.Values.Select(x => x.Tag).ToList();

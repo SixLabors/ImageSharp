@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Tests
                 ArgumentException ex = Assert.Throws<ArgumentException>(
                     () =>
                     {
-                        var collection = new ImageFrameCollection<Rgba32>(
+                        new ImageFrameCollection<Rgba32>(
                             this.Image,
                             new[]
                             {
@@ -274,7 +274,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void AddFrame_clones_sourceFrame()
             {
-                var pixelData = this.Image.Frames.RootFrame.GetPixelSpan().ToArray();
+                this.Image.Frames.RootFrame.GetPixelSpan().ToArray();
                 var otherFRame = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
                 var addedFrame = this.Image.Frames.AddFrame(otherFRame);
                 addedFrame.ComparePixelBufferTo(otherFRame.GetPixelSpan());
@@ -284,7 +284,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void InsertFrame_clones_sourceFrame()
             {
-                var pixelData = this.Image.Frames.RootFrame.GetPixelSpan().ToArray();
+                this.Image.Frames.RootFrame.GetPixelSpan().ToArray();
                 var otherFRame = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
                 var addedFrame = this.Image.Frames.InsertFrame(0, otherFRame);
                 addedFrame.ComparePixelBufferTo(otherFRame.GetPixelSpan());

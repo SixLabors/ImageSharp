@@ -41,7 +41,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         {
             Font font = CreateFont("OpenSans-Regular.ttf", 36);
             Color color = Color.Black;
-            float padding = 5;
             var text = "A short piece of text";
 
             using (var img = provider.GetImage())

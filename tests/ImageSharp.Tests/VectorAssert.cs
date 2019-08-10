@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using SixLabors.ImageSharp;
+
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 

@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 0, 0)]
         public void TolerantImageComparer_ApprovesPerfectSimilarity<TPixel>(
             TestImageProvider<TPixel> provider,
-            float imageTheshold,
+            float imageThreshold,
             int pixelThreshold)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 using (Image<TPixel> clone = image.Clone())
                 {
-                    var comparer = ImageComparer.Tolerant(imageTheshold, pixelThreshold);
+                    var comparer = ImageComparer.Tolerant(imageThreshold, pixelThreshold);
                     comparer.VerifySimilarity(image, clone);
                 }
             }

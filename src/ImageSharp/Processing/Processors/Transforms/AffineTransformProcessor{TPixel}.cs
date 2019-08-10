@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Rectangle sourceRectangle,
             Configuration configuration)
         {
-            // Handle tranforms that result in output identical to the original.
+            // Handle transforms that result in output identical to the original.
             if (this.TransformMatrix.Equals(default) || this.TransformMatrix.Equals(Matrix3x2.Identity))
             {
                 // The clone will be blank here copy all the pixel data over

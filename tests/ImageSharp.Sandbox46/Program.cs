@@ -10,8 +10,6 @@ namespace SixLabors.ImageSharp.Sandbox46
 {
     using System;
     using SixLabors.ImageSharp.Tests.Formats.Jpg;
-    using SixLabors.ImageSharp.Tests.PixelFormats;
-    using SixLabors.ImageSharp.Tests.Processing.Processors.Transforms;
 
     using Xunit.Abstractions;
 

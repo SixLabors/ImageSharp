@@ -5,7 +5,6 @@ using System;
 using System.Numerics;
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests
 {

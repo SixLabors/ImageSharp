@@ -191,7 +191,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
                 subPixelOffset.X = MathF.Round(subPixelOffset.X * AccuracyMultiple) / AccuracyMultiple;
                 subPixelOffset.Y = MathF.Round(subPixelOffset.Y * AccuracyMultiple) / AccuracyMultiple;
 
-                // we have offset our rendering origion a little bit down to prevent edge cropping, move the draw origin up to compensate
+                // we have offset our rendering origin a little bit down to prevent edge cropping, move the draw origin up to compensate
                 this.currentRenderPosition = new Point(this.currentRenderPosition.X - this.offset, this.currentRenderPosition.Y - this.offset);
                 this.currentGlyphRenderParams = (parameters, subPixelOffset);
 
@@ -205,7 +205,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
                 // we check to see if we have a render cache and if we do then we render else
                 this.builder.Clear();
 
-                // ensure all glyphs render around [zero, zero]  so offset negative root positions so when we draw the glyph we can offet it back
+                // ensure all glyphs render around [zero, zero]  so offset negative root positions so when we draw the glyph we can offset it back
                 this.builder.SetOrigin(new PointF(-(int)bounds.X + this.offset, -(int)bounds.Y + this.offset));
 
                 this.rasterizationRequired = true;
@@ -244,7 +244,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
             {
                 GlyphRenderData renderData = default;
 
-                // has the glyoh been rendedered already????
+                // has the glyph been rendered already?
                 if (this.rasterizationRequired)
                 {
                     IPath path = this.builder.Build();
@@ -303,7 +303,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
                 float offset = 0.5f;
                 if (this.Options.Antialias)
                 {
-                    offset = 0f; // we are antialising skip offsetting as real antalising should take care of offset.
+                    offset = 0f; // we are antialiasing skip offsetting as real antialiasing should take care of offset.
                     subpixelCount = this.Options.AntialiasSubpixelDepth;
                     if (subpixelCount < 4)
                     {

@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
             Polygon polygon = Assert.IsType<Polygon>(region.Shape);
-            LinearLineSegment segemnt = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
+            LinearLineSegment segment = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
 
             Assert.Equal(this.brush, processor.Brush);
         }
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
             Polygon polygon = Assert.IsType<Polygon>(region.Shape);
-            LinearLineSegment segemnt = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
+            LinearLineSegment segment = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
 
             Assert.Equal(this.brush, processor.Brush);
         }
@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
             Polygon polygon = Assert.IsType<Polygon>(region.Shape);
-            LinearLineSegment segemnt = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
+            LinearLineSegment segment = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
 
             SolidBrush brush = Assert.IsType<SolidBrush>(processor.Brush);
             Assert.Equal(this.color, brush.Color);
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
             Polygon polygon = Assert.IsType<Polygon>(region.Shape);
-            LinearLineSegment segemnt = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
+            LinearLineSegment segment = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
 
             SolidBrush brush = Assert.IsType<SolidBrush>(processor.Brush);
             Assert.Equal(this.color, brush.Color);

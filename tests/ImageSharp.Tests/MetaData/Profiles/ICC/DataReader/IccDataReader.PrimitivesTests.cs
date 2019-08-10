@@ -8,7 +8,7 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Icc
 {
     public class IccDataReaderPrimitivesTests
-    {        
+    {
         [Theory]
         [MemberData(nameof(IccTestDataPrimitives.AsciiTestData), MemberType = typeof(IccTestDataPrimitives))]
         public void ReadAsciiString(byte[] textBytes, int length, string expected)
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         }
 
         [Fact]
-        public void ReadAsciiStringWithNegativeLenghtThrowsArgumentException()
+        public void ReadAsciiStringWithNegativeLengthThrowsArgumentException()
         {
             IccDataReader reader = CreateReader(new byte[4]);
 
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         }
 
         [Fact]
-        public void ReadUnicodeStringWithNegativeLenghtThrowsArgumentException()
+        public void ReadUnicodeStringWithNegativeLengthThrowsArgumentException()
         {
             IccDataReader reader = CreateReader(new byte[4]);
 

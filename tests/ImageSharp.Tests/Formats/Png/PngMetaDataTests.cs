@@ -28,6 +28,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             {
                 BitDepth = PngBitDepth.Bit16,
                 ColorType = PngColorType.GrayscaleWithAlpha,
+                InterlaceMethod = PngInterlaceMode.Adam7,
                 Gamma = 2,
                 TextData = new List<PngTextData>() { new PngTextData("name", "value", "foo", "bar") }
             };
@@ -36,10 +37,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             clone.BitDepth = PngBitDepth.Bit2;
             clone.ColorType = PngColorType.Palette;
+            clone.InterlaceMethod = PngInterlaceMode.None;
             clone.Gamma = 1;
 
-            Assert.False(meta.BitDepth.Equals(clone.BitDepth));
-            Assert.False(meta.ColorType.Equals(clone.ColorType));
+            Assert.False(meta.BitDepth == clone.BitDepth);
+            Assert.False(meta.ColorType == clone.ColorType);
+            Assert.False(meta.InterlaceMethod == clone.InterlaceMethod);
             Assert.False(meta.Gamma.Equals(clone.Gamma));
             Assert.False(meta.TextData.Equals(clone.TextData));
             Assert.True(meta.TextData.SequenceEqual(clone.TextData));
@@ -132,7 +135,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 inputMetadata.TextData.Add(expectedTextNoneLatin);
                 input.Save(memoryStream, new PngEncoder()
                 {
-                    CompressTextThreshold = 50
+                    TextCompressionThreshold = 50
                 });
 
                 memoryStream.Position = 0;

@@ -30,11 +30,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(TestImages.Jpeg.Baseline.Cmyk, JpegColorSpace.Cmyk)]
         public void ColorSpace_IsDeducedCorrectly(string imageFile, object expectedColorSpaceValue)
         {
-            var expecteColorSpace = (JpegColorSpace)expectedColorSpaceValue;
+            var expectedColorSpace = (JpegColorSpace)expectedColorSpaceValue;
 
             using (JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile))
             {
-                Assert.Equal(expecteColorSpace, decoder.ColorSpace);
+                Assert.Equal(expectedColorSpace, decoder.ColorSpace);
             }
         }
 

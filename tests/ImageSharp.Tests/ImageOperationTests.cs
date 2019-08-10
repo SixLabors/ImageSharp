@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Fact]
-        public void CloneCallsImageOperationsProvider_Func_NotOnOrigional()
+        public void CloneCallsImageOperationsProvider_Func_NotOnOriginal()
         {
             Image<Rgba32> returned = this.image.Clone(x => x.ApplyProcessor(this.processorDefinition));
             Assert.False(this.provider.HasCreated(this.image));
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Fact]
-        public void CloneCallsImageOperationsProvider_ListOfProcessors_NotOnOrigional()
+        public void CloneCallsImageOperationsProvider_ListOfProcessors_NotOnOriginal()
         {
             Image<Rgba32> returned = this.image.Clone(this.processorDefinition);
             Assert.False(this.provider.HasCreated(this.image));

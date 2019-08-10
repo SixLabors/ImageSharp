@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         /// <summary>
-        /// Tests that the individual byte elements are layed out in RGBA order.
+        /// Tests that the individual byte elements are laid out in RGBA order.
         /// </summary>
         [Fact]
         public unsafe void ByteLayout()

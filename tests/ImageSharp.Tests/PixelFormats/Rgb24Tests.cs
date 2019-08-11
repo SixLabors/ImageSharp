@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
     public class Rgb24Tests
     {
         public static readonly TheoryData<byte, byte, byte> ColorData =
-            new TheoryData<byte, byte, byte>()
+            new TheoryData<byte, byte, byte>
             {
                 { 1, 2, 3 },
                 { 4, 5, 6 },

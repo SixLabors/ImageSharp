@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests
 
             AddFormatsDirectoryFromTestAssemblyPath(directories);
 
-            string directory = directories.FirstOrDefault(x => Directory.Exists(x));
+            string directory = directories.FirstOrDefault(Directory.Exists);
 
             if (directory != null)
             {

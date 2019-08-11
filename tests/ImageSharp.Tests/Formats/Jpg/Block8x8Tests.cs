@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public unsafe void Indexer_GetScalarAt_SetScalarAt()
         {
-            int sum = 0;
+            int sum;
             var block = default(Block8x8);
 
             for (int i = 0; i < Block8x8.Size; i++)
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             for (int i = 0; i < Block8x8F.Size; i++)
             {
-                Assert.Equal((float)data[i], dest[i]);
+                Assert.Equal(data[i], dest[i]);
             }
         }
 

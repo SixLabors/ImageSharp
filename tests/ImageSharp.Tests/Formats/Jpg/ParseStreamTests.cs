@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.Output.WriteLine(sb.ToString());
         }
 
-        public static readonly TheoryData<string, int, object, object> ComponentVerificationData = new TheoryData<string, int, object, object>()
+        public static readonly TheoryData<string, int, object, object> ComponentVerificationData = new TheoryData<string, int, object, object>
             {
                 { TestImages.Jpeg.Baseline.Jpeg444, 3, new Size(1, 1), new Size(1, 1) },
                 { TestImages.Jpeg.Baseline.Jpeg420Exif, 3, new Size(2, 2), new Size(1, 1) },

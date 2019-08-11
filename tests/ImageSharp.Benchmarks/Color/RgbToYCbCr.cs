@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Benchmarks
 
                 public static Byte Create(byte[] data)
                 {
-                    Byte result = default(Byte);
+                    Byte result = default;
                     for (int i = 0; i < data.Length; i++)
                     {
                         result.Data[i] = data[i];
@@ -113,9 +113,9 @@ namespace SixLabors.ImageSharp.Benchmarks
 
         // The operation is defined as "RGBA -> YCbCr Transform a stream of bytes into a stream of floats"
         // We need to benchmark the whole operation, to get true results, not missing any side effects!
-        private byte[] inputSourceRGB = null;
+        private byte[] inputSourceRGB;
 
-        private int[] inputSourceRGBAsInteger = null;
+        private int[] inputSourceRGBAsInteger;
 
         [GlobalSetup]
         public void Setup()
@@ -303,7 +303,7 @@ namespace SixLabors.ImageSharp.Benchmarks
             OnStackInputCache.Byte input = OnStackInputCache.Byte.Create(this.inputSourceRGB);
 
             // On-stack output:
-            Result result = default(Result);
+            Result result = default;
             float* yPtr = (float*)&result.Y;
             float* cbPtr = (float*)&result.Cb;
             float* crPtr = (float*)&result.Cr;
@@ -342,7 +342,7 @@ namespace SixLabors.ImageSharp.Benchmarks
             OnStackInputCache.Byte input = OnStackInputCache.Byte.Create(this.inputSourceRGB);
 
             // On-stack output:
-            Result result = default(Result);
+            Result result = default;
             float* yPtr = (float*)&result.Y;
             float* cbPtr = (float*)&result.Cb;
             float* crPtr = (float*)&result.Cr;

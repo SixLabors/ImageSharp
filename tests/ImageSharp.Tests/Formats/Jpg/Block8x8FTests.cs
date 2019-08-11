@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 // Uncomment this to turn unit tests into benchmarks:
@@ -426,7 +426,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             for (int i = 0; i < Block8x8F.Size; i++)
             {
-                Assert.Equal((float)data[i], dest[i]);
+                Assert.Equal(data[i], dest[i]);
             }
         }
 
@@ -441,13 +441,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             short[] data = Create8x8ShortData();
 
             var source = new Block8x8(data);
-            
+
             Block8x8F dest = default;
             dest.LoadFromInt16ExtendedAvx2(ref source);
 
             for (int i = 0; i < Block8x8F.Size; i++)
             {
-                Assert.Equal((float)data[i], dest[i]);
+                Assert.Equal(data[i], dest[i]);
             }
         }
     }

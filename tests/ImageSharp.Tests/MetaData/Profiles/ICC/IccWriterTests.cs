@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         {
             IccWriter writer = CreateWriter();
 
-            IccProfile profile = new IccProfile()
+            IccProfile profile = new IccProfile
             {
                 Header = IccTestDataProfiles.Header_Random_Write
             };

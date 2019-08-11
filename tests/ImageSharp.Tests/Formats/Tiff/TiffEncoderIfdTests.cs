@@ -1,18 +1,16 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using SixLabors.ImageSharp.Formats.Tiff;
+using Xunit;
+
 namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.IO;
-    using System.Linq;
-    using Xunit;
-
-    using ImageSharp.Formats;
-    using ImageSharp.Formats.Tiff;
-
-    using System.Collections.Generic;
-
+    [Trait("Category", "Tiff")]
     public class TiffEncoderIfdTests
     {
         [Fact]

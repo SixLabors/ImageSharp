@@ -1,16 +1,14 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.IO;
+using SixLabors.ImageSharp.Formats.Png.Zlib;
+using SixLabors.ImageSharp.Formats.Tiff;
+using Xunit;
+
 namespace SixLabors.ImageSharp.Tests
 {
-    using System.IO;
-    using Xunit;
-
-    using ImageSharp.Formats;
-    using ImageSharp.Formats.Tiff;
-
-    using SixLabors.ImageSharp.Formats.Png.Zlib;
-
+    [Trait("Category", "Tiff")]
     public class DeflateTiffCompressionTests
     {
         [Theory]

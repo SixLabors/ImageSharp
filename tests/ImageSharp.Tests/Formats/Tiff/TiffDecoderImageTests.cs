@@ -1,17 +1,15 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.IO;
+using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.IO;
-    using Xunit;
-
-    using ImageSharp.Formats;
-    using ImageSharp.Formats.Tiff;
-
+    [Trait("Category", "Tiff")]
     public class TiffDecoderImageTests
     {
         public const int ImageWidth = 200;

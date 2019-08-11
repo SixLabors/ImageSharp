@@ -1,17 +1,15 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.IO;
+using System.Linq;
+using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using System.IO;
-    using System.Linq;
-    using Xunit;
-
-    using ImageSharp.Formats;
-    using ImageSharp.Formats.Tiff;
-
+    [Trait("Category", "Tiff")]
     public class TiffDecoderMetadataTests
     {
         public static object[][] BaselineMetadataValues = new[] { new object[] { false, TiffTags.Artist, TiffMetadataNames.Artist, "My Artist Name" },

@@ -1,15 +1,14 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
+using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using System.Collections.Generic;
-    using Xunit;
-
-    using ImageSharp.Formats.Tiff;
-
+    [Trait("Category", "Tiff")]
     public class RgbPlanarTiffColorTests : PhotometricInterpretationTestBase
     {
         private static Rgba32 Rgb4_000 = new Rgba32(0, 0, 0, 255);

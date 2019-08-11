@@ -27,5 +27,16 @@ namespace SixLabors.ImageSharp.Benchmarks
                         );
             }
         }
+
+        public class LongClr : Config
+        {
+            public LongClr()
+            {
+                this.Add(
+                    Job.Clr.WithLaunchCount(1).WithWarmupCount(3).WithTargetCount(5),
+                    Job.Core.WithLaunchCount(1).WithWarmupCount(3).WithTargetCount(5)
+                        );
+            }
+        }
     }
 }

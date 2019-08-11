@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         public void BenchmarkMagickPngDecoder<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            this.BenchmarkDecoderImpl(PngBenchmarkFiles, new MagickReferenceDecoder(), $@"Magick Decode Png");
+            this.BenchmarkDecoderImpl(PngBenchmarkFiles, new MagickReferenceDecoder(), "Magick Decode Png");
         }
 
         [Theory(Skip = SkipBenchmarks)]
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         public void BenchmarkSystemDrawingPngDecoder<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            this.BenchmarkDecoderImpl(PngBenchmarkFiles, new SystemDrawingReferenceDecoder(), $@"System.Drawing Decode Png");
+            this.BenchmarkDecoderImpl(PngBenchmarkFiles, new SystemDrawingReferenceDecoder(), "System.Drawing Decode Png");
         }
 
         [Theory(Skip = SkipBenchmarks)]
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         public void BenchmarkMagickBmpDecoder<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            this.BenchmarkDecoderImpl(BmpBenchmarkFiles, new MagickReferenceDecoder(), $@"Magick Decode Bmp");
+            this.BenchmarkDecoderImpl(BmpBenchmarkFiles, new MagickReferenceDecoder(), "Magick Decode Bmp");
         }
 
         [Theory(Skip = SkipBenchmarks)]
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         public void BenchmarkSystemDrawingBmpDecoder<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            this.BenchmarkDecoderImpl(BmpBenchmarkFiles, new SystemDrawingReferenceDecoder(), $@"System.Drawing Decode Bmp");
+            this.BenchmarkDecoderImpl(BmpBenchmarkFiles, new SystemDrawingReferenceDecoder(), "System.Drawing Decode Bmp");
         }
 
         private void BenchmarkDecoderImpl(IEnumerable<string> testFiles, IImageDecoder decoder, string info, int times = DefaultExecutionCount)

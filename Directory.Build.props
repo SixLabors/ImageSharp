@@ -29,10 +29,12 @@
     <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
   </PropertyGroup>
 
+  <!--
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
-  
+  -->
+
   <!--TODO: Check what this is testing for and why does it fail?-->
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>

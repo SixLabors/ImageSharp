@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -25,12 +25,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
 
             // Sub(x) + Raw(x-bpp)
-            int x = 1;
-            for (; x <= bytesPerPixel /* Note the <= because x starts at 1 */; ++x)
-            {
-                ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
-            }
-
+            int x = bytesPerPixel + 1;
+            Unsafe.Add(ref scanBaseRef, x);
             for (; x < scanline.Length; ++x)
             {
                 ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);

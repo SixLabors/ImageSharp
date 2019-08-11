@@ -156,8 +156,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return;
             }
 
-            int sourceHeight = source.Height;
-
             PixelConversionModifiers conversionModifiers =
                 PixelConversionModifiers.Premultiply.ApplyCompanding(this.Compand);
 

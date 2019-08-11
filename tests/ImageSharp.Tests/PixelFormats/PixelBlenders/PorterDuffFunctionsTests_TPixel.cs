@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             return new Span<T>(new[] { value });
         }
 
-        public static TheoryData<object, object, float, object> NormalBlendFunctionData = new TheoryData<object, object, float, object>() {
+        public static TheoryData<object, object, float, object> NormalBlendFunctionData = new TheoryData<object, object, float, object> {
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(1,1,1,1) },
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(0.6f, 0.6f, 0.6f, 1) },
         };
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
         public void NormalBlendFunction<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel actual = PorterDuffFunctions.NormalSrcOver((TPixel)(TPixel)back, source, amount);
+            TPixel actual = PorterDuffFunctions.NormalSrcOver((TPixel)back, source, amount);
             VectorAssert.Equal(expected, actual, 2);
         }
 
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
-        public static TheoryData<object, object, float, object> MultiplyFunctionData = new TheoryData<object, object, float, object>() {
+        public static TheoryData<object, object, float, object> MultiplyFunctionData = new TheoryData<object, object, float, object> {
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(1,1,1,1) },
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(0.6f, 0.6f, 0.6f, 1) },
             {
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
-        public static TheoryData<object, object, float, object> AddFunctionData = new TheoryData<object, object, float, object>() {
+        public static TheoryData<object, object, float, object> AddFunctionData = new TheoryData<object, object, float, object> {
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(1,1,1,1) },
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(1f, 1f, 1f, 1f) },
             {
@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
-        public static TheoryData<object, object, float, object> SubtractFunctionData = new TheoryData<object, object, float, object>() {
+        public static TheoryData<object, object, float, object> SubtractFunctionData = new TheoryData<object, object, float, object> {
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(0,0,0,1) },
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(1,1,1, 1f) },
             {
@@ -169,7 +169,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
-        public static TheoryData<object, object, float, object> ScreenFunctionData = new TheoryData<object, object, float, object>() {
+        public static TheoryData<object, object, float, object> ScreenFunctionData = new TheoryData<object, object, float, object> {
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(1,1,1,1) },
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(1,1,1, 1f) },
             {
@@ -208,7 +208,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
-        public static TheoryData<object, object, float, object> DarkenFunctionData = new TheoryData<object, object, float, object>() {
+        public static TheoryData<object, object, float, object> DarkenFunctionData = new TheoryData<object, object, float, object> {
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(1,1,1,1) },
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(.6f,.6f,.6f, 1f) },
             {
@@ -247,7 +247,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
-        public static TheoryData<object, object, float, object> LightenFunctionData = new TheoryData<object, object, float, object>() {
+        public static TheoryData<object, object, float, object> LightenFunctionData = new TheoryData<object, object, float, object> {
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(1,1,1,1) },
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(1,1,1,1f) },
             {
@@ -286,7 +286,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
-        public static TheoryData<object, object, float, object> OverlayFunctionData = new TheoryData<object, object, float, object>() {
+        public static TheoryData<object, object, float, object> OverlayFunctionData = new TheoryData<object, object, float, object> {
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(1,1,1,1) },
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(1,1,1,1f) },
             {
@@ -325,7 +325,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
-        public static TheoryData<object, object, float, object> HardLightFunctionData = new TheoryData<object, object, float, object>() {
+        public static TheoryData<object, object, float, object> HardLightFunctionData = new TheoryData<object, object, float, object> {
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(1,1,1,1) },
             { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(0.6f,0.6f,0.6f,1f) },
             {

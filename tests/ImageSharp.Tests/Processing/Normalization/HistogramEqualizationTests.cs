@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                 };
 
                 // Act
-                image.Mutate(x => x.HistogramEqualization(new HistogramEqualizationOptions()
+                image.Mutate(x => x.HistogramEqualization(new HistogramEqualizationOptions
                 {
                     LuminanceLevels = luminanceLevels
                 }));
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                var options = new HistogramEqualizationOptions()
+                var options = new HistogramEqualizationOptions
                 {
                     Method = HistogramEqualizationMethod.AdaptiveSlidingWindow,
                     LuminanceLevels = 256,
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                var options = new HistogramEqualizationOptions()
+                var options = new HistogramEqualizationOptions
                 {
                     Method = HistogramEqualizationMethod.AdaptiveTileInterpolation,
                     LuminanceLevels = 256,

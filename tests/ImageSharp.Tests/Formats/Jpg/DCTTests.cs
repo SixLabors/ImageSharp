@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [Fact]
             public void iDCT2D8x4_LeftPart()
             {
-                float[] sourceArray = JpegFixture.Create8x8FloatData();
+                float[] sourceArray = Create8x8FloatData();
                 float[] expectedDestArray = new float[64];
 
                 ReferenceImplementations.LLM_FloatingPoint_DCT.iDCT2D8x4_32f(sourceArray, expectedDestArray);
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [Fact]
             public void iDCT2D8x4_RightPart()
             {
-                float[] sourceArray = JpegFixture.Create8x8FloatData();
+                float[] sourceArray = Create8x8FloatData();
                 float[] expectedDestArray = new float[64];
 
                 ReferenceImplementations.LLM_FloatingPoint_DCT.iDCT2D8x4_32f(sourceArray.AsSpan(4), expectedDestArray.AsSpan(4));
@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(3)]
             public void LLM_TransformIDCT_CompareToNonOptimized(int seed)
             {
-                float[] sourceArray = JpegFixture.Create8x8RoundedRandomFloatData(-1000, 1000, seed);
+                float[] sourceArray = Create8x8RoundedRandomFloatData(-1000, 1000, seed);
 
                 var source = Block8x8F.Load(sourceArray);
 
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(3)]
             public void LLM_TransformIDCT_CompareToAccurate(int seed)
             {
-                float[] sourceArray = JpegFixture.Create8x8RoundedRandomFloatData(-1000, 1000, seed);
+                float[] sourceArray = Create8x8RoundedRandomFloatData(-1000, 1000, seed);
 
                 var source = Block8x8F.Load(sourceArray);
 
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2)]
             public void FDCT8x4_LeftPart(int seed)
             {
-                Span<float> src = JpegFixture.Create8x8RoundedRandomFloatData(-200, 200, seed);
+                Span<float> src = Create8x8RoundedRandomFloatData(-200, 200, seed);
                 var srcBlock = new Block8x8F();
                 srcBlock.LoadFrom(src);
 
@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2)]
             public void FDCT8x4_RightPart(int seed)
             {
-                Span<float> src = JpegFixture.Create8x8RoundedRandomFloatData(-200, 200, seed);
+                Span<float> src = Create8x8RoundedRandomFloatData(-200, 200, seed);
                 var srcBlock = new Block8x8F();
                 srcBlock.LoadFrom(src);
 
@@ -156,7 +156,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2)]
             public void TransformFDCT(int seed)
             {
-                Span<float> src = JpegFixture.Create8x8RoundedRandomFloatData(-200, 200, seed);
+                Span<float> src = Create8x8RoundedRandomFloatData(-200, 200, seed);
                 var srcBlock = new Block8x8F();
                 srcBlock.LoadFrom(src);
 

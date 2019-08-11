@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests
             Mock<IImageProcessor> processorMock = new Mock<IImageProcessor>();
             this.processorDefinition = processorMock.Object;
 
-            this.image = new Image<Rgba32>(new Configuration()
+            this.image = new Image<Rgba32>(new Configuration
             {
                 ImageOperationsProvider = this.provider
             }, 1, 1);

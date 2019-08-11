@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         {
             MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
 
-            var parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism };
+            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism };
             int tileWidth = source.Width / this.Tiles;
             int tileHeight = tileWidth;
             int pixelInTile = tileWidth * tileHeight;

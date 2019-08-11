@@ -16,7 +16,7 @@ namespace ImageSharp.Benchmarks.General.Vectorization
 
         protected Vector<T> testVector;
 
-        protected virtual T GetTestValue() => default(T);
+        protected virtual T GetTestValue() => default;
 
         protected virtual Vector<T> GetTestVector() => new Vector<T>(this.GetTestValue());
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -23,10 +23,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             { ExifDataType.SignedByte, new byte[] { 2 } },
             { ExifDataType.SignedShort, BitConverter.GetBytes((short) 3) },
             { ExifDataType.Long, BitConverter.GetBytes((uint) 4) },
-            { ExifDataType.SignedLong, BitConverter.GetBytes((int) 5) }
+            { ExifDataType.SignedLong, BitConverter.GetBytes(5) }
         };
 
-        public static readonly TheoryData<ushort> ExifOrientationValues = new TheoryData<ushort>()
+        public static readonly TheoryData<ushort> ExifOrientationValues = new TheoryData<ushort>
                                                                               {
                                                                                   0,
                                                                                   1,

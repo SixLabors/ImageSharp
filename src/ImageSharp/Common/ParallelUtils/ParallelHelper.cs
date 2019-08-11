@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.ParallelUtils
 
             int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
 
-            var parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = numOfSteps };
+            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
 
             Parallel.For(
                 0,
@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.ParallelUtils
 
             int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
 
-            var parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = numOfSteps };
+            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
 
             Parallel.For(
                 0,

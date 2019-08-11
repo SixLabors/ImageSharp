@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
         private static readonly Vector4 C = new Vector4(5.6f);
         private static readonly Vector4 D = new Vector4(7.8f);
 
-        private Random random = null;
+        private Random random;
 
         private Vector4 parameter;
 

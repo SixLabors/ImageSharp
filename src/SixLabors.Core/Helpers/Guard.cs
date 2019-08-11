@@ -118,7 +118,7 @@ namespace SixLabors
         /// <summary>
         /// Verifies, that the `target` span has the length of 'minLength', or longer.
         /// </summary>
-        /// <typeparam name="T">The element type of the spans</typeparam>
+        /// <typeparam name="T">The element type of the spans.</typeparam>
         /// <param name="value">The target span.</param>
         /// <param name="minLength">The minimum length.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>

@@ -38,7 +38,7 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Initializes a new instance of the <see cref="PointF"/> struct from the given <see cref="SizeF"/>.
         /// </summary>
-        /// <param name="size">The size</param>
+        /// <param name="size">The size.</param>
         public PointF(SizeF size)
         {
             this.X = size.Width;
@@ -104,7 +104,7 @@ namespace SixLabors.Primitives
         /// <param name="point">The point on the left hand of the operand.</param>
         /// <param name="size">The size on the right hand of the operand.</param>
         /// <returns>
-        /// The <see cref="PointF"/>
+        /// The <see cref="PointF"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static PointF operator +(PointF point, SizeF size) => Add(point, size);
@@ -114,7 +114,7 @@ namespace SixLabors.Primitives
         /// </summary>
         /// <param name="point">The point on the left hand of the operand.</param>
         /// <param name="size">The size on the right hand of the operand.</param>
-        /// <returns>The <see cref="PointF"/></returns>
+        /// <returns>The <see cref="PointF"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static PointF operator -(PointF point, PointF size) => Subtract(point, size);
 
@@ -124,7 +124,7 @@ namespace SixLabors.Primitives
         /// <param name="point">The point on the left hand of the operand.</param>
         /// <param name="size">The size on the right hand of the operand.</param>
         /// <returns>
-        /// The <see cref="PointF"/>
+        /// The <see cref="PointF"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static PointF operator +(PointF point, PointF size) => Add(point, size);
@@ -134,7 +134,7 @@ namespace SixLabors.Primitives
         /// </summary>
         /// <param name="point">The point on the left hand of the operand.</param>
         /// <param name="size">The size on the right hand of the operand.</param>
-        /// <returns>The <see cref="PointF"/></returns>
+        /// <returns>The <see cref="PointF"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static PointF operator -(PointF point, SizeF size) => Subtract(point, size);
 
@@ -198,7 +198,7 @@ namespace SixLabors.Primitives
         /// </summary>
         /// <param name="point">The point on the left hand of the operand.</param>
         /// <param name="size">The size on the right hand of the operand.</param>
-        /// <returns>The <see cref="PointF"/></returns>
+        /// <returns>The <see cref="PointF"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static PointF Add(PointF point, SizeF size) => new PointF(point.X + size.Width, point.Y + size.Height);
 
@@ -207,7 +207,7 @@ namespace SixLabors.Primitives
         /// </summary>
         /// <param name="point">The point on the left hand of the operand.</param>
         /// <param name="pointb">The point on the right hand of the operand.</param>
-        /// <returns>The <see cref="PointF"/></returns>
+        /// <returns>The <see cref="PointF"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static PointF Add(PointF point, PointF pointb) => new PointF(point.X + pointb.X, point.Y + pointb.Y);
 
@@ -216,7 +216,7 @@ namespace SixLabors.Primitives
         /// </summary>
         /// <param name="point">The point on the left hand of the operand.</param>
         /// <param name="size">The size on the right hand of the operand.</param>
-        /// <returns>The <see cref="PointF"/></returns>
+        /// <returns>The <see cref="PointF"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static PointF Subtract(PointF point, SizeF size) => new PointF(point.X - size.Width, point.Y - size.Height);
 
@@ -225,7 +225,7 @@ namespace SixLabors.Primitives
         /// </summary>
         /// <param name="point">The point on the left hand of the operand.</param>
         /// <param name="pointb">The point on the right hand of the operand.</param>
-        /// <returns>The <see cref="PointF"/></returns>
+        /// <returns>The <see cref="PointF"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static PointF Subtract(PointF point, PointF pointb) => new PointF(point.X - pointb.X, point.Y - pointb.Y);
 
@@ -234,24 +234,24 @@ namespace SixLabors.Primitives
         /// </summary>
         /// <param name="point">The point on the left hand of the operand.</param>
         /// <param name="right">The value on the right hand of the operand.</param>
-        /// <returns>The <see cref="PointF"/></returns>
+        /// <returns>The <see cref="PointF"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static PointF Multiply(PointF point, float right) => new PointF(point.X * right, point.Y * right);
 
         /// <summary>
         /// Transforms a point by a specified 3x2 matrix.
         /// </summary>
-        /// <param name="point">The point to transform</param>
-        /// <param name="matrix">The transformation matrix used</param>
-        /// <returns>The transformed <see cref="PointF"/></returns>
+        /// <param name="point">The point to transform.</param>
+        /// <param name="matrix">The transformation matrix used.</param>
+        /// <returns>The transformed <see cref="PointF"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static PointF Transform(PointF point, Matrix3x2 matrix) => Vector2.Transform(point, matrix);
 
         /// <summary>
-        /// Deconstructs this point into two floats
+        /// Deconstructs this point into two floats.
         /// </summary>
-        /// <param name="x">The out value for X</param>
-        /// <param name="y">The out value for Y</param>
+        /// <param name="x">The out value for X.</param>
+        /// <param name="y">The out value for Y.</param>
         public void Deconstruct(out float x, out float y)
         {
             x = this.X;

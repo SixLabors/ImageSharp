@@ -145,14 +145,14 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Creates a <see cref="RectangleF"/> with the coordinates of the specified <see cref="Rectangle"/>.
         /// </summary>
-        /// <param name="rectangle">The rectangle</param>
+        /// <param name="rectangle">The rectangle.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator RectangleF(Rectangle rectangle) => new RectangleF(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
 
         /// <summary>
         /// Creates a <see cref="Vector4"/> with the coordinates of the specified <see cref="Rectangle"/>.
         /// </summary>
-        /// <param name="rectangle">The rectangle</param>
+        /// <param name="rectangle">The rectangle.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator Vector4(Rectangle rectangle) => new Vector4(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
 
@@ -180,21 +180,21 @@ namespace SixLabors.Primitives
 
         /// <summary>
         /// Creates a new <see cref="Rectangle"/> with the specified location and size. </summary>
-        /// <param name="left">The left coordinate of the rectangle</param>
-        /// <param name="top">The top coordinate of the rectangle</param>
-        /// <param name="right">The right coordinate of the rectangle</param>
-        /// <param name="bottom">The bottom coordinate of the rectangle</param>
-        /// <returns>The <see cref="Rectangle"/></returns>
+        /// <param name="left">The left coordinate of the rectangle.</param>
+        /// <param name="top">The top coordinate of the rectangle.</param>
+        /// <param name="right">The right coordinate of the rectangle.</param>
+        /// <param name="bottom">The bottom coordinate of the rectangle.</param>
+        /// <returns>The <see cref="Rectangle"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 
         // ReSharper disable once InconsistentNaming
         public static Rectangle FromLTRB(int left, int top, int right, int bottom) => new Rectangle(left, top, unchecked(right - left), unchecked(bottom - top));
 
         /// <summary>
-        /// Returns the center point of the given <see cref="Rectangle"/>
+        /// Returns the center point of the given <see cref="Rectangle"/>.
         /// </summary>
-        /// <param name="rectangle">The rectangle</param>
-        /// <returns>The <see cref="Point"/></returns>
+        /// <param name="rectangle">The rectangle.</param>
+        /// <returns>The <see cref="Point"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Point Center(Rectangle rectangle) => new Point(rectangle.Left + (rectangle.Width / 2), rectangle.Top + (rectangle.Height / 2));
 
@@ -202,9 +202,9 @@ namespace SixLabors.Primitives
         /// Creates a rectangle that represents the intersection between <paramref name="a"/> and
         /// <paramref name="b"/>. If there is no intersection, an empty rectangle is returned.
         /// </summary>
-        /// <param name="a">The first rectangle</param>
-        /// <param name="b">The second rectangle</param>
-        /// <returns>The <see cref="Rectangle"/></returns>
+        /// <param name="a">The first rectangle.</param>
+        /// <param name="b">The second rectangle.</param>
+        /// <returns>The <see cref="Rectangle"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Rectangle Intersect(Rectangle a, Rectangle b)
         {
@@ -224,10 +224,10 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Creates a <see cref="Rectangle"/> that is inflated by the specified amount.
         /// </summary>
-        /// <param name="rectangle">The rectangle</param>
-        /// <param name="x">The amount to inflate the width by</param>
-        /// <param name="y">The amount to inflate the height by</param>
-        /// <returns>A new <see cref="Rectangle"/></returns>
+        /// <param name="rectangle">The rectangle.</param>
+        /// <param name="x">The amount to inflate the width by.</param>
+        /// <param name="y">The amount to inflate the height by.</param>
+        /// <returns>A new <see cref="Rectangle"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Rectangle Inflate(Rectangle rectangle, int x, int y)
         {
@@ -239,8 +239,8 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Converts a <see cref="RectangleF"/> to a <see cref="Rectangle"/> by performing a ceiling operation on all the coordinates.
         /// </summary>
-        /// <param name="rectangle">The rectangle</param>
-        /// <returns>The <see cref="Rectangle"/></returns>
+        /// <param name="rectangle">The rectangle.</param>
+        /// <returns>The <see cref="Rectangle"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Rectangle Ceiling(RectangleF rectangle)
         {
@@ -270,8 +270,8 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Converts a <see cref="RectangleF"/> to a <see cref="Rectangle"/> by performing a truncate operation on all the coordinates.
         /// </summary>
-        /// <param name="rectangle">The rectangle</param>
-        /// <returns>The <see cref="Rectangle"/></returns>
+        /// <param name="rectangle">The rectangle.</param>
+        /// <returns>The <see cref="Rectangle"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Rectangle Truncate(RectangleF rectangle)
         {
@@ -288,8 +288,8 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Converts a <see cref="RectangleF"/> to a <see cref="Rectangle"/> by performing a round operation on all the coordinates.
         /// </summary>
-        /// <param name="rectangle">The rectangle</param>
-        /// <returns>The <see cref="Rectangle"/></returns>
+        /// <param name="rectangle">The rectangle.</param>
+        /// <returns>The <see cref="Rectangle"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Rectangle Round(RectangleF rectangle)
         {
@@ -306,9 +306,9 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Creates a rectangle that represents the union between <paramref name="a"/> and <paramref name="b"/>.
         /// </summary>
-        /// <param name="a">The first rectangle</param>
-        /// <param name="b">The second rectangle</param>
-        /// <returns>The <see cref="Rectangle"/></returns>
+        /// <param name="a">The first rectangle.</param>
+        /// <param name="b">The second rectangle.</param>
+        /// <returns>The <see cref="Rectangle"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Rectangle Union(Rectangle a, Rectangle b)
         {
@@ -321,12 +321,12 @@ namespace SixLabors.Primitives
         }
 
         /// <summary>
-        /// Deconstructs this rectangle into four integers
+        /// Deconstructs this rectangle into four integers.
         /// </summary>
-        /// <param name="x">The out value for X</param>
-        /// <param name="y">The out value for Y</param>
-        /// <param name="width">The out value for the width</param>
-        /// <param name="height">The out value for the height</param>
+        /// <param name="x">The out value for X.</param>
+        /// <param name="y">The out value for Y.</param>
+        /// <param name="width">The out value for the width.</param>
+        /// <param name="height">The out value for the height.</param>
         public void Deconstruct(out int x, out int y, out int width, out int height)
         {
             x = this.X;
@@ -338,7 +338,7 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Creates a Rectangle that represents the intersection between this Rectangle and the <paramref name="rectangle"/>.
         /// </summary>
-        /// <param name="rectangle">The rectangle</param>
+        /// <param name="rectangle">The rectangle.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Intersect(Rectangle rectangle)
         {
@@ -353,8 +353,8 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Inflates this <see cref="Rectangle"/> by the specified amount.
         /// </summary>
-        /// <param name="width">The width</param>
-        /// <param name="height">The height</param>
+        /// <param name="width">The width.</param>
+        /// <param name="height">The height.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Inflate(int width, int height)
         {
@@ -371,7 +371,7 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Inflates this <see cref="Rectangle"/> by the specified amount.
         /// </summary>
-        /// <param name="size">The size</param>
+        /// <param name="size">The size.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Inflate(Size size) => this.Inflate(size.Width, size.Height);
 
@@ -381,15 +381,15 @@ namespace SixLabors.Primitives
         /// </summary>
         /// <param name="x">The x-coordinate of the given point.</param>
         /// <param name="y">The y-coordinate of the given point.</param>
-        /// <returns>The <see cref="bool"/></returns>
+        /// <returns>The <see cref="bool"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Contains(int x, int y) => this.X <= x && x < this.Right && this.Y <= y && y < this.Bottom;
 
         /// <summary>
         /// Determines if the specified point is contained within the rectangular region defined by this <see cref="Rectangle"/> .
         /// </summary>
-        /// <param name="point">The point</param>
-        /// <returns>The <see cref="bool"/></returns>
+        /// <param name="point">The point.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Contains(Point point) => this.Contains(point.X, point.Y);
 
@@ -397,8 +397,8 @@ namespace SixLabors.Primitives
         /// Determines if the rectangular region represented by <paramref name="rectangle"/> is entirely contained
         /// within the rectangular region represented by this <see cref="Rectangle"/> .
         /// </summary>
-        /// <param name="rectangle">The rectangle</param>
-        /// <returns>The <see cref="bool"/></returns>
+        /// <param name="rectangle">The rectangle.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Contains(Rectangle rectangle) =>
             (this.X <= rectangle.X) && (rectangle.Right <= this.Right) &&
@@ -408,8 +408,8 @@ namespace SixLabors.Primitives
         /// Determines if the specfied <see cref="Rectangle"/> intersects the rectangular region defined by
         /// this <see cref="Rectangle"/>.
         /// </summary>
-        /// <param name="rectangle">The other Rectange </param>
-        /// <returns>The <see cref="bool"/></returns>
+        /// <param name="rectangle">The other Rectange. </param>
+        /// <returns>The <see cref="bool"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IntersectsWith(Rectangle rectangle) =>
             (rectangle.X < this.Right) && (this.X < rectangle.Right) &&
@@ -418,7 +418,7 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Adjusts the location of this rectangle by the specified amount.
         /// </summary>
-        /// <param name="point">The point</param>
+        /// <param name="point">The point.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Offset(Point point) => this.Offset(point.X, point.Y);
 

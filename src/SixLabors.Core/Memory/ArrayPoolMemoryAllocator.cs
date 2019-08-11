@@ -58,8 +58,8 @@ namespace SixLabors.Memory
         /// </summary>
         /// <param name="maxPoolSizeInBytes">The maximum size of pooled arrays. Arrays over the thershold are gonna be always allocated.</param>
         /// <param name="poolSelectorThresholdInBytes">The threshold to pool arrays in <see cref="largeArrayPool"/> which has less buckets for memory safety.</param>
-        /// <param name="maxArraysPerBucketLargePool">Max arrays per bucket for the large array pool</param>
-        /// <param name="maxArraysPerBucketNormalPool">Max arrays per bucket for the normal array pool</param>
+        /// <param name="maxArraysPerBucketLargePool">Max arrays per bucket for the large array pool.</param>
+        /// <param name="maxArraysPerBucketNormalPool">Max arrays per bucket for the normal array pool.</param>
         public ArrayPoolMemoryAllocator(int maxPoolSizeInBytes, int poolSelectorThresholdInBytes, int maxArraysPerBucketLargePool, int maxArraysPerBucketNormalPool)
         {
             Guard.MustBeGreaterThan(maxPoolSizeInBytes, 0, nameof(maxPoolSizeInBytes));

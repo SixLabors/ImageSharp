@@ -16,7 +16,7 @@ namespace SixLabors.Primitives.Tests
         [Fact]
         public void DefaultConstructorTest()
         {
-            Assert.Equal(RectangleF.Empty, default(RectangleF));
+            Assert.Equal(default, RectangleF.Empty);
         }
 
         [Theory]

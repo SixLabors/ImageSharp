@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 // ReSharper disable InconsistentNaming
-
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
@@ -22,7 +21,7 @@ namespace SixLabors.Memory.Tests
             new ArrayPoolMemoryAllocator(MaxPooledBufferSizeInBytes, PoolSelectorThresholdInBytes);
 
         /// <summary>
-        /// Rent a buffer -> return it -> re-rent -> verify if it's span points to the previous location
+        /// Rent a buffer -> return it -> re-rent -> verify if it's span points to the previous location.
         /// </summary>
         private bool CheckIsRentingPooledBuffer<T>(int length)
             where T : struct

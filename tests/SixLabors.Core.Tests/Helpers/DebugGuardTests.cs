@@ -59,7 +59,7 @@ namespace SixLabors.Helpers.Tests
             });
 
             Assert.Equal("myParamName", exception.ParamName);
-            Assert.True(exception.Message.Contains($"Value must be less than {max}."));
+            Assert.Contains($"Value must be less than {max}.", exception.Message);
         }
 
         [Theory]
@@ -79,7 +79,7 @@ namespace SixLabors.Helpers.Tests
             });
 
             Assert.Equal("myParamName", exception.ParamName);
-            Assert.True(exception.Message.Contains($"Value must be less than or equal to 1."));
+            Assert.Contains($"Value must be less than or equal to 1.", exception.Message);
         }
 
         [Fact]

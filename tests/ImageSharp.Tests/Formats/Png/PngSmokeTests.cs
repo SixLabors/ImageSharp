@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void GeneralTest<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            // does saving a file then repoening mean both files are identical???
+            // does saving a file then reopening mean both files are identical???
             using (Image<TPixel> image = provider.GetImage())
             using (MemoryStream ms = new MemoryStream())
             {
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         //public void CanSaveIndexedPng<TPixel>(TestImageProvider<TPixel> provider)
         //    where TPixel : struct, IPixel<TPixel>
         //{
-        //    // does saving a file then repoening mean both files are identical???
+        //    // does saving a file then reopening mean both files are identical???
         //    using (Image<TPixel> image = provider.GetImage())
         //    using (MemoryStream ms = new MemoryStream())
         //    {
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         //public void CanSaveIndexedPngTwice<TPixel>(TestImageProvider<TPixel> provider)
         //    where TPixel : struct, IPixel<TPixel>
         //{
-        //    // does saving a file then repoening mean both files are identical???
+        //    // does saving a file then reopening mean both files are identical???
         //    using (Image<TPixel> source = provider.GetImage())
         //    using (MemoryStream ms = new MemoryStream())
         //    {
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Resize<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            // does saving a file then repoening mean both files are identical???
+            // does saving a file then reopening mean both files are identical???
             using (Image<TPixel> image = provider.GetImage())
             using (MemoryStream ms = new MemoryStream())
             {

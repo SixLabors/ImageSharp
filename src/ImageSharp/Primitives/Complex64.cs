@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Primitives
         }
 
         /// <summary>
-        /// Performs the multiplication operation between a <see cref="Complex64"/> intance and a <see cref="float"/> scalar.
+        /// Performs the multiplication operation between a <see cref="Complex64"/> instance and a <see cref="float"/> scalar.
         /// </summary>
         /// <param name="value">The <see cref="Complex64"/> value to multiply.</param>
         /// <param name="scalar">The <see cref="float"/> scalar to use to multiply the <see cref="Complex64"/> value.</param>
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Primitives
         public static Complex64 operator *(Complex64 value, float scalar) => new Complex64(value.Real * scalar, value.Imaginary * scalar);
 
         /// <summary>
-        /// Performs the multiplication operation between a <see cref="Complex64"/> intance and a <see cref="Vector4"/>.
+        /// Performs the multiplication operation between a <see cref="Complex64"/> instance and a <see cref="Vector4"/>.
         /// </summary>
         /// <param name="value">The <see cref="Complex64"/> value to multiply.</param>
         /// <param name="vector">The <see cref="Vector4"/> instance to use to multiply the <see cref="Complex64"/> value.</param>
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Primitives
         }
 
         /// <summary>
-        /// Performs the multiplication operation between a <see cref="Complex64"/> intance and a <see cref="ComplexVector4"/>.
+        /// Performs the multiplication operation between a <see cref="Complex64"/> instance and a <see cref="ComplexVector4"/>.
         /// </summary>
         /// <param name="value">The <see cref="Complex64"/> value to multiply.</param>
         /// <param name="vector">The <see cref="ComplexVector4"/> instance to use to multiply the <see cref="Complex64"/> value.</param>

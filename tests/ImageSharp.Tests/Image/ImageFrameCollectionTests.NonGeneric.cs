@@ -214,7 +214,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
-            public void MoveFrame_LeavesFrmaeInCorrectLocation()
+            public void MoveFrame_LeavesFrameInCorrectLocation()
             {
                 for (var i = 0; i < 9; i++)
                 {

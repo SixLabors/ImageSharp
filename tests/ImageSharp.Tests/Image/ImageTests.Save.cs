@@ -17,10 +17,10 @@ namespace SixLabors.ImageSharp.Tests
         public class Save
         {
             [Fact]
-            public void DetecedEncoding()
+            public void DetectedEncoding()
             {
                 string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
-                string file = System.IO.Path.Combine(dir, "DetecedEncoding.png");
+                string file = System.IO.Path.Combine(dir, "DetectedEncoding.png");
 
                 using (var image = new Image<Rgba32>(10, 10))
                 {

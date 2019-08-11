@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 return;
             }
 
-            // For 32 bit test enviroments:
+            // For 32 bit test environments:
             provider.Configuration.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithModeratePooling();
 
             using (Image<TPixel> image = provider.GetImage(JpegDecoder))

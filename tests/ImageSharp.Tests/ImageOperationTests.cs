@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Fact]
-        public void CloneCallsImageOperationsProvider_Func_NotOnOrigional()
+        public void CloneCallsImageOperationsProvider_Func_NotOnOriginal()
         {
             this.image.Clone(x => x.ApplyProcessor(this.processorDefinition));
             Assert.False(this.provider.HasCreated(this.image));
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Fact]
-        public void CloneCallsImageOperationsProvider_ListOfProcessors_NotOnOrigional()
+        public void CloneCallsImageOperationsProvider_ListOfProcessors_NotOnOriginal()
         {
             this.image.Clone(this.processorDefinition);
             Assert.False(this.provider.HasCreated(this.image));

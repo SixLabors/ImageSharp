@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -19,37 +19,25 @@ namespace SixLabors.ImageSharp.Tests.Primitives
         [Fact]
         public void DenseMatrixThrowsOnNullInitializer()
         {
-            Assert.Throws<ArgumentNullException>(() =>
-            {
-                var dense = new DenseMatrix<float>(null);
-            });
+            Assert.Throws<ArgumentNullException>(() => new DenseMatrix<float>(null));
         }
 
         [Fact]
         public void DenseMatrixThrowsOnEmptyZeroWidth()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() =>
-            {
-                var dense = new DenseMatrix<float>(0, 10);
-            });
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DenseMatrix<float>(0, 10));
         }
 
         [Fact]
         public void DenseMatrixThrowsOnEmptyZeroHeight()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() =>
-            {
-                var dense = new DenseMatrix<float>(10, 0);
-            });
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DenseMatrix<float>(10, 0));
         }
 
         [Fact]
         public void DenseMatrixThrowsOnEmptyInitializer()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() =>
-            {
-                var dense = new DenseMatrix<float>(new float[0, 0]);
-            });
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DenseMatrix<float>(new float[0, 0]));
         }
 
         [Fact]

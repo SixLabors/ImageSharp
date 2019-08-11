@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Processing;
@@ -14,14 +14,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
         public void Polaroid_amount_PolaroidProcessorDefaultsSet()
         {
             this.operations.Polaroid();
-            var processor = this.Verify<PolaroidProcessor>();
+            this.Verify<PolaroidProcessor>();
         }
 
         [Fact]
         public void Polaroid_amount_rect_PolaroidProcessorDefaultsSet()
         {
             this.operations.Polaroid(this.rect);
-            var processor = this.Verify<PolaroidProcessor>(this.rect);
+            this.Verify<PolaroidProcessor>(this.rect);
         }
     }
 }

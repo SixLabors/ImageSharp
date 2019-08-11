@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests
                     image.Save(file);
                 }
 
-                using (var img = Image.Load(file, out IImageFormat mime))
+                using (Image.Load(file, out IImageFormat mime))
                 {
                     Assert.Equal("image/png", mime.DefaultMimeType);
                 }
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests
                 string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
                 string file = System.IO.Path.Combine(dir, "UnknownExtensionsEncoding_Throws.tmp");
 
-                NotSupportedException ex = Assert.Throws<NotSupportedException>(
+                Assert.Throws<NotSupportedException>(
                     () =>
                         {
                             using (var image = new Image<Rgba32>(10, 10))
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Tests
                     image.Save(file, new PngEncoder());
                 }
 
-                using (var img = Image.Load(file, out var mime))
+                using (Image.Load(file, out var mime))
                 {
                     Assert.Equal("image/png", mime.DefaultMimeType);
                 }

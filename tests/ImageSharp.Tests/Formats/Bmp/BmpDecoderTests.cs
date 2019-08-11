@@ -346,7 +346,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_ThrowsImageFormatException_OnInvalidPaletteSize<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            Assert.Throws<ImageFormatException>( () => { using (Image<TPixel> image = provider.GetImage(new BmpDecoder())) { } });
+            Assert.Throws<ImageFormatException>( () => { using (provider.GetImage(new BmpDecoder())) { } });
         }
 
         [Theory]
@@ -355,7 +355,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_ThrowsNotSupportedException_OnUnsupportedBitmaps<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            Assert.Throws<NotSupportedException>(() => { using (Image<TPixel> image = provider.GetImage(new BmpDecoder())) { } });
+            Assert.Throws<NotSupportedException>(() => { using (provider.GetImage(new BmpDecoder())) { } });
         }
 
         [Theory]

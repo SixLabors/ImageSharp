@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void WhenFileNotFound_Throws()
             {
-                System.IO.FileNotFoundException ex = Assert.Throws<System.IO.FileNotFoundException>(
+                Assert.Throws<System.IO.FileNotFoundException>(
                     () =>
                         {
                             Image.Load<Rgba32>(Guid.NewGuid().ToString());
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void WhenPathIsNull_Throws()
             {
-                ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
+                Assert.Throws<ArgumentNullException>(
                     () =>
                         {
                             Image.Load<Rgba32>((string)null);

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             var referenceMap = ReferenceKernelMap.Calculate(resampler, destSize, srcSize);
             var kernelMap = ResizeKernelMap.Calculate(resampler, destSize, srcSize, Configuration.Default.MemoryAllocator);
 
-            
+
 
 #if DEBUG
             this.Output.WriteLine(kernelMap.Info);

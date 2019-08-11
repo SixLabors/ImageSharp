@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
 
                 // path is converted to a polygon before filling
                 Polygon polygon = Assert.IsType<Polygon>(region.Shape);
-                LinearLineSegment segments = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
+                Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
 
                 Assert.Equal(this.brush, processor.Brush);
             }
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
 
                 ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
                 Polygon polygon = Assert.IsType<Polygon>(region.Shape);
-                LinearLineSegment segments = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
+                Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
 
                 Assert.Equal(this.brush, processor.Brush);
             }
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
 
                 ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
                 Polygon polygon = Assert.IsType<Polygon>(region.Shape);
-                LinearLineSegment segments = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
+                Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
 
                 SolidBrush brush = Assert.IsType<SolidBrush>(processor.Brush);
                 Assert.Equal(this.color, brush.Color);
@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
 
                 ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
                 Polygon polygon = Assert.IsType<Polygon>(region.Shape);
-                LinearLineSegment segments = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
+                Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
 
                 SolidBrush brush = Assert.IsType<SolidBrush>(processor.Brush);
                 Assert.Equal(this.color, brush.Color);

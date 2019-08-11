@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -41,21 +41,17 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         {
             Font font = CreateFont("OpenSans-Regular.ttf", 36);
             Color color = Color.Black;
-            float padding = 5;
             var text = "A short piece of text";
 
             using (var img = provider.GetImage())
             {
-                float targetWidth = img.Width - (padding * 2);
-                float targetHeight = img.Height - (padding * 2);
-
                 // measure the text size
                 SizeF size = TextMeasurer.Measure(text, new RendererOptions(font));
 
                 //find out how much we need to scale the text to fill the space (up or down)
                 float scalingFactor = Math.Min(img.Width / size.Width, img.Height / size.Height);
 
-                //create a new font 
+                //create a new font
                 Font scaledFont = new Font(font, scalingFactor * font.Size);
 
                 var center = new PointF(img.Width / 2, img.Height / 2);
@@ -64,7 +60,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center
                 };
-                
+
                 img.Mutate(i => i.DrawText(textGraphicOptions, text, scaledFont, color, center));
             }
         }
@@ -241,6 +237,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             return font;
         }
 
-        
+
     }
 }

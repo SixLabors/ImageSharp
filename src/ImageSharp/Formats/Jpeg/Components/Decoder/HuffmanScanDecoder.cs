@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        private unsafe void ParseBaselineDataInterleaved()
+        private void ParseBaselineDataInterleaved()
         {
             // Interleaved
             int mcu = 0;
@@ -196,7 +196,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        private unsafe void ParseBaselineDataNonInterleaved()
+        private void ParseBaselineDataNonInterleaved()
         {
             JpegComponent component = this.components[this.frame.ComponentOrder[0]];
             ref HuffmanScanBuffer buffer = ref this.scanBuffer;
@@ -366,7 +366,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        private unsafe void ParseProgressiveDataNonInterleaved()
+        private void ParseProgressiveDataNonInterleaved()
         {
             JpegComponent component = this.components[this.frame.ComponentOrder[0]];
             ref HuffmanScanBuffer buffer = ref this.scanBuffer;

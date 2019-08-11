@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 #pragma warning disable SA1117 // Parameters should be on same line or separate lines
@@ -269,7 +269,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// </summary>
         /// <param name="value">The source matrix.</param>
         /// <returns>The negated matrix.</returns>
-        public static unsafe ColorMatrix operator -(ColorMatrix value)
+        public static ColorMatrix operator -(ColorMatrix value)
         {
             ColorMatrix m;
 

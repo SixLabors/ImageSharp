@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Tests
                     this.Image.GetConfiguration(),
                     this.Image.Width,
                     this.Image.Height,
-                    (Bgra32)Color.Blue))
+                    Color.Blue))
                 {
                     this.Collection.AddFrame(sourceImage.Frames.RootFrame);
                 }
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests
                     this.Image.GetConfiguration(),
                     this.Image.Width,
                     this.Image.Height,
-                    (Bgra32)Color.Blue))
+                    Color.Blue))
                 {
                     this.Collection.InsertFrame(0, sourceImage.Frames.RootFrame);
                 }
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Tests
                 ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                     () =>
                     {
-                        this.Collection.AddFrame((ImageFrame<Rgba32>)null);
+                        this.Collection.AddFrame(null);
                     });
 
                 Assert.StartsWith("Value cannot be null.", ex.Message);

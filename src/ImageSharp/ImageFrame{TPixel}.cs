@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -267,7 +267,7 @@ namespace SixLabors.ImageSharp
             ParallelHelper.IterateRows(
                 this.Bounds(),
                 configuration,
-                (rows) =>
+                rows =>
                     {
                         for (int y = rows.Min; y < rows.Max; y++)
                         {

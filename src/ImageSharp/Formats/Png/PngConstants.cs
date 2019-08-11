@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// The dictionary of available color types.
         /// </summary>
-        public static readonly Dictionary<PngColorType, byte[]> ColorTypes = new Dictionary<PngColorType, byte[]>()
+        public static readonly Dictionary<PngColorType, byte[]> ColorTypes = new Dictionary<PngColorType, byte[]>
         {
             [PngColorType.Grayscale] = new byte[] { 1, 2, 4, 8, 16 },
             [PngColorType.Rgb] = new byte[] { 8, 16 },

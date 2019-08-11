@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Tests.Drawing.Utils
@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Utils
 
     public class QuickSortTests
     {
-        public static readonly TheoryData<float[]> Data = new TheoryData<float[]>()
+        public static readonly TheoryData<float[]> Data = new TheoryData<float[]>
                                                               {
                                                                   new float[]{ 3, 2, 1 },
                                                                   new float[0],

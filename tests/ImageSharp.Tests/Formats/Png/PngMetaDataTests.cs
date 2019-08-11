@@ -24,13 +24,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Fact]
         public void CloneIsDeep()
         {
-            var meta = new PngMetadata()
+            var meta = new PngMetadata
             {
                 BitDepth = PngBitDepth.Bit16,
                 ColorType = PngColorType.GrayscaleWithAlpha,
                 InterlaceMethod = PngInterlaceMode.Adam7,
                 Gamma = 2,
-                TextData = new List<PngTextData>() { new PngTextData("name", "value", "foo", "bar") }
+                TextData = new List<PngTextData> { new PngTextData("name", "value", "foo", "bar") }
             };
 
             var clone = (PngMetadata)meta.DeepClone();
@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 PngMetadata inputMetadata = input.Metadata.GetFormatMetadata(PngFormat.Instance);
                 inputMetadata.TextData.Add(expectedText);
                 inputMetadata.TextData.Add(expectedTextNoneLatin);
-                input.Save(memoryStream, new PngEncoder()
+                input.Save(memoryStream, new PngEncoder
                 {
                     TextCompressionThreshold = 50
                 });
@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Fact]
         public void Decode_IgnoreMetadataIsFalse_TextChunkIsRead()
         {
-            var options = new PngDecoder()
+            var options = new PngDecoder
             {
                 IgnoreMetadata = false
             };
@@ -172,7 +172,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Fact]
         public void Decode_IgnoreMetadataIsTrue_TextChunksAreIgnored()
         {
-            var options = new PngDecoder()
+            var options = new PngDecoder
             {
                 IgnoreMetadata = true
             };

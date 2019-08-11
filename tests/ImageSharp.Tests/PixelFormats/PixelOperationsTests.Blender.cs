@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
     public class PixelBlenderTests
     {
-        public static TheoryData<object, Type, PixelColorBlendingMode> BlenderMappings = new TheoryData<object, Type, PixelColorBlendingMode>()
+        public static TheoryData<object, Type, PixelColorBlendingMode> BlenderMappings = new TheoryData<object, Type, PixelColorBlendingMode>
         {
             { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.NormalSrcOver), PixelColorBlendingMode.Normal },
             { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.ScreenSrcOver), PixelColorBlendingMode.Screen },
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Assert.IsType(type, blender);
         }
 
-        public static TheoryData<Rgba32, Rgba32, float, PixelColorBlendingMode, Rgba32> ColorBlendingExpectedResults = new TheoryData<Rgba32, Rgba32, float, PixelColorBlendingMode, Rgba32>()
+        public static TheoryData<Rgba32, Rgba32, float, PixelColorBlendingMode, Rgba32> ColorBlendingExpectedResults = new TheoryData<Rgba32, Rgba32, float, PixelColorBlendingMode, Rgba32>
         {
             { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelColorBlendingMode.Normal, Rgba32.MidnightBlue },
             { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelColorBlendingMode.Screen, new Rgba32(0xFFEEE7FF) },
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Assert.Equal(actualResult.ToVector4(), expectedResult.ToVector4());
         }
 
-        public static TheoryData<Rgba32, Rgba32, float, PixelAlphaCompositionMode, Rgba32> AlphaCompositionExpectedResults = new TheoryData<Rgba32, Rgba32, float, PixelAlphaCompositionMode, Rgba32>()
+        public static TheoryData<Rgba32, Rgba32, float, PixelAlphaCompositionMode, Rgba32> AlphaCompositionExpectedResults = new TheoryData<Rgba32, Rgba32, float, PixelAlphaCompositionMode, Rgba32>
         {
             { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelAlphaCompositionMode.Clear, new Rgba32(0) },
             { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelAlphaCompositionMode.Xor, new Rgba32(0) },

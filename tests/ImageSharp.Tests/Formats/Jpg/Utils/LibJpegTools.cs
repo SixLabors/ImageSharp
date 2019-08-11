@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         {
             TestFile testFile = TestFile.Create(inputFile);
 
-            string outDir = TestEnvironment.CreateOutputDirectory(".Temp", $"JpegCoeffs");
+            string outDir = TestEnvironment.CreateOutputDirectory(".Temp", "JpegCoeffs");
             string fn = $"{Path.GetFileName(inputFile)}-{new Random().Next(1000)}.dctcoeffs";
             string coeffFileFullPath = Path.Combine(outDir, fn);
 

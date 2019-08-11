@@ -1,15 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
+using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
-    using System.Collections.Generic;
-    using Xunit;
-
-    using ImageSharp.Formats.Tiff;
-
     public class BlackIsZeroTiffColorTests : PhotometricInterpretationTestBase
     {
         private static Rgba32 Gray000 = new Rgba32(0, 0, 0, 255);

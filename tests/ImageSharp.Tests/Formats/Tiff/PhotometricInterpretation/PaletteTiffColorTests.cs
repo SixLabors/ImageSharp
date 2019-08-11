@@ -1,15 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
+using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
-    using System.Collections.Generic;
-    using Xunit;
-
-    using ImageSharp.Formats.Tiff;
-
     public class PaletteTiffColorTests : PhotometricInterpretationTestBase
     {
         public static uint[][] Palette4_ColorPalette { get => GeneratePalette(16); }

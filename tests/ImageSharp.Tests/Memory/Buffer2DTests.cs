@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 ref T actual = ref MemoryMarshal.GetReference(span);
                 ref T expected = ref Unsafe.Add(ref buffer.GetReference(), bufferOffset);
 
-                Assert.True(Unsafe.AreSame(ref expected, ref actual), "span does not point to the expected position");
+                True(Unsafe.AreSame(ref expected, ref actual), "span does not point to the expected position");
             }
         }
 

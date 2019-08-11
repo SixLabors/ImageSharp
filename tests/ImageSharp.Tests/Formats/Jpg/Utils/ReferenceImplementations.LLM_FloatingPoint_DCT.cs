@@ -267,13 +267,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public static void fDCT8x8_llm_sse(Span<float> s, Span<float> d, Span<float> temp)
             {
-                ReferenceImplementations.Transpose8x8(s, temp);
+                Transpose8x8(s, temp);
 
                 fDCT2D8x4_32f(temp, d);
 
                 fDCT2D8x4_32f(temp.Slice(4), d.Slice(4));
 
-                ReferenceImplementations.Transpose8x8(d, temp);
+                Transpose8x8(d, temp);
 
                 fDCT2D8x4_32f(temp, d);
 
@@ -535,14 +535,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                     fDCT1Dllm_32f(sWorker.Slice(j * 8), temp.Slice(j * 8));
                 }
 
-                ReferenceImplementations.Transpose8x8(temp, d);
+                Transpose8x8(temp, d);
 
                 for (int j = 0; j < 8; j++)
                 {
                     fDCT1Dllm_32f(d.Slice(j * 8), temp.Slice(j * 8));
                 }
 
-                ReferenceImplementations.Transpose8x8(temp, d);
+                Transpose8x8(temp, d);
 
                 if (downscaleBy8)
                 {

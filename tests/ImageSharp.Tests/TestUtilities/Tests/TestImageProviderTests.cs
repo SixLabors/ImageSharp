@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -20,17 +20,16 @@ namespace SixLabors.ImageSharp.Tests
     public class TestImageProviderTests
     {
         public static readonly TheoryData<object> BasicData = new TheoryData<object>()
-                                                                  {
-                                                                      TestImageProvider<Rgba32>.Blank(10, 20),
-                                                                      TestImageProvider<HalfVector4>.Blank(10, 20),
-                                                                  };
+        {
+            TestImageProvider<Rgba32>.Blank(10, 20),
+            TestImageProvider<HalfVector4>.Blank(10, 20),
+        };
 
         public static readonly TheoryData<object> FileData = new TheoryData<object>()
-                                                                 {
-                                                                     TestImageProvider<Rgba32>.File(TestImages.Bmp.Car),
-                                                                     TestImageProvider<HalfVector4>.File(
-                                                                         TestImages.Bmp.F)
-                                                                 };
+        {
+            TestImageProvider<Rgba32>.File(TestImages.Bmp.Car),
+            TestImageProvider<HalfVector4>.File(TestImages.Bmp.F)
+        };
 
         public static string[] AllBmpFiles = { TestImages.Bmp.F, TestImages.Bmp.Bit8 };
 
@@ -320,7 +319,7 @@ namespace SixLabors.ImageSharp.Tests
                 img.DebugSave(provider);
             }
         }
-        
+
         [Theory]
         [WithTestPatternImages(20, 20, PixelTypes.Rgba32)]
         public void Use_WithTestPatternImages_CustomConfiguration<TPixel>(TestImageProvider<TPixel> provider)
@@ -337,8 +336,8 @@ namespace SixLabors.ImageSharp.Tests
                 var customConfiguration = Configuration.CreateDefaultInstance();
                 provider.Configuration = customConfiguration;
 
-                using (var image2 = provider.GetImage())
-                using (var image3 = provider.GetImage())
+                using (Image<TPixel> image2 = provider.GetImage())
+                using (Image<TPixel> image3 = provider.GetImage())
                 {
                     Assert.Same(customConfiguration, image2.GetConfiguration());
                     Assert.Same(customConfiguration, image3.GetConfiguration());
@@ -379,7 +378,7 @@ namespace SixLabors.ImageSharp.Tests
                 this.callerName = name;
                 invocationCounts[name] = 0;
             }
-            
+
             public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
         }
 
@@ -418,7 +417,7 @@ namespace SixLabors.ImageSharp.Tests
                 this.callerName = name;
                 invocationCounts[name] = 0;
             }
-            
+
             public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
         }
     }

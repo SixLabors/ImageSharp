@@ -94,8 +94,6 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
             int n = Count / Vector<float>.Count;
 
             ref Vector<float> bf = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
-            Unsafe.As<Vector<float>, Vector<int>>(ref bf);
-
             var scale = new Vector<float>(1f / 255f);
 
             for (int i = 0; i < n; i++)

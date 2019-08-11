@@ -53,6 +53,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int sourceHeight = source.Height;
             int tileWidth = (int)MathF.Ceiling(sourceWidth / (float)this.Tiles);
             int tileHeight = (int)MathF.Ceiling(sourceHeight / (float)this.Tiles);
+            int tileCount = this.Tiles;
             int halfTileWidth = tileWidth / 2;
             int halfTileHeight = tileHeight / 2;
             int luminanceLevels = this.LuminanceLevels;
@@ -101,8 +102,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                                         float luminanceEqualized = InterpolateBetweenFourTiles(
                                             pixel,
                                             cdfData,
-                                            this.Tiles,
-                                            this.Tiles,
+                                            tileCount,
+                                            tileCount,
                                             tileX,
                                             tileY,
                                             cdfX,

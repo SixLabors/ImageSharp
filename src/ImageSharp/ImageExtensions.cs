@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Throws <see cref="ObjectDisposedException"/> if the image is disposed.
         /// </summary>
-        internal static void CheckDisposed(this Image image)
+        internal static void EnsureNotDisposed(this Image image)
         {
             if (image.IsDisposed)
             {

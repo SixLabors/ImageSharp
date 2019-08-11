@@ -107,6 +107,7 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNull(stream, nameof(stream));
             Guard.NotNull(encoder, nameof(encoder));
+            this.EnsureNotDisposed();
 
             EncodeVisitor visitor = new EncodeVisitor(encoder, stream);
             this.AcceptVisitor(visitor);

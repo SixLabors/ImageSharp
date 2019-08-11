@@ -162,7 +162,7 @@ namespace SixLabors.ImageSharp
         /// <returns>Returns a new <see cref="Image{TPixel}"/> with all the same pixel data as the original.</returns>
         public Image<TPixel> Clone(Configuration configuration)
         {
-            this.CheckDisposed();
+            this.EnsureNotDisposed();
 
             IEnumerable<ImageFrame<TPixel>> clonedFrames =
                 this.Frames.Select<ImageFrame<TPixel>, ImageFrame<TPixel>>(x => x.Clone(configuration));
@@ -177,7 +177,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel2}"/>.</returns>
         public override Image<TPixel2> CloneAs<TPixel2>(Configuration configuration)
         {
-            this.CheckDisposed();
+            this.EnsureNotDisposed();
 
             IEnumerable<ImageFrame<TPixel2>> clonedFrames =
                 this.Frames.Select<ImageFrame<TPixel>, ImageFrame<TPixel2>>(x => x.CloneAs<TPixel2>(configuration));
@@ -190,7 +190,7 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc />
         internal override void AcceptVisitor(IImageVisitor visitor)
         {
-            this.CheckDisposed();
+            this.EnsureNotDisposed();
 
             visitor.Visit(this);
         }

@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Rgb24 | PixelTypes.Rgba32)]
-        public unsafe void LoadAndStretchCorners_WithOffset<TPixel>(TestImageProvider<TPixel> provider)
+        public void LoadAndStretchCorners_WithOffset<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> s = provider.GetImage())

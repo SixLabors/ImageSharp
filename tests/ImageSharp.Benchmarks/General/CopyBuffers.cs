@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
         }
 
         [Benchmark(Description = "Unsafe.CopyBlock(ref)")]
-        public unsafe void UnsafeCopyBlockReferences()
+        public void UnsafeCopyBlockReferences()
         {
             Unsafe.CopyBlock(ref this.destArray[0], ref this.sourceArray[0], (uint)this.Count);
         }
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
         }
 
         [Benchmark(Description = "Unsafe.CopyBlockUnaligned(ref)")]
-        public unsafe void UnsafeCopyBlockUnalignedReferences()
+        public void UnsafeCopyBlockUnalignedReferences()
         {
             Unsafe.CopyBlockUnaligned(ref this.destArray[0], ref this.sourceArray[0], (uint)this.Count);
         }

@@ -4,7 +4,7 @@
 using System.IO;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
     /// Encoder for writing the data image to a stream in TIFF format.

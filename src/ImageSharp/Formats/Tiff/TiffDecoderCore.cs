@@ -5,14 +5,13 @@ using System;
 using System.Buffers;
 using System.IO;
 using System.Text;
-using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
     /// Performs the tiff decoding operation.
@@ -27,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
-        private bool ignoreMetadata;
+        private readonly bool ignoreMetadata;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TiffDecoderCore" /> class.

@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
     /// Registers the image encoders, decoders and mime type detectors for the TIFF format.

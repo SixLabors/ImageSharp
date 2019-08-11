@@ -5,7 +5,7 @@ using System.IO;
 
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
     /// Image decoder for generating an image out of a TIFF stream.

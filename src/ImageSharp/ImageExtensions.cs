@@ -119,5 +119,16 @@ namespace SixLabors.ImageSharp
                 return $"data:{format.DefaultMimeType};base64,{Convert.ToBase64String(stream.ToArray())}";
             }
         }
+
+        /// <summary>
+        /// Throws <see cref="ObjectDisposedException"/> if the image is disposed.
+        /// </summary>
+        internal static void CheckDisposed(this Image image)
+        {
+            if (image.IsDisposed)
+            {
+                throw new ObjectDisposedException(nameof(image), "Trying to execute an operation on a disposed image.");
+            }
+        }
     }
 }

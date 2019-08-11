@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests
             Png
         }
 
-        private static readonly Dictionary<ExifTag, object> TestProfileValues = new Dictionary<ExifTag, object>()
+        private static readonly Dictionary<ExifTag, object> TestProfileValues = new Dictionary<ExifTag, object>
         {
             { ExifTag.Software, "Software" },
             { ExifTag.Copyright, "Copyright" },

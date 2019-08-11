@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public IImageProcessingContext ApplyProcessor(IImageProcessor processor, Rectangle rectangle)
             {
-                this.Applied.Add(new AppliedOperation()
+                this.Applied.Add(new AppliedOperation
                                      {
                                          Rectangle = rectangle,
                                          NonGenericProcessor = processor

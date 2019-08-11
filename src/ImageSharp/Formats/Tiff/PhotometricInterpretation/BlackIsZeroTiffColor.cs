@@ -36,12 +36,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             for (int y = top; y < top + height; y++)
             {
+                Span<TPixel> buffer = pixels.GetRowSpan(y);
+
                 for (int x = left; x < left + width; x++)
                 {
                     int value = bitReader.ReadBits(bitsPerSample[0]);
                     float intensity = ((float)value) / factor;
                     color.FromVector4(new Vector4(intensity, intensity, intensity, 1.0f));
-                    pixels[x, y] = color;
+                    buffer[x] = color;
                 }
 
                 bitReader.NextRow();

@@ -37,10 +37,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             for (int y = top; y < top + height; y++)
             {
+                Span<TPixel> buffer = pixels.GetRowSpan(y);
+
                 for (int x = left; x < left + width; x++)
                 {
                     int index = bitReader.ReadBits(bitsPerSample[0]);
-                    pixels[x, y] = palette[index];
+                    buffer[x] = palette[index];
                 }
 
                 bitReader.NextRow();

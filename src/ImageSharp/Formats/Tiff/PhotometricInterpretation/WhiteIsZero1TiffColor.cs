@@ -33,17 +33,20 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             for (int y = top; y < top + height; y++)
             {
+                Span<TPixel> buffer = pixels.GetRowSpan(y);
+
                 for (int x = left; x < left + width; x += 8)
                 {
                     byte b = data[offset++];
                     int maxShift = Math.Min(left + width - x, 8);
 
-                    for (int shift = 0; shift < maxShift; shift++)
+                    for (int shift = 0, index = x; shift < maxShift; shift++, index++)
                     {
                         int bit = (b >> (7 - shift)) & 1;
                         byte intensity = (bit == 1) ? (byte)0 : (byte)255;
                         color.FromRgba32(new Rgba32(intensity, intensity, intensity, 255));
-                        pixels[x + shift, y] = color;
+
+                        buffer[index] = color;
                     }
                 }
             }

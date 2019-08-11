@@ -38,13 +38,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             for (int y = top; y < top + height; y++)
             {
+                Span<TPixel> buffer = pixels.GetRowSpan(y);
+
                 for (int x = left; x < left + width; x++)
                 {
                     float r = ((float)bitReader.ReadBits(bitsPerSample[0])) / rFactor;
                     float g = ((float)bitReader.ReadBits(bitsPerSample[1])) / gFactor;
                     float b = ((float)bitReader.ReadBits(bitsPerSample[2])) / bFactor;
                     color.FromVector4(new Vector4(r, g, b, 1.0f));
-                    pixels[x, y] = color;
+
+                    buffer[x] = color;
                 }
 
                 bitReader.NextRow();

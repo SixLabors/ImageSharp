@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -33,17 +34,19 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             for (int y = top; y < top + height; y++)
             {
+                Span<TPixel> buffer = pixels.GetRowSpan(y);
+
                 for (int x = left; x < left + width - 1; x += 2)
                 {
                     byte byteData = data[offset++];
 
                     byte intensity1 = (byte)((15 - ((byteData & 0xF0) >> 4)) * 17);
                     color.FromRgba32(new Rgba32(intensity1, intensity1, intensity1, 255));
-                    pixels[x, y] = color;
+                    buffer[x] = color;
 
                     byte intensity2 = (byte)((15 - (byteData & 0x0F)) * 17);
                     color.FromRgba32(new Rgba32(intensity2, intensity2, intensity2, 255));
-                    pixels[x + 1, y] = color;
+                    buffer[x + 1] = color;
                 }
 
                 if (isOddWidth)

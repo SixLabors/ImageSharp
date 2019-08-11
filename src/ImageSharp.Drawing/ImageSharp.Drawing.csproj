@@ -8,12 +8,7 @@
     <PackageId>SixLabors.ImageSharp.Drawing</PackageId>
     <PackageTags>Image Draw Shape Path Font</PackageTags>
     <RootNamespace>SixLabors.ImageSharp</RootNamespace>
-
-    <TargetFramework>netcoreapp2.1</TargetFramework>
-
-    <!--
     <TargetFrameworks>netcoreapp2.1;netstandard1.3;netstandard2.0</TargetFrameworks>
-    -->
   </PropertyGroup>
 
   <ItemGroup>

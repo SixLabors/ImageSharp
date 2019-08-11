@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 ColorType = PngColorType.GrayscaleWithAlpha,
                 InterlaceMethod = PngInterlaceMode.Adam7,
                 Gamma = 2,
-                TextData = new List<PngTextData>() { new PngTextData("name", "value", "foo", "bar") }
+                TextData = new List<PngTextData> { new PngTextData("name", "value", "foo", "bar") }
             };
 
             var clone = (PngMetadata)meta.DeepClone();

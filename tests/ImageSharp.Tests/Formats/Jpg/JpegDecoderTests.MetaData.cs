@@ -211,7 +211,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(true)]
         public void IgnoreMetaData_ControlsWhetherMetaDataIsParsed(bool ignoreMetaData)
         {
-            var decoder = new JpegDecoder() { IgnoreMetadata = ignoreMetaData };
+            var decoder = new JpegDecoder { IgnoreMetadata = ignoreMetaData };
 
             // Snake.jpg has both Exif and ICC profiles defined:
             var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Snake);

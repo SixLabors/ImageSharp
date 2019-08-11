@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                var encoder = new GifEncoder()
+                var encoder = new GifEncoder
                 {
                     // Use the palette quantizer without dithering to ensure results
                     // are consistent
@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 GifMetadata metaData = image.Metadata.GetFormatMetadata(GifFormat.Instance);
                 GifFrameMetadata frameMetaData = image.Frames.RootFrame.Metadata.GetFormatMetadata(GifFormat.Instance);
                 GifColorTableMode colorMode = metaData.ColorTableMode;
-                var encoder = new GifEncoder()
+                var encoder = new GifEncoder
                 {
                     ColorTableMode = colorMode,
                     Quantizer = new OctreeQuantizer(frameMetaData.ColorTableLength)

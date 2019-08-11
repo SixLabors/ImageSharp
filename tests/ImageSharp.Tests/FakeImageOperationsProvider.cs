@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public IImageProcessingContext ApplyProcessor(IImageProcessor processor)
             {
-                this.Applied.Add(new AppliedOperation()
+                this.Applied.Add(new AppliedOperation
                                      {
                                          NonGenericProcessor = processor
                                      });
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 public Rectangle? Rectangle { get; set; }
                 public IImageProcessor<TPixel> GenericProcessor { get; set; }
-                
+
                 public IImageProcessor NonGenericProcessor { get; set; }
             }
         }

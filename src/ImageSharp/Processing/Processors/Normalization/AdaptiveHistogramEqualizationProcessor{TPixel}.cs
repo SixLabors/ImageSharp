@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 Parallel.For(
                     0,
                     tileYStartPositions.Count,
-                    new ParallelOptions() { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism },
+                    new ParallelOptions { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism },
                     index =>
                         {
                             int cdfX = 0;
@@ -470,7 +470,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 Parallel.For(
                     0,
                     this.tileYStartPositions.Count,
-                    new ParallelOptions() { MaxDegreeOfParallelism = this.configuration.MaxDegreeOfParallelism },
+                    new ParallelOptions { MaxDegreeOfParallelism = this.configuration.MaxDegreeOfParallelism },
                     index =>
                         {
                             int cdfX = 0;

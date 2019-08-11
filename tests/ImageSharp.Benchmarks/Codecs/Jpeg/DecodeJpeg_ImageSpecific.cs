@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Drawing;
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             using (var memoryStream = new MemoryStream(this.jpegBytes))
             {
-                using (var image = Image.Load<Rgba32>(memoryStream, new JpegDecoder() { IgnoreMetadata = true }))
+                using (var image = Image.Load<Rgba32>(memoryStream, new JpegDecoder { IgnoreMetadata = true }))
                 {
                     return new CoreSize(image.Width, image.Height);
                 }

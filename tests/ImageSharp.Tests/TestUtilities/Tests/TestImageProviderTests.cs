@@ -114,10 +114,10 @@ namespace SixLabors.ImageSharp.Tests
                         string testName = nameof(this
                             .GetImage_WithCustomParametricDecoder_ShouldNotUtilizeCache_WhenParametersAreNotEqual);
 
-                        var decoder1 = new TestDecoderWithParameters() { Param1 = "Lol", Param2 = 42 };
+                        var decoder1 = new TestDecoderWithParameters { Param1 = "Lol", Param2 = 42 };
                         decoder1.InitCaller(testName);
 
-                        var decoder2 = new TestDecoderWithParameters() { Param1 = "LoL", Param2 = 42 };
+                        var decoder2 = new TestDecoderWithParameters { Param1 = "LoL", Param2 = 42 };
                         decoder2.InitCaller(testName);
 
                         provider.GetImage(decoder1);
@@ -148,10 +148,10 @@ namespace SixLabors.ImageSharp.Tests
                         string testName = nameof(this
                             .GetImage_WithCustomParametricDecoder_ShouldUtilizeCache_WhenParametersAreEqual);
 
-                        var decoder1 = new TestDecoderWithParameters() { Param1 = "Lol", Param2 = 666 };
+                        var decoder1 = new TestDecoderWithParameters { Param1 = "Lol", Param2 = 666 };
                         decoder1.InitCaller(testName);
 
-                        var decoder2 = new TestDecoderWithParameters() { Param1 = "Lol", Param2 = 666 };
+                        var decoder2 = new TestDecoderWithParameters { Param1 = "Lol", Param2 = 666 };
                         decoder2.InitCaller(testName);
 
                         provider.GetImage(decoder1);

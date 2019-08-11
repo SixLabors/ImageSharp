@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using BenchmarkDotNet.Attributes;
@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             using (var memoryStream = new MemoryStream(this.jpegBytes))
             {
-                var decoder = new JpegDecoderCore(Configuration.Default, new Formats.Jpeg.JpegDecoder() { IgnoreMetadata = true });
+                var decoder = new JpegDecoderCore(Configuration.Default, new Formats.Jpeg.JpegDecoder { IgnoreMetadata = true });
                 decoder.ParseStream(memoryStream);
                 decoder.Dispose();
             }

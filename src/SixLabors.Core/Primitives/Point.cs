@@ -49,7 +49,7 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Initializes a new instance of the <see cref="Point"/> struct from the given <see cref="Size"/>.
         /// </summary>
-        /// <param name="size">The size</param>
+        /// <param name="size">The size.</param>
         public Point(Size size)
         {
             this.X = size.Width;
@@ -75,21 +75,21 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Creates a <see cref="PointF"/> with the coordinates of the specified <see cref="Point"/>.
         /// </summary>
-        /// <param name="point">The point</param>
+        /// <param name="point">The point.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator PointF(Point point) => new PointF(point.X, point.Y);
 
         /// <summary>
         /// Creates a <see cref="Vector2"/> with the coordinates of the specified <see cref="Point"/>.
         /// </summary>
-        /// <param name="point">The point</param>
+        /// <param name="point">The point.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator Vector2(Point point) => new Vector2(point.X, point.Y);
 
         /// <summary>
         /// Creates a <see cref="Size"/> with the coordinates of the specified <see cref="Point"/>.
         /// </summary>
-        /// <param name="point">The point</param>
+        /// <param name="point">The point.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static explicit operator Size(Point point) => new Size(point.X, point.Y);
 
@@ -106,7 +106,7 @@ namespace SixLabors.Primitives
         /// <param name="point">The point on the left hand of the operand.</param>
         /// <param name="size">The size on the right hand of the operand.</param>
         /// <returns>
-        /// The <see cref="Point"/>
+        /// The <see cref="Point"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Point operator +(Point point, Size size) => Add(point, size);
@@ -116,7 +116,7 @@ namespace SixLabors.Primitives
         /// </summary>
         /// <param name="point">The point on the left hand of the operand.</param>
         /// <param name="size">The size on the right hand of the operand.</param>
-        /// <returns>The <see cref="Point"/></returns>
+        /// <returns>The <see cref="Point"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Point operator -(Point point, Size size) => Subtract(point, size);
 
@@ -172,16 +172,16 @@ namespace SixLabors.Primitives
         /// </summary>
         /// <param name="point">The point on the left hand of the operand.</param>
         /// <param name="size">The size on the right hand of the operand.</param>
-        /// <returns>The <see cref="Point"/></returns>
+        /// <returns>The <see cref="Point"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Point Add(Point point, Size size) => new Point(unchecked(point.X + size.Width), unchecked(point.Y + size.Height));
 
         /// <summary>
-        /// Translates a <see cref="Point"/> by the negative of a given value
+        /// Translates a <see cref="Point"/> by the negative of a given value.
         /// </summary>
         /// <param name="point">The point on the left hand of the operand.</param>
         /// <param name="value">The value on the right hand of the operand.</param>
-        /// <returns>The <see cref="Point"/></returns>
+        /// <returns>The <see cref="Point"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Point Multiply(Point point, int value) => new Point(unchecked(point.X * value), unchecked(point.Y * value));
 
@@ -190,56 +190,56 @@ namespace SixLabors.Primitives
         /// </summary>
         /// <param name="point">The point on the left hand of the operand.</param>
         /// <param name="size">The size on the right hand of the operand.</param>
-        /// <returns>The <see cref="Point"/></returns>
+        /// <returns>The <see cref="Point"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Point Subtract(Point point, Size size) => new Point(unchecked(point.X - size.Width), unchecked(point.Y - size.Height));
 
         /// <summary>
         /// Converts a <see cref="PointF"/> to a <see cref="Point"/> by performing a ceiling operation on all the coordinates.
         /// </summary>
-        /// <param name="point">The point</param>
-        /// <returns>The <see cref="Point"/></returns>
+        /// <param name="point">The point.</param>
+        /// <returns>The <see cref="Point"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Point Ceiling(PointF point) => new Point(unchecked((int)MathF.Ceiling(point.X)), unchecked((int)MathF.Ceiling(point.Y)));
 
         /// <summary>
         /// Converts a <see cref="PointF"/> to a <see cref="Point"/> by performing a round operation on all the coordinates.
         /// </summary>
-        /// <param name="point">The point</param>
-        /// <returns>The <see cref="Point"/></returns>
+        /// <param name="point">The point.</param>
+        /// <returns>The <see cref="Point"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Point Round(PointF point) => new Point(unchecked((int)MathF.Round(point.X)), unchecked((int)MathF.Round(point.Y)));
 
         /// <summary>
         /// Converts a <see cref="Vector2"/> to a <see cref="Point"/> by performing a round operation on all the coordinates.
         /// </summary>
-        /// <param name="vector">The vector</param>
-        /// <returns>The <see cref="Point"/></returns>
+        /// <param name="vector">The vector.</param>
+        /// <returns>The <see cref="Point"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Point Round(Vector2 vector) => new Point(unchecked((int)MathF.Round(vector.X)), unchecked((int)MathF.Round(vector.Y)));
 
         /// <summary>
         /// Converts a <see cref="PointF"/> to a <see cref="Point"/> by performing a truncate operation on all the coordinates.
         /// </summary>
-        /// <param name="point">The point</param>
-        /// <returns>The <see cref="Point"/></returns>
+        /// <param name="point">The point.</param>
+        /// <returns>The <see cref="Point"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Point Truncate(PointF point) => new Point(unchecked((int)point.X), unchecked((int)point.Y));
 
         /// <summary>
         /// Transforms a point by a specified 3x2 matrix.
         /// </summary>
-        /// <param name="point">The point to transform</param>
-        /// <param name="matrix">The transformation matrix used</param>
-        /// <returns>The transformed <see cref="PointF"/></returns>
+        /// <param name="point">The point to transform.</param>
+        /// <param name="matrix">The transformation matrix used.</param>
+        /// <returns>The transformed <see cref="PointF"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Point Transform(Point point, Matrix3x2 matrix) => Round(Vector2.Transform(new Vector2(point.X, point.Y), matrix));
 
         /// <summary>
-        /// Deconstructs this point into two integers
+        /// Deconstructs this point into two integers.
         /// </summary>
-        /// <param name="x">The out value for X</param>
-        /// <param name="y">The out value for Y</param>
+        /// <param name="x">The out value for X.</param>
+        /// <param name="y">The out value for Y.</param>
         public void Deconstruct(out int x, out int y)
         {
             x = this.X;

@@ -36,7 +36,7 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Initializes a new instance of the <see cref="SizeF"/> struct.
         /// </summary>
-        /// <param name="size">The size</param>
+        /// <param name="size">The size.</param>
         public SizeF(SizeF size)
             : this()
         {
@@ -47,7 +47,7 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Initializes a new instance of the <see cref="SizeF"/> struct from the given <see cref="PointF"/>.
         /// </summary>
-        /// <param name="point">The point</param>
+        /// <param name="point">The point.</param>
         public SizeF(PointF point)
         {
             this.Width = point.X;
@@ -93,7 +93,7 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Converts the given <see cref="SizeF"/> into a <see cref="PointF"/>.
         /// </summary>
-        /// <param name="size">The size</param>
+        /// <param name="size">The size.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static explicit operator PointF(SizeF size) => new PointF(size.Width, size.Height);
 
@@ -103,7 +103,7 @@ namespace SixLabors.Primitives
         /// <param name="left">The size on the left hand of the operand.</param>
         /// <param name="right">The size on the right hand of the operand.</param>
         /// <returns>
-        /// The <see cref="SizeF"/>
+        /// The <see cref="SizeF"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static SizeF operator +(SizeF left, SizeF right) => Add(left, right);
@@ -114,7 +114,7 @@ namespace SixLabors.Primitives
         /// <param name="left">The size on the left hand of the operand.</param>
         /// <param name="right">The size on the right hand of the operand.</param>
         /// <returns>
-        /// The <see cref="SizeF"/>
+        /// The <see cref="SizeF"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static SizeF operator -(SizeF left, SizeF right) => Subtract(left, right);
@@ -171,16 +171,16 @@ namespace SixLabors.Primitives
         /// </summary>
         /// <param name="left">The size on the left hand of the operand.</param>
         /// <param name="right">The size on the right hand of the operand.</param>
-        /// <returns>The <see cref="SizeF"/></returns>
+        /// <returns>The <see cref="SizeF"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static SizeF Add(SizeF left, SizeF right) => new SizeF(left.Width + right.Width, left.Height + right.Height);
 
         /// <summary>
-        /// Contracts a <see cref="SizeF"/> by another <see cref="SizeF"/>
+        /// Contracts a <see cref="SizeF"/> by another <see cref="SizeF"/>.
         /// </summary>
         /// <param name="left">The size on the left hand of the operand.</param>
         /// <param name="right">The size on the right hand of the operand.</param>
-        /// <returns>The <see cref="SizeF"/></returns>
+        /// <returns>The <see cref="SizeF"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static SizeF Subtract(SizeF left, SizeF right) => new SizeF(left.Width - right.Width, left.Height - right.Height);
 
@@ -198,10 +198,10 @@ namespace SixLabors.Primitives
         }
 
         /// <summary>
-        /// Deconstructs this size into two floats
+        /// Deconstructs this size into two floats.
         /// </summary>
-        /// <param name="width">The out value for the width</param>
-        /// <param name="height">The out value for the height</param>
+        /// <param name="width">The out value for the width.</param>
+        /// <param name="height">The out value for the height.</param>
         public void Deconstruct(out float width, out float height)
         {
             width = this.Width;

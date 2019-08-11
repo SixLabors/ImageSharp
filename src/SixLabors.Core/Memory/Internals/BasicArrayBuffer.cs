@@ -14,10 +14,10 @@ namespace SixLabors.Memory.Internals
         where T : struct
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="BasicArrayBuffer{T}"/> class
+        /// Initializes a new instance of the <see cref="BasicArrayBuffer{T}"/> class.
         /// </summary>
-        /// <param name="array">The array</param>
-        /// <param name="length">The length of the buffer</param>
+        /// <param name="array">The array.</param>
+        /// <param name="length">The length of the buffer.</param>
         public BasicArrayBuffer(T[] array, int length)
         {
             DebugGuard.MustBeLessThanOrEqualTo(length, array.Length, nameof(length));
@@ -26,21 +26,21 @@ namespace SixLabors.Memory.Internals
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BasicArrayBuffer{T}"/> class
+        /// Initializes a new instance of the <see cref="BasicArrayBuffer{T}"/> class.
         /// </summary>
-        /// <param name="array">The array</param>
+        /// <param name="array">The array.</param>
         public BasicArrayBuffer(T[] array)
             : this(array, array.Length)
         {
         }
 
         /// <summary>
-        /// Gets the array
+        /// Gets the array.
         /// </summary>
         public T[] Array { get; }
 
         /// <summary>
-        /// Gets the length
+        /// Gets the length.
         /// </summary>
         public int Length { get; }
 

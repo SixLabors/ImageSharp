@@ -26,7 +26,7 @@ namespace SixLabors.Primitives.Tests
         [Fact]
         public void DefaultConstructorTest()
         {
-            Assert.Equal(PointF.Empty, default(PointF));
+            Assert.Equal(default, PointF.Empty);
         }
 
         [Theory]

@@ -18,8 +18,8 @@ namespace SixLabors
         /// </summary>
         /// <param name="target">The target object, which cannot be null.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="target"/> is null</exception>
-        /// <typeparam name="T">The type of the object to verify</typeparam>
+        /// <exception cref="ArgumentNullException"><paramref name="target"/> is null.</exception>
+        /// <typeparam name="T">The type of the object to verify.</typeparam>
         [Conditional("DEBUG")]
         public static void NotNull<T>(T target, string parameterName)
             where T : class
@@ -119,12 +119,12 @@ namespace SixLabors
         /// <summary>
         /// Verifies, that the `target` array has declared the length  or longer.
         /// </summary>
-        /// <typeparam name="T">The element type of the spans</typeparam>
+        /// <typeparam name="T">The element type of the spans.</typeparam>
         /// <param name="target">The target array.</param>
         /// <param name="minLength">The min length the array must have.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <exception cref="ArgumentException">
-        /// <paramref name="target"/> is true
+        /// <paramref name="target"/> is true.
         /// </exception>
         [Conditional("DEBUG")]
         public static void MustBeSizedAtLeast<T>(T[] target, int minLength, string parameterName)

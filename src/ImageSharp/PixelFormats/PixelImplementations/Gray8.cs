@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -16,12 +16,6 @@ namespace SixLabors.ImageSharp.PixelFormats
     {
         private static readonly Vector4 MaxBytes = new Vector4(255F);
         private static readonly Vector4 Half = new Vector4(0.5F);
-        private const float Average = 1 / 3F;
-
-        private static readonly Vector4 Min = new Vector4(0, 0, 0, 1f);
-        private static readonly Vector4 Max = Vector4.One;
-
-        private static readonly Vector4 Accumulator = new Vector4(255f * Average, 255f * Average, 255f * Average, 0.5f);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Gray8"/> struct.

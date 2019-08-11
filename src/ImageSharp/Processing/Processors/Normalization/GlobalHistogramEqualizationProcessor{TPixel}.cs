@@ -42,7 +42,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         {
             MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
             int numberOfPixels = source.Width * source.Height;
-            Span<TPixel> pixels = source.GetPixelSpan();
             var workingRect = new Rectangle(0, 0, source.Width, source.Height);
 
             using (IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))

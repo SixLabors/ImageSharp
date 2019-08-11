@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Processing;
@@ -13,14 +13,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
         public void Kodachrome_amount_KodachromeProcessorDefaultsSet()
         {
             this.operations.Kodachrome();
-            var processor = this.Verify<KodachromeProcessor>();
+            this.Verify<KodachromeProcessor>();
         }
 
         [Fact]
         public void Kodachrome_amount_rect_KodachromeProcessorDefaultsSet()
         {
             this.operations.Kodachrome(this.rect);
-            var processor = this.Verify<KodachromeProcessor>(this.rect);
+            this.Verify<KodachromeProcessor>(this.rect);
         }
     }
 }

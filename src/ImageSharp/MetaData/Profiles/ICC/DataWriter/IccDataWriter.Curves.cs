@@ -41,7 +41,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         public int WriteResponseCurve(IccResponseCurve value)
         {
             int count = this.WriteUInt32((uint)value.CurveType);
-            int channels = value.XyzValues.Length;
 
             foreach (IccResponseNumber[] responseArray in value.ResponseArrays)
             {

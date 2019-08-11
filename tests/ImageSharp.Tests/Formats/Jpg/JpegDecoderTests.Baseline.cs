@@ -36,6 +36,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [WithFileCollection(nameof(UnrecoverableTestJpegs), PixelTypes.Rgba32)]
         public void UnrecoverableImagesShouldThrowCorrectError<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel> => Assert.Throws<ImageFormatException>(() => provider.GetImage());
+            where TPixel : struct, IPixel<TPixel> => Assert.Throws<ImageFormatException>(provider.GetImage);
     }
 }

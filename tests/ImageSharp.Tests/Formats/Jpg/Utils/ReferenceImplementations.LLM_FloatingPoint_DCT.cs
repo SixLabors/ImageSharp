@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 float[] r = new float[8];
                 for (int i = 0; i < 8; i++)
                 {
-                    r[i] = (float)(Cos((double)i / 16.0 * M_PI) * M_SQRT2);
+                    r[i] = (float)(Cos(i / 16.0 * M_PI) * M_SQRT2);
                     output?.WriteLine($"float r{i} = {r[i]:R}f;");
                 }
                 return r;

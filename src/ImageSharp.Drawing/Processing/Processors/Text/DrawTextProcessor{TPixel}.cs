@@ -327,7 +327,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
                         bool scanlineDirty = false;
                         float yPlusOne = y + 1;
 
-                        for (float subPixel = (float)y; subPixel < yPlusOne; subPixel += subpixelFraction)
+                        for (float subPixel = y; subPixel < yPlusOne; subPixel += subpixelFraction)
                         {
                             var start = new PointF(path.Bounds.Left - 1, subPixel);
                             var end = new PointF(path.Bounds.Right + 1, subPixel);

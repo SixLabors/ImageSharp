@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 for (int i = startAt; i < 64; i++)
                 {
                     float expected = original[i];
-                    float actual = (float)block[i];
+                    float actual = block[i];
 
                     Assert.Equal(expected, actual, new ApproximateFloatComparer(3f));
                 }

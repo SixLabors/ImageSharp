@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                         }
 
                         float yPlusOne = y + 1;
-                        for (float subPixel = (float)y; subPixel < yPlusOne; subPixel += subpixelFraction)
+                        for (float subPixel = y; subPixel < yPlusOne; subPixel += subpixelFraction)
                         {
                             int pointsFound = region.Scan(subPixel + offset, buffer, configuration);
                             if (pointsFound == 0)

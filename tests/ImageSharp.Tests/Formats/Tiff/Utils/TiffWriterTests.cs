@@ -1,13 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Tests
+using System.IO;
+using SixLabors.ImageSharp.Formats.Tiff;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
-    using System.IO;
-    using Xunit;
-
-    using ImageSharp.Formats.Tiff;
-
+    [Trait("Category", "Tiff")]
     public class TiffWriterTests
     {
         [Fact]

@@ -4,7 +4,7 @@
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Formats.Tiff;
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
     /// Encapsulates the means to encode and decode Tiff images.

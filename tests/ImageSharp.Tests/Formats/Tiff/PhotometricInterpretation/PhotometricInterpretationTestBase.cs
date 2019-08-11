@@ -1,16 +1,17 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using Xunit;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
-    using System;
-    using Xunit;
-    using ImageSharp;
-    using SixLabors.ImageSharp.Memory;
-
+    [Trait("Category", "Tiff")]
     public abstract class PhotometricInterpretationTestBase
     {
         public static Rgba32 DefaultColor = new Rgba32(42, 96, 18, 128);

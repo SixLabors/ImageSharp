@@ -135,21 +135,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
 
             private readonly PathBuilder builder;
 
-            private Point currentRenderPosition = default;
-            private (GlyphRendererParameters glyph, PointF subPixelOffset) currentGlyphRenderParams = default;
-            private readonly int offset = 0;
-            private PointF currentPoint = default(PointF);
+            private Point currentRenderPosition;
+            private (GlyphRendererParameters glyph, PointF subPixelOffset) currentGlyphRenderParams;
+            private readonly int offset;
+            private PointF currentPoint;
 
             private readonly Dictionary<(GlyphRendererParameters glyph, PointF subPixelOffset), GlyphRenderData>
                 glyphData = new Dictionary<(GlyphRendererParameters glyph, PointF subPixelOffset), GlyphRenderData>();
 
-            private readonly bool renderOutline = false;
-            private readonly bool renderFill = false;
-            private bool rasterizationRequired = false;
+            private readonly bool renderOutline;
+            private readonly bool renderFill;
+            private bool rasterizationRequired;
 
             public CachingGlyphRenderer(MemoryAllocator memoryAllocator, int size, IPen pen, bool renderFill)
             {
                 this.MemoryAllocator = memoryAllocator;
+                this.currentRenderPosition = default;
                 this.Pen = pen;
                 this.renderFill = renderFill;
                 this.renderOutline = pen != null;

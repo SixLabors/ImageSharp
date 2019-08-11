@@ -354,7 +354,7 @@ namespace SixLabors.ImageSharp.Tests
 
             private static readonly object Monitor = new object();
 
-            private string callerName = null;
+            private string callerName;
 
             public static void DoTestThreadSafe(Action action)
             {
@@ -389,7 +389,7 @@ namespace SixLabors.ImageSharp.Tests
 
             private static readonly object Monitor = new object();
 
-            private string callerName = null;
+            private string callerName;
 
             public string Param1 { get; set; }
 

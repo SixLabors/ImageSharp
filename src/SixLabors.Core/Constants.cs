@@ -4,7 +4,7 @@
 namespace SixLabors
 {
     /// <summary>
-    /// Common constants used throughout the project
+    /// Common constants used throughout the project.
     /// </summary>
     internal static class Constants
     {

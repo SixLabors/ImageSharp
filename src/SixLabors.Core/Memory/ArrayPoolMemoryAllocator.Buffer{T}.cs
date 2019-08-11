@@ -9,7 +9,7 @@ using SixLabors.Memory.Internals;
 namespace SixLabors.Memory
 {
     /// <summary>
-    /// Contains <see cref="Buffer{T}"/> and <see cref="ManagedByteBuffer"/>
+    /// Contains <see cref="Buffer{T}"/> and <see cref="ManagedByteBuffer"/>.
     /// </summary>
     public partial class ArrayPoolMemoryAllocator
     {
@@ -20,7 +20,7 @@ namespace SixLabors.Memory
             where T : struct
         {
             /// <summary>
-            /// The length of the buffer
+            /// The length of the buffer.
             /// </summary>
             private readonly int length;
 

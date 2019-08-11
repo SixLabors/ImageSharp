@@ -5,6 +5,8 @@
     <!-- Test only ignores -->
     <Rule Id="SA0001" Action="None" />
     <Rule Id="SA1117" Action="None" />
+    <Rule Id="SA1201" Action="None" />
+    <Rule Id="SA1202" Action="None" />
     <Rule Id="SA1600" Action="None" />
   </Rules>
 </RuleSet>

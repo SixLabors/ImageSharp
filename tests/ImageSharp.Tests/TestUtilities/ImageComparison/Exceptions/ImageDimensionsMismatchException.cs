@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
     public class ImageDimensionsMismatchException : ImagesSimilarityException
     {
         public ImageDimensionsMismatchException(Size expectedSize, Size actualSize)
-            : base((string)$"The image dimensions {actualSize} do not match the expected {expectedSize}!")
+            : base($"The image dimensions {actualSize} do not match the expected {expectedSize}!")
         {
             this.ExpectedSize = expectedSize;
             this.ActualSize = actualSize;

@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             { ExifDataType.SignedByte, new byte[] { 2 } },
             { ExifDataType.SignedShort, BitConverter.GetBytes((short) 3) },
             { ExifDataType.Long, BitConverter.GetBytes((uint) 4) },
-            { ExifDataType.SignedLong, BitConverter.GetBytes((int) 5) }
+            { ExifDataType.SignedLong, BitConverter.GetBytes(5) }
         };
 
         public static readonly TheoryData<ushort> ExifOrientationValues = new TheoryData<ushort>

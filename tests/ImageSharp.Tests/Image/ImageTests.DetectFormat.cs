@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -24,8 +24,6 @@ namespace SixLabors.ImageSharp.Tests
             private ReadOnlySpan<byte> ActualImageSpan => this.ActualImageBytes.AsSpan();
 
             private byte[] ByteArray => this.DataStream.ToArray();
-
-            private ReadOnlySpan<byte> ByteSpan => this.ByteArray.AsSpan();
 
             private IImageFormat LocalImageFormat => this.localImageFormatMock.Object;
 

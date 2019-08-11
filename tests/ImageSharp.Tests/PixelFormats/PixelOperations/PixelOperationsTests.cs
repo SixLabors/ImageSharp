@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -816,7 +816,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 
                 for (int i = 0; i < count; i++)
                 {
-                    int i2 = i * 2;
                     expected[i].FromGray16(source[i]);
                 }
 

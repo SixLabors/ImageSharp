@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Processing;
@@ -13,14 +13,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Effects
         public void Invert_InvertProcessorDefaultsSet()
         {
             this.operations.Invert();
-            var processor = this.Verify<InvertProcessor>();
+            this.Verify<InvertProcessor>();
         }
 
         [Fact]
         public void Pixelate_rect_PixelateProcessorDefaultsSet()
         {
             this.operations.Invert(this.rect);
-            var processor = this.Verify<InvertProcessor>(this.rect);
+            this.Verify<InvertProcessor>(this.rect);
         }
     }
 }

@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             bool useGlobalTable = this.colorTableMode == GifColorTableMode.Global;
 
             // Quantize the image returning a palette.
-            IQuantizedFrame<TPixel> quantized = null;
+            IQuantizedFrame<TPixel> quantized;
             using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(image.GetConfiguration()))
             {
                 quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame);

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             float[] result = new float[src.Length];
             for (int i = 0; i < src.Length; i++)
             {
-                result[i] = (float)src[i];
+                result[i] = src[i];
             }
 
             return result;

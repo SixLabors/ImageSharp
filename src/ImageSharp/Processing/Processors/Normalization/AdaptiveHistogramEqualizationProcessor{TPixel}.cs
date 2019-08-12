@@ -77,25 +77,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     new ParallelOptions { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism },
                     index =>
                         {
-                            int cdfX = 0;
-                            int tileX = 0;
-                            int tileY = 0;
                             int y = tileYStartPositions[index].y;
                             int cdfYY = tileYStartPositions[index].cdfY;
 
                             // It's unfortunate that we have to do this per iteration.
                             ref TPixel sourceBase = ref source.GetPixelReference(0, 0);
 
-                            cdfX = 0;
+                            int cdfX = 0;
                             for (int x = halfTileWidth; x < sourceWidth - halfTileWidth; x += tileWidth)
                             {
-                                tileY = 0;
+                                int tileY = 0;
                                 int yEnd = Math.Min(y + tileHeight, sourceHeight);
                                 int xEnd = Math.Min(x + tileWidth, sourceWidth);
                                 for (int dy = y; dy < yEnd; dy++)
                                 {
                                     int dyOffSet = dy * sourceWidth;
-                                    tileX = 0;
+                                    int tileX = 0;
                                     for (int dx = x; dx < xEnd; dx++)
                                     {
                                         ref TPixel pixel = ref Unsafe.Add(ref sourceBase, dyOffSet + dx);

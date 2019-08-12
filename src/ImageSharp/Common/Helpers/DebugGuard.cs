@@ -31,6 +31,26 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Verifies, that the method parameter with specified object value is null
+        /// and throws an exception if it is not.
+        /// </summary>
+        /// <typeparam name="T">The type of the value.</typeparam>
+        /// <param name="value">The target object, which should be null.</param>
+        /// <param name="parameterName">The name of the parameter that is to be checked.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Value must be null.</exception>
+        [Conditional("DEBUG")]
+        public static void MustBeNull<T>(T value, string parameterName)
+            where T : class
+        {
+            if (!(value is null))
+            {
+                throw new ArgumentOutOfRangeException(
+                    parameterName,
+                    $"Value must be null.");
+            }
+        }
+
+        /// <summary>
         /// Verifies that the specified value is less than a maximum value
         /// and throws an exception if it is not.
         /// </summary>

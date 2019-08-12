@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
-using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
@@ -191,7 +191,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             AssertDecode(expectedResult, pixels =>
                 {
-                    RgbPlanarTiffColor.Decode(inputData, bitsPerSample, pixels, left, top, width, height);
+                    new RgbPlanarTiffColor<Rgba32>(bitsPerSample).Decode(inputData, pixels, left, top, width, height);
                 });
         }
     }

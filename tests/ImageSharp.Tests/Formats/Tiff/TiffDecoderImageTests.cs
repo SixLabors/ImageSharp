@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
@@ -394,7 +395,7 @@ namespace SixLabors.ImageSharp.Tests
 
             var e = Assert.Throws<ImageFormatException>(() => decoder.ReadImageFormat(ifd));
 
-            Assert.Equal("The TIFF ColorMap entry is missing for a pallete color image.", e.Message);
+            Assert.Equal("The TIFF ColorMap entry is missing for a palette color image.", e.Message);
         }
 
         [Theory]

@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
-using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
@@ -126,7 +126,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             AssertDecode(expectedResult, pixels =>
                 {
-                    WhiteIsZeroTiffColor.Decode(inputData, new[] { (uint)bitsPerSample }, pixels, left, top, width, height);
+                    new WhiteIsZeroTiffColor<Rgba32>(new[] { (uint)bitsPerSample }).Decode(inputData, pixels, left, top, width, height);
                 });
         }
 
@@ -136,7 +136,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             AssertDecode(expectedResult, pixels =>
                 {
-                    WhiteIsZero1TiffColor.Decode(inputData, pixels, left, top, width, height);
+                    new WhiteIsZero1TiffColor<Rgba32>().Decode(inputData, pixels, left, top, width, height);
                 });
         }
 
@@ -146,7 +146,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             AssertDecode(expectedResult, pixels =>
                 {
-                    WhiteIsZero4TiffColor.Decode(inputData, pixels, left, top, width, height);
+                    new WhiteIsZero4TiffColor<Rgba32>().Decode(inputData, pixels, left, top, width, height);
                 });
         }
 
@@ -156,7 +156,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             AssertDecode(expectedResult, pixels =>
                 {
-                    WhiteIsZero8TiffColor.Decode(inputData, pixels, left, top, width, height);
+                    new WhiteIsZero8TiffColor<Rgba32>().Decode(inputData, pixels, left, top, width, height);
                 });
         }
     }

@@ -7,32 +7,37 @@ using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 {
     /// <summary>
     /// Implements the 'PaletteTiffColor' photometric interpretation (for all bit depths).
     /// </summary>
-    internal static class PaletteTiffColor
+    internal class PaletteTiffColor<TPixel> : TiffColorDecoder<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
+        private readonly uint bitsPerSample0;
+
+        private readonly TPixel[] palette;
+
+        public PaletteTiffColor(uint[] bitsPerSample, uint[] colorMap)
+            : base(bitsPerSample, colorMap)
+        {
+            this.bitsPerSample0 = bitsPerSample[0];
+            int colorCount = 1 << (int)this.bitsPerSample0;
+            this.palette = GeneratePalette(colorMap, colorCount);
+        }
+
         /// <summary>
         /// Decodes pixel data using the current photometric interpretation.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="data">The buffer to read image data from.</param>
-        /// <param name="bitsPerSample">The number of bits per sample for each pixel.</param>
-        /// <param name="colorMap">The RGB color lookup table to use for decoding the image.</param>
         /// <param name="pixels">The image buffer to write pixels to.</param>
         /// <param name="left">The x-coordinate of the left-hand side of the image block.</param>
         /// <param name="top">The y-coordinate of the  top of the image block.</param>
         /// <param name="width">The width of the image block.</param>
         /// <param name="height">The height of the image block.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Decode<TPixel>(byte[] data, uint[] bitsPerSample, uint[] colorMap, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
-            where TPixel : struct, IPixel<TPixel>
+        public override void Decode(byte[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
         {
-            int colorCount = (int)Math.Pow(2, bitsPerSample[0]);
-            TPixel[] palette = GeneratePalette<TPixel>(colorMap, colorCount);
-
             BitReader bitReader = new BitReader(data);
 
             for (int y = top; y < top + height; y++)
@@ -41,8 +46,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 for (int x = left; x < left + width; x++)
                 {
-                    int index = bitReader.ReadBits(bitsPerSample[0]);
-                    buffer[x] = palette[index];
+                    int index = bitReader.ReadBits(this.bitsPerSample0);
+                    buffer[x] = this.palette[index];
                 }
 
                 bitReader.NextRow();
@@ -50,8 +55,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TPixel[] GeneratePalette<TPixel>(uint[] colorMap, int colorCount)
-            where TPixel : struct, IPixel<TPixel>
+        private static TPixel[] GeneratePalette(uint[] colorMap, int colorCount)
         {
             TPixel[] palette = new TPixel[colorCount];
 

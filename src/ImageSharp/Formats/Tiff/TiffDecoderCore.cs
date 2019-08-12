@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.IO;
 using System.Text;
+using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
@@ -508,7 +509,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     }
                     else
                     {
-                        throw new ImageFormatException("The TIFF ColorMap entry is missing for a pallete color image.");
+                        throw new ImageFormatException("The TIFF ColorMap entry is missing for a palette color image.");
                     }
 
                     break;
@@ -569,82 +570,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     break;
                 case TiffCompressionType.Lzw:
                     LzwTiffCompression.Decompress(this.InputStream, (int)byteCount, buffer);
-                    break;
-                default:
-                    throw new InvalidOperationException();
-            }
-        }
-
-        /// <summary>
-        /// Decodes pixel data using the current photometric interpretation (chunky configuration).
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="data">The buffer to read image data from.</param>
-        /// <param name="pixels">The image buffer to write pixels to.</param>
-        /// <param name="left">The x-coordinate of the left-hand side of the image block.</param>
-        /// <param name="top">The y-coordinate of the  top of the image block.</param>
-        /// <param name="width">The width of the image block.</param>
-        /// <param name="height">The height of the image block.</param>
-        public void ProcessImageBlockChunky<TPixel>(byte[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            switch (this.ColorType)
-            {
-                case TiffColorType.WhiteIsZero:
-                    WhiteIsZeroTiffColor.Decode(data, this.BitsPerSample, pixels, left, top, width, height);
-                    break;
-                case TiffColorType.WhiteIsZero1:
-                    WhiteIsZero1TiffColor.Decode(data, pixels, left, top, width, height);
-                    break;
-                case TiffColorType.WhiteIsZero4:
-                    WhiteIsZero4TiffColor.Decode(data, pixels, left, top, width, height);
-                    break;
-                case TiffColorType.WhiteIsZero8:
-                    WhiteIsZero8TiffColor.Decode(data, pixels, left, top, width, height);
-                    break;
-                case TiffColorType.BlackIsZero:
-                    BlackIsZeroTiffColor.Decode(data, this.BitsPerSample, pixels, left, top, width, height);
-                    break;
-                case TiffColorType.BlackIsZero1:
-                    BlackIsZero1TiffColor.Decode(data, pixels, left, top, width, height);
-                    break;
-                case TiffColorType.BlackIsZero4:
-                    BlackIsZero4TiffColor.Decode(data, pixels, left, top, width, height);
-                    break;
-                case TiffColorType.BlackIsZero8:
-                    BlackIsZero8TiffColor.Decode(data, pixels, left, top, width, height);
-                    break;
-                case TiffColorType.Rgb:
-                    RgbTiffColor.Decode(data, this.BitsPerSample, pixels, left, top, width, height);
-                    break;
-                case TiffColorType.Rgb888:
-                    Rgb888TiffColor.Decode(data, pixels, left, top, width, height);
-                    break;
-                case TiffColorType.PaletteColor:
-                    PaletteTiffColor.Decode(data, this.BitsPerSample, this.ColorMap, pixels, left, top, width, height);
-                    break;
-                default:
-                    throw new InvalidOperationException();
-            }
-        }
-
-        /// <summary>
-        /// Decodes pixel data using the current photometric interpretation (planar configuration).
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="data">The buffer to read image data from.</param>
-        /// <param name="pixels">The image buffer to write pixels to.</param>
-        /// <param name="left">The x-coordinate of the left-hand side of the image block.</param>
-        /// <param name="top">The y-coordinate of the  top of the image block.</param>
-        /// <param name="width">The width of the image block.</param>
-        /// <param name="height">The height of the image block.</param>
-        public void ProcessImageBlockPlanar<TPixel>(byte[][] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            switch (this.ColorType)
-            {
-                case TiffColorType.RgbPlanar:
-                    RgbPlanarTiffColor.Decode(data, this.BitsPerSample, pixels, left, top, width, height);
                     break;
                 default:
                     throw new InvalidOperationException();
@@ -1247,6 +1172,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             try
             {
+                TiffColorDecoder<TPixel> chunkyDecoder = null;
+                RgbPlanarTiffColor<TPixel> planarDecoder = null;
+                if (this.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
+                {
+                    chunkyDecoder = TiffColorDecoderFactory<TPixel>.Create(this.ColorType, this.BitsPerSample, this.ColorMap);
+                }
+                else
+                {
+                    planarDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(this.ColorType, this.BitsPerSample, this.ColorMap);
+                }
+
                 for (int i = 0; i < stripsPerPlane; i++)
                 {
                     int stripHeight = i < stripsPerPlane - 1 || image.Height % rowsPerStrip == 0 ? rowsPerStrip : image.Height % rowsPerStrip;
@@ -1259,11 +1195,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                     if (this.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
                     {
-                        this.ProcessImageBlockChunky(stripBytes[0], pixels, 0, rowsPerStrip * i, image.Width, stripHeight);
+                        chunkyDecoder.Decode(stripBytes[0], pixels, 0, rowsPerStrip * i, image.Width, stripHeight);
                     }
                     else
                     {
-                        this.ProcessImageBlockPlanar(stripBytes, pixels, 0, rowsPerStrip * i, image.Width, stripHeight);
+                        planarDecoder.Decode(stripBytes, pixels, 0, rowsPerStrip * i, image.Width, stripHeight);
                     }
                 }
             }

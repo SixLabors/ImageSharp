@@ -218,7 +218,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int xEnd,
             int luminanceLevels)
         {
-            int halfTileWidth = tileWidth / 2;
             int halfTileHeight = tileHeight / 2;
 
             int cdfY = 0;
@@ -229,13 +228,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 for (int dy = y; dy < yLimit; dy++)
                 {
                     int dyOffSet = dy * sourceWidth;
-                    int tileX = halfTileWidth;
                     for (int dx = xStart; dx < xEnd; dx++)
                     {
                         ref TPixel pixel = ref Unsafe.Add(ref pixelBase, dyOffSet + dx);
                         float luminanceEqualized = InterpolateBetweenTwoTiles(pixel, cdfData, cdfX, cdfY, cdfX, cdfY + 1, tileY, tileHeight, luminanceLevels);
                         pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
-                        tileX++;
                     }
 
                     tileY++;

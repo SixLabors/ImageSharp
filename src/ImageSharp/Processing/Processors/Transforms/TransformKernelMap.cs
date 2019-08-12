@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -130,9 +130,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         [MethodImpl(InliningOptions.ShortMethod)]
         private void CalculateWeights(int min, int max, float point, ref float weightsRef)
         {
+            float sum = 0;
             for (int x = 0, i = min; i <= max; i++, x++)
             {
                 float weight = this.sampler.GetValue(i - point);
+                sum += weight;
                 Unsafe.Add(ref weightsRef, x) = weight;
             }
         }

@@ -271,7 +271,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int cdfX = 0;
             for (int x = halfTileWidth; x < sourceWidth - halfTileWidth; x += tileWidth)
             {
-                int tileY = 0;
                 for (int dy = yStart; dy < yEnd; dy++)
                 {
                     int dyOffSet = dy * sourceWidth;
@@ -284,8 +283,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
                         tileX++;
                     }
-
-                    tileY++;
                 }
 
                 cdfX++;

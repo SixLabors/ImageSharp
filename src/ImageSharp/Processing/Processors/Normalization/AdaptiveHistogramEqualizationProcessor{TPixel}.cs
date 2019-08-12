@@ -126,11 +126,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 ref TPixel pixelsBase = ref source.GetPixelReference(0, 0);
 
                 // Fix left column
-                ProcessBorderColumn(ref pixelsBase, cdfData, 0, sourceWidth, sourceHeight, tileWidth, tileHeight, xStart: 0, xEnd: halfTileWidth, luminanceLevels);
+                ProcessBorderColumn(ref pixelsBase, cdfData, 0, sourceWidth, sourceHeight, tileHeight, xStart: 0, xEnd: halfTileWidth, luminanceLevels);
 
                 // Fix right column
                 int rightBorderStartX = ((this.Tiles - 1) * tileWidth) + halfTileWidth;
-                ProcessBorderColumn(ref pixelsBase, cdfData, this.Tiles - 1, sourceWidth, sourceHeight, tileWidth, tileHeight, xStart: rightBorderStartX, xEnd: sourceWidth, luminanceLevels);
+                ProcessBorderColumn(ref pixelsBase, cdfData, this.Tiles - 1, sourceWidth, sourceHeight, tileHeight, xStart: rightBorderStartX, xEnd: sourceWidth, luminanceLevels);
 
                 // Fix top row
                 ProcessBorderRow(ref pixelsBase, cdfData, 0, sourceWidth, tileWidth, yStart: 0, yEnd: halfTileHeight, luminanceLevels);
@@ -201,7 +201,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="cdfX">The X index of the lookup table to use.</param>
         /// <param name="sourceWidth">The source image width.</param>
         /// <param name="sourceHeight">The source image height.</param>
-        /// <param name="tileWidth">The width of a tile.</param>
         /// <param name="tileHeight">The height of a tile.</param>
         /// <param name="xStart">X start position in the image.</param>
         /// <param name="xEnd">X end position of the image.</param>
@@ -215,13 +214,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int cdfX,
             int sourceWidth,
             int sourceHeight,
-            int tileWidth,
             int tileHeight,
             int xStart,
             int xEnd,
             int luminanceLevels)
         {
-            int halfTileWidth = tileWidth / 2;
             int halfTileHeight = tileHeight / 2;
 
             int cdfY = 0;
@@ -232,13 +229,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 for (int dy = y; dy < yLimit; dy++)
                 {
                     int dyOffSet = dy * sourceWidth;
-                    int tileX = halfTileWidth;
                     for (int dx = xStart; dx < xEnd; dx++)
                     {
                         ref TPixel pixel = ref Unsafe.Add(ref pixelBase, dyOffSet + dx);
                         float luminanceEqualized = InterpolateBetweenTwoTiles(pixel, cdfData, cdfX, cdfY, cdfX, cdfY + 1, tileY, tileHeight, luminanceLevels);
                         pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
-                        tileX++;
                     }
 
                     tileY++;
@@ -277,7 +272,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int cdfX = 0;
             for (int x = halfTileWidth; x < sourceWidth - halfTileWidth; x += tileWidth)
             {
-                int tileY = 0;
                 for (int dy = yStart; dy < yEnd; dy++)
                 {
                     int dyOffSet = dy * sourceWidth;
@@ -290,8 +284,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
                         tileX++;
                     }
-
-                    tileY++;
                 }
 
                 cdfX++;

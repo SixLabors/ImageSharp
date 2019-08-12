@@ -77,25 +77,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     new ParallelOptions { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism },
                     index =>
                         {
-                            int cdfX = 0;
-                            int tileX = 0;
-                            int tileY = 0;
                             int y = tileYStartPositions[index].y;
                             int cdfYY = tileYStartPositions[index].cdfY;
 
                             // It's unfortunate that we have to do this per iteration.
                             ref TPixel sourceBase = ref source.GetPixelReference(0, 0);
 
-                            cdfX = 0;
+                            int cdfX = 0;
                             for (int x = halfTileWidth; x < sourceWidth - halfTileWidth; x += tileWidth)
                             {
-                                tileY = 0;
+                                int tileY = 0;
                                 int yEnd = Math.Min(y + tileHeight, sourceHeight);
                                 int xEnd = Math.Min(x + tileWidth, sourceWidth);
                                 for (int dy = y; dy < yEnd; dy++)
                                 {
                                     int dyOffSet = dy * sourceWidth;
-                                    tileX = 0;
+                                    int tileX = 0;
                                     for (int dx = x; dx < xEnd; dx++)
                                     {
                                         ref TPixel pixel = ref Unsafe.Add(ref sourceBase, dyOffSet + dx);
@@ -221,7 +218,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int xEnd,
             int luminanceLevels)
         {
-            int halfTileWidth = tileWidth / 2;
             int halfTileHeight = tileHeight / 2;
 
             int cdfY = 0;
@@ -232,13 +228,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 for (int dy = y; dy < yLimit; dy++)
                 {
                     int dyOffSet = dy * sourceWidth;
-                    int tileX = halfTileWidth;
                     for (int dx = xStart; dx < xEnd; dx++)
                     {
                         ref TPixel pixel = ref Unsafe.Add(ref pixelBase, dyOffSet + dx);
                         float luminanceEqualized = InterpolateBetweenTwoTiles(pixel, cdfData, cdfX, cdfY, cdfX, cdfY + 1, tileY, tileHeight, luminanceLevels);
                         pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
-                        tileX++;
                     }
 
                     tileY++;
@@ -277,7 +271,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int cdfX = 0;
             for (int x = halfTileWidth; x < sourceWidth - halfTileWidth; x += tileWidth)
             {
-                int tileY = 0;
                 for (int dy = yStart; dy < yEnd; dy++)
                 {
                     int dyOffSet = dy * sourceWidth;
@@ -290,8 +283,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
                         tileX++;
                     }
-
-                    tileY++;
                 }
 
                 cdfX++;

@@ -7,6 +7,24 @@ namespace SixLabors.ImageSharp.Tests
 {
     public class ImageCloneTests
     {
+        [Fact]
+        public void CloneAs_WhenDisposed_Throws()
+        {
+            Image<Rgba32> image = new Image<Rgba32>(5, 5);
+            image.Dispose();
+
+            Assert.Throws<ObjectDisposedException>(() => image.CloneAs<Bgra32>());
+        }
+
+        [Fact]
+        public void Clone_WhenDisposed_Throws()
+        {
+            Image<Rgba32> image = new Image<Rgba32>(5, 5);
+            image.Dispose();
+
+            Assert.Throws<ObjectDisposedException>(() => image.Clone());
+        }
+
         [Theory]
         [WithTestPatternImages(9, 9, PixelTypes.Rgba32)]
         public void CloneAs_ToBgra32(TestImageProvider<Rgba32> provider)

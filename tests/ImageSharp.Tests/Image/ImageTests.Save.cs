@@ -4,6 +4,10 @@
 // ReSharper disable InconsistentNaming
 
 using System;
+using System.IO;
+
+using Moq;
+
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -63,6 +67,18 @@ namespace SixLabors.ImageSharp.Tests
                 using (Image.Load(file, out var mime))
                 {
                     Assert.Equal("image/png", mime.DefaultMimeType);
+                }
+            }
+
+            [Fact]
+            public void ThrowsWhenDisposed()
+            {
+                var image = new Image<Rgba32>(5, 5);
+                image.Dispose();
+                IImageEncoder encoder = Mock.Of<IImageEncoder>();
+                using (MemoryStream stream = new MemoryStream())
+                {
+                    Assert.Throws<ObjectDisposedException>(() => image.Save(stream, encoder));
                 }
             }
         }

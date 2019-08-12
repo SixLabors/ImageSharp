@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests
             this.fileSystem.Setup(x => x.Create("path.png")).Returns(stream);
             this.Image.Save("path.png");
 
-            this.encoder.Verify(x => x.Encode<Rgba32>(this.Image, stream));
+            this.encoder.Verify(x => x.Encode(this.Image, stream));
         }
 
 
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests
 
             this.Image.Save("path.jpg", this.encoderNotInFormat.Object);
 
-            this.encoderNotInFormat.Verify(x => x.Encode<Rgba32>(this.Image, stream));
+            this.encoderNotInFormat.Verify(x => x.Encode(this.Image, stream));
         }
 
         [Fact]
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             string str = this.Image.ToBase64String(this.localImageFormat.Object);
 
-            this.encoder.Verify(x => x.Encode<Rgba32>(this.Image, It.IsAny<Stream>()));
+            this.encoder.Verify(x => x.Encode(this.Image, It.IsAny<Stream>()));
         }
 
         [Fact]
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests
             Stream stream = new MemoryStream();
             this.Image.Save(stream, this.localImageFormat.Object);
 
-            this.encoder.Verify(x => x.Encode<Rgba32>(this.Image, stream));
+            this.encoder.Verify(x => x.Encode(this.Image, stream));
         }
 
         [Fact]
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Tests
 
             this.Image.Save(stream, this.encoderNotInFormat.Object);
 
-            this.encoderNotInFormat.Verify(x => x.Encode<Rgba32>(this.Image, stream));
+            this.encoderNotInFormat.Verify(x => x.Encode(this.Image, stream));
         }
 
         public void Dispose()

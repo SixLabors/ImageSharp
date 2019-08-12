@@ -150,7 +150,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 outStream.Position = 0;
                 var clone = Image.Load<Rgba32>(outStream);
 
-                GifMetadata cloneMetaData = clone.Metadata.GetFormatMetadata<GifMetadata>(GifFormat.Instance);
+                GifMetadata cloneMetaData = clone.Metadata.GetFormatMetadata(GifFormat.Instance);
                 Assert.Equal(metaData.ColorTableMode, cloneMetaData.ColorTableMode);
 
                 // Gifiddle and Cyotek GifInfo say this image has 64 colors.

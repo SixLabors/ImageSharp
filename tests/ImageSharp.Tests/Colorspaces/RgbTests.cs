@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             const byte g = 128;
             const byte b = 255;
 
-            var rgb24 = new Rgb(r / 255F, g / 255F, b / 255F);
+            Rgb24 rgb24 = new Rgb(r / 255F, g / 255F, b / 255F);
             Rgb rgb2 = rgb24;
 
             Assert.Equal(r, rgb24.R);

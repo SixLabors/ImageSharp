@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Processing
             Guard.NotNull(operation, nameof(operation));
             source.EnsureNotDisposed();
 
-            ProcessingVisitor visitor = new ProcessingVisitor(operation, true);
+            var visitor = new ProcessingVisitor(operation, true);
             source.AcceptVisitor(visitor);
         }
 
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Processing
             Guard.NotNull(operation, nameof(operation));
             source.EnsureNotDisposed();
 
-            ProcessingVisitor visitor = new ProcessingVisitor(operation, false);
+            var visitor = new ProcessingVisitor(operation, false);
             source.AcceptVisitor(visitor);
             return visitor.ResultImage;
         }

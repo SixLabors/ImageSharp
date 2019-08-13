@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 #if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[255];
 #else
-            byte[] buffer = new byte[255];
+            var buffer = new byte[255];
 #endif
 
             while (xyz < length)

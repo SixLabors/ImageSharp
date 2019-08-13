@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void CloneAs_WhenDisposed_Throws()
         {
-            Image<Rgba32> image = new Image<Rgba32>(5, 5);
+            var image = new Image<Rgba32>(5, 5);
             image.Dispose();
 
             Assert.Throws<ObjectDisposedException>(() => image.CloneAs<Bgra32>());
@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Clone_WhenDisposed_Throws()
         {
-            Image<Rgba32> image = new Image<Rgba32>(5, 5);
+            var image = new Image<Rgba32>(5, 5);
             image.Dispose();
 
             Assert.Throws<ObjectDisposedException>(() => image.Clone());

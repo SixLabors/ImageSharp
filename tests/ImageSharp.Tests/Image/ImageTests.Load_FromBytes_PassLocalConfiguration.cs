@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 this.TestFormat.VerifySpecificDecodeCall<Rgb24>(this.Marker, this.TopLevelConfiguration);
             }
-            
+
             [Theory]
             [InlineData(false)]
             [InlineData(true)]
@@ -47,14 +47,14 @@ namespace SixLabors.ImageSharp.Tests
 
                 this.TestFormat.VerifyAgnosticDecodeCall(this.Marker, this.TopLevelConfiguration);
             }
-            
+
             [Theory]
             [InlineData(false)]
             [InlineData(true)]
             public void Configuration_Bytes_Decoder_Specific(bool useSpan)
             {
-                TestFormat localFormat = new TestFormat();
-                
+                var localFormat = new TestFormat();
+
                 var img = useSpan ?
                               Image.Load<Rgba32>(this.TopLevelConfiguration, this.ByteSpan, localFormat.Decoder) :
                               Image.Load<Rgba32>(this.TopLevelConfiguration, this.ByteArray, localFormat.Decoder);
@@ -62,14 +62,14 @@ namespace SixLabors.ImageSharp.Tests
                 Assert.NotNull(img);
                 localFormat.VerifySpecificDecodeCall<Rgba32>(this.Marker, this.TopLevelConfiguration);
             }
-            
+
             [Theory]
             [InlineData(false)]
             [InlineData(true)]
             public void Configuration_Bytes_Decoder_Agnostic(bool useSpan)
             {
-                TestFormat localFormat = new TestFormat();
-                
+                var localFormat = new TestFormat();
+
                 var img = useSpan ?
                               Image.Load(this.TopLevelConfiguration, this.ByteSpan, localFormat.Decoder) :
                               Image.Load(this.TopLevelConfiguration, this.ByteArray, localFormat.Decoder);
@@ -90,10 +90,10 @@ namespace SixLabors.ImageSharp.Tests
 
                 Assert.NotNull(img);
                 Assert.Equal(this.TestFormat, format);
-                
+
                 this.TestFormat.VerifySpecificDecodeCall<Bgr24>(this.Marker, this.TopLevelConfiguration);
             }
-            
+
             [Theory]
             [InlineData(false)]
             [InlineData(true)]
@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 Assert.NotNull(img);
                 Assert.Equal(this.TestFormat, format);
-                
+
                 this.TestFormat.VerifyAgnosticDecodeCall(this.Marker, this.TopLevelConfiguration);
             }
         }

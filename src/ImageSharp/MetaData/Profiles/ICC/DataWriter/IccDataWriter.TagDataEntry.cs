@@ -560,8 +560,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             // TODO: Investigate cost of Linq GroupBy
             IGrouping<string, IccLocalizedString>[] texts = value.Texts.GroupBy(t => t.Text).ToArray();
 
-            uint[] offset = new uint[texts.Length];
-            int[] lengths = new int[texts.Length];
+            var offset = new uint[texts.Length];
+            var lengths = new int[texts.Length];
 
             for (int i = 0; i < texts.Length; i++)
             {
@@ -746,7 +746,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             long tablePosition = this.dataStream.Position;
             this.dataStream.Position += value.Curves.Length * 4;
 
-            uint[] offset = new uint[value.Curves.Length];
+            var offset = new uint[value.Curves.Length];
 
             for (int i = 0; i < value.Curves.Length; i++)
             {

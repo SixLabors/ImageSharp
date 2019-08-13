@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 
 
             int[] expectedData = Enumerable.Repeat(0, minY).Concat(Enumerable.Range(minY, maxY - minY)).ToArray();
-            int[] actualData = new int[maxY];
+            var actualData = new int[maxY];
 
             ParallelHelper.IterateRows(
                 rectangle,
@@ -172,7 +172,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             var rectangle = new Rectangle(0, minY, 10, maxY - minY);
 
             int[] expectedData = Enumerable.Repeat(0, minY).Concat(Enumerable.Range(minY, maxY - minY)).ToArray();
-            int[] actualData = new int[maxY];
+            var actualData = new int[maxY];
 
             ParallelHelper.IterateRowsWithTempBuffer(
                 rectangle,

@@ -183,12 +183,12 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                                 break;
                             case PngChunkType.Palette:
-                                byte[] pal = new byte[chunk.Length];
+                                var pal = new byte[chunk.Length];
                                 Buffer.BlockCopy(chunk.Data.Array, 0, pal, 0, chunk.Length);
                                 this.palette = pal;
                                 break;
                             case PngChunkType.Transparency:
-                                byte[] alpha = new byte[chunk.Length];
+                                var alpha = new byte[chunk.Length];
                                 Buffer.BlockCopy(chunk.Data.Array, 0, alpha, 0, chunk.Length);
                                 this.paletteAlpha = alpha;
                                 this.AssignTransparentMarkers(alpha, pngMetadata);
@@ -205,7 +205,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                             case PngChunkType.Exif:
                                 if (!this.ignoreMetadata)
                                 {
-                                    byte[] exifData = new byte[chunk.Length];
+                                    var exifData = new byte[chunk.Length];
                                     Buffer.BlockCopy(chunk.Data.Array, 0, exifData, 0, chunk.Length);
                                     metadata.ExifProfile = new ExifProfile(exifData);
                                 }

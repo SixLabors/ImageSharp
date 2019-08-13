@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -828,7 +828,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         private void BuildCube()
         {
             this.colorCube = new Box[this.colors];
-            double[] vv = new double[this.colors];
+            var vv = new double[this.colors];
 
             ref Box cube = ref this.colorCube[0];
             cube.RMin = cube.GMin = cube.BMin = cube.AMin = 0;

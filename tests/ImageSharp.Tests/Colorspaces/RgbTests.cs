@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             const byte g = 128;
             const byte b = 255;
 
-            Rgb24 rgb24 = new Rgb(r / 255F, g / 255F, b / 255F);
+            var rgb24 = new Rgb(r / 255F, g / 255F, b / 255F);
             Rgb rgb2 = rgb24;
 
             Assert.Equal(r, rgb24.R);

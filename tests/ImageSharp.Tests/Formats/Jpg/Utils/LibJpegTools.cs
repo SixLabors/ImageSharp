@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                         result[i] = resultComponent;
                     }
 
-                    byte[] buffer = new byte[64 * sizeof(short)];
+                    var buffer = new byte[64 * sizeof(short)];
 
                     for (int i = 0; i < result.Length; i++)
                     {

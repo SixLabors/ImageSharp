@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
                 float scalingFactor = Math.Min(img.Width / size.Width, img.Height / size.Height);
 
                 //create a new font
-                Font scaledFont = new Font(font, scalingFactor * font.Size);
+                var scaledFont = new Font(font, scalingFactor * font.Size);
 
                 var center = new PointF(img.Width / 2, img.Height / 2);
                 var textGraphicOptions = new TextGraphicsOptions(true)

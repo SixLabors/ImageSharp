@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// <returns>The read matrix</returns>
         public float[,] ReadMatrix(int xCount, int yCount, bool isSingle)
         {
-            float[,] matrix = new float[xCount, yCount];
+            var matrix = new float[xCount, yCount];
             for (int y = 0; y < yCount; y++)
             {
                 for (int x = 0; x < xCount; x++)
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// <returns>The read matrix</returns>
         public float[] ReadMatrix(int yCount, bool isSingle)
         {
-            float[] matrix = new float[yCount];
+            var matrix = new float[yCount];
             for (int i = 0; i < yCount; i++)
             {
                 if (isSingle)

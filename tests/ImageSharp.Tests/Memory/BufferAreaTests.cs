@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             using (Buffer2D<int> buffer = CreateTestBuffer(20, 30))
             {
-                Rectangle r = new Rectangle(rx, ry, 5, 6);
+                var r = new Rectangle(rx, ry, 5, 6);
 
                 BufferArea<int> area = buffer.GetArea(r);
 
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             using (Buffer2D<int> buffer = CreateTestBuffer(20, 30))
             {
-                Rectangle r = new Rectangle(rx, ry, w, h);
+                var r = new Rectangle(rx, ry, w, h);
 
                 BufferArea<int> area = buffer.GetArea(r);
 

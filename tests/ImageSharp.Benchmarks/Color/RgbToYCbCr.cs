@@ -85,7 +85,6 @@ namespace SixLabors.ImageSharp.Benchmarks
             }
         }
 
-        // Waiting for C# 7 stackalloc keyword patiently ...
         private static class OnStackInputCache
         {
             public unsafe struct Byte

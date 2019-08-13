@@ -156,9 +156,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
                 double[][] values = new double[channelCount][];
                 for (int i = 0; i < channelCount; i++)
                 {
-                    values[i] = new double[2];
-                    values[i][0] = this.ReadUFix16();
-                    values[i][1] = this.ReadUFix16();
+                    values[i] = new double[] { this.ReadUFix16(), this.ReadUFix16() };
                 }
 
                 return new IccChromaticityTagDataEntry(values);

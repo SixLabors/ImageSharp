@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             where TPixel : struct, IPixel<TPixel>
         {
             Font font = CreateFont("OpenSans-Regular.ttf", 36);
-            Color color = Color.Black;
+            var color = Color.Black;
             var text = "A short piece of text";
 
             using (var img = provider.GetImage())
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             where TPixel : struct, IPixel<TPixel>
         {
             Font font = CreateFont(fontName, fontSize);
-            Color color = Color.Black;
+            var color = Color.Black;
 
             provider.VerifyOperation(
                 TextDrawingComparer,
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
                 HorizontalAlignment = HorizontalAlignment.Left,
             };
 
-            Color color = Color.Black;
+            var color = Color.Black;
 
             // Based on the reported 0.0270% difference with AccuracyMultiple = 8
             // We should avoid quality regressions leading to higher difference!
@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             where TPixel : struct, IPixel<TPixel>
         {
             Font font = CreateFont(fontName, fontSize);
-            Color color = Color.Black;
+            var color = Color.Black;
 
             provider.VerifyOperation(
                 OutlinedTextDrawingComparer,
@@ -182,7 +182,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             where TPixel : struct, IPixel<TPixel>
         {
             Font font = CreateFont(fontName, fontSize);
-            Color color = Color.Black;
+            var color = Color.Black;
 
             provider.VerifyOperation(
                 OutlinedTextDrawingComparer,

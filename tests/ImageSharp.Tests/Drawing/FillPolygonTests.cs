@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             where TPixel : struct, IPixel<TPixel>
         {
             var polygon = new SixLabors.Shapes.RectangularPolygon(10, 10, 190, 140);
-            Color color = Color.White;
+            var color = Color.White;
 
             provider.RunValidatingProcessorTest(
                 c => c.Fill(color, polygon),
@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             where TPixel : struct, IPixel<TPixel>
         {
             var polygon = new EllipsePolygon(100, 100, 80, 120);
-            Color color = Color.Azure;
+            var color = Color.Azure;
 
             provider.RunValidatingProcessorTest(
                 c => c.Fill(color, polygon),

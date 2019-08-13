@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                Color color = Color.HotPink;
+                var color = Color.HotPink;
                 image.Mutate(c => c.Fill(color));
 
                 image.DebugSave(provider, appendPixelTypeToFileName: false);
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                Color color = Color.HotPink;
+                var color = Color.HotPink;
                 image.Mutate(c => c.Fill(color));
 
                 image.DebugSave(provider, appendSourceFileOrDescription: false);

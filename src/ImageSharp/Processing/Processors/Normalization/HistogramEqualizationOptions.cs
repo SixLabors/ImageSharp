@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Processing.Processors.Normalization
@@ -25,7 +25,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         public int LuminanceLevels { get; set; } = 256;
 
         /// <summary>
-        /// Gets or sets a value indicating whether to clip the histogram bins at a specific value. Defaults to false.
+        /// Gets or sets a value indicating whether to clip the histogram bins at a specific value.
+        /// It is recommended to use clipping when the AdaptiveTileInterpolation method is used, to suppress artifacts which can occur on the borders of the tiles.
+        /// Defaults to false.
         /// </summary>
         public bool ClipHistogram { get; set; } = false;
 

@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             this.provider = new FakeImageOperationsProvider();
 
-            Mock<IImageProcessor> processorMock = new Mock<IImageProcessor>();
+            var processorMock = new Mock<IImageProcessor>();
             this.processorDefinition = processorMock.Object;
 
             this.image = new Image<Rgba32>(new Configuration
@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             try
             {
-                Image<Rgba32> img = new Image<Rgba32>(1, 1);
+                var img = new Image<Rgba32>(1, 1);
                 img.Dispose();
                 img.EnsureNotDisposed();
             }

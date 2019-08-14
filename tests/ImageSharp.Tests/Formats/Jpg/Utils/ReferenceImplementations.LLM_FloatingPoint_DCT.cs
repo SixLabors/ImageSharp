@@ -29,10 +29,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         {
             public static Block8x8F TransformIDCT(ref Block8x8F source)
             {
-                float[] s = new float[64];
+                var s = new float[64];
                 source.CopyTo(s);
-                float[] d = new float[64];
-                float[] temp = new float[64];
+                var d = new float[64];
+                var temp = new float[64];
 
                 iDCT2D_llm(s, d, temp);
                 Block8x8F result = default;
@@ -42,10 +42,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public static Block8x8F TransformFDCT_UpscaleBy8(ref Block8x8F source)
             {
-                float[] s = new float[64];
+                var s = new float[64];
                 source.CopyTo(s);
-                float[] d = new float[64];
-                float[] temp = new float[64];
+                var d = new float[64];
+                var temp = new float[64];
 
                 fDCT2D_llm(s, d, temp);
                 Block8x8F result = default;
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public static float[] PrintConstants(ITestOutputHelper output)
             {
-                float[] r = new float[8];
+                var r = new float[8];
                 for (int i = 0; i < 8; i++)
                 {
                     r[i] = (float)(Cos(i / 16.0 * M_PI) * M_SQRT2);
@@ -466,7 +466,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             {
                 float t0, t1, t2, t3, t4, t5, t6, t7;
                 float c0, c1, c2, c3;
-                float[] r = new float[8];
+                var r = new float[8];
 
                 //for(i = 0;i < 8;i++){ r[i] = (float)(cos((double)i / 16.0 * M_PI) * M_SQRT2); }
                 r[0] = 1.414214f;

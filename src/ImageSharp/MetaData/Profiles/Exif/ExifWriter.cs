@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
             length += 4 + 2;
 
-            byte[] result = new byte[length];
+            var result = new byte[length];
 
             int i = 0;
 

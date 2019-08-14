@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             {
                 image.Metadata.ExifProfile = new ExifProfile();
                 image.Metadata.ExifProfile.SetValue(ExifTag.Orientation, orientation);
-                
+
                 image.Mutate(x => x.AutoOrient());
                 image.DebugSave(provider, orientation, appendPixelTypeToFileName: false);
                 image.CompareToReferenceOutput(provider, orientation, appendPixelTypeToFileName: false);
@@ -71,8 +71,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             bytes[18] = (byte)dataType;
             // Change the number of components
             bytes[20] = 1;
-            
-            byte[] orientationCodeData = new byte[8];
+
+            var orientationCodeData = new byte[8];
             Array.Copy(orientation, orientationCodeData, orientation.Length);
 
             ulong orientationCode = BitConverter.ToUInt64(orientationCodeData, 0);

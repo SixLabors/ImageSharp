@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <returns>The <see cref="float[]"/>.</returns>
         public static float[] GenerateRandomFloatArray(this Random rnd, int length, float minVal, float maxVal)
         {
-            float[] values = new float[length];
+            var values = new float[length];
 
             RandomFill(rnd, values, minVal, maxVal);
 
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <returns>The <see cref="float[]"/>.</returns>
         public static float[] GenerateRandomRoundedFloatArray(this Random rnd, int length, float minVal, float maxVal)
         {
-            float[] values = new float[length];
+            var values = new float[length];
 
             for (int i = 0; i < length; i++)
             {
@@ -88,14 +88,14 @@ namespace SixLabors.ImageSharp.Tests
         /// <returns>The <see cref="byte[]"/>.</returns>
         public static byte[] GenerateRandomByteArray(this Random rnd, int length)
         {
-            byte[] values = new byte[length];
+            var values = new byte[length];
             rnd.NextBytes(values);
             return values;
         }
 
         public static short[] GenerateRandomInt16Array(this Random rnd, int length, short minVal, short maxVal)
         {
-            short[] values = new short[length];
+            var values = new short[length];
             for (int i = 0; i < values.Length; i++)
             {
                 values[i] = (short)rnd.Next(minVal, maxVal);

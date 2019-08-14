@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 () =>
                     {
                         // Block8x8F block = new Block8x8F();
-                        float[] block = new float[64];
+                        var block = new float[64];
                         for (int i = 0; i < Block8x8F.Size; i++)
                         {
                             block[i] = i;
@@ -90,8 +90,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void Load_Store_FloatArray()
         {
-            float[] data = new float[Block8x8F.Size];
-            float[] mirror = new float[Block8x8F.Size];
+            var data = new float[Block8x8F.Size];
+            var mirror = new float[Block8x8F.Size];
 
             for (int i = 0; i < Block8x8F.Size; i++)
             {
@@ -115,8 +115,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public unsafe void Load_Store_FloatArray_Ptr()
         {
-            float[] data = new float[Block8x8F.Size];
-            float[] mirror = new float[Block8x8F.Size];
+            var data = new float[Block8x8F.Size];
+            var mirror = new float[Block8x8F.Size];
 
             for (int i = 0; i < Block8x8F.Size; i++)
             {
@@ -140,8 +140,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void Load_Store_IntArray()
         {
-            int[] data = new int[Block8x8F.Size];
-            int[] mirror = new int[Block8x8F.Size];
+            var data = new int[Block8x8F.Size];
+            var mirror = new int[Block8x8F.Size];
 
             for (int i = 0; i < Block8x8F.Size; i++)
             {
@@ -174,7 +174,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var dest = new Block8x8F();
             source.TransposeInto(ref dest);
 
-            float[] actual = new float[64];
+            var actual = new float[64];
             dest.CopyTo(actual);
 
             Assert.Equal(expected, actual);
@@ -206,7 +206,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private static float[] Create8x8ColorCropTestData()
         {
-            float[] result = new float[64];
+            var result = new float[64];
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)
@@ -230,7 +230,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Block8x8F dest = block;
             dest.NormalizeColorsInplace(255);
 
-            float[] array = new float[64];
+            var array = new float[64];
             dest.CopyTo(array);
             this.Output.WriteLine("Result:");
             this.PrintLinearData(array);

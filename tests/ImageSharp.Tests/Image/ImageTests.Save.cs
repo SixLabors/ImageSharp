@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests
                 var image = new Image<Rgba32>(5, 5);
                 image.Dispose();
                 IImageEncoder encoder = Mock.Of<IImageEncoder>();
-                using (MemoryStream stream = new MemoryStream())
+                using (var stream = new MemoryStream())
                 {
                     Assert.Throws<ObjectDisposedException>(() => image.Save(stream, encoder));
                 }

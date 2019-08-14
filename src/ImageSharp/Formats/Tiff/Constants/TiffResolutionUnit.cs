@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Enumeration representing the resolution units defined by the Tiff file-format.
     /// </summary>
-    internal enum TiffResolutionUnit
+    internal enum TiffResolutionUnit : uint
     {
         /// <summary>
         /// No absolute unit of measurement.

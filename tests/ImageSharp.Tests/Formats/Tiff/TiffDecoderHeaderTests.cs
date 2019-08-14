@@ -24,11 +24,9 @@ namespace SixLabors.ImageSharp.Tests
             }
                             .ToStream(isLittleEndian);
 
-            TiffDecoderCore decoder = new TiffDecoderCore(stream, false, null, null);
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, null, null);
 
-            decoder.ReadHeader();
-
-            Assert.Equal(isLittleEndian, decoder.IsLittleEndian);
+            Assert.Equal(isLittleEndian, decoder.Stream.ByteOrder == TiffByteOrder.LittleEndian);
         }
 
         [Theory]
@@ -41,11 +39,10 @@ namespace SixLabors.ImageSharp.Tests
             }
                             .ToStream(isLittleEndian);
 
-            TiffDecoderCore decoder = new TiffDecoderCore(stream, false, null, null);
+            TiffDecoderCore decoder = new TiffDecoderCore(stream, null, null);
+            TiffHeader header = TiffHeader.Read(decoder.Stream);            
 
-            uint firstIfdOffset = decoder.ReadHeader();
-
-            Assert.Equal(8u, firstIfdOffset);
+            Assert.Equal(8u, header.FirstIfdOffset);
         }
 
         [Theory]
@@ -87,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests
 
             ImageFormatException e = Assert.Throws<ImageFormatException>(() => { decoder.Decode<Rgba32>(Configuration.Default, stream); });
 
-            Assert.Equal("Invalid TIFF file header.", e.Message);
+            Assert.Equal("Invalid TIFF header magic number: 32", e.Message);
         }
 
         [Theory]

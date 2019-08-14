@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
@@ -22,9 +22,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             Guard.NotNull(stream, "stream");
 
-            using (var decoder = new TiffDecoderCore(configuration, this))
+            using (TiffDecoderCore decoder = new TiffDecoderCore(stream, configuration, this))
             {
-                return decoder.Decode<TPixel>(stream);
+                return decoder.Decode<TPixel>();
             }
         }
 

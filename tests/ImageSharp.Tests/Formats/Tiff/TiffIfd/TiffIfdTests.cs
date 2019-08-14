@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests
             var entries = new TiffIfdEntry[10];
             var ifd = new TiffIfd(entries, 1234u);
 
-            Assert.Equal(entries, ifd.Entries);
+            Assert.Equal(entries, ifd.Entries.Entries);
             Assert.Equal(1234u, ifd.NextIfdOffset);
         }
 
@@ -25,10 +25,10 @@ namespace SixLabors.ImageSharp.Tests
         {
             var entries = new[]
                     {
-                        new TiffIfdEntry(10, TiffType.Short, 20, new byte[4]),
-                        new TiffIfdEntry(20, TiffType.Short, 20, new byte[4]),
-                        new TiffIfdEntry(30, TiffType.Short, 20, new byte[4]),
-                        new TiffIfdEntry(40, TiffType.Short, 20, new byte[4])
+                        new TiffIfdEntry(10, TiffTagType.Short, 20, new byte[4]),
+                        new TiffIfdEntry(20, TiffTagType.Short, 20, new byte[4]),
+                        new TiffIfdEntry(30, TiffTagType.Short, 20, new byte[4]),
+                        new TiffIfdEntry(40, TiffTagType.Short, 20, new byte[4])
                     };
             var ifd = new TiffIfd(entries, 1234u);
 
@@ -43,10 +43,10 @@ namespace SixLabors.ImageSharp.Tests
         {
             var entries = new[]
                     {
-                        new TiffIfdEntry(10, TiffType.Short, 20, new byte[4]),
-                        new TiffIfdEntry(20, TiffType.Short, 20, new byte[4]),
-                        new TiffIfdEntry(30, TiffType.Short, 20, new byte[4]),
-                        new TiffIfdEntry(40, TiffType.Short, 20, new byte[4])
+                        new TiffIfdEntry(10, TiffTagType.Short, 20, new byte[4]),
+                        new TiffIfdEntry(20, TiffTagType.Short, 20, new byte[4]),
+                        new TiffIfdEntry(30, TiffTagType.Short, 20, new byte[4]),
+                        new TiffIfdEntry(40, TiffTagType.Short, 20, new byte[4])
                     };
             var ifd = new TiffIfd(entries, 1234u);
 
@@ -60,10 +60,10 @@ namespace SixLabors.ImageSharp.Tests
         {
             var entries = new[]
                     {
-                        new TiffIfdEntry(10, TiffType.Short, 20, new byte[4]),
-                        new TiffIfdEntry(20, TiffType.Short, 20, new byte[4]),
-                        new TiffIfdEntry(30, TiffType.Short, 20, new byte[4]),
-                        new TiffIfdEntry(40, TiffType.Short, 20, new byte[4])
+                        new TiffIfdEntry(10, TiffTagType.Short, 20, new byte[4]),
+                        new TiffIfdEntry(20, TiffTagType.Short, 20, new byte[4]),
+                        new TiffIfdEntry(30, TiffTagType.Short, 20, new byte[4]),
+                        new TiffIfdEntry(40, TiffTagType.Short, 20, new byte[4])
                     };
             var ifd = new TiffIfd(entries, 1234u);
 
@@ -78,10 +78,10 @@ namespace SixLabors.ImageSharp.Tests
         {
             var entries = new[]
                     {
-                        new TiffIfdEntry(10, TiffType.Short, 20, new byte[4]),
-                        new TiffIfdEntry(20, TiffType.Short, 20, new byte[4]),
-                        new TiffIfdEntry(30, TiffType.Short, 20, new byte[4]),
-                        new TiffIfdEntry(40, TiffType.Short, 20, new byte[4])
+                        new TiffIfdEntry(10, TiffTagType.Short, 20, new byte[4]),
+                        new TiffIfdEntry(20, TiffTagType.Short, 20, new byte[4]),
+                        new TiffIfdEntry(30, TiffTagType.Short, 20, new byte[4]),
+                        new TiffIfdEntry(40, TiffTagType.Short, 20, new byte[4])
                     };
             var ifd = new TiffIfd(entries, 1234u);
 

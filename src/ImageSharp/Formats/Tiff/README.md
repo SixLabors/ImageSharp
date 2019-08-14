@@ -19,7 +19,7 @@
 
 - Metadata (XMP)
   - [Adobe XMP Pages](http://www.adobe.com/products/xmp.html)
-  - [Adobe XMP Developer Centre](http://www.adobe.com/devnet/xmp.html)
+  - [Adobe XMP Developer Center](http://www.adobe.com/devnet/xmp.html)
 
 ## Implementation Status
 

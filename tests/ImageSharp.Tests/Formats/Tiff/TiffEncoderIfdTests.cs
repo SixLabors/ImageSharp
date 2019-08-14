@@ -21,9 +21,9 @@ namespace SixLabors.ImageSharp.Tests
 
             List<TiffIfdEntry> entries = new List<TiffIfdEntry>()
                 {
-                    new TiffIfdEntry(TiffTags.ImageWidth, TiffType.Long, 1, new byte[] { 1, 2, 3, 4 }),
-                    new TiffIfdEntry(TiffTags.ImageLength, TiffType.Long, 1, new byte[] { 5, 6, 7, 8 }),
-                    new TiffIfdEntry(TiffTags.Compression, TiffType.Long, 1, new byte[] { 9, 10, 11, 12 })
+                    new TiffIfdEntry(TiffTagId.ImageWidth, TiffTagType.Long, 1, new byte[] { 1, 2, 3, 4 }),
+                    new TiffIfdEntry(TiffTagId.ImageLength, TiffTagType.Long, 1, new byte[] { 5, 6, 7, 8 }),
+                    new TiffIfdEntry(TiffTagId.Compression, TiffTagType.Long, 1, new byte[] { 9, 10, 11, 12 })
                 };
 
             using (TiffWriter writer = new TiffWriter(stream))
@@ -42,9 +42,9 @@ namespace SixLabors.ImageSharp.Tests
 
             List<TiffIfdEntry> entries = new List<TiffIfdEntry>()
                 {
-                    new TiffIfdEntry(TiffTags.ImageWidth, TiffType.Long, 1, new byte[] { 1, 2, 3, 4 }),
-                    new TiffIfdEntry(TiffTags.ImageLength, TiffType.Long, 1, new byte[] { 5, 6, 7, 8 }),
-                    new TiffIfdEntry(TiffTags.Compression, TiffType.Long, 1, new byte[] { 9, 10, 11, 12 })
+                    new TiffIfdEntry(TiffTagId.ImageWidth, TiffTagType.Long, 1, new byte[] { 1, 2, 3, 4 }),
+                    new TiffIfdEntry(TiffTagId.ImageLength, TiffTagType.Long, 1, new byte[] { 5, 6, 7, 8 }),
+                    new TiffIfdEntry(TiffTagId.Compression, TiffTagType.Long, 1, new byte[] { 9, 10, 11, 12 })
                 };
 
             using (TiffWriter writer = new TiffWriter(stream))
@@ -64,9 +64,9 @@ namespace SixLabors.ImageSharp.Tests
 
             List<TiffIfdEntry> entries = new List<TiffIfdEntry>()
                 {
-                    new TiffIfdEntry(TiffTags.ImageWidth, TiffType.Long, 1, new byte[] { 1, 2, 3, 4 }),
-                    new TiffIfdEntry(TiffTags.ImageLength, TiffType.Long, 1, new byte[] { 5, 6, 7, 8 }),
-                    new TiffIfdEntry(TiffTags.Compression, TiffType.Long, 1, new byte[] { 9, 10, 11, 12 })
+                    new TiffIfdEntry(TiffTagId.ImageWidth, TiffTagType.Long, 1, new byte[] { 1, 2, 3, 4 }),
+                    new TiffIfdEntry(TiffTagId.ImageLength, TiffTagType.Long, 1, new byte[] { 5, 6, 7, 8 }),
+                    new TiffIfdEntry(TiffTagId.Compression, TiffTagType.Long, 1, new byte[] { 9, 10, 11, 12 })
                 };
 
             using (TiffWriter writer = new TiffWriter(stream))
@@ -84,9 +84,9 @@ namespace SixLabors.ImageSharp.Tests
 
             List<TiffIfdEntry> entries = new List<TiffIfdEntry>()
                 {
-                    new TiffIfdEntry(10, TiffType.Long, 1, new byte[] { 1, 2, 3, 4 }),
-                    new TiffIfdEntry(20, TiffType.Long, 1, new byte[] { 5, 6, 7, 8 }),
-                    new TiffIfdEntry(30, TiffType.Long, 1, new byte[] { 9, 10, 11, 12 })
+                    new TiffIfdEntry(10, TiffTagType.Long, 1, new byte[] { 1, 2, 3, 4 }),
+                    new TiffIfdEntry(20, TiffTagType.Long, 1, new byte[] { 5, 6, 7, 8 }),
+                    new TiffIfdEntry(30, TiffTagType.Long, 1, new byte[] { 9, 10, 11, 12 })
                 };
 
             using (TiffWriter writer = new TiffWriter(stream))
@@ -111,9 +111,9 @@ namespace SixLabors.ImageSharp.Tests
 
             List<TiffIfdEntry> entries = new List<TiffIfdEntry>()
                 {
-                    new TiffIfdEntry(TiffTags.ImageWidth, TiffType.Long, 1, new byte[] { 1, 2, 3, 4 }),
-                    new TiffIfdEntry(TiffTags.ImageLength, TiffType.Short, 2, new byte[] { 5, 6, 7, 8 }),
-                    new TiffIfdEntry(TiffTags.Compression, TiffType.Ascii, 4, new byte[] { (byte)'A', (byte)'B', (byte)'C', 0 })
+                    new TiffIfdEntry(TiffTagId.ImageWidth, TiffTagType.Long, 1, new byte[] { 1, 2, 3, 4 }),
+                    new TiffIfdEntry(TiffTagId.ImageLength, TiffTagType.Short, 2, new byte[] { 5, 6, 7, 8 }),
+                    new TiffIfdEntry(TiffTagId.Compression, TiffTagType.Ascii, 4, new byte[] { (byte)'A', (byte)'B', (byte)'C', 0 })
                 };
 
             using (TiffWriter writer = new TiffWriter(stream))
@@ -138,9 +138,9 @@ namespace SixLabors.ImageSharp.Tests
 
             List<TiffIfdEntry> entries = new List<TiffIfdEntry>()
                 {
-                    new TiffIfdEntry(TiffTags.ImageWidth, TiffType.Long, 1, new byte[] { 1, 2, 3, 4 }),
-                    new TiffIfdEntry(TiffTags.ImageLength, TiffType.Short, 2, new byte[] { 5, 6, 7, 8 }),
-                    new TiffIfdEntry(TiffTags.Compression, TiffType.Ascii, 4, new byte[] { (byte)'A', (byte)'B', (byte)'C', 0 })
+                    new TiffIfdEntry(TiffTagId.ImageWidth, TiffTagType.Long, 1, new byte[] { 1, 2, 3, 4 }),
+                    new TiffIfdEntry(TiffTagId.ImageLength, TiffTagType.Short, 2, new byte[] { 5, 6, 7, 8 }),
+                    new TiffIfdEntry(TiffTagId.Compression, TiffTagType.Ascii, 4, new byte[] { (byte)'A', (byte)'B', (byte)'C', 0 })
                 };
 
             using (TiffWriter writer = new TiffWriter(stream))
@@ -165,9 +165,9 @@ namespace SixLabors.ImageSharp.Tests
 
             List<TiffIfdEntry> entries = new List<TiffIfdEntry>()
                 {
-                    new TiffIfdEntry(TiffTags.ImageWidth, TiffType.Long, 1, new byte[] { 1, 2, 3, 4 }),
-                    new TiffIfdEntry(TiffTags.ImageLength, TiffType.Short, 2, new byte[] { 5, 6, 7, 8 }),
-                    new TiffIfdEntry(TiffTags.Compression, TiffType.Ascii, 3, new byte[] { (byte)'A', (byte)'B', 0 })
+                    new TiffIfdEntry(TiffTagId.ImageWidth, TiffTagType.Long, 1, new byte[] { 1, 2, 3, 4 }),
+                    new TiffIfdEntry(TiffTagId.ImageLength, TiffTagType.Short, 2, new byte[] { 5, 6, 7, 8 }),
+                    new TiffIfdEntry(TiffTagId.Compression, TiffTagType.Ascii, 3, new byte[] { (byte)'A', (byte)'B', 0 })
                 };
 
             using (TiffWriter writer = new TiffWriter(stream))
@@ -192,9 +192,9 @@ namespace SixLabors.ImageSharp.Tests
 
             List<TiffIfdEntry> entries = new List<TiffIfdEntry>()
                 {
-                    new TiffIfdEntry(TiffTags.ImageWidth, TiffType.Byte, 8, new byte[] { 1, 2, 3, 4, 4, 3, 2, 1 }),
-                    new TiffIfdEntry(TiffTags.ImageLength, TiffType.Short, 4, new byte[] { 5, 6, 7, 8, 9, 10, 11, 12 }),
-                    new TiffIfdEntry(TiffTags.Compression, TiffType.Ascii, 3, new byte[] { (byte)'A', (byte)'B', 0 })
+                    new TiffIfdEntry(TiffTagId.ImageWidth, TiffTagType.Byte, 8, new byte[] { 1, 2, 3, 4, 4, 3, 2, 1 }),
+                    new TiffIfdEntry(TiffTagId.ImageLength, TiffTagType.Short, 4, new byte[] { 5, 6, 7, 8, 9, 10, 11, 12 }),
+                    new TiffIfdEntry(TiffTagId.Compression, TiffTagType.Ascii, 3, new byte[] { (byte)'A', (byte)'B', 0 })
                 };
 
             using (TiffWriter writer = new TiffWriter(stream))
@@ -224,9 +224,9 @@ namespace SixLabors.ImageSharp.Tests
 
             List<TiffIfdEntry> entries = new List<TiffIfdEntry>()
                 {
-                    new TiffIfdEntry(TiffTags.ImageWidth, TiffType.Byte, 8, new byte[] { 1, 2, 3, 4, 5 }),
-                    new TiffIfdEntry(TiffTags.ImageLength, TiffType.Short, 4, new byte[] { 5, 6, 7, 8, 9, 10, 11, 12 }),
-                    new TiffIfdEntry(TiffTags.Compression, TiffType.Ascii, 3, new byte[] { (byte)'A', (byte)'B', 0 })
+                    new TiffIfdEntry(TiffTagId.ImageWidth, TiffTagType.Byte, 8, new byte[] { 1, 2, 3, 4, 5 }),
+                    new TiffIfdEntry(TiffTagId.ImageLength, TiffTagType.Short, 4, new byte[] { 5, 6, 7, 8, 9, 10, 11, 12 }),
+                    new TiffIfdEntry(TiffTagId.Compression, TiffTagType.Ascii, 3, new byte[] { (byte)'A', (byte)'B', 0 })
                 };
 
             using (TiffWriter writer = new TiffWriter(stream))
@@ -256,9 +256,9 @@ namespace SixLabors.ImageSharp.Tests
 
             List<TiffIfdEntry> entries = new List<TiffIfdEntry>()
                 {
-                    new TiffIfdEntry(10, TiffType.Long, 1, new byte[] { 1, 2, 3, 4 }),
-                    new TiffIfdEntry(30, TiffType.Long, 1, new byte[] { 5, 6, 7, 8 }),
-                    new TiffIfdEntry(20, TiffType.Long, 1, new byte[] { 9, 10, 11, 12 })
+                    new TiffIfdEntry(10, TiffTagType.Long, 1, new byte[] { 1, 2, 3, 4 }),
+                    new TiffIfdEntry(30, TiffTagType.Long, 1, new byte[] { 5, 6, 7, 8 }),
+                    new TiffIfdEntry(20, TiffTagType.Long, 1, new byte[] { 9, 10, 11, 12 })
                 };
 
             using (TiffWriter writer = new TiffWriter(stream))

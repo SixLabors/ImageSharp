@@ -60,8 +60,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <returns>The marker to write the first IFD offset.</returns>
         public long WriteHeader(TiffWriter writer)
         {
-            ushort byteOrderMarker = BitConverter.IsLittleEndian ? TiffConstants.ByteOrderLittleEndianShort
-                                                                 : TiffConstants.ByteOrderBigEndianShort;
+            ushort byteOrderMarker = BitConverter.IsLittleEndian
+                ? TiffConstants.ByteOrderLittleEndianShort
+                : TiffConstants.ByteOrderBigEndianShort;
 
             writer.Write(byteOrderMarker);
             writer.Write((ushort)42);
@@ -96,15 +97,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 writer.Write((ushort)entry.Type);
                 writer.Write(entry.Count);
 
-                if (entry.Value.Length <= 4)
+                if (entry.ValueOrOffset.Length <= 4)
                 {
-                    writer.WritePadded(entry.Value);
+                    writer.WritePadded(entry.ValueOrOffset);
                 }
                 else
                 {
-                    largeDataBlocks.Add(entry.Value);
+                    largeDataBlocks.Add(entry.ValueOrOffset);
                     writer.Write(dataOffset);
-                    dataOffset += (uint)(entry.Value.Length + (entry.Value.Length % 2));
+                    dataOffset += (uint)(entry.ValueOrOffset.Length + (entry.ValueOrOffset.Length % 2));
                 }
             }
 
@@ -154,9 +155,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public void AddMetadata<TPixel>(Image<TPixel> image, List<TiffIfdEntry> ifdEntries)
             where TPixel : struct, IPixel<TPixel>
         {
-            ifdEntries.AddUnsignedRational(TiffTags.XResolution, new Rational(image.Metadata.HorizontalResolution));
-            ifdEntries.AddUnsignedRational(TiffTags.YResolution, new Rational(image.Metadata.VerticalResolution));
-            ifdEntries.AddUnsignedShort(TiffTags.ResolutionUnit, (uint)TiffResolutionUnit.Inch);
+            ifdEntries.AddUnsignedRational(TiffTagId.XResolution, new Rational(image.Metadata.HorizontalResolution));
+            ifdEntries.AddUnsignedRational(TiffTagId.YResolution, new Rational(image.Metadata.VerticalResolution));
+            ifdEntries.AddUnsignedShort(TiffTagId.ResolutionUnit, (uint)TiffResolutionUnit.Inch);
 
             TiffMetaData tiffMetadata = image.Metadata.GetFormatMetadata(TiffFormat.Instance);
             foreach (TiffMetadataTag metadata in tiffMetadata.TextTags)
@@ -165,49 +166,49 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 {
                     case TiffMetadataNames.Artist:
                     {
-                        ifdEntries.AddAscii(TiffTags.Artist, metadata.Value);
+                        ifdEntries.AddAscii(TiffTagId.Artist, metadata.Value);
                         break;
                     }
 
                     case TiffMetadataNames.Copyright:
                     {
-                        ifdEntries.AddAscii(TiffTags.Copyright, metadata.Value);
+                        ifdEntries.AddAscii(TiffTagId.Copyright, metadata.Value);
                         break;
                     }
 
                     case TiffMetadataNames.DateTime:
                     {
-                        ifdEntries.AddAscii(TiffTags.DateTime, metadata.Value);
+                        ifdEntries.AddAscii(TiffTagId.DateTime, metadata.Value);
                         break;
                     }
 
                     case TiffMetadataNames.HostComputer:
                     {
-                        ifdEntries.AddAscii(TiffTags.HostComputer, metadata.Value);
+                        ifdEntries.AddAscii(TiffTagId.HostComputer, metadata.Value);
                         break;
                     }
 
                     case TiffMetadataNames.ImageDescription:
                     {
-                        ifdEntries.AddAscii(TiffTags.ImageDescription, metadata.Value);
+                        ifdEntries.AddAscii(TiffTagId.ImageDescription, metadata.Value);
                         break;
                     }
 
                     case TiffMetadataNames.Make:
                     {
-                        ifdEntries.AddAscii(TiffTags.Make, metadata.Value);
+                        ifdEntries.AddAscii(TiffTagId.Make, metadata.Value);
                         break;
                     }
 
                     case TiffMetadataNames.Model:
                     {
-                        ifdEntries.AddAscii(TiffTags.Model, metadata.Value);
+                        ifdEntries.AddAscii(TiffTagId.Model, metadata.Value);
                         break;
                     }
 
                     case TiffMetadataNames.Software:
                     {
-                        ifdEntries.AddAscii(TiffTags.Software, metadata.Value);
+                        ifdEntries.AddAscii(TiffTagId.Software, metadata.Value);
                         break;
                     }
                 }

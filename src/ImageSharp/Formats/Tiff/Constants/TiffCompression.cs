@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Enumeration representing the compression formats defined by the Tiff file-format.
     /// </summary>
-    internal enum TiffCompression
+    internal enum TiffCompression : uint
     {
         /// <summary>
         /// No compression.

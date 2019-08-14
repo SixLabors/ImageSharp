@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The list of <see cref="TiffIfdEntry"/> to add the new entry to.</param>
         /// <param name="tag">The tag for the resulting entry.</param>
         /// <param name="value">The value for the resulting entry.</param>
-        public static void AddUnsignedByte(this List<TiffIfdEntry> entries, ushort tag, uint value)
+        public static void AddUnsignedByte(this List<TiffIfdEntry> entries, TiffTagId tag, uint value)
         {
             TiffIfdEntryCreator.AddUnsignedByte(entries, tag, new[] { value });
         }
@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The list of <see cref="TiffIfdEntry"/> to add the new entry to.</param>
         /// <param name="tag">The tag for the resulting entry.</param>
         /// <param name="value">The value for the resulting entry.</param>
-        public static void AddUnsignedByte(this List<TiffIfdEntry> entries, ushort tag, uint[] value)
+        public static void AddUnsignedByte(this List<TiffIfdEntry> entries, TiffTagId tag, uint[] value)
         {
             byte[] bytes = new byte[value.Length];
 
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 bytes[i] = (byte)value[i];
             }
 
-            entries.Add(new TiffIfdEntry(tag, TiffType.Byte, (uint)value.Length, bytes));
+            entries.Add(new TiffIfdEntry(tag, TiffTagType.Byte, (uint)value.Length, bytes));
         }
 
         /// <summary>
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The list of <see cref="TiffIfdEntry"/> to add the new entry to.</param>
         /// <param name="tag">The tag for the resulting entry.</param>
         /// <param name="value">The value for the resulting entry.</param>
-        public static void AddUnsignedShort(this List<TiffIfdEntry> entries, ushort tag, uint value)
+        public static void AddUnsignedShort(this List<TiffIfdEntry> entries, TiffTagId tag, uint value)
         {
             TiffIfdEntryCreator.AddUnsignedShort(entries, tag, new[] { value });
         }
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The list of <see cref="TiffIfdEntry"/> to add the new entry to.</param>
         /// <param name="tag">The tag for the resulting entry.</param>
         /// <param name="value">The value for the resulting entry.</param>
-        public static void AddUnsignedShort(this List<TiffIfdEntry> entries, ushort tag, uint[] value)
+        public static void AddUnsignedShort(this List<TiffIfdEntry> entries, TiffTagId tag, uint[] value)
         {
             byte[] bytes = new byte[value.Length * TiffConstants.SizeOfShort];
 
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 ToBytes((ushort)value[i], bytes, i * TiffConstants.SizeOfShort);
             }
 
-            entries.Add(new TiffIfdEntry(tag, TiffType.Short, (uint)value.Length, bytes));
+            entries.Add(new TiffIfdEntry(tag, TiffTagType.Short, (uint)value.Length, bytes));
         }
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The list of <see cref="TiffIfdEntry"/> to add the new entry to.</param>
         /// <param name="tag">The tag for the resulting entry.</param>
         /// <param name="value">The value for the resulting entry.</param>
-        public static void AddUnsignedLong(this List<TiffIfdEntry> entries, ushort tag, uint value)
+        public static void AddUnsignedLong(this List<TiffIfdEntry> entries, TiffTagId tag, uint value)
         {
             TiffIfdEntryCreator.AddUnsignedLong(entries, tag, new[] { value });
         }
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The list of <see cref="TiffIfdEntry"/> to add the new entry to.</param>
         /// <param name="tag">The tag for the resulting entry.</param>
         /// <param name="value">The value for the resulting entry.</param>
-        public static void AddUnsignedLong(this List<TiffIfdEntry> entries, ushort tag, uint[] value)
+        public static void AddUnsignedLong(this List<TiffIfdEntry> entries, TiffTagId tag, uint[] value)
         {
             byte[] bytes = new byte[value.Length * TiffConstants.SizeOfLong];
 
@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 ToBytes(value[i], bytes, i * TiffConstants.SizeOfLong);
             }
 
-            entries.Add(new TiffIfdEntry(tag, TiffType.Long, (uint)value.Length, bytes));
+            entries.Add(new TiffIfdEntry(tag, TiffTagType.Long, (uint)value.Length, bytes));
         }
 
         /// <summary>
@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The list of <see cref="TiffIfdEntry"/> to add the new entry to.</param>
         /// <param name="tag">The tag for the resulting entry.</param>
         /// <param name="value">The value for the resulting entry.</param>
-        public static void AddSignedByte(this List<TiffIfdEntry> entries, ushort tag, int value)
+        public static void AddSignedByte(this List<TiffIfdEntry> entries, TiffTagId tag, int value)
         {
             TiffIfdEntryCreator.AddSignedByte(entries, tag, new[] { value });
         }
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The list of <see cref="TiffIfdEntry"/> to add the new entry to.</param>
         /// <param name="tag">The tag for the resulting entry.</param>
         /// <param name="value">The value for the resulting entry.</param>
-        public static void AddSignedByte(this List<TiffIfdEntry> entries, ushort tag, int[] value)
+        public static void AddSignedByte(this List<TiffIfdEntry> entries, TiffTagId tag, int[] value)
         {
             byte[] bytes = new byte[value.Length];
 
@@ -126,7 +126,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 bytes[i] = (byte)((sbyte)value[i]);
             }
 
-            entries.Add(new TiffIfdEntry(tag, TiffType.SByte, (uint)value.Length, bytes));
+            entries.Add(new TiffIfdEntry(tag, TiffTagType.SByte, (uint)value.Length, bytes));
         }
 
         /// <summary>
@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The list of <see cref="TiffIfdEntry"/> to add the new entry to.</param>
         /// <param name="tag">The tag for the resulting entry.</param>
         /// <param name="value">The value for the resulting entry.</param>
-        public static void AddSignedShort(this List<TiffIfdEntry> entries, ushort tag, int value)
+        public static void AddSignedShort(this List<TiffIfdEntry> entries, TiffTagId tag, int value)
         {
             TiffIfdEntryCreator.AddSignedShort(entries, tag, new[] { value });
         }
@@ -146,7 +146,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The list of <see cref="TiffIfdEntry"/> to add the new entry to.</param>
         /// <param name="tag">The tag for the resulting entry.</param>
         /// <param name="value">The value for the resulting entry.</param>
-        public static void AddSignedShort(this List<TiffIfdEntry> entries, ushort tag, int[] value)
+        public static void AddSignedShort(this List<TiffIfdEntry> entries, TiffTagId tag, int[] value)
         {
             byte[] bytes = new byte[value.Length * TiffConstants.SizeOfShort];
 
@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 ToBytes((short)value[i], bytes, i * TiffConstants.SizeOfShort);
             }
 
-            entries.Add(new TiffIfdEntry(tag, TiffType.SShort, (uint)value.Length, bytes));
+            entries.Add(new TiffIfdEntry(tag, TiffTagType.SShort, (uint)value.Length, bytes));
         }
 
         /// <summary>
@@ -164,7 +164,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The list of <see cref="TiffIfdEntry"/> to add the new entry to.</param>
         /// <param name="tag">The tag for the resulting entry.</param>
         /// <param name="value">The value for the resulting entry.</param>
-        public static void AddSignedLong(this List<TiffIfdEntry> entries, ushort tag, int value)
+        public static void AddSignedLong(this List<TiffIfdEntry> entries, TiffTagId tag, int value)
         {
             TiffIfdEntryCreator.AddSignedLong(entries, tag, new[] { value });
         }
@@ -175,7 +175,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The list of <see cref="TiffIfdEntry"/> to add the new entry to.</param>
         /// <param name="tag">The tag for the resulting entry.</param>
         /// <param name="value">The value for the resulting entry.</param>
-        public static void AddSignedLong(this List<TiffIfdEntry> entries, ushort tag, int[] value)
+        public static void AddSignedLong(this List<TiffIfdEntry> entries, TiffTagId tag, int[] value)
         {
             byte[] bytes = new byte[value.Length * TiffConstants.SizeOfLong];
 
@@ -184,7 +184,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 ToBytes(value[i], bytes, i * TiffConstants.SizeOfLong);
             }
 
-            entries.Add(new TiffIfdEntry(tag, TiffType.SLong, (uint)value.Length, bytes));
+            entries.Add(new TiffIfdEntry(tag, TiffTagType.SLong, (uint)value.Length, bytes));
         }
 
         /// <summary>
@@ -193,11 +193,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The list of <see cref="TiffIfdEntry"/> to add the new entry to.</param>
         /// <param name="tag">The tag for the resulting entry.</param>
         /// <param name="value">The value for the resulting entry.</param>
-        public static void AddAscii(this List<TiffIfdEntry> entries, ushort tag, string value)
+        public static void AddAscii(this List<TiffIfdEntry> entries, TiffTagId tag, string value)
         {
             byte[] bytes = Encoding.UTF8.GetBytes(value + "\0");
 
-            entries.Add(new TiffIfdEntry(tag, TiffType.Ascii, (uint)bytes.Length, bytes));
+            entries.Add(new TiffIfdEntry(tag, TiffTagType.Ascii, (uint)bytes.Length, bytes));
         }
 
         /// <summary>
@@ -206,7 +206,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The list of <see cref="TiffIfdEntry"/> to add the new entry to.</param>
         /// <param name="tag">The tag for the resulting entry.</param>
         /// <param name="value">The value for the resulting entry.</param>
-        public static void AddUnsignedRational(this List<TiffIfdEntry> entries, ushort tag, Rational value)
+        public static void AddUnsignedRational(this List<TiffIfdEntry> entries, TiffTagId tag, Rational value)
         {
             TiffIfdEntryCreator.AddUnsignedRational(entries, tag, new[] { value });
         }
@@ -217,7 +217,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The list of <see cref="TiffIfdEntry"/> to add the new entry to.</param>
         /// <param name="tag">The tag for the resulting entry.</param>
         /// <param name="value">The value for the resulting entry.</param>
-        public static void AddUnsignedRational(this List<TiffIfdEntry> entries, ushort tag, Rational[] value)
+        public static void AddUnsignedRational(this List<TiffIfdEntry> entries, TiffTagId tag, Rational[] value)
         {
             byte[] bytes = new byte[value.Length * TiffConstants.SizeOfRational];
 
@@ -228,7 +228,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 ToBytes(value[i].Denominator, bytes, offset + TiffConstants.SizeOfLong);
             }
 
-            entries.Add(new TiffIfdEntry(tag, TiffType.Rational, (uint)value.Length, bytes));
+            entries.Add(new TiffIfdEntry(tag, TiffTagType.Rational, (uint)value.Length, bytes));
         }
 
         /// <summary>
@@ -237,7 +237,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The list of <see cref="TiffIfdEntry"/> to add the new entry to.</param>
         /// <param name="tag">The tag for the resulting entry.</param>
         /// <param name="value">The value for the resulting entry.</param>
-        public static void AddSignedRational(this List<TiffIfdEntry> entries, ushort tag, SignedRational value)
+        public static void AddSignedRational(this List<TiffIfdEntry> entries, TiffTagId tag, SignedRational value)
         {
             TiffIfdEntryCreator.AddSignedRational(entries, tag, new[] { value });
         }
@@ -248,7 +248,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The list of <see cref="TiffIfdEntry"/> to add the new entry to.</param>
         /// <param name="tag">The tag for the resulting entry.</param>
         /// <param name="value">The value for the resulting entry.</param>
-        public static void AddSignedRational(this List<TiffIfdEntry> entries, ushort tag, SignedRational[] value)
+        public static void AddSignedRational(this List<TiffIfdEntry> entries, TiffTagId tag, SignedRational[] value)
         {
             byte[] bytes = new byte[value.Length * TiffConstants.SizeOfRational];
 
@@ -259,7 +259,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 ToBytes(value[i].Denominator, bytes, offset + TiffConstants.SizeOfLong);
             }
 
-            entries.Add(new TiffIfdEntry(tag, TiffType.SRational, (uint)value.Length, bytes));
+            entries.Add(new TiffIfdEntry(tag, TiffTagType.SRational, (uint)value.Length, bytes));
         }
 
         /// <summary>
@@ -268,7 +268,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The list of <see cref="TiffIfdEntry"/> to add the new entry to.</param>
         /// <param name="tag">The tag for the resulting entry.</param>
         /// <param name="value">The value for the resulting entry.</param>
-        public static void AddFloat(this List<TiffIfdEntry> entries, ushort tag, float value)
+        public static void AddFloat(this List<TiffIfdEntry> entries, TiffTagId tag, float value)
         {
             TiffIfdEntryCreator.AddFloat(entries, tag, new[] { value });
         }
@@ -279,7 +279,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The list of <see cref="TiffIfdEntry"/> to add the new entry to.</param>
         /// <param name="tag">The tag for the resulting entry.</param>
         /// <param name="value">The value for the resulting entry.</param>
-        public static void AddFloat(this List<TiffIfdEntry> entries, ushort tag, float[] value)
+        public static void AddFloat(this List<TiffIfdEntry> entries, TiffTagId tag, float[] value)
         {
             byte[] bytes = new byte[value.Length * TiffConstants.SizeOfFloat];
 
@@ -289,7 +289,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 Array.Copy(itemBytes, 0, bytes, i * TiffConstants.SizeOfFloat, TiffConstants.SizeOfFloat);
             }
 
-            entries.Add(new TiffIfdEntry(tag, TiffType.Float, (uint)value.Length, bytes));
+            entries.Add(new TiffIfdEntry(tag, TiffTagType.Float, (uint)value.Length, bytes));
         }
 
         /// <summary>
@@ -298,7 +298,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The list of <see cref="TiffIfdEntry"/> to add the new entry to.</param>
         /// <param name="tag">The tag for the resulting entry.</param>
         /// <param name="value">The value for the resulting entry.</param>
-        public static void AddDouble(this List<TiffIfdEntry> entries, ushort tag, double value)
+        public static void AddDouble(this List<TiffIfdEntry> entries, TiffTagId tag, double value)
         {
             TiffIfdEntryCreator.AddDouble(entries, tag, new[] { value });
         }
@@ -309,7 +309,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The list of <see cref="TiffIfdEntry"/> to add the new entry to.</param>
         /// <param name="tag">The tag for the resulting entry.</param>
         /// <param name="value">The value for the resulting entry.</param>
-        public static void AddDouble(this List<TiffIfdEntry> entries, ushort tag, double[] value)
+        public static void AddDouble(this List<TiffIfdEntry> entries, TiffTagId tag, double[] value)
         {
             byte[] bytes = new byte[value.Length * TiffConstants.SizeOfDouble];
 
@@ -319,9 +319,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 Array.Copy(itemBytes, 0, bytes, i * TiffConstants.SizeOfDouble, TiffConstants.SizeOfDouble);
             }
 
-            entries.Add(new TiffIfdEntry(tag, TiffType.Double, (uint)value.Length, bytes));
+            entries.Add(new TiffIfdEntry(tag, TiffTagType.Double, (uint)value.Length, bytes));
         }
 
+        // todo: byte order?
         private static void ToBytes(ushort value, byte[] bytes, int offset)
         {
             bytes[offset + 0] = (byte)value;

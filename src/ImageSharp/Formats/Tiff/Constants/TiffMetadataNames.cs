@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Defines constants for each of the supported TIFF metadata types.
     /// </summary>
-    public static class TiffMetadataNames
+    internal static class TiffMetadataNames
     {
         /// <summary>
         /// Person who created the image.

@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Entries =
                                 {
-                                    TiffGenEntry.Integer(TiffTags.ImageWidth, TiffType.Long, 150)
+                                    TiffGenEntry.Integer(TiffTagId.ImageWidth, TiffTagType.Long, 150)
                                 },
                 NextIfd = new TiffGenIfd()
             }
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Entries =
                                 {
-                                    TiffGenEntry.Integer(TiffTags.ImageWidth, TiffType.Long, 150)
+                                    TiffGenEntry.Integer(TiffTagId.ImageWidth, TiffTagType.Long, 150)
                                 }
             }
                             .ToStream(isLittleEndian);
@@ -60,11 +60,11 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Entries =
                                 {
-                                    TiffGenEntry.Integer(TiffTags.ImageWidth, TiffType.Long, 150),
-                                    TiffGenEntry.Integer(TiffTags.ImageLength, TiffType.Long, 210),
-                                    TiffGenEntry.Integer(TiffTags.Orientation, TiffType.Short, 1),
-                                    TiffGenEntry.Ascii(TiffTags.Artist, "Image Artist Name"),
-                                    TiffGenEntry.Ascii(TiffTags.HostComputer, "Host Computer Name")
+                                    TiffGenEntry.Integer(TiffTagId.ImageWidth, TiffTagType.Long, 150),
+                                    TiffGenEntry.Integer(TiffTagId.ImageLength, TiffTagType.Long, 210),
+                                    TiffGenEntry.Integer(TiffTagId.Orientation, TiffTagType.Short, 1),
+                                    TiffGenEntry.Ascii(TiffTagId.Artist, "Image Artist Name"),
+                                    TiffGenEntry.Ascii(TiffTagId.HostComputer, "Host Computer Name")
                                 },
                 NextIfd = new TiffGenIfd()
             }
@@ -85,9 +85,9 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Entries =
                                 {
-                                    TiffGenEntry.Integer(TiffTags.ImageWidth, TiffType.Long, 150),
-                                    TiffGenEntry.Integer(TiffTags.ImageLength, TiffType.Long, 210),
-                                    TiffGenEntry.Integer(TiffTags.Orientation, TiffType.Short, 1)
+                                    TiffGenEntry.Integer(TiffTagId.ImageWidth, TiffTagType.Long, 150),
+                                    TiffGenEntry.Integer(TiffTagId.ImageLength, TiffTagType.Long, 210),
+                                    TiffGenEntry.Integer(TiffTagId.Orientation, TiffTagType.Short, 1)
                                 },
                 NextIfd = new TiffGenIfd()
             }
@@ -95,12 +95,12 @@ namespace SixLabors.ImageSharp.Tests
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
             TiffIfd ifd = decoder.ReadIfd(0);
-            TiffIfdEntry entry = ifd.Entries[1];
+            TiffTag entry = ifd.Entries[1];
 
             byte[] expectedData = isLittleEndian ? new byte[] { 210, 0, 0, 0 } : new byte[] { 0, 0, 0, 210 };
 
-            Assert.Equal(TiffTags.ImageLength, entry.Tag);
-            Assert.Equal(TiffType.Long, entry.Type);
+            Assert.Equal(TiffTagId.ImageLength, entry.Tag);
+            Assert.Equal(TiffTagType.Long, entry.Type);
             Assert.Equal(1u, entry.Count);
             Assert.Equal(expectedData, entry.Value);
         }

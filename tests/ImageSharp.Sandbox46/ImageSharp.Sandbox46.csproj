@@ -16,6 +16,22 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="..\ImageSharp.Tests\Formats\Tiff\TiffDecoderIfdEntryTests.cs" />
+    <Compile Remove="..\ImageSharp.Tests\Formats\Tiff\TiffDecoderIfdTests.cs" />
+    <Compile Remove="..\ImageSharp.Tests\Formats\Tiff\TiffDecoderImageTests.cs" />
+    <Compile Remove="..\ImageSharp.Tests\Formats\Tiff\TiffDecoderMetadataTests.cs" />
+    <Compile Remove="..\ImageSharp.Tests\Formats\Tiff\TiffIfd\TiffIfdTests.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\ImageSharp.Tests\Formats\Tiff\TiffDecoderIfdEntryTests.cs" />
+    <None Include="..\ImageSharp.Tests\Formats\Tiff\TiffDecoderIfdTests.cs" />
+    <None Include="..\ImageSharp.Tests\Formats\Tiff\TiffDecoderImageTests.cs" />
+    <None Include="..\ImageSharp.Tests\Formats\Tiff\TiffDecoderMetadataTests.cs" />
+    <None Include="..\ImageSharp.Tests\Formats\Tiff\TiffIfd\TiffIfdTests.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Magick.NET-Q16-AnyCPU" />
     <PackageReference Include="Moq" />
   </ItemGroup>

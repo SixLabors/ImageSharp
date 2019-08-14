@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Enumeration representing how the components of each pixel are stored the Tiff file-format.
     /// </summary>
-    internal enum TiffPlanarConfiguration
+    internal enum TiffPlanarConfiguration : uint
     {
         /// <summary>
         /// Chunky format.

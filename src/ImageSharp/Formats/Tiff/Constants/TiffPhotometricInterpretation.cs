@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Enumeration representing the photometric interpretation formats defined by the Tiff file-format.
     /// </summary>
-    internal enum TiffPhotometricInterpretation
+    internal enum TiffPhotometricInterpretation : uint
     {
         /// <summary>
         /// Bilevel and grayscale:  0 is imaged as white. The maximum value is imaged as black.

@@ -12,22 +12,22 @@ namespace SixLabors.ImageSharp.Tests
     [Trait("Category", "Tiff")]
     public class TiffDecoderMetadataTests
     {
-        public static object[][] BaselineMetadataValues = new[] { new object[] { false, TiffTags.Artist, TiffMetadataNames.Artist, "My Artist Name" },
-                                                                  new object[] { false, TiffTags.Copyright, TiffMetadataNames.Copyright, "My Copyright Statement" },
-                                                                  new object[] { false, TiffTags.DateTime, TiffMetadataNames.DateTime, "My DateTime Value" },
-                                                                  new object[] { false, TiffTags.HostComputer, TiffMetadataNames.HostComputer, "My Host Computer Name" },
-                                                                  new object[] { false, TiffTags.ImageDescription, TiffMetadataNames.ImageDescription, "My Image Description" },
-                                                                  new object[] { false, TiffTags.Make, TiffMetadataNames.Make, "My Camera Make" },
-                                                                  new object[] { false, TiffTags.Model, TiffMetadataNames.Model, "My Camera Model" },
-                                                                  new object[] { false, TiffTags.Software, TiffMetadataNames.Software, "My Imaging Software" },
-                                                                  new object[] { true, TiffTags.Artist, TiffMetadataNames.Artist, "My Artist Name" },
-                                                                  new object[] { true, TiffTags.Copyright, TiffMetadataNames.Copyright, "My Copyright Statement" },
-                                                                  new object[] { true, TiffTags.DateTime, TiffMetadataNames.DateTime, "My DateTime Value" },
-                                                                  new object[] { true, TiffTags.HostComputer, TiffMetadataNames.HostComputer, "My Host Computer Name" },
-                                                                  new object[] { true, TiffTags.ImageDescription, TiffMetadataNames.ImageDescription, "My Image Description" },
-                                                                  new object[] { true, TiffTags.Make, TiffMetadataNames.Make, "My Camera Make" },
-                                                                  new object[] { true, TiffTags.Model, TiffMetadataNames.Model, "My Camera Model" },
-                                                                  new object[] { true, TiffTags.Software, TiffMetadataNames.Software, "My Imaging Software" }};
+        public static object[][] BaselineMetadataValues = new[] { new object[] { false, TiffTagId.Artist, TiffMetadataNames.Artist, "My Artist Name" },
+                                                                  new object[] { false, TiffTagId.Copyright, TiffMetadataNames.Copyright, "My Copyright Statement" },
+                                                                  new object[] { false, TiffTagId.DateTime, TiffMetadataNames.DateTime, "My DateTime Value" },
+                                                                  new object[] { false, TiffTagId.HostComputer, TiffMetadataNames.HostComputer, "My Host Computer Name" },
+                                                                  new object[] { false, TiffTagId.ImageDescription, TiffMetadataNames.ImageDescription, "My Image Description" },
+                                                                  new object[] { false, TiffTagId.Make, TiffMetadataNames.Make, "My Camera Make" },
+                                                                  new object[] { false, TiffTagId.Model, TiffMetadataNames.Model, "My Camera Model" },
+                                                                  new object[] { false, TiffTagId.Software, TiffMetadataNames.Software, "My Imaging Software" },
+                                                                  new object[] { true, TiffTagId.Artist, TiffMetadataNames.Artist, "My Artist Name" },
+                                                                  new object[] { true, TiffTagId.Copyright, TiffMetadataNames.Copyright, "My Copyright Statement" },
+                                                                  new object[] { true, TiffTagId.DateTime, TiffMetadataNames.DateTime, "My DateTime Value" },
+                                                                  new object[] { true, TiffTagId.HostComputer, TiffMetadataNames.HostComputer, "My Host Computer Name" },
+                                                                  new object[] { true, TiffTagId.ImageDescription, TiffMetadataNames.ImageDescription, "My Image Description" },
+                                                                  new object[] { true, TiffTagId.Make, TiffMetadataNames.Make, "My Camera Make" },
+                                                                  new object[] { true, TiffTagId.Model, TiffMetadataNames.Model, "My Camera Model" },
+                                                                  new object[] { true, TiffTagId.Software, TiffMetadataNames.Software, "My Imaging Software" }};
 
         [Theory]
         [InlineData(false, 150u, 1u, 200u, 1u, 2u /* Inch */, 150.0, 200.0)]
@@ -54,17 +54,17 @@ namespace SixLabors.ImageSharp.Tests
 
             if (xResolutionNumerator != null)
             {
-                ifdGen.WithEntry(TiffGenEntry.Rational(TiffTags.XResolution, xResolutionNumerator.Value, xResolutionDenominator.Value));
+                ifdGen.WithEntry(TiffGenEntry.Rational(TiffTagId.XResolution, xResolutionNumerator.Value, xResolutionDenominator.Value));
             }
 
             if (yResolutionNumerator != null)
             {
-                ifdGen.WithEntry(TiffGenEntry.Rational(TiffTags.YResolution, yResolutionNumerator.Value, yResolutionDenominator.Value));
+                ifdGen.WithEntry(TiffGenEntry.Rational(TiffTagId.YResolution, yResolutionNumerator.Value, yResolutionDenominator.Value));
             }
 
             if (resolutionUnit != null)
             {
-                ifdGen.WithEntry(TiffGenEntry.Integer(TiffTags.ResolutionUnit, TiffType.Short, resolutionUnit.Value));
+                ifdGen.WithEntry(TiffGenEntry.Integer(TiffTagId.ResolutionUnit, TiffTagType.Short, resolutionUnit.Value));
             }
 
             Stream stream = ifdGen.ToStream(isLittleEndian);
@@ -87,10 +87,10 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Entries =
                                 {
-                                    TiffGenEntry.Integer(TiffTags.ImageWidth, TiffType.Long, 150),
-                                    TiffGenEntry.Integer(TiffTags.ImageLength, TiffType.Long, 210),
+                                    TiffGenEntry.Integer(TiffTagId.ImageWidth, TiffTagType.Long, 150),
+                                    TiffGenEntry.Integer(TiffTagId.ImageLength, TiffTagType.Long, 210),
                                     TiffGenEntry.Ascii(tag, metadataValue),
-                                    TiffGenEntry.Integer(TiffTags.Orientation, TiffType.Short, 1)
+                                    TiffGenEntry.Integer(TiffTagId.Orientation, TiffTagType.Short, 1)
                                 }
             }
                 .ToStream(isLittleEndian);
@@ -115,10 +115,10 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Entries =
                                 {
-                                    TiffGenEntry.Integer(TiffTags.ImageWidth, TiffType.Long, 150),
-                                    TiffGenEntry.Integer(TiffTags.ImageLength, TiffType.Long, 210),
+                                    TiffGenEntry.Integer(TiffTagId.ImageWidth, TiffTagType.Long, 150),
+                                    TiffGenEntry.Integer(TiffTagId.ImageLength, TiffTagType.Long, 210),
                                     TiffGenEntry.Ascii(tag, metadataValue),
-                                    TiffGenEntry.Integer(TiffTags.Orientation, TiffType.Short, 1)
+                                    TiffGenEntry.Integer(TiffTagId.Orientation, TiffTagType.Short, 1)
                                 }
             }
                 .ToStream(isLittleEndian);

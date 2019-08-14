@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests
         public void DecodeImage_ThrowsException_WithMissingImageWidth(bool isLittleEndian)
         {
             Stream stream = CreateTiffGenIfd()
-                            .WithoutEntry(TiffTags.ImageWidth)
+                            .WithoutEntry(TiffTagId.ImageWidth)
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests
         public void DecodeImage_ThrowsException_WithMissingImageLength(bool isLittleEndian)
         {
             Stream stream = CreateTiffGenIfd()
-                            .WithoutEntry(TiffTags.ImageLength)
+                            .WithoutEntry(TiffTagId.ImageLength)
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests
         public void ReadImageFormat_DeterminesCorrectCompressionImplementation(bool isLittleEndian, ushort compression, int compressionType)
         {
             Stream stream = CreateTiffGenIfd()
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.Compression, TiffType.Short, compression))
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.Compression, TiffTagType.Short, compression))
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.Tests
         public void ReadImageFormat_ThrowsExceptionForUnsupportedCompression(bool isLittleEndian, ushort compression)
         {
             Stream stream = CreateTiffGenIfd()
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.Compression, TiffType.Short, compression))
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.Compression, TiffTagType.Short, compression))
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
@@ -153,9 +153,9 @@ namespace SixLabors.ImageSharp.Tests
         public void ReadImageFormat_DeterminesCorrectColorImplementation_Chunky(bool isLittleEndian, ushort photometricInterpretation, int[] bitsPerSample, int colorType)
         {
             Stream stream = CreateTiffGenIfd()
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, photometricInterpretation))
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.PlanarConfiguration, TiffType.Short, (int)TiffPlanarConfiguration.Chunky))
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.BitsPerSample, TiffType.Short, bitsPerSample))
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.PhotometricInterpretation, TiffTagType.Short, photometricInterpretation))
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.PlanarConfiguration, TiffTagType.Short, (int)TiffPlanarConfiguration.Chunky))
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.BitsPerSample, TiffTagType.Short, bitsPerSample))
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
@@ -173,9 +173,9 @@ namespace SixLabors.ImageSharp.Tests
         public void ReadImageFormat_DeterminesCorrectColorImplementation_Planar(bool isLittleEndian, ushort photometricInterpretation, int[] bitsPerSample, int colorType)
         {
             Stream stream = CreateTiffGenIfd()
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, photometricInterpretation))
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.PlanarConfiguration, TiffType.Short, (int)TiffPlanarConfiguration.Planar))
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.BitsPerSample, TiffType.Short, bitsPerSample))
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.PhotometricInterpretation, TiffTagType.Short, photometricInterpretation))
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.PlanarConfiguration, TiffTagType.Short, (int)TiffPlanarConfiguration.Planar))
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.BitsPerSample, TiffTagType.Short, bitsPerSample))
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
@@ -193,8 +193,8 @@ namespace SixLabors.ImageSharp.Tests
         public void ReadImageFormat_DeterminesCorrectColorImplementation_DefaultsToBilevel(bool isLittleEndian, ushort photometricInterpretation, int colorType)
         {
             Stream stream = CreateTiffGenIfd()
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, photometricInterpretation))
-                            .WithoutEntry(TiffTags.BitsPerSample)
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.PhotometricInterpretation, TiffTagType.Short, photometricInterpretation))
+                            .WithoutEntry(TiffTagId.BitsPerSample)
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
@@ -227,7 +227,7 @@ namespace SixLabors.ImageSharp.Tests
         public void ReadImageFormat_ThrowsExceptionForMissingPhotometricInterpretation(bool isLittleEndian)
         {
             Stream stream = CreateTiffGenIfd()
-                            .WithoutEntry(TiffTags.PhotometricInterpretation)
+                            .WithoutEntry(TiffTagId.PhotometricInterpretation)
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
@@ -260,7 +260,7 @@ namespace SixLabors.ImageSharp.Tests
         public void ReadImageFormat_ThrowsExceptionForUnsupportedPhotometricInterpretation(bool isLittleEndian, ushort photometricInterpretation)
         {
             Stream stream = CreateTiffGenIfd()
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, photometricInterpretation))
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.PhotometricInterpretation, TiffTagType.Short, photometricInterpretation))
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
@@ -285,7 +285,7 @@ namespace SixLabors.ImageSharp.Tests
         public void ReadImageFormat_ReadsBitsPerSample(bool isLittleEndian, uint[] bitsPerSample)
         {
             Stream stream = CreateTiffGenIfd()
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.BitsPerSample, TiffType.Short, bitsPerSample))
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.BitsPerSample, TiffTagType.Short, bitsPerSample))
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
@@ -303,8 +303,8 @@ namespace SixLabors.ImageSharp.Tests
         public void ReadImageFormat_ReadsBitsPerSample_DefaultsToBilevel(bool isLittleEndian, ushort photometricInterpretation)
         {
             Stream stream = CreateTiffGenIfd()
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, photometricInterpretation))
-                            .WithoutEntry(TiffTags.BitsPerSample)
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.PhotometricInterpretation, TiffTagType.Short, photometricInterpretation))
+                            .WithoutEntry(TiffTagId.BitsPerSample)
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
@@ -319,8 +319,8 @@ namespace SixLabors.ImageSharp.Tests
         public void ReadImageFormat_ThrowsExceptionForMissingBitsPerSample(bool isLittleEndian)
         {
             Stream stream = CreateTiffGenIfd()
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, (int)TiffPhotometricInterpretation.PaletteColor))
-                            .WithoutEntry(TiffTags.BitsPerSample)
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.PhotometricInterpretation, TiffTagType.Short, (int)TiffPhotometricInterpretation.PaletteColor))
+                            .WithoutEntry(TiffTagId.BitsPerSample)
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
@@ -353,8 +353,8 @@ namespace SixLabors.ImageSharp.Tests
         public void ReadImageFormat_ThrowsExceptionForUnsupportedNumberOfSamples(bool isLittleEndian, ushort photometricInterpretation, int[] bitsPerSample)
         {
             Stream stream = CreateTiffGenIfd()
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, photometricInterpretation))
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.BitsPerSample, TiffType.Short, bitsPerSample))
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.PhotometricInterpretation, TiffTagType.Short, photometricInterpretation))
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.BitsPerSample, TiffTagType.Short, bitsPerSample))
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
@@ -370,8 +370,8 @@ namespace SixLabors.ImageSharp.Tests
         public void ReadImageFormat_ReadsColorMap(bool isLittleEndian)
         {
             Stream stream = CreateTiffGenIfd()
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, (int)TiffPhotometricInterpretation.PaletteColor))
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.ColorMap, TiffType.Short, new int[] { 10, 20, 30, 40, 50, 60 }))
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.PhotometricInterpretation, TiffTagType.Short, (int)TiffPhotometricInterpretation.PaletteColor))
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.ColorMap, TiffTagType.Short, new int[] { 10, 20, 30, 40, 50, 60 }))
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
@@ -386,8 +386,8 @@ namespace SixLabors.ImageSharp.Tests
         public void ReadImageFormat_ThrowsExceptionForMissingColorMap(bool isLittleEndian)
         {
             Stream stream = CreateTiffGenIfd()
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, (int)TiffPhotometricInterpretation.PaletteColor))
-                            .WithoutEntry(TiffTags.ColorMap)
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.PhotometricInterpretation, TiffTagType.Short, (int)TiffPhotometricInterpretation.PaletteColor))
+                            .WithoutEntry(TiffTagId.ColorMap)
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
@@ -406,9 +406,9 @@ namespace SixLabors.ImageSharp.Tests
         public void ReadImageFormat_ReadsPlanarConfiguration(bool isLittleEndian, int planarConfiguration)
         {
             Stream stream = CreateTiffGenIfd()
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, (int)TiffPhotometricInterpretation.Rgb))
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.BitsPerSample, TiffType.Short, new int[] { 8, 8, 8 }))
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.PlanarConfiguration, TiffType.Short, (int)planarConfiguration))
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.PhotometricInterpretation, TiffTagType.Short, (int)TiffPhotometricInterpretation.Rgb))
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.BitsPerSample, TiffTagType.Short, new int[] { 8, 8, 8 }))
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.PlanarConfiguration, TiffTagType.Short, (int)planarConfiguration))
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
@@ -423,9 +423,9 @@ namespace SixLabors.ImageSharp.Tests
         public void ReadImageFormat_DefaultsPlanarConfigurationToChunky(bool isLittleEndian)
         {
             Stream stream = CreateTiffGenIfd()
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, (int)TiffPhotometricInterpretation.Rgb))
-                            .WithEntry(TiffGenEntry.Integer(TiffTags.BitsPerSample, TiffType.Short, new int[] { 8, 8, 8 }))
-                            .WithoutEntry(TiffTags.PlanarConfiguration)
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.PhotometricInterpretation, TiffTagType.Short, (int)TiffPhotometricInterpretation.Rgb))
+                            .WithEntry(TiffGenEntry.Integer(TiffTagId.BitsPerSample, TiffTagType.Short, new int[] { 8, 8, 8 }))
+                            .WithoutEntry(TiffTagId.PlanarConfiguration)
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);
@@ -495,15 +495,15 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Entries =
                         {
-                            TiffGenEntry.Integer(TiffTags.ImageWidth, TiffType.Long, ImageWidth),
-                            TiffGenEntry.Integer(TiffTags.ImageLength, TiffType.Long, ImageHeight),
-                            TiffGenEntry.Rational(TiffTags.XResolution, 100, 1),
-                            TiffGenEntry.Rational(TiffTags.YResolution, 200, 1),
-                            TiffGenEntry.Integer(TiffTags.ResolutionUnit, TiffType.Short, 2),
-                            TiffGenEntry.Integer(TiffTags.PhotometricInterpretation, TiffType.Short, (int)TiffPhotometricInterpretation.WhiteIsZero),
-                            TiffGenEntry.Integer(TiffTags.BitsPerSample, TiffType.Short, new int[] { 8 }),
-                            TiffGenEntry.Integer(TiffTags.Compression, TiffType.Short, (int)TiffCompression.None),
-                            TiffGenEntry.Integer(TiffTags.ColorMap, TiffType.Short, new int[256])
+                            TiffGenEntry.Integer(TiffTagId.ImageWidth, TiffTagType.Long, ImageWidth),
+                            TiffGenEntry.Integer(TiffTagId.ImageLength, TiffTagType.Long, ImageHeight),
+                            TiffGenEntry.Rational(TiffTagId.XResolution, 100, 1),
+                            TiffGenEntry.Rational(TiffTagId.YResolution, 200, 1),
+                            TiffGenEntry.Integer(TiffTagId.ResolutionUnit, TiffTagType.Short, 2),
+                            TiffGenEntry.Integer(TiffTagId.PhotometricInterpretation, TiffTagType.Short, (int)TiffPhotometricInterpretation.WhiteIsZero),
+                            TiffGenEntry.Integer(TiffTagId.BitsPerSample, TiffTagType.Short, new int[] { 8 }),
+                            TiffGenEntry.Integer(TiffTagId.Compression, TiffTagType.Short, (int)TiffCompression.None),
+                            TiffGenEntry.Integer(TiffTagId.ColorMap, TiffTagType.Short, new int[256])
                         }
             };
         }

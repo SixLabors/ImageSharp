@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests
     /// </summary>
     internal abstract class TiffGenEntry : ITiffGenDataSource
     {
-        private TiffGenEntry(ushort tag, TiffType type, uint count)
+        private TiffGenEntry(ushort tag, TiffTagType type, uint count)
         {
             this.Tag = tag;
             this.Type = type;
@@ -23,56 +23,60 @@ namespace SixLabors.ImageSharp.Tests
 
         public uint Count { get; }
         public ushort Tag { get; }
-        public TiffType Type { get; }
+        public TiffTagType Type { get; }
 
         public abstract IEnumerable<TiffGenDataBlock> GetData(bool isLittleEndian);
 
-        public static TiffGenEntry Ascii(ushort tag, string value)
+        public static TiffGenEntry Ascii(TiffTagId tag, string value)
         {
-            return new TiffGenEntryAscii(tag, value);
+            return new TiffGenEntryAscii((ushort)tag, value);
         }
 
-        public static TiffGenEntry Bytes(ushort tag, TiffType type, uint count, byte[] value)
+        public static TiffGenEntry Bytes(TiffTagId tag, TiffTagType type, uint count, byte[] value)
         {
-            return new TiffGenEntryBytes(tag, type, count, value);
+            return new TiffGenEntryBytes((ushort)tag, type, count, value);
         }
 
-        public static TiffGenEntry Integer(ushort tag, TiffType type, int value)
+        public static TiffGenEntry Integer(TiffTagId tag, TiffTagType type, int value)
         {
             return TiffGenEntry.Integer(tag, type, new int[] { value });
         }
 
-        public static TiffGenEntry Integer(ushort tag, TiffType type, int[] value)
+        public static TiffGenEntry Integer(TiffTagId tag, TiffTagType type, int[] value)
         {
-            if (type != TiffType.Byte && type != TiffType.Short && type != TiffType.Long &&
-                type != TiffType.SByte && type != TiffType.SShort && type != TiffType.SLong)
+            if (type != TiffTagType.Byte && type != TiffTagType.Short && type != TiffTagType.Long &&
+                type != TiffTagType.SByte && type != TiffTagType.SShort && type != TiffTagType.SLong)
+            {
                 throw new ArgumentException(nameof(type), "The specified type is not an integer type.");
+            }
 
-            return new TiffGenEntryInteger(tag, type, value);
+            return new TiffGenEntryInteger((ushort)tag, type, value);
         }
 
-        public static TiffGenEntry Integer(ushort tag, TiffType type, uint value)
+        public static TiffGenEntry Integer(TiffTagId tag, TiffTagType type, uint value)
         {
             return TiffGenEntry.Integer(tag, type, new uint[] { value });
         }
 
-        public static TiffGenEntry Integer(ushort tag, TiffType type, uint[] value)
+        public static TiffGenEntry Integer(TiffTagId tag, TiffTagType type, uint[] value)
         {
-            if (type != TiffType.Byte && type != TiffType.Short && type != TiffType.Long &&
-                type != TiffType.SByte && type != TiffType.SShort && type != TiffType.SLong)
+            if (type != TiffTagType.Byte && type != TiffTagType.Short && type != TiffTagType.Long &&
+                type != TiffTagType.SByte && type != TiffTagType.SShort && type != TiffTagType.SLong)
+            {
                 throw new ArgumentException(nameof(type), "The specified type is not an integer type.");
+            }
 
-            return new TiffGenEntryUnsignedInteger(tag, type, value);
+            return new TiffGenEntryUnsignedInteger((ushort)tag, type, value);
         }
 
-        public static TiffGenEntry Rational(ushort tag, uint numerator, uint denominator)
+        public static TiffGenEntry Rational(TiffTagId tag, uint numerator, uint denominator)
         {
-            return new TiffGenEntryRational(tag, numerator, denominator);
+            return new TiffGenEntryRational((ushort)tag, numerator, denominator);
         }
 
         private class TiffGenEntryAscii : TiffGenEntry
         {
-            public TiffGenEntryAscii(ushort tag, string value) : base(tag, TiffType.Ascii, (uint)GetBytes(value).Length)
+            public TiffGenEntryAscii(ushort tag, string value) : base(tag, TiffTagType.Ascii, (uint)GetBytes(value).Length)
             {
                 this.Value = value;
             }
@@ -93,7 +97,7 @@ namespace SixLabors.ImageSharp.Tests
 
         private class TiffGenEntryBytes : TiffGenEntry
         {
-            public TiffGenEntryBytes(ushort tag, TiffType type, uint count, byte[] value) : base(tag, type, count)
+            public TiffGenEntryBytes(ushort tag, TiffTagType type, uint count, byte[] value) : base(tag, type, count)
             {
                 this.Value = value;
             }
@@ -108,7 +112,7 @@ namespace SixLabors.ImageSharp.Tests
 
         private class TiffGenEntryInteger : TiffGenEntry
         {
-            public TiffGenEntryInteger(ushort tag, TiffType type, int[] value) : base(tag, type, (uint)value.Length)
+            public TiffGenEntryInteger(ushort tag, TiffTagType type, int[] value) : base(tag, type, (uint)value.Length)
             {
                 this.Value = value;
             }
@@ -125,17 +129,17 @@ namespace SixLabors.ImageSharp.Tests
             {
                 switch (Type)
                 {
-                    case TiffType.Byte:
+                    case TiffTagType.Byte:
                         return Value.Select(i => new byte[] { (byte)i });
-                    case TiffType.Short:
+                    case TiffTagType.Short:
                         return Value.Select(i => BitConverter.GetBytes((ushort)i));
-                    case TiffType.Long:
+                    case TiffTagType.Long:
                         return Value.Select(i => BitConverter.GetBytes((uint)i));
-                    case TiffType.SByte:
+                    case TiffTagType.SByte:
                         return Value.Select(i => BitConverter.GetBytes((sbyte)i));
-                    case TiffType.SShort:
+                    case TiffTagType.SShort:
                         return Value.Select(i => BitConverter.GetBytes((short)i));
-                    case TiffType.SLong:
+                    case TiffTagType.SLong:
                         return Value.Select(i => BitConverter.GetBytes((int)i));
                     default:
                         throw new InvalidOperationException();
@@ -145,7 +149,7 @@ namespace SixLabors.ImageSharp.Tests
 
         private class TiffGenEntryUnsignedInteger : TiffGenEntry
         {
-            public TiffGenEntryUnsignedInteger(ushort tag, TiffType type, uint[] value) : base(tag, type, (uint)value.Length)
+            public TiffGenEntryUnsignedInteger(ushort tag, TiffTagType type, uint[] value) : base(tag, type, (uint)value.Length)
             {
                 this.Value = value;
             }
@@ -162,17 +166,17 @@ namespace SixLabors.ImageSharp.Tests
             {
                 switch (Type)
                 {
-                    case TiffType.Byte:
+                    case TiffTagType.Byte:
                         return Value.Select(i => new byte[] { (byte)i });
-                    case TiffType.Short:
+                    case TiffTagType.Short:
                         return Value.Select(i => BitConverter.GetBytes((ushort)i));
-                    case TiffType.Long:
+                    case TiffTagType.Long:
                         return Value.Select(i => BitConverter.GetBytes((uint)i));
-                    case TiffType.SByte:
+                    case TiffTagType.SByte:
                         return Value.Select(i => BitConverter.GetBytes((sbyte)i));
-                    case TiffType.SShort:
+                    case TiffTagType.SShort:
                         return Value.Select(i => BitConverter.GetBytes((short)i));
-                    case TiffType.SLong:
+                    case TiffTagType.SLong:
                         return Value.Select(i => BitConverter.GetBytes((int)i));
                     default:
                         throw new InvalidOperationException();
@@ -182,7 +186,7 @@ namespace SixLabors.ImageSharp.Tests
 
         private class TiffGenEntryRational : TiffGenEntry
         {
-            public TiffGenEntryRational(ushort tag, uint numerator, uint denominator) : base(tag, TiffType.Rational, 1u)
+            public TiffGenEntryRational(ushort tag, uint numerator, uint denominator) : base(tag, TiffTagType.Rational, 1u)
             {
                 this.Numerator = numerator;
                 this.Denominator = denominator;

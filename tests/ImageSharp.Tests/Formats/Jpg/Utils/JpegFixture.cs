@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 // ReSharper disable InconsistentNaming
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         // ReSharper disable once InconsistentNaming
         public static float[] Create8x8FloatData()
         {
-            float[] result = new float[64];
+            var result = new float[64];
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         // ReSharper disable once InconsistentNaming
         public static int[] Create8x8IntData()
         {
-            int[] result = new int[64];
+            var result = new int[64];
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         // ReSharper disable once InconsistentNaming
         public static short[] Create8x8ShortData()
         {
-            short[] result = new short[64];
+            var result = new short[64];
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         public static int[] Create8x8RandomIntData(int minValue, int maxValue, int seed = 42)
         {
             var rnd = new Random(seed);
-            int[] result = new int[64];
+            var result = new int[64];
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         public static float[] Create8x8RandomFloatData(float minValue, float maxValue, int seed = 42)
         {
             var rnd = new Random(seed);
-            float[] result = new float[64];
+            var result = new float[64];
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)

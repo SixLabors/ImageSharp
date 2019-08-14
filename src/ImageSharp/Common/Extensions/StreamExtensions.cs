@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp
             }
             else
             {
-                byte[] foo = new byte[count];
+                var foo = new byte[count];
                 while (count > 0)
                 {
                     int bytesRead = stream.Read(foo, 0, count);

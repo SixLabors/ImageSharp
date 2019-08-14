@@ -44,11 +44,11 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
         [Benchmark]
         public void FetchWithVectorConstructor()
         {
-            Vector<float> v = new Vector<float>(this.testValue);
+            var v = new Vector<float>(this.testValue);
 
             for (int i = 0; i < this.data.Length; i += Vector<uint>.Count)
             {
-                Vector<float> a = new Vector<float>(this.data, i);
+                var a = new Vector<float>(this.data, i);
                 a = a * v;
                 a.CopyTo(this.data, i);
             }
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
         [Benchmark]
         public void FetchWithUnsafeCast()
         {
-            Vector<float> v = new Vector<float>(this.testValue);
+            var v = new Vector<float>(this.testValue);
             ref Vector<float> start = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
 
             int n = this.InputSize / Vector<uint>.Count;
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
         [Benchmark]
         public void FetchWithUnsafeCastNoTempVector()
         {
-            Vector<float> v = new Vector<float>(this.testValue);
+            var v = new Vector<float>(this.testValue);
             ref Vector<float> start = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
 
             int n = this.InputSize / Vector<uint>.Count;

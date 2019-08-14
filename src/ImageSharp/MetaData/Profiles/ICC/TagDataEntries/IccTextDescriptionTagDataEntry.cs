@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
                     && p3 >= 0x41 && p3 <= 0x5A
                     && p4 >= 0x41 && p4 <= 0x5A)
                 {
-                    string culture = new string(new[] { (char)p1, (char)p2, '-', (char)p3, (char)p4 });
+                    var culture = new string(new[] { (char)p1, (char)p2, '-', (char)p3, (char)p4 });
                     return new CultureInfo(culture);
                 }
 

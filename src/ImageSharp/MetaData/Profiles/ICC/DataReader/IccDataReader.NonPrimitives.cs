@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         {
             string name = this.ReadAsciiString(32);
             ushort[] pcsCoord = { this.ReadUInt16(), this.ReadUInt16(), this.ReadUInt16() };
-            ushort[] deviceCoord = new ushort[deviceCoordCount];
+            var deviceCoord = new ushort[deviceCoordCount];
 
             for (int i = 0; i < deviceCoordCount; i++)
             {

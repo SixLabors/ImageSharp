@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void SavePath()
         {
-            Stream stream = new MemoryStream();
+            var stream = new MemoryStream();
             this.fileSystem.Setup(x => x.Create("path.png")).Returns(stream);
             this.Image.Save("path.png");
 
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void SavePathWithEncoder()
         {
-            Stream stream = new MemoryStream();
+            var stream = new MemoryStream();
             this.fileSystem.Setup(x => x.Create("path.jpg")).Returns(stream);
 
             this.Image.Save("path.jpg", this.encoderNotInFormat.Object);
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void SaveStreamWithMime()
         {
-            Stream stream = new MemoryStream();
+            var stream = new MemoryStream();
             this.Image.Save(stream, this.localImageFormat.Object);
 
             this.encoder.Verify(x => x.Encode(this.Image, stream));
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void SaveStreamWithEncoder()
         {
-            Stream stream = new MemoryStream();
+            var stream = new MemoryStream();
 
             this.Image.Save(stream, this.encoderNotInFormat.Object);
 

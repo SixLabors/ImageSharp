@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
         public void HistogramEqualizationTest(int luminanceLevels)
         {
             // Arrange
-            byte[] pixels = new byte[]
+            var pixels = new byte[]
             {
                 52,  55,  61,  59,  70,  61,  76,  61,
                 62,  59,  55, 104,  94,  85,  59,  71,
@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                     }
                 }
 
-                byte[] expected = new byte[]
+                var expected = new byte[]
                 {
                 0,    12,   53,   32,  146,   53,  174,   53,
                 57,   32,   12,  227,  219,  202,   32,  154,

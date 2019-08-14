@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void PathExtendingOffEdgeOfImageShouldNotBeCropped<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            Color color = Color.White;
+            var color = Color.White;
             Pen pen = Pens.Solid(color, 5f);
 
             provider.RunValidatingProcessorTest(
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     {
                         for (int i = 0; i < 300; i += 20)
                         {
-                            PointF[] points = new PointF[] { new Vector2(100, 2), new Vector2(-10, i) };
+                            var points = new PointF[] { new Vector2(100, 2), new Vector2(-10, i) };
                             x.DrawLines(pen, points);
                         }
                     },

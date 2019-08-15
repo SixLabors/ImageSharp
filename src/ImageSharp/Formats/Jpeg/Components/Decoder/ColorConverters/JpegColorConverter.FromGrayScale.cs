@@ -19,10 +19,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 
             public override void ConvertToRgba(in ComponentValues values, Span<Vector4> result)
             {
+                var maximum = 1 / this.MaximumValue;
                 var scale = new Vector4(
-                                1 / this.MaximumValue,
-                                1 / this.MaximumValue,
-                                1 / this.MaximumValue,
+                                maximum,
+                                maximum,
+                                maximum,
                                 1F);
 
                 ref float sBase = ref MemoryMarshal.GetReference(values.Component0);

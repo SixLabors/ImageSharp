@@ -1,10 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Numerics;
 
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.Shapes;
@@ -29,18 +28,18 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     new Vector2(10, 10), new Vector2(200, 150), new Vector2(50, 300)
                 };
             Color color = TestUtils.GetColorByName(colorName).WithAlpha(alpha);
-            
-            GraphicsOptions options = new GraphicsOptions(antialias);
+
+            var options = new GraphicsOptions(antialias);
 
             string aa = antialias ? "" : "_NoAntialias";
             FormattableString outputDetails = $"{colorName}_A{alpha}{aa}";
-            
+
             provider.RunValidatingProcessorTest(
                 c => c.FillPolygon(options, color, simplePath),
                 outputDetails,
                 appendSourceFileOrDescription: false);
         }
-        
+
         [Theory]
         [WithBasicTestPatternImages(200, 200, PixelTypes.Rgba32)]
         public void FillPolygon_Concave<TPixel>(TestImageProvider<TPixel> provider)
@@ -48,15 +47,15 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             var points = new SixLabors.Primitives.PointF[]
                              {
-                                 new Vector2(8, 8), 
-                                 new Vector2(64, 8), 
-                                 new Vector2(64, 64), 
+                                 new Vector2(8, 8),
+                                 new Vector2(64, 8),
+                                 new Vector2(64, 64),
                                  new Vector2(120, 64),
-                                 new Vector2(120, 120), 
+                                 new Vector2(120, 120),
                                  new Vector2(8, 120)
                              };
-                
-            Color color = Color.LightGreen;
+
+            var color = Color.LightGreen;
 
             provider.RunValidatingProcessorTest(
                 c => c.FillPolygon(color, points),
@@ -73,15 +72,15 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 {
                     new Vector2(10, 10), new Vector2(200, 150), new Vector2(50, 300)
                 };
-            Color color = Color.Yellow;
+            var color = Color.Yellow;
 
             var brush = Brushes.Horizontal(color);
-            
+
             provider.RunValidatingProcessorTest(
                 c => c.FillPolygon(brush, simplePath),
                 appendSourceFileOrDescription: false);
         }
-        
+
         [Theory]
         [WithBasicTestPatternImages(250, 350, PixelTypes.Rgba32, TestImages.Png.Ducky)]
         [WithBasicTestPatternImages(250, 350, PixelTypes.Rgba32, TestImages.Bmp.Car)]
@@ -96,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             using (Image<TPixel> brushImage = Image.Load<TPixel>(TestFile.Create(brushImageName).Bytes))
             {
                 var brush = new ImageBrush(brushImage);
-                
+
                 provider.RunValidatingProcessorTest(
                     c => c.FillPolygon(brush, simplePath),
                     System.IO.Path.GetFileNameWithoutExtension(brushImageName),
@@ -110,13 +109,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             where TPixel : struct, IPixel<TPixel>
         {
             var polygon = new SixLabors.Shapes.RectangularPolygon(10, 10, 190, 140);
-            Color color = Color.White;
+            var color = Color.White;
 
             provider.RunValidatingProcessorTest(
                 c => c.Fill(color, polygon),
-                appendSourceFileOrDescription: false);    
+                appendSourceFileOrDescription: false);
         }
-        
+
         [Theory]
         [WithBasicTestPatternImages(200, 200, PixelTypes.Rgba32, 3, 50, 0f)]
         [WithBasicTestPatternImages(200, 200, PixelTypes.Rgba32, 3, 60, 20f)]
@@ -128,7 +127,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             float angle = GeometryUtilities.DegreeToRadian(angleDeg);
             var polygon = new RegularPolygon(100, 100, vertices, radius, angle);
-            Color color = Color.Yellow;
+            var color = Color.Yellow;
 
             FormattableString testOutput = $"V({vertices})_R({radius})_Ang({angleDeg})";
             provider.RunValidatingProcessorTest(
@@ -144,7 +143,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             where TPixel : struct, IPixel<TPixel>
         {
             var polygon = new EllipsePolygon(100, 100, 80, 120);
-            Color color = Color.Azure;
+            var color = Color.Azure;
 
             provider.RunValidatingProcessorTest(
                 c => c.Fill(color, polygon),

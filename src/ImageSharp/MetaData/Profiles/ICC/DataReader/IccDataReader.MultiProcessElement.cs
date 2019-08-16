@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// <returns>The read <see cref="IccCurveSetProcessElement"/></returns>
         public IccCurveSetProcessElement ReadCurveSetProcessElement(int inChannelCount, int outChannelCount)
         {
-            IccOneDimensionalCurve[] curves = new IccOneDimensionalCurve[inChannelCount];
+            var curves = new IccOneDimensionalCurve[inChannelCount];
             for (int i = 0; i < inChannelCount; i++)
             {
                 curves[i] = this.ReadOneDimensionalCurve();

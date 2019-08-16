@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using BenchmarkDotNet.Configs;
@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         }
 
         /// <summary>
-        /// Execute code for each image stream. If the returned object of the opearation <see cref="Func{T, TResult}"/> is <see cref="IDisposable"/> it will be disposed.
+        /// Execute code for each image stream. If the returned object of the operation <see cref="Func{T, TResult}"/> is <see cref="IDisposable"/> it will be disposed.
         /// </summary>
         /// <param name="operation">The operation to execute. If the returned object is &lt;see cref="IDisposable"/&gt; it will be disposed </param>
         protected void ForEachStream(Func<MemoryStream, object> operation)

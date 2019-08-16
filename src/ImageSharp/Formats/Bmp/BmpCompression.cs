@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// rather than four or eight bits in size.
         ///
         /// Note: Because compression value of 4 is ambiguous for BI_RGB for windows and RLE24 for OS/2, the enum value is remapped
-        /// to a different value.
+        /// to a different value, to be clearly separate from valid windows values.
         /// </summary>
         RLE24 = 100,
     }

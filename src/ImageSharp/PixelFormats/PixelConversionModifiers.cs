@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.ColorSpaces.Companding;
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <summary>
-    /// Flags responsible to select additional operations which could be effitiently applied in
+    /// Flags responsible to select additional operations which could be efficiently applied in
     /// <see cref="PixelOperations{TPixel}.ToVector4(SixLabors.ImageSharp.Configuration,System.ReadOnlySpan{TPixel},System.Span{System.Numerics.Vector4},SixLabors.ImageSharp.PixelFormats.PixelConversionModifiers)"/>
     /// or
     /// <see cref="PixelOperations{TPixel}.FromVector4Destructive(SixLabors.ImageSharp.Configuration,System.Span{System.Numerics.Vector4},System.Span{TPixel},SixLabors.ImageSharp.PixelFormats.PixelConversionModifiers)"/>

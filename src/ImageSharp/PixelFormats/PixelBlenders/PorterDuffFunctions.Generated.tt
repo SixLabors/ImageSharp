@@ -1,4 +1,4 @@
-﻿<#
+<#
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 #>
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             source.W *= opacity;
 
             return Xor(backdrop, source);
-        }   
+        }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static Vector4 <#=blender#>Clear(Vector4 backdrop, Vector4 source, float opacity)
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 <# } #>
 
 
-<# void GenerateGenericPixelBlender(string blender, string composer) { #>        
+<# void GenerateGenericPixelBlender(string blender, string composer) { #>
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel <#=blender#><#=composer#><TPixel>(TPixel backdrop, TPixel source, float opacity)
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
 <#
 
-string[] composers = new []{         
+var composers = new []{
     "Src",
     "SrcAtop",
     "SrcOver",
@@ -156,7 +156,7 @@ string[] composers = new []{
     "Xor",
 };
 
-string[] blenders = new []{         
+var blenders = new []{
     "Normal",
     "Multiply",
     "Add",
@@ -166,12 +166,12 @@ string[] blenders = new []{
     "Lighten",
     "Overlay",
     "HardLight"
-}; 
+};
 
     foreach(var blender in blenders)
-    {        
-        GeneratePixelBlenders(blender);        
-        
+    {
+        GeneratePixelBlenders(blender);
+
         foreach(var composer in composers)
         {
             GenerateGenericPixelBlender(blender,composer);

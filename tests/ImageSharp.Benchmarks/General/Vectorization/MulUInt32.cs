@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
 
             for (int i = 0; i < this.input.Length; i += Vector<uint>.Count)
             {
-                Vector<uint> a = new Vector<uint>(this.input, i);
+                var a = new Vector<uint>(this.input, i);
                 a = a * v;
                 a.CopyTo(this.result, i);
             }

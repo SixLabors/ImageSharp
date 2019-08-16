@@ -8,11 +8,9 @@
     <DebugType Condition="$(codecov) != ''">full</DebugType>
     <DebugType Condition="$(codecov) == ''">portable</DebugType>
     <DebugSymbols>True</DebugSymbols>
-    <RootNamespace>SixLabors.ImageSharp.Tests</RootNamespace>
     <AssemblyName>SixLabors.ImageSharp.Tests</AssemblyName>
     <Platforms>AnyCPU;x64;x86</Platforms>
     <RootNamespace>SixLabors.ImageSharp.Tests</RootNamespace>
-    <TargetFrameworks>netcoreapp2.1;net462;net472</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>

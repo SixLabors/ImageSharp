@@ -80,8 +80,22 @@ namespace SixLabors.ImageSharp
         /// </summary>
         Configuration IConfigurable.Configuration => this.Configuration;
 
+        /// <summary>
+        /// Gets a value indicating whether the image instance is disposed.
+        /// </summary>
+        public bool IsDisposed { get; private set; }
+
         /// <inheritdoc />
-        public abstract void Dispose();
+        public void Dispose()
+        {
+            if (this.IsDisposed)
+            {
+                return;
+            }
+
+            this.IsDisposed = true;
+            this.DisposeImpl();
+        }
 
         /// <summary>
         /// Saves the image to the given stream using the given image encoder.
@@ -93,6 +107,7 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNull(stream, nameof(stream));
             Guard.NotNull(encoder, nameof(encoder));
+            this.EnsureNotDisposed();
 
             EncodeVisitor visitor = new EncodeVisitor(encoder, stream);
             this.AcceptVisitor(visitor);
@@ -127,6 +142,11 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="size">The <see cref="Size"/>.</param>
         protected void UpdateSize(Size size) => this.size = size;
+
+        /// <summary>
+        /// Implements the Dispose logic.
+        /// </summary>
+        protected abstract void DisposeImpl();
 
         private class EncodeVisitor : IImageVisitor
         {

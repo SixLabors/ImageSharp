@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -10,7 +10,6 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorSpaces.Companding;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 
 using Xunit;
 using Xunit.Abstractions;
@@ -298,7 +297,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         {
             const int Count = 2134;
             TPixel[] source = CreatePixelTestData(Count);
-            TDestPixel[] expected = new TDestPixel[Count];
+            var expected = new TDestPixel[Count];
 
             PixelConverterTests.ReferenceImplementations.To<TPixel, TDestPixel>(this.Configuration, source, expected);
 
@@ -458,7 +457,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         public void ToArgb32Bytes(int count)
         {
             TPixel[] source = CreatePixelTestData(count);
-            byte[] expected = new byte[count * 4];
+            var expected = new byte[count * 4];
             var argb = default(Argb32);
 
             for (int i = 0; i < count; i++)
@@ -505,7 +504,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         public void ToBgr24Bytes(int count)
         {
             TPixel[] source = CreatePixelTestData(count);
-            byte[] expected = new byte[count * 3];
+            var expected = new byte[count * 3];
             var bgr = default(Bgr24);
 
             for (int i = 0; i < count; i++)
@@ -550,7 +549,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         public void ToBgra32Bytes(int count)
         {
             TPixel[] source = CreatePixelTestData(count);
-            byte[] expected = new byte[count * 4];
+            var expected = new byte[count * 4];
             var bgra = default(Bgra32);
 
             for (int i = 0; i < count; i++)
@@ -596,7 +595,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         public void ToRgb24Bytes(int count)
         {
             TPixel[] source = CreatePixelTestData(count);
-            byte[] expected = new byte[count * 3];
+            var expected = new byte[count * 3];
             var rgb = default(Rgb24);
 
             for (int i = 0; i < count; i++)
@@ -641,7 +640,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         public void ToRgba32Bytes(int count)
         {
             TPixel[] source = CreatePixelTestData(count);
-            byte[] expected = new byte[count * 4];
+            var expected = new byte[count * 4];
             var rgba = default(Rgba32);
 
             for (int i = 0; i < count; i++)
@@ -687,7 +686,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         public void ToRgb48Bytes(int count)
         {
             TPixel[] source = CreatePixelTestData(count);
-            byte[] expected = new byte[count * 6];
+            var expected = new byte[count * 6];
             Rgb48 rgb = default;
 
             for (int i = 0; i < count; i++)
@@ -736,7 +735,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         public void ToRgba64Bytes(int count)
         {
             TPixel[] source = CreatePixelTestData(count);
-            byte[] expected = new byte[count * 8];
+            var expected = new byte[count * 8];
             Rgba64 rgba = default;
 
             for (int i = 0; i < count; i++)
@@ -788,7 +787,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public void ToGray8(int count)
             {
                 TPixel[] source = CreatePixelTestData(count);
-                Gray8[] expected = new Gray8[count];
+                var expected = new Gray8[count];
 
                 for (int i = 0; i < count; i++)
                 {
@@ -817,7 +816,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 
                 for (int i = 0; i < count; i++)
                 {
-                    int i2 = i * 2;
                     expected[i].FromGray16(source[i]);
                 }
 
@@ -833,7 +831,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public void ToGray16(int count)
             {
                 TPixel[] source = CreatePixelTestData(count);
-                Gray16[] expected = new Gray16[count];
+                var expected = new Gray16[count];
 
                 for (int i = 0; i < count; i++)
                 {
@@ -948,7 +946,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 
         internal static byte[] CreateByteTestData(int length)
         {
-            byte[] result = new byte[length];
+            var result = new byte[length];
             var rnd = new Random(42); // Deterministic random values
 
             for (int i = 0; i < result.Length; i++)

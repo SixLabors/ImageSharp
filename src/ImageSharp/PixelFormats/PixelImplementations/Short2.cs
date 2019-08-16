@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromScaledVector4(Vector4 vector)
         {
-            Vector2 scaled = new Vector2(vector.X, vector.Y) * 65534F;
+            var scaled = new Vector2(vector.X, vector.Y) * 65534F;
             scaled -= new Vector2(32767F);
             this.PackedValue = Pack(scaled);
         }

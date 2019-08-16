@@ -49,16 +49,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
-            int numberOfPixels = source.Width * source.Height;
-            Span<TPixel> pixels = source.GetPixelSpan();
 
-            var parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism };
+            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism };
             int tileWidth = source.Width / this.Tiles;
             int tileHeight = tileWidth;
-            int pixeInTile = tileWidth * tileHeight;
+            int pixelInTile = tileWidth * tileHeight;
             int halfTileHeight = tileHeight / 2;
             int halfTileWidth = halfTileHeight;
-            var slidingWindowInfos = new SlidingWindowInfos(tileWidth, tileHeight, halfTileWidth, halfTileHeight, pixeInTile);
+            var slidingWindowInfos = new SlidingWindowInfos(tileWidth, tileHeight, halfTileWidth, halfTileHeight, pixelInTile);
 
             using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Width, source.Height))
             {
@@ -149,7 +147,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="source">The source image.</param>
         /// <param name="memoryAllocator">The memory allocator.</param>
         /// <param name="targetPixels">The target pixels.</param>
-        /// <param name="swInfos">Informations about the sliding window dimensions.</param>
+        /// <param name="swInfos"><see cref="SlidingWindowInfos"/> about the sliding window dimensions.</param>
         /// <param name="yStart">The y start position.</param>
         /// <param name="yEnd">The y end position.</param>
         /// <param name="useFastPath">if set to true the borders of the image will not be checked.</param>
@@ -204,7 +202,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                             {
                                 // Clipping the histogram, but doing it on a copy to keep the original un-clipped values for the next iteration.
                                 histogram.CopyTo(histogramCopy);
-                                this.ClipHistogram(histogramCopy, this.ClipLimitPercentage, swInfos.PixeInTile);
+                                this.ClipHistogram(histogramCopy, this.ClipLimitPercentage, swInfos.PixelInTile);
                             }
 
                             // Calculate the cumulative distribution function, which will map each input pixel in the current tile to a new value.
@@ -212,7 +210,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                                              ? this.CalculateCdf(ref cdfBase, ref histogramCopyBase, histogram.Length - 1)
                                              : this.CalculateCdf(ref cdfBase, ref histogramBase, histogram.Length - 1);
 
-                            float numberOfPixelsMinusCdfMin = swInfos.PixeInTile - cdfMin;
+                            float numberOfPixelsMinusCdfMin = swInfos.PixelInTile - cdfMin;
 
                             // Map the current pixel to the new equalized value.
                             int luminance = GetLuminance(source[x, y], this.LuminanceLevels);
@@ -367,20 +365,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
         private class SlidingWindowInfos
         {
-            public SlidingWindowInfos(int tileWidth, int tileHeight, int halfTileWidth, int halfTileHeight, int pixeInTile)
+            public SlidingWindowInfos(int tileWidth, int tileHeight, int halfTileWidth, int halfTileHeight, int pixelInTile)
             {
                 this.TileWidth = tileWidth;
                 this.TileHeight = tileHeight;
                 this.HalfTileWidth = halfTileWidth;
                 this.HalfTileHeight = halfTileHeight;
-                this.PixeInTile = pixeInTile;
+                this.PixelInTile = pixelInTile;
             }
 
             public int TileWidth { get; private set; }
 
             public int TileHeight { get; private set; }
 
-            public int PixeInTile { get; private set; }
+            public int PixelInTile { get; private set; }
 
             public int HalfTileWidth { get; private set; }
 

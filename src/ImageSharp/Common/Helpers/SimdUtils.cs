@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -6,9 +6,6 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Tuples;
 
 namespace SixLabors.ImageSharp
 {
@@ -46,7 +43,7 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static Vector<float> FastRound(this Vector<float> v)
         {
-            Vector<int> magic0 = new Vector<int>(int.MinValue); // 0x80000000
+            var magic0 = new Vector<int>(int.MinValue); // 0x80000000
             Vector<float> sgn0 = Vector.AsVectorSingle(magic0);
             Vector<float> and0 = Vector.BitwiseAnd(sgn0, v);
             Vector<float> or0 = Vector.BitwiseOr(and0, new Vector<float>(8388608.0f));

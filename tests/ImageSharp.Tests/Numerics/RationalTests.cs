@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Fact]
-        public void ToStringRepresention()
+        public void ToStringRepresentation()
         {
             var rational = new Rational(0, 0);
             Assert.Equal("[ Indeterminate ]", rational.ToString());

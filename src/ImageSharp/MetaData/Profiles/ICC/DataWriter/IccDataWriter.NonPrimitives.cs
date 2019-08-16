@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -36,9 +36,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             int major = value.Major.Clamp(0, byte.MaxValue);
             int minor = value.Minor.Clamp(0, 15);
             int bugfix = value.Patch.Clamp(0, 15);
-
-            // TODO: This is not used?
-            byte mb = (byte)((minor << 4) | bugfix);
 
             int version = (major << 24) | (minor << 20) | (bugfix << 16);
             return this.WriteInt32(version);

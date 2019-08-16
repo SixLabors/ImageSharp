@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2, 0)]
             public void LLM_ForwardThenInverse(int seed, int startAt)
             {
-                int[] data = JpegFixture.Create8x8RandomIntData(-1000, 1000, seed);
+                int[] data = Create8x8RandomIntData(-1000, 1000, seed);
                 float[] original = data.ConvertAllToFloat();
                 float[] src = data.ConvertAllToFloat();
                 float[] dest = new float[64];
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2, 200)]
             public void LLM_IDCT_IsEquivalentTo_AccurateImplementation(int seed, int range)
             {
-                float[] sourceArray = JpegFixture.Create8x8RoundedRandomFloatData(-range, range, seed);
+                float[] sourceArray = Create8x8RoundedRandomFloatData(-range, range, seed);
 
                 var source = Block8x8F.Load(sourceArray);
 
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2)]
             public void LLM_FDCT_IsEquivalentTo_AccurateImplementation(int seed)
             {
-                float[] floatData = JpegFixture.Create8x8RandomFloatData(-1000, 1000);
+                float[] floatData = Create8x8RandomFloatData(-1000, 1000);
 
                 Block8x8F source = default;
                 source.LoadFrom(floatData);
@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2, 200)]
             public void GT_IDCT_IsEquivalentTo_AccurateImplementation(int seed, int range)
             {
-                int[] intData = JpegFixture.Create8x8RandomIntData(-range, range, seed);
+                int[] intData = Create8x8RandomIntData(-range, range, seed);
                 float[] floatSrc = intData.ConvertAllToFloat();
 
                 ReferenceImplementations.AccurateDCT.TransformIDCTInplace(intData);

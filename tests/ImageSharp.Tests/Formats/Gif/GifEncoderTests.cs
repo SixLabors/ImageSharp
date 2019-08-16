@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
@@ -32,10 +32,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                var encoder = new GifEncoder()
+                var encoder = new GifEncoder
                 {
-                    // Use the palette quantizer without dithering to ensure results 
-                    // are consistant
+                    // Use the palette quantizer without dithering to ensure results
+                    // are consistent
                     Quantizer = new WebSafePaletteQuantizer(false)
                 };
 
@@ -92,55 +92,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        Assert.Equal(1, output.Metadata.Properties.Count);
-                        Assert.Equal("Comments", output.Metadata.Properties[0].Name);
-                        Assert.Equal("ImageSharp", output.Metadata.Properties[0].Value);
-                    }
-                }
-            }
-        }
-
-        [Fact]
-        public void Encode_IgnoreMetadataIsTrue_CommentsAreNotWritten()
-        {
-            var options = new GifEncoder();
-
-            var testFile = TestFile.Create(TestImages.Gif.Rings);
-
-            using (Image<Rgba32> input = testFile.CreateRgba32Image())
-            {
-                input.Metadata.Properties.Clear();
-                using (var memStream = new MemoryStream())
-                {
-                    input.SaveAsGif(memStream, options);
-
-                    memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
-                    {
-                        Assert.Equal(0, output.Metadata.Properties.Count);
-                    }
-                }
-            }
-        }
-
-        [Fact]
-        public void Encode_WhenCommentIsTooLong_CommentIsTrimmed()
-        {
-            using (var input = new Image<Rgba32>(1, 1))
-            {
-                string comments = new string('c', 256);
-                input.Metadata.Properties.Add(new ImageProperty("Comments", comments));
-
-                using (var memStream = new MemoryStream())
-                {
-                    input.Save(memStream, new GifEncoder());
-
-                    memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
-                    {
-                        Assert.Equal(1, output.Metadata.Properties.Count);
-                        Assert.Equal("Comments", output.Metadata.Properties[0].Name);
-                        Assert.Equal(255, output.Metadata.Properties[0].Value.Length);
+                        GifMetadata metadata = output.Metadata.GetFormatMetadata(GifFormat.Instance);
+                        Assert.Equal(1, metadata.Comments.Count);
+                        Assert.Equal("ImageSharp", metadata.Comments[0]);
                     }
                 }
             }
@@ -184,7 +138,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 GifMetadata metaData = image.Metadata.GetFormatMetadata(GifFormat.Instance);
                 GifFrameMetadata frameMetaData = image.Frames.RootFrame.Metadata.GetFormatMetadata(GifFormat.Instance);
                 GifColorTableMode colorMode = metaData.ColorTableMode;
-                var encoder = new GifEncoder()
+                var encoder = new GifEncoder
                 {
                     ColorTableMode = colorMode,
                     Quantizer = new OctreeQuantizer(frameMetaData.ColorTableLength)
@@ -196,7 +150,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 outStream.Position = 0;
                 var clone = Image.Load<Rgba32>(outStream);
 
-                GifMetadata cloneMetaData = clone.Metadata.GetFormatMetadata<GifMetadata>(GifFormat.Instance);
+                GifMetadata cloneMetaData = clone.Metadata.GetFormatMetadata(GifFormat.Instance);
                 Assert.Equal(metaData.ColorTableMode, cloneMetaData.ColorTableMode);
 
                 // Gifiddle and Cyotek GifInfo say this image has 64 colors.

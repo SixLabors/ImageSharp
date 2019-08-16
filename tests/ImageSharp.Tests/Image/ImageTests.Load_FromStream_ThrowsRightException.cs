@@ -5,9 +5,7 @@ using System;
 using System.IO;
 
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 using Xunit;
 
@@ -18,26 +16,26 @@ namespace SixLabors.ImageSharp.Tests
         public class Load_FromStream_Throws : IDisposable
         {
             private static readonly byte[] Data = new byte[] { 0x01 };
-            
+
             private MemoryStream Stream { get; } = new MemoryStream(Data);
-            
+
             [Fact]
-            public void Image_Load_Throws_UknownImageFormatException()
+            public void Image_Load_Throws_UnknownImageFormatException()
             {
                 Assert.Throws<UnknownImageFormatException>(() =>
                 {
-                    using (var img = Image.Load(Configuration.Default, this.Stream, out IImageFormat format))
+                    using (Image.Load(Configuration.Default, this.Stream, out IImageFormat format))
                     {
                     }
                 });
             }
 
             [Fact]
-            public void Image_Load_T_Throws_UknownImageFormatException()
+            public void Image_Load_T_Throws_UnknownImageFormatException()
             {
                 Assert.Throws<UnknownImageFormatException>(() =>
                 {
-                    using (var img = Image.Load<Rgba32>(Configuration.Default, this.Stream, out IImageFormat format))
+                    using (Image.Load<Rgba32>(Configuration.Default, this.Stream, out IImageFormat format))
                     {
                     }
                 });

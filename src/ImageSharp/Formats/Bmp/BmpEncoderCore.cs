@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -176,7 +176,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 #if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[infoHeaderSize];
 #else
-            byte[] buffer = new byte[infoHeaderSize];
+            var buffer = new byte[infoHeaderSize];
 #endif
             fileHeader.WriteTo(buffer);
 

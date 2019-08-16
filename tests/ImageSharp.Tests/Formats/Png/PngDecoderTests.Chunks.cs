@@ -1,4 +1,4 @@
-﻿using System.Buffers.Binary;
+using System.Buffers.Binary;
 using System.IO;
 using System.Text;
 
@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
         private static string GetChunkTypeName(uint value)
         {
-            byte[] data = new byte[4];
+            var data = new byte[4];
 
             BinaryPrimitives.WriteUInt32BigEndian(data, value);
 

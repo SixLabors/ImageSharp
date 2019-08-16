@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         public static readonly TheoryData<byte, byte, byte> ColorData =
-            new TheoryData<byte, byte, byte>() { { 1, 2, 3 }, { 4, 5, 6 }, { 0, 255, 42 } };
+            new TheoryData<byte, byte, byte> { { 1, 2, 3 }, { 4, 5, 6 }, { 0, 255, 42 } };
 
         [Theory]
         [MemberData(nameof(ColorData))]

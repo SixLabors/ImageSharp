@@ -538,7 +538,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            byte[] profile = new byte[remaining];
+            var profile = new byte[remaining];
             this.InputStream.Read(profile, 0, remaining);
 
             if (ProfileResolver.IsProfile(profile, ProfileResolver.ExifMarker))
@@ -571,14 +571,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            byte[] identifier = new byte[Icclength];
+            var identifier = new byte[Icclength];
             this.InputStream.Read(identifier, 0, Icclength);
             remaining -= Icclength; // We have read it by this point
 
             if (ProfileResolver.IsProfile(identifier, ProfileResolver.IccMarker))
             {
                 this.isIcc = true;
-                byte[] profile = new byte[remaining];
+                var profile = new byte[remaining];
                 this.InputStream.Read(profile, 0, remaining);
 
                 if (this.iccData is null)

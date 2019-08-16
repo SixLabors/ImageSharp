@@ -1,10 +1,10 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
+
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
             this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(width, height);
-            this.Clear(configuration.GetParallelOptions(), backgroundColor);
+            this.Clear(backgroundColor);
         }
 
         /// <summary>
@@ -267,7 +267,7 @@ namespace SixLabors.ImageSharp
             ParallelHelper.IterateRows(
                 this.Bounds(),
                 configuration,
-                (rows) =>
+                rows =>
                     {
                         for (int y = rows.Min; y < rows.Max; y++)
                         {
@@ -283,9 +283,8 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Clears the bitmap.
         /// </summary>
-        /// <param name="parallelOptions">The parallel options.</param>
         /// <param name="value">The value to initialize the bitmap with.</param>
-        internal void Clear(ParallelOptions parallelOptions, TPixel value)
+        internal void Clear(TPixel value)
         {
             Span<TPixel> span = this.GetPixelSpan();
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
         private static readonly Vector4 Half = new Vector4(0.5f);
 
         private Block8x8F inputDividend;
-        private Block8x8F inputDivisior;
+        private Block8x8F inputDivisor;
 
         [GlobalSetup]
         public void Setup()
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
             for (int i = 0; i < Block8x8F.Size; i++)
             {
                 this.inputDividend[i] = i*44.8f;
-                this.inputDivisior[i] = 100 - i;
+                this.inputDivisor[i] = 100 - i;
             }
         }
 
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
             int sum = 0;
 
             Block8x8F b1 = this.inputDividend;
-            Block8x8F b2 = this.inputDivisior;
+            Block8x8F b2 = this.inputDivisor;
             float* pDividend = (float*)&b1;
             float* pDivisor = (float*)&b2;
 
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
             int sum = 0;
 
             Block8x8F b1 = this.inputDividend;
-            Block8x8F b2 = this.inputDivisior;
+            Block8x8F b2 = this.inputDivisor;
             float* pDividend = (float*)&b1;
             float* pDivisor = (float*)&b2;
 
@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
             int sum = 0;
 
             Block8x8F bDividend = this.inputDividend;
-            Block8x8F bDivisor = this.inputDivisior;
+            Block8x8F bDivisor = this.inputDivisor;
             float* pDividend = (float*)&bDividend;
 
             for (int cnt = 0; cnt < ExecutionCount; cnt++)

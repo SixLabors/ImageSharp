@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests
     public class MeasureFixture
     {
         /// <summary>
-        /// Value indicating whether priniting is enabled.
+        /// Value indicating whether printing is enabled.
         /// </summary>
         protected bool EnablePrinting = true;
 

@@ -9,18 +9,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
     {
         /// <summary>
         /// TODO: produces really bad results for bigger values!
-        /// 
+        ///
         /// Contains the "original" golang based DCT/IDCT implementations as reference implementations.
         /// 1. ===== Forward DCT =====
         /// **** The original golang source claims:
         /// It is based on the code in jfdctint.c from the Independent JPEG Group,
         /// found at http://www.ijg.org/files/jpegsrc.v8c.tar.gz.
-        /// 
+        ///
         /// **** Could be found here as well:
-        /// https://github.com/mozilla/mozjpeg/blob/master/jfdctint.c 
-        /// 
+        /// https://github.com/mozilla/mozjpeg/blob/master/jfdctint.c
+        ///
         /// 2. ===== Inverse DCT =====
-        /// 
+        ///
         /// The golang source claims:
         /// http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_IEC_13818-4_2004_Conformance_Testing/Video/verifier/mpeg2decode_960109.tar.gz
         /// The referenced MPEG2 code claims:
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         /// /* coefficients extended to 12 bit for IEEE1180-1990      */
         /// /* compliance                           sE,  2.1.94       */
         /// /**********************************************************/
-        /// 
+        ///
         /// **** The code looks pretty similar to the standard libjpeg IDCT, but without quantization:
         /// https://github.com/mozilla/mozjpeg/blob/master/jidctint.c
         /// </summary>
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public static Block8x8 Subtract128_TransformFDCT_Upscale8(ref Block8x8 block)
             {
-                int[] temp = new int[Block8x8.Size];
+                var temp = new int[Block8x8.Size];
                 block.CopyTo(temp);
                 Subtract128_TransformFDCT_Upscale8_Inplace(temp);
                 var result = default(Block8x8);
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             // [Obsolete("Looks like this method produces really bad results for bigger values!")]
             public static Block8x8 TransformIDCT(ref Block8x8 block)
             {
-                int[] temp = new int[Block8x8.Size];
+                var temp = new int[Block8x8.Size];
                 block.CopyTo(temp);
                 TransformIDCTInplace(temp);
                 var result = default(Block8x8);

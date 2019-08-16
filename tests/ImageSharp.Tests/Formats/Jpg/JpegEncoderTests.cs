@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 // There is no alpha in Jpeg!
                 image.Mutate(c => c.MakeOpaque());
 
-                var encoder = new JpegEncoder()
+                var encoder = new JpegEncoder
                 {
                     Subsample = subsample,
                     Quality = quality

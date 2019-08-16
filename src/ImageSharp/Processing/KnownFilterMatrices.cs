@@ -1,10 +1,10 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using SixLabors.ImageSharp.Primitives;
 
-// Many of these matrices are tranlated from Chromium project where
+// Many of these matrices are translated from Chromium project where
 // SkScalar[] is memory-mapped to a row-major matrix.
 // The following translates to our column-major form:
 //
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets an approximated black and white filter
         /// </summary>
-        public static ColorMatrix BlackWhiteFilter { get; } = new ColorMatrix()
+        public static ColorMatrix BlackWhiteFilter { get; } = new ColorMatrix
         {
             M11 = 1.5F,
             M12 = 1.5F,

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Drawing;
@@ -48,12 +48,10 @@ namespace SixLabors.ImageSharp.Benchmarks
                 image.Mutate(x => x.DrawBeziers(
                     Rgba32.HotPink,
                     10,
-                    new SixLabors.Primitives.PointF[] {
-                        new Vector2(10, 500),
-                        new Vector2(30, 10),
-                        new Vector2(240, 30),
-                        new Vector2(300, 500)
-                    }));
+                    new Vector2(10, 500),
+                    new Vector2(30, 10),
+                    new Vector2(240, 30),
+                    new Vector2(300, 500)));
 
                 using (var stream = new MemoryStream())
                 {

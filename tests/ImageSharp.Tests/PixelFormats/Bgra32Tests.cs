@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -35,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         public static readonly TheoryData<byte, byte, byte, byte> ColorData =
-            new TheoryData<byte, byte, byte, byte>()
+            new TheoryData<byte, byte, byte, byte>
                 {
                     { 1, 2, 3, 4 }, { 4, 5, 6, 7 }, { 0, 255, 42, 0 }, { 1, 2, 3, 255 }
                 };

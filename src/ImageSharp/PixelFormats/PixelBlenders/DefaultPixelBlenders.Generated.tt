@@ -1,4 +1,4 @@
-﻿<#
+<#
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 #>
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
     {
 
 <#
-    string[] composers = new []{         
+    var composers = new []{
         "Src",
         "SrcAtop",
         "SrcOver",
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         "Xor",
     };
 
-    string[] blenders = new []{         
+    var blenders = new []{
         "Normal",
         "Multiply",
         "Add",
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         foreach(var composer in composers) {
         foreach(var blender in blenders) {
 
-            string blender_composer= $"{blender}{composer}";
+            var blender_composer= $"{blender}{composer}";
 
 #>
             internal class <#= blender_composer#> : PixelBlender<TPixel>
@@ -82,26 +82,26 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     TPixel dest = default;
                     dest.FromScaledVector4(PorterDuffFunctions.<#=blender_composer#>(background.ToScaledVector4(), source.ToScaledVector4(), amount.Clamp(0, 1)));
-                    return dest;                    
+                    return dest;
                 }
 
                 /// <inheritdoc />
-                protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)                
+                protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
                 {
                     amount = amount.Clamp(0, 1);
                     for (int i = 0; i < destination.Length; i++)
                     {
                         destination[i] = PorterDuffFunctions.<#=blender_composer#>(background[i], source[i], amount);
-                    }                    
+                    }
                 }
 
                 /// <inheritdoc />
-                protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)                
+                protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
                         destination[i] = PorterDuffFunctions.<#=blender_composer#>(background[i], source[i], amount[i].Clamp(0, 1));
-                    }                    
+                    }
                 }
             }
 

@@ -14,14 +14,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         /// <summary>
         /// Contains port of non-optimized methods in:
         /// https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp
-        /// 
+        ///
         /// *** Paper ***
         /// paper LLM89
-        /// C. Loeffler, A. Ligtenberg, and G. S. Moschytz, 
+        /// C. Loeffler, A. Ligtenberg, and G. S. Moschytz,
         /// "Practical fast 1-D DCT algorithms with 11 multiplications,"
         /// Proc. Int'l. Conf. on Acoustics, Speech, and Signal Processing (ICASSP89), pp. 988-991, 1989.
-        /// 
-        /// The main purpose of this code is testing and documentation, it is intented to be similar to it's original counterpart.
+        ///
+        /// The main purpose of this code is testing and documentation, it is intended to be similar to it's original counterpart.
         /// DO NOT clean it!
         /// DO NOT StyleCop it!
         /// </summary>
@@ -29,10 +29,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         {
             public static Block8x8F TransformIDCT(ref Block8x8F source)
             {
-                float[] s = new float[64];
+                var s = new float[64];
                 source.CopyTo(s);
-                float[] d = new float[64];
-                float[] temp = new float[64];
+                var d = new float[64];
+                var temp = new float[64];
 
                 iDCT2D_llm(s, d, temp);
                 Block8x8F result = default;
@@ -42,10 +42,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public static Block8x8F TransformFDCT_UpscaleBy8(ref Block8x8F source)
             {
-                float[] s = new float[64];
+                var s = new float[64];
                 source.CopyTo(s);
-                float[] d = new float[64];
-                float[] temp = new float[64];
+                var d = new float[64];
+                var temp = new float[64];
 
                 fDCT2D_llm(s, d, temp);
                 Block8x8F result = default;
@@ -61,10 +61,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public static float[] PrintConstants(ITestOutputHelper output)
             {
-                float[] r = new float[8];
+                var r = new float[8];
                 for (int i = 0; i < 8; i++)
                 {
-                    r[i] = (float)(Cos((double)i / 16.0 * M_PI) * M_SQRT2);
+                    r[i] = (float)(Cos(i / 16.0 * M_PI) * M_SQRT2);
                     output?.WriteLine($"float r{i} = {r[i]:R}f;");
                 }
                 return r;
@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             /// <summary>
             /// Original: https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L239
-            /// Applyies IDCT transformation on "s" copying transformed values to "d", using temporary block "temp"
+            /// Applies IDCT transformation on "s" copying transformed values to "d", using temporary block "temp"
             /// </summary>
             /// <param name="s"></param>
             /// <param name="d"></param>
@@ -267,13 +267,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public static void fDCT8x8_llm_sse(Span<float> s, Span<float> d, Span<float> temp)
             {
-                ReferenceImplementations.Transpose8x8(s, temp);
+                Transpose8x8(s, temp);
 
                 fDCT2D8x4_32f(temp, d);
 
                 fDCT2D8x4_32f(temp.Slice(4), d.Slice(4));
 
-                ReferenceImplementations.Transpose8x8(d, temp);
+                Transpose8x8(d, temp);
 
                 fDCT2D8x4_32f(temp, d);
 
@@ -466,7 +466,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             {
                 float t0, t1, t2, t3, t4, t5, t6, t7;
                 float c0, c1, c2, c3;
-                float[] r = new float[8];
+                var r = new float[8];
 
                 //for(i = 0;i < 8;i++){ r[i] = (float)(cos((double)i / 16.0 * M_PI) * M_SQRT2); }
                 r[0] = 1.414214f;
@@ -535,14 +535,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                     fDCT1Dllm_32f(sWorker.Slice(j * 8), temp.Slice(j * 8));
                 }
 
-                ReferenceImplementations.Transpose8x8(temp, d);
+                Transpose8x8(temp, d);
 
                 for (int j = 0; j < 8; j++)
                 {
                     fDCT1Dllm_32f(d.Slice(j * 8), temp.Slice(j * 8));
                 }
 
-                ReferenceImplementations.Transpose8x8(temp, d);
+                Transpose8x8(temp, d);
 
                 if (downscaleBy8)
                 {

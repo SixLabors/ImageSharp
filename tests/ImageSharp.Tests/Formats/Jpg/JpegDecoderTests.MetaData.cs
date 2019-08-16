@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
     public partial class JpegDecoderTests
     {
-        // TODO: A JPEGsnoop & metadata expert should review if the Exif/Icc expectations are correct. 
+        // TODO: A JPEGsnoop & metadata expert should review if the Exif/Icc expectations are correct.
         // I'm seeing several entries with Exif-related names in images where we do not decode an exif profile. (- Anton)
         public static readonly TheoryData<bool, string, int, bool, bool> MetaDataTestData =
         new TheoryData<bool, string, int, bool, bool>
@@ -211,7 +211,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(true)]
         public void IgnoreMetaData_ControlsWhetherMetaDataIsParsed(bool ignoreMetaData)
         {
-            var decoder = new JpegDecoder() { IgnoreMetadata = ignoreMetaData };
+            var decoder = new JpegDecoder { IgnoreMetadata = ignoreMetaData };
 
             // Snake.jpg has both Exif and ICC profiles defined:
             var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Snake);

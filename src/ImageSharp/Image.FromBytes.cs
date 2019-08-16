@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp
         /// <param name="config">The configuration.</param>
         /// <param name="data">The byte array containing encoded image data to read the header from.</param>
         /// <returns>The mime type or null if none found.</returns>
-        public static unsafe IImageFormat DetectFormat(Configuration config, ReadOnlySpan<byte> data)
+        public static IImageFormat DetectFormat(Configuration config, ReadOnlySpan<byte> data)
         {
             int maxHeaderSize = config.MaxHeaderSize;
             if (maxHeaderSize <= 0)
@@ -351,7 +351,7 @@ namespace SixLabors.ImageSharp
         /// <param name="config">The configuration options.</param>
         /// <param name="data">The byte span containing image data.</param>
         /// <returns>A new <see cref="Image"/>.</returns>
-        public static unsafe Image Load(Configuration config, ReadOnlySpan<byte> data) => Load(config, data, out _);
+        public static Image Load(Configuration config, ReadOnlySpan<byte> data) => Load(config, data, out _);
 
         /// <summary>
         /// Load a new instance of <see cref="Image"/> from the given encoded byte span.

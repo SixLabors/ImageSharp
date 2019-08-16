@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel[] palette = new TPixel[this.Palette.Length];
+            var palette = new TPixel[this.Palette.Length];
             Color.ToPixel(configuration, this.Palette.Span, palette.AsSpan());
             return new PaletteFrameQuantizer<TPixel>(this.Diffuser, palette);
         }
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             maxColors = maxColors.Clamp(QuantizerConstants.MinColors, QuantizerConstants.MaxColors);
             int max = Math.Min(maxColors, this.Palette.Length);
 
-            TPixel[] palette = new TPixel[max];
+            var palette = new TPixel[max];
             Color.ToPixel(configuration, this.Palette.Span.Slice(0, max), palette.AsSpan());
             return new PaletteFrameQuantizer<TPixel>(this.Diffuser, palette);
         }

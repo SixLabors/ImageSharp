@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -210,7 +210,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Convert salars to byte-s and copy to dest,
+        /// Convert scalars to byte-s and copy to dest,
         /// </summary>
         /// <param name="blockPtr">Pointer to block</param>
         /// <param name="dest">Destination</param>
@@ -257,7 +257,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         {
             fixed (Vector4* ptr = &this.V0L)
             {
-                float* fp = (float*)ptr;
+                var fp = (float*)ptr;
                 for (int i = 0; i < Size; i++)
                 {
                     dest[i] = (int)fp[i];
@@ -267,7 +267,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
         public float[] ToArray()
         {
-            float[] result = new float[Size];
+            var result = new float[Size];
             this.CopyTo(result);
             return result;
         }

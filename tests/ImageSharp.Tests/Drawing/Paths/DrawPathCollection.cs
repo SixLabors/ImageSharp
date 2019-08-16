@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
                 ShapePath region = Assert.IsType<ShapePath>(processor.Region);
 
                 // path is converted to a polygon before filling
-                ComplexPolygon polygon = Assert.IsType<ComplexPolygon>(region.Shape);
+                Assert.IsType<ComplexPolygon>(region.Shape);
 
                 Assert.Equal(this.pen.StrokeFill, processor.Brush);
             }
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
                 Assert.Equal(this.noneDefault, processor.Options);
 
                 ShapePath region = Assert.IsType<ShapePath>(processor.Region);
-                ComplexPolygon polygon = Assert.IsType<ComplexPolygon>(region.Shape);
+                Assert.IsType<ComplexPolygon>(region.Shape);
 
                 Assert.Equal(this.pen.StrokeFill, processor.Brush);
             }
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
                 Assert.Equal(GraphicsOptions.Default, processor.Options);
 
                 ShapePath region = Assert.IsType<ShapePath>(processor.Region);
-                ComplexPolygon polygon = Assert.IsType<ComplexPolygon>(region.Shape);
+                Assert.IsType<ComplexPolygon>(region.Shape);
 
                 SolidBrush brush = Assert.IsType<SolidBrush>(processor.Brush);
                 Assert.Equal(this.color, brush.Color);
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
                 Assert.Equal(this.noneDefault, processor.Options);
 
                 ShapePath region = Assert.IsType<ShapePath>(processor.Region);
-                ComplexPolygon polygon = Assert.IsType<ComplexPolygon>(region.Shape);
+                Assert.IsType<ComplexPolygon>(region.Shape);
 
                 SolidBrush brush = Assert.IsType<SolidBrush>(processor.Brush);
                 Assert.Equal(this.color, brush.Color);

@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                         }
 
                         float yPlusOne = y + 1;
-                        for (float subPixel = (float)y; subPixel < yPlusOne; subPixel += subpixelFraction)
+                        for (float subPixel = y; subPixel < yPlusOne; subPixel += subpixelFraction)
                         {
                             int pointsFound = region.Scan(subPixel + offset, buffer, configuration);
                             if (pointsFound == 0)
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 
                             QuickSort.Sort(buffer.Slice(0, pointsFound));
 
-                            for (int point = 0; point < pointsFound; point += 2)
+                            for (int point = 0; point < pointsFound && point < buffer.Length - 1; point += 2)
                             {
                                 // points will be paired up
                                 float scanStart = buffer[point] - minX;

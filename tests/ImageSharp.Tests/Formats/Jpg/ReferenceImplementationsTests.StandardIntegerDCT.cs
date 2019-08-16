@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2, 0)]
             public void ForwardThenInverse(int seed, int startAt)
             {
-                Span<int> original = JpegFixture.Create8x8RandomIntData(-200, 200, seed);
+                Span<int> original = Create8x8RandomIntData(-200, 200, seed);
 
                 Span<int> block = original.AddScalarToAllValues(128);
 
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 for (int i = startAt; i < 64; i++)
                 {
                     float expected = original[i];
-                    float actual = (float)block[i];
+                    float actual = block[i];
 
                     Assert.Equal(expected, actual, new ApproximateFloatComparer(3f));
                 }

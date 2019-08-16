@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 this.TestFormat.VerifySpecificDecodeCall<Rgb24>(this.Marker, this.TopLevelConfiguration);
             }
-            
+
             [Fact]
             public void Configuration_Path_Agnostic()
             {
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 this.TestFormat.VerifyAgnosticDecodeCall(this.Marker, this.TopLevelConfiguration);
             }
-            
+
             [Fact]
             public void Configuration_Path_Decoder_Specific()
             {
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests
                 Assert.NotNull(img);
                 this.localDecoder.Verify(x => x.Decode<Rgba32>(this.TopLevelConfiguration, this.DataStream));
             }
-            
+
             [Fact]
             public void Configuration_Path_Decoder_Agnostic()
             {
@@ -61,10 +61,10 @@ namespace SixLabors.ImageSharp.Tests
 
                 Assert.NotNull(img);
                 Assert.Equal(this.TestFormat, format);
-                
+
                 this.TestFormat.VerifySpecificDecodeCall<Rgba32>(this.Marker, this.TopLevelConfiguration);
             }
-            
+
             [Fact]
             public void Configuration_Path_OutFormat_Agnostic()
             {
@@ -72,14 +72,14 @@ namespace SixLabors.ImageSharp.Tests
 
                 Assert.NotNull(img);
                 Assert.Equal(this.TestFormat, format);
-                
+
                 this.TestFormat.VerifyAgnosticDecodeCall(this.Marker, this.TopLevelConfiguration);
-            }   
-            
+            }
+
             [Fact]
             public void WhenFileNotFound_Throws()
             {
-                System.IO.FileNotFoundException ex = Assert.Throws<System.IO.FileNotFoundException>(
+                Assert.Throws<System.IO.FileNotFoundException>(
                     () =>
                         {
                             Image.Load<Rgba32>(this.TopLevelConfiguration, Guid.NewGuid().ToString());
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void WhenPathIsNull_Throws()
             {
-                ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
+                Assert.Throws<ArgumentNullException>(
                     () =>
                         {
                             Image.Load<Rgba32>(this.TopLevelConfiguration,(string)null);

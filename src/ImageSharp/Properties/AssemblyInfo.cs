@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Runtime.CompilerServices;
-
 // Redundant suppressing of SA1413 for Rider.
 [assembly:
     System.Diagnostics.CodeAnalysis.SuppressMessage(

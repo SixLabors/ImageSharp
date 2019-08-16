@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -248,11 +248,6 @@ namespace SixLabors.ImageSharp.Tests
         {
             LocalizedString_Rand1,
             LocalizedString_Rand2,
-        };
-        private static readonly IccLocalizedString[] LocalizedString_RandArr2 = new IccLocalizedString[]
-        {
-            LocalizedString_Rand2,
-            LocalizedString_Rand1,
         };
 
         private static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicode_Val = new IccMultiLocalizedUnicodeTagDataEntry(LocalizedString_RandArr1);

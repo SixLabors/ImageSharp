@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -52,9 +52,9 @@ namespace SixLabors.ImageSharp.Tests
                                          Path.GetFullPath(x)
                                      }).ToList();
 
-            AddFormatsDirectoryFromTestAssebmlyPath(directories);
+            AddFormatsDirectoryFromTestAssemblyPath(directories);
 
-            string directory = directories.FirstOrDefault(x => Directory.Exists(x));
+            string directory = directories.FirstOrDefault(Directory.Exists);
 
             if (directory != null)
             {
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests
         /// This method calculates and adds the format directory based on the ImageSharp.Tests assembly location.
         /// </summary>
         /// <param name="directories">The directories list</param>
-        private static void AddFormatsDirectoryFromTestAssebmlyPath(List<string> directories)
+        private static void AddFormatsDirectoryFromTestAssemblyPath(List<string> directories)
         {
             string assemblyLocation = typeof(TestFile).GetTypeInfo().Assembly.Location;
             assemblyLocation = Path.GetDirectoryName(assemblyLocation);

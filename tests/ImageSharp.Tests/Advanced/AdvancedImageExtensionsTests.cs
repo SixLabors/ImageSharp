@@ -1,4 +1,5 @@
 ﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -10,10 +11,6 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Advanced
 {
-    using System.Buffers;
-
-    using SixLabors.Memory;
-
     public class AdvancedImageExtensionsTests
     {
         public class GetPixelMemory
@@ -55,9 +52,9 @@ namespace SixLabors.ImageSharp.Tests.Advanced
                     var targetBuffer = new TPixel[image0.Width * image0.Height];
                     image0.GetPixelSpan().CopyTo(targetBuffer);
 
-                    var managerOfExeternalMemory = new TestMemoryManager<TPixel>(targetBuffer);
+                    var managerOfExternalMemory = new TestMemoryManager<TPixel>(targetBuffer);
 
-                    Memory<TPixel> externalMemory = managerOfExeternalMemory.Memory;
+                    Memory<TPixel> externalMemory = managerOfExternalMemory.Memory;
 
                     using (var image1 = Image.WrapMemory(externalMemory, image0.Width, image0.Height))
                     {

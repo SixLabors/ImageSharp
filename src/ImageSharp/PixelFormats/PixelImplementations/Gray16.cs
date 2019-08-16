@@ -1,7 +1,6 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -16,7 +15,6 @@ namespace SixLabors.ImageSharp.PixelFormats
     public partial struct Gray16 : IPixel<Gray16>, IPackedVector<ushort>
     {
         private const float Max = ushort.MaxValue;
-        private const float Average = 1 / 3F;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Gray16"/> struct.

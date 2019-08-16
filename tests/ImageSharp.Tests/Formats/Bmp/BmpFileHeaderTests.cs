@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using SixLabors.ImageSharp.Formats.Bmp;
 using Xunit;
 
@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         {
             var header = new BmpFileHeader(1, 2, 3, 4);
 
-            byte[] buffer = new byte[14];
+            var buffer = new byte[14];
 
             header.WriteTo(buffer);
 

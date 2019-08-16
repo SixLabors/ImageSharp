@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         [Fact]
         public void CloneIsDeep()
         {
-            var meta = new BmpMetadata() { BitsPerPixel = BmpBitsPerPixel.Pixel24 };
+            var meta = new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Pixel24 };
             var clone = (BmpMetadata)meta.DeepClone();
 
             clone.BitsPerPixel = BmpBitsPerPixel.Pixel32;

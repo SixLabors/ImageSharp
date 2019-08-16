@@ -1,11 +1,10 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.IO;
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.IO;
-using Moq;
+
 using Xunit;
 // ReSharper disable InconsistentNaming
 
@@ -25,8 +24,6 @@ namespace SixLabors.ImageSharp.Tests
             private ReadOnlySpan<byte> ActualImageSpan => this.ActualImageBytes.AsSpan();
 
             private byte[] ByteArray => this.DataStream.ToArray();
-
-            private ReadOnlySpan<byte> ByteSpan => this.ByteArray.AsSpan();
 
             private IImageFormat LocalImageFormat => this.localImageFormatMock.Object;
 

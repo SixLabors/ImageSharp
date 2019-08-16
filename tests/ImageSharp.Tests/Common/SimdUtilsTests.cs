@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
         private static Vector<float> CreateExactTestVector1()
         {
-            float[] data = new float[Vector<float>.Count];
+            var data = new float[Vector<float>.Count];
 
             data[0] = 0.1f;
             data[1] = 0.4f;
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
         private static Vector<float> CreateRandomTestVector(int seed, float min, float max)
         {
-            float[] data = new float[Vector<float>.Count];
+            var data = new float[Vector<float>.Count];
 
             var rnd = new Random(seed);
 
@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             float[] orig = new Random(seed).GenerateRandomRoundedFloatArray(count, 0, 256);
             float[] normalized = orig.Select(f => f / 255f).ToArray();
 
-            byte[] dest = new byte[count];
+            var dest = new byte[count];
 
             SimdUtils.BasicIntrinsics256.BulkConvertNormalizedFloatToByte(normalized, dest);
 
@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
             float[] source = new Random(seed).GenerateRandomFloatArray(count, 0, 1f);
 
-            byte[] dest = new byte[count];
+            var dest = new byte[count];
 
             SimdUtils.BasicIntrinsics256.BulkConvertNormalizedFloatToByte(source, dest);
 
@@ -193,7 +193,7 @@ namespace SixLabors.ImageSharp.Tests.Common
                 count,
                 (s, d) => SimdUtils.BasicIntrinsics256.BulkConvertByteToNormalizedFloat(s.Span, d.Span));
         }
-        
+
         [Theory]
         [MemberData(nameof(ArraySizesDivisibleBy32))]
         public void ExtendedIntrinsics_BulkConvertByteToNormalizedFloat(int count)
@@ -217,7 +217,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             Action<Memory<byte>, Memory<float>> convert)
         {
             byte[] source = new Random(count).GenerateRandomByteArray(count);
-            float[] result = new float[count];
+            var result = new float[count];
             float[] expected = source.Select(b => (float)b / 255f).ToArray();
 
             convert(source, result);
@@ -306,7 +306,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             seed = seed > 0 ? seed : count;
             float[] source = new Random(seed).GenerateRandomFloatArray(count, -0.2f, 1.2f);
             byte[] expected = source.Select(NormalizedFloatToByte).ToArray();
-            byte[] actual = new byte[count];
+            var actual = new byte[count];
 
             convert(source, actual);
 
@@ -325,7 +325,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         private void MagicConvertToByte(float value)
         {
             byte actual = MagicConvert(value / 256f);
-            byte expected = (byte)value;
+            var expected = (byte)value;
 
             Assert.Equal(expected, actual);
         }
@@ -362,7 +362,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         {
             var magick = new Vector<float>(32768.0f);
 
-            Vector<float> scale = new Vector<float>(255f) / new Vector<float>(256f);
+            var scale = new Vector<float>(255f) / new Vector<float>(256f);
 
             Vector<float> x = MemoryMarshal.Cast<float, Vector<float>>(source)[0];
 

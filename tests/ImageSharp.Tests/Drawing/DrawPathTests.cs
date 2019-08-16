@@ -1,10 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Numerics;
 
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
@@ -30,17 +29,17 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void DrawPath<TPixel>(TestImageProvider<TPixel> provider, string colorName, byte alpha, float thickness)
             where TPixel : struct, IPixel<TPixel>
         {
-            var linerSegemnt = new LinearLineSegment(
+            var linearSegment = new LinearLineSegment(
                 new Vector2(10, 10),
                 new Vector2(200, 150),
                 new Vector2(50, 300));
-            var bazierSegment = new CubicBezierLineSegment(
+            var bezierSegment = new CubicBezierLineSegment(
                 new Vector2(50, 300),
                 new Vector2(500, 500),
                 new Vector2(60, 10),
                 new Vector2(10, 400));
 
-            var path = new Path(linerSegemnt, bazierSegment);
+            var path = new Path(linearSegment, bezierSegment);
 
             Rgba32 rgba = TestUtils.GetColorByName(colorName);
             rgba.A = alpha;
@@ -60,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void PathExtendingOffEdgeOfImageShouldNotBeCropped<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            Color color = Color.White;
+            var color = Color.White;
             Pen pen = Pens.Solid(color, 5f);
 
             provider.RunValidatingProcessorTest(
@@ -68,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     {
                         for (int i = 0; i < 300; i += 20)
                         {
-                            PointF[] points = new PointF[] { new Vector2(100, 2), new Vector2(-10, i) };
+                            var points = new PointF[] { new Vector2(100, 2), new Vector2(-10, i) };
                             x.DrawLines(pen, points);
                         }
                     },

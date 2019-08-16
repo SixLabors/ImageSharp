@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -72,8 +72,8 @@ namespace SixLabors.ImageSharp.Tests
                 addedRows = new[] { new object[0] };
             }
 
-            bool firstIsprovider = this.FirstIsProvider(testMethod);
-            if (firstIsprovider)
+            bool firstIsProvider = this.FirstIsProvider(testMethod);
+            if (firstIsProvider)
             {
                 return this.InnerGetData(testMethod, addedRows);
             }
@@ -98,19 +98,19 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Type factoryType = typeof(TestImageProvider<>).MakeGenericType(kv.Value);
 
-                foreach (object[] originalFacoryMethodArgs in this.GetAllFactoryMethodArgs(testMethod, factoryType))
+                foreach (object[] originalFactoryMethodArgs in this.GetAllFactoryMethodArgs(testMethod, factoryType))
                 {
                     foreach (object[] row in memberData)
                     {
-                        object[] actualFactoryMethodArgs = new object[originalFacoryMethodArgs.Length + 2];
-                        Array.Copy(originalFacoryMethodArgs, actualFactoryMethodArgs, originalFacoryMethodArgs.Length);
+                        var actualFactoryMethodArgs = new object[originalFactoryMethodArgs.Length + 2];
+                        Array.Copy(originalFactoryMethodArgs, actualFactoryMethodArgs, originalFactoryMethodArgs.Length);
                         actualFactoryMethodArgs[actualFactoryMethodArgs.Length - 2] = testMethod;
                         actualFactoryMethodArgs[actualFactoryMethodArgs.Length - 1] = kv.Key;
 
                         object factory = factoryType.GetMethod(this.GetFactoryMethodName(testMethod))
                             .Invoke(null, actualFactoryMethodArgs);
 
-                        object[] result = new object[this.AdditionalParameters.Length + 1 + row.Length];
+                        var result = new object[this.AdditionalParameters.Length + 1 + row.Length];
                         result[0] = factory;
                         Array.Copy(row, 0, result, 1, row.Length);
                         Array.Copy(this.AdditionalParameters, 0, result, 1 + row.Length, this.AdditionalParameters.Length);

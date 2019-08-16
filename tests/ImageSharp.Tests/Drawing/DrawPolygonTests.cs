@@ -1,12 +1,10 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Numerics;
 
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 using SixLabors.ImageSharp.Processing;
 using Xunit;
 
@@ -28,12 +26,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     new Vector2(10, 10), new Vector2(200, 150), new Vector2(50, 300)
                 };
             Color color = TestUtils.GetColorByName(colorName).WithAlpha(alpha);
-            
+
             GraphicsOptions options = new GraphicsOptions(antialias);
 
             string aa = antialias ? "" : "_NoAntialias";
             FormattableString outputDetails = $"{colorName}_A({alpha})_T({thickness}){aa}";
-            
+
             provider.RunValidatingProcessorTest(
                 c => c.DrawPolygon(options, color, thickness, simplePath),
                 outputDetails,

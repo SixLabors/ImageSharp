@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Tests
                 ArgumentException ex = Assert.Throws<ArgumentException>(
                     () =>
                     {
-                        var collection = new ImageFrameCollection<Rgba32>(
+                        new ImageFrameCollection<Rgba32>(
                             this.Image,
                             new[]
                             {
@@ -274,25 +274,23 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void AddFrame_clones_sourceFrame()
             {
-                var pixelData = this.Image.Frames.RootFrame.GetPixelSpan().ToArray();
-                var otherFRame = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
-                var addedFrame = this.Image.Frames.AddFrame(otherFRame);
-                addedFrame.ComparePixelBufferTo(otherFRame.GetPixelSpan());
-                Assert.NotEqual(otherFRame, addedFrame);
+                var otherFrame = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
+                var addedFrame = this.Image.Frames.AddFrame(otherFrame);
+                addedFrame.ComparePixelBufferTo(otherFrame.GetPixelSpan());
+                Assert.NotEqual(otherFrame, addedFrame);
             }
 
             [Fact]
             public void InsertFrame_clones_sourceFrame()
             {
-                var pixelData = this.Image.Frames.RootFrame.GetPixelSpan().ToArray();
-                var otherFRame = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
-                var addedFrame = this.Image.Frames.InsertFrame(0, otherFRame);
-                addedFrame.ComparePixelBufferTo(otherFRame.GetPixelSpan());
-                Assert.NotEqual(otherFRame, addedFrame);
+                var otherFrame = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
+                var addedFrame = this.Image.Frames.InsertFrame(0, otherFrame);
+                addedFrame.ComparePixelBufferTo(otherFrame.GetPixelSpan());
+                Assert.NotEqual(otherFrame, addedFrame);
             }
 
             [Fact]
-            public void MoveFrame_LeavesFrmaeInCorrectLocation()
+            public void MoveFrame_LeavesFrameInCorrectLocation()
             {
                 for (var i = 0; i < 9; i++)
                 {

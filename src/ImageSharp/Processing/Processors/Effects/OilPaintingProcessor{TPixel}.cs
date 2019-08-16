@@ -69,10 +69,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                                     int maxIntensity = 0;
                                     int maxIndex = 0;
 
-                                    int[] intensityBin = new int[levels];
-                                    float[] redBin = new float[levels];
-                                    float[] blueBin = new float[levels];
-                                    float[] greenBin = new float[levels];
+                                    var intensityBin = new int[levels];
+                                    var redBin = new float[levels];
+                                    var blueBin = new float[levels];
+                                    var greenBin = new float[levels];
 
                                     for (int fy = 0; fy <= radius; fy++)
                                     {

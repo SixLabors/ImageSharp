@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -48,28 +48,6 @@ namespace SixLabors.ImageSharp
             if (string.IsNullOrWhiteSpace(value))
             {
                 ThrowArgumentException("Must not be empty or whitespace.", parameterName);
-            }
-        }
-
-        /// <summary>
-        /// Ensures that the enumeration is not null or empty.
-        /// </summary>
-        /// <typeparam name="T">The type of objects in the <paramref name="value"/></typeparam>
-        /// <param name="value">The target enumeration, which should be checked against being null or empty.</param>
-        /// <param name="parameterName">Name of the parameter.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
-        /// <exception cref="ArgumentException"><paramref name="value"/> is empty.</exception>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static void NotNullOrEmpty<T>(ICollection<T> value, string parameterName)
-        {
-            if (value is null)
-            {
-                ThrowArgumentNullException(parameterName);
-            }
-
-            if (value.Count == 0)
-            {
-                ThrowArgumentException("Must not be empty.", parameterName);
             }
         }
 
@@ -253,7 +231,7 @@ namespace SixLabors.ImageSharp
         {
             if (destination.Length < source.Length)
             {
-                ThrowArgumentException($"Destination span is too short!", destinationParamName);
+                ThrowArgumentException("Destination span is too short!", destinationParamName);
             }
         }
 
@@ -273,7 +251,7 @@ namespace SixLabors.ImageSharp
         {
             if (destination.Length < source.Length)
             {
-                ThrowArgumentException($"Destination span is too short!", destinationParamName);
+                ThrowArgumentException("Destination span is too short!", destinationParamName);
             }
         }
 

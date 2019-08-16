@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 // ReSharper disable InconsistentNaming
@@ -76,6 +76,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             80, 100, 120, 230
         };
 
+        public static readonly PngInterlaceMode[] InterlaceMode = new[]
+        {
+            PngInterlaceMode.None,
+            PngInterlaceMode.Adam7
+        };
+
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
         new TheoryData<string, int, int, PixelResolutionUnit>
         {
@@ -99,6 +105,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 pngColorType,
                 PngFilterMethod.Adaptive,
                 PngBitDepth.Bit8,
+                PngInterlaceMode.None,
                 appendPngColorType: true);
         }
 
@@ -107,13 +114,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType)
             where TPixel : struct, IPixel<TPixel>
         {
-            TestPngEncoderCore(
+            foreach (PngInterlaceMode interlaceMode in InterlaceMode)
+            {
+                TestPngEncoderCore(
                 provider,
                 pngColorType,
                 PngFilterMethod.Adaptive,
                 PngBitDepth.Bit8,
+                interlaceMode,
                 appendPixelType: true,
                 appendPngColorType: true);
+            }
         }
 
         [Theory]
@@ -121,12 +132,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void WorksWithAllFilterMethods<TPixel>(TestImageProvider<TPixel> provider, PngFilterMethod pngFilterMethod)
             where TPixel : struct, IPixel<TPixel>
         {
-            TestPngEncoderCore(
+            foreach (PngInterlaceMode interlaceMode in InterlaceMode)
+            {
+                TestPngEncoderCore(
                 provider,
                 PngColorType.RgbWithAlpha,
                 pngFilterMethod,
                 PngBitDepth.Bit8,
+                interlaceMode,
                 appendPngFilterMethod: true);
+            }
         }
 
         [Theory]
@@ -134,13 +149,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void WorksWithAllCompressionLevels<TPixel>(TestImageProvider<TPixel> provider, int compressionLevel)
             where TPixel : struct, IPixel<TPixel>
         {
-            TestPngEncoderCore(
+            foreach (PngInterlaceMode interlaceMode in InterlaceMode)
+            {
+                TestPngEncoderCore(
                 provider,
                 PngColorType.RgbWithAlpha,
                 PngFilterMethod.Adaptive,
                 PngBitDepth.Bit8,
+                interlaceMode,
                 compressionLevel,
                 appendCompressionLevel: true);
+            }
         }
 
         [Theory]
@@ -162,14 +181,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void WorksWithAllBitDepths<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType, PngBitDepth pngBitDepth)
             where TPixel : struct, IPixel<TPixel>
         {
-            TestPngEncoderCore(
+            foreach (PngInterlaceMode interlaceMode in InterlaceMode)
+            {
+                TestPngEncoderCore(
                 provider,
                 pngColorType,
                 PngFilterMethod.Adaptive,
                 pngBitDepth,
+                interlaceMode,
                 appendPngColorType: true,
                 appendPixelType: true,
                 appendPngBitDepth: true);
+            }
         }
 
         [Theory]
@@ -177,13 +200,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void PaletteColorType_WuQuantizer<TPixel>(TestImageProvider<TPixel> provider, int paletteSize)
             where TPixel : struct, IPixel<TPixel>
         {
-            TestPngEncoderCore(
+            foreach (PngInterlaceMode interlaceMode in InterlaceMode)
+            {
+                TestPngEncoderCore(
                 provider,
                 PngColorType.Palette,
                 PngFilterMethod.Adaptive,
                 PngBitDepth.Bit8,
+                interlaceMode,
                 paletteSize: paletteSize,
                 appendPaletteSize: true);
+            }
         }
 
         [Theory]
@@ -271,7 +298,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
                 PngMetadata inMeta = input.Metadata.GetFormatMetadata(PngFormat.Instance);
-                Assert.True(inMeta.HasTrans);
+                Assert.True(inMeta.HasTransparency);
 
                 using (var memStream = new MemoryStream())
                 {
@@ -280,7 +307,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
                         PngMetadata outMeta = output.Metadata.GetFormatMetadata(PngFormat.Instance);
-                        Assert.True(outMeta.HasTrans);
+                        Assert.True(outMeta.HasTransparency);
 
                         switch (pngColorType)
                         {
@@ -321,6 +348,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             PngColorType pngColorType,
             PngFilterMethod pngFilterMethod,
             PngBitDepth bitDepth,
+            PngInterlaceMode interlaceMode,
             int compressionLevel = 6,
             int paletteSize = 255,
             bool appendPngColorType = false,
@@ -339,7 +367,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     FilterMethod = pngFilterMethod,
                     CompressionLevel = compressionLevel,
                     BitDepth = bitDepth,
-                    Quantizer = new WuQuantizer(paletteSize)
+                    Quantizer = new WuQuantizer(paletteSize),
+                    InterlaceMethod = interlaceMode
                 };
 
                 string pngColorTypeInfo = appendPngColorType ? pngColorType.ToString() : string.Empty;
@@ -347,15 +376,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 string compressionLevelInfo = appendCompressionLevel ? $"_C{compressionLevel}" : string.Empty;
                 string paletteSizeInfo = appendPaletteSize ? $"_PaletteSize-{paletteSize}" : string.Empty;
                 string pngBitDepthInfo = appendPngBitDepth ? bitDepth.ToString() : string.Empty;
-                string debugInfo = $"{pngColorTypeInfo}{pngFilterMethodInfo}{compressionLevelInfo}{paletteSizeInfo}{pngBitDepthInfo}";
+                string pngInterlaceModeInfo = interlaceMode != PngInterlaceMode.None ? $"_{interlaceMode}" : string.Empty;
+
+                string debugInfo = $"{pngColorTypeInfo}{pngFilterMethodInfo}{compressionLevelInfo}{paletteSizeInfo}{pngBitDepthInfo}{pngInterlaceModeInfo}";
 
                 string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "png", encoder, debugInfo, appendPixelType);
 
                 // Compare to the Magick reference decoder.
                 IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
-
                 // We compare using both our decoder and the reference decoder as pixel transformation
-                // occurrs within the encoder itself leaving the input image unaffected.
+                // occurs within the encoder itself leaving the input image unaffected.
                 // This means we are benefiting from testing our decoder also.
                 using (var imageSharpImage = Image.Load<TPixel>(actualOutputFile, new PngDecoder()))
                 using (var referenceImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))

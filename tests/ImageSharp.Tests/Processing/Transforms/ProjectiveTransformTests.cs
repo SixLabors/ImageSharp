@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public void RawTransformMatchesDocumentedExample<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            // Printing some extra output to help investigating roundoff errors:
+            // Printing some extra output to help investigating rounding errors:
             this.Output.WriteLine($"Vector.IsHardwareAccelerated: {Vector.IsHardwareAccelerated}");
 
             // This test matches the output described in the example at

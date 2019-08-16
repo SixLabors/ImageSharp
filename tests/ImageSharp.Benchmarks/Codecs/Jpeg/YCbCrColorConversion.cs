@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -67,10 +67,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             float maxVal = 255f)
         {
             var rnd = new Random(42);
-            Buffer2D<float>[] buffers = new Buffer2D<float>[componentCount];
+            var buffers = new Buffer2D<float>[componentCount];
             for (int i = 0; i < componentCount; i++)
             {
-                float[] values = new float[inputBufferLength];
+                var values = new float[inputBufferLength];
 
                 for (int j = 0; j < inputBufferLength; j++)
                 {

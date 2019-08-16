@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void ZigZagCanHandleAllPossibleCoefficients()
         {
             // Mimic the behaviour of the huffman scan decoder using all possible byte values
-            short[] block = new short[64];
+            var block = new short[64];
             var zigzag = ZigZag.CreateUnzigTable();
 
             for (int h = 0; h < 255; h++)

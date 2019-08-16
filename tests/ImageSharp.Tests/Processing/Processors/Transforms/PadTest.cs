@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void ImageShouldPadWithBackgroundColor<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            Color color = Color.Red;
+            var color = Color.Red;
             TPixel expected = color.ToPixel<TPixel>();
             using (Image<TPixel> image = provider.GetImage())
             {

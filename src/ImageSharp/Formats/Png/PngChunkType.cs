@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Formats.Png
@@ -54,6 +54,19 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// tEXt chunks. Each tEXt chunk contains a keyword and a text string.
         /// </summary>
         Text = 0x74455874U,
+
+        /// <summary>
+        /// Textual information that the encoder wishes to record with the image. The zTXt and tEXt chunks are semantically equivalent,
+        /// but the zTXt chunk is recommended for storing large blocks of text. Each zTXt chunk contains a (uncompressed) keyword and
+        /// a compressed text string.
+        /// </summary>
+        CompressedText = 0x7A545874U,
+
+        /// <summary>
+        /// The iTXt chunk contains International textual data. It contains a keyword, an optional language tag, an optional translated keyword
+        /// and the actual text string, which can be compressed or uncompressed.
+        /// </summary>
+        InternationalText = 0x69545874U,
 
         /// <summary>
         /// The tRNS chunk specifies that the image uses simple transparency:

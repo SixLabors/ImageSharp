@@ -1,9 +1,8 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Dithering;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
@@ -18,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         {
             public static void Equal(ReadOnlySpan<Color> a, ReadOnlySpan<Color> b)
             {
-                Xunit.Assert.True(a.SequenceEqual(b));
+                True(a.SequenceEqual(b));
             }
         }
         

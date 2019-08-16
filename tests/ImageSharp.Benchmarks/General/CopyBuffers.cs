@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -33,8 +33,8 @@ namespace SixLabors.ImageSharp.Benchmarks.General
 
         [Params(10, 50, 100, 1000, 10000)]
         public int Count { get; set; }
-        
-        
+
+
         [GlobalSetup]
         public void Setup()
         {
@@ -89,11 +89,11 @@ namespace SixLabors.ImageSharp.Benchmarks.General
         }
 
         [Benchmark(Description = "Unsafe.CopyBlock(ref)")]
-        public unsafe void UnsafeCopyBlockReferences()
+        public void UnsafeCopyBlockReferences()
         {
             Unsafe.CopyBlock(ref this.destArray[0], ref this.sourceArray[0], (uint)this.Count);
         }
-        
+
         [Benchmark(Description = "Unsafe.CopyBlock(ptr)")]
         public unsafe void UnsafeCopyBlockPointers()
         {
@@ -101,13 +101,13 @@ namespace SixLabors.ImageSharp.Benchmarks.General
             void* pinnedSource = this.sourceHandle.Pointer;
             Unsafe.CopyBlock(pinnedDestination, pinnedSource, (uint)this.Count);
         }
-        
+
         [Benchmark(Description = "Unsafe.CopyBlockUnaligned(ref)")]
-        public unsafe void UnsafeCopyBlockUnalignedReferences()
+        public void UnsafeCopyBlockUnalignedReferences()
         {
             Unsafe.CopyBlockUnaligned(ref this.destArray[0], ref this.sourceArray[0], (uint)this.Count);
         }
-        
+
         [Benchmark(Description = "Unsafe.CopyBlockUnaligned(ptr)")]
         public unsafe void UnsafeCopyBlockUnalignedPointers()
         {
@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
             void* pinnedSource = this.sourceHandle.Pointer;
             Unsafe.CopyBlockUnaligned(pinnedDestination, pinnedSource, (uint)this.Count);
         }
-        
+
         // BenchmarkDotNet=v0.11.3, OS=Windows 10.0.17134.706 (1803/April2018Update/Redstone4)
         // Intel Core i7-7700HQ CPU 2.80GHz (Kaby Lake), 1 CPU, 8 logical and 4 physical cores
         // Frequency=2742189 Hz, Resolution=364.6722 ns, Timer=TSC
@@ -123,9 +123,9 @@ namespace SixLabors.ImageSharp.Benchmarks.General
         //   [Host] : .NET Core 2.1.9 (CoreCLR 4.6.27414.06, CoreFX 4.6.27415.01), 64bit RyuJIT
         //   Clr    : .NET Framework 4.7.2 (CLR 4.0.30319.42000), 64bit RyuJIT-v4.7.3394.0
         //   Core   : .NET Core 2.1.9 (CoreCLR 4.6.27414.06, CoreFX 4.6.27415.01), 64bit RyuJIT
-        // 
-        // IterationCount=3  LaunchCount=1  WarmupCount=3  
-        // 
+        //
+        // IterationCount=3  LaunchCount=1  WarmupCount=3
+        //
         // |                         Method |  Job | Runtime | Count |       Mean |      Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
         // |------------------------------- |----- |-------- |------ |-----------:|-----------:|----------:|------:|--------:|------:|------:|------:|----------:|
         // |                   Array.Copy() |  Clr |     Clr |    10 |  23.636 ns |  2.5299 ns | 0.1387 ns |  1.00 |    0.00 |     - |     - |     - |         - |

@@ -3,11 +3,9 @@
 
 using System.Numerics;
 using SixLabors.Fonts;
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Text;
 using SixLabors.Primitives;
-using SixLabors.Shapes;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing.Text

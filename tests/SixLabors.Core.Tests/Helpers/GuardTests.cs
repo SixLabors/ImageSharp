@@ -20,7 +20,7 @@ namespace SixLabors.Helpers.Tests
         }
 
         [Fact]
-        public void NotNull_NotNull()
+        public void NotNull_WhenNotNull()
         {
             Foo foo = new Foo();
             Guard.NotNull(foo, nameof(foo));
@@ -74,14 +74,19 @@ namespace SixLabors.Helpers.Tests
             }
         }
 
+        public static readonly TheoryData<int, int, bool> SizeCheckData = new TheoryData<int, int, bool>
+        {
+            { 0, 0, false },
+            { 1, 1, false },
+            { 1, 0, false },
+            { 13, 13, false },
+            { 20, 13, false },
+            { 12, 13, true },
+            { 0, 1, true },
+        };
+
         [Theory]
-        [InlineData(0, 0, false)]
-        [InlineData(1, 1, false)]
-        [InlineData(1, 0, false)]
-        [InlineData(13, 13, false)]
-        [InlineData(20, 13, false)]
-        [InlineData(12, 13, true)]
-        [InlineData(0, 1, true)]
+        [MemberData(nameof(SizeCheckData))]
         public void MustBeSizedAtLeast(int length, int minLength, bool shouldThrow)
         {
             int[] data = new int[length];
@@ -95,6 +100,25 @@ namespace SixLabors.Helpers.Tests
             {
                 Guard.MustBeSizedAtLeast((Span<int>)data, minLength, nameof(data));
                 Guard.MustBeSizedAtLeast((ReadOnlySpan<int>)data, minLength, nameof(data));
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(SizeCheckData))]
+        public void DestinationShouldNotBeTooShort(int destLength, int sourceLength, bool shouldThrow)
+        {
+            int[] dest = new int[destLength];
+            int[] source = new int[sourceLength];
+
+            if (shouldThrow)
+            {
+                Assert.Throws<ArgumentException>(() => Guard.DestinationShouldNotBeTooShort((Span<int>)source, (Span<int>)dest, nameof(dest)));
+                Assert.Throws<ArgumentException>(() => Guard.DestinationShouldNotBeTooShort((ReadOnlySpan<int>)source, (Span<int>)dest, nameof(dest)));
+            }
+            else
+            {
+                Guard.DestinationShouldNotBeTooShort((Span<int>)source, (Span<int>)dest, nameof(dest));
+                Guard.DestinationShouldNotBeTooShort((ReadOnlySpan<int>)source, (Span<int>)dest, nameof(dest));
             }
         }
 

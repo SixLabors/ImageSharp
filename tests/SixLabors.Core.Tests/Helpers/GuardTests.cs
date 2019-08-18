@@ -8,6 +8,96 @@ namespace SixLabors.Helpers.Tests
 {
     public class GuardTests
     {
+        private class Foo
+        {
+        }
+
+        [Fact]
+        public void NotNull_WhenNull_Throws()
+        {
+            Foo foo = null;
+            Assert.Throws<ArgumentNullException>(() => Guard.NotNull(foo, nameof(foo)));
+        }
+
+        [Fact]
+        public void NotNull_NotNull()
+        {
+            Foo foo = new Foo();
+            Guard.NotNull(foo, nameof(foo));
+        }
+
+        [Theory]
+        [InlineData(null, true)]
+        [InlineData("", true)]
+        [InlineData("  ", true)]
+        [InlineData("$", false)]
+        [InlineData("lol", false)]
+        public void NotNullOrWhiteSpace(string str, bool shouldThrow)
+        {
+            if (shouldThrow)
+            {
+                Assert.ThrowsAny<ArgumentException>(() => Guard.NotNullOrWhiteSpace(str, nameof(str)));
+            }
+            else
+            {
+                Guard.NotNullOrWhiteSpace(str, nameof(str));
+            }
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void IsTrue(bool value)
+        {
+            if (!value)
+            {
+                Assert.Throws<ArgumentException>(() => Guard.IsTrue(value, nameof(value), "Boo!"));
+            }
+            else
+            {
+                Guard.IsTrue(value, nameof(value), "Boo.");
+            }
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void IsFalse(bool value)
+        {
+            if (value)
+            {
+                Assert.Throws<ArgumentException>(() => Guard.IsFalse(value, nameof(value), "Boo!"));
+            }
+            else
+            {
+                Guard.IsFalse(value, nameof(value), "Boo.");
+            }
+        }
+
+        [Theory]
+        [InlineData(0, 0, false)]
+        [InlineData(1, 1, false)]
+        [InlineData(1, 0, false)]
+        [InlineData(13, 13, false)]
+        [InlineData(20, 13, false)]
+        [InlineData(12, 13, true)]
+        [InlineData(0, 1, true)]
+        public void MustBeSizedAtLeast(int length, int minLength, bool shouldThrow)
+        {
+            int[] data = new int[length];
+
+            if (shouldThrow)
+            {
+                Assert.Throws<ArgumentException>(() => Guard.MustBeSizedAtLeast((Span<int>)data, minLength, nameof(data)));
+                Assert.Throws<ArgumentException>(() => Guard.MustBeSizedAtLeast((ReadOnlySpan<int>)data, minLength, nameof(data)));
+            }
+            else
+            {
+                Guard.MustBeSizedAtLeast((Span<int>)data, minLength, nameof(data));
+                Guard.MustBeSizedAtLeast((ReadOnlySpan<int>)data, minLength, nameof(data));
+            }
+        }
+
         [Fact]
         public void MustBeLessThan_IsLess_ThrowsNoException()
         {
@@ -25,7 +115,7 @@ namespace SixLabors.Helpers.Tests
             });
 
             Assert.Equal("myParamName", exception.ParamName);
-            Assert.Contains($"Value must be less than {max}.", exception.Message);
+            Assert.Contains($"Value {value} must be less than {max}.", exception.Message);
         }
 
         [Theory]
@@ -45,7 +135,7 @@ namespace SixLabors.Helpers.Tests
             });
 
             Assert.Equal("myParamName", exception.ParamName);
-            Assert.Contains($"Value must be less than or equal to 1.", exception.Message);
+            Assert.Contains($"Value 2 must be less than or equal to 1.", exception.Message);
         }
 
         [Fact]
@@ -65,7 +155,7 @@ namespace SixLabors.Helpers.Tests
             });
 
             Assert.Equal("myParamName", exception.ParamName);
-            Assert.Contains($"Value must be greater than {min}.", exception.Message);
+            Assert.Contains($"Value {value} must be greater than {min}.", exception.Message);
         }
 
         [Theory]
@@ -85,7 +175,7 @@ namespace SixLabors.Helpers.Tests
             });
 
             Assert.Equal("myParamName", exception.ParamName);
-            Assert.Contains($"Value must be greater than or equal to 2.", exception.Message);
+            Assert.Contains($"Value 1 must be greater than or equal to 2.", exception.Message);
         }
 
         [Theory]
@@ -108,7 +198,7 @@ namespace SixLabors.Helpers.Tests
             });
 
             Assert.Equal("myParamName", exception.ParamName);
-            Assert.Contains($"Value must be greater than or equal to {min} and less than or equal to {max}.", exception.Message);
+            Assert.Contains($"Value {value} must be greater than or equal to {min} and less than or equal to {max}.", exception.Message);
         }
 
         [Theory]
@@ -128,7 +218,7 @@ namespace SixLabors.Helpers.Tests
             });
 
             Assert.Equal("myParamName", exception.ParamName);
-            Assert.Contains("The size must be at least 3.", exception.Message);
+            Assert.Contains("The size must be at least 3", exception.Message);
         }
     }
 }

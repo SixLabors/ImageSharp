@@ -13,7 +13,7 @@ namespace SixLabors
     [DebuggerStepThrough]
     internal static class DebugGuard
     {
-        /// <summary>
+       /// <summary>
         /// Ensures that the value is not null.
         /// </summary>
         /// <param name="value">The target object, which cannot be null.</param>
@@ -226,6 +226,26 @@ namespace SixLabors
         }
 
         /// <summary>
+        /// Verifies, that the `source` span has the length of 'minLength', or longer.
+        /// </summary>
+        /// <typeparam name="T">The element type of the spans.</typeparam>
+        /// <param name="source">The target span.</param>
+        /// <param name="minLength">The minimum length.</param>
+        /// <param name="parameterName">The name of the parameter that is to be checked.</param>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="source"/> has less than <paramref name="minLength"/> items.
+        /// </exception>
+        [Conditional("DEBUG")]
+        [DebuggerStepThrough]
+        public static void MustBeSizedAtLeast<T>(Span<T> source, int minLength, string parameterName)
+        {
+            if (source.Length < minLength)
+            {
+                ThrowArgumentException($"The size must be at least {minLength}.", parameterName);
+            }
+        }
+
+        /// <summary>
         /// Verifies that the 'destination' span is not shorter than 'source'.
         /// </summary>
         /// <typeparam name="TSource">The source element type.</typeparam>
@@ -264,26 +284,6 @@ namespace SixLabors
             if (destination.Length < source.Length)
             {
                 ThrowArgumentException($"Destination span is too short!", destinationParamName);
-            }
-        }
-
-        /// <summary>
-        /// Verifies, that the `source` span has the length of 'minLength', or longer.
-        /// </summary>
-        /// <typeparam name="T">The element type of the spans.</typeparam>
-        /// <param name="source">The target span.</param>
-        /// <param name="minLength">The minimum length.</param>
-        /// <param name="parameterName">The name of the parameter that is to be checked.</param>
-        /// <exception cref="ArgumentException">
-        /// <paramref name="source"/> has less than <paramref name="minLength"/> items.
-        /// </exception>
-        [Conditional("DEBUG")]
-        [DebuggerStepThrough]
-        public static void MustBeSizedAtLeast<T>(Span<T> source, int minLength, string parameterName)
-        {
-            if (source.Length < minLength)
-            {
-                ThrowArgumentException($"Span-s must be at least of length {minLength}!", parameterName);
             }
         }
 

@@ -34,7 +34,11 @@
     <PropertyGroup Condition=" $(TargetFramework.StartsWith('netcoreapp2.1')) ">
       <DefineConstants>$(DefineConstants);SUPPORTS_HASHCODE</DefineConstants>
     </PropertyGroup>
-  
+
+    <ItemGroup>
+        <Compile Include="..\..\standards\**\*.cs" />
+    </ItemGroup>
+    
     <ItemGroup>
        <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
         <PrivateAssets>All</PrivateAssets>
@@ -54,5 +58,9 @@
 
     <ItemGroup Condition=" $(TargetFramework.StartsWith('netstandard')) ">
       <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Helpers" />
     </ItemGroup>
 </Project>

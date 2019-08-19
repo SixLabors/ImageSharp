@@ -20,7 +20,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     {
         private readonly FlipProcessor definition;
 
-        public FlipProcessor(FlipProcessor definition)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FlipProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="definition">The <see cref="FlipProcessor"/>.</param>
+        /// <param name="image">The target <see cref="Image{T}"/> for the current processor instance.</param>
+        /// <param name="rectangle">The target area to process for the current processor instance.</param>
+        public FlipProcessor(FlipProcessor definition, Image<TPixel> image, Rectangle rectangle)
+            : base(image, rectangle)
         {
             this.definition = definition;
         }

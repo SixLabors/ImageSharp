@@ -24,6 +24,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         {
             this.Image = image;
             this.Rectangle = rectangle;
+            this.Configuration = this.Image.GetConfiguration();
         }
 
         /// <summary>
@@ -36,20 +37,24 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </summary>
         protected Rectangle Rectangle { get; }
 
+        /// <summary>
+        /// Gets the <see cref="ImageSharp.Configuration"/> instance to use when performing operations.
+        /// </summary>
+        protected Configuration Configuration { get; }
+
         /// <inheritdoc/>
-        public void Apply(Image<TPixel> source, Rectangle sourceRectangle)
+        public void Apply()
         {
             try
             {
-                Configuration config = source.GetConfiguration();
-                this.BeforeImageApply(source, sourceRectangle);
+                this.BeforeImageApply();
 
-                foreach (ImageFrame<TPixel> sourceFrame in source.Frames)
+                foreach (ImageFrame<TPixel> sourceFrame in this.Image.Frames)
                 {
-                    this.Apply(sourceFrame, sourceRectangle, config);
+                    this.Apply(sourceFrame);
                 }
 
-                this.AfterImageApply(source, sourceRectangle);
+                this.AfterImageApply();
             }
 #if DEBUG
             catch (Exception)
@@ -64,18 +69,16 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <summary>
-        /// Applies the processor to just a single ImageBase
+        /// Applies the processor to just a single ImageBase.
         /// </summary>
-        /// <param name="source">the source image</param>
-        /// <param name="sourceRectangle">the target</param>
-        /// <param name="configuration">The configuration.</param>
-        public void Apply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        /// <param name="source">the source image.</param>
+        public void Apply(ImageFrame<TPixel> source)
         {
             try
             {
-                this.BeforeFrameApply(source, sourceRectangle, configuration);
-                this.OnFrameApply(source, sourceRectangle, configuration);
-                this.AfterFrameApply(source, sourceRectangle, configuration);
+                this.BeforeFrameApply(source);
+                this.OnFrameApply(source);
+                this.AfterFrameApply(source);
             }
 #if DEBUG
             catch (Exception)
@@ -92,9 +95,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// This method is called before the process is applied to prepare the processor.
         /// </summary>
-        /// <param name="source">The source image. Cannot be null.</param>
-        /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
-        protected virtual void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
+        protected virtual void BeforeImageApply()
         {
         }
 
@@ -102,9 +103,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// This method is called before the process is applied to prepare the processor.
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
-        /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
-        /// <param name="configuration">The configuration.</param>
-        protected virtual void BeforeFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected virtual void BeforeFrameApply(ImageFrame<TPixel> source)
         {
         }
 
@@ -113,26 +112,20 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// and with the specified size.
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
-        /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
-        /// <param name="configuration">The configuration.</param>
-        protected abstract void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration);
+        protected abstract void OnFrameApply(ImageFrame<TPixel> source);
 
         /// <summary>
         /// This method is called after the process is applied to prepare the processor.
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
-        /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
-        /// <param name="configuration">The configuration.</param>
-        protected virtual void AfterFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected virtual void AfterFrameApply(ImageFrame<TPixel> source)
         {
         }
 
         /// <summary>
         /// This method is called after the process is applied to prepare the processor.
         /// </summary>
-        /// <param name="source">The source image. Cannot be null.</param>
-        /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
-        protected virtual void AfterImageApply(Image<TPixel> source, Rectangle sourceRectangle)
+        protected virtual void AfterImageApply()
         {
         }
     }

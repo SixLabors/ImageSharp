@@ -38,27 +38,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(
-            ImageFrame<TPixel> source,
-            Rectangle sourceRectangle,
-            Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            int startY = sourceRectangle.Y;
-            int endY = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
+            int startY = this.SourceRectangle.Y;
+            int endY = this.SourceRectangle.Bottom;
+            int startX = this.SourceRectangle.X;
+            int endX = this.SourceRectangle.Right;
             TPixel vignetteColor = this.definition.VignetteColor.ToPixel<TPixel>();
-            Vector2 centre = Rectangle.Center(sourceRectangle);
+            Vector2 centre = Rectangle.Center(this.SourceRectangle);
 
             Size sourceSize = source.Size();
             float finalRadiusX = this.definition.RadiusX.Calculate(sourceSize);
             float finalRadiusY = this.definition.RadiusY.Calculate(sourceSize);
             float rX = finalRadiusX > 0
-                           ? MathF.Min(finalRadiusX, sourceRectangle.Width * .5F)
-                           : sourceRectangle.Width * .5F;
+                           ? MathF.Min(finalRadiusX, this.SourceRectangle.Width * .5F)
+                           : this.SourceRectangle.Width * .5F;
             float rY = finalRadiusY > 0
-                           ? MathF.Min(finalRadiusY, sourceRectangle.Height * .5F)
-                           : sourceRectangle.Height * .5F;
+                           ? MathF.Min(finalRadiusY, this.SourceRectangle.Height * .5F)
+                           : this.SourceRectangle.Height * .5F;
             float maxDistance = MathF.Sqrt((rX * rX) + (rY * rY));
 
             // Align start/end positions.
@@ -90,7 +87,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 
                 ParallelHelper.IterateRowsWithTempBuffer<float>(
                     workingRect,
-                    configuration,
+                    this.Configuration,
                     (rows, amounts) =>
                         {
                             Span<float> amountsSpan = amounts.Span;

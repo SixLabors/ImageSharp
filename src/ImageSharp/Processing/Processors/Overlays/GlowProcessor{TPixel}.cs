@@ -38,24 +38,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(
-            ImageFrame<TPixel> source,
-            Rectangle sourceRectangle,
-            Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             // TODO: can we simplify the rectangle calculation?
-            int startY = sourceRectangle.Y;
-            int endY = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
+            int startY = this.SourceRectangle.Y;
+            int endY = this.SourceRectangle.Bottom;
+            int startX = this.SourceRectangle.X;
+            int endX = this.SourceRectangle.Right;
             TPixel glowColor = this.definition.GlowColor.ToPixel<TPixel>();
-            Vector2 center = Rectangle.Center(sourceRectangle);
+            Vector2 center = Rectangle.Center(this.SourceRectangle);
 
             float finalRadius = this.definition.Radius.Calculate(source.Size());
 
             float maxDistance = finalRadius > 0
-                                    ? MathF.Min(finalRadius, sourceRectangle.Width * .5F)
-                                    : sourceRectangle.Width * .5F;
+                                    ? MathF.Min(finalRadius, this.SourceRectangle.Width * .5F)
+                                    : this.SourceRectangle.Width * .5F;
 
             // Align start/end positions.
             int minX = Math.Max(0, startX);
@@ -87,7 +84,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 
                 ParallelHelper.IterateRowsWithTempBuffer<float>(
                     workingRect,
-                    configuration,
+                    this.Configuration,
                     (rows, amounts) =>
                         {
                             Span<float> amountsSpan = amounts.Span;

@@ -34,18 +34,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(
-            ImageFrame<TPixel> source,
-            Rectangle sourceRectangle,
-            Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             TPixel color = this.definition.Color.ToPixel<TPixel>();
             GraphicsOptions graphicsOptions = this.definition.GraphicsOptions;
 
-            int startY = sourceRectangle.Y;
-            int endY = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
+            int startY = this.SourceRectangle.Y;
+            int endY = this.SourceRectangle.Bottom;
+            int startX = this.SourceRectangle.X;
+            int endX = this.SourceRectangle.Right;
 
             // Align start/end positions.
             int minX = Math.Max(0, startX);
@@ -82,7 +79,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 
                 ParallelHelper.IterateRows(
                     workingRect,
-                    configuration,
+                    this.Configuration,
                     rows =>
                         {
                             for (int y = rows.Min; y < rows.Max; y++)

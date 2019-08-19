@@ -25,7 +25,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         /// Initializes a new instance of the <see cref="PixelateProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="definition">The <see cref="PixelateProcessor"/>.</param>
-        public PixelateProcessor(PixelateProcessor definition)
+        /// <param name="image">The target <see cref="Image{T}"/> for the current processor instance.</param>
+        /// <param name="rectangle">The target area to process for the current processor instance.</param>
+        public PixelateProcessor(PixelateProcessor definition, Image<TPixel> image, Rectangle rectangle)
+            : base(image, rectangle)
         {
             this.definition = definition;
         }

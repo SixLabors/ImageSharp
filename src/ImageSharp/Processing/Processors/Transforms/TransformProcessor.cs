@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -13,6 +13,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal abstract class TransformProcessor<TPixel> : CloningImageProcessor<TPixel>
          where TPixel : struct, IPixel<TPixel>
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TransformProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="image">The target <see cref="Image{T}"/> for the current processor instance.</param>
+        /// <param name="rectangle">The target area to process for the current processor instance.</param>
+        protected TransformProcessor(Image<TPixel> image, Rectangle rectangle)
+            : base(image, rectangle)
+        { }
+
         /// <inheritdoc/>
         protected override void AfterImageApply(Image<TPixel> source, Image<TPixel> destination, Rectangle sourceRectangle)
             => TransformProcessorHelpers.UpdateDimensionalMetadata(destination);

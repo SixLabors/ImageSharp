@@ -20,7 +20,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </summary>
         /// <param name="kernelXY">The 2d gradient operator.</param>
         /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection.</param>
-        public EdgeDetectorProcessor(in DenseMatrix<float> kernelXY, bool grayscale)
+        /// <param name="image">The target <see cref="Image{T}"/> for the current processor instance.</param>
+        /// <param name="rectangle">The target area to process for the current processor instance.</param>
+        public EdgeDetectorProcessor(in DenseMatrix<float> kernelXY, bool grayscale, Image<TPixel> image, Rectangle rectangle)
+            : base(image, rectangle)
         {
             this.KernelXY = kernelXY;
             this.Grayscale = grayscale;
@@ -44,6 +47,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
-            => new ConvolutionProcessor<TPixel>(this.KernelXY, true).Apply(source, sourceRectangle, configuration);
+            => new ConvolutionProcessor<TPixel>(this.KernelXY, true, this.Image, this.Rectangle).Apply(source, sourceRectangle, configuration);
     }
 }

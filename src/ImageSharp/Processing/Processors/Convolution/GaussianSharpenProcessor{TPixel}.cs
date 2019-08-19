@@ -18,7 +18,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// Initializes a new instance of the <see cref="GaussianSharpenProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="definition">The <see cref="GaussianBlurProcessor"/> defining the processor parameters.</param>
-        public GaussianSharpenProcessor(GaussianSharpenProcessor definition)
+        /// <param name="image">The target <see cref="Image{T}"/> for the current processor instance.</param>
+        /// <param name="rectangle">The target area to process for the current processor instance.</param>
+        public GaussianSharpenProcessor(GaussianSharpenProcessor definition, Image<TPixel> image, Rectangle rectangle)
+            : base(image, rectangle)
         {
             int kernelSize = (definition.Radius * 2) + 1;
             this.KernelX = ConvolutionProcessorHelpers.CreateGaussianSharpenKernel(kernelSize, definition.Sigma);
@@ -37,6 +40,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
-            => new Convolution2PassProcessor<TPixel>(this.KernelX, this.KernelY, false).Apply(source, sourceRectangle, configuration);
+            => new Convolution2PassProcessor<TPixel>(this.KernelX, this.KernelY, false, this.Image, this.Rectangle).Apply(source, sourceRectangle, configuration);
     }
 }

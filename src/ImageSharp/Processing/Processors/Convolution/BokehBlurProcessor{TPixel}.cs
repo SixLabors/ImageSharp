@@ -75,7 +75,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// Initializes a new instance of the <see cref="BokehBlurProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="definition">The <see cref="BoxBlurProcessor"/> defining the processor parameters.</param>
-        public BokehBlurProcessor(BokehBlurProcessor definition)
+        /// <param name="image">The target <see cref="Image{T}"/> for the current processor instance.</param>
+        /// <param name="rectangle">The target area to process for the current processor instance.</param>
+        public BokehBlurProcessor(BokehBlurProcessor definition, Image<TPixel> image, Rectangle rectangle)
+            : base(image, rectangle)
         {
             this.radius = definition.Radius;
             this.kernelSize = (this.radius * 2) + 1;

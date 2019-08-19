@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -27,7 +27,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </summary>
         /// <param name="kernels">Gets the kernels to use.</param>
         /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection.</param>
-        internal EdgeDetectorCompassProcessor(CompassKernels kernels, bool grayscale)
+        /// <param name="image">The target <see cref="Image{T}"/> for the current processor instance.</param>
+        /// <param name="rectangle">The target area to process for the current processor instance.</param>
+        internal EdgeDetectorCompassProcessor(CompassKernels kernels, bool grayscale, Image<TPixel> image, Rectangle rectangle)
+            : base(image, rectangle)
         {
             this.Grayscale = grayscale;
             this.Kernels = kernels;
@@ -65,7 +68,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             // we need a clean copy for each pass to start from
             using (ImageFrame<TPixel> cleanCopy = source.Clone())
             {
-                new ConvolutionProcessor<TPixel>(kernels[0], true).Apply(source, sourceRectangle, configuration);
+                new ConvolutionProcessor<TPixel>(kernels[0], true, this.Image, this.Rectangle).Apply(source, sourceRectangle, configuration);
 
                 if (kernels.Length == 1)
                 {
@@ -94,7 +97,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 {
                     using (ImageFrame<TPixel> pass = cleanCopy.Clone())
                     {
-                        new ConvolutionProcessor<TPixel>(kernels[i], true).Apply(pass, sourceRectangle, configuration);
+                        new ConvolutionProcessor<TPixel>(kernels[i], true, this.Image, this.Rectangle).Apply(pass, sourceRectangle, configuration);
 
                         Buffer2D<TPixel> passPixels = pass.PixelBuffer;
                         Buffer2D<TPixel> targetPixels = source.PixelBuffer;

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -21,7 +21,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
         /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection.</param>
-        internal EdgeDetector2DProcessor(in DenseMatrix<float> kernelX, in DenseMatrix<float> kernelY, bool grayscale)
+        /// <param name="image">The target <see cref="Image{T}"/> for the current processor instance.</param>
+        /// <param name="rectangle">The target area to process for the current processor instance.</param>
+        internal EdgeDetector2DProcessor(
+            in DenseMatrix<float> kernelX,
+            in DenseMatrix<float> kernelY,
+            bool grayscale,
+            Image<TPixel> image,
+            Rectangle rectangle)
+            : base(image, rectangle)
         {
             Guard.IsTrue(kernelX.Size.Equals(kernelY.Size), $"{nameof(kernelX)} {nameof(kernelY)}", "Kernel sizes must be the same.");
             this.KernelX = kernelX;
@@ -43,7 +51,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
         /// <inheritdoc />
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
-            => new Convolution2DProcessor<TPixel>(this.KernelX, this.KernelY, true).Apply(source, sourceRectangle, configuration);
+            => new Convolution2DProcessor<TPixel>(this.KernelX, this.KernelY, true, this.Image, this.Rectangle).Apply(source, sourceRectangle, configuration);
 
         /// <inheritdoc/>
         protected override void BeforeFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)

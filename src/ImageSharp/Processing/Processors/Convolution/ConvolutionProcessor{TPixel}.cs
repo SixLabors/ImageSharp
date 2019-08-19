@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -24,7 +24,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </summary>
         /// <param name="kernelXY">The 2d gradient operator.</param>
         /// <param name="preserveAlpha">Whether the convolution filter is applied to alpha as well as the color channels.</param>
-        public ConvolutionProcessor(in DenseMatrix<float> kernelXY, bool preserveAlpha)
+        /// <param name="image">The target <see cref="Image{T}"/> for the current processor instance.</param>
+        /// <param name="rectangle">The target area to process for the current processor instance.</param>
+        public ConvolutionProcessor(
+            in DenseMatrix<float> kernelXY,
+            bool preserveAlpha,
+            Image<TPixel> image,
+            Rectangle rectangle)
+            : base(image, rectangle)
         {
             this.KernelXY = kernelXY;
             this.PreserveAlpha = preserveAlpha;

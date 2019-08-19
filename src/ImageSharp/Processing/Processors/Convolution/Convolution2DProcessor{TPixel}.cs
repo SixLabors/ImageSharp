@@ -26,7 +26,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
         /// <param name="preserveAlpha">Whether the convolution filter is applied to alpha as well as the color channels.</param>
-        public Convolution2DProcessor(in DenseMatrix<float> kernelX, in DenseMatrix<float> kernelY, bool preserveAlpha)
+        /// <param name="image">The target <see cref="Image{T}"/> for the current processor instance.</param>
+        /// <param name="rectangle">The target area to process for the current processor instance.</param>
+        public Convolution2DProcessor(
+            in DenseMatrix<float> kernelX,
+            in DenseMatrix<float> kernelY,
+            bool preserveAlpha,
+            Image<TPixel> image,
+            Rectangle rectangle)
+            : base(image, rectangle)
         {
             Guard.IsTrue(kernelX.Size.Equals(kernelY.Size), $"{nameof(kernelX)} {nameof(kernelY)}", "Kernel sizes must be the same.");
             this.KernelX = kernelX;

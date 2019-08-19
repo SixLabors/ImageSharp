@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -20,7 +20,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     {
         private readonly FilterProcessor definition;
 
-        public FilterProcessor(FilterProcessor definition)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FilterProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="definition">The <see cref="FilterProcessor"/>.</param>
+        /// <param name="image">The target <see cref="Image{T}"/> for the current processor instance.</param>
+        /// <param name="rectangle">The target area to process for the current processor instance.</param>
+        public FilterProcessor(FilterProcessor definition, Image<TPixel> image, Rectangle rectangle)
+            : base(image, rectangle)
         {
             this.definition = definition;
         }

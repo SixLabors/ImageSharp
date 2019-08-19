@@ -41,19 +41,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 
         protected PaletteDitherProcessor Definition { get; }
 
-        protected override void BeforeFrameApply(
-            ImageFrame<TPixel> source,
-            Rectangle sourceRectangle,
-            Configuration configuration)
+        /// <inheritdoc/>
+        protected override void BeforeFrameApply(ImageFrame<TPixel> source)
         {
-            base.BeforeFrameApply(source, sourceRectangle, configuration);
+            base.BeforeFrameApply(source);
 
             // Lazy init palette:
             if (this.palette is null)
             {
                 ReadOnlySpan<Color> sourcePalette = this.Definition.Palette.Span;
                 this.palette = new TPixel[sourcePalette.Length];
-                Color.ToPixel<TPixel>(configuration, sourcePalette, this.palette);
+                Color.ToPixel<TPixel>(this.Configuration, sourcePalette, this.palette);
             }
 
             // Lazy init paletteVector:
@@ -61,7 +59,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             {
                 this.paletteVector = new Vector4[this.palette.Length];
                 PixelOperations<TPixel>.Instance.ToVector4(
-                    configuration,
+                    this.Configuration,
                     (ReadOnlySpan<TPixel>)this.palette,
                     (Span<Vector4>)this.paletteVector,
                     PixelConversionModifiers.Scale);

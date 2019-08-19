@@ -33,16 +33,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
             int startX = interest.X;
 
             ColorMatrix matrix = this.definition.Matrix;
 
             ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
                 interest,
-                configuration,
+                this.Configuration,
                 (rows, vectorBuffer) =>
                     {
                         for (int y = rows.Min; y < rows.Max; y++)
@@ -50,11 +50,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
                             Span<Vector4> vectorSpan = vectorBuffer.Span;
                             int length = vectorSpan.Length;
                             Span<TPixel> rowSpan = source.GetPixelRowSpan(y).Slice(startX, length);
-                            PixelOperations<TPixel>.Instance.ToVector4(configuration, rowSpan, vectorSpan);
+                            PixelOperations<TPixel>.Instance.ToVector4(this.Configuration, rowSpan, vectorSpan);
 
                             Vector4Utils.Transform(vectorSpan, ref matrix);
 
-                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan, rowSpan);
+                            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.Configuration, vectorSpan, rowSpan);
                         }
                     });
         }

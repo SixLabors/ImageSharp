@@ -30,11 +30,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         private new OrderedDitherPaletteProcessor Definition => (OrderedDitherPaletteProcessor)base.Definition;
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             bool isAlphaOnly = typeof(TPixel) == typeof(Alpha8);
 
-            var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
             int startY = interest.Y;
             int endY = interest.Bottom;
             int startX = interest.X;

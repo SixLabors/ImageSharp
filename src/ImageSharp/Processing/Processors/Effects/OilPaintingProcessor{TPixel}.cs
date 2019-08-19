@@ -35,10 +35,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(
-            ImageFrame<TPixel> source,
-            Rectangle sourceRectangle,
-            Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             int brushSize = this.definition.BrushSize;
             if (brushSize <= 0 || brushSize > source.Height || brushSize > source.Width)
@@ -46,24 +43,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                 throw new ArgumentOutOfRangeException(nameof(brushSize));
             }
 
-            int startY = sourceRectangle.Y;
-            int endY = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
+            int startY = this.SourceRectangle.Y;
+            int endY = this.SourceRectangle.Bottom;
+            int startX = this.SourceRectangle.X;
+            int endX = this.SourceRectangle.Right;
             int maxY = endY - 1;
             int maxX = endX - 1;
 
             int radius = brushSize >> 1;
             int levels = this.definition.Levels;
 
-            using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
+            using (Buffer2D<TPixel> targetPixels = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
             {
                 source.CopyTo(targetPixels);
 
                 var workingRect = Rectangle.FromLTRB(startX, startY, endX, endY);
                 ParallelHelper.IterateRows(
                     workingRect,
-                    configuration,
+                    this.Configuration,
                     rows =>
                         {
                             for (int y = rows.Min; y < rows.Max; y++)

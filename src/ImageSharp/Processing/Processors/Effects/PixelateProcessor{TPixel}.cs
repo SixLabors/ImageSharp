@@ -36,17 +36,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         private int Size => this.definition.Size;
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             if (this.Size <= 0 || this.Size > source.Height || this.Size > source.Width)
             {
                 throw new ArgumentOutOfRangeException(nameof(this.Size));
             }
 
-            int startY = sourceRectangle.Y;
-            int endY = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
+            int startY = this.SourceRectangle.Y;
+            int endY = this.SourceRectangle.Bottom;
+            int startX = this.SourceRectangle.X;
+            int endX = this.SourceRectangle.Right;
             int size = this.Size;
             int offset = this.Size / 2;
 
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
 
             Parallel.ForEach(
                 range,
-                configuration.GetParallelOptions(),
+                this.Configuration.GetParallelOptions(),
                 y =>
                     {
                         int offsetY = y - startY;

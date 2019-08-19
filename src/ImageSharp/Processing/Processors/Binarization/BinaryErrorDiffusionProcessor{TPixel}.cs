@@ -19,7 +19,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
     {
         private readonly BinaryErrorDiffusionProcessor definition;
 
-        public BinaryErrorDiffusionProcessor(BinaryErrorDiffusionProcessor definition)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BinaryErrorDiffusionProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="definition">The <see cref="BinaryErrorDiffusionProcessor"/> defining the processor parameters.</param>
+        /// <param name="image">The target <see cref="Image{T}"/> for the current processor instance.</param>
+        /// <param name="rectangle">The target area to process for the current processor instance.</param>
+        public BinaryErrorDiffusionProcessor(BinaryErrorDiffusionProcessor definition, Image<TPixel> image, Rectangle rectangle)
+            : base(image, rectangle)
         {
             this.definition = definition;
         }

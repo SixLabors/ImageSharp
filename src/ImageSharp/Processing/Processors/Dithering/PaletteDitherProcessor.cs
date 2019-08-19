@@ -1,9 +1,10 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 {
@@ -27,7 +28,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         public ReadOnlyMemory<Color> Palette { get; }
 
         /// <inheritdoc />
-        public abstract IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+        public abstract IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>;
     }
 }

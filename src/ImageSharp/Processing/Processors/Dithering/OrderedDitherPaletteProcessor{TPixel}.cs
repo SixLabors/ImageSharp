@@ -16,8 +16,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     internal class OrderedDitherPaletteProcessor<TPixel> : PaletteDitherProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        public OrderedDitherPaletteProcessor(OrderedDitherPaletteProcessor definition)
-            : base(definition)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OrderedDitherPaletteProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="definition">The <see cref="OrderedDitherPaletteProcessor"/> defining the processor parameters.</param>
+        /// <param name="image">The target <see cref="Image{T}"/> for the current processor instance.</param>
+        /// <param name="rectangle">The target area to process for the current processor instance.</param>
+        public OrderedDitherPaletteProcessor(OrderedDitherPaletteProcessor definition, Image<TPixel> image, Rectangle rectangle)
+            : base(definition, image, rectangle)
         {
         }
 

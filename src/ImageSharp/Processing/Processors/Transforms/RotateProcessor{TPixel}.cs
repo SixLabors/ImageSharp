@@ -56,18 +56,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(
-            ImageFrame<TPixel> source,
-            ImageFrame<TPixel> destination,
-            Rectangle sourceRectangle,
-            Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
         {
-            if (this.OptimizedApply(source, destination, configuration))
+            if (this.OptimizedApply(source, destination, this.Configuration))
             {
                 return;
             }
 
-            base.OnFrameApply(source, destination, sourceRectangle, configuration);
+            base.OnFrameApply(source, destination);
         }
 
         /// <summary>

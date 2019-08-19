@@ -39,22 +39,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private Matrix3x2 TransformMatrix => this.Definition.TransformMatrix;
 
         /// <inheritdoc/>
-        protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
+        protected override Image<TPixel> CreateDestination()
         {
             // We will always be creating the clone even for mutate because we may need to resize the canvas
-            IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select<ImageFrame<TPixel>, ImageFrame<TPixel>>(
-                x => new ImageFrame<TPixel>(source.GetConfiguration(), this.TargetDimensions, x.Metadata.DeepClone()));
+            IEnumerable<ImageFrame<TPixel>> frames = this.Source.Frames.Select<ImageFrame<TPixel>, ImageFrame<TPixel>>(
+                x => new ImageFrame<TPixel>(this.Configuration, this.TargetDimensions, x.Metadata.DeepClone()));
 
             // Use the overload to prevent an extra frame being added
-            return new Image<TPixel>(source.GetConfiguration(), source.Metadata.DeepClone(), frames);
+            return new Image<TPixel>(this.Configuration, this.Source.Metadata.DeepClone(), frames);
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(
-            ImageFrame<TPixel> source,
-            ImageFrame<TPixel> destination,
-            Rectangle sourceRectangle,
-            Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
         {
             // Handle transforms that result in output identical to the original.
             if (this.TransformMatrix.Equals(default) || this.TransformMatrix.Equals(Matrix3x2.Identity))
@@ -76,7 +72,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 ParallelHelper.IterateRows(
                     targetBounds,
-                    configuration,
+                    this.Configuration,
                     rows =>
                         {
                             for (int y = rows.Min; y < rows.Max; y++)
@@ -86,7 +82,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                 for (int x = 0; x < width; x++)
                                 {
                                     var point = Point.Transform(new Point(x, y), matrix);
-                                    if (sourceRectangle.Contains(point.X, point.Y))
+                                    if (this.SourceRectangle.Contains(point.X, point.Y))
                                     {
                                         destRow[x] = source[point.X, point.Y];
                                     }
@@ -97,19 +93,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return;
             }
 
-            var kernel = new TransformKernelMap(configuration, source.Size(), destination.Size(), sampler);
+            var kernel = new TransformKernelMap(this.Configuration, source.Size(), destination.Size(), sampler);
             try
             {
                 ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
                     targetBounds,
-                    configuration,
+                    this.Configuration,
                     (rows, vectorBuffer) =>
                         {
                             Span<Vector4> vectorSpan = vectorBuffer.Span;
                             for (int y = rows.Min; y < rows.Max; y++)
                             {
                                 Span<TPixel> targetRowSpan = destination.GetPixelRowSpan(y);
-                                PixelOperations<TPixel>.Instance.ToVector4(configuration, targetRowSpan, vectorSpan);
+                                PixelOperations<TPixel>.Instance.ToVector4(this.Configuration, targetRowSpan, vectorSpan);
                                 ref float ySpanRef = ref kernel.GetYStartReference(y);
                                 ref float xSpanRef = ref kernel.GetXStartReference(y);
 
@@ -128,7 +124,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                 }
 
                                 PixelOperations<TPixel>.Instance.FromVector4Destructive(
-                                    configuration,
+                                    this.Configuration,
                                     vectorSpan,
                                     targetRowSpan);
                             }

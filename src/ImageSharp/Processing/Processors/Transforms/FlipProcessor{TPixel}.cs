@@ -33,16 +33,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             switch (this.definition.FlipMode)
             {
                 // No default needed as we have already set the pixels.
                 case FlipMode.Vertical:
-                    this.FlipX(source, configuration);
+                    this.FlipX(source, this.Configuration);
                     break;
                 case FlipMode.Horizontal:
-                    this.FlipY(source, configuration);
+                    this.FlipY(source, this.Configuration);
                     break;
             }
         }

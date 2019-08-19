@@ -26,40 +26,40 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         { }
 
         /// <inheritdoc/>
-        protected override void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeImageApply()
         {
-            OrientationMode orientation = GetExifOrientation(source);
-            Size size = sourceRectangle.Size;
+            OrientationMode orientation = GetExifOrientation(this.Source);
+            Size size = this.SourceRectangle.Size;
             switch (orientation)
             {
                 case OrientationMode.TopRight:
-                    new FlipProcessor(FlipMode.Horizontal).Apply(source, sourceRectangle);
+                    new FlipProcessor(FlipMode.Horizontal).Apply(this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.BottomRight:
-                    new RotateProcessor((int)RotateMode.Rotate180, size).Apply(source, sourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate180, size).Apply(this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.BottomLeft:
-                    new FlipProcessor(FlipMode.Vertical).Apply(source, sourceRectangle);
+                    new FlipProcessor(FlipMode.Vertical).Apply(this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.LeftTop:
-                    new RotateProcessor((int)RotateMode.Rotate90, size).Apply(source, sourceRectangle);
-                    new FlipProcessor(FlipMode.Horizontal).Apply(source, sourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate90, size).Apply(this.Source, this.SourceRectangle);
+                    new FlipProcessor(FlipMode.Horizontal).Apply(this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.RightTop:
-                    new RotateProcessor((int)RotateMode.Rotate90, size).Apply(source, sourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate90, size).Apply(this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.RightBottom:
-                    new FlipProcessor(FlipMode.Vertical).Apply(source, sourceRectangle);
-                    new RotateProcessor((int)RotateMode.Rotate270, size).Apply(source, sourceRectangle);
+                    new FlipProcessor(FlipMode.Vertical).Apply(this.Source, this.SourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate270, size).Apply(this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.LeftBottom:
-                    new RotateProcessor((int)RotateMode.Rotate270, size).Apply(source, sourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate270, size).Apply(this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.Unknown:
@@ -70,10 +70,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(
-            ImageFrame<TPixel> sourceBase,
-            Rectangle sourceRectangle,
-            Configuration config)
+        protected override void OnFrameApply(ImageFrame<TPixel> sourceBase)
         {
             // All processing happens at the image level within BeforeImageApply();
         }

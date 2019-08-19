@@ -31,30 +31,30 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         }
 
         /// <inheritdoc/>
-        protected override void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeImageApply()
         {
             Rectangle rectangle;
 
             // All frames have be the same size so we only need to calculate the correct dimensions for the first frame
-            using (ImageFrame<TPixel> temp = source.Frames.RootFrame.Clone())
+            using (ImageFrame<TPixel> temp = this.Source.Frames.RootFrame.Clone())
             {
-                Configuration configuration = source.GetConfiguration();
+                Configuration configuration = this.Source.GetConfiguration();
 
                 // Detect the edges.
-                new SobelProcessor(false).Apply(temp, sourceRectangle, configuration);
+                new SobelProcessor(false).Apply(temp, this.SourceRectangle, configuration);
 
                 // Apply threshold binarization filter.
-                new BinaryThresholdProcessor(this.definition.Threshold).Apply(temp, sourceRectangle, configuration);
+                new BinaryThresholdProcessor(this.definition.Threshold).Apply(temp, this.SourceRectangle, configuration);
 
                 // Search for the first white pixels
                 rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);
             }
 
-            new CropProcessor(rectangle, source.Size()).Apply(source, sourceRectangle);
+            new CropProcessor(rectangle, this.Source.Size()).Apply(this.Source, this.SourceRectangle);
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             // All processing happens at the image level within BeforeImageApply();
         }

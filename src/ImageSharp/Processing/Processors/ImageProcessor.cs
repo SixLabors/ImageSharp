@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -15,6 +15,27 @@ namespace SixLabors.ImageSharp.Processing.Processors
     internal abstract class ImageProcessor<TPixel> : IImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="image">The target <see cref="Image{T}"/> for the current processor instance.</param>
+        /// <param name="rectangle">The target area to process for the current processor instance.</param>
+        protected ImageProcessor(Image<TPixel> image, Rectangle rectangle)
+        {
+            this.Image = image;
+            this.Rectangle = rectangle;
+        }
+
+        /// <summary>
+        /// Gets the target <see cref="Image{T}"/> for the current processor instance.
+        /// </summary>
+        protected Image<TPixel> Image { get; }
+
+        /// <summary>
+        /// Gets the target area to process for the current processor instance.
+        /// </summary>
+        protected Rectangle Rectangle { get; }
+
         /// <inheritdoc/>
         public void Apply(Image<TPixel> source, Rectangle sourceRectangle)
         {

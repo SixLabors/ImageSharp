@@ -29,7 +29,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels in the tile. Histogram bins which exceed this limit, will be capped at this value.</param>
         /// <param name="source">The target <see cref="Image{T}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The target area to process for the current processor instance.</param>
-        protected HistogramEqualizationProcessor(int luminanceLevels, bool clipHistogram, float clipLimitPercentage, Image<TPixel> source, Rectangle sourceRectangle)
+        protected HistogramEqualizationProcessor(
+            int luminanceLevels,
+            bool clipHistogram,
+            float clipLimitPercentage,
+            Image<TPixel> source,
+            Rectangle sourceRectangle)
             : base(source, sourceRectangle)
         {
             Guard.MustBeGreaterThan(luminanceLevels, 0, nameof(luminanceLevels));

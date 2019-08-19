@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         private int Tiles { get; }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             int sourceWidth = source.Width;
             int sourceHeight = source.Height;
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int luminanceLevels = this.LuminanceLevels;
 
             // The image is split up into tiles. For each tile the cumulative distribution function will be calculated.
-            using (var cdfData = new CdfTileData(configuration, sourceWidth, sourceHeight, this.Tiles, this.Tiles, tileWidth, tileHeight, luminanceLevels))
+            using (var cdfData = new CdfTileData(this.Configuration, sourceWidth, sourceHeight, this.Tiles, this.Tiles, tileWidth, tileHeight, luminanceLevels))
             {
                 cdfData.CalculateLookupTables(source, this);
 
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 Parallel.For(
                     0,
                     tileYStartPositions.Count,
-                    new ParallelOptions { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism },
+                    new ParallelOptions { MaxDegreeOfParallelism = this.Configuration.MaxDegreeOfParallelism },
                     index =>
                         {
                             int y = tileYStartPositions[index].y;

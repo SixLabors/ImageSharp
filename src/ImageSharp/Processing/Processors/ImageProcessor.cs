@@ -18,24 +18,24 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageProcessor{TPixel}"/> class.
         /// </summary>
-        /// <param name="image">The target <see cref="Image{T}"/> for the current processor instance.</param>
-        /// <param name="rectangle">The target area to process for the current processor instance.</param>
-        protected ImageProcessor(Image<TPixel> image, Rectangle rectangle)
+        /// <param name="source">The target <see cref="Image{T}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The target area to process for the current processor instance.</param>
+        protected ImageProcessor(Image<TPixel> source, Rectangle sourceRectangle)
         {
-            this.Image = image;
-            this.Rectangle = rectangle;
-            this.Configuration = this.Image.GetConfiguration();
+            this.Source = source;
+            this.SourceRectangle = sourceRectangle;
+            this.Configuration = this.Source.GetConfiguration();
         }
 
         /// <summary>
         /// Gets the target <see cref="Image{T}"/> for the current processor instance.
         /// </summary>
-        protected Image<TPixel> Image { get; }
+        protected Image<TPixel> Source { get; }
 
         /// <summary>
         /// Gets the target area to process for the current processor instance.
         /// </summary>
-        protected Rectangle Rectangle { get; }
+        protected Rectangle SourceRectangle { get; }
 
         /// <summary>
         /// Gets the <see cref="ImageSharp.Configuration"/> instance to use when performing operations.
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             {
                 this.BeforeImageApply();
 
-                foreach (ImageFrame<TPixel> sourceFrame in this.Image.Frames)
+                foreach (ImageFrame<TPixel> sourceFrame in this.Source.Frames)
                 {
                     this.Apply(sourceFrame);
                 }

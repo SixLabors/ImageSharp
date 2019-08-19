@@ -20,10 +20,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// Initializes a new instance of the <see cref="BoxBlurProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="definition">The <see cref="BoxBlurProcessor"/> defining the processor parameters.</param>
-        /// <param name="image">The target <see cref="Image{T}"/> for the current processor instance.</param>
-        /// <param name="rectangle">The target area to process for the current processor instance.</param>
-        public BoxBlurProcessor(BoxBlurProcessor definition, Image<TPixel> image, Rectangle rectangle)
-            : base(image, rectangle)
+        /// <param name="source">The target <see cref="Image{T}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The target area to process for the current processor instance.</param>
+        public BoxBlurProcessor(BoxBlurProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(source, sourceRectangle)
         {
             this.definition = definition;
             int kernelSize = (definition.Radius * 2) + 1;
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             ImageFrame<TPixel> source,
             Rectangle sourceRectangle,
             Configuration configuration) =>
-            new Convolution2PassProcessor<TPixel>(this.KernelX, this.KernelY, false, this.Image, this.Rectangle).Apply(
+            new Convolution2PassProcessor<TPixel>(this.KernelX, this.KernelY, false, this.Source, this.SourceRectangle).Apply(
                 source,
                 sourceRectangle,
                 configuration);

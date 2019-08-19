@@ -19,10 +19,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// Initializes a new instance of the <see cref="AutoOrientProcessor{TPixel}"/> class.
         /// </summary>
-        /// <param name="image">The target <see cref="Image{T}"/> for the current processor instance.</param>
-        /// <param name="rectangle">The target area to process for the current processor instance.</param>
-        public AutoOrientProcessor(Image<TPixel> image, Rectangle rectangle)
-            : base(image, rectangle)
+        /// <param name="source">The target <see cref="Image{T}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The target area to process for the current processor instance.</param>
+        public AutoOrientProcessor(Image<TPixel> source, Rectangle sourceRectangle)
+            : base(source, sourceRectangle)
         { }
 
         /// <inheritdoc/>

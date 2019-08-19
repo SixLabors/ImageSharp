@@ -22,10 +22,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// Initializes a new instance of the <see cref="RotateProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="definition">The <see cref="RotateProcessor"/> defining the processor parameters.</param>
-        /// <param name="image">The target <see cref="Image{T}"/> for the current processor instance.</param>
-        /// <param name="rectangle">The target area to process for the current processor instance.</param>
-        public RotateProcessor(RotateProcessor definition, Image<TPixel> image, Rectangle rectangle)
-            : base(definition, image, rectangle)
+        /// <param name="source">The target <see cref="Image{T}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The target area to process for the current processor instance.</param>
+        public RotateProcessor(RotateProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(definition, source, sourceRectangle)
         {
             this.Degrees = definition.Degrees;
         }

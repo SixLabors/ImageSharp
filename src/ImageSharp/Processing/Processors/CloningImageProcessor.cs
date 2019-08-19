@@ -18,23 +18,23 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="CloningImageProcessor{TPixel}"/> class.
         /// </summary>
-        /// <param name="image">The target <see cref="Image{T}"/> for the current processor instance.</param>
-        /// <param name="rectangle">The target area to process for the current processor instance.</param>
-        protected CloningImageProcessor(Image<TPixel> image, Rectangle rectangle)
+        /// <param name="source">The target <see cref="Image{T}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The target area to process for the current processor instance.</param>
+        protected CloningImageProcessor(Image<TPixel> source, Rectangle sourceRectangle)
         {
-            this.Image = image;
-            this.Rectangle = rectangle;
+            this.Source = source;
+            this.SourceRectangle = sourceRectangle;
         }
 
         /// <summary>
         /// Gets the target <see cref="Image{T}"/> for the current processor instance.
         /// </summary>
-        protected Image<TPixel> Image { get; }
+        protected Image<TPixel> Source { get; }
 
         /// <summary>
         /// Gets the target area to process for the current processor instance.
         /// </summary>
-        protected Rectangle Rectangle { get; }
+        protected Rectangle SourceRectangle { get; }
 
         /// <inheritdoc/>
         public Image<TPixel> CloneAndApply(Image<TPixel> source, Rectangle sourceRectangle)
@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="destination">The cloned/destination image. Cannot be null.</param>
         /// <param name="sourceRectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
+        /// The <see cref="SourceRectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
         protected virtual void BeforeImageApply(Image<TPixel> source, Image<TPixel> destination, Rectangle sourceRectangle)
         {
@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="destination">The cloned/destination image. Cannot be null.</param>
-        /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
+        /// <param name="sourceRectangle">The <see cref="SourceRectangle" /> structure that specifies the portion of the image object to draw.</param>
         /// <param name="configuration">The configuration.</param>
         protected virtual void BeforeFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
         {
@@ -132,7 +132,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="destination">The cloned/destination image. Cannot be null.</param>
-        /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
+        /// <param name="sourceRectangle">The <see cref="SourceRectangle" /> structure that specifies the portion of the image object to draw.</param>
         /// <param name="configuration">The configuration.</param>
         protected abstract void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration);
 
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="destination">The cloned/destination image. Cannot be null.</param>
-        /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
+        /// <param name="sourceRectangle">The <see cref="SourceRectangle" /> structure that specifies the portion of the image object to draw.</param>
         /// <param name="configuration">The configuration.</param>
         protected virtual void AfterFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
         {
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="destination">The cloned/destination image. Cannot be null.</param>
         /// <param name="sourceRectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
+        /// The <see cref="SourceRectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
         protected virtual void AfterImageApply(Image<TPixel> source, Image<TPixel> destination, Rectangle sourceRectangle)
         {

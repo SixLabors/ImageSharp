@@ -56,13 +56,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         public bool PreserveAlpha { get; }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            using (Buffer2D<TPixel> firstPassPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
+            using (Buffer2D<TPixel> firstPassPixels = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
             {
-                var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
-                this.ApplyConvolution(firstPassPixels, source.PixelBuffer, interest, this.KernelX, configuration);
-                this.ApplyConvolution(source.PixelBuffer, firstPassPixels, interest, this.KernelY, configuration);
+                var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+                this.ApplyConvolution(firstPassPixels, source.PixelBuffer, interest, this.KernelX, this.Configuration);
+                this.ApplyConvolution(source.PixelBuffer, firstPassPixels, interest, this.KernelY, this.Configuration);
             }
         }
 

@@ -48,12 +48,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         public bool PreserveAlpha { get; }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             DenseMatrix<float> matrix = this.KernelXY;
             bool preserveAlpha = this.PreserveAlpha;
 
-            var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
             int startY = interest.Y;
             int endY = interest.Bottom;
             int startX = interest.X;
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             int maxY = endY - 1;
             int maxX = endX - 1;
 
-            using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
+            using (Buffer2D<TPixel> targetPixels = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
             {
                 source.CopyTo(targetPixels);
 
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                 ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
                     workingRectangle,
-                    configuration,
+                    this.Configuration,
                     (rows, vectorBuffer) =>
                         {
                             Span<Vector4> vectorSpan = vectorBuffer.Span;
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                             for (int y = rows.Min; y < rows.Max; y++)
                             {
                                 Span<TPixel> targetRowSpan = targetPixels.GetRowSpan(y).Slice(startX);
-                                PixelOperations<TPixel>.Instance.ToVector4(configuration, targetRowSpan.Slice(0, length), vectorSpan);
+                                PixelOperations<TPixel>.Instance.ToVector4(this.Configuration, targetRowSpan.Slice(0, length), vectorSpan);
 
                                 if (preserveAlpha)
                                 {
@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                     }
                                 }
 
-                                PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan, targetRowSpan);
+                                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.Configuration, vectorSpan, targetRowSpan);
                             }
                         });
 

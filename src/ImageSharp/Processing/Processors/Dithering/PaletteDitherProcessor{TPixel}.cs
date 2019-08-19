@@ -30,7 +30,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteDitherProcessor{TPixel}"/> class.
         /// </summary>
-        protected PaletteDitherProcessor(PaletteDitherProcessor definition)
+        /// <param name="definition">The <see cref="PaletteDitherProcessor"/> defining the processor parameters.</param>
+        /// <param name="image">The target <see cref="Image{T}"/> for the current processor instance.</param>
+        /// <param name="rectangle">The target area to process for the current processor instance.</param>
+        protected PaletteDitherProcessor(PaletteDitherProcessor definition, Image<TPixel> image, Rectangle rectangle)
+            : base(image, rectangle)
         {
             this.Definition = definition;
         }

@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
@@ -25,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests
             Png
         }
 
-        private static readonly Dictionary<ExifTag, object> TestProfileValues = new Dictionary<ExifTag, object>()
+        private static readonly Dictionary<ExifTag, object> TestProfileValues = new Dictionary<ExifTag, object>
         {
             { ExifTag.Software, "Software" },
             { ExifTag.Copyright, "Copyright" },

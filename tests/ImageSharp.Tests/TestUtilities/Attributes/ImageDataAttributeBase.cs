@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     foreach (object[] row in memberData)
                     {
-                        object[] actualFactoryMethodArgs = new object[originalFactoryMethodArgs.Length + 2];
+                        var actualFactoryMethodArgs = new object[originalFactoryMethodArgs.Length + 2];
                         Array.Copy(originalFactoryMethodArgs, actualFactoryMethodArgs, originalFactoryMethodArgs.Length);
                         actualFactoryMethodArgs[actualFactoryMethodArgs.Length - 2] = testMethod;
                         actualFactoryMethodArgs[actualFactoryMethodArgs.Length - 1] = kv.Key;
@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.Tests
                         object factory = factoryType.GetMethod(this.GetFactoryMethodName(testMethod))
                             .Invoke(null, actualFactoryMethodArgs);
 
-                        object[] result = new object[this.AdditionalParameters.Length + 1 + row.Length];
+                        var result = new object[this.AdditionalParameters.Length + 1 + row.Length];
                         result[0] = factory;
                         Array.Copy(row, 0, result, 1, row.Length);
                         Array.Copy(this.AdditionalParameters, 0, result, 1 + row.Length, this.AdditionalParameters.Length);

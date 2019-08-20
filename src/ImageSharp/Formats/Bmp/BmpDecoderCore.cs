@@ -446,7 +446,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 #if NETCOREAPP2_1
             Span<byte> cmd = stackalloc byte[2];
 #else
-            byte[] cmd = new byte[2];
+            var cmd = new byte[2];
 #endif
             int count = 0;
 
@@ -485,7 +485,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                             int max = cmd[1];
                             int bytesToRead = (max + 1) / 2;
 
-                            byte[] run = new byte[bytesToRead];
+                            var run = new byte[bytesToRead];
 
                             this.stream.Read(run, 0, run.Length);
 
@@ -557,7 +557,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 #if NETCOREAPP2_1
             Span<byte> cmd = stackalloc byte[2];
 #else
-            byte[] cmd = new byte[2];
+            var cmd = new byte[2];
 #endif
             int count = 0;
 
@@ -595,7 +595,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                             // Take this number of bytes from the stream as uncompressed data.
                             int length = cmd[1];
 
-                            byte[] run = new byte[length];
+                            var run = new byte[length];
 
                             this.stream.Read(run, 0, run.Length);
 
@@ -640,7 +640,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 #if NETCOREAPP2_1
             Span<byte> cmd = stackalloc byte[2];
 #else
-            byte[] cmd = new byte[2];
+            var cmd = new byte[2];
 #endif
             int uncompressedPixels = 0;
 
@@ -678,7 +678,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                             // Take this number of bytes from the stream as uncompressed data.
                             int length = cmd[1];
 
-                            byte[] run = new byte[length * 3];
+                            var run = new byte[length * 3];
 
                             this.stream.Read(run, 0, run.Length);
 
@@ -1214,7 +1214,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 #if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[BmpInfoHeader.MaxHeaderSize];
 #else
-            byte[] buffer = new byte[BmpInfoHeader.MaxHeaderSize];
+            var buffer = new byte[BmpInfoHeader.MaxHeaderSize];
 #endif
 
             // Read the header size.
@@ -1252,7 +1252,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 // color masks for each color channel follow the info header.
                 if (this.infoHeader.Compression == BmpCompression.BitFields)
                 {
-                    byte[] bitfieldsBuffer = new byte[12];
+                    var bitfieldsBuffer = new byte[12];
                     this.stream.Read(bitfieldsBuffer, 0, 12);
                     Span<byte> data = bitfieldsBuffer.AsSpan();
                     this.infoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4));
@@ -1261,7 +1261,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 }
                 else if (this.infoHeader.Compression == BmpCompression.BI_ALPHABITFIELDS)
                 {
-                    byte[] bitfieldsBuffer = new byte[16];
+                    var bitfieldsBuffer = new byte[16];
                     this.stream.Read(bitfieldsBuffer, 0, 16);
                     Span<byte> data = bitfieldsBuffer.AsSpan();
                     this.infoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4));
@@ -1340,7 +1340,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 #if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[BmpFileHeader.Size];
 #else
-            byte[] buffer = new byte[BmpFileHeader.Size];
+            var buffer = new byte[BmpFileHeader.Size];
 #endif
             this.stream.Read(buffer, 0, BmpFileHeader.Size);
 

@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        private unsafe void ParseBaselineDataInterleaved()
+        private void ParseBaselineDataInterleaved()
         {
             // Interleaved
             int mcu = 0;
@@ -196,7 +196,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        private unsafe void ParseBaselineDataNonInterleaved()
+        private void ParseBaselineDataNonInterleaved()
         {
             JpegComponent component = this.components[this.frame.ComponentOrder[0]];
             ref HuffmanScanBuffer buffer = ref this.scanBuffer;
@@ -209,7 +209,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             dcHuffmanTable.Configure();
             acHuffmanTable.Configure();
 
-            int mcu = 0;
             for (int j = 0; j < h; j++)
             {
                 Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(j);
@@ -227,9 +226,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         ref Unsafe.Add(ref blockRef, i),
                         ref dcHuffmanTable,
                         ref acHuffmanTable);
-
-                    // Every data block is an MCU, so countdown the restart interval
-                    mcu++;
 
                     this.HandleRestart();
                 }
@@ -366,7 +362,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
         }
 
-        private unsafe void ParseProgressiveDataNonInterleaved()
+        private void ParseProgressiveDataNonInterleaved()
         {
             JpegComponent component = this.components[this.frame.ComponentOrder[0]];
             ref HuffmanScanBuffer buffer = ref this.scanBuffer;
@@ -379,7 +375,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
                 dcHuffmanTable.Configure();
 
-                int mcu = 0;
                 for (int j = 0; j < h; j++)
                 {
                     Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(j);
@@ -397,8 +392,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                             ref Unsafe.Add(ref blockRef, i),
                             ref dcHuffmanTable);
 
-                        // Every data block is an MCU, so countdown the restart interval
-                        mcu++;
                         this.HandleRestart();
                     }
                 }
@@ -408,7 +401,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
                 acHuffmanTable.Configure();
 
-                int mcu = 0;
                 for (int j = 0; j < h; j++)
                 {
                     Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(j);
@@ -425,8 +417,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                             ref Unsafe.Add(ref blockRef, i),
                             ref acHuffmanTable);
 
-                        // Every data block is an MCU, so countdown the restart interval
-                        mcu++;
                         this.HandleRestart();
                     }
                 }

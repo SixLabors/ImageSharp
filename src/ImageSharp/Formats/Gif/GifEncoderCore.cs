@@ -6,7 +6,6 @@ using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
@@ -84,7 +83,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             bool useGlobalTable = this.colorTableMode == GifColorTableMode.Global;
 
             // Quantize the image returning a palette.
-            IQuantizedFrame<TPixel> quantized = null;
+            IQuantizedFrame<TPixel> quantized;
             using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(image.GetConfiguration()))
             {
                 quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame);

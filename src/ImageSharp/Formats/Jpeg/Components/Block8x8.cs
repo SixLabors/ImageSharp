@@ -194,7 +194,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </summary>
         public short[] ToArray()
         {
-            short[] result = new short[Size];
+            var result = new short[Size];
             this.CopyTo(result);
             return result;
         }

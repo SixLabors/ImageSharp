@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Processing
         public static DenseMatrix<TPixel> ToPixelMatrix<TPixel>(this DenseMatrix<Color> colorMatrix, Configuration configuration)
             where TPixel : struct, IPixel<TPixel>
         {
-            DenseMatrix<TPixel> result = new DenseMatrix<TPixel>(colorMatrix.Columns, colorMatrix.Rows);
+            var result = new DenseMatrix<TPixel>(colorMatrix.Columns, colorMatrix.Rows);
             Color.ToPixel(configuration, colorMatrix.Span, result.Span);
             return result;
         }

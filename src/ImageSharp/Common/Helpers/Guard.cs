@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -231,7 +230,7 @@ namespace SixLabors.ImageSharp
         {
             if (destination.Length < source.Length)
             {
-                ThrowArgumentException($"Destination span is too short!", destinationParamName);
+                ThrowArgumentException("Destination span is too short!", destinationParamName);
             }
         }
 
@@ -251,7 +250,7 @@ namespace SixLabors.ImageSharp
         {
             if (destination.Length < source.Length)
             {
-                ThrowArgumentException($"Destination span is too short!", destinationParamName);
+                ThrowArgumentException("Destination span is too short!", destinationParamName);
             }
         }
 

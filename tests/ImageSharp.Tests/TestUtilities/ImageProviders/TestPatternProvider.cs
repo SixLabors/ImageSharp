@@ -198,7 +198,7 @@ namespace SixLabors.ImageSharp.Tests
                 int pixelCount = left * top;
                 uint stepsPerPixel = (uint)(uint.MaxValue / pixelCount);
                 TPixel c = default;
-                Rgba32 t = new Rgba32(0);
+                var t = new Rgba32(0);
 
                 for (int x = left; x < right; x++)
                 {

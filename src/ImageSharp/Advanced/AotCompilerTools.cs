@@ -9,7 +9,6 @@ using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Advanced
 {
@@ -133,7 +132,7 @@ namespace SixLabors.ImageSharp.Advanced
         {
             var test = new FloydSteinbergDiffuser();
             TPixel pixel = default;
-            test.Dither<TPixel>(new ImageFrame<TPixel>(Configuration.Default, 1, 1), pixel, pixel, 0, 0, 0, 0, 0, 0);
+            test.Dither(new ImageFrame<TPixel>(Configuration.Default, 1, 1), pixel, pixel, 0, 0, 0, 0, 0, 0);
         }
 
         /// <summary>

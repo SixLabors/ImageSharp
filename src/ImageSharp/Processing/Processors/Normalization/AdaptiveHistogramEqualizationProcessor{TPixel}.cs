@@ -32,8 +32,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="clipHistogram">Indicating whether to clip the histogram bins at a specific value.</param>
         /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels in the tile. Histogram bins which exceed this limit, will be capped at this value.</param>
         /// <param name="tiles">The number of tiles the image is split into (horizontal and vertically). Minimum value is 2. Maximum value is 100.</param>
-        /// <param name="source">The target <see cref="Image{T}"/> for the current processor instance.</param>
-        /// <param name="sourceRectangle">The target area to process for the current processor instance.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public AdaptiveHistogramEqualizationProcessor(
             int luminanceLevels,
             bool clipHistogram,

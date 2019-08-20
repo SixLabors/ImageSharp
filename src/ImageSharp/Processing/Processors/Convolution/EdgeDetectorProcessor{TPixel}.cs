@@ -20,8 +20,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </summary>
         /// <param name="kernelXY">The 2d gradient operator.</param>
         /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection.</param>
-        /// <param name="source">The target <see cref="Image{T}"/> for the current processor instance.</param>
-        /// <param name="sourceRectangle">The target area to process for the current processor instance.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public EdgeDetectorProcessor(in DenseMatrix<float> kernelXY, bool grayscale, Image<TPixel> source, Rectangle sourceRectangle)
             : base(source, sourceRectangle)
         {
@@ -36,17 +36,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </summary>
         public DenseMatrix<float> KernelXY { get; }
 
-        /// <inheritdoc/>
-        protected override void BeforeFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void BeforeImageApply()
         {
             if (this.Grayscale)
             {
-                new GrayscaleBt709Processor(1F).Apply(source, sourceRectangle, configuration);
+                new GrayscaleBt709Processor(1F).Apply(this.Source, this.SourceRectangle);
             }
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
-            => new ConvolutionProcessor<TPixel>(this.KernelXY, true, this.Source, this.SourceRectangle).Apply(source, sourceRectangle, configuration);
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
+            => new ConvolutionProcessor<TPixel>(this.KernelXY, true, this.Source, this.SourceRectangle).Apply(source);
     }
 }

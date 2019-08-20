@@ -21,8 +21,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
         /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection.</param>
-        /// <param name="source">The target <see cref="Image{T}"/> for the current processor instance.</param>
-        /// <param name="sourceRectangle">The target area to process for the current processor instance.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         internal EdgeDetector2DProcessor(
             in DenseMatrix<float> kernelX,
             in DenseMatrix<float> kernelY,

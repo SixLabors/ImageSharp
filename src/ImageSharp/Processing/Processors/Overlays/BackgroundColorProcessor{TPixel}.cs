@@ -25,8 +25,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         /// Initializes a new instance of the <see cref="BackgroundColorProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="definition">The <see cref="BackgroundColorProcessor"/> defining the processor parameters.</param>
-        /// <param name="source">The target <see cref="Image{T}"/> for the current processor instance.</param>
-        /// <param name="sourceRectangle">The target area to process for the current processor instance.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public BackgroundColorProcessor(BackgroundColorProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(source, sourceRectangle)
         {

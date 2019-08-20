@@ -30,7 +30,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly ResizeProcessor parameterSource;
 
-        public ResizeProcessor(ResizeProcessor parameterSource)
+        public ResizeProcessor(ResizeProcessor parameterSource, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(source, sourceRectangle)
         {
             this.parameterSource = parameterSource;
         }
@@ -64,31 +65,36 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// This is a shim for tagging the CreateDestination virtual generic method for the AoT iOS compiler.
         /// This method should never be referenced outside of the AotCompiler code.
         /// </summary>
-        /// <param name="source">Passed through as source to the CreateDestination method.</param>
-        /// <param name="sourceRectangle">Passed through as sourceRectangle to the CreateDestination method.</param>
-        /// <returns>The result returned from CreateDestination.</returns>
-        internal Image<TPixel> AotCreateDestination(Image<TPixel> source, Rectangle sourceRectangle) => this.CreateDestination(source, sourceRectangle);
+        /// <returns>The result returned from <see cref="M:CreateDestination"/>.</returns>
+        internal Image<TPixel> AotCreateDestination()
+            => this.CreateDestination();
 
         /// <inheritdoc/>
-        protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
+        protected override Image<TPixel> CreateDestination()
         {
+            Image<TPixel> source = this.Source;
+            Configuration configuration = this.Configuration;
+
             // We will always be creating the clone even for mutate because we may need to resize the canvas
             IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select<ImageFrame<TPixel>, ImageFrame<TPixel>>(
                 x => new ImageFrame<TPixel>(
-                    source.GetConfiguration(),
+                    configuration,
                     this.Width,
                     this.Height,
                     x.Metadata.DeepClone()));
 
             // Use the overload to prevent an extra frame being added
-            return new Image<TPixel>(source.GetConfiguration(), source.Metadata.DeepClone(), frames);
+            return new Image<TPixel>(configuration, source.Metadata.DeepClone(), frames);
         }
 
         /// <inheritdoc/>
-        protected override void BeforeImageApply(Image<TPixel> source, Image<TPixel> destination, Rectangle sourceRectangle)
+        protected override void BeforeImageApply(Image<TPixel> destination)
         {
             if (!(this.Sampler is NearestNeighborResampler))
             {
+                Image<TPixel> source = this.Source;
+                Rectangle sourceRectangle = this.SourceRectangle;
+
                 // Since all image frame dimensions have to be the same we can calculate this for all frames.
                 MemoryAllocator memoryAllocator = source.GetMemoryAllocator();
                 this.horizontalKernelMap = ResizeKernelMap.Calculate(
@@ -106,8 +112,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
         {
+            Rectangle sourceRectangle = this.SourceRectangle;
+            Configuration configuration = this.Configuration;
+
             // Handle resize dimensions identical to the original
             if (source.Width == destination.Width && source.Height == destination.Height && sourceRectangle == this.TargetRectangle)
             {
@@ -180,9 +189,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
         }
 
-        protected override void AfterImageApply(Image<TPixel> source, Image<TPixel> destination, Rectangle sourceRectangle)
+        protected override void AfterImageApply(Image<TPixel> destination)
         {
-            base.AfterImageApply(source, destination, sourceRectangle);
+            base.AfterImageApply(destination);
 
             // TODO: An exception in the processing chain can leave these buffers undisposed. We should consider making image processors IDisposable!
             this.horizontalKernelMap?.Dispose();

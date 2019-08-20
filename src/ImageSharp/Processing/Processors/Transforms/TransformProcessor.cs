@@ -16,14 +16,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// Initializes a new instance of the <see cref="TransformProcessor{TPixel}"/> class.
         /// </summary>
-        /// <param name="source">The target <see cref="Image{T}"/> for the current processor instance.</param>
-        /// <param name="sourceRectangle">The target area to process for the current processor instance.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         protected TransformProcessor(Image<TPixel> source, Rectangle sourceRectangle)
             : base(source, sourceRectangle)
-        { }
+        {
+        }
 
         /// <inheritdoc/>
-        protected override void AfterImageApply(Image<TPixel> source, Image<TPixel> destination, Rectangle sourceRectangle)
+        protected override void AfterImageApply(Image<TPixel> destination)
             => TransformProcessorHelpers.UpdateDimensionalMetadata(destination);
     }
 }

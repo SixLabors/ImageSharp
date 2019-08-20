@@ -24,8 +24,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </summary>
         /// <param name="kernelXY">The 2d gradient operator.</param>
         /// <param name="preserveAlpha">Whether the convolution filter is applied to alpha as well as the color channels.</param>
-        /// <param name="source">The target <see cref="Image{T}"/> for the current processor instance.</param>
-        /// <param name="sourceRectangle">The target area to process for the current processor instance.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public ConvolutionProcessor(
             in DenseMatrix<float> kernelXY,
             bool preserveAlpha,

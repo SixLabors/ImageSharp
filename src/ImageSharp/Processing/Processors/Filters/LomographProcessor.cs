@@ -1,5 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
+
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Filters
 {
@@ -17,7 +19,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         }
 
         /// <inheritdoc />
-        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>() =>
-            new LomographProcessor<TPixel>(this);
+        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle) =>
+            new LomographProcessor<TPixel>(this, source, sourceRectangle);
     }
 }

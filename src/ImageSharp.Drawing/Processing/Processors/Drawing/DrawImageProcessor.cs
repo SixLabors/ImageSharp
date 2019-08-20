@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -59,10 +59,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
         public float Opacity { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixelBg> CreatePixelSpecificProcessor<TPixelBg>()
+        public IImageProcessor<TPixelBg> CreatePixelSpecificProcessor<TPixelBg>(Image<TPixelBg> source, Rectangle sourceRectangle)
             where TPixelBg : struct, IPixel<TPixelBg>
         {
-            var visitor = new ProcessorFactoryVisitor<TPixelBg>(this);
+            var visitor = new ProcessorFactoryVisitor<TPixelBg>(this, source, sourceRectangle);
             this.Image.AcceptVisitor(visitor);
             return visitor.Result;
         }
@@ -71,10 +71,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             where TPixelBg : struct, IPixel<TPixelBg>
         {
             private readonly DrawImageProcessor definition;
+            private readonly Image<TPixelBg> source;
+            private readonly Rectangle sourceRectangle;
 
-            public ProcessorFactoryVisitor(DrawImageProcessor definition)
+            public ProcessorFactoryVisitor(DrawImageProcessor definition, Image<TPixelBg> source, Rectangle sourceRectangle)
             {
                 this.definition = definition;
+                this.source = source;
+                this.sourceRectangle = sourceRectangle;
             }
 
             public IImageProcessor<TPixelBg> Result { get; private set; }
@@ -84,6 +88,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             {
                 this.Result = new DrawImageProcessor<TPixelBg, TPixelFg>(
                     image,
+                    this.source,
+                    this.sourceRectangle,
                     this.definition.Location,
                     this.definition.ColorBlendingMode,
                     this.definition.AlphaCompositionMode,

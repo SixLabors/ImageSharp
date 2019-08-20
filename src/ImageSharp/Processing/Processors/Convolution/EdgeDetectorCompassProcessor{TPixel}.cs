@@ -27,8 +27,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </summary>
         /// <param name="kernels">Gets the kernels to use.</param>
         /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection.</param>
-        /// <param name="source">The target <see cref="Image{T}"/> for the current processor instance.</param>
-        /// <param name="sourceRectangle">The target area to process for the current processor instance.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         internal EdgeDetectorCompassProcessor(CompassKernels kernels, bool grayscale, Image<TPixel> source, Rectangle sourceRectangle)
             : base(source, sourceRectangle)
         {

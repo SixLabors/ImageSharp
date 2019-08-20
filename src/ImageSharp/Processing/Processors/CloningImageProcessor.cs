@@ -18,8 +18,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="CloningImageProcessor{TPixel}"/> class.
         /// </summary>
-        /// <param name="source">The target <see cref="Image{T}"/> for the current processor instance.</param>
-        /// <param name="sourceRectangle">The target area to process for the current processor instance.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         protected CloningImageProcessor(Image<TPixel> source, Rectangle sourceRectangle)
         {
             this.Source = source;
@@ -28,12 +28,12 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <summary>
-        /// Gets the target <see cref="Image{T}"/> for the current processor instance.
+        /// Gets The source <see cref="Image{TPixel}"/> for the current processor instance.
         /// </summary>
         protected Image<TPixel> Source { get; }
 
         /// <summary>
-        /// Gets the target area to process for the current processor instance.
+        /// Gets The source area to process for the current processor instance.
         /// </summary>
         protected Rectangle SourceRectangle { get; }
 
@@ -108,8 +108,6 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// This method is called before the process is applied to prepare the processor.
         /// </summary>
         /// <param name="destination">The cloned/destination image. Cannot be null.</param>
-        /// The <see cref="SourceRectangle"/> structure that specifies the portion of the image object to draw.
-        /// </param>
         protected virtual void BeforeImageApply(Image<TPixel> destination)
         {
         }
@@ -144,8 +142,6 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// This method is called after the process is applied to prepare the processor.
         /// </summary>
         /// <param name="destination">The cloned/destination image. Cannot be null.</param>
-        /// The <see cref="SourceRectangle"/> structure that specifies the portion of the image object to draw.
-        /// </param>
         protected virtual void AfterImageApply(Image<TPixel> destination)
         {
         }

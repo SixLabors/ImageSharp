@@ -21,18 +21,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         /// Initializes a new instance of the <see cref="PolaroidProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="definition">The <see cref="PolaroidProcessor"/> defining the parameters.</param>
-        /// <param name="source">The target <see cref="Image{T}"/> for the current processor instance.</param>
-        /// <param name="sourceRectangle">The target area to process for the current processor instance.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public PolaroidProcessor(PolaroidProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(definition, source, sourceRectangle)
         {
         }
 
         /// <inheritdoc/>
-        protected override void AfterFrameApply(ImageFrame<TPixel> source)
+        protected override void AfterImageApply()
         {
-            new VignetteProcessor(VeryDarkOrange).Apply(source, this.SourceRectangle, this.Configuration);
-            new GlowProcessor(LightOrange, source.Width / 4F).Apply(source, this.SourceRectangle, this.Configuration);
+            new VignetteProcessor(VeryDarkOrange).Apply(this.Source, this.SourceRectangle);
+            new GlowProcessor(LightOrange, this.Source.Width / 4F).Apply(this.Source, this.SourceRectangle);
         }
     }
 }

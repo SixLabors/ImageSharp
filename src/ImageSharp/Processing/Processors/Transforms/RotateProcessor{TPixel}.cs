@@ -22,8 +22,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// Initializes a new instance of the <see cref="RotateProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="definition">The <see cref="RotateProcessor"/> defining the processor parameters.</param>
-        /// <param name="source">The target <see cref="Image{T}"/> for the current processor instance.</param>
-        /// <param name="sourceRectangle">The target area to process for the current processor instance.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public RotateProcessor(RotateProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(definition, source, sourceRectangle)
         {
@@ -33,10 +33,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private float Degrees { get; }
 
         /// <inheritdoc/>
-        protected override void AfterImageApply(
-            Image<TPixel> source,
-            Image<TPixel> destination,
-            Rectangle sourceRectangle)
+        protected override void AfterImageApply(Image<TPixel> destination)
         {
             ExifProfile profile = destination.Metadata.ExifProfile;
             if (profile is null)
@@ -52,7 +49,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             profile.RemoveValue(ExifTag.Orientation);
 
-            base.AfterImageApply(source, destination, sourceRectangle);
+            base.AfterImageApply(destination);
         }
 
         /// <inheritdoc/>

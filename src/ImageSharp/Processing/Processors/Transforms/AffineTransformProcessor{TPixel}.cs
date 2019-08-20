@@ -24,8 +24,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// Initializes a new instance of the <see cref="AffineTransformProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="definition">The <see cref="AffineTransformProcessor"/> defining the processor parameters.</param>
-        /// <param name="source">The target <see cref="Image{T}"/> for the current processor instance.</param>
-        /// <param name="sourceRectangle">The target area to process for the current processor instance.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public AffineTransformProcessor(AffineTransformProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(source, sourceRectangle)
         {
@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // Convert from screen to world space.
             Matrix3x2.Invert(this.TransformMatrix, out Matrix3x2 matrix);
 
-            var sampler = this.Definition.Sampler;
+            IResampler sampler = this.Definition.Sampler;
 
             if (sampler is NearestNeighborResampler)
             {

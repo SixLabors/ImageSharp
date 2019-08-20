@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 this.TestFormat.VerifySpecificDecodeCall<Rgb24>(this.Marker, this.TopLevelConfiguration);
             }
-            
+
             [Fact]
             public void Configuration_Stream_Agnostic()
             {
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 this.TestFormat.VerifyAgnosticDecodeCall(this.Marker, this.TopLevelConfiguration);
             }
-            
+
             [Fact]
             public void NonSeekableStream()
             {
@@ -46,21 +46,21 @@ namespace SixLabors.ImageSharp.Tests
 
                 this.TestFormat.VerifySpecificDecodeCall<Rgba32>(this.Marker, this.TopLevelConfiguration);
             }
-            
+
             [Fact]
             public void Configuration_Stream_Decoder_Specific()
             {
-                Stream stream = new MemoryStream();
+                var stream = new MemoryStream();
                 var img = Image.Load<Rgba32>(this.TopLevelConfiguration, stream, this.localDecoder.Object);
 
                 Assert.NotNull(img);
                 this.localDecoder.Verify(x => x.Decode<Rgba32>(this.TopLevelConfiguration, stream));
             }
-            
+
             [Fact]
             public void Configuration_Stream_Decoder_Agnostic()
             {
-                Stream stream = new MemoryStream();
+                var stream = new MemoryStream();
                 var img = Image.Load(this.TopLevelConfiguration, stream, this.localDecoder.Object);
 
                 Assert.NotNull(img);
@@ -74,10 +74,10 @@ namespace SixLabors.ImageSharp.Tests
 
                 Assert.NotNull(img);
                 Assert.Equal(this.TestFormat, format);
-                
+
                 this.TestFormat.VerifySpecificDecodeCall<Rgba32>(this.Marker, this.TopLevelConfiguration);
             }
-            
+
             [Fact]
             public void Configuration_Stream_OutFormat_Agnostic()
             {
@@ -85,9 +85,9 @@ namespace SixLabors.ImageSharp.Tests
 
                 Assert.NotNull(img);
                 Assert.Equal(this.TestFormat, format);
-                
+
                 this.TestFormat.VerifyAgnosticDecodeCall(this.Marker, this.TopLevelConfiguration);
-            }   
+            }
         }
     }
 }

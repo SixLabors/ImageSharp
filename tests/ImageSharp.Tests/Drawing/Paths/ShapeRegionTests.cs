@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Primitives;
@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
 
         public ShapeRegionTests()
         {
-            this.pathMock = new Mock<MockPath>() { CallBase = true };
+            this.pathMock = new Mock<MockPath> { CallBase = true };
 
             this.bounds = new RectangleF(10.5f, 10, 10, 10);
             this.pathMock.Setup(x => x.Bounds).Returns(this.bounds);

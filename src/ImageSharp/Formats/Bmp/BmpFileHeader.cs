@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             return MemoryMarshal.Cast<byte, BmpFileHeader>(data)[0];
         }
 
-        public unsafe void WriteTo(Span<byte> buffer)
+        public void WriteTo(Span<byte> buffer)
         {
             ref BmpFileHeader dest = ref Unsafe.As<byte, BmpFileHeader>(ref MemoryMarshal.GetReference(buffer));
 

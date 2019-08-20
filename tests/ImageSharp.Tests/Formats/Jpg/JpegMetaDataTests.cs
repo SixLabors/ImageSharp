@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Formats.Jpeg;
@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void CloneIsDeep()
         {
-            var meta = new JpegMetadata() { Quality = 50 };
+            var meta = new JpegMetadata { Quality = 50 };
             var clone = (JpegMetadata)meta.DeepClone();
 
             clone.Quality = 99;

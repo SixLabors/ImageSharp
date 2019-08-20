@@ -4,7 +4,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Metadata;
@@ -27,13 +26,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         [Fact]
         public void CloneIsDeep()
         {
-            var meta = new GifMetadata()
+            var meta = new GifMetadata
             {
                 RepeatCount = 1,
                 ColorTableMode = GifColorTableMode.Global,
                 GlobalColorTableLength = 2,
-                Comments = new List<string>() { "Foo" }
-
+                Comments = new List<string> { "Foo" }
             };
 
             var clone = (GifMetadata)meta.DeepClone();

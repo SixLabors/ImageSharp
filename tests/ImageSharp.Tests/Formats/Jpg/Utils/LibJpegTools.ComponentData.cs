@@ -52,8 +52,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             internal void MakeBlock(short[] data, int y, int x)
             {
-                this.MinVal = Math.Min((short)this.MinVal, data.Min());
-                this.MaxVal = Math.Max((short)this.MaxVal, data.Max());
+                this.MinVal = Math.Min(this.MinVal, data.Min());
+                this.MaxVal = Math.Max(this.MaxVal, data.Max());
                 this.SpectralBlocks[x, y] = new Block8x8(data);
             }
 

@@ -19,13 +19,13 @@ namespace SixLabors.ImageSharp.Tests
 {
     public class TestImageProviderTests
     {
-        public static readonly TheoryData<object> BasicData = new TheoryData<object>()
+        public static readonly TheoryData<object> BasicData = new TheoryData<object>
         {
             TestImageProvider<Rgba32>.Blank(10, 20),
             TestImageProvider<HalfVector4>.Blank(10, 20),
         };
 
-        public static readonly TheoryData<object> FileData = new TheoryData<object>()
+        public static readonly TheoryData<object> FileData = new TheoryData<object>
         {
             TestImageProvider<Rgba32>.File(TestImages.Bmp.Car),
             TestImageProvider<HalfVector4>.File(TestImages.Bmp.F)
@@ -114,10 +114,10 @@ namespace SixLabors.ImageSharp.Tests
                         string testName = nameof(this
                             .GetImage_WithCustomParametricDecoder_ShouldNotUtilizeCache_WhenParametersAreNotEqual);
 
-                        var decoder1 = new TestDecoderWithParameters() { Param1 = "Lol", Param2 = 42 };
+                        var decoder1 = new TestDecoderWithParameters { Param1 = "Lol", Param2 = 42 };
                         decoder1.InitCaller(testName);
 
-                        var decoder2 = new TestDecoderWithParameters() { Param1 = "LoL", Param2 = 42 };
+                        var decoder2 = new TestDecoderWithParameters { Param1 = "LoL", Param2 = 42 };
                         decoder2.InitCaller(testName);
 
                         provider.GetImage(decoder1);
@@ -148,10 +148,10 @@ namespace SixLabors.ImageSharp.Tests
                         string testName = nameof(this
                             .GetImage_WithCustomParametricDecoder_ShouldUtilizeCache_WhenParametersAreEqual);
 
-                        var decoder1 = new TestDecoderWithParameters() { Param1 = "Lol", Param2 = 666 };
+                        var decoder1 = new TestDecoderWithParameters { Param1 = "Lol", Param2 = 666 };
                         decoder1.InitCaller(testName);
 
-                        var decoder2 = new TestDecoderWithParameters() { Param1 = "Lol", Param2 = 666 };
+                        var decoder2 = new TestDecoderWithParameters { Param1 = "Lol", Param2 = 666 };
                         decoder2.InitCaller(testName);
 
                         provider.GetImage(decoder1);
@@ -354,7 +354,7 @@ namespace SixLabors.ImageSharp.Tests
 
             private static readonly object Monitor = new object();
 
-            private string callerName = null;
+            private string callerName;
 
             public static void DoTestThreadSafe(Action action)
             {
@@ -389,7 +389,7 @@ namespace SixLabors.ImageSharp.Tests
 
             private static readonly object Monitor = new object();
 
-            private string callerName = null;
+            private string callerName;
 
             public string Param1 { get; set; }
 

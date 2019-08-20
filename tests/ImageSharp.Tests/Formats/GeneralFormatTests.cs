@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Tests
 
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.DebugSave(provider, new PngEncoder() { ColorType = PngColorType.Palette, Quantizer = quantizer }, testOutputDetails: quantizerName);
+                image.DebugSave(provider, new PngEncoder { ColorType = PngColorType.Palette, Quantizer = quantizer }, testOutputDetails: quantizerName);
             }
 
             provider.Configuration.MemoryAllocator.ReleaseRetainedResources();

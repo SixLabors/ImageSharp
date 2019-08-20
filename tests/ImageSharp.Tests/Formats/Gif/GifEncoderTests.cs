@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                var encoder = new GifEncoder()
+                var encoder = new GifEncoder
                 {
                     // Use the palette quantizer without dithering to ensure results
                     // are consistent
@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 GifMetadata metaData = image.Metadata.GetFormatMetadata(GifFormat.Instance);
                 GifFrameMetadata frameMetaData = image.Frames.RootFrame.Metadata.GetFormatMetadata(GifFormat.Instance);
                 GifColorTableMode colorMode = metaData.ColorTableMode;
-                var encoder = new GifEncoder()
+                var encoder = new GifEncoder
                 {
                     ColorTableMode = colorMode,
                     Quantizer = new OctreeQuantizer(frameMetaData.ColorTableLength)
@@ -150,7 +150,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 outStream.Position = 0;
                 var clone = Image.Load<Rgba32>(outStream);
 
-                GifMetadata cloneMetaData = clone.Metadata.GetFormatMetadata<GifMetadata>(GifFormat.Instance);
+                GifMetadata cloneMetaData = clone.Metadata.GetFormatMetadata(GifFormat.Instance);
                 Assert.Equal(metaData.ColorTableMode, cloneMetaData.ColorTableMode);
 
                 // Gifiddle and Cyotek GifInfo say this image has 64 colors.

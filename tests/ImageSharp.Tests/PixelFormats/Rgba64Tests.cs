@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -65,16 +65,16 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         public void Rgba64_FromScaledVector4(ushort r, ushort g, ushort b, ushort a)
         {
             // arrange
-            
+
             var source = new Rgba64(r, g, b, a);
-            
-            // act 
+
+            // act
             Vector4 scaled = source.ToScaledVector4();
 
 
             Rgba64 actual = default;
             actual.FromScaledVector4(scaled);
-            
+
             // assert
             Assert.Equal(source, actual);
         }
@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // assert
             Assert.Equal(expected, actual);
         }
-        
+
 
         [Fact]
         public void Rgba64_FromBgra5551()
@@ -126,20 +126,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [Fact]
         public void Equality_WhenTrue()
         {
-            Rgba64 c1 = new Rgba64(100, 2000, 3000, 40000);
-            Rgba64 c2 = new Rgba64(100, 2000, 3000, 40000);
-            
+            var c1 = new Rgba64(100, 2000, 3000, 40000);
+            var c2 = new Rgba64(100, 2000, 3000, 40000);
+
             Assert.True(c1.Equals(c2));
             Assert.True(c1.GetHashCode() == c2.GetHashCode());
         }
-        
+
         [Fact]
         public void Equality_WhenFalse()
         {
-            Rgba64 c1 = new Rgba64(100, 2000, 3000, 40000);
-            Rgba64 c2 = new Rgba64(101, 2000, 3000, 40000);
-            Rgba64 c3 = new Rgba64(100, 2000, 3000, 40001);
-            
+            var c1 = new Rgba64(100, 2000, 3000, 40000);
+            var c2 = new Rgba64(101, 2000, 3000, 40000);
+            var c3 = new Rgba64(100, 2000, 3000, 40001);
+
             Assert.False(c1.Equals(c2));
             Assert.False(c2.Equals(c3));
             Assert.False(c3.Equals(c1));
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             Rgba64 actual = default;
             actual.FromRgba32(source);
-            
+
             Assert.Equal(expected, actual);
         }
 
@@ -162,127 +162,127 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
             var expected = new Rgba64(5140, 9766, 19532, 29555);
             var source = new Rgba32(20, 38, 76, 115);
-            Rgba64 actual = new Rgba64(source);
-            
+            var actual = new Rgba64(source);
+
             Assert.Equal(expected, actual);
         }
-        
+
         [Fact]
         public void ConstructFrom_Bgra32()
         {
             var expected = new Rgba64(5140, 9766, 19532, 29555);
             var source = new Bgra32(20, 38, 76, 115);
-            Rgba64 actual = new Rgba64(source);
-            
+            var actual = new Rgba64(source);
+
             Assert.Equal(expected, actual);
         }
-        
+
         [Fact]
         public void ConstructFrom_Argb32()
         {
             var expected = new Rgba64(5140, 9766, 19532, 29555);
             var source = new Argb32(20, 38, 76, 115);
-            Rgba64 actual = new Rgba64(source);
-            
+            var actual = new Rgba64(source);
+
             Assert.Equal(expected, actual);
         }
-        
+
         [Fact]
         public void ConstructFrom_Rgb24()
         {
             var expected = new Rgba64(5140, 9766, 19532, ushort.MaxValue);
             var source = new Rgb24(20, 38, 76);
-            Rgba64 actual = new Rgba64(source);
-            
+            var actual = new Rgba64(source);
+
             Assert.Equal(expected, actual);
         }
-        
+
         [Fact]
         public void ConstructFrom_Bgr24()
         {
             var expected = new Rgba64(5140, 9766, 19532, ushort.MaxValue);
             var source = new Bgr24(20, 38, 76);
-            Rgba64 actual = new Rgba64(source);
-            
-            Assert.Equal(expected, actual);
-        }
-        
-        [Fact]
-        public void ConstructFrom_Vector4()
-        {
-            Vector4 source = new Vector4(0f, 0.2f, 0.5f, 1f);
-            Rgba64 expected = default;
-            expected.FromScaledVector4(source);
-            
-            Rgba64 actual = new Rgba64(source);
-            
+            var actual = new Rgba64(source);
+
             Assert.Equal(expected, actual);
         }
 
-        
+        [Fact]
+        public void ConstructFrom_Vector4()
+        {
+            var source = new Vector4(0f, 0.2f, 0.5f, 1f);
+            Rgba64 expected = default;
+            expected.FromScaledVector4(source);
+
+            var actual = new Rgba64(source);
+
+            Assert.Equal(expected, actual);
+        }
+
+
         [Fact]
         public void ToRgba32_Retval()
         {
             // arrange
             var source = new Rgba64(5140, 9766, 19532, 29555);
             var expected = new Rgba32(20, 38, 76, 115);
-            
+
             // act
             var actual = source.ToRgba32();
 
             // assert
             Assert.Equal(expected, actual);
         }
-        
+
         [Fact]
         public void ToBgra32_Retval()
         {
             // arrange
             var source = new Rgba64(5140, 9766, 19532, 29555);
             var expected = new Bgra32(20, 38, 76, 115);
-            
+
             // act
             var actual = source.ToBgra32();
 
             // assert
             Assert.Equal(expected, actual);
         }
-        
+
         [Fact]
         public void ToArgb32_Retval()
         {
             // arrange
             var source = new Rgba64(5140, 9766, 19532, 29555);
             var expected = new Argb32(20, 38, 76, 115);
-            
+
             // act
             var actual = source.ToArgb32();
 
             // assert
             Assert.Equal(expected, actual);
         }
-        
+
         [Fact]
         public void ToRgb24_Retval()
         {
             // arrange
             var source = new Rgba64(5140, 9766, 19532, 29555);
             var expected = new Rgb24(20, 38, 76);
-            
+
             // act
             var actual = source.ToRgb24();
 
             // assert
             Assert.Equal(expected, actual);
         }
-        
+
         [Fact]
         public void ToBgr24_Retval()
         {
             // arrange
             var source = new Rgba64(5140, 9766, 19532, 29555);
             var expected = new Bgr24(20, 38, 76);
-            
+
             // act
             var actual = source.ToBgr24();
 

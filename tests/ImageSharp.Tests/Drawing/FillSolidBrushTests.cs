@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                Color color = Color.HotPink;
+                var color = Color.HotPink;
                 image.Mutate(c => c.Fill(color));
 
                 image.DebugSave(provider, appendPixelTypeToFileName: false);
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                Color color = Color.HotPink;
+                var color = Color.HotPink;
                 image.Mutate(c => c.Fill(color));
 
                 image.DebugSave(provider, appendSourceFileOrDescription: false);
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         }
 
         public static readonly TheoryData<bool, string, float, PixelColorBlendingMode, float> BlendData =
-            new TheoryData<bool, string, float, PixelColorBlendingMode, float>()
+            new TheoryData<bool, string, float, PixelColorBlendingMode, float>
                 {
                     { false, "Blue", 0.5f, PixelColorBlendingMode.Normal, 1.0f },
                     { false, "Blue", 1.0f, PixelColorBlendingMode.Normal, 0.5f },

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 
         private static byte[] CreateTestBytes()
         {
-            byte[] buffer = new byte[DoubleBufferedStreamReader.ChunkLength * 3];
+            var buffer = new byte[DoubleBufferedStreamReader.ChunkLength * 3];
             var random = new Random();
             random.NextBytes(buffer);
 

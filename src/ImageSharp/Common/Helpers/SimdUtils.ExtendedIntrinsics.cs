@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -172,7 +172,7 @@ namespace SixLabors.ImageSharp
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private static Vector<uint> ConvertToUInt32(Vector<float> vf)
             {
-                Vector<float> maxBytes = new Vector<float>(255f);
+                var maxBytes = new Vector<float>(255f);
                 vf *= maxBytes;
                 vf += new Vector<float>(0.5f);
                 vf = Vector.Min(Vector.Max(vf, Vector<float>.Zero), maxBytes);

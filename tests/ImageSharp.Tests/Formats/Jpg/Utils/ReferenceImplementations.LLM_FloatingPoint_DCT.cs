@@ -29,10 +29,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         {
             public static Block8x8F TransformIDCT(ref Block8x8F source)
             {
-                float[] s = new float[64];
+                var s = new float[64];
                 source.CopyTo(s);
-                float[] d = new float[64];
-                float[] temp = new float[64];
+                var d = new float[64];
+                var temp = new float[64];
 
                 iDCT2D_llm(s, d, temp);
                 Block8x8F result = default;
@@ -42,10 +42,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public static Block8x8F TransformFDCT_UpscaleBy8(ref Block8x8F source)
             {
-                float[] s = new float[64];
+                var s = new float[64];
                 source.CopyTo(s);
-                float[] d = new float[64];
-                float[] temp = new float[64];
+                var d = new float[64];
+                var temp = new float[64];
 
                 fDCT2D_llm(s, d, temp);
                 Block8x8F result = default;
@@ -61,10 +61,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public static float[] PrintConstants(ITestOutputHelper output)
             {
-                float[] r = new float[8];
+                var r = new float[8];
                 for (int i = 0; i < 8; i++)
                 {
-                    r[i] = (float)(Cos((double)i / 16.0 * M_PI) * M_SQRT2);
+                    r[i] = (float)(Cos(i / 16.0 * M_PI) * M_SQRT2);
                     output?.WriteLine($"float r{i} = {r[i]:R}f;");
                 }
                 return r;
@@ -267,13 +267,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public static void fDCT8x8_llm_sse(Span<float> s, Span<float> d, Span<float> temp)
             {
-                ReferenceImplementations.Transpose8x8(s, temp);
+                Transpose8x8(s, temp);
 
                 fDCT2D8x4_32f(temp, d);
 
                 fDCT2D8x4_32f(temp.Slice(4), d.Slice(4));
 
-                ReferenceImplementations.Transpose8x8(d, temp);
+                Transpose8x8(d, temp);
 
                 fDCT2D8x4_32f(temp, d);
 
@@ -466,7 +466,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             {
                 float t0, t1, t2, t3, t4, t5, t6, t7;
                 float c0, c1, c2, c3;
-                float[] r = new float[8];
+                var r = new float[8];
 
                 //for(i = 0;i < 8;i++){ r[i] = (float)(cos((double)i / 16.0 * M_PI) * M_SQRT2); }
                 r[0] = 1.414214f;
@@ -535,14 +535,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                     fDCT1Dllm_32f(sWorker.Slice(j * 8), temp.Slice(j * 8));
                 }
 
-                ReferenceImplementations.Transpose8x8(temp, d);
+                Transpose8x8(temp, d);
 
                 for (int j = 0; j < 8; j++)
                 {
                     fDCT1Dllm_32f(d.Slice(j * 8), temp.Slice(j * 8));
                 }
 
-                ReferenceImplementations.Transpose8x8(temp, d);
+                Transpose8x8(temp, d);
 
                 if (downscaleBy8)
                 {

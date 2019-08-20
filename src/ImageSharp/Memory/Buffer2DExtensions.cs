@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Memory
 
             fixed (byte* ptr = span)
             {
-                byte* basePtr = (byte*)ptr;
+                byte* basePtr = ptr;
                 for (int y = 0; y < buffer.Height; y++)
                 {
                     byte* sPtr = basePtr + sOffset;

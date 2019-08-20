@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public static Block8x8 Subtract128_TransformFDCT_Upscale8(ref Block8x8 block)
             {
-                int[] temp = new int[Block8x8.Size];
+                var temp = new int[Block8x8.Size];
                 block.CopyTo(temp);
                 Subtract128_TransformFDCT_Upscale8_Inplace(temp);
                 var result = default(Block8x8);
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             // [Obsolete("Looks like this method produces really bad results for bigger values!")]
             public static Block8x8 TransformIDCT(ref Block8x8 block)
             {
-                int[] temp = new int[Block8x8.Size];
+                var temp = new int[Block8x8.Size];
                 block.CopyTo(temp);
                 TransformIDCTInplace(temp);
                 var result = default(Block8x8);

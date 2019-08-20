@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         public void CalculateHash_WithByteArray_DoesNotModifyData()
         {
             byte[] data = IccTestDataProfiles.Profile_Random_Array;
-            byte[] copy = new byte[data.Length];
+            var copy = new byte[data.Length];
             Buffer.BlockCopy(data, 0, copy, 0, data.Length);
 
             IccProfile.CalculateHash(data);

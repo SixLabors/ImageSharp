@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Tests.IO
         {
             using (MemoryStream stream = this.CreateTestStream())
             {
-                byte[] buffer = new byte[2];
+                var buffer = new byte[2];
                 byte[] expected = stream.ToArray();
                 var reader = new DoubleBufferedStreamReader(this.allocator, stream);
 
@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Tests.IO
         {
             using (MemoryStream stream = this.CreateTestStream())
             {
-                byte[] buffer = new byte[2];
+                var buffer = new byte[2];
                 byte[] expected = stream.ToArray();
                 var reader = new DoubleBufferedStreamReader(this.allocator, stream);
 
@@ -167,7 +167,7 @@ namespace SixLabors.ImageSharp.Tests.IO
 
         private MemoryStream CreateTestStream()
         {
-            byte[] buffer = new byte[DoubleBufferedStreamReader.ChunkLength * 3];
+            var buffer = new byte[DoubleBufferedStreamReader.ChunkLength * 3];
             var random = new Random();
             random.NextBytes(buffer);
 

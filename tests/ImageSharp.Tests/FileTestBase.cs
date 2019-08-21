@@ -22,7 +22,9 @@ namespace SixLabors.ImageSharp.Tests
                 TestImages.Bmp.Car,
                 TestImages.Jpeg.Baseline.Calliphora,
                 TestImages.Png.Splash,
-                TestImages.Gif.Trans
+                TestImages.Gif.Trans,
+                TestImages.Tga.Bit24PalRleTopRight,
+                TestImages.Tiff.RgbLzw,
             };
 
         /// <summary>
@@ -64,6 +66,10 @@ namespace SixLabors.ImageSharp.Tests
             public const string Png = "png";
 
             public const string Gif = "gif";
+
+            public const string Tga = "tga";
+
+            public const string Tiff = "tiff";
         }
 
         /// <summary>
@@ -109,6 +115,8 @@ namespace SixLabors.ImageSharp.Tests
             // TestFile.Create(TestImages.Gif.Trans), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Gif.Cheers), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Gif.Giphy) // Perf: Enable for local testing only
+            TestFile.Create(TestImages.Tga.Bit24PalRleTopRight),
+            TestFile.Create(TestImages.Tiff.RgbLzw),
         };
 #pragma warning restore SA1515 // Single-line comment should be preceded by blank line
     }

@@ -107,6 +107,8 @@
 *.tga               binary
 *.ttc               binary
 *.ttf               binary
+*.tif               binary
+*.tiff              binary
 *.webp              binary
 *.woff              binary
 *.woff2             binary

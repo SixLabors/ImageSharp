@@ -181,6 +181,7 @@ namespace SixLabors.ImageSharp
         /// <see cref="GifConfigurationModule"/>
         /// <see cref="BmpConfigurationModule"/>.
         /// <see cref="TgaConfigurationModule"/>.
+        /// <see cref="TiffConfigurationModule"/>
         /// </summary>
         /// <returns>The default configuration of <see cref="Configuration"/>.</returns>
         internal static Configuration CreateDefaultInstance()
@@ -190,7 +191,8 @@ namespace SixLabors.ImageSharp
                 new JpegConfigurationModule(),
                 new GifConfigurationModule(),
                 new BmpConfigurationModule(),
-                new TgaConfigurationModule());
+                new TgaConfigurationModule(),
+                new TiffConfigurationModule());
         }
     }
 }

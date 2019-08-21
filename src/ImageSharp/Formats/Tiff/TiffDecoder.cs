@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             Guard.NotNull(stream, "stream");
 
-            using (TiffDecoderCore decoder = new TiffDecoderCore(configuration, this))
+            using (var decoder = new TiffDecoderCore(configuration, this))
             {
                 return decoder.Decode<TPixel>(stream);
             }
@@ -37,11 +37,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         }
 
         /// <inheritdoc/>
-        public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken) where TPixel : unmanaged, IPixel<TPixel>
+        public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             throw new System.NotImplementedException();
         }
 
+        /// <inheritdoc/>
         public Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
         {
             throw new System.NotImplementedException();

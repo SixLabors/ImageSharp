@@ -41,11 +41,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         private bool Grayscale { get; }
 
         /// <inheritdoc/>
-        protected override void BeforeFrameApply(ImageFrame<TPixel> source)
+        protected override void BeforeImageApply()
         {
             if (this.Grayscale)
             {
-                new GrayscaleBt709Processor(1F).CreatePixelSpecificProcessor(this.Source, this.SourceRectangle).Apply();
+                new GrayscaleBt709Processor(1F).Apply(this.Source, this.SourceRectangle);
             }
         }
 
@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 {
                     using (ImageFrame<TPixel> pass = cleanCopy.Clone())
                     {
-                        new ConvolutionProcessor<TPixel>(kernels[i], true, this.Source, this.SourceRectangle).Apply(source);
+                        new ConvolutionProcessor<TPixel>(kernels[i], true, this.Source, this.SourceRectangle).Apply(pass);
 
                         Buffer2D<TPixel> passPixels = pass.PixelBuffer;
                         Buffer2D<TPixel> targetPixels = source.PixelBuffer;

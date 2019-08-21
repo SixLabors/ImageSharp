@@ -53,7 +53,8 @@ namespace SixLabors.ImageSharp.Tests
         {
             var cfg = new Configuration(
                 new JpegConfigurationModule(),
-                new GifConfigurationModule()
+                new GifConfigurationModule(),
+                new TiffConfigurationModule()
             );
 
             // Magick codecs should work on all platforms

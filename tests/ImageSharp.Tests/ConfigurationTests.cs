@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ConfigurationCannotAddDuplicates()
         {
-            const int count = 4;
+            const int count = 5;
             Configuration config = Configuration.Default;
 
             Assert.Equal(count, config.ImageFormats.Count());
@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             Configuration config = Configuration.Default;
 
-            Assert.Equal(4, config.ImageFormats.Count());
+            Assert.Equal(5, config.ImageFormats.Count());
         }
     }
 }

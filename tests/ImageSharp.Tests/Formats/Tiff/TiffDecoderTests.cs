@@ -8,6 +8,7 @@ using System.IO;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using Xunit;
 
@@ -16,6 +17,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
     [Trait("Category", "Tiff_BlackBox")]
     public class TiffDecoderTests
     {
+        public static readonly string[] CommonTestImages = TestImages.Tiff.All;
+
+        [Theory]
+        [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32)]
+        public void Decode<TPixel>(TestImageProvider<TPixel> provider)
+          where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new TiffDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ImageComparer.Exact);
+            }
+        }
+
         [Fact]
         public void DecodeManual()
         {

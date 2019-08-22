@@ -30,7 +30,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             }
         }
 
+#if DEBUG
         [Fact]
+#endif
         public void DecodeManual()
         {
             string path = @"C:\Work\GitHub\SixLabors.ImageSharp\tests\Images\Input\Tiff\";

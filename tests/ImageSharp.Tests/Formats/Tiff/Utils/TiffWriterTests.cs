@@ -8,6 +8,7 @@ namespace SixLabors.ImageSharp.Tests
 
     using ImageSharp.Formats.Tiff;
 
+    [Trait("Category", "Tiff")]
     public class TiffWriterTests
     {
         [Fact]

@@ -10,6 +10,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    [Trait("Category", "Tiff")]
     public class TiffDecoderIfdEntryTests
     {
         [Theory]

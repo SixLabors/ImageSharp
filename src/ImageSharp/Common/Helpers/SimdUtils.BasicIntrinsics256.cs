@@ -1,8 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -139,8 +138,8 @@ namespace SixLabors.ImageSharp
                 ref Octet.OfByte destBase = ref Unsafe.As<byte, Octet.OfByte>(ref MemoryMarshal.GetReference(dest));
                 int n = source.Length / 8;
 
-                Vector<float> magick = new Vector<float>(32768.0f);
-                Vector<float> scale = new Vector<float>(255f) / new Vector<float>(256f);
+                var magick = new Vector<float>(32768.0f);
+                var scale = new Vector<float>(255f) / new Vector<float>(256f);
 
                 // need to copy to a temporary struct, because
                 // SimdUtils.Octet.OfUInt32 temp = Unsafe.As<Vector<float>, SimdUtils.Octet.OfUInt32>(ref x)
@@ -188,8 +187,8 @@ namespace SixLabors.ImageSharp
                 ref Octet.OfByte destBase = ref Unsafe.As<byte, Octet.OfByte>(ref MemoryMarshal.GetReference(dest));
                 int n = source.Length / 8;
 
-                Vector<float> magick = new Vector<float>(32768.0f);
-                Vector<float> scale = new Vector<float>(255f) / new Vector<float>(256f);
+                var magick = new Vector<float>(32768.0f);
+                var scale = new Vector<float>(255f) / new Vector<float>(256f);
 
                 // need to copy to a temporary struct, because
                 // SimdUtils.Octet.OfUInt32 temp = Unsafe.As<Vector<float>, SimdUtils.Octet.OfUInt32>(ref x)

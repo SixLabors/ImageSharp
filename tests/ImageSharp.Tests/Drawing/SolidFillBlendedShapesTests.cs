@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 using System;
 using System.Collections.Generic;
-using System.Linq;
+
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -43,11 +43,11 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 int scaleY = img.Height / 100;
                 img.Mutate(
                     x => x.Fill(
-                            NamedColors<TPixel>.DarkBlue,
+                            Color.DarkBlue,
                             new Rectangle(0 * scaleX, 40 * scaleY, 100 * scaleX, 20 * scaleY)
                             )
                         .Fill(new GraphicsOptions(true) { ColorBlendingMode = blending, AlphaCompositionMode=composition },
-                            NamedColors<TPixel>.HotPink,
+                            Color.HotPink,
                             new Rectangle(20 * scaleX, 0 * scaleY, 30 * scaleX, 100 * scaleY))
                     );
 
@@ -69,17 +69,17 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 int scaleY = img.Height / 100;
                 img.Mutate(
                     x => x.Fill(
-                        NamedColors<TPixel>.DarkBlue,
+                        Color.DarkBlue,
                         new Rectangle(0 * scaleX, 40 * scaleY, 100 * scaleX, 20 * scaleY)));
                 img.Mutate(
                     x => x.Fill(
                         new GraphicsOptions(true) { ColorBlendingMode = blending, AlphaCompositionMode = composition },
-                        NamedColors<TPixel>.HotPink,
+                        Color.HotPink,
                         new Rectangle(20 * scaleX, 0 * scaleY, 30 * scaleX, 100 * scaleY)));
                 img.Mutate(
                     x => x.Fill(
                         new GraphicsOptions(true) { ColorBlendingMode = blending, AlphaCompositionMode = composition },
-                        NamedColors<TPixel>.Transparent,
+                        Color.Transparent,
                         new Shapes.EllipsePolygon(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY))
                     );
 
@@ -101,22 +101,20 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 int scaleY = (img.Height / 100);
                 img.Mutate(
                     x => x.Fill(
-                        NamedColors<TPixel>.DarkBlue,
+                        Color.DarkBlue,
                         new Rectangle(0 * scaleX, 40, 100 * scaleX, 20 * scaleY)));
                 img.Mutate(
                     x => x.Fill(
                         new GraphicsOptions(true) { ColorBlendingMode = blending, AlphaCompositionMode = composition },
-                        NamedColors<TPixel>.HotPink,
+                        Color.HotPink,
                         new Rectangle(20 * scaleX, 0, 30 * scaleX, 100 * scaleY)));
-                var c = NamedColors<TPixel>.Red.ToVector4();
-                c.W *= 0.5f;
-                var pixel = default(TPixel);
-                pixel.FromVector4(c);
+
+                var transparentRed = Color.Red.WithAlpha(0.5f);
 
                 img.Mutate(
                     x => x.Fill(
                         new GraphicsOptions(true) { ColorBlendingMode = blending, AlphaCompositionMode = composition },
-                        pixel,
+                        transparentRed,
                         new Shapes.EllipsePolygon(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY))
                     );
 
@@ -139,12 +137,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
                 dstImg.Mutate(
                     x => x.Fill(
-                        NamedColors<TPixel>.DarkBlue,
+                        Color.DarkBlue,
                         new Rectangle(0 * scaleX, 40 * scaleY, 100 * scaleX, 20 * scaleY)));
 
                 srcImg.Mutate(
                     x => x.Fill(
-                        NamedColors<TPixel>.Black,
+                        Color.Black,
                         new Shapes.EllipsePolygon(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY)));
 
                 dstImg.Mutate(

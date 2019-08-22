@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -36,13 +36,19 @@ namespace SixLabors.ImageSharp.Tests
         public Configuration Configuration { get; set; } = Configuration.CreateDefaultInstance();
 
         /// <summary>
-        /// Utility instance to provide informations about the test image & manage input/output
+        /// Utility instance to provide information about the test image & manage input/output
         /// </summary>
         public ImagingTestCaseUtility Utility { get; private set; }
 
         public string TypeName { get; private set; }
         public string MethodName { get; private set; }
         public string OutputSubfolderName { get; private set; }
+
+        public static TestImageProvider<TPixel> BasicTestPattern(int width,
+                                                                 int height,
+                                                                 MethodInfo testMethod = null,
+                                                                 PixelTypes pixelTypeOverride = PixelTypes.Undefined)
+            => new BasicTestPatternProvider(width, height).Init(testMethod, pixelTypeOverride);
 
         public static TestImageProvider<TPixel> TestPattern(
                 int width,
@@ -98,9 +104,9 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Returns an <see cref="Image{TPixel}"/> instance to the test case with the necessary traits.
         /// </summary>
-        public Image<TPixel> GetImage(Action<IImageProcessingContext<TPixel>> operationsToApply)
+        public Image<TPixel> GetImage(Action<IImageProcessingContext> operationsToApply)
         {
-            Image<TPixel> img = GetImage();
+            Image<TPixel> img = this.GetImage();
             img.Mutate(operationsToApply);
             return img;
         }
@@ -126,7 +132,7 @@ namespace SixLabors.ImageSharp.Tests
         protected TestImageProvider<TPixel> Init(
             string typeName,
             string methodName,
-            string outputSubfolerName,
+            string outputSubfolderName,
             PixelTypes pixelTypeOverride)
         {
             if (pixelTypeOverride != PixelTypes.Undefined)
@@ -135,7 +141,7 @@ namespace SixLabors.ImageSharp.Tests
             }
             this.TypeName = typeName;
             this.MethodName = methodName;
-            this.OutputSubfolderName = outputSubfolerName;
+            this.OutputSubfolderName = outputSubfolderName;
 
             this.Utility = new ImagingTestCaseUtility
             {
@@ -145,7 +151,7 @@ namespace SixLabors.ImageSharp.Tests
 
             if (methodName != null)
             {
-                this.Utility.Init(typeName, methodName, outputSubfolerName);
+                this.Utility.Init(typeName, methodName, outputSubfolderName);
             }
 
             return this;
@@ -160,7 +166,6 @@ namespace SixLabors.ImageSharp.Tests
 
         public override string ToString()
         {
-            string provName = this.GetType().Name.Replace("Provider", "");
             return $"{this.SourceFileOrDescription}[{this.PixelType}]";
         }
     }

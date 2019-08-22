@@ -19,21 +19,20 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         private static readonly CieLchToCieLabConverter CieLchToCieLabConverter = new CieLchToCieLabConverter();
 
         /// <summary>
-        /// Converts a <see cref="CieLch"/> into a <see cref="CieLab"/>
+        /// Converts a <see cref="CieLch"/> into a <see cref="CieLab"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
         public CieLab ToCieLab(in CieLch color)
         {
-            // Conversion (perserving white point)
+            // Conversion (preserving white point)
             CieLab unadapted = CieLchToCieLabConverter.Convert(color);
 
-            // Adaptation
             return this.Adapt(unadapted);
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="CieLch"/> into <see cref="CieLab"/>
+        /// Performs the bulk conversion from <see cref="CieLch"/> into <see cref="CieLab"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
@@ -54,7 +53,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="CieLchuv"/> into a <see cref="CieLab"/>
+        /// Converts a <see cref="CieLchuv"/> into a <see cref="CieLab"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
@@ -66,7 +65,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="CieLchuv"/> into <see cref="CieLab"/>
+        /// Performs the bulk conversion from <see cref="CieLchuv"/> into <see cref="CieLab"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
@@ -87,7 +86,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="CieLuv"/> into a <see cref="CieLab"/>
+        /// Converts a <see cref="CieLuv"/> into a <see cref="CieLab"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
@@ -99,7 +98,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="CieLuv"/> into <see cref="CieLab"/>
+        /// Performs the bulk conversion from <see cref="CieLuv"/> into <see cref="CieLab"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
@@ -120,7 +119,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="CieXyy"/> into a <see cref="CieLab"/>
+        /// Converts a <see cref="CieXyy"/> into a <see cref="CieLab"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
@@ -132,7 +131,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="CieXyy"/> into <see cref="CieLab"/>
+        /// Performs the bulk conversion from <see cref="CieXyy"/> into <see cref="CieLab"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
@@ -159,10 +158,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLab"/></returns>
         public CieLab ToCieLab(in CieXyz color)
         {
-            // Adaptation
             CieXyz adapted = this.Adapt(color, this.whitePoint, this.targetLabWhitePoint);
 
-            // Conversion
             return this.cieXyzToCieLabConverter.Convert(adapted);
         }
 
@@ -199,7 +196,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="Cmyk"/> into <see cref="CieLab"/>
+        /// Performs the bulk conversion from <see cref="Cmyk"/> into <see cref="CieLab"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
@@ -220,7 +217,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="Hsl"/> into a <see cref="CieLab"/>
+        /// Converts a <see cref="Hsl"/> into a <see cref="CieLab"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
@@ -232,7 +229,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="Hsl"/> into <see cref="CieLab"/>
+        /// Performs the bulk conversion from <see cref="Hsl"/> into <see cref="CieLab"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
@@ -253,7 +250,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="Hsv"/> into a <see cref="CieLab"/>
+        /// Converts a <see cref="Hsv"/> into a <see cref="CieLab"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
@@ -264,7 +261,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="Hsv"/> into <see cref="CieLab"/>
+        /// Performs the bulk conversion from <see cref="Hsv"/> into <see cref="CieLab"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
@@ -285,7 +282,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="HunterLab"/> into a <see cref="CieLab"/>
+        /// Converts a <see cref="HunterLab"/> into a <see cref="CieLab"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
@@ -297,7 +294,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="HunterLab"/> into <see cref="CieLab"/>
+        /// Performs the bulk conversion from <see cref="HunterLab"/> into <see cref="CieLab"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
@@ -318,7 +315,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="Lms"/> into a <see cref="CieLab"/>
+        /// Converts a <see cref="Lms"/> into a <see cref="CieLab"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
@@ -330,7 +327,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="Lms"/> into <see cref="CieLab"/>
+        /// Performs the bulk conversion from <see cref="Lms"/> into <see cref="CieLab"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
@@ -351,7 +348,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="LinearRgb"/> into a <see cref="CieLab"/>
+        /// Converts a <see cref="LinearRgb"/> into a <see cref="CieLab"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
@@ -363,7 +360,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="LinearRgb"/> into <see cref="CieLab"/>
+        /// Performs the bulk conversion from <see cref="LinearRgb"/> into <see cref="CieLab"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
@@ -384,7 +381,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Converts a <see cref="Rgb"/> into a <see cref="CieLab"/>
+        /// Converts a <see cref="Rgb"/> into a <see cref="CieLab"/>.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
@@ -396,7 +393,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="LinearRgb"/> into <see cref="CieLab"/>
+        /// Performs the bulk conversion from <see cref="LinearRgb"/> into <see cref="CieLab"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
@@ -429,7 +426,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="YCbCr"/> into <see cref="CieLab"/>
+        /// Performs the bulk conversion from <see cref="YCbCr"/> into <see cref="CieLab"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>

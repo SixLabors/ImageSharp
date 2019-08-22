@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
     public class Rgb24Tests
     {
         public static readonly TheoryData<byte, byte, byte> ColorData =
-            new TheoryData<byte, byte, byte>()
+            new TheoryData<byte, byte, byte>
             {
                 { 1, 2, 3 },
                 { 4, 5, 6 },
@@ -103,11 +103,31 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [Fact]
         public void ToRgba32()
         {
+            // arrange
             var rgb = new Rgb24(1, 2, 3);
             Rgba32 rgba = default;
+            var expected = new Rgba32(1, 2, 3, 255);
+
+            // act
             rgb.ToRgba32(ref rgba);
 
-            Assert.Equal(new Rgba32(1, 2, 3, 255), rgba);
+            // assert
+            Assert.Equal(expected, rgba);
+        }
+
+        [Fact]
+        public void Rgb24_FromBgra5551()
+        {
+            // arrange
+            var rgb = new Rgb24(255, 255, 255);
+
+            // act
+            rgb.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // assert
+            Assert.Equal(255, rgb.R);
+            Assert.Equal(255, rgb.G);
+            Assert.Equal(255, rgb.B);
         }
     }
 }

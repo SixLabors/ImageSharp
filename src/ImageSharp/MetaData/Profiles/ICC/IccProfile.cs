@@ -1,10 +1,10 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Security.Cryptography;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// Represents an ICC profile
@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             const int profileIdPos = 84;
 
             // need to copy some values because they need to be zero for the hashing
-            byte[] temp = new byte[24];
+            var temp = new byte[24];
             Buffer.BlockCopy(data, profileFlagPos, temp, 0, 4);
             Buffer.BlockCopy(data, renderingIntentPos, temp, 4, 4);
             Buffer.BlockCopy(data, profileIdPos, temp, 8, 16);
@@ -171,7 +171,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             if (this.data != null)
             {
-                byte[] copy = new byte[this.data.Length];
+                var copy = new byte[this.data.Length];
                 Buffer.BlockCopy(this.data, 0, copy, 0, copy.Length);
                 return copy;
             }

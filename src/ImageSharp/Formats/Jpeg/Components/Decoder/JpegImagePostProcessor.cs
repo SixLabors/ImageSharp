@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     /// (4) Packing <see cref="Image{TPixel}"/> pixels from the <see cref="Vector4"/> buffer. <br/>
     /// These operations are executed in <see cref="NumberOfPostProcessorSteps"/> steps.
     /// <see cref="PixelRowsPerStep"/> image rows are converted in one step,
-    /// which means that size of the allocated memory is limited (does not depend on <see cref="ImageFrame{TPixel}.Height"/>).
+    /// which means that size of the allocated memory is limited (does not depend on <see cref="ImageFrame.Height"/>).
     /// </summary>
     internal class JpegImagePostProcessor : IDisposable
     {
@@ -173,7 +173,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 Span<TPixel> destRow = destination.GetPixelRowSpan(yy);
 
                 // TODO: Investigate if slicing is actually necessary
-                PixelOperations<TPixel>.Instance.FromVector4(this.configuration, this.rgbaBuffer.GetSpan().Slice(0, destRow.Length), destRow);
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, this.rgbaBuffer.GetSpan().Slice(0, destRow.Length), destRow);
             }
         }
     }

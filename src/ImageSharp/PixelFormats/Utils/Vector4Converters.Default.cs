@@ -15,13 +15,75 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
     {
         /// <summary>
         /// Provides default implementations for batched to/from <see cref="Vector4"/> conversion.
-        /// WARNING: The methods are operating without bounds checking and input validation!
+        /// WARNING: The methods prefixed with "Unsafe" are operating without bounds checking and input validation!
         /// Input validation is the responsibility of the caller!
         /// </summary>
         public static class Default
         {
             [MethodImpl(InliningOptions.ShortMethod)]
-            internal static void DangerousFromVector4<TPixel>(
+            public static void FromVector4<TPixel>(
+                Span<Vector4> sourceVectors,
+                Span<TPixel> destPixels,
+                PixelConversionModifiers modifiers)
+                where TPixel : struct, IPixel<TPixel>
+            {
+                Guard.DestinationShouldNotBeTooShort(sourceVectors, destPixels, nameof(destPixels));
+
+                UnsafeFromVector4(sourceVectors, destPixels, modifiers);
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static void ToVector4<TPixel>(
+                ReadOnlySpan<TPixel> sourcePixels,
+                Span<Vector4> destVectors,
+                PixelConversionModifiers modifiers)
+                where TPixel : struct, IPixel<TPixel>
+            {
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
+
+                UnsafeToVector4(sourcePixels, destVectors, modifiers);
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static void UnsafeFromVector4<TPixel>(
+                Span<Vector4> sourceVectors,
+                Span<TPixel> destPixels,
+                PixelConversionModifiers modifiers)
+                where TPixel : struct, IPixel<TPixel>
+            {
+                ApplyBackwardConversionModifiers(sourceVectors, modifiers);
+
+                if (modifiers.IsDefined(PixelConversionModifiers.Scale))
+                {
+                    UnsafeFromScaledVector4Core(sourceVectors, destPixels);
+                }
+                else
+                {
+                    UnsafeFromVector4Core(sourceVectors, destPixels);
+                }
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static void UnsafeToVector4<TPixel>(
+                ReadOnlySpan<TPixel> sourcePixels,
+                Span<Vector4> destVectors,
+                PixelConversionModifiers modifiers)
+                where TPixel : struct, IPixel<TPixel>
+            {
+                if (modifiers.IsDefined(PixelConversionModifiers.Scale))
+                {
+                    UnsafeToScaledVector4Core(sourcePixels, destVectors);
+                }
+                else
+                {
+                    UnsafeToVector4Core(sourcePixels, destVectors);
+                }
+
+                ApplyForwardConversionModifiers(destVectors, modifiers);
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            private static void UnsafeFromVector4Core<TPixel>(
                 ReadOnlySpan<Vector4> sourceVectors,
                 Span<TPixel> destPixels)
                 where TPixel : struct, IPixel<TPixel>
@@ -38,7 +100,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            internal static void DangerousToVector4<TPixel>(
+            private static void UnsafeToVector4Core<TPixel>(
                 ReadOnlySpan<TPixel> sourcePixels,
                 Span<Vector4> destVectors)
                 where TPixel : struct, IPixel<TPixel>
@@ -55,7 +117,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            internal static void DangerousFromScaledVector4<TPixel>(
+            private static void UnsafeFromScaledVector4Core<TPixel>(
                 ReadOnlySpan<Vector4> sourceVectors,
                 Span<TPixel> destinationColors)
                 where TPixel : struct, IPixel<TPixel>
@@ -72,7 +134,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            internal static void DangerousToScaledVector4<TPixel>(
+            private static void UnsafeToScaledVector4Core<TPixel>(
                 ReadOnlySpan<TPixel> sourceColors,
                 Span<Vector4> destinationVectors)
                 where TPixel : struct, IPixel<TPixel>

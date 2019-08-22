@@ -1,12 +1,12 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
+using System.Numerics;
+
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -18,6 +18,8 @@ namespace SixLabors.ImageSharp.Tests
     /// </summary>
     public class TestFormat : IConfigurationModule, IImageFormat
     {
+        private readonly Dictionary<Type, object> sampleImages = new Dictionary<Type, object>();
+
         // We should not change Configuration.Default in individual tests!
         // Create new configuration instances with new Configuration(TestFormat.GlobalTestFormat) instead!
         public static TestFormat GlobalTestFormat { get; } = new TestFormat();
@@ -49,15 +51,26 @@ namespace SixLabors.ImageSharp.Tests
             return ms;
         }
 
-        Dictionary<Type, object> _sampleImages = new Dictionary<Type, object>();
-
-
-        public void VerifyDecodeCall(byte[] marker, Configuration config)
+        public void VerifySpecificDecodeCall<TPixel>(byte[] marker, Configuration config)
+            where TPixel : struct, IPixel<TPixel>
         {
-            DecodeOperation[] discovered = this.DecodeCalls.Where(x => x.IsMatch(marker, config)).ToArray();
+            DecodeOperation[] discovered = this.DecodeCalls.Where(x => x.IsMatch(marker, config, typeof(TPixel))).ToArray();
 
 
-            Assert.True(discovered.Any(), "No calls to decode on this formate with the proveded options happend");
+            Assert.True(discovered.Any(), "No calls to decode on this format with the provided options happened");
+
+            foreach (DecodeOperation d in discovered)
+            {
+                this.DecodeCalls.Remove(d);
+            }
+        }
+
+        public void VerifyAgnosticDecodeCall(byte[] marker, Configuration config)
+        {
+            DecodeOperation[] discovered = this.DecodeCalls.Where(x => x.IsMatch(marker, config, typeof(TestPixelForAgnosticDecode))).ToArray();
+
+
+            Assert.True(discovered.Any(), "No calls to decode on this format with the provided options happened");
 
             foreach (DecodeOperation d in discovered)
             {
@@ -68,16 +81,18 @@ namespace SixLabors.ImageSharp.Tests
         public Image<TPixel> Sample<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            lock (this._sampleImages)
+            lock (this.sampleImages)
             {
-                if (!this._sampleImages.ContainsKey(typeof(TPixel)))
+                if (!this.sampleImages.ContainsKey(typeof(TPixel)))
                 {
-                    this._sampleImages.Add(typeof(TPixel), new Image<TPixel>(1, 1));
+                    this.sampleImages.Add(typeof(TPixel), new Image<TPixel>(1, 1));
                 }
 
-                return (Image<TPixel>)this._sampleImages[typeof(TPixel)];
+                return (Image<TPixel>)this.sampleImages[typeof(TPixel)];
             }
         }
+
+        public Image SampleAgnostic() => this.Sample<TestPixelForAgnosticDecode>();
 
         public string MimeType => "img/test";
 
@@ -123,10 +138,12 @@ namespace SixLabors.ImageSharp.Tests
             public byte[] marker;
             internal Configuration config;
 
-            public bool IsMatch(byte[] testMarker, Configuration config)
+            public Type pixelType;
+
+            public bool IsMatch(byte[] testMarker, Configuration config, Type pixelType)
             {
 
-                if (this.config != config)
+                if (this.config != config || this.pixelType != pixelType)
                 {
                     return false;
                 }
@@ -191,14 +208,17 @@ namespace SixLabors.ImageSharp.Tests
                 this.testFormat.DecodeCalls.Add(new DecodeOperation
                 {
                     marker = marker,
-                    config = config
+                    config = config,
+                    pixelType = typeof(TPixel)
                 });
 
-                // TODO record this happend so we can verify it.
+                // TODO record this happened so we can verify it.
                 return this.testFormat.Sample<TPixel>();
             }
 
             public bool IsSupportedFileFormat(Span<byte> header) => testFormat.IsSupportedFileFormat(header);
+
+            public Image Decode(Configuration configuration, Stream stream) => this.Decode<TestPixelForAgnosticDecode>(configuration, stream);
         }
 
         public class TestEncoder : ImageSharp.Formats.IImageEncoder
@@ -216,8 +236,30 @@ namespace SixLabors.ImageSharp.Tests
 
             public void Encode<TPixel>(Image<TPixel> image, Stream stream) where TPixel : struct, IPixel<TPixel>
             {
-                // TODO record this happend so we can verify it.
+                // TODO record this happened so we can verify it.
             }
+        }
+
+
+        struct TestPixelForAgnosticDecode : IPixel<TestPixelForAgnosticDecode>
+        {
+            public PixelOperations<TestPixelForAgnosticDecode> CreatePixelOperations() => new PixelOperations<TestPixelForAgnosticDecode>();
+            public void FromScaledVector4(Vector4 vector) { }
+            public Vector4 ToScaledVector4() => default;
+            public void FromVector4(Vector4 vector) { }
+            public Vector4 ToVector4() => default;
+            public void FromArgb32(Argb32 source) { }
+            public void FromBgra5551(Bgra5551 source) { }
+            public void FromBgr24(Bgr24 source) { }
+            public void FromBgra32(Bgra32 source) { }
+            public void FromGray8(Gray8 source) { }
+            public void FromGray16(Gray16 source) { }
+            public void FromRgb24(Rgb24 source) { }
+            public void FromRgba32(Rgba32 source) { }
+            public void ToRgba32(ref Rgba32 dest) { }
+            public void FromRgb48(Rgb48 source) { }
+            public void FromRgba64(Rgba64 source) { }
+            public bool Equals(TestPixelForAgnosticDecode other) => false;
         }
     }
 }

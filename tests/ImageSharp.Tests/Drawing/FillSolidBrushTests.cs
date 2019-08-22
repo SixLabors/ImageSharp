@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                TPixel color = NamedColors<TPixel>.HotPink;
+                var color = Color.HotPink;
                 image.Mutate(c => c.Fill(color));
 
                 image.DebugSave(provider, appendPixelTypeToFileName: false);
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                TPixel color = NamedColors<TPixel>.HotPink;
+                var color = Color.HotPink;
                 image.Mutate(c => c.Fill(color));
 
                 image.DebugSave(provider, appendSourceFileOrDescription: false);
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                TPixel color = TestUtils.GetPixelOfNamedColor<TPixel>(newColorName);
+                Color color = TestUtils.GetColorByName(newColorName);
                 image.Mutate(c => c.Fill(color));
 
                 image.DebugSave(
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             FormattableString testDetails = $"(x{x0},y{y0},w{w},h{h})";
             var region = new RectangleF(x0, y0, w, h);
-            TPixel color = TestUtils.GetPixelOfNamedColor<TPixel>("Blue");
+            Color color = TestUtils.GetColorByName("Blue");
 
             provider.RunValidatingProcessorTest(c => c.Fill(color, region), testDetails, ImageComparer.Exact);
         }
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             FormattableString testDetails = $"(x{x0},y{y0},w{w},h{h})";
             var region = new RectangleF(x0, y0, w, h);
-            TPixel color = TestUtils.GetPixelOfNamedColor<TPixel>("Blue");
+            Color color = TestUtils.GetColorByName("Blue");
 
             provider.RunValidatingProcessorTestOnWrappedMemoryImage(
                 c => c.Fill(color, region),
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         }
 
         public static readonly TheoryData<bool, string, float, PixelColorBlendingMode, float> BlendData =
-            new TheoryData<bool, string, float, PixelColorBlendingMode, float>()
+            new TheoryData<bool, string, float, PixelColorBlendingMode, float>
                 {
                     { false, "Blue", 0.5f, PixelColorBlendingMode.Normal, 1.0f },
                     { false, "Blue", 1.0f, PixelColorBlendingMode.Normal, 0.5f },
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
         [Theory]
         [WithSolidFilledImages(nameof(BlendData), 16, 16, "Red", PixelTypes.Rgba32)]
-        public void BlendFillColorOverBackround<TPixel>(
+        public void BlendFillColorOverBackground<TPixel>(
             TestImageProvider<TPixel> provider,
             bool triggerFillRegion,
             string newColorName,
@@ -150,11 +150,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             float blendPercentage)
             where TPixel : struct, IPixel<TPixel>
         {
-            var vec = TestUtils.GetPixelOfNamedColor<RgbaVector>(newColorName).ToVector4();
-            vec.W = alpha;
-
-            TPixel fillColor = default;
-            fillColor.FromVector4(vec);
+            Color fillColor = TestUtils.GetColorByName(newColorName).WithAlpha(alpha);
 
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -169,11 +165,11 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 {
                     var region = new ShapeRegion(new RectangularPolygon(0, 0, 16, 16));
 
-                    image.Mutate(c => c.Fill(options, new SolidBrush<TPixel>(fillColor), region));
+                    image.Mutate(c => c.Fill(options, new SolidBrush(fillColor), region));
                 }
                 else
                 {
-                    image.Mutate(c => c.Fill(options, new SolidBrush<TPixel>(fillColor)));
+                    image.Mutate(c => c.Fill(options, new SolidBrush(fillColor)));
                 }
 
                 var testOutputDetails = new
@@ -194,7 +190,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(
                     blenderMode,
                     PixelAlphaCompositionMode.SrcOver);
-                TPixel expectedPixel = blender.Blend(bgColor, fillColor, blendPercentage);
+                TPixel expectedPixel = blender.Blend(bgColor, fillColor.ToPixel<TPixel>(), blendPercentage);
 
                 image.ComparePixelBufferTo(expectedPixel);
             }

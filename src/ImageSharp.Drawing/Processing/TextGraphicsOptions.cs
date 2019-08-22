@@ -32,12 +32,6 @@ namespace SixLabors.ImageSharp.Processing
 
         private float? dpiY;
 
-        private PixelColorBlendingMode colorBlendingMode;
-
-        private PixelAlphaCompositionMode alphaCompositionMode;
-
-        private float wrapTextWidth;
-
         private HorizontalAlignment? horizontalAlignment;
 
         private VerticalAlignment? verticalAlignment;
@@ -50,13 +44,13 @@ namespace SixLabors.ImageSharp.Processing
         {
             this.applyKerning = true;
             this.tabWidth = 4;
-            this.wrapTextWidth = 0;
+            this.WrapTextWidth = 0;
             this.horizontalAlignment = HorizontalAlignment.Left;
             this.verticalAlignment = VerticalAlignment.Top;
 
             this.antialiasSubpixelDepth = 16;
-            this.colorBlendingMode = PixelColorBlendingMode.Normal;
-            this.alphaCompositionMode = PixelAlphaCompositionMode.SrcOver;
+            this.ColorBlendingMode = PixelColorBlendingMode.Normal;
+            this.AlphaCompositionMode = PixelAlphaCompositionMode.SrcOver;
             this.blendPercentage = 1;
             this.antialias = enableAntialiasing;
             this.dpiX = DefaultTextDpi;
@@ -85,12 +79,12 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets or sets a value indicating the color blending percentage to apply to the drawing operation
         /// </summary>
-        public PixelColorBlendingMode ColorBlendingMode { get => this.colorBlendingMode; set => this.colorBlendingMode = value; }
+        public PixelColorBlendingMode ColorBlendingMode { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating the color blending percentage to apply to the drawing operation
         /// </summary>
-        public PixelAlphaCompositionMode AlphaCompositionMode { get => this.alphaCompositionMode; set => this.alphaCompositionMode = value; }
+        public PixelAlphaCompositionMode AlphaCompositionMode { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the text should be drawing with kerning enabled.
@@ -105,7 +99,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets or sets a value indicating if greater than zero determine the width at which text should wrap.
         /// </summary>
-        public float WrapTextWidth { get => this.wrapTextWidth; set => this.wrapTextWidth = value; }
+        public float WrapTextWidth { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating the DPI to render text along the X axis.
@@ -143,8 +137,8 @@ namespace SixLabors.ImageSharp.Processing
             {
                 AntialiasSubpixelDepth = options.AntialiasSubpixelDepth,
                 blendPercentage = options.BlendPercentage,
-                colorBlendingMode = options.ColorBlendingMode,
-                alphaCompositionMode = options.AlphaCompositionMode
+                ColorBlendingMode = options.ColorBlendingMode,
+                AlphaCompositionMode = options.AlphaCompositionMode
             };
         }
 

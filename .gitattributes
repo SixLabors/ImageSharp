@@ -1,49 +1,108 @@
-*.doc  diff=astextplain
-*.DOC	diff=astextplain
-*.docx	diff=astextplain
-*.DOCX	diff=astextplain
-*.dot	diff=astextplain
-*.DOT	diff=astextplain
-*.pdf	diff=astextplain
-*.PDF	diff=astextplain
-*.rtf	diff=astextplain
-*.RTF	diff=astextplain
+###############################################################################
+# Set default behavior to:
+#   treat as text and
+#   normalize to Unix-style line endings
+###############################################################################
+*           text        eol=lf
 
-*.jpg  	binary
-*.png 	binary
-*.gif 	binary
+###############################################################################
+# Set explicit file behavior to:
+#   treat as text and
+#   normalize to Unix-style line endings
+###############################################################################
+*.asm               text        eol=lf
+*.c                 text        eol=lf
+*.clj               text        eol=lf
+*.cmd               text        eol=lf
+*.cpp               text        eol=lf
+*.css               text        eol=lf
+*.cxx               text        eol=lf
+*.config            text        eol=lf
+*.DotSettings       text        eol=lf
+*.erl               text        eol=lf
+*.fs                text        eol=lf
+*.fsx               text        eol=lf
+*.h                 text        eol=lf
+*.htm               text        eol=lf
+*.html              text        eol=lf
+*.hs                text        eol=lf
+*.hxx               text        eol=lf
+*.java              text        eol=lf
+*.js                text        eol=lf
+*.json              text        eol=lf
+*.less              text        eol=lf
+*.lisp              text        eol=lf
+*.lua               text        eol=lf
+*.m                 text        eol=lf
+*.md                text        eol=lf
+*.php               text        eol=lf
+*.props             text        eol=lf
+*.ps1               text        eol=lf
+*.py                text        eol=lf
+*.rb                text        eol=lf
+*.resx              text        eol=lf
+*.runsettings       text        eol=lf
+*.ruleset           text        eol=lf
+*.sass              text        eol=lf
+*.scss              text        eol=lf
+*.sh                text        eol=lf
+*.sql               text        eol=lf
+*.svg               text        eol=lf
+*.targets           text        eol=lf
+*.tt                text        eol=crlf
+*.ttinclude         text        eol=crlf
+*.txt               text        eol=lf
+*.vb                text        eol=lf
+*.yml               text        eol=lf
 
-*.cs text=auto diff=csharp 
-*.vb text=auto
-*.c text=auto
-*.cpp text=auto
-*.cxx text=auto
-*.h text=auto
-*.hxx text=auto
-*.py text=auto
-*.rb text=auto
-*.java text=auto
-*.html text=auto
-*.htm text=auto
-*.css text=auto
-*.scss text=auto
-*.sass text=auto
-*.less text=auto
-*.js text=auto
-*.lisp text=auto
-*.clj text=auto
-*.sql text=auto
-*.php text=auto
-*.lua text=auto
-*.m text=auto
-*.asm text=auto
-*.erl text=auto
-*.fs text=auto
-*.fsx text=auto
-*.hs text=auto
+###############################################################################
+# Set explicit file behavior to:
+#   treat as text
+#   normalize to Unix-style line endings and
+#   diff as csharp
+###############################################################################
+*.cs                text        eol=lf          diff=csharp
 
-*.csproj text=auto merge=union 
-*.vbproj text=auto merge=union 
-*.fsproj text=auto merge=union 
-*.dbproj text=auto merge=union 
-*.sln text=auto eol=crlf merge=union 
+###############################################################################
+# Set explicit file behavior to:
+#   treat as text
+#   normalize to Unix-style line endings and
+#   use a union merge when resoling conflicts
+###############################################################################
+*.csproj            text        eol=lf          merge=union
+*.dbproj            text        eol=lf          merge=union
+*.fsproj            text        eol=lf          merge=union
+*.ncrunchproject    text        eol=lf          merge=union
+*.vbproj            text        eol=lf          merge=union
+
+###############################################################################
+# Set explicit file behavior to:
+#   treat as text
+#   normalize to Windows-style line endings and
+#   use a union merge when resoling conflicts
+###############################################################################
+*.sln               text        eol=crlf        merge=union
+
+###############################################################################
+# Set explicit file behavior to:
+#   treat as binary
+###############################################################################
+*.bmp               binary
+*.dll               binary
+*.exe               binary
+*.gif               binary
+*.jpg               binary
+*.png               binary
+*.ttf               binary
+*.snk               binary
+
+###############################################################################
+# Set explicit file behavior to:
+#   diff as plain text
+###############################################################################
+*.doc               diff=astextplain
+*.docx              diff=astextplain
+*.dot               diff=astextplain
+*.pdf               diff=astextplain
+*.pptx              diff=astextplain
+*.rtf               diff=astextplain

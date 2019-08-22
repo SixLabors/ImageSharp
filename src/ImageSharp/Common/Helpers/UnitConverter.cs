@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.MetaData;
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace SixLabors.ImageSharp.Common.Helpers
 {

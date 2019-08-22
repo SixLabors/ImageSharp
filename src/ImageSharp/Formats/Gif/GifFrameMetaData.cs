@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Formats.Gif
@@ -6,20 +6,20 @@ namespace SixLabors.ImageSharp.Formats.Gif
     /// <summary>
     /// Provides Gif specific metadata information for the image frame.
     /// </summary>
-    public class GifFrameMetaData : IDeepCloneable
+    public class GifFrameMetadata : IDeepCloneable
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="GifFrameMetaData"/> class.
+        /// Initializes a new instance of the <see cref="GifFrameMetadata"/> class.
         /// </summary>
-        public GifFrameMetaData()
+        public GifFrameMetadata()
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GifFrameMetaData"/> class.
+        /// Initializes a new instance of the <see cref="GifFrameMetadata"/> class.
         /// </summary>
         /// <param name="other">The metadata to create an instance from.</param>
-        private GifFrameMetaData(GifFrameMetaData other)
+        private GifFrameMetadata(GifFrameMetadata other)
         {
             this.ColorTableLength = other.ColorTableLength;
             this.FrameDelay = other.FrameDelay;
@@ -49,6 +49,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public GifDisposalMethod DisposalMethod { get; set; }
 
         /// <inheritdoc/>
-        public IDeepCloneable DeepClone() => new GifFrameMetaData(this);
+        public IDeepCloneable DeepClone() => new GifFrameMetadata(this);
     }
 }

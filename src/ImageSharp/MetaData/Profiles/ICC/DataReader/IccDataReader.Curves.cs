@@ -1,9 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// Provides methods to read ICC data types
@@ -18,13 +18,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             ushort segmentCount = this.ReadUInt16();
             this.AddIndex(2);   // 2 bytes reserved
-            float[] breakPoints = new float[segmentCount - 1];
+            var breakPoints = new float[segmentCount - 1];
             for (int i = 0; i < breakPoints.Length; i++)
             {
                 breakPoints[i] = this.ReadSingle();
             }
 
-            IccCurveSegment[] segments = new IccCurveSegment[segmentCount];
+            var segments = new IccCurveSegment[segmentCount];
             for (int i = 0; i < segmentCount; i++)
             {
                 segments[i] = this.ReadCurveSegment();
@@ -41,19 +41,19 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccResponseCurve ReadResponseCurve(int channelCount)
         {
             var type = (IccCurveMeasurementEncodings)this.ReadUInt32();
-            uint[] measurement = new uint[channelCount];
+            var measurement = new uint[channelCount];
             for (int i = 0; i < channelCount; i++)
             {
                 measurement[i] = this.ReadUInt32();
             }
 
-            Vector3[] xyzValues = new Vector3[channelCount];
+            var xyzValues = new Vector3[channelCount];
             for (int i = 0; i < channelCount; i++)
             {
                 xyzValues[i] = this.ReadXyzNumber();
             }
 
-            IccResponseNumber[][] response = new IccResponseNumber[channelCount][];
+            var response = new IccResponseNumber[channelCount][];
             for (int i = 0; i < channelCount; i++)
             {
                 response[i] = new IccResponseNumber[measurement[i]];
@@ -175,7 +175,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccSampledCurveElement ReadSampledCurveElement()
         {
             uint count = this.ReadUInt32();
-            float[] entries = new float[count];
+            var entries = new float[count];
             for (int i = 0; i < count; i++)
             {
                 entries[i] = this.ReadSingle();

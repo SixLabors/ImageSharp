@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -39,13 +39,13 @@ namespace SixLabors.ImageSharp.Tests
         /// Test that the default configuration is not null.
         /// </summary>
         [Fact]
-        public void TestDefaultConfigurationIsNotNull() => Assert.True(Configuration.Default != null);
+        public void TestDefaultConfigurationIsNotNull() => Assert.True(this.DefaultConfiguration != null);
 
         /// <summary>
         /// Test that the default configuration read origin options is set to begin.
         /// </summary>
         [Fact]
-        public void TestDefaultConfigurationReadOriginIsCurrent() => Assert.True(Configuration.Default.ReadOrigin == ReadOrigin.Current);
+        public void TestDefaultConfigurationReadOriginIsCurrent() => Assert.True(this.DefaultConfiguration.ReadOrigin == ReadOrigin.Current);
 
         /// <summary>
         /// Test that the default configuration parallel options max degrees of parallelism matches the
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void TestDefaultConfigurationMaxDegreeOfParallelism()
         {
-            Assert.True(Configuration.Default.MaxDegreeOfParallelism == Environment.ProcessorCount);
+            Assert.True(this.DefaultConfiguration.MaxDegreeOfParallelism == Environment.ProcessorCount);
 
             var cfg = new Configuration();
             Assert.True(cfg.MaxDegreeOfParallelism == Environment.ProcessorCount);
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Tests
         public void ConfigurationCannotAddDuplicates()
         {
             const int count = 5;
-            Configuration config = Configuration.Default;
+            Configuration config = this.DefaultConfiguration;
 
             Assert.Equal(count, config.ImageFormats.Count());
 
@@ -105,9 +105,16 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void DefaultConfigurationHasCorrectFormatCount()
         {
-            Configuration config = Configuration.Default;
+            Configuration config = Configuration.CreateDefaultInstance();
 
             Assert.Equal(5, config.ImageFormats.Count());
+        }
+
+        [Fact]
+        public void WorkingBufferSizeHint_DefaultIsCorrect()
+        {
+            Configuration config = this.DefaultConfiguration;
+            Assert.True(config.WorkingBufferSizeHintInBytes  > 1024);
         }
     }
 }

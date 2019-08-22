@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <summary>
-    /// Packed packed pixel type containing two 8-bit signed normalized values, ranging from −1 to 1.
+    /// Packed pixel type containing two 8-bit signed normalized values, ranging from −1 to 1.
     /// <para>
     /// Ranges from [-1, -1, 0, 1] to [1, 1, 0, 1] in vector form.
     /// </para>
@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromScaledVector4(Vector4 vector)
         {
-            Vector2 scaled = new Vector2(vector.X, vector.Y) * 2F;
+            var scaled = new Vector2(vector.X, vector.Y) * 2F;
             scaled -= Vector2.One;
             this.PackedValue = Pack(scaled);
         }
@@ -107,10 +107,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToRgba32(ref Rgba32 dest)
-        {
-            dest.FromScaledVector4(this.ToScaledVector4());
-        }
+        public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void ToRgba32(ref Rgba32 dest) => dest.FromScaledVector4(this.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

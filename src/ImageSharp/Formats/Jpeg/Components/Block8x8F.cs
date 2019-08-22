@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     /// <summary>
     /// Represents a Jpeg block with <see cref="float"/> coefficients.
     /// </summary>
-    internal partial struct Block8x8F
+    internal partial struct Block8x8F : IEquatable<Block8x8F>
     {
         /// <summary>
         /// A number of scalar coefficients in a <see cref="Block8x8F"/>
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Fill the block with defaults (zeroes)
+        /// Fill the block with defaults (zeroes).
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void Clear()
@@ -157,7 +157,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Load raw 32bit floating point data from source
+        /// Load raw 32bit floating point data from source.
         /// </summary>
         /// <param name="source">Source</param>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -170,7 +170,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Load raw 32bit floating point data from source
+        /// Load raw 32bit floating point data from source.
         /// </summary>
         /// <param name="blockPtr">Block pointer</param>
         /// <param name="source">Source</param>
@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Copy raw 32bit floating point data to dest
+        /// Copy raw 32bit floating point data to dest,
         /// </summary>
         /// <param name="dest">Destination</param>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -210,7 +210,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Convert salars to byte-s and copy to dest
+        /// Convert scalars to byte-s and copy to dest,
         /// </summary>
         /// <param name="blockPtr">Pointer to block</param>
         /// <param name="dest">Destination</param>
@@ -226,10 +226,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Copy raw 32bit floating point data to dest
+        /// Copy raw 32bit floating point data to dest.
         /// </summary>
-        /// <param name="blockPtr">Block pointer</param>
-        /// <param name="dest">Destination</param>
+        /// <param name="blockPtr">The block pointer.</param>
+        /// <param name="dest">The destination.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static unsafe void CopyTo(Block8x8F* blockPtr, Span<float> dest)
         {
@@ -257,7 +257,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         {
             fixed (Vector4* ptr = &this.V0L)
             {
-                float* fp = (float*)ptr;
+                var fp = (float*)ptr;
                 for (int i = 0; i < Size; i++)
                 {
                     dest[i] = (int)fp[i];
@@ -267,7 +267,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
         public float[] ToArray()
         {
-            float[] result = new float[Size];
+            var result = new float[Size];
             this.CopyTo(result);
             return result;
         }
@@ -275,7 +275,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Multiply all elements of the block.
         /// </summary>
-        /// <param name="value">The value to multiply by</param>
+        /// <param name="value">The value to multiply by.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void MultiplyInplace(float value)
         {
@@ -298,7 +298,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// Multiply all elements of the block by the corresponding elements of 'other'
+        /// Multiply all elements of the block by the corresponding elements of 'other'.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void MultiplyInplace(ref Block8x8F other)
@@ -349,8 +349,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Quantize the block.
         /// </summary>
-        /// <param name="blockPtr">Block pointer</param>
-        /// <param name="qtPtr">Qt pointer</param>
+        /// <param name="blockPtr">The block pointer.</param>
+        /// <param name="qtPtr">The qt pointer.</param>
         /// <param name="unzigPtr">Unzig pointer</param>
         // [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void DequantizeBlock(Block8x8F* blockPtr, Block8x8F* qtPtr, byte* unzigPtr)
@@ -536,6 +536,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             SimdUtils.ExtendedIntrinsics.ConvertToSingle(Unsafe.Add(ref sRef, 3), out top, out bottom);
             Unsafe.Add(ref dRef, 6) = top;
             Unsafe.Add(ref dRef, 7) = bottom;
+        }
+
+        /// <inheritdoc />
+        public bool Equals(Block8x8F other)
+        {
+            return this.V0L == other.V0L
+            && this.V0R == other.V0R
+            && this.V1L == other.V1L
+            && this.V1R == other.V1R
+            && this.V2L == other.V2L
+            && this.V2R == other.V2R
+            && this.V3L == other.V3L
+            && this.V3R == other.V3R
+            && this.V4L == other.V4L
+            && this.V4R == other.V4R
+            && this.V5L == other.V5L
+            && this.V5R == other.V5R
+            && this.V6L == other.V6L
+            && this.V6R == other.V6R
+            && this.V7L == other.V7L
+            && this.V7R == other.V7R;
         }
 
         /// <inheritdoc />

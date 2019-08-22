@@ -1,110 +1,78 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Numerics;
 
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.Primitives;
 using SixLabors.Shapes;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    public class DrawPathTests : FileTestBase
+    [GroupOutput("Drawing")]
+    public class DrawPathTests
     {
-        [Fact]
-        public void ImageShouldBeOverlayedByPath()
+        public static readonly TheoryData<string, byte, float> DrawPathData = new TheoryData<string, byte, float>
+                                                                                {
+                                                                                    { "White", 255, 1.5f },
+                                                                                    { "Red", 255, 3 },
+                                                                                    { "HotPink", 255, 5 },
+                                                                                    { "HotPink", 150, 5 },
+                                                                                    { "White", 255, 15 },
+                                                                                };
+
+        [Theory]
+        [WithSolidFilledImages(nameof(DrawPathData), 300, 450, "Blue", PixelTypes.Rgba32)]
+        public void DrawPath<TPixel>(TestImageProvider<TPixel> provider, string colorName, byte alpha, float thickness)
+            where TPixel : struct, IPixel<TPixel>
         {
-            string path = TestEnvironment.CreateOutputDirectory("Drawing", "Path");
-            using (var image = new Image<Rgba32>(500, 500))
-            {
-                var linerSegemnt = new LinearLineSegment(
-                    new Vector2(10, 10),
-                    new Vector2(200, 150),
-                    new Vector2(50, 300));
-                var bazierSegment = new CubicBezierLineSegment(
-                    new Vector2(50, 300),
-                    new Vector2(500, 500),
-                    new Vector2(60, 10),
-                    new Vector2(10, 400));
-
-                var p = new Path(linerSegemnt, bazierSegment);
-
-                image.Mutate(x => x.BackgroundColor(Rgba32.Blue).Draw(Rgba32.HotPink, 5, p));
-                image.Save($"{path}/Simple.png");
-
-                Buffer2D<Rgba32> sourcePixels = image.GetRootFramePixelBuffer();
-                Assert.Equal(Rgba32.HotPink, sourcePixels[11, 11]);
-
-                Assert.Equal(Rgba32.HotPink, sourcePixels[199, 149]);
-
-                Assert.Equal(Rgba32.Blue, sourcePixels[50, 50]);
-            }
-        }
-
-
-        [Fact]
-        public void ImageShouldBeOverlayedPathWithOpacity()
-        {
-            string path = TestEnvironment.CreateOutputDirectory("Drawing", "Path");
-
-            var color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
-
-
-            var linerSegemnt = new LinearLineSegment(
-                            new Vector2(10, 10),
-                            new Vector2(200, 150),
-                            new Vector2(50, 300)
-                    );
-
-            var bazierSegment = new CubicBezierLineSegment(new Vector2(50, 300),
+            var linearSegment = new LinearLineSegment(
+                new Vector2(10, 10),
+                new Vector2(200, 150),
+                new Vector2(50, 300));
+            var bezierSegment = new CubicBezierLineSegment(
+                new Vector2(50, 300),
                 new Vector2(500, 500),
                 new Vector2(60, 10),
                 new Vector2(10, 400));
 
-            var p = new Path(linerSegemnt, bazierSegment);
+            var path = new Path(linearSegment, bezierSegment);
 
-            using (var image = new Image<Rgba32>(500, 500))
-            {
-                image.Mutate(x => x.BackgroundColor(Rgba32.Blue).Draw(color, 10, p));
-                image.Save($"{path}/Opacity.png");
+            Rgba32 rgba = TestUtils.GetColorByName(colorName);
+            rgba.A = alpha;
+            Color color = rgba;
 
-                //shift background color towards forground color by the opacity amount
-                var mergedColor = new Rgba32(
-                    Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
+            FormattableString testDetails = $"{colorName}_A{alpha}_T{thickness}";
 
-                Buffer2D<Rgba32> sourcePixels = image.GetRootFramePixelBuffer();
-                Assert.Equal(mergedColor, sourcePixels[11, 11]);
-
-                Assert.Equal(mergedColor, sourcePixels[199, 149]);
-
-                Assert.Equal(Rgba32.Blue, sourcePixels[50, 50]);
-            }
+            provider.RunValidatingProcessorTest(
+                x => x.Draw(color, thickness, path),
+                testDetails,
+                appendPixelTypeToFileName: false,
+                appendSourceFileOrDescription: false);
         }
 
-        [Fact]
-        public void PathExtendingOffEdgeOfImageShouldNotBeCropped()
+        [Theory]
+        [WithSolidFilledImages(256, 256, "Black", PixelTypes.Rgba32)]
+        public void PathExtendingOffEdgeOfImageShouldNotBeCropped<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
         {
+            var color = Color.White;
+            Pen pen = Pens.Solid(color, 5f);
 
-            string path = TestEnvironment.CreateOutputDirectory("Drawing", "Path");
-            using (var image = new Image<Rgba32>(256, 256))
-            {
-                image.Mutate(x => x.Fill(Rgba32.Black));
-                Pen<Rgba32> pen = Pens.Solid(Rgba32.White, 5f);
-
-                for (int i = 0; i < 300; i += 20)
-                {
-                    image.Mutate(
-                        x => x.DrawLines(
-                            pen,
-                            new SixLabors.Primitives.PointF[] { new Vector2(100, 2), new Vector2(-10, i) }));
-                }
-
-                image.Save($"{path}/ClippedLines.png");
-                Buffer2D<Rgba32> sourcePixels = image.GetRootFramePixelBuffer();
-                Assert.Equal(Rgba32.White, sourcePixels[0, 90]);
-            }
+            provider.RunValidatingProcessorTest(
+                x =>
+                    {
+                        for (int i = 0; i < 300; i += 20)
+                        {
+                            var points = new PointF[] { new Vector2(100, 2), new Vector2(-10, i) };
+                            x.DrawLines(pen, points);
+                        }
+                    },
+                appendPixelTypeToFileName: false,
+                appendSourceFileOrDescription: false);
         }
     }
 }

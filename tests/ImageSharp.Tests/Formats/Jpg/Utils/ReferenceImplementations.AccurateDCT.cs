@@ -14,12 +14,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         /// /* reference idct taken from "ieeetest.c"
         ///  * Written by Tom Lane (tgl@cs.cmu.edu).
         ///  * Released to public domain 11/22/93.
-        ///  */  
+        ///  */
         /// </summary>
         internal static class AccurateDCT
         {
             private static double[,] CosLut = InitCosLut();
-            
+
             public static Block8x8 TransformIDCT(ref Block8x8 block)
             {
                 Block8x8F temp = block.AsFloatBlock();
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                         for (v=0; v<8; v++) {
                             tmp2 = 0.0;
                             for (u=0; u<8; u++) {
-                                tmp2 += (double) block[v * 8 + u] * CosLut[x, u];
+                                tmp2 += block[v * 8 + u] * CosLut[x, u];
                             }
                             tmp += CosLut[y, v] * tmp2;
                         }
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 }
                 return res;
             }
-            
+
             public static Block8x8F TransformFDCT(ref Block8x8F block)
             {
                 int x, y, u, v;
@@ -88,27 +88,27 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                             tmp2 = 0.0;
                             for (x = 0; x < 8; x++)
                             {
-                                tmp2 += (double)block[y * 8 + x] * CosLut[x,u];
+                                tmp2 += block[y * 8 + x] * CosLut[x,u];
                             }
                             tmp += CosLut[y, v] * tmp2;
                         }
                         res[v * 8 + u] = (float) tmp;
                     }
                 }
-                
+
                 return res;
             }
 
             private static double[,] InitCosLut()
             {
-                double[,] coslu = new double[8, 8];
+                var coslu = new double[8, 8];
                 int a, b;
                 double tmp;
 
                 for (a = 0; a < 8; a++)
                 for (b = 0; b < 8; b++)
                 {
-                    tmp = Math.Cos((double)((a + a + 1) * b) * (3.14159265358979323846 / 16.0));
+                    tmp = Math.Cos((a + a + 1) * b * (3.14159265358979323846 / 16.0));
                     if (b == 0)
                     {
                         tmp /= Math.Sqrt(2.0);

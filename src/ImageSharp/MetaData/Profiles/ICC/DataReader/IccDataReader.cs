@@ -1,10 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Text;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// Provides methods to read ICC data types
@@ -83,17 +82,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         private bool GetBit(byte value, int position)
         {
             return ((value >> (7 - position)) & 1) == 1;
-        }
-
-        /// <summary>
-        /// Gets the bit value at a specified position
-        /// </summary>
-        /// <param name="value">The value from where the bit will be extracted</param>
-        /// <param name="position">Position of the bit. Zero based index from left to right.</param>
-        /// <returns>The bit value at specified position</returns>
-        private bool GetBit(ushort value, int position)
-        {
-            return ((value >> (15 - position)) & 1) == 1;
         }
     }
 }

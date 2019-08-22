@@ -2,83 +2,83 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Dithering;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
-using SixLabors.Primitives;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 {
-    public class DitherTests : FileTestBase
+    public class DitherTests
     {
-        public static readonly string[] CommonTestImages =
-            {
-                TestImages.Png.CalliphoraPartial, TestImages.Png.Bike
-            };
+        public const PixelTypes CommonNonDefaultPixelTypes =
+            PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Rgb24 | PixelTypes.RgbaVector;
+        
+        public static readonly string[] CommonTestImages = { TestImages.Png.CalliphoraPartial, TestImages.Png.Bike };
 
-        public static readonly TheoryData<string, IOrderedDither> OrderedDitherers = new TheoryData<string, IOrderedDither>
-        {
-            { "Bayer8x8", KnownDitherers.BayerDither8x8 },
-            { "Bayer4x4", KnownDitherers.BayerDither4x4 },
-            { "Ordered3x3", KnownDitherers.OrderedDither3x3 },
-            { "Bayer2x2", KnownDitherers.BayerDither2x2 }
-        };
+        public static readonly TheoryData<IErrorDiffuser> ErrorDiffusers = new TheoryData<IErrorDiffuser>
+                                                                               {
+                                                                                   KnownDiffusers.Atkinson,
+                                                                                   KnownDiffusers.Burks,
+                                                                                   KnownDiffusers.FloydSteinberg,
+                                                                                   KnownDiffusers.JarvisJudiceNinke,
+                                                                                   KnownDiffusers.Sierra2,
+                                                                                   KnownDiffusers.Sierra3,
+                                                                                   KnownDiffusers.SierraLite,
+                                                                                   KnownDiffusers.StevensonArce,
+                                                                                   KnownDiffusers.Stucki,
+                                                                               };
 
-        public static readonly TheoryData<string, IErrorDiffuser> ErrorDiffusers = new TheoryData<string, IErrorDiffuser>
-        {
-            { "Atkinson", KnownDiffusers.Atkinson },
-            { "Burks", KnownDiffusers.Burks },
-            { "FloydSteinberg", KnownDiffusers.FloydSteinberg },
-            { "JarvisJudiceNinke", KnownDiffusers.JarvisJudiceNinke },
-            { "Sierra2", KnownDiffusers.Sierra2 },
-            { "Sierra3", KnownDiffusers.Sierra3 },
-            { "SierraLite", KnownDiffusers.SierraLite },
-            { "StevensonArce", KnownDiffusers.StevensonArce },
-            { "Stucki", KnownDiffusers.Stucki },
-        };
-
+        public static readonly TheoryData<IOrderedDither> OrderedDitherers = new TheoryData<IOrderedDither>
+                                                                                 {
+                                                                                     KnownDitherers.BayerDither8x8,
+                                                                                     KnownDitherers.BayerDither4x4,
+                                                                                     KnownDitherers.OrderedDither3x3,
+                                                                                     KnownDitherers.BayerDither2x2
+                                                                                 };
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.05f);
+        
         private static IOrderedDither DefaultDitherer => KnownDitherers.BayerDither4x4;
 
         private static IErrorDiffuser DefaultErrorDiffuser => KnownDiffusers.Atkinson;
 
+        /// <summary>
+        /// The output is visually correct old 32bit runtime,
+        /// but it is very different because of floating point inaccuracies.
+        /// </summary>
+        private static readonly bool SkipAllDitherTests =
+            !TestEnvironment.Is64BitProcess && string.IsNullOrEmpty(TestEnvironment.NetCoreVersion);
+
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), nameof(OrderedDitherers), DefaultPixelType)]
-        [WithTestPatternImages(nameof(OrderedDitherers), 100, 100, DefaultPixelType)]
-        public void DitherFilter_WorksWithAllDitherers<TPixel>(TestImageProvider<TPixel> provider, string name, IOrderedDither ditherer)
+        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32)]
+        public void ApplyDiffusionFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
+            if (SkipAllDitherTests)
             {
-                image.Mutate(x => x.Dither(ditherer));
-                image.DebugSave(provider, name);
+                return;
             }
+            
+            provider.RunRectangleConstrainedValidatingProcessorTest(
+                (x, rect) => x.Diffuse(DefaultErrorDiffuser, .5F, rect),
+                comparer: ValidatorComparer);
         }
 
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), nameof(ErrorDiffusers), DefaultPixelType)]
-        [WithTestPatternImages(nameof(ErrorDiffusers), 100, 100, DefaultPixelType)]
-        public void DiffusionFilter_WorksWithAllErrorDiffusers<TPixel>(TestImageProvider<TPixel> provider, string name, IErrorDiffuser diffuser)
+        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32)]
+        public void ApplyDitherFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
+            if (SkipAllDitherTests)
             {
-                image.Mutate(x => x.Diffuse(diffuser, .5F));
-                image.DebugSave(provider, name);
+                return;
             }
-        }
-
-        [Theory]
-        [WithFile(TestImages.Png.Filter0, CommonNonDefaultPixelTypes)]
-        public void DitherFilter_ShouldNotDependOnSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Dither(DefaultDitherer));
-                image.DebugSave(provider);
-            }
+            
+            provider.RunRectangleConstrainedValidatingProcessorTest(
+                (x, rect) => x.Dither(DefaultDitherer, rect),
+                comparer: ValidatorComparer);
         }
 
         [Theory]
@@ -86,45 +86,67 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         public void DiffusionFilter_ShouldNotDependOnSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
+            if (SkipAllDitherTests)
             {
-                image.Mutate(x => x.Diffuse(DefaultErrorDiffuser, 0.5f));
-                image.DebugSave(provider);
+                return;
             }
+            
+            // Increased tolerance because of compatibility issues on .NET 4.6.2:
+            var comparer = ImageComparer.TolerantPercentage(1f);
+            provider.RunValidatingProcessorTest(x => x.Diffuse(DefaultErrorDiffuser, 0.5f), comparer: comparer);
         }
 
         [Theory]
-        [WithFile(TestImages.Png.CalliphoraPartial, DefaultPixelType)]
-        public void ApplyDitherFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(CommonTestImages), nameof(ErrorDiffusers), PixelTypes.Rgba32)]
+        public void DiffusionFilter_WorksWithAllErrorDiffusers<TPixel>(
+            TestImageProvider<TPixel> provider,
+            IErrorDiffuser diffuser)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (Image<TPixel> image = source.Clone())
+            if (SkipAllDitherTests)
             {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
-
-                image.Mutate(x => x.Dither(DefaultDitherer, bounds));
-                image.DebugSave(provider);
-
-                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
+                return;
             }
+            
+            provider.RunValidatingProcessorTest(
+                x => x.Diffuse(diffuser, 0.5f),
+                testOutputDetails: diffuser.GetType().Name,
+                comparer: ValidatorComparer,
+                appendPixelTypeToFileName: false);
         }
 
         [Theory]
-        [WithFile(TestImages.Png.CalliphoraPartial, DefaultPixelType)]
-        public void ApplyDiffusionFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFile(TestImages.Png.Filter0, CommonNonDefaultPixelTypes)]
+        public void DitherFilter_ShouldNotDependOnSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (Image<TPixel> image = source.Clone())
+            if (SkipAllDitherTests)
             {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
-
-                image.Mutate(x => x.Diffuse(DefaultErrorDiffuser, .5F, bounds));
-                image.DebugSave(provider);
-
-                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
+                return;
             }
+            
+            provider.RunValidatingProcessorTest(
+                x => x.Dither(DefaultDitherer),
+                comparer: ValidatorComparer);
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(CommonTestImages), nameof(OrderedDitherers), PixelTypes.Rgba32)]
+        public void DitherFilter_WorksWithAllDitherers<TPixel>(
+            TestImageProvider<TPixel> provider,
+            IOrderedDither ditherer)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            if (SkipAllDitherTests)
+            {
+                return;
+            }
+            
+            provider.RunValidatingProcessorTest(
+                x => x.Dither(ditherer),
+                testOutputDetails: ditherer.GetType().Name,
+                comparer: ValidatorComparer,
+                appendPixelTypeToFileName: false);
         }
     }
 }

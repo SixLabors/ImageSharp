@@ -180,7 +180,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <param name="indexedPixels">The span of indexed pixels.</param>
         /// <param name="stream">The stream to write to.</param>
-        public void Encode(Span<byte> indexedPixels, Stream stream)
+        public void Encode(ReadOnlySpan<byte> indexedPixels, Stream stream)
         {
             // Write "initial code size" byte
             stream.WriteByte((byte)this.initialCodeSize);
@@ -249,9 +249,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Compress the packets to the stream.
         /// </summary>
         /// <param name="indexedPixels">The span of indexed pixels.</param>
-        /// <param name="intialBits">The initial bits.</param>
+        /// <param name="initialBits">The initial bits.</param>
         /// <param name="stream">The stream to write to.</param>
-        private void Compress(Span<byte> indexedPixels, int intialBits, Stream stream)
+        private void Compress(ReadOnlySpan<byte> indexedPixels, int initialBits, Stream stream)
         {
             int fcode;
             int c;
@@ -260,14 +260,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
             int hshift;
 
             // Set up the globals: globalInitialBits - initial number of bits
-            this.globalInitialBits = intialBits;
+            this.globalInitialBits = initialBits;
 
             // Set up the necessary values
             this.clearFlag = false;
             this.bitCount = this.globalInitialBits;
             this.maxCode = GetMaxcode(this.bitCount);
 
-            this.clearCode = 1 << (intialBits - 1);
+            this.clearCode = 1 << (initialBits - 1);
             this.eofCode = this.clearCode + 1;
             this.freeEntry = this.clearCode + 2;
 
@@ -375,7 +375,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// The <see cref="int"/>
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int NextPixel(Span<byte> indexedPixels)
+        private int NextPixel(ReadOnlySpan<byte> indexedPixels)
         {
             return indexedPixels[this.position++] & 0xFF;
         }

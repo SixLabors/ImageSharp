@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -63,12 +63,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The abstract metadata.
         /// </summary>
-        private ImageMetaData metaData;
+        private ImageMetadata metadata;
 
         /// <summary>
         /// The gif specific metadata.
         /// </summary>
-        private GifMetaData gifMetaData;
+        private GifMetadata gifMetadata;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GifDecoderCore"/> class.
@@ -77,7 +77,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="options">The decoder options.</param>
         public GifDecoderCore(Configuration configuration, IGifDecoderOptions options)
         {
-            this.TextEncoding = options.TextEncoding ?? GifConstants.DefaultEncoding;
             this.IgnoreMetadata = options.IgnoreMetadata;
             this.DecodingMode = options.DecodingMode;
             this.configuration = configuration ?? Configuration.Default;
@@ -87,11 +86,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
         public bool IgnoreMetadata { get; internal set; }
-
-        /// <summary>
-        /// Gets the text encoding
-        /// </summary>
-        public Encoding TextEncoding { get; }
 
         /// <summary>
         /// Gets the decoding mode for multi-frame images
@@ -223,7 +217,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 new PixelTypeInfo(this.logicalScreenDescriptor.BitsPerPixel),
                 this.logicalScreenDescriptor.Width,
                 this.logicalScreenDescriptor.Height,
-                this.metaData);
+                this.metadata);
         }
 
         /// <summary>
@@ -276,7 +270,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 if (subBlockSize == GifConstants.NetscapeLoopingSubBlockSize)
                 {
                     this.stream.Read(this.buffer, 0, GifConstants.NetscapeLoopingSubBlockSize);
-                    this.gifMetaData.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer.AsSpan(1)).RepeatCount;
+                    this.gifMetadata.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer.AsSpan(1)).RepeatCount;
                     this.stream.Skip(1); // Skip the terminator.
                     return;
                 }
@@ -317,11 +311,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             int length;
 
+            var stringBuilder = new StringBuilder();
             while ((length = this.stream.ReadByte()) != 0)
             {
-                if (length > GifConstants.MaxCommentLength)
+                if (length > GifConstants.MaxCommentSubBlockLength)
                 {
-                    throw new ImageFormatException($"Gif comment length '{length}' exceeds max '{GifConstants.MaxCommentLength}'");
+                    throw new ImageFormatException($"Gif comment length '{length}' exceeds max '{GifConstants.MaxCommentSubBlockLength}' of a comment data block");
                 }
 
                 if (this.IgnoreMetadata)
@@ -333,9 +328,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 using (IManagedByteBuffer commentsBuffer = this.MemoryAllocator.AllocateManagedByteBuffer(length))
                 {
                     this.stream.Read(commentsBuffer.Array, 0, length);
-                    string comments = this.TextEncoding.GetString(commentsBuffer.Array, 0, length);
-                    this.metaData.Properties.Add(new ImageProperty(GifConstants.Comments, comments));
+                    string commentPart = GifConstants.Encoding.GetString(commentsBuffer.Array, 0, length);
+                    stringBuilder.Append(commentPart);
                 }
+            }
+
+            if (stringBuilder.Length > 0)
+            {
+                this.gifMetadata.Comments.Add(stringBuilder.ToString());
             }
         }
 
@@ -416,9 +416,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
             if (previousFrame is null)
             {
                 // This initializes the image to become fully transparent because the alpha channel is zero.
-                image = new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metaData);
+                image = new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metadata);
 
-                this.SetFrameMetaData(image.Frames.RootFrame.MetaData);
+                this.SetFrameMetadata(image.Frames.RootFrame.Metadata);
 
                 imageFrame = image.Frames.RootFrame;
             }
@@ -431,7 +431,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
                 currentFrame = image.Frames.AddFrame(previousFrame); // This clones the frame and adds it the collection
 
-                this.SetFrameMetaData(currentFrame.MetaData);
+                this.SetFrameMetadata(currentFrame.Metadata);
 
                 imageFrame = currentFrame;
 
@@ -549,11 +549,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Sets the frames metadata.
         /// </summary>
-        /// <param name="meta">The meta data.</param>
+        /// <param name="meta">The metadata.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void SetFrameMetaData(ImageFrameMetaData meta)
+        private void SetFrameMetadata(ImageFrameMetadata meta)
         {
-            GifFrameMetaData gifMeta = meta.GetFormatMetaData(GifFormat.Instance);
+            GifFrameMetadata gifMeta = meta.GetFormatMetadata(GifFormat.Instance);
             if (this.graphicsControlExtension.DelayTime > 0)
             {
                 gifMeta.FrameDelay = this.graphicsControlExtension.DelayTime;
@@ -586,7 +586,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.stream.Skip(6);
             this.ReadLogicalScreenDescriptor();
 
-            var meta = new ImageMetaData();
+            var meta = new ImageMetadata();
 
             // The Pixel Aspect Ratio is defined to be the quotient of the pixel's
             // width over its height.  The value range in this field allows
@@ -614,16 +614,16 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
             }
 
-            this.metaData = meta;
-            this.gifMetaData = meta.GetFormatMetaData(GifFormat.Instance);
-            this.gifMetaData.ColorTableMode = this.logicalScreenDescriptor.GlobalColorTableFlag
+            this.metadata = meta;
+            this.gifMetadata = meta.GetFormatMetadata(GifFormat.Instance);
+            this.gifMetadata.ColorTableMode = this.logicalScreenDescriptor.GlobalColorTableFlag
             ? GifColorTableMode.Global
             : GifColorTableMode.Local;
 
             if (this.logicalScreenDescriptor.GlobalColorTableFlag)
             {
                 int globalColorTableLength = this.logicalScreenDescriptor.GlobalColorTableSize * 3;
-                this.gifMetaData.GlobalColorTableLength = globalColorTableLength;
+                this.gifMetadata.GlobalColorTableLength = globalColorTableLength;
 
                 this.globalColorTable = this.MemoryAllocator.AllocateManagedByteBuffer(globalColorTableLength, AllocationOptions.Clean);
 

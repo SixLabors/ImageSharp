@@ -1,9 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// Provides methods to read ICC data types
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>The read LUT</returns>
         public IccLut ReadLut16(int count)
         {
-            ushort[] values = new ushort[count];
+            var values = new ushort[count];
             for (int i = 0; i < count; i++)
             {
                 values[i] = this.ReadUInt16();
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccClut ReadClut(int inChannelCount, int outChannelCount, bool isFloat)
         {
             // Grid-points are always 16 bytes long but only 0-inChCount are used
-            byte[] gridPointCount = new byte[inChannelCount];
+            var gridPointCount = new byte[inChannelCount];
             Buffer.BlockCopy(this.data, this.AddIndex(16), gridPointCount, 0, inChannelCount);
 
             if (!isFloat)
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
             const float Max = byte.MaxValue;
 
-            float[][] values = new float[length][];
+            var values = new float[length][];
             for (int i = 0; i < length; i++)
             {
                 values[i] = new float[outChannelCount];
@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
             const float Max = ushort.MaxValue;
 
-            float[][] values = new float[length][];
+            var values = new float[length][];
             for (int i = 0; i < length; i++)
             {
                 values[i] = new float[outChannelCount];
@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
             length /= inChCount;
 
-            float[][] values = new float[length][];
+            var values = new float[length][];
             for (int i = 0; i < length; i++)
             {
                 values[i] = new float[outChCount];

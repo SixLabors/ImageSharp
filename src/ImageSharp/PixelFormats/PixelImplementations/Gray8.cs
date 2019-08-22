@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -16,12 +16,6 @@ namespace SixLabors.ImageSharp.PixelFormats
     {
         private static readonly Vector4 MaxBytes = new Vector4(255F);
         private static readonly Vector4 Half = new Vector4(0.5F);
-        private const float Average = 1 / 3F;
-
-        private static readonly Vector4 Min = new Vector4(0, 0, 0, 1f);
-        private static readonly Vector4 Max = Vector4.One;
-
-        private static readonly Vector4 Accumulator = new Vector4(255f * Average, 255f * Average, 255f * Average, 0.5f);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Gray8"/> struct.
@@ -59,7 +53,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromScaledVector4(Vector4 vector) => this.FromVector4(vector);
+        public void FromScaledVector4(Vector4 vector) => this.ConvertFromRgbaScaledVector4(vector);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -67,15 +61,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromVector4(Vector4 vector)
-        {
-            vector = Vector4.Max(Min, vector);
-            vector = Vector4.Min(Max, vector);
-
-            float roundedSum = Vector4.Dot(vector, Accumulator);
-
-            this.PackedValue = (byte)roundedSum;
-        }
+        public void FromVector4(Vector4 vector) => this.ConvertFromRgbaScaledVector4(vector);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -96,6 +82,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromBgra32(Bgra32 source) => this.PackedValue = ImageMaths.Get8BitBT709Luminance(source.R, source.G, source.B);
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

@@ -42,29 +42,16 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void FromVector4(Configuration configuration, ReadOnlySpan<Vector4> sourceVectors, Span<Rgb24> destPixels)
+            internal override void FromVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Rgb24> destPixels, PixelConversionModifiers modifiers)
             {
-                Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, false);
+                Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, modifiers.Remove(PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply));
             }
 
             /// <inheritdoc />
-            internal override void ToVector4(Configuration configuration, ReadOnlySpan<Rgb24> sourcePixels, Span<Vector4> destVectors)
+            internal override void ToVector4(Configuration configuration, ReadOnlySpan<Rgb24> sourcePixels, Span<Vector4> destVectors, PixelConversionModifiers modifiers)
             {
-                Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, false);
+                Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, modifiers.Remove(PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply));
             }
-
-            /// <inheritdoc />
-            internal override void FromScaledVector4(Configuration configuration, ReadOnlySpan<Vector4> sourceVectors, Span<Rgb24> destPixels)
-            {
-                Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, true);
-            }
-
-            /// <inheritdoc />
-            internal override void ToScaledVector4(Configuration configuration, ReadOnlySpan<Rgb24> sourcePixels, Span<Vector4> destVectors)
-            {
-                Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, true);
-            }
-
 
             /// <inheritdoc />
             internal override void ToArgb32(Configuration configuration, ReadOnlySpan<Rgb24> sourcePixels, Span<Argb32> destPixels)
@@ -208,6 +195,14 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                     dp.FromRgb24(sp);
                 }
+            }
+            /// <inheritdoc />
+            internal override void From<TSourcePixel>(
+                Configuration configuration,
+                ReadOnlySpan<TSourcePixel> sourcePixels,
+                Span<Rgb24> destinationPixels)
+            {
+                PixelOperations<TSourcePixel>.Instance.ToRgb24(configuration, sourcePixels, destinationPixels);
             }
         }
     }

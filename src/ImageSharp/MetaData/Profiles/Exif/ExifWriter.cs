@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Text;
 using SixLabors.ImageSharp.Primitives;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
+namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
     /// <summary>
     /// Contains methods for writing EXIF metadata.
@@ -53,12 +53,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
             if (this.exifIndexes.Count > 0)
             {
-                exifIndex = (int)this.GetIndex(this.ifdIndexes, ExifTag.SubIFDOffset);
+                exifIndex = this.GetIndex(this.ifdIndexes, ExifTag.SubIFDOffset);
             }
 
             if (this.gpsIndexes.Count > 0)
             {
-                gpsIndex = (int)this.GetIndex(this.ifdIndexes, ExifTag.GPSIFDOffset);
+                gpsIndex = this.GetIndex(this.ifdIndexes, ExifTag.GPSIFDOffset);
             }
 
             uint ifdLength = 2 + this.GetLength(this.ifdIndexes) + 4;
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
             length += 4 + 2;
 
-            byte[] result = new byte[length];
+            var result = new byte[length];
 
             int i = 0;
 
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 i = this.WriteData(startIndex, this.gpsIndexes, result, i);
             }
 
-            WriteUInt16((ushort)0, result, i);
+            WriteUInt16(0, result, i);
 
             return result;
         }

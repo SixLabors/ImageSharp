@@ -1,8 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -48,28 +47,6 @@ namespace SixLabors.ImageSharp
             if (string.IsNullOrWhiteSpace(value))
             {
                 ThrowArgumentException("Must not be empty or whitespace.", parameterName);
-            }
-        }
-
-        /// <summary>
-        /// Ensures that the enumeration is not null or empty.
-        /// </summary>
-        /// <typeparam name="T">The type of objects in the <paramref name="value"/></typeparam>
-        /// <param name="value">The target enumeration, which should be checked against being null or empty.</param>
-        /// <param name="parameterName">Name of the parameter.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
-        /// <exception cref="ArgumentException"><paramref name="value"/> is empty.</exception>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static void NotNullOrEmpty<T>(ICollection<T> value, string parameterName)
-        {
-            if (value is null)
-            {
-                ThrowArgumentNullException(parameterName);
-            }
-
-            if (value.Count == 0)
-            {
-                ThrowArgumentException("Must not be empty.", parameterName);
             }
         }
 
@@ -253,7 +230,27 @@ namespace SixLabors.ImageSharp
         {
             if (destination.Length < source.Length)
             {
-                ThrowArgumentException($"Destination span is too short!", destinationParamName);
+                ThrowArgumentException("Destination span is too short!", destinationParamName);
+            }
+        }
+
+        /// <summary>
+        /// Verifies that the 'destination' span is not shorter than 'source'.
+        /// </summary>
+        /// <typeparam name="TSource">The source element type</typeparam>
+        /// <typeparam name="TDest">The destination element type</typeparam>
+        /// <param name="source">The source span</param>
+        /// <param name="destination">The destination span</param>
+        /// <param name="destinationParamName">The name of the argument for 'destination'</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void DestinationShouldNotBeTooShort<TSource, TDest>(
+            Span<TSource> source,
+            Span<TDest> destination,
+            string destinationParamName)
+        {
+            if (destination.Length < source.Length)
+            {
+                ThrowArgumentException("Destination span is too short!", destinationParamName);
             }
         }
 

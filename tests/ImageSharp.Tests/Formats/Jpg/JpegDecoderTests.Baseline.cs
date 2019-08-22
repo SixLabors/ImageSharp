@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -35,22 +34,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
-        [WithFile(TestImages.Jpeg.Issues.CriticalEOF214, PixelTypes.Rgba32)]
-        public void DecodeBaselineJpeg_CriticalEOF_ShouldThrow<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            // TODO: We need a public ImageDecoderException class in ImageSharp!
-            Assert.ThrowsAny<Exception>(() => provider.GetImage(JpegDecoder));
-        }
-
-        [Theory]
-        [WithFile(TestImages.Jpeg.Issues.InvalidJpegThrowsWrongException797, PixelTypes.Rgba32)]
-        public void LoadingImage_InvalidTagLength_ShouldThrow<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel> => Assert.Throws<ImageFormatException>(() => provider.GetImage());
-
-        [Theory]
-        [WithFile(TestImages.Jpeg.Issues.AccessViolationException798, PixelTypes.Rgba32)]
-        public void LoadingImage_BadHuffman_ShouldNotThrow<TPixel>(TestImageProvider<TPixel> provider)
-    where TPixel : struct, IPixel<TPixel> => Assert.NotNull(provider.GetImage());
+        [WithFileCollection(nameof(UnrecoverableTestJpegs), PixelTypes.Rgba32)]
+        public void UnrecoverableImagesShouldThrowCorrectError<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel> => Assert.Throws<ImageFormatException>(provider.GetImage);
     }
 }

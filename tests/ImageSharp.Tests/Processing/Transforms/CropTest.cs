@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.PixelFormats;
+
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.Primitives;
@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public void CropWidthHeightCropProcessorWithRectangleSet(int width, int height)
         {
             this.operations.Crop(width, height);
-            CropProcessor<Rgba32> processor = this.Verify<CropProcessor<Rgba32>>();
+            CropProcessor processor = this.Verify<CropProcessor>();
 
             Assert.Equal(new Rectangle(0, 0, width, height), processor.CropRectangle);
         }
@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         {
             var cropRectangle = new Rectangle(x, y, width, height);
             this.operations.Crop(cropRectangle);
-            CropProcessor<Rgba32> processor = this.Verify<CropProcessor<Rgba32>>();
+            CropProcessor processor = this.Verify<CropProcessor>();
 
             Assert.Equal(cropRectangle, processor.CropRectangle);
         }

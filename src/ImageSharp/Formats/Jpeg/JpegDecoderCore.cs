@@ -1,10 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Buffers.Binary;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
@@ -12,9 +11,9 @@ using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.MetaData;
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
-using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.Memory;
@@ -52,17 +51,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// The DC Huffman tables
         /// </summary>
-        private HuffmanTables dcHuffmanTables;
+        private HuffmanTable[] dcHuffmanTables;
 
         /// <summary>
         /// The AC Huffman tables
         /// </summary>
-        private HuffmanTables acHuffmanTables;
-
-        /// <summary>
-        /// The fast AC tables used for entropy decoding
-        /// </summary>
-        private FastACTables fastACTables;
+        private HuffmanTable[] acHuffmanTables;
 
         /// <summary>
         /// The reset interval determined by RST markers
@@ -149,9 +143,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public bool IgnoreMetadata { get; }
 
         /// <summary>
-        /// Gets the <see cref="ImageMetaData"/> decoded by this decoder instance.
+        /// Gets the <see cref="ImageMetadata"/> decoded by this decoder instance.
         /// </summary>
-        public ImageMetaData MetaData { get; private set; }
+        public ImageMetadata Metadata { get; private set; }
 
         /// <inheritdoc/>
         public int ComponentCount { get; private set; }
@@ -222,7 +216,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.ParseStream(stream);
             this.InitExifProfile();
             this.InitIccProfile();
-            this.InitDerivedMetaDataProperties();
+            this.InitDerivedMetadataProperties();
             return this.PostProcessIntoImage<TPixel>();
         }
 
@@ -235,9 +229,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.ParseStream(stream, true);
             this.InitExifProfile();
             this.InitIccProfile();
-            this.InitDerivedMetaDataProperties();
+            this.InitDerivedMetadataProperties();
 
-            return new ImageInfo(new PixelTypeInfo(this.BitsPerPixel), this.ImageWidth, this.ImageHeight, this.MetaData);
+            return new ImageInfo(new PixelTypeInfo(this.BitsPerPixel), this.ImageWidth, this.ImageHeight, this.Metadata);
         }
 
         /// <summary>
@@ -247,7 +241,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="metadataOnly">Whether to decode metadata only.</param>
         public void ParseStream(Stream stream, bool metadataOnly = false)
         {
-            this.MetaData = new ImageMetaData();
+            this.Metadata = new ImageMetadata();
             this.InputStream = new DoubleBufferedStreamReader(this.configuration.MemoryAllocator, stream);
 
             // Check for the Start Of Image marker.
@@ -255,7 +249,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             var fileMarker = new JpegFileMarker(this.markerBuffer[1], 0);
             if (fileMarker.Marker != JpegConstants.Markers.SOI)
             {
-                throw new ImageFormatException("Missing SOI marker.");
+                JpegThrowHelper.ThrowImageFormatException("Missing SOI marker.");
             }
 
             this.InputStream.Read(this.markerBuffer, 0, 2);
@@ -266,9 +260,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Only assign what we need
             if (!metadataOnly)
             {
-                this.dcHuffmanTables = new HuffmanTables();
-                this.acHuffmanTables = new HuffmanTables();
-                this.fastACTables = new FastACTables(this.configuration.MemoryAllocator);
+                const int maxTables = 4;
+                this.dcHuffmanTables = new HuffmanTable[maxTables];
+                this.acHuffmanTables = new HuffmanTable[maxTables];
             }
 
             // Break only when we discover a valid EOI marker.
@@ -378,14 +372,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             this.InputStream?.Dispose();
             this.Frame?.Dispose();
-            this.fastACTables?.Dispose();
 
             // Set large fields to null.
             this.InputStream = null;
             this.Frame = null;
             this.dcHuffmanTables = null;
             this.acHuffmanTables = null;
-            this.fastACTables = null;
         }
 
         /// <summary>
@@ -401,15 +393,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             if (this.ComponentCount == 3)
             {
-                if (this.adobe.Equals(default) || this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformYCbCr)
-                {
-                    return JpegColorSpace.YCbCr;
-                }
-
-                if (this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
+                if (!this.adobe.Equals(default) && this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
                 {
                     return JpegColorSpace.RGB;
                 }
+
+                // Some images are poorly encoded and contain incorrect colorspace transform metadata.
+                // We ignore that and always fall back to the default colorspace.
+                return JpegColorSpace.YCbCr;
             }
 
             if (this.ComponentCount == 4)
@@ -419,7 +410,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     : JpegColorSpace.Cmyk;
             }
 
-            throw new ImageFormatException($"Unsupported color mode. Max components 4; found {this.ComponentCount}");
+            JpegThrowHelper.ThrowImageFormatException($"Unsupported color mode. Supported component counts 1, 3, and 4; found {this.ComponentCount}");
+            return default;
         }
 
         /// <summary>
@@ -429,7 +421,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             if (this.isExif)
             {
-                this.MetaData.ExifProfile = new ExifProfile(this.exifData);
+                this.Metadata.ExifProfile = new ExifProfile(this.exifData);
             }
         }
 
@@ -443,21 +435,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 var profile = new IccProfile(this.iccData);
                 if (profile.CheckIsValid())
                 {
-                    this.MetaData.IccProfile = profile;
+                    this.Metadata.IccProfile = profile;
                 }
             }
         }
 
         /// <summary>
-        /// Assigns derived metadata properties to <see cref="MetaData"/>, eg. horizontal and vertical resolution if it has a JFIF header.
+        /// Assigns derived metadata properties to <see cref="Metadata"/>, eg. horizontal and vertical resolution if it has a JFIF header.
         /// </summary>
-        private void InitDerivedMetaDataProperties()
+        private void InitDerivedMetadataProperties()
         {
             if (this.jFif.XDensity > 0 && this.jFif.YDensity > 0)
             {
-                this.MetaData.HorizontalResolution = this.jFif.XDensity;
-                this.MetaData.VerticalResolution = this.jFif.YDensity;
-                this.MetaData.ResolutionUnits = this.jFif.DensityUnits;
+                this.Metadata.HorizontalResolution = this.jFif.XDensity;
+                this.Metadata.VerticalResolution = this.jFif.YDensity;
+                this.Metadata.ResolutionUnits = this.jFif.DensityUnits;
             }
             else if (this.isExif)
             {
@@ -466,16 +458,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                 if (horizontalValue > 0 && verticalValue > 0)
                 {
-                    this.MetaData.HorizontalResolution = horizontalValue;
-                    this.MetaData.VerticalResolution = verticalValue;
-                    this.MetaData.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(this.MetaData.ExifProfile);
+                    this.Metadata.HorizontalResolution = horizontalValue;
+                    this.Metadata.VerticalResolution = verticalValue;
+                    this.Metadata.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(this.Metadata.ExifProfile);
                 }
             }
         }
 
         private double GetExifResolutionValue(ExifTag tag)
         {
-            if (!this.MetaData.ExifProfile.TryGetValue(tag, out ExifValue exifValue))
+            if (!this.Metadata.ExifProfile.TryGetValue(tag, out ExifValue exifValue))
             {
                 return 0;
             }
@@ -546,7 +538,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            byte[] profile = new byte[remaining];
+            var profile = new byte[remaining];
             this.InputStream.Read(profile, 0, remaining);
 
             if (ProfileResolver.IsProfile(profile, ProfileResolver.ExifMarker))
@@ -579,14 +571,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            byte[] identifier = new byte[Icclength];
+            var identifier = new byte[Icclength];
             this.InputStream.Read(identifier, 0, Icclength);
             remaining -= Icclength; // We have read it by this point
 
             if (ProfileResolver.IsProfile(identifier, ProfileResolver.IccMarker))
             {
                 this.isIcc = true;
-                byte[] profile = new byte[remaining];
+                var profile = new byte[remaining];
                 this.InputStream.Read(profile, 0, remaining);
 
                 if (this.iccData is null)
@@ -646,6 +638,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 bool done = false;
                 remaining--;
                 int quantizationTableSpec = this.InputStream.ReadByte();
+                int tableIndex = quantizationTableSpec & 15;
+
+                // Max index. 4 Tables max.
+                if (tableIndex > 3)
+                {
+                    JpegThrowHelper.ThrowBadQuantizationTable();
+                }
 
                 switch (quantizationTableSpec >> 4)
                 {
@@ -661,7 +660,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             this.InputStream.Read(this.temp, 0, 64);
                             remaining -= 64;
 
-                            ref Block8x8F table = ref this.QuantizationTables[quantizationTableSpec & 15];
+                            ref Block8x8F table = ref this.QuantizationTables[tableIndex];
                             for (int j = 0; j < 64; j++)
                             {
                                 table[j] = this.temp[j];
@@ -681,7 +680,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             this.InputStream.Read(this.temp, 0, 128);
                             remaining -= 128;
 
-                            ref Block8x8F table = ref this.QuantizationTables[quantizationTableSpec & 15];
+                            ref Block8x8F table = ref this.QuantizationTables[tableIndex];
                             for (int j = 0; j < 64; j++)
                             {
                                 table[j] = (this.temp[2 * j] << 8) | this.temp[(2 * j) + 1];
@@ -690,7 +689,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                         break;
                     default:
-                        throw new ImageFormatException("Bad Tq index value");
+                        JpegThrowHelper.ThrowBadQuantizationTable();
+                        break;
                 }
 
                 if (done)
@@ -701,10 +701,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             if (remaining != 0)
             {
-                throw new ImageFormatException("DQT has wrong length");
+                JpegThrowHelper.ThrowBadMarker(nameof(JpegConstants.Markers.DQT), remaining);
             }
 
-            this.MetaData.GetFormatMetaData(JpegFormat.Instance).Quality = QualityEvaluator.EstimateQuality(this.QuantizationTables);
+            this.Metadata.GetFormatMetadata(JpegFormat.Instance).Quality = QualityEvaluator.EstimateQuality(this.QuantizationTables);
         }
 
         /// <summary>
@@ -717,15 +717,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             if (this.Frame != null)
             {
-                throw new ImageFormatException("Multiple SOF markers. Only single frame jpegs supported.");
+                JpegThrowHelper.ThrowImageFormatException("Multiple SOF markers. Only single frame jpegs supported.");
             }
 
-            this.InputStream.Read(this.temp, 0, remaining);
+            // Read initial marker definitions.
+            const int length = 6;
+            this.InputStream.Read(this.temp, 0, length);
 
             // We only support 8-bit and 12-bit precision.
-            if (!this.supportedPrecisions.Contains(this.temp[0]))
+            if (Array.IndexOf(this.supportedPrecisions, this.temp[0]) == -1)
             {
-                throw new ImageFormatException("Only 8-Bit and 12-Bit precision supported.");
+                JpegThrowHelper.ThrowImageFormatException("Only 8-Bit and 12-Bit precision supported.");
             }
 
             this.Precision = this.temp[0];
@@ -740,22 +742,35 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 ComponentCount = this.temp[5]
             };
 
+            if (this.Frame.SamplesPerLine == 0 || this.Frame.Scanlines == 0)
+            {
+                JpegThrowHelper.ThrowInvalidImageDimensions(this.Frame.SamplesPerLine, this.Frame.Scanlines);
+            }
+
             this.ImageSizeInPixels = new Size(this.Frame.SamplesPerLine, this.Frame.Scanlines);
-
-            int maxH = 0;
-            int maxV = 0;
-            int index = 6;
-
             this.ComponentCount = this.Frame.ComponentCount;
 
             if (!metadataOnly)
             {
+                remaining -= length;
+
+                const int componentBytes = 3;
+                if (remaining > this.ComponentCount * componentBytes)
+                {
+                    JpegThrowHelper.ThrowBadMarker("SOFn", remaining);
+                }
+
+                this.InputStream.Read(this.temp, 0, remaining);
+
                 // No need to pool this. They max out at 4
                 this.Frame.ComponentIds = new byte[this.ComponentCount];
                 this.Frame.ComponentOrder = new byte[this.ComponentCount];
                 this.Frame.Components = new JpegComponent[this.ComponentCount];
                 this.ColorSpace = this.DeduceJpegColorSpace();
 
+                int maxH = 0;
+                int maxV = 0;
+                int index = 0;
                 for (int i = 0; i < this.ComponentCount; i++)
                 {
                     byte hv = this.temp[index + 1];
@@ -777,7 +792,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     this.Frame.Components[i] = component;
                     this.Frame.ComponentIds[i] = component.Id;
 
-                    index += 3;
+                    index += componentBytes;
                 }
 
                 this.Frame.MaxHorizontalFactor = maxH;
@@ -795,12 +810,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessDefineHuffmanTablesMarker(int remaining)
         {
+            int length = remaining;
+
             using (IManagedByteBuffer huffmanData = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(256, AllocationOptions.Clean))
             {
                 ref byte huffmanDataRef = ref MemoryMarshal.GetReference(huffmanData.GetSpan());
                 for (int i = 2; i < remaining;)
                 {
                     byte huffmanTableSpec = (byte)this.InputStream.ReadByte();
+                    int tableType = huffmanTableSpec >> 4;
+                    int tableIndex = huffmanTableSpec & 15;
+
+                    // Types 0..1 DC..AC
+                    if (tableType > 1)
+                    {
+                        JpegThrowHelper.ThrowImageFormatException("Bad Huffman Table type.");
+                    }
+
+                    // Max tables of each type
+                    if (tableIndex > 3)
+                    {
+                        JpegThrowHelper.ThrowImageFormatException("Bad Huffman Table index.");
+                    }
+
                     this.InputStream.Read(huffmanData.Array, 0, 16);
 
                     using (IManagedByteBuffer codeLengths = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(17, AllocationOptions.Clean))
@@ -813,26 +845,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             codeLengthSum += Unsafe.Add(ref codeLengthsRef, j) = Unsafe.Add(ref huffmanDataRef, j - 1);
                         }
 
+                        length -= 17;
+
+                        if (codeLengthSum > 256 || codeLengthSum > length)
+                        {
+                            JpegThrowHelper.ThrowImageFormatException("Huffman table has excessive length.");
+                        }
+
                         using (IManagedByteBuffer huffmanValues = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(256, AllocationOptions.Clean))
                         {
                             this.InputStream.Read(huffmanValues.Array, 0, codeLengthSum);
 
                             i += 17 + codeLengthSum;
 
-                            int tableType = huffmanTableSpec >> 4;
-                            int tableIndex = huffmanTableSpec & 15;
-
                             this.BuildHuffmanTable(
                                 tableType == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
                                 tableIndex,
                                 codeLengths.GetSpan(),
                                 huffmanValues.GetSpan());
-
-                            if (tableType != 0)
-                            {
-                                // Build a table that decodes both magnitude and value of small ACs in one go.
-                                this.fastACTables.BuildACTableLut(tableIndex, this.acHuffmanTables);
-                            }
                         }
                     }
                 }
@@ -848,7 +878,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             if (remaining != 2)
             {
-                throw new ImageFormatException($"DRI has wrong length: {remaining}");
+                JpegThrowHelper.ThrowBadMarker(nameof(JpegConstants.Markers.DRI), remaining);
             }
 
             this.resetInterval = this.ReadUint16();
@@ -861,7 +891,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             if (this.Frame is null)
             {
-                throw new ImageFormatException("No readable SOFn (Start Of Frame) marker found.");
+                JpegThrowHelper.ThrowImageFormatException("No readable SOFn (Start Of Frame) marker found.");
             }
 
             int selectorsCount = this.InputStream.ReadByte();
@@ -882,7 +912,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                 if (componentIndex < 0)
                 {
-                    throw new ImageFormatException("Unknown component selector");
+                    JpegThrowHelper.ThrowImageFormatException($"Unknown component selector {componentIndex}.");
                 }
 
                 ref JpegComponent component = ref this.Frame.Components[componentIndex];
@@ -898,12 +928,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int spectralEnd = this.temp[1];
             int successiveApproximation = this.temp[2];
 
-            var sd = new ScanDecoder(
+            var sd = new HuffmanScanDecoder(
                 this.InputStream,
                 this.Frame,
                 this.dcHuffmanTables,
                 this.acHuffmanTables,
-                this.fastACTables,
                 selectorsCount,
                 this.resetInterval,
                 spectralStart,
@@ -922,8 +951,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="codeLengths">The codelengths</param>
         /// <param name="values">The values</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void BuildHuffmanTable(HuffmanTables tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
-            => tables[index] = new HuffmanTable(this.configuration.MemoryAllocator, codeLengths, values);
+        private void BuildHuffmanTable(HuffmanTable[] tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
+            => tables[index] = new HuffmanTable(codeLengths, values);
 
         /// <summary>
         /// Reads a <see cref="ushort"/> from the stream advancing it by two bytes
@@ -944,11 +973,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private Image<TPixel> PostProcessIntoImage<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
+            if (this.ImageWidth == 0 || this.ImageHeight == 0)
+            {
+                JpegThrowHelper.ThrowInvalidImageDimensions(this.ImageWidth, this.ImageHeight);
+            }
+
             var image = Image.CreateUninitialized<TPixel>(
                 this.configuration,
                 this.ImageWidth,
                 this.ImageHeight,
-                this.MetaData);
+                this.Metadata);
 
             using (var postProcessor = new JpegImagePostProcessor(this.configuration, this))
             {

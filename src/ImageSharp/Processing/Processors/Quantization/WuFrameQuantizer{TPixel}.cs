@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -11,6 +11,8 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 
+// TODO: Isn't an AOS ("array of structures") layout more efficient & more readable than SOA ("structure of arrays") for this particular use case?
+// (T, R, G, B, A, M2) could be grouped together! Investigate a ColorMoment struct.
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 {
     /// <summary>
@@ -33,23 +35,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </para>
     /// </remarks>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal sealed class WuFrameQuantizer<TPixel> : FrameQuantizerBase<TPixel>
+    internal sealed class WuFrameQuantizer<TPixel> : FrameQuantizer<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        // TODO: The WuFrameQuantizer<TPixel> code is rising several questions:
-        // - Do we really need to ALWAYS allocate the whole table of size TableLength? (~ 2471625 * sizeof(long) * 5 bytes ) JS. I'm afraid so.
-        // - Isn't an AOS ("array of structures") layout more efficient & more readable than SOA ("structure of arrays") for this particular use case?
-        //   (T, R, G, B, A, M2) could be grouped together!
-        // - It's a frequently used class, we need tests! (So we can optimize safely.) There are tests in the original!!! We should just adopt them!
-        //   https://github.com/JeremyAnsel/JeremyAnsel.ColorQuant/blob/master/JeremyAnsel.ColorQuant/JeremyAnsel.ColorQuant.Tests/WuColorQuantizerTests.cs
+        // The following two variables determine the amount of bits to preserve when calculating the histogram.
+        // Reducing the value of these numbers the granularity of the color maps produced, making it much faster
+        // and using much less memory but potentially less accurate. Current results are very good though!
 
         /// <summary>
-        /// The index bits.
+        /// The index bits. 6 in original code.
         /// </summary>
         private const int IndexBits = 5;
 
         /// <summary>
-        /// The index alpha bits. Keep separate for now to allow easy adjustment.
+        /// The index alpha bits. 3 in original code.
         /// </summary>
         private const int IndexAlphaBits = 5;
 
@@ -64,7 +63,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         private const int IndexAlphaCount = (1 << IndexAlphaBits) + 1;
 
         /// <summary>
-        /// The table length. Now 1185921.
+        /// The table length. Now 1185921. originally 2471625.
         /// </summary>
         private const int TableLength = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
 
@@ -96,7 +95,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Moment of <c>c^2*P(c)</c>.
         /// </summary>
-        private IMemoryOwner<float> m2;
+        private IMemoryOwner<double> m2;
 
         /// <summary>
         /// Color space tag.
@@ -121,62 +120,67 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Initializes a new instance of the <see cref="WuFrameQuantizer{TPixel}"/> class.
         /// </summary>
+        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/>.</param>
         /// <param name="quantizer">The wu quantizer</param>
         /// <remarks>
         /// The Wu quantizer is a two pass algorithm. The initial pass sets up the 3-D color histogram,
         /// the second pass quantizes a color based on the position in the histogram.
         /// </remarks>
-        public WuFrameQuantizer(WuQuantizer quantizer)
-            : this(quantizer, quantizer.MaxColors)
+        public WuFrameQuantizer(MemoryAllocator memoryAllocator, WuQuantizer quantizer)
+            : this(memoryAllocator, quantizer, quantizer.MaxColors)
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WuFrameQuantizer{TPixel}"/> class.
         /// </summary>
+        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/>.</param>
         /// <param name="quantizer">The wu quantizer.</param>
         /// <param name="maxColors">The maximum number of colors to hold in the color palette.</param>
         /// <remarks>
         /// The Wu quantizer is a two pass algorithm. The initial pass sets up the 3-D color histogram,
         /// the second pass quantizes a color based on the position in the histogram.
         /// </remarks>
-        public WuFrameQuantizer(WuQuantizer quantizer, int maxColors)
-            : base(quantizer, false) => this.colors = maxColors;
-
-        /// <inheritdoc/>
-        public override QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image)
+        public WuFrameQuantizer(MemoryAllocator memoryAllocator, WuQuantizer quantizer, int maxColors)
+            : base(quantizer, false)
         {
-            Guard.NotNull(image, nameof(image));
-            MemoryAllocator memoryAllocator = image.MemoryAllocator;
+            Guard.NotNull(memoryAllocator, nameof(memoryAllocator));
 
-            try
-            {
-                this.vwt = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
-                this.vmr = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
-                this.vmg = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
-                this.vmb = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
-                this.vma = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
-                this.m2 = memoryAllocator.Allocate<float>(TableLength, AllocationOptions.Clean);
-                this.tag = memoryAllocator.Allocate<byte>(TableLength, AllocationOptions.Clean);
+            this.vwt = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
+            this.vmr = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
+            this.vmg = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
+            this.vmb = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
+            this.vma = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
+            this.m2 = memoryAllocator.Allocate<double>(TableLength, AllocationOptions.Clean);
+            this.tag = memoryAllocator.Allocate<byte>(TableLength, AllocationOptions.Clean);
 
-                return base.QuantizeFrame(image);
-            }
-            finally
-            {
-                this.vwt?.Dispose();
-                this.vmr?.Dispose();
-                this.vmg?.Dispose();
-                this.vmb?.Dispose();
-                this.vma?.Dispose();
-                this.m2?.Dispose();
-                this.tag?.Dispose();
-            }
+            this.colors = maxColors;
         }
 
-        internal TPixel[] AotGetPalette() => this.GetPalette();
+        /// <inheritdoc/>
+        public override void Dispose()
+        {
+            this.vwt?.Dispose();
+            this.vmr?.Dispose();
+            this.vmg?.Dispose();
+            this.vmb?.Dispose();
+            this.vma?.Dispose();
+            this.m2?.Dispose();
+            this.tag?.Dispose();
+
+            this.vwt = null;
+            this.vmr = null;
+            this.vmg = null;
+            this.vmb = null;
+            this.vma = null;
+            this.m2 = null;
+            this.tag = null;
+        }
+
+        internal ReadOnlyMemory<TPixel> AotGetPalette() => this.GetPalette();
 
         /// <inheritdoc/>
-        protected override TPixel[] GetPalette()
+        protected override ReadOnlyMemory<TPixel> GetPalette()
         {
             if (this.palette is null)
             {
@@ -275,9 +279,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int GetPaletteIndex(int r, int g, int b, int a)
         {
-            return (r << ((IndexBits * 2) + IndexAlphaBits)) + (r << (IndexBits + IndexAlphaBits + 1))
-                   + (g << (IndexBits + IndexAlphaBits)) + (r << (IndexBits * 2)) + (r << (IndexBits + 1))
-                   + (g << IndexBits) + ((r + g + b) << IndexAlphaBits) + r + g + b + a;
+            return (r << ((IndexBits * 2) + IndexAlphaBits))
+                + (r << (IndexBits + IndexAlphaBits + 1))
+                + (g << (IndexBits + IndexAlphaBits))
+                + (r << (IndexBits * 2))
+                + (r << (IndexBits + 1))
+                + (g << IndexBits)
+                + ((r + g + b) << IndexAlphaBits)
+                + r + g + b + a;
         }
 
         /// <summary>
@@ -288,26 +297,26 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <returns>The result.</returns>
         private static float Volume(ref Box cube, Span<long> moment)
         {
-            return moment[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A1)]
-                   - moment[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A0)]
-                   - moment[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A1)]
-                   + moment[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A0)]
-                   - moment[GetPaletteIndex(cube.R1, cube.G0, cube.B1, cube.A1)]
-                   + moment[GetPaletteIndex(cube.R1, cube.G0, cube.B1, cube.A0)]
-                   + moment[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A1)]
-                   - moment[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A0)]
-                   - moment[GetPaletteIndex(cube.R0, cube.G1, cube.B1, cube.A1)]
-                   + moment[GetPaletteIndex(cube.R0, cube.G1, cube.B1, cube.A0)]
-                   + moment[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A1)]
-                   - moment[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A0)]
-                   + moment[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A1)]
-                   - moment[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A0)]
-                   - moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A1)]
-                   + moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
+            return moment[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMax, cube.AMax)]
+                 - moment[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMax, cube.AMin)]
+                 - moment[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMin, cube.AMax)]
+                 + moment[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMin, cube.AMin)]
+                 - moment[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMax, cube.AMax)]
+                 + moment[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMax, cube.AMin)]
+                 + moment[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMin, cube.AMax)]
+                 - moment[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMin, cube.AMin)]
+                 - moment[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMax, cube.AMax)]
+                 + moment[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMax, cube.AMin)]
+                 + moment[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMin, cube.AMax)]
+                 - moment[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMin, cube.AMin)]
+                 + moment[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMax, cube.AMax)]
+                 - moment[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMax, cube.AMin)]
+                 - moment[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMin, cube.AMax)]
+                 + moment[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMin, cube.AMin)];
         }
 
         /// <summary>
-        /// Computes part of Volume(cube, moment) that doesn't depend on r1, g1, or b1 (depending on direction).
+        /// Computes part of Volume(cube, moment) that doesn't depend on RMax, GMax, BMax, or AMax (depending on direction).
         /// </summary>
         /// <param name="cube">The cube.</param>
         /// <param name="direction">The direction.</param>
@@ -319,47 +328,47 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             {
                 // Red
                 case 3:
-                    return -moment[GetPaletteIndex(cube.R0, cube.G1, cube.B1, cube.A1)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G1, cube.B1, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A1)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A1)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A0)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A1)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
+                    return -moment[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMax, cube.AMax)]
+                         + moment[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMax, cube.AMin)]
+                         + moment[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMin, cube.AMax)]
+                         - moment[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMin, cube.AMin)]
+                         + moment[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMax, cube.AMax)]
+                         - moment[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMax, cube.AMin)]
+                         - moment[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMin, cube.AMax)]
+                         + moment[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMin, cube.AMin)];
 
                 // Green
                 case 2:
-                    return -moment[GetPaletteIndex(cube.R1, cube.G0, cube.B1, cube.A1)]
-                           + moment[GetPaletteIndex(cube.R1, cube.G0, cube.B1, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A1)]
-                           - moment[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A1)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A0)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A1)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
+                    return -moment[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMax, cube.AMax)]
+                         + moment[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMax, cube.AMin)]
+                         + moment[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMin, cube.AMax)]
+                         - moment[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMin, cube.AMin)]
+                         + moment[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMax, cube.AMax)]
+                         - moment[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMax, cube.AMin)]
+                         - moment[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMin, cube.AMax)]
+                         + moment[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMin, cube.AMin)];
 
                 // Blue
                 case 1:
-                    return -moment[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A1)]
-                           + moment[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A1)]
-                           - moment[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A1)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A0)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A1)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
+                    return -moment[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMin, cube.AMax)]
+                         + moment[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMin, cube.AMin)]
+                         + moment[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMin, cube.AMax)]
+                         - moment[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMin, cube.AMin)]
+                         + moment[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMin, cube.AMax)]
+                         - moment[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMin, cube.AMin)]
+                         - moment[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMin, cube.AMax)]
+                         + moment[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMin, cube.AMin)];
 
                 // Alpha
                 case 0:
-                    return -moment[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R1, cube.G0, cube.B1, cube.A0)]
-                           - moment[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G1, cube.B1, cube.A0)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A0)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
+                    return -moment[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMax, cube.AMin)]
+                         + moment[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMin, cube.AMin)]
+                         + moment[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMax, cube.AMin)]
+                         - moment[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMin, cube.AMin)]
+                         + moment[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMax, cube.AMin)]
+                         - moment[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMin, cube.AMin)]
+                         - moment[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMax, cube.AMin)]
+                         + moment[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMin, cube.AMin)];
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(direction));
@@ -367,7 +376,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         /// <summary>
-        /// Computes remainder of Volume(cube, moment), substituting position for r1, g1, or b1 (depending on direction).
+        /// Computes remainder of Volume(cube, moment), substituting position for RMax, GMax, BMax, or AMax (depending on direction).
         /// </summary>
         /// <param name="cube">The cube.</param>
         /// <param name="direction">The direction.</param>
@@ -380,47 +389,47 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             {
                 // Red
                 case 3:
-                    return moment[GetPaletteIndex(position, cube.G1, cube.B1, cube.A1)]
-                           - moment[GetPaletteIndex(position, cube.G1, cube.B1, cube.A0)]
-                           - moment[GetPaletteIndex(position, cube.G1, cube.B0, cube.A1)]
-                           + moment[GetPaletteIndex(position, cube.G1, cube.B0, cube.A0)]
-                           - moment[GetPaletteIndex(position, cube.G0, cube.B1, cube.A1)]
-                           + moment[GetPaletteIndex(position, cube.G0, cube.B1, cube.A0)]
-                           + moment[GetPaletteIndex(position, cube.G0, cube.B0, cube.A1)]
-                           - moment[GetPaletteIndex(position, cube.G0, cube.B0, cube.A0)];
+                    return moment[GetPaletteIndex(position, cube.GMax, cube.BMax, cube.AMax)]
+                         - moment[GetPaletteIndex(position, cube.GMax, cube.BMax, cube.AMin)]
+                         - moment[GetPaletteIndex(position, cube.GMax, cube.BMin, cube.AMax)]
+                         + moment[GetPaletteIndex(position, cube.GMax, cube.BMin, cube.AMin)]
+                         - moment[GetPaletteIndex(position, cube.GMin, cube.BMax, cube.AMax)]
+                         + moment[GetPaletteIndex(position, cube.GMin, cube.BMax, cube.AMin)]
+                         + moment[GetPaletteIndex(position, cube.GMin, cube.BMin, cube.AMax)]
+                         - moment[GetPaletteIndex(position, cube.GMin, cube.BMin, cube.AMin)];
 
                 // Green
                 case 2:
-                    return moment[GetPaletteIndex(cube.R1, position, cube.B1, cube.A1)]
-                           - moment[GetPaletteIndex(cube.R1, position, cube.B1, cube.A0)]
-                           - moment[GetPaletteIndex(cube.R1, position, cube.B0, cube.A1)]
-                           + moment[GetPaletteIndex(cube.R1, position, cube.B0, cube.A0)]
-                           - moment[GetPaletteIndex(cube.R0, position, cube.B1, cube.A1)]
-                           + moment[GetPaletteIndex(cube.R0, position, cube.B1, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R0, position, cube.B0, cube.A1)]
-                           - moment[GetPaletteIndex(cube.R0, position, cube.B0, cube.A0)];
+                    return moment[GetPaletteIndex(cube.RMax, position, cube.BMax, cube.AMax)]
+                         - moment[GetPaletteIndex(cube.RMax, position, cube.BMax, cube.AMin)]
+                         - moment[GetPaletteIndex(cube.RMax, position, cube.BMin, cube.AMax)]
+                         + moment[GetPaletteIndex(cube.RMax, position, cube.BMin, cube.AMin)]
+                         - moment[GetPaletteIndex(cube.RMin, position, cube.BMax, cube.AMax)]
+                         + moment[GetPaletteIndex(cube.RMin, position, cube.BMax, cube.AMin)]
+                         + moment[GetPaletteIndex(cube.RMin, position, cube.BMin, cube.AMax)]
+                         - moment[GetPaletteIndex(cube.RMin, position, cube.BMin, cube.AMin)];
 
                 // Blue
                 case 1:
-                    return moment[GetPaletteIndex(cube.R1, cube.G1, position, cube.A1)]
-                           - moment[GetPaletteIndex(cube.R1, cube.G1, position, cube.A0)]
-                           - moment[GetPaletteIndex(cube.R1, cube.G0, position, cube.A1)]
-                           + moment[GetPaletteIndex(cube.R1, cube.G0, position, cube.A0)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G1, position, cube.A1)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G1, position, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G0, position, cube.A1)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G0, position, cube.A0)];
+                    return moment[GetPaletteIndex(cube.RMax, cube.GMax, position, cube.AMax)]
+                         - moment[GetPaletteIndex(cube.RMax, cube.GMax, position, cube.AMin)]
+                         - moment[GetPaletteIndex(cube.RMax, cube.GMin, position, cube.AMax)]
+                         + moment[GetPaletteIndex(cube.RMax, cube.GMin, position, cube.AMin)]
+                         - moment[GetPaletteIndex(cube.RMin, cube.GMax, position, cube.AMax)]
+                         + moment[GetPaletteIndex(cube.RMin, cube.GMax, position, cube.AMin)]
+                         + moment[GetPaletteIndex(cube.RMin, cube.GMin, position, cube.AMax)]
+                         - moment[GetPaletteIndex(cube.RMin, cube.GMin, position, cube.AMin)];
 
                 // Alpha
                 case 0:
-                    return moment[GetPaletteIndex(cube.R1, cube.G1, cube.B1, position)]
-                           - moment[GetPaletteIndex(cube.R1, cube.G1, cube.B0, position)]
-                           - moment[GetPaletteIndex(cube.R1, cube.G0, cube.B1, position)]
-                           + moment[GetPaletteIndex(cube.R1, cube.G0, cube.B0, position)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G1, cube.B1, position)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G1, cube.B0, position)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G0, cube.B1, position)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, position)];
+                    return moment[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMax, position)]
+                         - moment[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMin, position)]
+                         - moment[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMax, position)]
+                         + moment[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMin, position)]
+                         - moment[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMax, position)]
+                         + moment[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMin, position)]
+                         + moment[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMax, position)]
+                         - moment[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMin, position)];
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(direction));
@@ -440,7 +449,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             Span<long> vmgSpan = this.vmg.GetSpan();
             Span<long> vmbSpan = this.vmb.GetSpan();
             Span<long> vmaSpan = this.vma.GetSpan();
-            Span<float> m2Span = this.m2.GetSpan();
+            Span<double> m2Span = this.m2.GetSpan();
 
             // Build up the 3-D color histogram
             // Loop through each row
@@ -489,34 +498,34 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             Span<long> vmgSpan = this.vmg.GetSpan();
             Span<long> vmbSpan = this.vmb.GetSpan();
             Span<long> vmaSpan = this.vma.GetSpan();
-            Span<float> m2Span = this.m2.GetSpan();
+            Span<double> m2Span = this.m2.GetSpan();
 
             using (IMemoryOwner<long> volume = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
             using (IMemoryOwner<long> volumeR = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
             using (IMemoryOwner<long> volumeG = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
             using (IMemoryOwner<long> volumeB = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
             using (IMemoryOwner<long> volumeA = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (IMemoryOwner<float> volume2 = memoryAllocator.Allocate<float>(IndexCount * IndexAlphaCount))
+            using (IMemoryOwner<double> volume2 = memoryAllocator.Allocate<double>(IndexCount * IndexAlphaCount))
             using (IMemoryOwner<long> area = memoryAllocator.Allocate<long>(IndexAlphaCount))
             using (IMemoryOwner<long> areaR = memoryAllocator.Allocate<long>(IndexAlphaCount))
             using (IMemoryOwner<long> areaG = memoryAllocator.Allocate<long>(IndexAlphaCount))
             using (IMemoryOwner<long> areaB = memoryAllocator.Allocate<long>(IndexAlphaCount))
             using (IMemoryOwner<long> areaA = memoryAllocator.Allocate<long>(IndexAlphaCount))
-            using (IMemoryOwner<float> area2 = memoryAllocator.Allocate<float>(IndexAlphaCount))
+            using (IMemoryOwner<double> area2 = memoryAllocator.Allocate<double>(IndexAlphaCount))
             {
                 Span<long> volumeSpan = volume.GetSpan();
                 Span<long> volumeRSpan = volumeR.GetSpan();
                 Span<long> volumeGSpan = volumeG.GetSpan();
                 Span<long> volumeBSpan = volumeB.GetSpan();
                 Span<long> volumeASpan = volumeA.GetSpan();
-                Span<float> volume2Span = volume2.GetSpan();
+                Span<double> volume2Span = volume2.GetSpan();
 
                 Span<long> areaSpan = area.GetSpan();
                 Span<long> areaRSpan = areaR.GetSpan();
                 Span<long> areaGSpan = areaG.GetSpan();
                 Span<long> areaBSpan = areaB.GetSpan();
                 Span<long> areaASpan = areaA.GetSpan();
-                Span<float> area2Span = area2.GetSpan();
+                Span<double> area2Span = area2.GetSpan();
 
                 for (int r = 1; r < IndexCount; r++)
                 {
@@ -543,7 +552,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                             long lineG = 0;
                             long lineB = 0;
                             long lineA = 0;
-                            float line2 = 0;
+                            double line2 = 0;
 
                             for (int a = 1; a < IndexAlphaCount; a++)
                             {
@@ -592,35 +601,35 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         /// <param name="cube">The cube.</param>
         /// <returns>The <see cref="float"/>.</returns>
-        private float Variance(ref Box cube)
+        private double Variance(ref Box cube)
         {
             float dr = Volume(ref cube, this.vmr.GetSpan());
             float dg = Volume(ref cube, this.vmg.GetSpan());
             float db = Volume(ref cube, this.vmb.GetSpan());
             float da = Volume(ref cube, this.vma.GetSpan());
 
-            Span<float> m2Span = this.m2.GetSpan();
+            Span<double> m2Span = this.m2.GetSpan();
 
-            float xx =
-                m2Span[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A1)]
-                - m2Span[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A0)]
-                - m2Span[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A1)]
-                + m2Span[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A0)]
-                - m2Span[GetPaletteIndex(cube.R1, cube.G0, cube.B1, cube.A1)]
-                + m2Span[GetPaletteIndex(cube.R1, cube.G0, cube.B1, cube.A0)]
-                + m2Span[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A1)]
-                - m2Span[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A0)]
-                - m2Span[GetPaletteIndex(cube.R0, cube.G1, cube.B1, cube.A1)]
-                + m2Span[GetPaletteIndex(cube.R0, cube.G1, cube.B1, cube.A0)]
-                + m2Span[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A1)]
-                - m2Span[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A0)]
-                + m2Span[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A1)]
-                - m2Span[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A0)]
-                - m2Span[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A1)]
-                + m2Span[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
+            double moment =
+                  m2Span[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMax, cube.AMax)]
+                - m2Span[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMax, cube.AMin)]
+                - m2Span[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMin, cube.AMax)]
+                + m2Span[GetPaletteIndex(cube.RMax, cube.GMax, cube.BMin, cube.AMin)]
+                - m2Span[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMax, cube.AMax)]
+                + m2Span[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMax, cube.AMin)]
+                + m2Span[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMin, cube.AMax)]
+                - m2Span[GetPaletteIndex(cube.RMax, cube.GMin, cube.BMin, cube.AMin)]
+                - m2Span[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMax, cube.AMax)]
+                + m2Span[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMax, cube.AMin)]
+                + m2Span[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMin, cube.AMax)]
+                - m2Span[GetPaletteIndex(cube.RMin, cube.GMax, cube.BMin, cube.AMin)]
+                + m2Span[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMax, cube.AMax)]
+                - m2Span[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMax, cube.AMin)]
+                - m2Span[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMin, cube.AMax)]
+                + m2Span[GetPaletteIndex(cube.RMin, cube.GMin, cube.BMin, cube.AMin)];
 
             var vector = new Vector4(dr, dg, db, da);
-            return xx - (Vector4.Dot(vector, vector) / Volume(ref cube, this.vwt.GetSpan()));
+            return moment - (Vector4.Dot(vector, vector) / Volume(ref cube, this.vwt.GetSpan()));
         }
 
         /// <summary>
@@ -714,10 +723,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             float wholeA = Volume(ref set1, this.vma.GetSpan());
             float wholeW = Volume(ref set1, this.vwt.GetSpan());
 
-            float maxr = this.Maximize(ref set1, 3, set1.R0 + 1, set1.R1, out int cutr, wholeR, wholeG, wholeB, wholeA, wholeW);
-            float maxg = this.Maximize(ref set1, 2, set1.G0 + 1, set1.G1, out int cutg, wholeR, wholeG, wholeB, wholeA, wholeW);
-            float maxb = this.Maximize(ref set1, 1, set1.B0 + 1, set1.B1, out int cutb, wholeR, wholeG, wholeB, wholeA, wholeW);
-            float maxa = this.Maximize(ref set1, 0, set1.A0 + 1, set1.A1, out int cuta, wholeR, wholeG, wholeB, wholeA, wholeW);
+            float maxr = this.Maximize(ref set1, 3, set1.RMin + 1, set1.RMax, out int cutr, wholeR, wholeG, wholeB, wholeA, wholeW);
+            float maxg = this.Maximize(ref set1, 2, set1.GMin + 1, set1.GMax, out int cutg, wholeR, wholeG, wholeB, wholeA, wholeW);
+            float maxb = this.Maximize(ref set1, 1, set1.BMin + 1, set1.BMax, out int cutb, wholeR, wholeG, wholeB, wholeA, wholeW);
+            float maxa = this.Maximize(ref set1, 0, set1.AMin + 1, set1.AMax, out int cuta, wholeR, wholeG, wholeB, wholeA, wholeW);
 
             int dir;
 
@@ -743,48 +752,48 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 dir = 0;
             }
 
-            set2.R1 = set1.R1;
-            set2.G1 = set1.G1;
-            set2.B1 = set1.B1;
-            set2.A1 = set1.A1;
+            set2.RMax = set1.RMax;
+            set2.GMax = set1.GMax;
+            set2.BMax = set1.BMax;
+            set2.AMax = set1.AMax;
 
             switch (dir)
             {
                 // Red
                 case 3:
-                    set2.R0 = set1.R1 = cutr;
-                    set2.G0 = set1.G0;
-                    set2.B0 = set1.B0;
-                    set2.A0 = set1.A0;
+                    set2.RMin = set1.RMax = cutr;
+                    set2.GMin = set1.GMin;
+                    set2.BMin = set1.BMin;
+                    set2.AMin = set1.AMin;
                     break;
 
                 // Green
                 case 2:
-                    set2.G0 = set1.G1 = cutg;
-                    set2.R0 = set1.R0;
-                    set2.B0 = set1.B0;
-                    set2.A0 = set1.A0;
+                    set2.GMin = set1.GMax = cutg;
+                    set2.RMin = set1.RMin;
+                    set2.BMin = set1.BMin;
+                    set2.AMin = set1.AMin;
                     break;
 
                 // Blue
                 case 1:
-                    set2.B0 = set1.B1 = cutb;
-                    set2.R0 = set1.R0;
-                    set2.G0 = set1.G0;
-                    set2.A0 = set1.A0;
+                    set2.BMin = set1.BMax = cutb;
+                    set2.RMin = set1.RMin;
+                    set2.GMin = set1.GMin;
+                    set2.AMin = set1.AMin;
                     break;
 
                 // Alpha
                 case 0:
-                    set2.A0 = set1.A1 = cuta;
-                    set2.R0 = set1.R0;
-                    set2.G0 = set1.G0;
-                    set2.B0 = set1.B0;
+                    set2.AMin = set1.AMax = cuta;
+                    set2.RMin = set1.RMin;
+                    set2.GMin = set1.GMin;
+                    set2.BMin = set1.BMin;
                     break;
             }
 
-            set1.Volume = (set1.R1 - set1.R0) * (set1.G1 - set1.G0) * (set1.B1 - set1.B0) * (set1.A1 - set1.A0);
-            set2.Volume = (set2.R1 - set2.R0) * (set2.G1 - set2.G0) * (set2.B1 - set2.B0) * (set2.A1 - set2.A0);
+            set1.Volume = (set1.RMax - set1.RMin) * (set1.GMax - set1.GMin) * (set1.BMax - set1.BMin) * (set1.AMax - set1.AMin);
+            set2.Volume = (set2.RMax - set2.RMin) * (set2.GMax - set2.GMin) * (set2.BMax - set2.BMin) * (set2.AMax - set2.AMin);
 
             return true;
         }
@@ -798,13 +807,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         {
             Span<byte> tagSpan = this.tag.GetSpan();
 
-            for (int r = cube.R0 + 1; r <= cube.R1; r++)
+            for (int r = cube.RMin + 1; r <= cube.RMax; r++)
             {
-                for (int g = cube.G0 + 1; g <= cube.G1; g++)
+                for (int g = cube.GMin + 1; g <= cube.GMax; g++)
                 {
-                    for (int b = cube.B0 + 1; b <= cube.B1; b++)
+                    for (int b = cube.BMin + 1; b <= cube.BMax; b++)
                     {
-                        for (int a = cube.A0 + 1; a <= cube.A1; a++)
+                        for (int a = cube.AMin + 1; a <= cube.AMax; a++)
                         {
                             tagSpan[GetPaletteIndex(r, g, b, a)] = label;
                         }
@@ -819,12 +828,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         private void BuildCube()
         {
             this.colorCube = new Box[this.colors];
-            float[] vv = new float[this.colors];
+            var vv = new double[this.colors];
 
             ref Box cube = ref this.colorCube[0];
-            cube.R0 = cube.G0 = cube.B0 = cube.A0 = 0;
-            cube.R1 = cube.G1 = cube.B1 = IndexCount - 1;
-            cube.A1 = IndexAlphaCount - 1;
+            cube.RMin = cube.GMin = cube.BMin = cube.AMin = 0;
+            cube.RMax = cube.GMax = cube.BMax = IndexCount - 1;
+            cube.AMax = IndexAlphaCount - 1;
 
             int next = 0;
 
@@ -839,13 +848,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 }
                 else
                 {
-                    vv[next] = 0F;
+                    vv[next] = 0D;
                     i--;
                 }
 
                 next = 0;
 
-                float temp = vv[0];
+                double temp = vv[0];
                 for (int k = 1; k <= i; k++)
                 {
                     if (vv[k] > temp)
@@ -855,7 +864,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                     }
                 }
 
-                if (temp <= 0F)
+                if (temp <= 0D)
                 {
                     this.colors = i + 1;
                     break;
@@ -897,52 +906,83 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Represents a box color cube.
         /// </summary>
-        private struct Box
+        private struct Box : IEquatable<Box>
         {
             /// <summary>
             /// Gets or sets the min red value, exclusive.
             /// </summary>
-            public int R0;
+            public int RMin;
 
             /// <summary>
             /// Gets or sets the max red value, inclusive.
             /// </summary>
-            public int R1;
+            public int RMax;
 
             /// <summary>
             /// Gets or sets the min green value, exclusive.
             /// </summary>
-            public int G0;
+            public int GMin;
 
             /// <summary>
             /// Gets or sets the max green value, inclusive.
             /// </summary>
-            public int G1;
+            public int GMax;
 
             /// <summary>
             /// Gets or sets the min blue value, exclusive.
             /// </summary>
-            public int B0;
+            public int BMin;
 
             /// <summary>
             /// Gets or sets the max blue value, inclusive.
             /// </summary>
-            public int B1;
+            public int BMax;
 
             /// <summary>
             /// Gets or sets the min alpha value, exclusive.
             /// </summary>
-            public int A0;
+            public int AMin;
 
             /// <summary>
             /// Gets or sets the max alpha value, inclusive.
             /// </summary>
-            public int A1;
+            public int AMax;
 
             /// <summary>
             /// Gets or sets the volume.
             /// </summary>
             public int Volume;
+
+            /// <inheritdoc/>
+            public override bool Equals(object obj) => obj is Box box && this.Equals(box);
+
+            /// <inheritdoc/>
+            public bool Equals(Box other) =>
+                this.RMin == other.RMin
+                && this.RMax == other.RMax
+                && this.GMin == other.GMin
+                && this.GMax == other.GMax
+                && this.BMin == other.BMin
+                && this.BMax == other.BMax
+                && this.AMin == other.AMin
+                && this.AMax == other.AMax
+                && this.Volume == other.Volume;
+
+            /// <inheritdoc/>
+            public override int GetHashCode()
+            {
+                HashCode hash = default;
+                hash.Add(this.RMin);
+                hash.Add(this.RMax);
+                hash.Add(this.GMin);
+                hash.Add(this.GMax);
+                hash.Add(this.BMin);
+                hash.Add(this.BMax);
+                hash.Add(this.AMin);
+                hash.Add(this.AMax);
+                hash.Add(this.Volume);
+                return hash.ToHashCode();
+            }
         }
     }
 }

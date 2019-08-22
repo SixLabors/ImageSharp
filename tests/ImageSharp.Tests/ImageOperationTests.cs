@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -21,80 +21,156 @@ namespace SixLabors.ImageSharp.Tests
     {
         private readonly Image<Rgba32> image;
         private readonly FakeImageOperationsProvider provider;
-        private readonly IImageProcessor<Rgba32> processor;
+        private readonly IImageProcessor processorDefinition;
 
-        public Configuration Configuration { get; private set; }
+        private static readonly string ExpectedExceptionMessage = GetExpectedExceptionText();
 
         public ImageOperationTests()
         {
             this.provider = new FakeImageOperationsProvider();
-            this.processor = new Mock<IImageProcessor<Rgba32>>().Object;
-            this.image = new Image<Rgba32>(new Configuration()
+
+            var processorMock = new Mock<IImageProcessor>();
+            this.processorDefinition = processorMock.Object;
+
+            this.image = new Image<Rgba32>(new Configuration
             {
                 ImageOperationsProvider = this.provider
             }, 1, 1);
         }
 
+
         [Fact]
         public void MutateCallsImageOperationsProvider_Func_OriginalImage()
         {
-            this.image.Mutate(x => x.ApplyProcessor(this.processor));
+            this.image.Mutate(x => x.ApplyProcessor(this.processorDefinition));
 
             Assert.True(this.provider.HasCreated(this.image));
-            Assert.Contains(this.processor, this.provider.AppliedOperations(this.image).Select(x => x.Processor));
+            Assert.Contains(
+                this.processorDefinition,
+                this.provider.AppliedOperations(this.image).Select(x => x.NonGenericProcessor));
         }
 
         [Fact]
         public void MutateCallsImageOperationsProvider_ListOfProcessors_OriginalImage()
         {
-            this.image.Mutate(this.processor);
+            this.image.Mutate(this.processorDefinition);
 
             Assert.True(this.provider.HasCreated(this.image));
-            Assert.Contains(this.processor, this.provider.AppliedOperations(this.image).Select(x => x.Processor));
+            Assert.Contains(
+                this.processorDefinition,
+                this.provider.AppliedOperations(this.image).Select(x => x.NonGenericProcessor));
         }
 
         [Fact]
         public void CloneCallsImageOperationsProvider_Func_WithDuplicateImage()
         {
-            Image<Rgba32> returned = this.image.Clone(x => x.ApplyProcessor(this.processor));
+            Image<Rgba32> returned = this.image.Clone(x => x.ApplyProcessor(this.processorDefinition));
 
             Assert.True(this.provider.HasCreated(returned));
-            Assert.Contains(this.processor, this.provider.AppliedOperations(returned).Select(x => x.Processor));
+            Assert.Contains(
+                this.processorDefinition,
+                this.provider.AppliedOperations(returned).Select(x => x.NonGenericProcessor));
         }
 
         [Fact]
         public void CloneCallsImageOperationsProvider_ListOfProcessors_WithDuplicateImage()
         {
-            Image<Rgba32> returned = this.image.Clone(this.processor);
+            Image<Rgba32> returned = this.image.Clone(this.processorDefinition);
 
             Assert.True(this.provider.HasCreated(returned));
-            Assert.Contains(this.processor, this.provider.AppliedOperations(returned).Select(x => x.Processor));
+            Assert.Contains(
+                this.processorDefinition,
+                this.provider.AppliedOperations(returned).Select(x => x.NonGenericProcessor));
         }
 
         [Fact]
-        public void CloneCallsImageOperationsProvider_Func_NotOnOrigional()
+        public void CloneCallsImageOperationsProvider_Func_NotOnOriginal()
         {
-            Image<Rgba32> returned = this.image.Clone(x => x.ApplyProcessor(this.processor));
+            this.image.Clone(x => x.ApplyProcessor(this.processorDefinition));
             Assert.False(this.provider.HasCreated(this.image));
-            Assert.DoesNotContain(this.processor, this.provider.AppliedOperations(this.image).Select(x => x.Processor));
+            Assert.DoesNotContain(
+                this.processorDefinition,
+                this.provider.AppliedOperations(this.image).Select(x => x.NonGenericProcessor));
         }
 
         [Fact]
-        public void CloneCallsImageOperationsProvider_ListOfProcessors_NotOnOrigional()
+        public void CloneCallsImageOperationsProvider_ListOfProcessors_NotOnOriginal()
         {
-            Image<Rgba32> returned = this.image.Clone(this.processor);
+            this.image.Clone(this.processorDefinition);
             Assert.False(this.provider.HasCreated(this.image));
-            Assert.DoesNotContain(this.processor, this.provider.AppliedOperations(this.image).Select(x => x.Processor));
+            Assert.DoesNotContain(
+                this.processorDefinition,
+                this.provider.AppliedOperations(this.image).Select(x => x.NonGenericProcessor));
         }
 
         [Fact]
         public void ApplyProcessors_ListOfProcessors_AppliesAllProcessorsToOperation()
         {
             var operations = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(null, false);
-            operations.ApplyProcessors(this.processor);
-            Assert.Contains(this.processor, operations.Applied.Select(x => x.Processor));
+            operations.ApplyProcessors(this.processorDefinition);
+            Assert.Contains(this.processorDefinition, operations.Applied.Select(x => x.NonGenericProcessor));
         }
 
         public void Dispose() => this.image.Dispose();
+
+        [Fact]
+        public void GenericMutate_WhenDisposed_Throws()
+        {
+            this.image.Dispose();
+
+            CheckThrowsCorrectObjectDisposedException(
+                () => this.image.Mutate(x => x.ApplyProcessor(this.processorDefinition)));
+        }
+
+        [Fact]
+        public void GenericClone_WhenDisposed_Throws()
+        {
+            this.image.Dispose();
+
+            CheckThrowsCorrectObjectDisposedException(
+                () => this.image.Clone(x => x.ApplyProcessor(this.processorDefinition)));
+        }
+
+        [Fact]
+        public void AgnosticMutate_WhenDisposed_Throws()
+        {
+            this.image.Dispose();
+            Image img = this.image;
+
+            CheckThrowsCorrectObjectDisposedException(
+                () => img.Mutate(x => x.ApplyProcessor(this.processorDefinition)));
+        }
+
+        [Fact]
+        public void AgnosticClone_WhenDisposed_Throws()
+        {
+            this.image.Dispose();
+            Image img = this.image;
+
+            CheckThrowsCorrectObjectDisposedException(
+                () => img.Clone(x => x.ApplyProcessor(this.processorDefinition)));
+        }
+
+        private static string GetExpectedExceptionText()
+        {
+            try
+            {
+                var img = new Image<Rgba32>(1, 1);
+                img.Dispose();
+                img.EnsureNotDisposed();
+            }
+            catch (ObjectDisposedException ex)
+            {
+                return ex.Message;
+            }
+
+            return "?";
+        }
+
+        private static void CheckThrowsCorrectObjectDisposedException(Action action)
+        {
+            var ex = Assert.Throws<ObjectDisposedException>(action);
+            Assert.Equal(ExpectedExceptionMessage, ex.Message);
+        }
     }
 }

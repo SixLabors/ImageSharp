@@ -3,42 +3,35 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
-using SixLabors.Primitives;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
 {
-    public class BackgroundColorTest : FileTestBase
+    [GroupOutput("Effects")]
+    public class BackgroundColorTest
     {
+        public static readonly string[] InputImages =
+            {
+                TestImages.Png.Splash,
+                TestImages.Png.Ducky
+            };
+        
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyBackgroundColorFilter<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(InputImages), PixelTypes.Rgba32)]
+        public void FullImage<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.BackgroundColor(NamedColors<TPixel>.HotPink));
-                image.DebugSave(provider);
-            }
+            provider.RunValidatingProcessorTest(x =>  x.BackgroundColor(Color.HotPink));
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyBackgroundColorFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(InputImages), PixelTypes.Rgba32)]
+        public void InBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (var image = source.Clone())
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
-
-                image.Mutate(x => x.BackgroundColor(NamedColors<TPixel>.HotPink, bounds));
-                image.DebugSave(provider);
-
-                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
-            }
+            provider.RunRectangleConstrainedValidatingProcessorTest(
+                (x, rect) => x.BackgroundColor(Color.HotPink, rect));
         }
     }
 }

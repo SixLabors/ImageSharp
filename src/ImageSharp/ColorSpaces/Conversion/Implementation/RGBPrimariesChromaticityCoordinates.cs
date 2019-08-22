@@ -7,16 +7,16 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {
     /// <summary>
     /// Represents the chromaticity coordinates of RGB primaries.
-    /// One of the specifiers of <see cref="RgbWorkingSpaceBase"/>.
+    /// One of the specifiers of <see cref="RgbWorkingSpace"/>.
     /// </summary>
     public readonly struct RgbPrimariesChromaticityCoordinates : IEquatable<RgbPrimariesChromaticityCoordinates>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RgbPrimariesChromaticityCoordinates"/> struct.
         /// </summary>
-        /// <param name="r">The chomaticity coordinates of the red channel.</param>
-        /// <param name="g">The chomaticity coordinates of the green channel.</param>
-        /// <param name="b">The chomaticity coordinates of the blue channel.</param>
+        /// <param name="r">The chromaticity coordinates of the red channel.</param>
+        /// <param name="g">The chromaticity coordinates of the green channel.</param>
+        /// <param name="b">The chromaticity coordinates of the blue channel.</param>
         public RgbPrimariesChromaticityCoordinates(CieXyChromaticityCoordinates r, CieXyChromaticityCoordinates g, CieXyChromaticityCoordinates b)
         {
             this.R = r;
@@ -25,17 +25,17 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         }
 
         /// <summary>
-        /// Gets the chomaticity coordinates of the red channel.
+        /// Gets the chromaticity coordinates of the red channel.
         /// </summary>
         public CieXyChromaticityCoordinates R { get; }
 
         /// <summary>
-        /// Gets the chomaticity coordinates of the green channel.
+        /// Gets the chromaticity coordinates of the green channel.
         /// </summary>
         public CieXyChromaticityCoordinates G { get; }
 
         /// <summary>
-        /// Gets the chomaticity coordinates of the blue channel.
+        /// Gets the chromaticity coordinates of the blue channel.
         /// </summary>
         public CieXyChromaticityCoordinates B { get; }
 

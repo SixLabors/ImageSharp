@@ -9,8 +9,26 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
     public class Bgr24Tests
     {
+        [Fact]
+        public void AreEqual()
+        {
+            var color1 = new Bgr24(byte.MaxValue, 0, byte.MaxValue);
+            var color2 = new Bgr24(byte.MaxValue, 0, byte.MaxValue);
+            
+            Assert.Equal(color1, color2);
+        }
+
+        [Fact]
+        public void AreNotEqual()
+        {
+            var color1 = new Bgr24(byte.MaxValue, 0, 0);
+            var color2 = new Bgr24(byte.MaxValue, 0, byte.MaxValue);
+
+            Assert.NotEqual(color1, color2);
+        }
+
         public static readonly TheoryData<byte, byte, byte> ColorData =
-            new TheoryData<byte, byte, byte>() { { 1, 2, 3 }, { 4, 5, 6 }, { 0, 255, 42 } };
+            new TheoryData<byte, byte, byte> { { 1, 2, 3 }, { 4, 5, 6 }, { 0, 255, 42 } };
 
         [Theory]
         [MemberData(nameof(ColorData))]
@@ -94,6 +112,21 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var rgb = new Bgr24(1, 2, 3);
 
             Assert.Equal(Vec(1, 2, 3), rgb.ToVector4());
+        }
+
+        [Fact]
+        public void Bgr24_FromBgra5551()
+        {
+            // arrange
+            var bgr = default(Bgr24);
+
+            // act
+            bgr.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // assert
+            Assert.Equal(255, bgr.R);
+            Assert.Equal(255, bgr.G);
+            Assert.Equal(255, bgr.B);
         }
     }
 }

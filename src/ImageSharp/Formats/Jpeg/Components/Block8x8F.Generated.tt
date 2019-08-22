@@ -1,4 +1,4 @@
-﻿<#
+<#
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 #>
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                     char srcCoord = coordz[j % 4];
                     char srcSide = (j / 4) % 2 == 0 ? 'L' : 'R';
 
-                    string expression = $"d.V{j}{destSide}.{destCoord} = V{i}{srcSide}.{srcCoord};\r\n";
+                    var expression = $"d.V{j}{destSide}.{destCoord} = V{i}{srcSide}.{srcCoord};\r\n";
 					Write(expression);
                 }
             }
@@ -60,9 +60,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </summary>
         public void NormalizeColorsInplace(float maximum)
         {
-            Vector4 CMin4 = new Vector4(0F);
-            Vector4 CMax4 = new Vector4(maximum);
-            Vector4 COff4 = new Vector4((float)Math.Ceiling(maximum/2));
+            var CMin4 = new Vector4(0F);
+            var CMax4 = new Vector4(maximum);
+            var COff4 = new Vector4(MathF.Ceiling(maximum / 2));
 
             <#
 
@@ -86,8 +86,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         [MethodImpl(InliningOptions.ShortMethod)]
         public void NormalizeColorsAndRoundInplaceAvx2(float maximum)
         {
-            Vector<float> off = new Vector<float>((float)Math.Ceiling(maximum/2));
-            Vector<float> max = new Vector<float>(maximum);
+            var off = new Vector<float>(MathF.Ceiling(maximum / 2));
+            var max = new Vector<float>(maximum);
             <#
 
             for (int i = 0; i < 8; i++)
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 {
                     char destCoord = coordz[i % 4];
                     char destSide = (i / 4) % 2 == 0 ? 'L' : 'R';
-                                    
+
 					if(j > 0 && i == 0){
 					WriteLine("");
 					}
@@ -125,9 +125,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                     char srcCoord = coordz[j % 4];
                     char srcSide = (j / 4) % 2 == 0 ? 'L' : 'R';
 
-                    string expression = $"this.V{j}{destSide}.{destCoord} =  Unsafe.Add(ref selfRef, {j*8+i});\r\n";
+                    var expression = $"this.V{j}{destSide}.{destCoord} =  Unsafe.Add(ref selfRef, {j*8+i});\r\n";
 					Write(expression);
-                
+
                 }
             }
 			PopIndent();

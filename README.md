@@ -22,7 +22,7 @@ Designed to democratize image processing, ImageSharp brings you an incredibly po
 
 Compared to `System.Drawing` we have been able to develop something much more flexible, easier to code against, and much, much less prone to memory leaks. Gone are system-wide process-locks; ImageSharp images are thread-safe and fully supported in web environments.
 
-Built against .NET Standard 1.3 ImageSharp can be used in device, cloud, and embedded/IoT scenarios. 
+Built against .NET Standard 1.3, ImageSharp can be used in device, cloud, and embedded/IoT scenarios. 
 
 ### Documentation
 For all SixLabors projects, including ImageSharp:
@@ -41,15 +41,15 @@ Install stable releases via Nuget; development releases are available via MyGet.
 
 The **ImageSharp** library is made up of multiple packages:
 - **SixLabors.ImageSharp**
-  - Contains the generic `Image<TPixel>` class, PixelFormats, Primitives, Configuration, and other core functionality.
-  - The `IImageFormat` interface, Jpeg, Png, Bmp, and Gif formats.
-  - Transform methods like Resize, Crop, Skew, Rotate - Anything that alters the dimensions of the image.
-  - Non-transform methods like Gaussian Blur, Pixelate, Edge Detection - Anything that maintains the original image dimensions.
+  - Contains the generic `Image<TPixel>` class, PixelFormats, Primitives, Configuration, and other core functionality
+  - The `IImageFormat` interface, Jpeg, Png, Bmp, and Gif formats
+  - Transform methods like Resize, Crop, Skew, Rotate - anything that alters the dimensions of the image
+  - Non-transform methods like Gaussian Blur, Pixelate, Edge Detection - anything that maintains the original image dimensions
 
 - **SixLabors.ImageSharp.Drawing**
-  - Brushes and various drawing algorithms, including drawing images.
+  - Brushes and various drawing algorithms, including drawing images
   - Various vector drawing methods for drawing paths, polygons etc.
-  - Text drawing.
+  - Text drawing
 
 ### Build Status
 
@@ -72,6 +72,7 @@ On platforms supporting netstandard 1.3+
 ```csharp
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.PixelFormats;
 
 // Image.Load(string path) is a shortcut for our default type. 
 // Other pixel formats use Image.Load<TPixel>(string path))
@@ -91,7 +92,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
 // Individual pixels
-using (Image<Rgba32> image = new Image<Rgba32>(400, 400))
+using (var image = new Image<Rgba32>(400, 400))
 {
     image[200, 200] = Rgba32.White;
 }
@@ -117,10 +118,24 @@ Alternatively, you can work from command line and/or with a lightweight editor o
 - [Visual Studio Code](https://code.visualstudio.com/) with [C# Extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode.csharp)
 - [.NET Core](https://www.microsoft.com/net/core#linuxubuntu)
 
-To clone ImageSharp locally click the "Clone in Windows" button above or run the following git commands.
+To clone ImageSharp locally, click the "Clone in [YOUR_OS]" button above or run the following git commands:
 
 ```bash
 git clone https://github.com/SixLabors/ImageSharp
+```
+
+If working with Windows please ensure that you have enabled log file paths in git (run as Administrator).
+
+```bash
+git config --system core.longpaths true
+```
+
+### Submodules
+
+This repository contains [git submodules](https://blog.github.com/2016-02-01-working-with-submodules/). To add the submodules to the project, navigate to the repository root and type:
+
+``` bash
+git submodule update --init --recursive
 ```
 
 ### How can you help?

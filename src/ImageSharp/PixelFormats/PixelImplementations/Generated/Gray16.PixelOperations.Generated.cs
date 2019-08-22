@@ -185,6 +185,14 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromGray16(sp);
                 }
             }
+            /// <inheritdoc />
+            internal override void From<TSourcePixel>(
+                Configuration configuration,
+                ReadOnlySpan<TSourcePixel> sourcePixels,
+                Span<Gray16> destinationPixels)
+            {
+                PixelOperations<TSourcePixel>.Instance.ToGray16(configuration, sourcePixels, destinationPixels);
+            }
         }
     }
 }

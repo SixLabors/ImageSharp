@@ -1,10 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Buffers;
 using System.Numerics;
-using System.Threading.Tasks;
 
 using BenchmarkDotNet.Attributes;
 
@@ -21,21 +20,21 @@ namespace SixLabors.ImageSharp.Benchmarks
 
     public class Glow : BenchmarkBase
     {
-        private GlowProcessor<Rgba32> bulk;
+        private GlowProcessor bulk;
 
         private GlowProcessorParallel<Rgba32> parallel;
 
         [GlobalSetup]
         public void Setup()
         {
-            this.bulk = new GlowProcessor<Rgba32>(NamedColors<Rgba32>.Beige, 800 * .5f, GraphicsOptions.Default);
-            this.parallel = new GlowProcessorParallel<Rgba32>(NamedColors<Rgba32>.Beige) { Radius = 800 * .5f, };
+            this.bulk = new GlowProcessor(Color.Beige, 800 * .5f, GraphicsOptions.Default);
+            this.parallel = new GlowProcessorParallel<Rgba32>(Color.Beige) { Radius = 800 * .5f, };
         }
 
         [Benchmark(Description = "ImageSharp Glow - Bulk")]
         public CoreSize GlowBulk()
         {
-            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
+            using (var image = new Image<Rgba32>(800, 800))
             {
                 this.bulk.Apply(image, image.Bounds());
                 return new CoreSize(image.Width, image.Height);
@@ -45,7 +44,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Glow - Parallel")]
         public CoreSize GLowSimple()
         {
-            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
+            using (var image = new Image<Rgba32>(800, 800))
             {
                 this.parallel.Apply(image, image.Bounds());
                 return new CoreSize(image.Width, image.Height);
@@ -128,7 +127,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                                         int offsetX = x - startX;
                                         float distance = Vector2.Distance(centre, new Vector2(offsetX, offsetY));
                                         Vector4 sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
-                                        TPixel packed = default(TPixel);
+                                        TPixel packed = default;
                                         packed.FromVector4(
                                             PremultipliedLerp(
                                                 sourceColor,
@@ -145,7 +144,7 @@ namespace SixLabors.ImageSharp.Benchmarks
             {
                 amount = amount.Clamp(0, 1);
 
-                // Santize on zero alpha
+                // Sanitize on zero alpha
                 if (Math.Abs(backdrop.W) < Constants.Epsilon)
                 {
                     source.W *= amount;
@@ -166,9 +165,9 @@ namespace SixLabors.ImageSharp.Benchmarks
                 // https://en.wikipedia.org/wiki/Alpha_compositing
                 // Vout =  Vs + Vb (1 - Vsa)
                 // Aout = Vsa + Vsb (1 - Vsa)
-                Vector3 inverseW = new Vector3(1 - source.W);
-                Vector3 xyzB = new Vector3(backdrop.X, backdrop.Y, backdrop.Z);
-                Vector3 xyzS = new Vector3(source.X, source.Y, source.Z);
+                var inverseW = new Vector3(1 - source.W);
+                var xyzB = new Vector3(backdrop.X, backdrop.Y, backdrop.Z);
+                var xyzS = new Vector3(source.X, source.Y, source.Z);
 
                 return new Vector4(xyzS + (xyzB * inverseW), source.W + (backdrop.W * (1 - source.W)));
             }

@@ -1,8 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-using System.Text;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Png
@@ -35,11 +34,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         public bool IgnoreMetadata { get; set; }
 
         /// <summary>
-        /// Gets or sets the encoding that should be used when reading text chunks.
-        /// </summary>
-        public Encoding TextEncoding { get; set; } = PngConstants.DefaultEncoding;
-
-        /// <summary>
         /// Decodes the image from the specified stream to the <see cref="ImageFrame{TPixel}"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -59,5 +53,8 @@ namespace SixLabors.ImageSharp.Formats.Png
             var decoder = new PngDecoderCore(configuration, this);
             return decoder.Identify(stream);
         }
+
+        /// <inheritdoc />
+        public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
     }
 }

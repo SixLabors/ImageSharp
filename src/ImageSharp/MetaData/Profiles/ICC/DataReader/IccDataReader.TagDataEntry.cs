@@ -1,11 +1,11 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Globalization;
 using System.Numerics;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// Provides methods to read ICC data types
@@ -153,12 +153,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             else
             {
                 // The type is not know, so the values need be read
-                double[][] values = new double[channelCount][];
+                var values = new double[channelCount][];
                 for (int i = 0; i < channelCount; i++)
                 {
-                    values[i] = new double[2];
-                    values[i][0] = this.ReadUFix16();
-                    values[i][1] = this.ReadUFix16();
+                    values[i] = new double[] { this.ReadUFix16(), this.ReadUFix16() };
                 }
 
                 return new IccChromaticityTagDataEntry(values);
@@ -210,7 +208,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return new IccCurveTagDataEntry(this.ReadUFix8());
             }
 
-            float[] cdata = new float[pointCount];
+            var cdata = new float[pointCount];
             for (int i = 0; i < pointCount; i++)
             {
                 cdata[i] = this.ReadUInt16() / 65535f;
@@ -266,7 +264,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
             // Input LUT
             var inValues = new IccLut[inChCount];
-            byte[] gridPointCount = new byte[inChCount];
+            var gridPointCount = new byte[inChCount];
             for (int i = 0; i < inChCount; i++)
             {
                 inValues[i] = this.ReadLut16(inTableCount);
@@ -301,7 +299,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
             // Input LUT
             var inValues = new IccLut[inChCount];
-            byte[] gridPointCount = new byte[inChCount];
+            var gridPointCount = new byte[inChCount];
             for (int i = 0; i < inChCount; i++)
             {
                 inValues[i] = this.ReadLut8();
@@ -466,8 +464,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             var text = new IccLocalizedString[recordCount];
 
             var culture = new CultureInfo[recordCount];
-            uint[] length = new uint[recordCount];
-            uint[] offset = new uint[recordCount];
+            var length = new uint[recordCount];
+            var offset = new uint[recordCount];
 
             for (int i = 0; i < recordCount; i++)
             {
@@ -526,9 +524,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             int start = this.currentIndex - 8;
 
-            // TODO: Why are we storing variable
-            ushort inChannelCount = this.ReadUInt16();
-            ushort outChannelCount = this.ReadUInt16();
+            this.ReadUInt16();
+            this.ReadUInt16();
             uint elementCount = this.ReadUInt32();
 
             var positionTable = new IccPositionNumber[elementCount];
@@ -630,7 +627,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             ushort channelCount = this.ReadUInt16();
             ushort measurementCount = this.ReadUInt16();
 
-            uint[] offset = new uint[measurementCount];
+            var offset = new uint[measurementCount];
             for (int i = 0; i < measurementCount; i++)
             {
                 offset[i] = this.ReadUInt32();
@@ -654,7 +651,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccFix16ArrayTagDataEntry ReadFix16ArrayTagDataEntry(uint size)
         {
             uint count = (size - 8) / 4;
-            float[] arrayData = new float[count];
+            var arrayData = new float[count];
             for (int i = 0; i < count; i++)
             {
                 arrayData[i] = this.ReadFix16() / 256f;
@@ -690,7 +687,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccUFix16ArrayTagDataEntry ReadUFix16ArrayTagDataEntry(uint size)
         {
             uint count = (size - 8) / 4;
-            float[] arrayData = new float[count];
+            var arrayData = new float[count];
             for (int i = 0; i < count; i++)
             {
                 arrayData[i] = this.ReadUFix16();
@@ -707,7 +704,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccUInt16ArrayTagDataEntry ReadUInt16ArrayTagDataEntry(uint size)
         {
             uint count = (size - 8) / 2;
-            ushort[] arrayData = new ushort[count];
+            var arrayData = new ushort[count];
             for (int i = 0; i < count; i++)
             {
                 arrayData[i] = this.ReadUInt16();
@@ -724,7 +721,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccUInt32ArrayTagDataEntry ReadUInt32ArrayTagDataEntry(uint size)
         {
             uint count = (size - 8) / 4;
-            uint[] arrayData = new uint[count];
+            var arrayData = new uint[count];
             for (int i = 0; i < count; i++)
             {
                 arrayData[i] = this.ReadUInt32();
@@ -741,7 +738,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccUInt64ArrayTagDataEntry ReadUInt64ArrayTagDataEntry(uint size)
         {
             uint count = (size - 8) / 8;
-            ulong[] arrayData = new ulong[count];
+            var arrayData = new ulong[count];
             for (int i = 0; i < count; i++)
             {
                 arrayData[i] = this.ReadUInt64();
@@ -881,14 +878,14 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccUcrBgTagDataEntry ReadUcrBgTagDataEntry(uint size)
         {
             uint ucrCount = this.ReadUInt32();
-            ushort[] ucrCurve = new ushort[ucrCount];
+            var ucrCurve = new ushort[ucrCount];
             for (int i = 0; i < ucrCurve.Length; i++)
             {
                 ucrCurve[i] = this.ReadUInt16();
             }
 
             uint bgCount = this.ReadUInt32();
-            ushort[] bgCurve = new ushort[bgCount];
+            var bgCurve = new ushort[bgCount];
             for (int i = 0; i < bgCurve.Length; i++)
             {
                 bgCurve[i] = this.ReadUInt16();

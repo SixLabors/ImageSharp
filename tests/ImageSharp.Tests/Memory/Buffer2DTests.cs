@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 ref T actual = ref MemoryMarshal.GetReference(span);
                 ref T expected = ref Unsafe.Add(ref buffer.GetReference(), bufferOffset);
 
-                Assert.True(Unsafe.AreSame(ref expected, ref actual), "span does not point to the expected position");
+                True(Unsafe.AreSame(ref expected, ref actual), "span does not point to the expected position");
             }
         }
 
@@ -125,6 +125,57 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 Assert.Equal(new Size(3, 7), a.Size());
                 Assert.Equal(new Size(10, 5), b.Size());
+            }
+        }
+
+        [Theory]
+        [InlineData(100, 20, 0, 90, 10)]
+        [InlineData(100, 3, 0, 50, 50)]
+        [InlineData(123, 23, 10, 80, 13)]
+        [InlineData(10, 1, 3, 6, 3)]
+        [InlineData(2, 2, 0, 1, 1)]
+        [InlineData(5, 1, 1, 3, 2)]
+        public void CopyColumns(int width, int height, int startIndex, int destIndex, int columnCount)
+        {
+            var rnd = new Random(123);
+            using (Buffer2D<float> b = this.MemoryAllocator.Allocate2D<float>(width, height))
+            {
+                rnd.RandomFill(b.Span, 0, 1);
+
+                b.CopyColumns(startIndex, destIndex, columnCount);
+
+                for (int y = 0; y < b.Height; y++)
+                {
+                    Span<float> row = b.GetRowSpan(y);
+
+                    Span<float> s = row.Slice(startIndex, columnCount);
+                    Span<float> d = row.Slice(destIndex, columnCount);
+
+                    Xunit.Assert.True(s.SequenceEqual(d));
+                }
+            }
+        }
+
+        [Fact]
+        public void CopyColumns_InvokeMultipleTimes()
+        {
+            var rnd = new Random(123);
+            using (Buffer2D<float> b = this.MemoryAllocator.Allocate2D<float>(100, 100))
+            {
+                rnd.RandomFill(b.Span, 0, 1);
+
+                b.CopyColumns(0, 50, 22);
+                b.CopyColumns(0, 50, 22);
+
+                for (int y = 0; y < b.Height; y++)
+                {
+                    Span<float> row = b.GetRowSpan(y);
+
+                    Span<float> s = row.Slice(0, 22);
+                    Span<float> d = row.Slice(50, 22);
+
+                    Xunit.Assert.True(s.SequenceEqual(d));
+                }
             }
         }
     }

@@ -1,7 +1,5 @@
-﻿// <copyright file="Crop.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -19,14 +17,13 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Baseline = true, Description = "System.Drawing Draw Polygon")]
         public void DrawPolygonSystemDrawing()
         {
-            using (Bitmap destination = new Bitmap(800, 800))
+            using (var destination = new Bitmap(800, 800))
+            using (var graphics = Graphics.FromImage(destination))
             {
-
-                using (Graphics graphics = Graphics.FromImage(destination))
+                graphics.InterpolationMode = InterpolationMode.Default;
+                graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using (var pen = new System.Drawing.Pen(System.Drawing.Color.HotPink, 10))
                 {
-                    graphics.InterpolationMode = InterpolationMode.Default;
-                    graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    Pen pen = new Pen(System.Drawing.Color.HotPink, 10);
                     graphics.DrawPolygon(pen, new[] {
                         new PointF(10, 10),
                         new PointF(550, 50),
@@ -34,9 +31,9 @@ namespace SixLabors.ImageSharp.Benchmarks
                     });
                 }
 
-                using (MemoryStream ms = new MemoryStream())
+                using (var stream = new MemoryStream())
                 {
-                    destination.Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
+                    destination.Save(stream, System.Drawing.Imaging.ImageFormat.Bmp);
                 }
             }
         }
@@ -44,18 +41,16 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Draw Polygon")]
         public void DrawPolygonCore()
         {
-            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
+            using (var image = new Image<Rgba32>(800, 800))
             {
                 image.Mutate(x => x.DrawPolygon(
                     Rgba32.HotPink,
                     10,
-                    new SixLabors.Primitives.PointF[] {
-                        new Vector2(10, 10),
-                        new Vector2(550, 50),
-                        new Vector2(200, 400)
-                    }));
+                    new Vector2(10, 10),
+                    new Vector2(550, 50),
+                    new Vector2(200, 400)));
 
-                using (MemoryStream ms = new MemoryStream())
+                using (var ms = new MemoryStream())
                 {
                     image.SaveAsBmp(ms);
                 }

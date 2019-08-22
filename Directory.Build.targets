@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+
+  <!--
+    Directory.Build.targets is automatically picked up and imported by
+    Microsoft.Common.targets. This file needs to exist, even if empty so that
+    files in the parent directory tree, with the same name, are not imported
+    instead. The import fairly late and most other props/targets will have been
+    imported beforehand. We also don't need to add ourselves to
+    MSBuildAllProjects, as that is done by the file that imports us.
+  -->
+
+  <!-- Settings that append the existing setting value -->
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);$(OS)</DefineConstants>
+  </PropertyGroup>
+
+  <!-- Tool versions for tool references across all projects -->
+  <ItemGroup>
+    <DotNetCliToolReference Update="dotnet-xunit" Version="2.3.1" />
+  </ItemGroup>
+
+  <!-- Package versions for package references across all projects -->
+  <ItemGroup>
+    <PackageReference Update="BenchmarkDotNet" Version="0.11.5" />
+    <PackageReference Update="Colourful" Version="2.0.2" />
+    <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="7.12.0" />
+    <PackageReference Update="Microsoft.Net.Compilers.Toolset" Version="3.1.0" />
+    <PackageReference Update="Microsoft.NET.Test.Sdk" Version="15.9.0" />
+    <PackageReference Update="Moq" Version="4.10.0" />
+    <PackageReference Update="SixLabors.Core" Version="1.0.0-dev000101" />
+    <PackageReference Update="SixLabors.Fonts" Version="1.0.0-beta0008" />
+    <PackageReference Update="SixLabors.Shapes" Version="1.0.0-beta0008" />
+    <PackageReference Update="SixLabors.Shapes.Text" Version="1.0.0-beta0007" />
+    <PackageReference Update="StyleCop.Analyzers" Version="1.1.118" />
+    <PackageReference Update="System.Drawing.Common" Version="4.5.1" />
+    <PackageReference Update="System.IO.Compression" Version="4.3.0" />
+    <PackageReference Update="System.IO.UnmanagedMemoryStream" Version="4.3.0" />
+    <PackageReference Update="System.Runtime.CompilerServices.Unsafe" Version="4.5.1" />
+    <PackageReference Update="System.Threading.Tasks.Parallel" Version="4.3.0" />
+    <PackageReference Update="System.ValueTuple" Version="4.5.0" />
+    <PackageReference Update="xunit" Version="2.3.1" />
+    <PackageReference Update="xunit.runner.console" Version="2.3.1" />
+    <PackageReference Update="xunit.runner.visualstudio" Version="2.3.1" />
+  </ItemGroup>
+
+</Project>

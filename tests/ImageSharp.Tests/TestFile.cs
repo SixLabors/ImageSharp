@@ -3,10 +3,8 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Reflection;
+
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
@@ -134,7 +132,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <returns>
         /// The <see cref="ImageSharp.Image"/>.
         /// </returns>
-        public Image<Rgba32> CreateImage()
+        public Image<Rgba32> CreateRgba32Image()
         {
             return this.Image.Clone();
         }
@@ -145,9 +143,9 @@ namespace SixLabors.ImageSharp.Tests
         /// <returns>
         /// The <see cref="ImageSharp.Image"/>.
         /// </returns>
-        public Image<Rgba32> CreateImage(IImageDecoder decoder)
+        public Image<Rgba32> CreateRgba32Image(IImageDecoder decoder)
         {
-            return ImageSharp.Image.Load(this.Image.GetConfiguration(), this.Bytes, decoder);
+            return ImageSharp.Image.Load<Rgba32>(this.Image.GetConfiguration(), this.Bytes, decoder);
         }
     }
 }

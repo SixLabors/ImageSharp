@@ -1,14 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Buffers;
-using System.Threading.Tasks;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Drawing
@@ -16,84 +9,86 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
     /// <summary>
     /// Combines two images together by blending the pixels.
     /// </summary>
-    /// <typeparam name="TPixelDst">The pixel format of destination image.</typeparam>
-    /// <typeparam name="TPixelSrc">The pixel format of source image.</typeparam>
-    internal class DrawImageProcessor<TPixelDst, TPixelSrc> : ImageProcessor<TPixelDst>
-        where TPixelDst : struct, IPixel<TPixelDst>
-        where TPixelSrc : struct, IPixel<TPixelSrc>
+    public class DrawImageProcessor : IImageProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="DrawImageProcessor{TPixelDst, TPixelSrc}"/> class.
+        /// Initializes a new instance of the <see cref="DrawImageProcessor"/> class.
         /// </summary>
-        /// <param name="image">The image to blend with the currently processing image.</param>
+        /// <param name="image">The image to blend.</param>
         /// <param name="location">The location to draw the blended image.</param>
         /// <param name="colorBlendingMode">The blending mode to use when drawing the image.</param>
         /// <param name="alphaCompositionMode">The Alpha blending mode to use when drawing the image.</param>
-        /// <param name="opacity">The opacity of the image to blend. Must be between 0 and 1.</param>
-        public DrawImageProcessor(Image<TPixelSrc> image, Point location, PixelColorBlendingMode colorBlendingMode, PixelAlphaCompositionMode alphaCompositionMode, float opacity)
+        /// <param name="opacity">The opacity of the image to blend.</param>
+        public DrawImageProcessor(
+            Image image,
+            Point location,
+            PixelColorBlendingMode colorBlendingMode,
+            PixelAlphaCompositionMode alphaCompositionMode,
+            float opacity)
         {
-            Guard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
-
             this.Image = image;
-            this.Opacity = opacity;
-            this.Blender = PixelOperations<TPixelDst>.Instance.GetPixelBlender(colorBlendingMode, alphaCompositionMode);
             this.Location = location;
+            this.ColorBlendingMode = colorBlendingMode;
+            this.AlphaCompositionMode = alphaCompositionMode;
+            this.Opacity = opacity;
         }
 
         /// <summary>
-        /// Gets the image to blend
+        /// Gets the image to blend.
         /// </summary>
-        public Image<TPixelSrc> Image { get; }
+        public Image Image { get; }
 
         /// <summary>
-        /// Gets the opacity of the image to blend
-        /// </summary>
-        public float Opacity { get; }
-
-        /// <summary>
-        /// Gets the pixel blender
-        /// </summary>
-        public PixelBlender<TPixelDst> Blender { get; }
-
-        /// <summary>
-        /// Gets the location to draw the blended image
+        /// Gets the location to draw the blended image.
         /// </summary>
         public Point Location { get; }
 
-        /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixelDst> source, Rectangle sourceRectangle, Configuration configuration)
+        /// <summary>
+        /// Gets the blending mode to use when drawing the image.
+        /// </summary>
+        public PixelColorBlendingMode ColorBlendingMode { get; }
+
+        /// <summary>
+        /// Gets the Alpha blending mode to use when drawing the image.
+        /// </summary>
+        public PixelAlphaCompositionMode AlphaCompositionMode { get; }
+
+        /// <summary>
+        /// Gets the opacity of the image to blend.
+        /// </summary>
+        public float Opacity { get; }
+
+        /// <inheritdoc />
+        public IImageProcessor<TPixelBg> CreatePixelSpecificProcessor<TPixelBg>()
+            where TPixelBg : struct, IPixel<TPixelBg>
         {
-            Image<TPixelSrc> targetImage = this.Image;
-            PixelBlender<TPixelDst> blender = this.Blender;
-            int locationY = this.Location.Y;
+            var visitor = new ProcessorFactoryVisitor<TPixelBg>(this);
+            this.Image.AcceptVisitor(visitor);
+            return visitor.Result;
+        }
 
-            // Align start/end positions.
-            Rectangle bounds = targetImage.Bounds();
+        private class ProcessorFactoryVisitor<TPixelBg> : IImageVisitor
+            where TPixelBg : struct, IPixel<TPixelBg>
+        {
+            private readonly DrawImageProcessor definition;
 
-            int minX = Math.Max(this.Location.X, sourceRectangle.X);
-            int maxX = Math.Min(this.Location.X + bounds.Width, sourceRectangle.Width);
-            int targetX = minX - this.Location.X;
+            public ProcessorFactoryVisitor(DrawImageProcessor definition)
+            {
+                this.definition = definition;
+            }
 
-            int minY = Math.Max(this.Location.Y, sourceRectangle.Y);
-            int maxY = Math.Min(this.Location.Y + bounds.Height, sourceRectangle.Bottom);
+            public IImageProcessor<TPixelBg> Result { get; private set; }
 
-            int width = maxX - minX;
-
-            var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
-
-            ParallelHelper.IterateRows(
-                workingRect,
-                configuration,
-                rows =>
-                    {
-                        for (int y = rows.Min; y < rows.Max; y++)
-                        {
-                            Span<TPixelDst> background = source.GetPixelRowSpan(y).Slice(minX, width);
-                            Span<TPixelSrc> foreground =
-                                targetImage.GetPixelRowSpan(y - locationY).Slice(targetX, width);
-                            blender.Blend<TPixelSrc>(configuration, background, background, foreground, this.Opacity);
-                        }
-                    });
+            public void Visit<TPixelFg>(Image<TPixelFg> image)
+                where TPixelFg : struct, IPixel<TPixelFg>
+            {
+                this.Result = new DrawImageProcessor<TPixelBg, TPixelFg>(
+                    image,
+                    this.definition.Location,
+                    this.definition.ColorBlendingMode,
+                    this.definition.AlphaCompositionMode,
+                    this.definition.Opacity);
+            }
         }
     }
 }

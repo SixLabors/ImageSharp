@@ -3,20 +3,17 @@
 
 using System.Numerics;
 
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
     /// <summary>
-    /// Provides methods that allow the skewing of images.
+    /// Defines a skew transformation applicable to an <see cref="Image"/>.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class SkewProcessor<TPixel> : AffineTransformProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public sealed class SkewProcessor : AffineTransformProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="SkewProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="SkewProcessor"/> class.
         /// </summary>
         /// <param name="degreesX">The angle in degrees to perform the skew along the x-axis.</param>
         /// <param name="degreesY">The angle in degrees to perform the skew along the y-axis.</param>
@@ -27,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SkewProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="SkewProcessor"/> class.
         /// </summary>
         /// <param name="degreesX">The angle in degrees to perform the skew along the x-axis.</param>
         /// <param name="degreesY">The angle in degrees to perform the skew along the y-axis.</param>

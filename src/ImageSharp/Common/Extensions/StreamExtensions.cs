@@ -1,7 +1,8 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.IO;
 
 using SixLabors.ImageSharp.Memory;
@@ -59,7 +60,7 @@ namespace SixLabors.ImageSharp
             }
             else
             {
-                byte[] foo = new byte[count];
+                var foo = new byte[count];
                 while (count > 0)
                 {
                     int bytesRead = stream.Read(foo, 0, count);
@@ -82,5 +83,25 @@ namespace SixLabors.ImageSharp
         {
             stream.Write(buffer.Array, 0, buffer.Length());
         }
+
+#if NET472 || NETSTANDARD1_3 || NETSTANDARD2_0
+        // This is a port of the CoreFX implementation and is MIT Licensed: https://github.com/dotnet/coreclr/blob/c4dca1072d15bdda64c754ad1ea474b1580fa554/src/System.Private.CoreLib/shared/System/IO/Stream.cs#L770
+        public static void Write(this Stream stream, ReadOnlySpan<byte> buffer)
+        {
+            // This uses ArrayPool<byte>.Shared, rather than taking a MemoryAllocator,
+            // in order to match the signature of the framework method that exists in
+            // .NET Core.
+            byte[] sharedBuffer = ArrayPool<byte>.Shared.Rent(buffer.Length);
+            try
+            {
+                buffer.CopyTo(sharedBuffer);
+                stream.Write(sharedBuffer, 0, buffer.Length);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(sharedBuffer);
+            }
+        }
+#endif
     }
 }

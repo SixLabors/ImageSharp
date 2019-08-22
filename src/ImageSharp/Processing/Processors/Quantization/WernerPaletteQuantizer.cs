@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
@@ -16,6 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Initializes a new instance of the <see cref="WernerPaletteQuantizer" /> class.
         /// </summary>
         public WernerPaletteQuantizer()
+            : this(true)
         {
         }
 
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         /// <param name="dither">Whether to apply dithering to the output image</param>
         public WernerPaletteQuantizer(bool dither)
-            : base(dither)
+            : base(Color.WernerPalette, dither)
         {
         }
 
@@ -33,16 +33,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         /// <param name="diffuser">The error diffusion algorithm, if any, to apply to the output image</param>
         public WernerPaletteQuantizer(IErrorDiffuser diffuser)
-            : base(diffuser)
+            : base(Color.WernerPalette, diffuser)
         {
         }
-
-        /// <inheritdoc />
-        public override IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration)
-            => this.CreateFrameQuantizer<TPixel>(configuration, NamedColors<TPixel>.WernerPalette.Length);
-
-        /// <inheritdoc/>
-        public override IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration, int maxColors)
-            => this.CreateFrameQuantizer(configuration, NamedColors<TPixel>.WernerPalette, maxColors);
     }
 }

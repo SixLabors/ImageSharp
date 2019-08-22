@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -8,20 +8,19 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
-using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Primitives;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
+namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
     /// <summary>
-    /// Reads and parses EXIF data from a byte array
+    /// Reads and parses EXIF data from a byte array.
     /// </summary>
     internal sealed class ExifReader
     {
         private List<ExifTag> invalidTags;
         private readonly byte[] exifData;
         private int position;
-        private Endianness endianness = Endianness.BigEndian;
+        private bool isBigEndian;
         private uint exifOffset;
         private uint gpsOffset;
 
@@ -38,12 +37,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         public IReadOnlyList<ExifTag> InvalidTags => this.invalidTags ?? (IReadOnlyList<ExifTag>)Array.Empty<ExifTag>();
 
         /// <summary>
-        /// Gets the thumbnail length in the byte stream
+        /// Gets the thumbnail length in the byte stream.
         /// </summary>
         public uint ThumbnailLength { get; private set; }
 
         /// <summary>
-        /// Gets the thumbnail offset position in the byte stream
+        /// Gets the thumbnail offset position in the byte stream.
         /// </summary>
         public uint ThumbnailOffset { get; private set; }
 
@@ -74,10 +73,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             var values = new List<ExifValue>();
 
             // II == 0x4949
-            if (this.ReadUInt16() == 0x4949)
-            {
-                this.endianness = Endianness.LittleEndian;
-            }
+            this.isBigEndian = !(this.ReadUInt16() == 0x4949);
 
             if (this.ReadUInt16() != 0x002A)
             {
@@ -382,7 +378,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private TEnum ToEnum<TEnum>(int value, TEnum defaultValue)
-            where TEnum : struct
+            where TEnum : struct, Enum
         {
             if (EnumHelper<TEnum>.IsDefined(value))
             {
@@ -423,16 +419,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 : default;
         }
 
-        private string ReadString(int length)
-        {
-            if (this.TryReadSpan(length, out ReadOnlySpan<byte> span) && span.Length != 0)
-            {
-                return this.ConvertToString(span);
-            }
-
-            return null;
-        }
-
         private void GetThumbnail(uint offset)
         {
             var values = new List<ExifValue>();
@@ -458,7 +444,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 return default;
             }
 
-            long intValue = this.endianness == Endianness.BigEndian
+            long intValue = this.isBigEndian
                 ? BinaryPrimitives.ReadInt64BigEndian(buffer)
                 : BinaryPrimitives.ReadInt64LittleEndian(buffer);
 
@@ -473,7 +459,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 return default;
             }
 
-            return this.endianness == Endianness.BigEndian
+            return this.isBigEndian
                 ? BinaryPrimitives.ReadUInt32BigEndian(buffer)
                 : BinaryPrimitives.ReadUInt32LittleEndian(buffer);
         }
@@ -485,7 +471,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 return default;
             }
 
-            return this.endianness == Endianness.BigEndian
+            return this.isBigEndian
                 ? BinaryPrimitives.ReadUInt16BigEndian(buffer)
                 : BinaryPrimitives.ReadUInt16LittleEndian(buffer);
         }
@@ -497,7 +483,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 return default;
             }
 
-            int intValue = this.endianness == Endianness.BigEndian
+            int intValue = this.isBigEndian
                 ? BinaryPrimitives.ReadInt32BigEndian(buffer)
                 : BinaryPrimitives.ReadInt32LittleEndian(buffer);
 
@@ -526,7 +512,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 return default;
             }
 
-            return this.endianness == Endianness.BigEndian
+            return this.isBigEndian
                 ? BinaryPrimitives.ReadInt32BigEndian(buffer)
                 : BinaryPrimitives.ReadInt32LittleEndian(buffer);
         }
@@ -551,13 +537,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 return default;
             }
 
-            return this.endianness == Endianness.BigEndian
+            return this.isBigEndian
                 ? BinaryPrimitives.ReadInt16BigEndian(buffer)
                 : BinaryPrimitives.ReadInt16LittleEndian(buffer);
         }
 
-        private class EnumHelper<TEnum>
-            where TEnum : struct
+        private sealed class EnumHelper<TEnum>
+            where TEnum : struct, Enum
         {
             private static readonly int[] Values = Enum.GetValues(typeof(TEnum)).Cast<TEnum>()
                 .Select(e => Convert.ToInt32(e)).OrderBy(e => e).ToArray();

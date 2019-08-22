@@ -1,9 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
 using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var options = new JpegEncoder();
 
             var testFile = TestFile.Create(imagePath);
-            using (Image<Rgba32> input = testFile.CreateImage())
+            using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
                 using (var memStream = new MemoryStream())
                 {
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        JpegMetaData meta = output.MetaData.GetFormatMetaData(JpegFormat.Instance);
+                        JpegMetadata meta = output.Metadata.GetFormatMetadata(JpegFormat.Instance);
                         Assert.Equal(quality, meta.Quality);
                     }
                 }
@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 // There is no alpha in Jpeg!
                 image.Mutate(c => c.MakeOpaque());
 
-                var encoder = new JpegEncoder()
+                var encoder = new JpegEncoder
                 {
                     Subsample = subsample,
                     Quality = quality
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Calliphora);
 
-            using (Image<Rgba32> input = testFile.CreateImage())
+            using (Image<Rgba32> input = testFile.CreateRgba32Image())
             using (var memStream0 = new MemoryStream())
             using (var memStream1 = new MemoryStream())
             {
@@ -160,7 +160,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Calliphora);
 
-            using (Image<Rgba32> input = testFile.CreateImage())
+            using (Image<Rgba32> input = testFile.CreateRgba32Image())
             using (var memStream0 = new MemoryStream())
             using (var memStream1 = new MemoryStream())
             {
@@ -180,7 +180,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var options = new JpegEncoder();
 
             var testFile = TestFile.Create(imagePath);
-            using (Image<Rgba32> input = testFile.CreateImage())
+            using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
                 using (var memStream = new MemoryStream())
                 {
@@ -189,7 +189,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        ImageMetaData meta = output.MetaData;
+                        ImageMetadata meta = output.Metadata;
                         Assert.Equal(xResolution, meta.HorizontalResolution);
                         Assert.Equal(yResolution, meta.VerticalResolution);
                         Assert.Equal(resolutionUnit, meta.ResolutionUnits);

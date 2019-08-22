@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -253,8 +253,8 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
         private static void BitopsSimdImpl(ref Octet.OfUInt32 s, ref Octet.OfUInt32 d)
         {
             Vector<uint> sVec = Unsafe.As<Octet.OfUInt32, Vector<uint>>(ref s);
-            Vector<uint> aMask = new Vector<uint>(0xFF00FF00);
-            Vector<uint> bMask = new Vector<uint>(0x00FF00FF);
+            var aMask = new Vector<uint>(0xFF00FF00);
+            var bMask = new Vector<uint>(0x00FF00FF);
 
             Vector<uint> aa = sVec & aMask;
             Vector<uint> bb = sVec & bMask;

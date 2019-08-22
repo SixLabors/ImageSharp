@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.ParallelUtils
             in ParallelExecutionSettings parallelSettings,
             Action<RowInterval> body)
         {
-            DebugGuard.MustBeGreaterThan(rectangle.Width, 0, nameof(rectangle));
+            ValidateRectangle(rectangle);
 
             int maxSteps = DivideCeil(rectangle.Width * rectangle.Height, parallelSettings.MinimumPixelsProcessedPerTask);
 
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.ParallelUtils
 
             int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
 
-            var parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = numOfSteps };
+            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
 
             Parallel.For(
                 0,
@@ -87,6 +87,8 @@ namespace SixLabors.ImageSharp.ParallelUtils
             Action<RowInterval, Memory<T>> body)
             where T : unmanaged
         {
+            ValidateRectangle(rectangle);
+
             int maxSteps = DivideCeil(rectangle.Width * rectangle.Height, parallelSettings.MinimumPixelsProcessedPerTask);
 
             int numOfSteps = Math.Min(parallelSettings.MaxDegreeOfParallelism, maxSteps);
@@ -107,7 +109,7 @@ namespace SixLabors.ImageSharp.ParallelUtils
 
             int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
 
-            var parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = numOfSteps };
+            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
 
             Parallel.For(
                 0,
@@ -142,5 +144,18 @@ namespace SixLabors.ImageSharp.ParallelUtils
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int DivideCeil(int dividend, int divisor) => 1 + ((dividend - 1) / divisor);
+
+        private static void ValidateRectangle(Rectangle rectangle)
+        {
+            Guard.MustBeGreaterThan(
+                rectangle.Width,
+                0,
+                $"{nameof(rectangle)}.{nameof(rectangle.Width)}");
+
+            Guard.MustBeGreaterThan(
+                rectangle.Height,
+                0,
+                $"{nameof(rectangle)}.{nameof(rectangle.Height)}");
+        }
     }
 }

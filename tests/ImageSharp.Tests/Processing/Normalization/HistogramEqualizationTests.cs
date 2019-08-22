@@ -1,21 +1,25 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Normalization;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Normalization
 {
     public class HistogramEqualizationTests
     {
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0456F);
+
         [Theory]
         [InlineData(256)]
         [InlineData(65536)]
         public void HistogramEqualizationTest(int luminanceLevels)
         {
             // Arrange
-            byte[] pixels = new byte[]
+            var pixels = new byte[]
             {
                 52,  55,  61,  59,  70,  61,  76,  61,
                 62,  59,  55, 104,  94,  85,  59,  71,
@@ -27,18 +31,19 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                 70,  87,  69,  68,  65,  73,  78,  90
             };
 
-            var image = new Image<Rgba32>(8, 8);
-            for (int y = 0; y < 8; y++)
+            using (var image = new Image<Rgba32>(8, 8))
             {
-                for (int x = 0; x < 8; x++)
+                for (int y = 0; y < 8; y++)
                 {
-                    byte luminance = pixels[y * 8 + x];
-                    image[x, y] = new Rgba32(luminance, luminance, luminance);
+                    for (int x = 0; x < 8; x++)
+                    {
+                        byte luminance = pixels[(y * 8) + x];
+                        image[x, y] = new Rgba32(luminance, luminance, luminance);
+                    }
                 }
-            }
 
-            byte[] expected = new byte[]
-            {
+                var expected = new byte[]
+                {
                 0,    12,   53,   32,  146,   53,  174,   53,
                 57,   32,   12,  227,  219,  202,   32,  154,
                 65,   85,   93,  239,  251,  227,   65,  158,
@@ -47,21 +52,65 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                 117, 190,   36,  190,  178,   93,   20,  170,
                 130, 202,   73,   20,   12,   53,   85,  194,
                 146, 206,  130,  117,   85,  166,  182,  215
-            };
+                };
 
-            // Act
-            image.Mutate(x => x.HistogramEqualization(luminanceLevels));
-
-            // Assert
-            for (int y = 0; y < 8; y++)
-            {
-                for (int x = 0; x < 8; x++)
+                // Act
+                image.Mutate(x => x.HistogramEqualization(new HistogramEqualizationOptions
                 {
-                    Rgba32 actual = image[x, y];
-                    Assert.Equal(expected[y * 8 + x], actual.R);
-                    Assert.Equal(expected[y * 8 + x], actual.G);
-                    Assert.Equal(expected[y * 8 + x], actual.B);
+                    LuminanceLevels = luminanceLevels
+                }));
+
+                // Assert
+                for (int y = 0; y < 8; y++)
+                {
+                    for (int x = 0; x < 8; x++)
+                    {
+                        Rgba32 actual = image[x, y];
+                        Assert.Equal(expected[(y * 8) + x], actual.R);
+                        Assert.Equal(expected[(y * 8) + x], actual.G);
+                        Assert.Equal(expected[(y * 8) + x], actual.B);
+                    }
                 }
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.LowContrast, PixelTypes.Rgba32)]
+        public void Adaptive_SlidingWindow_15Tiles_WithClipping<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var options = new HistogramEqualizationOptions
+                {
+                    Method = HistogramEqualizationMethod.AdaptiveSlidingWindow,
+                    LuminanceLevels = 256,
+                    ClipHistogram = true,
+                    NumberOfTiles = 15
+                };
+                image.Mutate(x => x.HistogramEqualization(options));
+                image.DebugSave(provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.LowContrast, PixelTypes.Rgba32)]
+        public void Adaptive_TileInterpolation_10Tiles_WithClipping<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var options = new HistogramEqualizationOptions
+                {
+                    Method = HistogramEqualizationMethod.AdaptiveTileInterpolation,
+                    LuminanceLevels = 256,
+                    ClipHistogram = true,
+                    NumberOfTiles = 10
+                };
+                image.Mutate(x => x.HistogramEqualization(options));
+                image.DebugSave(provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
     }

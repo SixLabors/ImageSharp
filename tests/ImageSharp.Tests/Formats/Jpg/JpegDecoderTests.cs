@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 return;
             }
 
-            // For 32 bit test enviroments:
+            // For 32 bit test environments:
             provider.Configuration.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithModeratePooling();
 
             using (Image<TPixel> image = provider.GetImage(JpegDecoder))
@@ -107,25 +107,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             provider.Configuration.MemoryAllocator.ReleaseRetainedResources();
         }
 
-        private string GetDifferenceInPercentageString<TPixel>(Image<TPixel> image, TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            var reportingComparer = ImageComparer.Tolerant(0, 0);
-
-            ImageSimilarityReport report = image.GetReferenceOutputSimilarityReports(
-                provider,
-                reportingComparer,
-                appendPixelTypeToFileName: false
-                ).SingleOrDefault();
-
-            if (report?.TotalNormalizedDifference != null)
-            {
-                return report.DifferencePercentageString;
-            }
-
-            return "0%";
-        }
-        
         // DEBUG ONLY!
         // The PDF.js output should be saved by "tests\ImageSharp.Tests\Formats\Jpg\pdfjs\jpeg-converter.htm"
         // into "\tests\Images\ActualOutput\JpegDecoderTests\"
@@ -147,8 +128,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var comparer = ImageComparer.Tolerant(0, 0);
 
             using (Image<TPixel> expectedImage = provider.GetReferenceOutputImage<TPixel>(appendPixelTypeToFileName: false))
-            using (var pdfJsOriginalResult = Image.Load(pdfJsOriginalResultPath))
-            using (var pdfJsPortResult = Image.Load(sourceBytes, JpegDecoder))
+            using (var pdfJsOriginalResult = Image.Load<Rgba32>(pdfJsOriginalResultPath))
+            using (var pdfJsPortResult = Image.Load<Rgba32>(sourceBytes, JpegDecoder))
             {
                 ImageSimilarityReport originalReport = comparer.CompareImagesOrFrames(expectedImage, pdfJsOriginalResult);
                 ImageSimilarityReport portReport = comparer.CompareImagesOrFrames(expectedImage, pdfJsPortResult);

@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {
     /// <summary>
-    /// Color converter between <see cref="Cmyk"/> and <see cref="Rgb"/>
+    /// Color converter between <see cref="Cmyk"/> and <see cref="Rgb"/>.
     /// </summary>
     internal sealed class CmykAndRgbConverter
     {
@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// Performs the conversion from the <see cref="Rgb"/> input to an instance of <see cref="Cmyk"/> type.
         /// </summary>
         /// <param name="input">The input color instance.</param>
-        /// <returns>The converted result</returns>
+        /// <returns>The converted result.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public Cmyk Convert(in Rgb input)
         {

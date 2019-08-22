@@ -1,7 +1,6 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -16,7 +15,6 @@ namespace SixLabors.ImageSharp.PixelFormats
     public partial struct Gray16 : IPixel<Gray16>, IPackedVector<ushort>
     {
         private const float Max = ushort.MaxValue;
-        private const float Average = 1 / 3F;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Gray16"/> struct.
@@ -54,7 +52,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromScaledVector4(Vector4 vector) => this.FromVector4(vector);
+        public void FromScaledVector4(Vector4 vector) => this.ConvertFromRgbaScaledVector4(vector);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -62,11 +60,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromVector4(Vector4 vector)
-        {
-            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * Max * Average;
-            this.PackedValue = (ushort)MathF.Round(vector.X + vector.Y + vector.Z);
-        }
+        public void FromVector4(Vector4 vector) => this.ConvertFromRgbaScaledVector4(vector);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -105,6 +99,10 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ImageMaths.UpscaleFrom8BitTo16Bit(source.G),
                 ImageMaths.UpscaleFrom8BitTo16Bit(source.B));
         }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -172,9 +170,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * Max;
             this.PackedValue = ImageMaths.Get16BitBT709Luminance(
-                (ushort)MathF.Round(vector.X),
-                (ushort)MathF.Round(vector.Y),
-                (ushort)MathF.Round(vector.Z));
+                vector.X,
+                vector.Y,
+                vector.Z);
         }
     }
 }

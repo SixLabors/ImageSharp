@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Shapes;
 using SixLabors.ImageSharp.Processing;
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Tests
             public void WrapMemory_CreatedImageIsCorrect()
             {
                 Configuration cfg = Configuration.Default.Clone();
-                var metaData = new ImageMetaData();
+                var metaData = new ImageMetadata();
 
                 var array = new Rgba32[25];
                 var memory = new Memory<Rgba32>(array);
@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Tests
                     Assert.True(Unsafe.AreSame(ref array[0], ref pixel0));
 
                     Assert.Equal(cfg, image.GetConfiguration());
-                    Assert.Equal(metaData, image.MetaData);
+                    Assert.Equal(metaData, image.Metadata);
                 }
             }
 
@@ -113,8 +113,8 @@ namespace SixLabors.ImageSharp.Tests
                     using (var memoryManager = new BitmapMemoryManager(bmp))
                     {
                         Memory<Bgra32> memory = memoryManager.Memory;
-                        Bgra32 bg = NamedColors<Bgra32>.Red;
-                        Bgra32 fg = NamedColors<Bgra32>.Green;
+                        Bgra32 bg = Color.Red;
+                        Bgra32 fg = Color.Green;
 
                         using (var image = Image.WrapMemory(memory, bmp.Width, bmp.Height))
                         {
@@ -144,8 +144,8 @@ namespace SixLabors.ImageSharp.Tests
                 using (var bmp = new Bitmap(51, 23))
                 {
                     var memoryManager = new BitmapMemoryManager(bmp);
-                    Bgra32 bg = NamedColors<Bgra32>.Red;
-                    Bgra32 fg = NamedColors<Bgra32>.Green;
+                    Bgra32 bg = Color.Red;
+                    Bgra32 fg = Color.Green;
 
                     using (var image = Image.WrapMemory(memoryManager, bmp.Width, bmp.Height))
                     {

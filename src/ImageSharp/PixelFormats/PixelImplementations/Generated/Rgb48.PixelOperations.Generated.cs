@@ -185,6 +185,14 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromRgb48(sp);
                 }
             }
+            /// <inheritdoc />
+            internal override void From<TSourcePixel>(
+                Configuration configuration,
+                ReadOnlySpan<TSourcePixel> sourcePixels,
+                Span<Rgb48> destinationPixels)
+            {
+                PixelOperations<TSourcePixel>.Instance.ToRgb48(configuration, sourcePixels, destinationPixels);
+            }
         }
     }
 }

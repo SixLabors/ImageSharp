@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
                     double sum = 0;
 
-                    double[] values = new double[right - left + 1];
+                    var values = new double[right - left + 1];
 
                     for (int j = left; j <= right; j++)
                     {
@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
             public static implicit operator ReferenceKernel(ResizeKernel orig)
             {
-                return new ReferenceKernel(orig.Left, orig.Values.ToArray());
+                return new ReferenceKernel(orig.StartIndex, orig.Values.ToArray());
             }
         }
     }

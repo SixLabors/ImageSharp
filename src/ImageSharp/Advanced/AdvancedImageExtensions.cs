@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -18,11 +18,9 @@ namespace SixLabors.ImageSharp.Advanced
         /// <summary>
         /// Gets the configuration for the image.
         /// </summary>
-        /// <typeparam name="TPixel">The Pixel format.</typeparam>
-        /// <param name="source">The source image</param>
+        /// <param name="source">The source image.</param>
         /// <returns>Returns the configuration.</returns>
-        public static Configuration GetConfiguration<TPixel>(this Image<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
+        public static Configuration GetConfiguration(this Image source)
             => GetConfiguration((IConfigurable)source);
 
         /// <summary>
@@ -87,7 +85,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <summary>
         /// Returns a reference to the 0th element of the Pixel buffer,
         /// allowing direct manipulation of pixel data through unsafe operations.
-        /// The pixel buffer is a contigous memory area containing Width*Height TPixel elements layed out in row-major order.
+        /// The pixel buffer is a contiguous memory area containing Width*Height TPixel elements laid out in row-major order.
         /// </summary>
         /// <typeparam name="TPixel">The Pixel format.</typeparam>
         /// <param name="source">The source image</param>
@@ -150,46 +148,10 @@ namespace SixLabors.ImageSharp.Advanced
         /// <summary>
         /// Gets the <see cref="MemoryAllocator"/> assigned to 'source'.
         /// </summary>
-        /// <param name="source">The source image</param>
+        /// <param name="source">The source image.</param>
         /// <returns>Returns the configuration.</returns>
         internal static MemoryAllocator GetMemoryAllocator(this IConfigurable source)
             => GetConfiguration(source).MemoryAllocator;
-
-        /// <summary>
-        /// Gets the span to the backing buffer.
-        /// </summary>
-        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-        /// <param name="source">The source.</param>
-        /// <returns>The span returned from Pixel source</returns>
-        private static Span<TPixel> GetSpan<TPixel>(IPixelSource<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
-            => source.PixelBuffer.GetSpan();
-
-        /// <summary>
-        /// Gets the span to the backing buffer at the given row.
-        /// </summary>
-        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-        /// <param name="source">The source.</param>
-        /// <param name="row">The row.</param>
-        /// <returns>
-        /// The span returned from Pixel source
-        /// </returns>
-        private static Span<TPixel> GetSpan<TPixel>(IPixelSource<TPixel> source, int row)
-            where TPixel : struct, IPixel<TPixel>
-            => GetSpan(source.PixelBuffer, row);
-
-        /// <summary>
-        /// Gets the span to the backing buffer at the given row.
-        /// </summary>
-        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-        /// <param name="source">The source.</param>
-        /// <param name="row">The row.</param>
-        /// <returns>
-        /// The span returned from Pixel source
-        /// </returns>
-        private static Span<TPixel> GetSpan<TPixel>(Buffer2D<TPixel> source, int row)
-            where TPixel : struct, IPixel<TPixel>
-            => source.GetSpan().Slice(row * source.Width, source.Width);
 
         /// <summary>
         /// Gets the configuration.

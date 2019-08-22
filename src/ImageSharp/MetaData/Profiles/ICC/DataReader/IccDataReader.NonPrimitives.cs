@@ -1,10 +1,10 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Numerics;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// Provides methods to read ICC data types
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             string name = this.ReadAsciiString(32);
             ushort[] pcsCoord = { this.ReadUInt16(), this.ReadUInt16(), this.ReadUInt16() };
-            ushort[] deviceCoord = new ushort[deviceCoordCount];
+            var deviceCoord = new ushort[deviceCoordCount];
 
             for (int i = 0; i < deviceCoordCount; i++)
             {

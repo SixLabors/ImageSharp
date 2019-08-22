@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -20,13 +20,25 @@ namespace SixLabors.ImageSharp.Tests
         {
             static readonly Dictionary<string, Image<TPixel>> TestImages = new Dictionary<string, Image<TPixel>>();
 
+            private static TPixel[] BlackWhitePixels = new[] {
+                                                                     Color.Black.ToPixel<TPixel>(),
+                                                                     Color.White.ToPixel<TPixel>()
+                                                                 };
+
+            private static TPixel[] PinkBluePixels = new[] {
+                                                                   Color.HotPink.ToPixel<TPixel>(),
+                                                                   Color.Blue.ToPixel<TPixel>()
+                                                               };
+
             public TestPatternProvider(int width, int height)
                 : base(width, height)
             {
             }
 
+            /// <summary>
+            /// This parameterless constructor is needed for xUnit deserialization
+            /// </summary>
             public TestPatternProvider()
-                : base()
             {
             }
 
@@ -42,9 +54,8 @@ namespace SixLabors.ImageSharp.Tests
                         DrawTestPattern(image);
                         TestImages.Add(this.SourceFileOrDescription, image);
                     }
+                    return TestImages[this.SourceFileOrDescription].Clone(this.Configuration);
                 }
-
-                return TestImages[this.SourceFileOrDescription].Clone();
             }
 
             /// <summary>
@@ -78,12 +89,6 @@ namespace SixLabors.ImageSharp.Tests
                     stride = 1;
                 }
 
-                TPixel[] c =
-                {
-                    NamedColors<TPixel>.HotPink,
-                    NamedColors<TPixel>.Blue
-                };
-
                 for (int y = top; y < bottom; y++)
                 {
                     int p = 0;
@@ -92,9 +97,9 @@ namespace SixLabors.ImageSharp.Tests
                         if (x % stride == 0)
                         {
                             p++;
-                            p = p % c.Length;
+                            p = p % PinkBluePixels.Length;
                         }
-                        pixels[x, y] = c[p];
+                        pixels[x, y] = PinkBluePixels[p];
                     }
                 }
             }
@@ -111,11 +116,6 @@ namespace SixLabors.ImageSharp.Tests
                 int top = 0;
                 int bottom = pixels.Height / 2;
                 int stride = pixels.Width / 6;
-                TPixel[] c = 
-                {
-                    NamedColors<TPixel>.Black,
-                    NamedColors<TPixel>.White
-                };
 
                 int p = 0;
                 for (int y = top; y < bottom; y++)
@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp.Tests
                     if (y % stride == 0)
                     {
                         p++;
-                        p = p % c.Length;
+                        p = p % BlackWhitePixels.Length;
                     }
                     int pstart = p;
                     for (int x = left; x < right; x++)
@@ -131,16 +131,16 @@ namespace SixLabors.ImageSharp.Tests
                         if (x % stride == 0)
                         {
                             p++;
-                            p = p % c.Length;
+                            p = p % BlackWhitePixels.Length;
                         }
-                        pixels[x, y] = c[p];
+                        pixels[x, y] = BlackWhitePixels[p];
                     }
                     p = pstart;
                 }
             }
 
             /// <summary>
-            /// Fills the bottom left quadrent with 3 horizental bars in Red, Green and Blue with a alpha gradient from left (transparent) to right (solid).
+            /// Fills the bottom left quadrant with 3 horizontal bars in Red, Green and Blue with a alpha gradient from left (transparent) to right (solid).
             /// </summary>
             /// <param name="pixels"></param>
             private static void TransparentGradients(Buffer2D<TPixel> pixels)
@@ -184,7 +184,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             /// <summary>
-            /// Fills the bottom right quadrant with all the colors producable by converting itterating over a uint and unpacking it.
+            /// Fills the bottom right quadrant with all the colors producible by converting iterating over a uint and unpacking it.
             /// A better algorithm could be used but it works
             /// </summary>
             /// <param name="pixels"></param>
@@ -198,7 +198,7 @@ namespace SixLabors.ImageSharp.Tests
                 int pixelCount = left * top;
                 uint stepsPerPixel = (uint)(uint.MaxValue / pixelCount);
                 TPixel c = default;
-                Rgba32 t = new Rgba32(0);
+                var t = new Rgba32(0);
 
                 for (int x = left; x < right; x++)
                 {

@@ -185,6 +185,14 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromRgba64(sp);
                 }
             }
+            /// <inheritdoc />
+            internal override void From<TSourcePixel>(
+                Configuration configuration,
+                ReadOnlySpan<TSourcePixel> sourcePixels,
+                Span<Rgba64> destinationPixels)
+            {
+                PixelOperations<TSourcePixel>.Instance.ToRgba64(configuration, sourcePixels, destinationPixels);
+            }
         }
     }
 }

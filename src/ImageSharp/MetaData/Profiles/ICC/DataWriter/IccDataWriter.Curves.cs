@@ -1,9 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <content>
     /// Provides methods to write ICC data types
@@ -41,7 +41,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public int WriteResponseCurve(IccResponseCurve value)
         {
             int count = this.WriteUInt32((uint)value.CurveType);
-            int channels = value.XyzValues.Length;
 
             foreach (IccResponseNumber[] responseArray in value.ResponseArrays)
             {
@@ -118,9 +117,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             switch (value.Signature)
             {
                 case IccCurveSegmentSignature.FormulaCurve:
-                    return count + this.WriteFormulaCurveElement(value as IccFormulaCurveElement);
+                    return count + this.WriteFormulaCurveElement((IccFormulaCurveElement)value);
                 case IccCurveSegmentSignature.SampledCurve:
-                    return count + this.WriteSampledCurveElement(value as IccSampledCurveElement);
+                    return count + this.WriteSampledCurveElement((IccSampledCurveElement)value);
                 default:
                     throw new InvalidIccProfileException($"Invalid CurveSegment type of {value.Signature}");
             }

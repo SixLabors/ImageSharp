@@ -1,9 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
 using SixLabors.ImageSharp.Formats.Gif;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
         new TheoryData<string, int, int, PixelResolutionUnit>
         {
-            { TestImages.Gif.Rings, (int)ImageMetaData.DefaultHorizontalResolution, (int)ImageMetaData.DefaultVerticalResolution , PixelResolutionUnit.PixelsPerInch},
+            { TestImages.Gif.Rings, (int)ImageMetadata.DefaultHorizontalResolution, (int)ImageMetadata.DefaultVerticalResolution , PixelResolutionUnit.PixelsPerInch},
             { TestImages.Gif.Ratio1x4, 1, 4 , PixelResolutionUnit.AspectRatio},
             { TestImages.Gif.Ratio4x1, 4, 1, PixelResolutionUnit.AspectRatio }
         };
@@ -32,10 +32,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                var encoder = new GifEncoder()
+                var encoder = new GifEncoder
                 {
-                    // Use the palette quantizer without dithering to ensure results 
-                    // are consistant
+                    // Use the palette quantizer without dithering to ensure results
+                    // are consistent
                     Quantizer = new WebSafePaletteQuantizer(false)
                 };
 
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             // Compare encoded result
             string path = provider.Utility.GetTestOutputFileName("gif", null, true);
-            using (var encoded = Image.Load(path))
+            using (var encoded = Image.Load<Rgba32>(path))
             {
                 encoded.CompareToReferenceOutput(ValidatorComparer, provider, null, "gif");
             }
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             var options = new GifEncoder();
 
             var testFile = TestFile.Create(imagePath);
-            using (Image<Rgba32> input = testFile.CreateImage())
+            using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
                 using (var memStream = new MemoryStream())
                 {
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        ImageMetaData meta = output.MetaData;
+                        ImageMetadata meta = output.Metadata;
                         Assert.Equal(xResolution, meta.HorizontalResolution);
                         Assert.Equal(yResolution, meta.VerticalResolution);
                         Assert.Equal(resolutionUnit, meta.ResolutionUnits);
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             var testFile = TestFile.Create(TestImages.Gif.Rings);
 
-            using (Image<Rgba32> input = testFile.CreateImage())
+            using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
                 using (var memStream = new MemoryStream())
                 {
@@ -92,55 +92,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        Assert.Equal(1, output.MetaData.Properties.Count);
-                        Assert.Equal("Comments", output.MetaData.Properties[0].Name);
-                        Assert.Equal("ImageSharp", output.MetaData.Properties[0].Value);
-                    }
-                }
-            }
-        }
-
-        [Fact]
-        public void Encode_IgnoreMetadataIsTrue_CommentsAreNotWritten()
-        {
-            var options = new GifEncoder();
-
-            var testFile = TestFile.Create(TestImages.Gif.Rings);
-
-            using (Image<Rgba32> input = testFile.CreateImage())
-            {
-                input.MetaData.Properties.Clear();
-                using (var memStream = new MemoryStream())
-                {
-                    input.SaveAsGif(memStream, options);
-
-                    memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
-                    {
-                        Assert.Equal(0, output.MetaData.Properties.Count);
-                    }
-                }
-            }
-        }
-
-        [Fact]
-        public void Encode_WhenCommentIsTooLong_CommentIsTrimmed()
-        {
-            using (var input = new Image<Rgba32>(1, 1))
-            {
-                string comments = new string('c', 256);
-                input.MetaData.Properties.Add(new ImageProperty("Comments", comments));
-
-                using (var memStream = new MemoryStream())
-                {
-                    input.Save(memStream, new GifEncoder());
-
-                    memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
-                    {
-                        Assert.Equal(1, output.MetaData.Properties.Count);
-                        Assert.Equal("Comments", output.MetaData.Properties[0].Name);
-                        Assert.Equal(255, output.MetaData.Properties[0].Value.Length);
+                        GifMetadata metadata = output.Metadata.GetFormatMetadata(GifFormat.Instance);
+                        Assert.Equal(1, metadata.Comments.Count);
+                        Assert.Equal("ImageSharp", metadata.Comments[0]);
                     }
                 }
             }
@@ -180,11 +134,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             {
                 inStream.Position = 0;
 
-                var image = Image.Load(inStream);
-                GifMetaData metaData = image.MetaData.GetFormatMetaData(GifFormat.Instance);
-                GifFrameMetaData frameMetaData = image.Frames.RootFrame.MetaData.GetFormatMetaData(GifFormat.Instance);
+                var image = Image.Load<Rgba32>(inStream);
+                GifMetadata metaData = image.Metadata.GetFormatMetadata(GifFormat.Instance);
+                GifFrameMetadata frameMetaData = image.Frames.RootFrame.Metadata.GetFormatMetadata(GifFormat.Instance);
                 GifColorTableMode colorMode = metaData.ColorTableMode;
-                var encoder = new GifEncoder()
+                var encoder = new GifEncoder
                 {
                     ColorTableMode = colorMode,
                     Quantizer = new OctreeQuantizer(frameMetaData.ColorTableLength)
@@ -194,9 +148,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 outStream.Position = 0;
 
                 outStream.Position = 0;
-                var clone = Image.Load(outStream);
+                var clone = Image.Load<Rgba32>(outStream);
 
-                GifMetaData cloneMetaData = clone.MetaData.GetFormatMetaData<GifMetaData>(GifFormat.Instance);
+                GifMetadata cloneMetaData = clone.Metadata.GetFormatMetadata(GifFormat.Instance);
                 Assert.Equal(metaData.ColorTableMode, cloneMetaData.ColorTableMode);
 
                 // Gifiddle and Cyotek GifInfo say this image has 64 colors.
@@ -204,8 +158,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
                 for (int i = 0; i < image.Frames.Count; i++)
                 {
-                    GifFrameMetaData ifm = image.Frames[i].MetaData.GetFormatMetaData(GifFormat.Instance);
-                    GifFrameMetaData cifm = clone.Frames[i].MetaData.GetFormatMetaData(GifFormat.Instance);
+                    GifFrameMetadata ifm = image.Frames[i].Metadata.GetFormatMetadata(GifFormat.Instance);
+                    GifFrameMetadata cifm = clone.Frames[i].Metadata.GetFormatMetadata(GifFormat.Instance);
 
                     Assert.Equal(ifm.ColorTableLength, cifm.ColorTableLength);
                     Assert.Equal(ifm.FrameDelay, cifm.FrameDelay);

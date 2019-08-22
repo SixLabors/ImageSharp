@@ -1,45 +1,354 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26730.12
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28902.138
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{C317F1B1-D75E-4C6D-83EB-80367343E0D7}"
 	ProjectSection(SolutionItems) = preProject
-		standards\.editorconfig = standards\.editorconfig
+		.editorconfig = .editorconfig
+		.gitattributes = .gitattributes
+		.gitignore = .gitignore
+		.gitmodules = .gitmodules
 		.travis.yml = .travis.yml
 		appveyor.yml = appveyor.yml
-		.github\ISSUE_TEMPLATE\ask-question.md = .github\ISSUE_TEMPLATE\ask-question.md
-		.github\ISSUE_TEMPLATE\bug-report.md = .github\ISSUE_TEMPLATE\bug-report.md
+		build.cmd = build.cmd
+		build.ps1 = build.ps1
 		codecov.yml = codecov.yml
 		CodeCoverage.runsettings = CodeCoverage.runsettings
-		.github\CONTRIBUTING.md = .github\CONTRIBUTING.md
-		.github\ISSUE_TEMPLATE\feature-request.md = .github\ISSUE_TEMPLATE\feature-request.md
-		features.md = features.md
+		Directory.Build.props = Directory.Build.props
+		Directory.Build.targets = Directory.Build.targets
 		ImageSharp.sln.DotSettings = ImageSharp.sln.DotSettings
-		NuGet.config = NuGet.config
-		.github\PULL_REQUEST_TEMPLATE.md = .github\PULL_REQUEST_TEMPLATE.md
+		LICENSE = LICENSE
 		README.md = README.md
 		run-tests.ps1 = run-tests.ps1
-		standards\SixLabors.ruleset = standards\SixLabors.ruleset
-		standards\stylecop.json = standards\stylecop.json
+		stylecop.json = stylecop.json
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Source", "Source", "{815C0625-CD3D-440F-9F80-2D83856AB7AE}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{1799C43E-5C54-4A8F-8D64-B1475241DB0D}"
 	ProjectSection(SolutionItems) = preProject
-		src\README.md = src\README.md
+		.github\CONTRIBUTING.md = .github\CONTRIBUTING.md
+		.github\PULL_REQUEST_TEMPLATE.md = .github\PULL_REQUEST_TEMPLATE.md
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{56801022-D71A-4FBE-BC5B-CBA08E2284EC}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ISSUE_TEMPLATE", "ISSUE_TEMPLATE", "{FBE8C1AD-5AEC-4514-9B64-091D8E145865}"
+	ProjectSection(SolutionItems) = preProject
+		.github\ISSUE_TEMPLATE\ask-question.md = .github\ISSUE_TEMPLATE\ask-question.md
+		.github\ISSUE_TEMPLATE\bug-report.md = .github\ISSUE_TEMPLATE\bug-report.md
+		.github\ISSUE_TEMPLATE\feature-request.md = .github\ISSUE_TEMPLATE\feature-request.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".vscode", ".vscode", "{0274D4CF-9932-47CC-8E89-54DC05B8F06E}"
+	ProjectSection(SolutionItems) = preProject
+		.vscode\launch.json = .vscode\launch.json
+		.vscode\tasks.json = .vscode\tasks.json
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{E919DF0B-2607-4462-8FC0-5C98FE50F8C9}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{9E574A07-F879-4811-9C41-5CBDC6BAFDB7}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "icons", "icons", "{2B02E303-7CC6-4E15-97EE-DBE86B287553}"
 	ProjectSection(SolutionItems) = preProject
-		src\Shared\AssemblyInfo.Common.cs = src\Shared\AssemblyInfo.Common.cs
+		build\icons\imagesharp-logo-128.png = build\icons\imagesharp-logo-128.png
+		build\icons\imagesharp-logo-256.png = build\icons\imagesharp-logo-256.png
+		build\icons\imagesharp-logo-32.png = build\icons\imagesharp-logo-32.png
+		build\icons\imagesharp-logo-512.png = build\icons\imagesharp-logo-512.png
+		build\icons\imagesharp-logo-64.png = build\icons\imagesharp-logo-64.png
+		build\icons\imagesharp-logo.png = build\icons\imagesharp-logo.png
+		build\icons\imagesharp-logo.svg = build\icons\imagesharp-logo.svg
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{815C0625-CD3D-440F-9F80-2D83856AB7AE}"
+	ProjectSection(SolutionItems) = preProject
+		src\Directory.Build.props = src\Directory.Build.props
+		src\Directory.Build.targets = src\Directory.Build.targets
+		src\README.md = src\README.md
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp", "src\ImageSharp\ImageSharp.csproj", "{2AA31A1F-142C-43F4-8687-09ABCA4B3A26}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Drawing", "src\ImageSharp.Drawing\ImageSharp.Drawing.csproj", "{2E33181E-6E28-4662-A801-E2E7DC206029}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{56801022-D71A-4FBE-BC5B-CBA08E2284EC}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Directory.Build.props = tests\Directory.Build.props
+		tests\Directory.Build.targets = tests\Directory.Build.targets
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CodeCoverage", "CodeCoverage", "{D4C5EC58-F8E6-4636-B9EE-C99D2578E5C6}"
+	ProjectSection(SolutionItems) = preProject
+		tests\CodeCoverage\CodeCoverage.cmd = tests\CodeCoverage\CodeCoverage.cmd
+		tests\CodeCoverage\packages.config = tests\CodeCoverage\packages.config
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Images", "Images", "{FA55F5DE-11A6-487D-ABA4-BC93A02717DD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Input", "Input", "{9DA226A1-8656-49A8-A58A-A8B5C081AD66}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Bmp", "Bmp", "{1A82C5F6-90E0-4E97-BE16-A825C046B493}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Images\Input\Bmp\BitmapCoreHeaderQR.bmp = tests\Images\Input\Bmp\BitmapCoreHeaderQR.bmp
+		tests\Images\Input\Bmp\BITMAPV5HEADER.bmp = tests\Images\Input\Bmp\BITMAPV5HEADER.bmp
+		tests\Images\Input\Bmp\Car.bmp = tests\Images\Input\Bmp\Car.bmp
+		tests\Images\Input\Bmp\F.bmp = tests\Images\Input\Bmp\F.bmp
+		tests\Images\Input\Bmp\issue735.bmp = tests\Images\Input\Bmp\issue735.bmp
+		tests\Images\Input\Bmp\neg_height.bmp = tests\Images\Input\Bmp\neg_height.bmp
+		tests\Images\Input\Bmp\pal1.bmp = tests\Images\Input\Bmp\pal1.bmp
+		tests\Images\Input\Bmp\pal1p1.bmp = tests\Images\Input\Bmp\pal1p1.bmp
+		tests\Images\Input\Bmp\pal4.bmp = tests\Images\Input\Bmp\pal4.bmp
+		tests\Images\Input\Bmp\pal4rle.bmp = tests\Images\Input\Bmp\pal4rle.bmp
+		tests\Images\Input\Bmp\pal8-0.bmp = tests\Images\Input\Bmp\pal8-0.bmp
+		tests\Images\Input\Bmp\pal8gs.bmp = tests\Images\Input\Bmp\pal8gs.bmp
+		tests\Images\Input\Bmp\pal8offs.bmp = tests\Images\Input\Bmp\pal8offs.bmp
+		tests\Images\Input\Bmp\pal8os2sp.bmp = tests\Images\Input\Bmp\pal8os2sp.bmp
+		tests\Images\Input\Bmp\pal8os2v1_winv2.bmp = tests\Images\Input\Bmp\pal8os2v1_winv2.bmp
+		tests\Images\Input\Bmp\pal8os2v2-16.bmp = tests\Images\Input\Bmp\pal8os2v2-16.bmp
+		tests\Images\Input\Bmp\pal8os2v2.bmp = tests\Images\Input\Bmp\pal8os2v2.bmp
+		tests\Images\Input\Bmp\pal8v4.bmp = tests\Images\Input\Bmp\pal8v4.bmp
+		tests\Images\Input\Bmp\pal8v5.bmp = tests\Images\Input\Bmp\pal8v5.bmp
+		tests\Images\Input\Bmp\rgb16-565.bmp = tests\Images\Input\Bmp\rgb16-565.bmp
+		tests\Images\Input\Bmp\rgb16-565pal.bmp = tests\Images\Input\Bmp\rgb16-565pal.bmp
+		tests\Images\Input\Bmp\rgb16.bmp = tests\Images\Input\Bmp\rgb16.bmp
+		tests\Images\Input\Bmp\rgb16bfdef.bmp = tests\Images\Input\Bmp\rgb16bfdef.bmp
+		tests\Images\Input\Bmp\rgb24.bmp = tests\Images\Input\Bmp\rgb24.bmp
+		tests\Images\Input\Bmp\rgb32.bmp = tests\Images\Input\Bmp\rgb32.bmp
+		tests\Images\Input\Bmp\rgb32bf.bmp = tests\Images\Input\Bmp\rgb32bf.bmp
+		tests\Images\Input\Bmp\rgb32bfdef.bmp = tests\Images\Input\Bmp\rgb32bfdef.bmp
+		tests\Images\Input\Bmp\rgba32-1010102.bmp = tests\Images\Input\Bmp\rgba32-1010102.bmp
+		tests\Images\Input\Bmp\rgba32.bmp = tests\Images\Input\Bmp\rgba32.bmp
+		tests\Images\Input\Bmp\rgba32abf.bmp = tests\Images\Input\Bmp\rgba32abf.bmp
+		tests\Images\Input\Bmp\rgba32h56.bmp = tests\Images\Input\Bmp\rgba32h56.bmp
+		tests\Images\Input\Bmp\RunLengthEncoded-inverted.bmp = tests\Images\Input\Bmp\RunLengthEncoded-inverted.bmp
+		tests\Images\Input\Bmp\RunLengthEncoded.bmp = tests\Images\Input\Bmp\RunLengthEncoded.bmp
+		tests\Images\Input\Bmp\test16-inverted.bmp = tests\Images\Input\Bmp\test16-inverted.bmp
+		tests\Images\Input\Bmp\test16.bmp = tests\Images\Input\Bmp\test16.bmp
+		tests\Images\Input\Bmp\test8-inverted.bmp = tests\Images\Input\Bmp\test8-inverted.bmp
+		tests\Images\Input\Bmp\test8.bmp = tests\Images\Input\Bmp\test8.bmp
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Gif", "Gif", "{EE3FB0B3-1C31-41E9-93AB-BA800560A868}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Images\Input\Gif\base_1x4.gif = tests\Images\Input\Gif\base_1x4.gif
+		tests\Images\Input\Gif\base_4x1.gif = tests\Images\Input\Gif\base_4x1.gif
+		tests\Images\Input\Gif\cheers.gif = tests\Images\Input\Gif\cheers.gif
+		tests\Images\Input\Gif\giphy.gif = tests\Images\Input\Gif\giphy.gif
+		tests\Images\Input\Gif\kumin.gif = tests\Images\Input\Gif\kumin.gif
+		tests\Images\Input\Gif\leo.gif = tests\Images\Input\Gif\leo.gif
+		tests\Images\Input\Gif\rings.gif = tests\Images\Input\Gif\rings.gif
+		tests\Images\Input\Gif\trans.gif = tests\Images\Input\Gif\trans.gif
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "issues", "issues", "{BF8DFDC1-CEE5-4A37-B216-D3085360C776}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Images\Input\Gif\issues\issue403_baddescriptorwidth.gif = tests\Images\Input\Gif\issues\issue403_baddescriptorwidth.gif
+		tests\Images\Input\Gif\issues\issue405_badappextlength252-2.gif = tests\Images\Input\Gif\issues\issue405_badappextlength252-2.gif
+		tests\Images\Input\Gif\issues\issue405_badappextlength252.gif = tests\Images\Input\Gif\issues\issue405_badappextlength252.gif
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Jpg", "Jpg", "{DB21FED7-E8CB-4B00-9EB2-9144D32A590A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "baseline", "baseline", "{195BA3D3-3E9F-4BC5-AB40-5F9FEB638146}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Images\Input\Jpg\baseline\AsianCarvingLowContrast.jpg = tests\Images\Input\Jpg\baseline\AsianCarvingLowContrast.jpg
+		tests\Images\Input\Jpg\baseline\badeof.jpg = tests\Images\Input\Jpg\baseline\badeof.jpg
+		tests\Images\Input\Jpg\baseline\badrst.jpg = tests\Images\Input\Jpg\baseline\badrst.jpg
+		tests\Images\Input\Jpg\baseline\Calliphora.jpg = tests\Images\Input\Jpg\baseline\Calliphora.jpg
+		tests\Images\Input\Jpg\baseline\cmyk.jpg = tests\Images\Input\Jpg\baseline\cmyk.jpg
+		tests\Images\Input\Jpg\baseline\exif.jpg = tests\Images\Input\Jpg\baseline\exif.jpg
+		tests\Images\Input\Jpg\baseline\Floorplan.jpg = tests\Images\Input\Jpg\baseline\Floorplan.jpg
+		tests\Images\Input\Jpg\baseline\gamma_dalai_lama_gray.jpg = tests\Images\Input\Jpg\baseline\gamma_dalai_lama_gray.jpg
+		tests\Images\Input\Jpg\baseline\Hiyamugi.jpg = tests\Images\Input\Jpg\baseline\Hiyamugi.jpg
+		tests\Images\Input\Jpg\baseline\jpeg400jfif.jpg = tests\Images\Input\Jpg\baseline\jpeg400jfif.jpg
+		tests\Images\Input\Jpg\baseline\jpeg420exif.jpg = tests\Images\Input\Jpg\baseline\jpeg420exif.jpg
+		tests\Images\Input\Jpg\baseline\jpeg420small.jpg = tests\Images\Input\Jpg\baseline\jpeg420small.jpg
+		tests\Images\Input\Jpg\baseline\jpeg444.jpg = tests\Images\Input\Jpg\baseline\jpeg444.jpg
+		tests\Images\Input\Jpg\baseline\Lake.jpg = tests\Images\Input\Jpg\baseline\Lake.jpg
+		tests\Images\Input\Jpg\baseline\MultiScanBaselineCMYK.jpg = tests\Images\Input\Jpg\baseline\MultiScanBaselineCMYK.jpg
+		tests\Images\Input\Jpg\baseline\ratio-1x1.jpg = tests\Images\Input\Jpg\baseline\ratio-1x1.jpg
+		tests\Images\Input\Jpg\baseline\Snake.jpg = tests\Images\Input\Jpg\baseline\Snake.jpg
+		tests\Images\Input\Jpg\baseline\testimgint.jpg = tests\Images\Input\Jpg\baseline\testimgint.jpg
+		tests\Images\Input\Jpg\baseline\testorig.jpg = tests\Images\Input\Jpg\baseline\testorig.jpg
+		tests\Images\Input\Jpg\baseline\testorig12.jpg = tests\Images\Input\Jpg\baseline\testorig12.jpg
+		tests\Images\Input\Jpg\baseline\turtle.jpg = tests\Images\Input\Jpg\baseline\turtle.jpg
+		tests\Images\Input\Jpg\baseline\ycck-subsample-1222.jpg = tests\Images\Input\Jpg\baseline\ycck-subsample-1222.jpg
+		tests\Images\Input\Jpg\baseline\ycck.jpg = tests\Images\Input\Jpg\baseline\ycck.jpg
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "JpegSnoopReports", "JpegSnoopReports", "{538F0EBD-4084-4EDB-93DD-6D35B733CA48}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Images\Input\Jpg\baseline\JpegSnoopReports\badeof.jpg.txt = tests\Images\Input\Jpg\baseline\JpegSnoopReports\badeof.jpg.txt
+		tests\Images\Input\Jpg\baseline\JpegSnoopReports\badrst.jpg.txt = tests\Images\Input\Jpg\baseline\JpegSnoopReports\badrst.jpg.txt
+		tests\Images\Input\Jpg\baseline\JpegSnoopReports\Calliphora.jpg.txt = tests\Images\Input\Jpg\baseline\JpegSnoopReports\Calliphora.jpg.txt
+		tests\Images\Input\Jpg\baseline\JpegSnoopReports\cmyk.jpg.txt = tests\Images\Input\Jpg\baseline\JpegSnoopReports\cmyk.jpg.txt
+		tests\Images\Input\Jpg\baseline\JpegSnoopReports\exif.jpg.txt = tests\Images\Input\Jpg\baseline\JpegSnoopReports\exif.jpg.txt
+		tests\Images\Input\Jpg\baseline\JpegSnoopReports\Floorplan.jpg.txt = tests\Images\Input\Jpg\baseline\JpegSnoopReports\Floorplan.jpg.txt
+		tests\Images\Input\Jpg\baseline\JpegSnoopReports\gamma_dalai_lama_gray.jpg.txt = tests\Images\Input\Jpg\baseline\JpegSnoopReports\gamma_dalai_lama_gray.jpg.txt
+		tests\Images\Input\Jpg\baseline\JpegSnoopReports\Hiyamugi.jpg.txt = tests\Images\Input\Jpg\baseline\JpegSnoopReports\Hiyamugi.jpg.txt
+		tests\Images\Input\Jpg\baseline\JpegSnoopReports\jpeg400jfif.jpg.txt = tests\Images\Input\Jpg\baseline\JpegSnoopReports\jpeg400jfif.jpg.txt
+		tests\Images\Input\Jpg\baseline\JpegSnoopReports\jpeg420exif.jpg.txt = tests\Images\Input\Jpg\baseline\JpegSnoopReports\jpeg420exif.jpg.txt
+		tests\Images\Input\Jpg\baseline\JpegSnoopReports\jpeg420small.jpg.txt = tests\Images\Input\Jpg\baseline\JpegSnoopReports\jpeg420small.jpg.txt
+		tests\Images\Input\Jpg\baseline\JpegSnoopReports\jpeg444.jpg.txt = tests\Images\Input\Jpg\baseline\JpegSnoopReports\jpeg444.jpg.txt
+		tests\Images\Input\Jpg\baseline\JpegSnoopReports\Lake.jpg.txt = tests\Images\Input\Jpg\baseline\JpegSnoopReports\Lake.jpg.txt
+		tests\Images\Input\Jpg\baseline\JpegSnoopReports\MultiScanBaselineCMYK.jpg.txt = tests\Images\Input\Jpg\baseline\JpegSnoopReports\MultiScanBaselineCMYK.jpg.txt
+		tests\Images\Input\Jpg\baseline\JpegSnoopReports\ratio-1x1.jpg.txt = tests\Images\Input\Jpg\baseline\JpegSnoopReports\ratio-1x1.jpg.txt
+		tests\Images\Input\Jpg\baseline\JpegSnoopReports\Snake.jpg.txt = tests\Images\Input\Jpg\baseline\JpegSnoopReports\Snake.jpg.txt
+		tests\Images\Input\Jpg\baseline\JpegSnoopReports\testimgint.jpg.txt = tests\Images\Input\Jpg\baseline\JpegSnoopReports\testimgint.jpg.txt
+		tests\Images\Input\Jpg\baseline\JpegSnoopReports\testorig.jpg.txt = tests\Images\Input\Jpg\baseline\JpegSnoopReports\testorig.jpg.txt
+		tests\Images\Input\Jpg\baseline\JpegSnoopReports\turtle.jpg.txt = tests\Images\Input\Jpg\baseline\JpegSnoopReports\turtle.jpg.txt
+		tests\Images\Input\Jpg\baseline\JpegSnoopReports\ycck.jpg.txt = tests\Images\Input\Jpg\baseline\JpegSnoopReports\ycck.jpg.txt
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "issues", "issues", "{5C9B689F-B96D-47BE-A208-C23B1B2A8570}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Images\Input\Jpg\issues\Issue159-MissingFF00-Progressive-Bedroom.jpg = tests\Images\Input\Jpg\issues\Issue159-MissingFF00-Progressive-Bedroom.jpg
+		tests\Images\Input\Jpg\issues\Issue159-MissingFF00-Progressive-Girl.jpg = tests\Images\Input\Jpg\issues\Issue159-MissingFF00-Progressive-Girl.jpg
+		tests\Images\Input\Jpg\issues\Issue178-BadCoeffsProgressive-Lemon.jpg = tests\Images\Input\Jpg\issues\Issue178-BadCoeffsProgressive-Lemon.jpg
+		tests\Images\Input\Jpg\issues\Issue214-CriticalEOF.jpg = tests\Images\Input\Jpg\issues\Issue214-CriticalEOF.jpg
+		tests\Images\Input\Jpg\issues\Issue385-BadZigZag-Progressive.jpg = tests\Images\Input\Jpg\issues\Issue385-BadZigZag-Progressive.jpg
+		tests\Images\Input\Jpg\issues\Issue394-MultiHuffmanBaseline-Speakers.jpg = tests\Images\Input\Jpg\issues\Issue394-MultiHuffmanBaseline-Speakers.jpg
+		tests\Images\Input\Jpg\issues\Issue517-No-EOI-Progressive.jpg = tests\Images\Input\Jpg\issues\Issue517-No-EOI-Progressive.jpg
+		tests\Images\Input\Jpg\issues\Issue518-Bad-RST-Progressive.jpg = tests\Images\Input\Jpg\issues\Issue518-Bad-RST-Progressive.jpg
+		tests\Images\Input\Jpg\issues\Issue520-InvalidCast.jpg = tests\Images\Input\Jpg\issues\Issue520-InvalidCast.jpg
+		tests\Images\Input\Jpg\issues\Issue624-DhtHasWrongLength-Progressive-N.jpg = tests\Images\Input\Jpg\issues\Issue624-DhtHasWrongLength-Progressive-N.jpg
+		tests\Images\Input\Jpg\issues\Issue694-Decode-Exif-OutOfRange.jpg = tests\Images\Input\Jpg\issues\Issue694-Decode-Exif-OutOfRange.jpg
+		tests\Images\Input\Jpg\issues\Issue695-Invalid-EOI.jpg = tests\Images\Input\Jpg\issues\Issue695-Invalid-EOI.jpg
+		tests\Images\Input\Jpg\issues\Issue696-Resize-Exif-OutOfRange.jpg = tests\Images\Input\Jpg\issues\Issue696-Resize-Exif-OutOfRange.jpg
+		tests\Images\Input\Jpg\issues\Issue721-InvalidAPP0.jpg = tests\Images\Input\Jpg\issues\Issue721-InvalidAPP0.jpg
+		tests\Images\Input\Jpg\issues\Issue723-Ordered-Interleaved-Progressive-A.jpg = tests\Images\Input\Jpg\issues\Issue723-Ordered-Interleaved-Progressive-A.jpg
+		tests\Images\Input\Jpg\issues\Issue723-Ordered-Interleaved-Progressive-B.jpg = tests\Images\Input\Jpg\issues\Issue723-Ordered-Interleaved-Progressive-B.jpg
+		tests\Images\Input\Jpg\issues\Issue723-Ordered-Interleaved-Progressive-C.jpg = tests\Images\Input\Jpg\issues\Issue723-Ordered-Interleaved-Progressive-C.jpg
+		tests\Images\Input\Jpg\issues\issue750-exif-load.jpg = tests\Images\Input\Jpg\issues\issue750-exif-load.jpg
+		tests\Images\Input\Jpg\issues\issue750-exif-tranform.jpg = tests\Images\Input\Jpg\issues\issue750-exif-tranform.jpg
+		tests\Images\Input\Jpg\issues\Issue845-Incorrect-Quality99.jpg = tests\Images\Input\Jpg\issues\Issue845-Incorrect-Quality99.jpg
+		tests\Images\Input\Jpg\issues\issue855-incorrect-colorspace.jpg = tests\Images\Input\Jpg\issues\issue855-incorrect-colorspace.jpg
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "fuzz", "fuzz", "{516A3532-6AC2-417B-AD79-9BD5D0D378A0}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Images\Input\Jpg\issues\fuzz\Issue797-NullReferenceException.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue797-NullReferenceException.jpg
+		tests\Images\Input\Jpg\issues\fuzz\Issue798-AccessViolationException.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue798-AccessViolationException.jpg
+		tests\Images\Input\Jpg\issues\fuzz\Issue821-DivideByZeroException.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue821-DivideByZeroException.jpg
+		tests\Images\Input\Jpg\issues\fuzz\Issue822-DivideByZeroException.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue822-DivideByZeroException.jpg
+		tests\Images\Input\Jpg\issues\fuzz\Issue823-NullReferenceException.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue823-NullReferenceException.jpg
+		tests\Images\Input\Jpg\issues\fuzz\Issue824-IndexOutOfRangeException-A.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue824-IndexOutOfRangeException-A.jpg
+		tests\Images\Input\Jpg\issues\fuzz\Issue824-IndexOutOfRangeException-B.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue824-IndexOutOfRangeException-B.jpg
+		tests\Images\Input\Jpg\issues\fuzz\Issue824-IndexOutOfRangeException-C.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue824-IndexOutOfRangeException-C.jpg
+		tests\Images\Input\Jpg\issues\fuzz\Issue824-IndexOutOfRangeException-D.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue824-IndexOutOfRangeException-D.jpg
+		tests\Images\Input\Jpg\issues\fuzz\Issue824-IndexOutOfRangeException-E.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue824-IndexOutOfRangeException-E.jpg
+		tests\Images\Input\Jpg\issues\fuzz\Issue824-IndexOutOfRangeException-F.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue824-IndexOutOfRangeException-F.jpg
+		tests\Images\Input\Jpg\issues\fuzz\Issue824-IndexOutOfRangeException-G.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue824-IndexOutOfRangeException-G.jpg
+		tests\Images\Input\Jpg\issues\fuzz\Issue824-IndexOutOfRangeException-H.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue824-IndexOutOfRangeException-H.jpg
+		tests\Images\Input\Jpg\issues\fuzz\Issue825-ArgumentOutOfRangeException-A.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue825-ArgumentOutOfRangeException-A.jpg
+		tests\Images\Input\Jpg\issues\fuzz\Issue825-ArgumentOutOfRangeException-B.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue825-ArgumentOutOfRangeException-B.jpg
+		tests\Images\Input\Jpg\issues\fuzz\Issue825-ArgumentOutOfRangeException-C.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue825-ArgumentOutOfRangeException-C.jpg
+		tests\Images\Input\Jpg\issues\fuzz\Issue825-ArgumentOutOfRangeException-D.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue825-ArgumentOutOfRangeException-D.jpg
+		tests\Images\Input\Jpg\issues\fuzz\Issue826-ArgumentException-A.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue826-ArgumentException-A.jpg
+		tests\Images\Input\Jpg\issues\fuzz\Issue826-ArgumentException-B.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue826-ArgumentException-B.jpg
+		tests\Images\Input\Jpg\issues\fuzz\Issue826-ArgumentException-C.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue826-ArgumentException-C.jpg
+		tests\Images\Input\Jpg\issues\fuzz\Issue827-AccessViolationException.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue827-AccessViolationException.jpg
+		tests\Images\Input\Jpg\issues\fuzz\Issue839-ExecutionEngineException.jpg = tests\Images\Input\Jpg\issues\fuzz\Issue839-ExecutionEngineException.jpg
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "JpegSnoopReports", "JpegSnoopReports", "{714CDEA1-9AE6-4F76-B8B1-A7DB8C1DB82F}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue159-MissingFF00-Progressive-Bedroom.jpg.txt = tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue159-MissingFF00-Progressive-Bedroom.jpg.txt
+		tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue159-MissingFF00-Progressive-Girl.jpg.txt = tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue159-MissingFF00-Progressive-Girl.jpg.txt
+		tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue178-BadCoeffsProgressive-Lemon.jpg.txt = tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue178-BadCoeffsProgressive-Lemon.jpg.txt
+		tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue214-CriticalEOF .jpg.txt = tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue214-CriticalEOF .jpg.txt
+		tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue385-BadZigZag-Progressive.jpg.txt = tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue385-BadZigZag-Progressive.jpg.txt
+		tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue394-MultiHuffmanBaseline-Speakers.jpg.txt = tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue394-MultiHuffmanBaseline-Speakers.jpg.txt
+		tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue517-No-EOI-Progressive.jpg.txt = tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue517-No-EOI-Progressive.jpg.txt
+		tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue518-Bad-RST-Progressive.jpg.txt = tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue518-Bad-RST-Progressive.jpg.txt
+		tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue520-InvalidCast.jpg.txt = tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue520-InvalidCast.jpg.txt
+		tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue624-DhtHasWrongLength-Progressive-N.jpg.txt = tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue624-DhtHasWrongLength-Progressive-N.jpg.txt
+		tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue694-Decode-Exif-OutOfRange.jpg.txt = tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue694-Decode-Exif-OutOfRange.jpg.txt
+		tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue695-Invalid-EOI.jpg.txt = tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue695-Invalid-EOI.jpg.txt
+		tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue696-Resize-Exif-OutOfRange.jpg.txt = tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue696-Resize-Exif-OutOfRange.jpg.txt
+		tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue721-InvalidAPP0.jpg.txt = tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue721-InvalidAPP0.jpg.txt
+		tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue723-Ordered-Interleaved-Progressive-A.jpg.txt = tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue723-Ordered-Interleaved-Progressive-A.jpg.txt
+		tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue723-Ordered-Interleaved-Progressive-B.jpg.txt = tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue723-Ordered-Interleaved-Progressive-B.jpg.txt
+		tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue723-Ordered-Interleaved-Progressive-C.jpg.txt = tests\Images\Input\Jpg\issues\JpegSnoopReports\Issue723-Ordered-Interleaved-Progressive-C.jpg.txt
+		tests\Images\Input\Jpg\issues\JpegSnoopReports\issue750-exif-load.jpg.txt = tests\Images\Input\Jpg\issues\JpegSnoopReports\issue750-exif-load.jpg.txt
+		tests\Images\Input\Jpg\issues\JpegSnoopReports\issue750-exif-tranform.jpg.txt = tests\Images\Input\Jpg\issues\JpegSnoopReports\issue750-exif-tranform.jpg.txt
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "progressive", "progressive", "{6458AFCB-A159-47D5-8F2B-50C95C0915E0}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Images\Input\Jpg\progressive\BadEofProgressive.jpg = tests\Images\Input\Jpg\progressive\BadEofProgressive.jpg
+		tests\Images\Input\Jpg\progressive\ExifUndefType.jpg = tests\Images\Input\Jpg\progressive\ExifUndefType.jpg
+		tests\Images\Input\Jpg\progressive\fb.jpg = tests\Images\Input\Jpg\progressive\fb.jpg
+		tests\Images\Input\Jpg\progressive\Festzug.jpg = tests\Images\Input\Jpg\progressive\Festzug.jpg
+		tests\Images\Input\Jpg\progressive\progress.jpg = tests\Images\Input\Jpg\progressive\progress.jpg
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "JpegSnoopReports", "JpegSnoopReports", "{39F5197B-CF6C-41A5-9739-7F97E78BB104}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Images\Input\Jpg\progressive\JpegSnoopReports\BadEofProgressive.jpg.txt = tests\Images\Input\Jpg\progressive\JpegSnoopReports\BadEofProgressive.jpg.txt
+		tests\Images\Input\Jpg\progressive\JpegSnoopReports\ExifUndefType.jpg.txt = tests\Images\Input\Jpg\progressive\JpegSnoopReports\ExifUndefType.jpg.txt
+		tests\Images\Input\Jpg\progressive\JpegSnoopReports\fb.jpg.txt = tests\Images\Input\Jpg\progressive\JpegSnoopReports\fb.jpg.txt
+		tests\Images\Input\Jpg\progressive\JpegSnoopReports\Festzug.jpg.txt = tests\Images\Input\Jpg\progressive\JpegSnoopReports\Festzug.jpg.txt
+		tests\Images\Input\Jpg\progressive\JpegSnoopReports\progress.jpg.txt = tests\Images\Input\Jpg\progressive\JpegSnoopReports\progress.jpg.txt
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Png", "Png", "{E1C42A6F-913B-4A7B-B1A8-2BB62843B254}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Images\Input\Png\banner7-adam.png = tests\Images\Input\Png\banner7-adam.png
+		tests\Images\Input\Png\banner8-index.png = tests\Images\Input\Png\banner8-index.png
+		tests\Images\Input\Png\big-corrupted-chunk.png = tests\Images\Input\Png\big-corrupted-chunk.png
+		tests\Images\Input\Png\Bike.png = tests\Images\Input\Png\Bike.png
+		tests\Images\Input\Png\BikeGrayscale.png = tests\Images\Input\Png\BikeGrayscale.png
+		tests\Images\Input\Png\blur.png = tests\Images\Input\Png\blur.png
+		tests\Images\Input\Png\bpp1.png = tests\Images\Input\Png\bpp1.png
+		tests\Images\Input\Png\CalliphoraPartial.png = tests\Images\Input\Png\CalliphoraPartial.png
+		tests\Images\Input\Png\CalliphoraPartialGrayscale.png = tests\Images\Input\Png\CalliphoraPartialGrayscale.png
+		tests\Images\Input\Png\chunklength1.png = tests\Images\Input\Png\chunklength1.png
+		tests\Images\Input\Png\chunklength2.png = tests\Images\Input\Png\chunklength2.png
+		tests\Images\Input\Png\cross.png = tests\Images\Input\Png\cross.png
+		tests\Images\Input\Png\ducky.png = tests\Images\Input\Png\ducky.png
+		tests\Images\Input\Png\filter0.png = tests\Images\Input\Png\filter0.png
+		tests\Images\Input\Png\filter1.png = tests\Images\Input\Png\filter1.png
+		tests\Images\Input\Png\filter2.png = tests\Images\Input\Png\filter2.png
+		tests\Images\Input\Png\filter3.png = tests\Images\Input\Png\filter3.png
+		tests\Images\Input\Png\filter4.png = tests\Images\Input\Png\filter4.png
+		tests\Images\Input\Png\filterVar.png = tests\Images\Input\Png\filterVar.png
+		tests\Images\Input\Png\gray-1-trns.png = tests\Images\Input\Png\gray-1-trns.png
+		tests\Images\Input\Png\gray-16-tRNS-interlaced.png = tests\Images\Input\Png\gray-16-tRNS-interlaced.png
+		tests\Images\Input\Png\gray-16.png = tests\Images\Input\Png\gray-16.png
+		tests\Images\Input\Png\gray-2-tRNS.png = tests\Images\Input\Png\gray-2-tRNS.png
+		tests\Images\Input\Png\gray-4-tRNS.png = tests\Images\Input\Png\gray-4-tRNS.png
+		tests\Images\Input\Png\gray-8-tRNS.png = tests\Images\Input\Png\gray-8-tRNS.png
+		tests\Images\Input\Png\gray-alpha-16.png = tests\Images\Input\Png\gray-alpha-16.png
+		tests\Images\Input\Png\gray-alpha-8.png = tests\Images\Input\Png\gray-alpha-8.png
+		tests\Images\Input\Png\gray_4bpp.png = tests\Images\Input\Png\gray_4bpp.png
+		tests\Images\Input\Png\icon.png = tests\Images\Input\Png\icon.png
+		tests\Images\Input\Png\iftbbn0g01.png = tests\Images\Input\Png\iftbbn0g01.png
+		tests\Images\Input\Png\iftbbn0g02.png = tests\Images\Input\Png\iftbbn0g02.png
+		tests\Images\Input\Png\iftbbn0g04.png = tests\Images\Input\Png\iftbbn0g04.png
+		tests\Images\Input\Png\indexed.png = tests\Images\Input\Png\indexed.png
+		tests\Images\Input\Png\interlaced.png = tests\Images\Input\Png\interlaced.png
+		tests\Images\Input\Png\kaboom.png = tests\Images\Input\Png\kaboom.png
+		tests\Images\Input\Png\low-variance.png = tests\Images\Input\Png\low-variance.png
+		tests\Images\Input\Png\palette-8bpp.png = tests\Images\Input\Png\palette-8bpp.png
+		tests\Images\Input\Png\pd-dest.png = tests\Images\Input\Png\pd-dest.png
+		tests\Images\Input\Png\pd-source.png = tests\Images\Input\Png\pd-source.png
+		tests\Images\Input\Png\pd.png = tests\Images\Input\Png\pd.png
+		tests\Images\Input\Png\pl.png = tests\Images\Input\Png\pl.png
+		tests\Images\Input\Png\pp.png = tests\Images\Input\Png\pp.png
+		tests\Images\Input\Png\rainbow.png = tests\Images\Input\Png\rainbow.png
+		tests\Images\Input\Png\ratio-1x4.png = tests\Images\Input\Png\ratio-1x4.png
+		tests\Images\Input\Png\ratio-4x1.png = tests\Images\Input\Png\ratio-4x1.png
+		tests\Images\Input\Png\rgb-16-alpha.png = tests\Images\Input\Png\rgb-16-alpha.png
+		tests\Images\Input\Png\rgb-16-tRNS.png = tests\Images\Input\Png\rgb-16-tRNS.png
+		tests\Images\Input\Png\rgb-48bpp-interlaced.png = tests\Images\Input\Png\rgb-48bpp-interlaced.png
+		tests\Images\Input\Png\rgb-48bpp.png = tests\Images\Input\Png\rgb-48bpp.png
+		tests\Images\Input\Png\rgb-8-tRNS.png = tests\Images\Input\Png\rgb-8-tRNS.png
+		tests\Images\Input\Png\rollsroyce.png = tests\Images\Input\Png\rollsroyce.png
+		tests\Images\Input\Png\SnakeGame.png = tests\Images\Input\Png\SnakeGame.png
+		tests\Images\Input\Png\splash-interlaced.png = tests\Images\Input\Png\splash-interlaced.png
+		tests\Images\Input\Png\splash.png = tests\Images\Input\Png\splash.png
+		tests\Images\Input\Png\versioning-1_1.png = tests\Images\Input\Png\versioning-1_1.png
+		tests\Images\Input\Png\versioning-1_2.png = tests\Images\Input\Png\versioning-1_2.png
+		tests\Images\Input\Png\vim16x16_1.png = tests\Images\Input\Png\vim16x16_1.png
+		tests\Images\Input\Png\vim16x16_2.png = tests\Images\Input\Png\vim16x16_2.png
+		tests\Images\Input\Png\zlib-overflow.png = tests\Images\Input\Png\zlib-overflow.png
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Tests", "tests\ImageSharp.Tests\ImageSharp.Tests.csproj", "{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6}"
 EndProject
@@ -122,9 +431,25 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{9E574A07-F879-4811-9C41-5CBDC6BAFDB7} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
+		{FBE8C1AD-5AEC-4514-9B64-091D8E145865} = {1799C43E-5C54-4A8F-8D64-B1475241DB0D}
+		{2B02E303-7CC6-4E15-97EE-DBE86B287553} = {E919DF0B-2607-4462-8FC0-5C98FE50F8C9}
 		{2AA31A1F-142C-43F4-8687-09ABCA4B3A26} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
 		{2E33181E-6E28-4662-A801-E2E7DC206029} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
+		{D4C5EC58-F8E6-4636-B9EE-C99D2578E5C6} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
+		{FA55F5DE-11A6-487D-ABA4-BC93A02717DD} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
+		{9DA226A1-8656-49A8-A58A-A8B5C081AD66} = {FA55F5DE-11A6-487D-ABA4-BC93A02717DD}
+		{1A82C5F6-90E0-4E97-BE16-A825C046B493} = {9DA226A1-8656-49A8-A58A-A8B5C081AD66}
+		{EE3FB0B3-1C31-41E9-93AB-BA800560A868} = {9DA226A1-8656-49A8-A58A-A8B5C081AD66}
+		{BF8DFDC1-CEE5-4A37-B216-D3085360C776} = {EE3FB0B3-1C31-41E9-93AB-BA800560A868}
+		{DB21FED7-E8CB-4B00-9EB2-9144D32A590A} = {9DA226A1-8656-49A8-A58A-A8B5C081AD66}
+		{195BA3D3-3E9F-4BC5-AB40-5F9FEB638146} = {DB21FED7-E8CB-4B00-9EB2-9144D32A590A}
+		{538F0EBD-4084-4EDB-93DD-6D35B733CA48} = {195BA3D3-3E9F-4BC5-AB40-5F9FEB638146}
+		{5C9B689F-B96D-47BE-A208-C23B1B2A8570} = {DB21FED7-E8CB-4B00-9EB2-9144D32A590A}
+		{516A3532-6AC2-417B-AD79-9BD5D0D378A0} = {5C9B689F-B96D-47BE-A208-C23B1B2A8570}
+		{714CDEA1-9AE6-4F76-B8B1-A7DB8C1DB82F} = {5C9B689F-B96D-47BE-A208-C23B1B2A8570}
+		{6458AFCB-A159-47D5-8F2B-50C95C0915E0} = {DB21FED7-E8CB-4B00-9EB2-9144D32A590A}
+		{39F5197B-CF6C-41A5-9739-7F97E78BB104} = {6458AFCB-A159-47D5-8F2B-50C95C0915E0}
+		{E1C42A6F-913B-4A7B-B1A8-2BB62843B254} = {9DA226A1-8656-49A8-A58A-A8B5C081AD66}
 		{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{2BF743D8-2A06-412D-96D7-F448F00C5EA5} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{561B880A-D9EE-44EF-90F5-817C54A9D9AB} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}

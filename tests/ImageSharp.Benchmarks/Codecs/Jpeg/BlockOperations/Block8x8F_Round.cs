@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 // ReSharper disable InconsistentNaming
@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
 {
     public class Block8x8F_Round
     {
-        private Block8x8F block = default(Block8x8F);
+        private Block8x8F block;
 
         [GlobalSetup]
         public void Setup()

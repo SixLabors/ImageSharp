@@ -1,17 +1,17 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
-using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
-namespace SixLabors.ImageSharp.MetaData
+namespace SixLabors.ImageSharp.Metadata
 {
     /// <summary>
     /// Encapsulates the metadata of an image.
     /// </summary>
-    public sealed class ImageMetaData : IDeepCloneable<ImageMetaData>
+    public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
     {
         /// <summary>
         /// The default horizontal resolution value (dots per inch) in x direction.
@@ -31,14 +31,14 @@ namespace SixLabors.ImageSharp.MetaData
         /// </summary>
         public const PixelResolutionUnit DefaultPixelResolutionUnits = PixelResolutionUnit.PixelsPerInch;
 
-        private readonly Dictionary<IImageFormat, IDeepCloneable> formatMetaData = new Dictionary<IImageFormat, IDeepCloneable>();
+        private readonly Dictionary<IImageFormat, IDeepCloneable> formatMetadata = new Dictionary<IImageFormat, IDeepCloneable>();
         private double horizontalResolution;
         private double verticalResolution;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageMetaData"/> class.
+        /// Initializes a new instance of the <see cref="ImageMetadata"/> class.
         /// </summary>
-        internal ImageMetaData()
+        internal ImageMetadata()
         {
             this.horizontalResolution = DefaultHorizontalResolution;
             this.verticalResolution = DefaultVerticalResolution;
@@ -46,26 +46,21 @@ namespace SixLabors.ImageSharp.MetaData
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageMetaData"/> class
+        /// Initializes a new instance of the <see cref="ImageMetadata"/> class
         /// by making a copy from other metadata.
         /// </summary>
         /// <param name="other">
-        /// The other <see cref="ImageMetaData"/> to create this instance from.
+        /// The other <see cref="ImageMetadata"/> to create this instance from.
         /// </param>
-        private ImageMetaData(ImageMetaData other)
+        private ImageMetadata(ImageMetadata other)
         {
             this.HorizontalResolution = other.HorizontalResolution;
             this.VerticalResolution = other.VerticalResolution;
             this.ResolutionUnits = other.ResolutionUnits;
 
-            foreach (KeyValuePair<IImageFormat, IDeepCloneable> meta in other.formatMetaData)
+            foreach (KeyValuePair<IImageFormat, IDeepCloneable> meta in other.formatMetadata)
             {
-                this.formatMetaData.Add(meta.Key, meta.Value.DeepClone());
-            }
-
-            foreach (ImageProperty property in other.Properties)
-            {
-                this.Properties.Add(property);
+                this.formatMetadata.Add(meta.Key, meta.Value.DeepClone());
             }
 
             this.ExifProfile = other.ExifProfile?.DeepClone();
@@ -128,59 +123,31 @@ namespace SixLabors.ImageSharp.MetaData
         public IccProfile IccProfile { get; set; }
 
         /// <summary>
-        /// Gets the list of properties for storing meta information about this image.
-        /// </summary>
-        public IList<ImageProperty> Properties { get; } = new List<ImageProperty>();
-
-        /// <summary>
         /// Gets the metadata value associated with the specified key.
         /// </summary>
-        /// <typeparam name="TFormatMetaData">The type of metadata.</typeparam>
+        /// <typeparam name="TFormatMetadata">The type of metadata.</typeparam>
         /// <param name="key">The key of the value to get.</param>
         /// <returns>
-        /// The <typeparamref name="TFormatMetaData"/>.
+        /// The <typeparamref name="TFormatMetadata"/>.
         /// </returns>
-        public TFormatMetaData GetFormatMetaData<TFormatMetaData>(IImageFormat<TFormatMetaData> key)
-             where TFormatMetaData : class, IDeepCloneable
+        public TFormatMetadata GetFormatMetadata<TFormatMetadata>(IImageFormat<TFormatMetadata> key)
+             where TFormatMetadata : class, IDeepCloneable
         {
-            if (this.formatMetaData.TryGetValue(key, out IDeepCloneable meta))
+            if (this.formatMetadata.TryGetValue(key, out IDeepCloneable meta))
             {
-                return (TFormatMetaData)meta;
+                return (TFormatMetadata)meta;
             }
 
-            TFormatMetaData newMeta = key.CreateDefaultFormatMetaData();
-            this.formatMetaData[key] = newMeta;
+            TFormatMetadata newMeta = key.CreateDefaultFormatMetadata();
+            this.formatMetadata[key] = newMeta;
             return newMeta;
         }
 
         /// <inheritdoc/>
-        public ImageMetaData DeepClone() => new ImageMetaData(this);
+        public ImageMetadata DeepClone() => new ImageMetadata(this);
 
         /// <summary>
-        /// Looks up a property with the provided name.
-        /// </summary>
-        /// <param name="name">The name of the property to lookup.</param>
-        /// <param name="result">The property, if found, with the provided name.</param>
-        /// <returns>Whether the property was found.</returns>
-        internal bool TryGetProperty(string name, out ImageProperty result)
-        {
-            foreach (ImageProperty property in this.Properties)
-            {
-                if (property.Name == name)
-                {
-                    result = property;
-
-                    return true;
-                }
-            }
-
-            result = default;
-
-            return false;
-        }
-
-        /// <summary>
-        /// Synchronizes the profiles with the current meta data.
+        /// Synchronizes the profiles with the current metadata.
         /// </summary>
         internal void SyncProfiles() => this.ExifProfile?.Sync(this);
     }

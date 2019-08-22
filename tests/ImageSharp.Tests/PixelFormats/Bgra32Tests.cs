@@ -9,8 +9,32 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
     public class Bgra32Tests
     {
+        /// <summary>
+        /// Tests the equality operators for equality.
+        /// </summary>
+        [Fact]
+        public void AreEqual()
+        {
+            var color1 = new Bgra32(byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue);
+            var color2 = new Bgra32(byte.MaxValue, byte.MaxValue, byte.MaxValue);
+            
+            Assert.Equal(color1, color2);
+        }
+
+        /// <summary>
+        /// Tests the equality operators for inequality.
+        /// </summary>
+        [Fact]
+        public void AreNotEqual()
+        {
+            var color1 = new Bgra32(0, 0, byte.MaxValue, byte.MaxValue);
+            var color2 = new Bgra32(byte.MaxValue, byte.MaxValue, byte.MaxValue);
+
+            Assert.NotEqual(color1, color2);
+        }
+
         public static readonly TheoryData<byte, byte, byte, byte> ColorData =
-            new TheoryData<byte, byte, byte, byte>()
+            new TheoryData<byte, byte, byte, byte>
                 {
                     { 1, 2, 3, 4 }, { 4, 5, 6, 7 }, { 0, 255, 42, 0 }, { 1, 2, 3, 255 }
                 };
@@ -101,6 +125,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var rgb = new Bgra32(1, 2, 3, 4);
 
             Assert.Equal(Vec(1, 2, 3, 4), rgb.ToVector4());
+        }
+
+        [Fact]
+        public void Bgra32_FromBgra5551()
+        {
+            // arrange
+            var bgra = default(Bgra32);
+            uint expected = uint.MaxValue;
+
+            // act
+            bgra.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // assert
+            Assert.Equal(expected, bgra.PackedValue);
         }
     }
 }

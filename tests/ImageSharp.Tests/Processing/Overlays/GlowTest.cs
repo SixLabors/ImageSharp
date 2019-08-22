@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing;
@@ -18,10 +16,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
         public void Glow_GlowProcessorWithDefaultValues()
         {
             this.operations.Glow();
-            var p = this.Verify<GlowProcessor<Rgba32>>();
+            var p = this.Verify<GlowProcessor>();
 
             Assert.Equal(GraphicsOptions.Default, p.GraphicsOptions);
-            Assert.Equal(Rgba32.Black, p.GlowColor);
+            Assert.Equal(Color.Black, p.GlowColor);
             Assert.Equal(ValueSize.PercentageOfWidth(.5f), p.Radius);
         }
 
@@ -29,10 +27,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
         public void Glow_Color_GlowProcessorWithDefaultValues()
         {
             this.operations.Glow(Rgba32.Aquamarine);
-            var p = this.Verify<GlowProcessor<Rgba32>>();
+            var p = this.Verify<GlowProcessor>();
 
             Assert.Equal(GraphicsOptions.Default, p.GraphicsOptions);
-            Assert.Equal(Rgba32.Aquamarine, p.GlowColor);
+            Assert.Equal(Color.Aquamarine, p.GlowColor);
             Assert.Equal(ValueSize.PercentageOfWidth(.5f), p.Radius);
         }
 
@@ -40,10 +38,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
         public void Glow_Radux_GlowProcessorWithDefaultValues()
         {
             this.operations.Glow(3.5f);
-            var p = this.Verify<GlowProcessor<Rgba32>>();
+            var p = this.Verify<GlowProcessor>();
 
             Assert.Equal(GraphicsOptions.Default, p.GraphicsOptions);
-            Assert.Equal(Rgba32.Black, p.GlowColor);
+            Assert.Equal(Color.Black, p.GlowColor);
             Assert.Equal(ValueSize.Absolute(3.5f), p.Radius);
         }
 
@@ -52,10 +50,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
         {
             var rect = new Rectangle(12, 123, 43, 65);
             this.operations.Glow(rect);
-            var p = this.Verify<GlowProcessor<Rgba32>>(rect);
+            var p = this.Verify<GlowProcessor>(rect);
 
             Assert.Equal(GraphicsOptions.Default, p.GraphicsOptions);
-            Assert.Equal(Rgba32.Black, p.GlowColor);
+            Assert.Equal(Color.Black, p.GlowColor);
             Assert.Equal(ValueSize.PercentageOfWidth(.5f), p.Radius);
         }
     }

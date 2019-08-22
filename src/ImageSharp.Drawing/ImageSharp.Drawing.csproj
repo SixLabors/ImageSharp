@@ -1,53 +1,23 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <AssemblyTitle>SixLabors.ImageSharp.Drawing</AssemblyTitle>
-    <Authors>SixLabors and contributors</Authors>
-    <Company>Six Labors</Company>
-    <Copyright>Copyright (c) Six Labors and contributors.</Copyright>
-    <Product>SixLabors.ImageSharp</Product>
-    <Description>An extension to ImageSharp that allows the drawing of images, paths, and text.</Description>
-    <NeutralLanguage>en</NeutralLanguage>
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
 
-    <VersionPrefix Condition="$(packageversion) != ''">$(packageversion)</VersionPrefix>
-    <VersionPrefix Condition="$(packageversion) == ''">0.0.1</VersionPrefix>
-    <TargetFrameworks>netstandard1.3;netstandard2.0</TargetFrameworks>
-    <LangVersion>7.3</LangVersion>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  <PropertyGroup>
     <AssemblyName>SixLabors.ImageSharp.Drawing</AssemblyName>
+    <AssemblyTitle>SixLabors.ImageSharp.Drawing</AssemblyTitle>
+    <Description>An extension to ImageSharp that allows the drawing of images, paths, and text.</Description>
     <PackageId>SixLabors.ImageSharp.Drawing</PackageId>
     <PackageTags>Image Draw Shape Path Font</PackageTags>
-    <PackageIconUrl>https://raw.githubusercontent.com/SixLabors/Branding/master/icons/imagesharp/sixlabors.imagesharp.128.png</PackageIconUrl>
-    <PackageProjectUrl>https://github.com/SixLabors/ImageSharp</PackageProjectUrl>
-    <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/SixLabors/ImageSharp</RepositoryUrl>
-    <DebugType Condition="$(codecov) != ''">full</DebugType>
-    <DebugType Condition="$(codecov) == ''">portable</DebugType>
-    <DebugSymbols>True</DebugSymbols>
+    <RootNamespace>SixLabors.ImageSharp</RootNamespace>
+    <TargetFrameworks>netcoreapp2.1;netstandard1.3;netstandard2.0</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\Shared\*.cs" Exclude="bin\**;obj\**;**\*.xproj;packages\**" />
+    <PackageReference Include="SixLabors.Fonts" />
+    <PackageReference Include="SixLabors.Shapes" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ImageSharp\ImageSharp.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <AdditionalFiles Include="..\..\standards\stylecop.json" />
-    <PackageReference Include="SixLabors.Fonts" Version="1.0.0-beta0008" />
-    <PackageReference Include="SixLabors.Shapes" Version="1.0.0-beta0008" />
-    <PackageReference Include="StyleCop.Analyzers" Version="1.1.1-beta.61" PrivateAssets="All" />
-  </ItemGroup>
-
-  <PropertyGroup>
-    <CodeAnalysisRuleSet>..\..\standards\SixLabors.ruleset</CodeAnalysisRuleSet>
-    <RootNamespace>SixLabors.ImageSharp</RootNamespace>
-  </PropertyGroup>
-
-  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-  </PropertyGroup>
 </Project>

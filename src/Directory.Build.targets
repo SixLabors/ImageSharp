@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+
+  <!--
+    Directory.Build.targets is automatically picked up and imported by
+    Microsoft.Common.targets. This file needs to exist, even if empty so that
+    files in the parent directory tree, with the same name, are not imported
+    instead. The import fairly late and most other props/targets will have
+    been imported beforehand. We also don't need to add ourselves to
+    MSBuildAllProjects, as that is done by the file that imports us.
+  -->
+
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileDirectory)..\Directory.Build.targets</MSBuildAllProjects>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)..\Directory.Build.targets" />
+
+  <PropertyGroup>
+    <GeneratedInternalsVisibleToFile Condition="'$(GeneratedInternalsVisibleToFile)' == ''">$(IntermediateOutputPath)$(MSBuildProjectName).InternalsVisibleTo$(DefaultLanguageSourceExtension)</GeneratedInternalsVisibleToFile>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <InternalsVisibleTo>
+      <Visible>false</Visible>
+    </InternalsVisibleTo>
+  </ItemDefinitionGroup>
+
+  <Target Name="GenerateInternalsVisibleTo"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="PrepareForBuild;CoreGenerateInternalsVisibleTo"
+          Condition="'@(InternalsVisibleTo)' != ''" />
+
+  <Target Name="CoreGenerateInternalsVisibleTo"
+          Condition="'$(Language)' == 'VB' or '$(Language)' == 'C#'"
+          Inputs="$(MSBuildAllProjects)"
+          Outputs="$(GeneratedInternalsVisibleToFile)">
+    <CreateItem Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute" AdditionalMetadata="_Parameter1=%(InternalsVisibleTo.Identity)" Condition="'%(InternalsVisibleTo.PublicKey)' == ''">
+      <Output TaskParameter="Include" ItemName="InternalsVisibleToAttribute" />
+    </CreateItem>
+    <CreateItem Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute" AdditionalMetadata="_Parameter1=%(InternalsVisibleTo.Identity), PublicKey=%(InternalsVisibleTo.PublicKey)" Condition="'%(InternalsVisibleTo.PublicKey)' != ''">
+      <Output TaskParameter="Include" ItemName="InternalsVisibleToAttribute" />
+    </CreateItem>
+
+    <WriteCodeFragment AssemblyAttributes="@(InternalsVisibleToAttribute)" Language="$(Language)" OutputFile="$(GeneratedInternalsVisibleToFile)">
+      <Output TaskParameter="OutputFile" ItemName="Compile" />
+      <Output TaskParameter="OutputFile" ItemName="FileWrites" />
+    </WriteCodeFragment>
+  </Target>
+
+  <!-- Empty target so that `dotnet test` will work on the solution -->
+  <!-- https://github.com/Microsoft/vstest/issues/411 -->
+  <Target Name="VSTest" />
+
+</Project>

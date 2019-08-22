@@ -94,5 +94,19 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             input.ToRgba32(ref actual);
             Assert.Equal(expected, actual);
         }
+
+        [Fact]
+        public void Alpha8_FromBgra5551()
+        {
+            // arrange
+            var alpha = default(Alpha8);
+            byte expected = byte.MaxValue;
+
+            // act
+            alpha.FromBgra5551(new Bgra5551(0.0f, 0.0f, 0.0f, 1.0f));
+
+            // assert
+            Assert.Equal(expected, alpha.PackedValue);
+        }
     }
 }

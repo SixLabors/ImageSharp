@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -7,9 +7,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
-using SixLabors.ImageSharp.MetaData;
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 
@@ -25,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests
             Png
         }
 
-        private static readonly Dictionary<ExifTag, object> TestProfileValues = new Dictionary<ExifTag, object>()
+        private static readonly Dictionary<ExifTag, object> TestProfileValues = new Dictionary<ExifTag, object>
         {
             { ExifTag.Software, "Software" },
             { ExifTag.Copyright, "Copyright" },
@@ -41,19 +40,19 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData(TestImageWriteFormat.Png)]
         public void Constructor(TestImageWriteFormat imageFormat)
         {
-            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Calliphora).CreateImage();
+            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Calliphora).CreateRgba32Image();
 
-            Assert.Null(image.MetaData.ExifProfile);
+            Assert.Null(image.Metadata.ExifProfile);
 
-            image.MetaData.ExifProfile = new ExifProfile();
-            image.MetaData.ExifProfile.SetValue(ExifTag.Copyright, "Dirk Lemstra");
+            image.Metadata.ExifProfile = new ExifProfile();
+            image.Metadata.ExifProfile.SetValue(ExifTag.Copyright, "Dirk Lemstra");
 
             image = WriteAndRead(image, imageFormat);
 
-            Assert.NotNull(image.MetaData.ExifProfile);
-            Assert.Equal(1, image.MetaData.ExifProfile.Values.Count());
+            Assert.NotNull(image.Metadata.ExifProfile);
+            Assert.Equal(1, image.Metadata.ExifProfile.Values.Count());
 
-            ExifValue value = image.MetaData.ExifProfile.Values.FirstOrDefault(val => val.Tag == ExifTag.Copyright);
+            ExifValue value = image.Metadata.ExifProfile.Values.FirstOrDefault(val => val.Tag == ExifTag.Copyright);
             TestValue(value, "Dirk Lemstra");
         }
 
@@ -94,11 +93,11 @@ namespace SixLabors.ImageSharp.Tests
                 profile.SetValue(ExifTag.ExposureTime, new Rational(exposureTime));
 
                 var image = new Image<Rgba32>(1, 1);
-                image.MetaData.ExifProfile = profile;
+                image.Metadata.ExifProfile = profile;
 
                 image = WriteAndRead(image, imageFormat);
 
-                profile = image.MetaData.ExifProfile;
+                profile = image.Metadata.ExifProfile;
                 Assert.NotNull(profile);
 
                 ExifValue value = profile.GetValue(ExifTag.ExposureTime);
@@ -109,11 +108,11 @@ namespace SixLabors.ImageSharp.Tests
                 profile = GetExifProfile();
 
                 profile.SetValue(ExifTag.ExposureTime, new Rational(exposureTime, true));
-                image.MetaData.ExifProfile = profile;
+                image.Metadata.ExifProfile = profile;
 
                 image = WriteAndRead(image, imageFormat);
 
-                profile = image.MetaData.ExifProfile;
+                profile = image.Metadata.ExifProfile;
                 Assert.NotNull(profile);
 
                 value = profile.GetValue(ExifTag.ExposureTime);
@@ -126,25 +125,25 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData(TestImageWriteFormat.Png)]
         public void ReadWriteInfinity(TestImageWriteFormat imageFormat)
         {
-            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage();
-            image.MetaData.ExifProfile.SetValue(ExifTag.ExposureBiasValue, new SignedRational(double.PositiveInfinity));
+            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();
+            image.Metadata.ExifProfile.SetValue(ExifTag.ExposureBiasValue, new SignedRational(double.PositiveInfinity));
 
             image = WriteAndReadJpeg(image);
-            ExifValue value = image.MetaData.ExifProfile.GetValue(ExifTag.ExposureBiasValue);
+            ExifValue value = image.Metadata.ExifProfile.GetValue(ExifTag.ExposureBiasValue);
             Assert.NotNull(value);
             Assert.Equal(new SignedRational(double.PositiveInfinity), value.Value);
 
-            image.MetaData.ExifProfile.SetValue(ExifTag.ExposureBiasValue, new SignedRational(double.NegativeInfinity));
+            image.Metadata.ExifProfile.SetValue(ExifTag.ExposureBiasValue, new SignedRational(double.NegativeInfinity));
 
             image = WriteAndRead(image, imageFormat);
-            value = image.MetaData.ExifProfile.GetValue(ExifTag.ExposureBiasValue);
+            value = image.Metadata.ExifProfile.GetValue(ExifTag.ExposureBiasValue);
             Assert.NotNull(value);
             Assert.Equal(new SignedRational(double.NegativeInfinity), value.Value);
 
-            image.MetaData.ExifProfile.SetValue(ExifTag.FlashEnergy, new Rational(double.NegativeInfinity));
+            image.Metadata.ExifProfile.SetValue(ExifTag.FlashEnergy, new Rational(double.NegativeInfinity));
 
             image = WriteAndRead(image, imageFormat);
-            value = image.MetaData.ExifProfile.GetValue(ExifTag.FlashEnergy);
+            value = image.Metadata.ExifProfile.GetValue(ExifTag.FlashEnergy);
             Assert.NotNull(value);
             Assert.Equal(new Rational(double.PositiveInfinity), value.Value);
         }
@@ -156,75 +155,75 @@ namespace SixLabors.ImageSharp.Tests
         {
             var latitude = new Rational[] { new Rational(12.3), new Rational(4.56), new Rational(789.0) };
 
-            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage();
-            image.MetaData.ExifProfile.SetValue(ExifTag.Software, "ImageSharp");
+            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();
+            image.Metadata.ExifProfile.SetValue(ExifTag.Software, "ImageSharp");
 
-            ExifValue value = image.MetaData.ExifProfile.GetValue(ExifTag.Software);
+            ExifValue value = image.Metadata.ExifProfile.GetValue(ExifTag.Software);
             TestValue(value, "ImageSharp");
 
             Assert.Throws<ArgumentException>(() => { value.WithValue(15); });
 
-            image.MetaData.ExifProfile.SetValue(ExifTag.ShutterSpeedValue, new SignedRational(75.55));
+            image.Metadata.ExifProfile.SetValue(ExifTag.ShutterSpeedValue, new SignedRational(75.55));
 
-            value = image.MetaData.ExifProfile.GetValue(ExifTag.ShutterSpeedValue);
+            value = image.Metadata.ExifProfile.GetValue(ExifTag.ShutterSpeedValue);
 
             TestValue(value, new SignedRational(7555, 100));
 
             Assert.Throws<ArgumentException>(() => { value.WithValue(75); });
 
-            image.MetaData.ExifProfile.SetValue(ExifTag.XResolution, new Rational(150.0));
+            image.Metadata.ExifProfile.SetValue(ExifTag.XResolution, new Rational(150.0));
 
             // We also need to change this value because this overrides XResolution when the image is written.
-            image.MetaData.HorizontalResolution = 150.0;
+            image.Metadata.HorizontalResolution = 150.0;
 
-            value = image.MetaData.ExifProfile.GetValue(ExifTag.XResolution);
+            value = image.Metadata.ExifProfile.GetValue(ExifTag.XResolution);
             TestValue(value, new Rational(150, 1));
 
             Assert.Throws<ArgumentException>(() => { value.WithValue("ImageSharp"); });
 
-            image.MetaData.ExifProfile.SetValue(ExifTag.ReferenceBlackWhite, null);
+            image.Metadata.ExifProfile.SetValue(ExifTag.ReferenceBlackWhite, null);
 
-            value = image.MetaData.ExifProfile.GetValue(ExifTag.ReferenceBlackWhite);
+            value = image.Metadata.ExifProfile.GetValue(ExifTag.ReferenceBlackWhite);
             TestValue(value, (string)null);
 
-            image.MetaData.ExifProfile.SetValue(ExifTag.GPSLatitude, latitude);
+            image.Metadata.ExifProfile.SetValue(ExifTag.GPSLatitude, latitude);
 
-            value = image.MetaData.ExifProfile.GetValue(ExifTag.GPSLatitude);
+            value = image.Metadata.ExifProfile.GetValue(ExifTag.GPSLatitude);
             TestValue(value, latitude);
 
             image = WriteAndRead(image, imageFormat);
 
-            Assert.NotNull(image.MetaData.ExifProfile);
-            Assert.Equal(17, image.MetaData.ExifProfile.Values.Count());
+            Assert.NotNull(image.Metadata.ExifProfile);
+            Assert.Equal(17, image.Metadata.ExifProfile.Values.Count());
 
-            value = image.MetaData.ExifProfile.GetValue(ExifTag.Software);
+            value = image.Metadata.ExifProfile.GetValue(ExifTag.Software);
             TestValue(value, "ImageSharp");
 
-            value = image.MetaData.ExifProfile.GetValue(ExifTag.ShutterSpeedValue);
+            value = image.Metadata.ExifProfile.GetValue(ExifTag.ShutterSpeedValue);
             TestValue(value, new SignedRational(75.55));
 
-            value = image.MetaData.ExifProfile.GetValue(ExifTag.XResolution);
+            value = image.Metadata.ExifProfile.GetValue(ExifTag.XResolution);
             TestValue(value, new Rational(150.0));
 
-            value = image.MetaData.ExifProfile.GetValue(ExifTag.ReferenceBlackWhite);
+            value = image.Metadata.ExifProfile.GetValue(ExifTag.ReferenceBlackWhite);
             Assert.Null(value);
 
-            value = image.MetaData.ExifProfile.GetValue(ExifTag.GPSLatitude);
+            value = image.Metadata.ExifProfile.GetValue(ExifTag.GPSLatitude);
             TestValue(value, latitude);
 
-            image.MetaData.ExifProfile.Parts = ExifParts.ExifTags;
+            image.Metadata.ExifProfile.Parts = ExifParts.ExifTags;
 
             image = WriteAndRead(image, imageFormat);
 
-            Assert.NotNull(image.MetaData.ExifProfile);
-            Assert.Equal(8, image.MetaData.ExifProfile.Values.Count());
+            Assert.NotNull(image.Metadata.ExifProfile);
+            Assert.Equal(8, image.Metadata.ExifProfile.Values.Count());
 
-            Assert.NotNull(image.MetaData.ExifProfile.GetValue(ExifTag.ColorSpace));
-            Assert.True(image.MetaData.ExifProfile.RemoveValue(ExifTag.ColorSpace));
-            Assert.False(image.MetaData.ExifProfile.RemoveValue(ExifTag.ColorSpace));
-            Assert.Null(image.MetaData.ExifProfile.GetValue(ExifTag.ColorSpace));
+            Assert.NotNull(image.Metadata.ExifProfile.GetValue(ExifTag.ColorSpace));
+            Assert.True(image.Metadata.ExifProfile.RemoveValue(ExifTag.ColorSpace));
+            Assert.False(image.Metadata.ExifProfile.RemoveValue(ExifTag.ColorSpace));
+            Assert.Null(image.Metadata.ExifProfile.GetValue(ExifTag.ColorSpace));
 
-            Assert.Equal(7, image.MetaData.ExifProfile.Values.Count());
+            Assert.Equal(7, image.Metadata.ExifProfile.Values.Count());
         }
 
         [Fact]
@@ -234,7 +233,7 @@ namespace SixLabors.ImageSharp.Tests
             exifProfile.SetValue(ExifTag.XResolution, new Rational(200));
             exifProfile.SetValue(ExifTag.YResolution, new Rational(300));
 
-            var metaData = new ImageMetaData
+            var metaData = new ImageMetadata
             {
                 ExifProfile = exifProfile,
                 HorizontalResolution = 200,
@@ -292,13 +291,13 @@ namespace SixLabors.ImageSharp.Tests
             ExifProfile expectedProfile = CreateExifProfile();
             var expectedProfileTags = expectedProfile.Values.Select(x => x.Tag).ToList();
             expectedProfile.SetValue(exifValueToChange, junk.ToString());
-            image.MetaData.ExifProfile = expectedProfile;
+            image.Metadata.ExifProfile = expectedProfile;
 
             // act
             Image<Rgba32> reloadedImage = WriteAndRead(image, TestImageWriteFormat.Jpeg);
 
             // assert
-            ExifProfile actualProfile = reloadedImage.MetaData.ExifProfile;
+            ExifProfile actualProfile = reloadedImage.Metadata.ExifProfile;
             Assert.NotNull(actualProfile);
             foreach (ExifTag expectedProfileTag in expectedProfileTags)
             {
@@ -314,10 +313,10 @@ namespace SixLabors.ImageSharp.Tests
             // This image contains an 802 byte EXIF profile
             // It has a tag with an index offset of 18,481,152 bytes (overrunning the data)
 
-            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Progressive.Bad.ExifUndefType).CreateImage();
+            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Progressive.Bad.ExifUndefType).CreateRgba32Image();
             Assert.NotNull(image);
 
-            ExifProfile profile = image.MetaData.ExifProfile;
+            ExifProfile profile = image.Metadata.ExifProfile;
             Assert.NotNull(profile);
 
             foreach (ExifValue value in profile.Values)
@@ -333,9 +332,9 @@ namespace SixLabors.ImageSharp.Tests
         public void TestArrayValueWithUnspecifiedSize()
         {
             // This images contains array in the exif profile that has zero components.
-            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Issues.InvalidCast520).CreateImage();
+            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Issues.InvalidCast520).CreateRgba32Image();
 
-            ExifProfile profile = image.MetaData.ExifProfile;
+            ExifProfile profile = image.Metadata.ExifProfile;
             Assert.NotNull(profile);
 
             // Force parsing of the profile.
@@ -353,13 +352,13 @@ namespace SixLabors.ImageSharp.Tests
             // arrange
             var image = new Image<Rgba32>(1, 1);
             ExifProfile expected = CreateExifProfile();
-            image.MetaData.ExifProfile = expected;
+            image.Metadata.ExifProfile = expected;
 
             // act
             Image<Rgba32> reloadedImage = WriteAndRead(image, imageFormat);
 
             // assert
-            ExifProfile actual = reloadedImage.MetaData.ExifProfile;
+            ExifProfile actual = reloadedImage.Metadata.ExifProfile;
             Assert.NotNull(actual);
             foreach (KeyValuePair<ExifTag, object> expectedProfileValue in TestProfileValues)
             {
@@ -373,7 +372,6 @@ namespace SixLabors.ImageSharp.Tests
         public void ProfileToByteArray()
         {
             // arrange
-            byte[] exifBytesWithExifCode = ProfileResolver.ExifMarker.Concat(ExifConstants.LittleEndianByteOrderMarker).ToArray();
             byte[] exifBytesWithoutExifCode = ExifConstants.LittleEndianByteOrderMarker;
             ExifProfile expectedProfile = CreateExifProfile();
             var expectedProfileTags = expectedProfile.Values.Select(x => x.Tag).ToList();
@@ -408,9 +406,9 @@ namespace SixLabors.ImageSharp.Tests
 
         internal static ExifProfile GetExifProfile()
         {
-            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage();
+            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();
 
-            ExifProfile profile = image.MetaData.ExifProfile;
+            ExifProfile profile = image.Metadata.ExifProfile;
             Assert.NotNull(profile);
 
             return profile;

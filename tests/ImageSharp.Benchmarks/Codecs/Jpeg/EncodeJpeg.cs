@@ -1,17 +1,15 @@
-﻿// <copyright file="EncodeJpeg.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
 using SixLabors.ImageSharp.PixelFormats;
+
+using BenchmarkDotNet.Attributes;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
     using System.Drawing;
     using System.Drawing.Imaging;
     using System.IO;
-
-    using BenchmarkDotNet.Attributes;
 
     using CoreImage = SixLabors.ImageSharp.Image;
 
@@ -45,18 +43,18 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         [Benchmark(Baseline = true, Description = "System.Drawing Jpeg")]
         public void JpegSystemDrawing()
         {
-            using (var memoryStream = new MemoryStream())
+            using (var stream = new MemoryStream())
             {
-                this.bmpDrawing.Save(memoryStream, ImageFormat.Jpeg);
+                this.bmpDrawing.Save(stream, ImageFormat.Jpeg);
             }
         }
 
         [Benchmark(Description = "ImageSharp Jpeg")]
         public void JpegCore()
         {
-            using (var memoryStream = new MemoryStream())
+            using (var stream = new MemoryStream())
             {
-                this.bmpCore.SaveAsJpeg(memoryStream);
+                this.bmpCore.SaveAsJpeg(stream);
             }
         }
     }

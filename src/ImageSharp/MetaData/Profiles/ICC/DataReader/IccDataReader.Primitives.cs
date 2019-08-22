@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -6,7 +6,7 @@ using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
     /// <summary>
     /// Provides methods to read ICC data types
@@ -165,7 +165,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>The read bytes</returns>
         public byte[] ReadBytes(int count)
         {
-            byte[] bytes = new byte[count];
+            var bytes = new byte[count];
             Buffer.BlockCopy(this.data, this.AddIndex(count), bytes, 0, count);
             return bytes;
         }

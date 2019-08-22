@@ -1,8 +1,8 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Icc
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         }
 
         [Fact]
-        public void WriteAsciiStringWithNegativeLenghtThrowsArgumentException()
+        public void WriteAsciiStringWithNegativeLengthThrowsArgumentException()
         {
             IccDataWriter writer = CreateWriter();
 

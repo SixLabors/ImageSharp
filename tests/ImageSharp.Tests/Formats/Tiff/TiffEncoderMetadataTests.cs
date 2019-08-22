@@ -37,14 +37,14 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffResolutionUnit.Inch, (TiffResolutionUnit?)ifdEntries.GetInteger(TiffTags.ResolutionUnit));
         }
 
-        /*
-         * todo: temporary disable Tiff native metadata
         [Theory]
         [MemberData(nameof(BaselineMetadataValues))]
         public void AddMetadata_SetsAsciiMetadata(ushort tag, string metadataName, string metadataValue)
         {
             Image<Rgba32> image = new Image<Rgba32>(100, 100);
-            image.MetaData.Properties.Add(new ImageProperty(metadataName, metadataValue));
+
+            TiffMetaData tiffMetadata = image.Metadata.GetFormatMetadata(TiffFormat.Instance);
+            tiffMetadata.TextTags.Add(new TiffMetadataTag(metadataName, metadataValue));
             TiffEncoderCore encoder = new TiffEncoderCore(null);
 
             List<TiffIfdEntry> ifdEntries = new List<TiffIfdEntry>();
@@ -52,6 +52,5 @@ namespace SixLabors.ImageSharp.Tests
 
             Assert.Equal(metadataValue + "\0", ifdEntries.GetAscii(tag));
         }
-        */
     }
 }

@@ -253,51 +253,49 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
             }
 
-            /*
-             * todo: temporary disable Tiff native metadata
             if (!this.ignoreMetadata)
             {
+                TiffMetaData tiffMetadata = image.Metadata.GetFormatMetadata(TiffFormat.Instance);
                 if (ifd.TryGetIfdEntry(TiffTags.Artist, out TiffIfdEntry artistEntry))
                 {
-                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.Artist, this.ReadString(ref artistEntry)));
+                    tiffMetadata.TextTags.Add(new TiffMetadataTag(TiffMetadataNames.Artist, this.ReadString(ref artistEntry)));
                 }
 
                 if (ifd.TryGetIfdEntry(TiffTags.Copyright, out TiffIfdEntry copyrightEntry))
                 {
-                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.Copyright, this.ReadString(ref copyrightEntry)));
+                    tiffMetadata.TextTags.Add(new TiffMetadataTag(TiffMetadataNames.Copyright, this.ReadString(ref copyrightEntry)));
                 }
 
                 if (ifd.TryGetIfdEntry(TiffTags.DateTime, out TiffIfdEntry dateTimeEntry))
                 {
-                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.DateTime, this.ReadString(ref dateTimeEntry)));
+                    tiffMetadata.TextTags.Add(new TiffMetadataTag(TiffMetadataNames.DateTime, this.ReadString(ref dateTimeEntry)));
                 }
 
                 if (ifd.TryGetIfdEntry(TiffTags.HostComputer, out TiffIfdEntry hostComputerEntry))
                 {
-                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.HostComputer, this.ReadString(ref hostComputerEntry)));
+                    tiffMetadata.TextTags.Add(new TiffMetadataTag(TiffMetadataNames.HostComputer, this.ReadString(ref hostComputerEntry)));
                 }
 
                 if (ifd.TryGetIfdEntry(TiffTags.ImageDescription, out TiffIfdEntry imageDescriptionEntry))
                 {
-                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.ImageDescription, this.ReadString(ref imageDescriptionEntry)));
+                    tiffMetadata.TextTags.Add(new TiffMetadataTag(TiffMetadataNames.ImageDescription, this.ReadString(ref imageDescriptionEntry)));
                 }
 
                 if (ifd.TryGetIfdEntry(TiffTags.Make, out TiffIfdEntry makeEntry))
                 {
-                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.Make, this.ReadString(ref makeEntry)));
+                    tiffMetadata.TextTags.Add(new TiffMetadataTag(TiffMetadataNames.Make, this.ReadString(ref makeEntry)));
                 }
 
                 if (ifd.TryGetIfdEntry(TiffTags.Model, out TiffIfdEntry modelEntry))
                 {
-                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.Model, this.ReadString(ref modelEntry)));
+                    tiffMetadata.TextTags.Add(new TiffMetadataTag(TiffMetadataNames.Model, this.ReadString(ref modelEntry)));
                 }
 
                 if (ifd.TryGetIfdEntry(TiffTags.Software, out TiffIfdEntry softwareEntry))
                 {
-                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.Software, this.ReadString(ref softwareEntry)));
+                    tiffMetadata.TextTags.Add(new TiffMetadataTag(TiffMetadataNames.Software, this.ReadString(ref softwareEntry)));
                 }
             }
-            */
         }
 
         /// <summary>

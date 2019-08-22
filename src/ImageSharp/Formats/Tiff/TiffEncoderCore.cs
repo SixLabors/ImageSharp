@@ -157,63 +157,60 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             ifdEntries.AddUnsignedRational(TiffTags.YResolution, new Rational(image.Metadata.VerticalResolution));
             ifdEntries.AddUnsignedShort(TiffTags.ResolutionUnit, (uint)TiffResolutionUnit.Inch);
 
-            /*
-             *
-             * todo: temporary disable Tiff native metadata
-              foreach (ImageProperty metadata in image.Metadata.Properties)
-              {
-                  switch (metadata.Name)
-                  {
-                      case TiffMetadataNames.Artist:
-                          {
-                              ifdEntries.AddAscii(TiffTags.Artist, metadata.Value);
-                              break;
-                          }
+            TiffMetaData tiffMetadata = image.Metadata.GetFormatMetadata(TiffFormat.Instance);
+            foreach (TiffMetadataTag metadata in tiffMetadata.TextTags)
+            {
+                switch (metadata.Name)
+                {
+                    case TiffMetadataNames.Artist:
+                    {
+                        ifdEntries.AddAscii(TiffTags.Artist, metadata.Value);
+                        break;
+                    }
 
-                      case TiffMetadataNames.Copyright:
-                          {
-                              ifdEntries.AddAscii(TiffTags.Copyright, metadata.Value);
-                              break;
-                          }
+                    case TiffMetadataNames.Copyright:
+                    {
+                        ifdEntries.AddAscii(TiffTags.Copyright, metadata.Value);
+                        break;
+                    }
 
-                      case TiffMetadataNames.DateTime:
-                          {
-                              ifdEntries.AddAscii(TiffTags.DateTime, metadata.Value);
-                              break;
-                          }
+                    case TiffMetadataNames.DateTime:
+                    {
+                        ifdEntries.AddAscii(TiffTags.DateTime, metadata.Value);
+                        break;
+                    }
 
-                      case TiffMetadataNames.HostComputer:
-                          {
-                              ifdEntries.AddAscii(TiffTags.HostComputer, metadata.Value);
-                              break;
-                          }
+                    case TiffMetadataNames.HostComputer:
+                    {
+                        ifdEntries.AddAscii(TiffTags.HostComputer, metadata.Value);
+                        break;
+                    }
 
-                      case TiffMetadataNames.ImageDescription:
-                          {
-                              ifdEntries.AddAscii(TiffTags.ImageDescription, metadata.Value);
-                              break;
-                          }
+                    case TiffMetadataNames.ImageDescription:
+                    {
+                        ifdEntries.AddAscii(TiffTags.ImageDescription, metadata.Value);
+                        break;
+                    }
 
-                      case TiffMetadataNames.Make:
-                          {
-                              ifdEntries.AddAscii(TiffTags.Make, metadata.Value);
-                              break;
-                          }
+                    case TiffMetadataNames.Make:
+                    {
+                        ifdEntries.AddAscii(TiffTags.Make, metadata.Value);
+                        break;
+                    }
 
-                      case TiffMetadataNames.Model:
-                          {
-                              ifdEntries.AddAscii(TiffTags.Model, metadata.Value);
-                              break;
-                          }
+                    case TiffMetadataNames.Model:
+                    {
+                        ifdEntries.AddAscii(TiffTags.Model, metadata.Value);
+                        break;
+                    }
 
-                      case TiffMetadataNames.Software:
-                          {
-                              ifdEntries.AddAscii(TiffTags.Software, metadata.Value);
-                              break;
-                          }
+                    case TiffMetadataNames.Software:
+                    {
+                        ifdEntries.AddAscii(TiffTags.Software, metadata.Value);
+                        break;
                     }
                 }
-              */
+            }
         }
 
         /// <summary>

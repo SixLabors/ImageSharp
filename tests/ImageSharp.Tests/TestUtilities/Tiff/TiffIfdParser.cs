@@ -1,18 +1,16 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Primitives;
+using Xunit;
+
 namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using ImageSharp.Formats.Tiff;
-
-    using SixLabors.ImageSharp.MetaData.Profiles.Exif;
-    using SixLabors.ImageSharp.Primitives;
-    using Xunit;
-
     /// <summary>
     /// A utility data structure to decode Tiff IFD entries in unit tests.
     /// </summary>
@@ -23,7 +21,9 @@ namespace SixLabors.ImageSharp.Tests
             TiffIfdEntry entry = entries.FirstOrDefault(e => e.Tag == tag);
 
             if (entry.Tag == 0)
+            {
                 return null;
+            }
 
             Assert.Equal(1u, entry.Count);
 
@@ -52,7 +52,9 @@ namespace SixLabors.ImageSharp.Tests
             TiffIfdEntry entry = entries.FirstOrDefault(e => e.Tag == tag);
 
             if (entry.Tag == 0)
+            {
                 return null;
+            }
 
             Assert.Equal(TiffType.Rational, entry.Type);
             Assert.Equal(1u, entry.Count);
@@ -68,7 +70,9 @@ namespace SixLabors.ImageSharp.Tests
             TiffIfdEntry entry = entries.FirstOrDefault(e => e.Tag == tag);
 
             if (entry.Tag == 0)
+            {
                 return null;
+            }
 
             Assert.Equal(TiffType.Ascii, entry.Type);
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -6,8 +6,6 @@ using System.Buffers;
 using System.IO;
 using System.Text;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.MetaData;
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 
@@ -245,16 +243,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 if (ifd.TryGetIfdEntry(TiffTags.XResolution, out TiffIfdEntry xResolutionEntry))
                 {
                     Rational xResolution = this.ReadUnsignedRational(ref xResolutionEntry);
-                    image.MetaData.HorizontalResolution = xResolution.ToDouble() * resolutionUnitFactor;
+                    image.Metadata.HorizontalResolution = xResolution.ToDouble() * resolutionUnitFactor;
                 }
 
                 if (ifd.TryGetIfdEntry(TiffTags.YResolution, out TiffIfdEntry yResolutionEntry))
                 {
                     Rational yResolution = this.ReadUnsignedRational(ref yResolutionEntry);
-                    image.MetaData.VerticalResolution = yResolution.ToDouble() * resolutionUnitFactor;
+                    image.Metadata.VerticalResolution = yResolution.ToDouble() * resolutionUnitFactor;
                 }
             }
 
+            /*
+             * todo: temporary disable Tiff native metadata
             if (!this.ignoreMetadata)
             {
                 if (ifd.TryGetIfdEntry(TiffTags.Artist, out TiffIfdEntry artistEntry))
@@ -297,6 +297,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.Software, this.ReadString(ref softwareEntry)));
                 }
             }
+            */
         }
 
         /// <summary>
@@ -310,34 +311,34 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             switch (compression)
             {
                 case TiffCompression.None:
-                    {
-                        this.CompressionType = TiffCompressionType.None;
-                        break;
-                    }
+                {
+                    this.CompressionType = TiffCompressionType.None;
+                    break;
+                }
 
                 case TiffCompression.PackBits:
-                    {
-                        this.CompressionType = TiffCompressionType.PackBits;
-                        break;
-                    }
+                {
+                    this.CompressionType = TiffCompressionType.PackBits;
+                    break;
+                }
 
                 case TiffCompression.Deflate:
                 case TiffCompression.OldDeflate:
-                    {
-                        this.CompressionType = TiffCompressionType.Deflate;
-                        break;
-                    }
+                {
+                    this.CompressionType = TiffCompressionType.Deflate;
+                    break;
+                }
 
                 case TiffCompression.Lzw:
-                    {
-                        this.CompressionType = TiffCompressionType.Lzw;
-                        break;
-                    }
+                {
+                    this.CompressionType = TiffCompressionType.Lzw;
+                    break;
+                }
 
                 default:
-                    {
-                        throw new NotSupportedException("The specified TIFF compression format is not supported.");
-                    }
+                {
+                    throw new NotSupportedException("The specified TIFF compression format is not supported.");
+                }
             }
 
             this.PlanarConfiguration = (TiffPlanarConfiguration)this.ReadUnsignedInteger(ifd, TiffTags.PlanarConfiguration, (uint)TiffPlanarConfiguration.Chunky);
@@ -380,140 +381,140 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             switch (photometricInterpretation)
             {
                 case TiffPhotometricInterpretation.WhiteIsZero:
+                {
+                    if (this.BitsPerSample.Length == 1)
                     {
-                        if (this.BitsPerSample.Length == 1)
+                        switch (this.BitsPerSample[0])
                         {
-                            switch (this.BitsPerSample[0])
+                            case 8:
                             {
-                                case 8:
-                                    {
-                                        this.ColorType = TiffColorType.WhiteIsZero8;
-                                        break;
-                                    }
+                                this.ColorType = TiffColorType.WhiteIsZero8;
+                                break;
+                            }
 
-                                case 4:
-                                    {
-                                        this.ColorType = TiffColorType.WhiteIsZero4;
-                                        break;
-                                    }
+                            case 4:
+                            {
+                                this.ColorType = TiffColorType.WhiteIsZero4;
+                                break;
+                            }
 
-                                case 1:
-                                    {
-                                        this.ColorType = TiffColorType.WhiteIsZero1;
-                                        break;
-                                    }
+                            case 1:
+                            {
+                                this.ColorType = TiffColorType.WhiteIsZero1;
+                                break;
+                            }
 
-                                default:
-                                    {
-                                        this.ColorType = TiffColorType.WhiteIsZero;
-                                        break;
-                                    }
+                            default:
+                            {
+                                this.ColorType = TiffColorType.WhiteIsZero;
+                                break;
                             }
                         }
-                        else
-                        {
-                            throw new NotSupportedException("The number of samples in the TIFF BitsPerSample entry is not supported.");
-                        }
-
-                        break;
                     }
+                    else
+                    {
+                        throw new NotSupportedException("The number of samples in the TIFF BitsPerSample entry is not supported.");
+                    }
+
+                    break;
+                }
 
                 case TiffPhotometricInterpretation.BlackIsZero:
+                {
+                    if (this.BitsPerSample.Length == 1)
                     {
+                        switch (this.BitsPerSample[0])
+                        {
+                            case 8:
+                            {
+                                this.ColorType = TiffColorType.BlackIsZero8;
+                                break;
+                            }
+
+                            case 4:
+                            {
+                                this.ColorType = TiffColorType.BlackIsZero4;
+                                break;
+                            }
+
+                            case 1:
+                            {
+                                this.ColorType = TiffColorType.BlackIsZero1;
+                                break;
+                            }
+
+                            default:
+                            {
+                                this.ColorType = TiffColorType.BlackIsZero;
+                                break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        throw new NotSupportedException("The number of samples in the TIFF BitsPerSample entry is not supported.");
+                    }
+
+                    break;
+                }
+
+                case TiffPhotometricInterpretation.Rgb:
+                {
+                    if (this.BitsPerSample.Length == 3)
+                    {
+                        if (this.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
+                        {
+                            if (this.BitsPerSample[0] == 8 && this.BitsPerSample[1] == 8 && this.BitsPerSample[2] == 8)
+                            {
+                                this.ColorType = TiffColorType.Rgb888;
+                            }
+                            else
+                            {
+                                this.ColorType = TiffColorType.Rgb;
+                            }
+                        }
+                        else
+                        {
+                            this.ColorType = TiffColorType.RgbPlanar;
+                        }
+                    }
+                    else
+                    {
+                        throw new NotSupportedException("The number of samples in the TIFF BitsPerSample entry is not supported.");
+                    }
+
+                    break;
+                }
+
+                case TiffPhotometricInterpretation.PaletteColor:
+                {
+                    if (ifd.TryGetIfdEntry(TiffTags.ColorMap, out TiffIfdEntry colorMapEntry))
+                    {
+                        this.ColorMap = this.ReadUnsignedIntegerArray(ref colorMapEntry);
+
                         if (this.BitsPerSample.Length == 1)
                         {
                             switch (this.BitsPerSample[0])
                             {
-                                case 8:
-                                    {
-                                        this.ColorType = TiffColorType.BlackIsZero8;
-                                        break;
-                                    }
-
-                                case 4:
-                                    {
-                                        this.ColorType = TiffColorType.BlackIsZero4;
-                                        break;
-                                    }
-
-                                case 1:
-                                    {
-                                        this.ColorType = TiffColorType.BlackIsZero1;
-                                        break;
-                                    }
-
                                 default:
-                                    {
-                                        this.ColorType = TiffColorType.BlackIsZero;
-                                        break;
-                                    }
+                                {
+                                    this.ColorType = TiffColorType.PaletteColor;
+                                    break;
+                                }
                             }
                         }
                         else
                         {
                             throw new NotSupportedException("The number of samples in the TIFF BitsPerSample entry is not supported.");
                         }
-
-                        break;
                     }
-
-                case TiffPhotometricInterpretation.Rgb:
+                    else
                     {
-                        if (this.BitsPerSample.Length == 3)
-                        {
-                            if (this.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
-                            {
-                                if (this.BitsPerSample[0] == 8 && this.BitsPerSample[1] == 8 && this.BitsPerSample[2] == 8)
-                                {
-                                    this.ColorType = TiffColorType.Rgb888;
-                                }
-                                else
-                                {
-                                    this.ColorType = TiffColorType.Rgb;
-                                }
-                            }
-                            else
-                            {
-                                this.ColorType = TiffColorType.RgbPlanar;
-                            }
-                        }
-                        else
-                        {
-                            throw new NotSupportedException("The number of samples in the TIFF BitsPerSample entry is not supported.");
-                        }
-
-                        break;
+                        throw new ImageFormatException("The TIFF ColorMap entry is missing for a pallete color image.");
                     }
 
-                case TiffPhotometricInterpretation.PaletteColor:
-                    {
-                        if (ifd.TryGetIfdEntry(TiffTags.ColorMap, out TiffIfdEntry colorMapEntry))
-                        {
-                            this.ColorMap = this.ReadUnsignedIntegerArray(ref colorMapEntry);
-
-                            if (this.BitsPerSample.Length == 1)
-                            {
-                                switch (this.BitsPerSample[0])
-                                {
-                                    default:
-                                        {
-                                            this.ColorType = TiffColorType.PaletteColor;
-                                            break;
-                                        }
-                                }
-                            }
-                            else
-                            {
-                                throw new NotSupportedException("The number of samples in the TIFF BitsPerSample entry is not supported.");
-                            }
-                        }
-                        else
-                        {
-                            throw new ImageFormatException("The TIFF ColorMap entry is missing for a pallete color image.");
-                        }
-
-                        break;
-                    }
+                    break;
+                }
 
                 default:
                     throw new NotSupportedException("The specified TIFF photometric interpretation is not supported.");
@@ -771,34 +772,34 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             switch (entry.Type)
             {
                 case TiffType.Byte:
+                {
+                    for (int i = 0; i < result.Length; i++)
                     {
-                        for (int i = 0; i < result.Length; i++)
-                        {
-                            result[i] = (uint)this.ToByte(bytes, i);
-                        }
-
-                        break;
+                        result[i] = (uint)this.ToByte(bytes, i);
                     }
+
+                    break;
+                }
 
                 case TiffType.Short:
+                {
+                    for (int i = 0; i < result.Length; i++)
                     {
-                        for (int i = 0; i < result.Length; i++)
-                        {
-                            result[i] = (uint)this.ToUInt16(bytes, i * TiffConstants.SizeOfShort);
-                        }
-
-                        break;
+                        result[i] = (uint)this.ToUInt16(bytes, i * TiffConstants.SizeOfShort);
                     }
+
+                    break;
+                }
 
                 case TiffType.Long:
+                {
+                    for (int i = 0; i < result.Length; i++)
                     {
-                        for (int i = 0; i < result.Length; i++)
-                        {
-                            result[i] = this.ToUInt32(bytes, i * TiffConstants.SizeOfLong);
-                        }
-
-                        break;
+                        result[i] = this.ToUInt32(bytes, i * TiffConstants.SizeOfLong);
                     }
+
+                    break;
+                }
 
                 default:
                     throw new ImageFormatException($"A value of type '{entry.Type}' cannot be converted to an unsigned integer.");
@@ -823,34 +824,34 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             switch (entry.Type)
             {
                 case TiffType.SByte:
+                {
+                    for (int i = 0; i < result.Length; i++)
                     {
-                        for (int i = 0; i < result.Length; i++)
-                        {
-                            result[i] = (int)this.ToSByte(bytes, i);
-                        }
-
-                        break;
+                        result[i] = (int)this.ToSByte(bytes, i);
                     }
+
+                    break;
+                }
 
                 case TiffType.SShort:
+                {
+                    for (int i = 0; i < result.Length; i++)
                     {
-                        for (int i = 0; i < result.Length; i++)
-                        {
-                            result[i] = (int)this.ToInt16(bytes, i * TiffConstants.SizeOfShort);
-                        }
-
-                        break;
+                        result[i] = (int)this.ToInt16(bytes, i * TiffConstants.SizeOfShort);
                     }
+
+                    break;
+                }
 
                 case TiffType.SLong:
+                {
+                    for (int i = 0; i < result.Length; i++)
                     {
-                        for (int i = 0; i < result.Length; i++)
-                        {
-                            result[i] = this.ToInt32(bytes, i * TiffConstants.SizeOfLong);
-                        }
-
-                        break;
+                        result[i] = this.ToInt32(bytes, i * TiffConstants.SizeOfLong);
                     }
+
+                    break;
+                }
 
                 default:
                     throw new ImageFormatException($"A value of type '{entry.Type}' cannot be converted to a signed integer.");

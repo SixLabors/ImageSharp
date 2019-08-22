@@ -10,7 +10,6 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    [Trait("Category", "Tiff")]
     public class TiffDecoderIfdEntryTests
     {
         [Theory]
@@ -85,9 +84,11 @@ namespace SixLabors.ImageSharp.Tests
             (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, (TiffType)type, count, bytes), isLittleEndian);
 
             byte[] result = decoder.ReadBytes(ref entry);
-            
+
             if (bytes.Length < 4)
+            {
                 result = result.Take(bytes.Length).ToArray();
+            }
 
             Assert.Equal(bytes, result);
         }
@@ -110,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(4, entry.Value.Length);
 
             byte[] result = decoder.ReadBytes(ref entry);
-            
+
             Assert.Equal(bytes.Length, entry.Value.Length);
             Assert.Equal(bytes, entry.Value);
         }
@@ -151,7 +152,7 @@ namespace SixLabors.ImageSharp.Tests
             (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, (TiffType)type, 1, bytes), isLittleEndian);
 
             uint result = decoder.ReadUnsignedInteger(ref entry);
-            
+
             Assert.Equal(expectedValue, result);
         }
 
@@ -228,7 +229,7 @@ namespace SixLabors.ImageSharp.Tests
             (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, (TiffType)type, 1, bytes), isLittleEndian);
 
             int result = decoder.ReadSignedInteger(ref entry);
-            
+
             Assert.Equal(expectedValue, result);
         }
 
@@ -291,7 +292,7 @@ namespace SixLabors.ImageSharp.Tests
             (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, (TiffType)type, (uint)expectedValue.Length, bytes), isLittleEndian);
 
             uint[] result = decoder.ReadUnsignedIntegerArray(ref entry);
-            
+
             Assert.Equal(expectedValue, result);
         }
 
@@ -338,7 +339,7 @@ namespace SixLabors.ImageSharp.Tests
             (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, (TiffType)type, (uint)expectedValue.Length, bytes), isLittleEndian);
 
             int[] result = decoder.ReadSignedIntegerArray(ref entry);
-            
+
             Assert.Equal(expectedValue, result);
         }
 
@@ -377,7 +378,7 @@ namespace SixLabors.ImageSharp.Tests
             (TiffDecoderCore decoder, TiffIfdEntry entry) = GenerateTestIfdEntry(TiffGenEntry.Bytes(TiffTags.ImageWidth, TiffType.Ascii, (uint)bytes.Length, bytes), isLittleEndian);
 
             string result = decoder.ReadString(ref entry);
-            
+
             Assert.Equal(expectedValue, result);
         }
 
@@ -826,12 +827,12 @@ namespace SixLabors.ImageSharp.Tests
         private (TiffDecoderCore, TiffIfdEntry) GenerateTestIfdEntry(TiffGenEntry entry, bool isLittleEndian)
         {
             Stream stream = new TiffGenIfd()
-                            {
-                                Entries =
+            {
+                Entries =
                                 {
                                     entry
                                 }
-                            }
+            }
                             .ToStream(isLittleEndian);
 
             TiffDecoderCore decoder = new TiffDecoderCore(stream, isLittleEndian, null, null);

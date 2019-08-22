@@ -4,9 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using SixLabors.ImageSharp.Formats.Tiff;
-using SixLabors.ImageSharp.MetaData;
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 
@@ -156,63 +153,67 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public void AddMetadata<TPixel>(Image<TPixel> image, List<TiffIfdEntry> ifdEntries)
             where TPixel : struct, IPixel<TPixel>
         {
-            ifdEntries.AddUnsignedRational(TiffTags.XResolution, new Rational(image.MetaData.HorizontalResolution));
-            ifdEntries.AddUnsignedRational(TiffTags.YResolution, new Rational(image.MetaData.VerticalResolution));
+            ifdEntries.AddUnsignedRational(TiffTags.XResolution, new Rational(image.Metadata.HorizontalResolution));
+            ifdEntries.AddUnsignedRational(TiffTags.YResolution, new Rational(image.Metadata.VerticalResolution));
             ifdEntries.AddUnsignedShort(TiffTags.ResolutionUnit, (uint)TiffResolutionUnit.Inch);
 
-            foreach (ImageProperty metadata in image.MetaData.Properties)
-            {
-                switch (metadata.Name)
-                {
-                    case TiffMetadataNames.Artist:
-                        {
-                            ifdEntries.AddAscii(TiffTags.Artist, metadata.Value);
-                            break;
-                        }
+            /*
+             *
+             * todo: temporary disable Tiff native metadata
+              foreach (ImageProperty metadata in image.Metadata.Properties)
+              {
+                  switch (metadata.Name)
+                  {
+                      case TiffMetadataNames.Artist:
+                          {
+                              ifdEntries.AddAscii(TiffTags.Artist, metadata.Value);
+                              break;
+                          }
 
-                    case TiffMetadataNames.Copyright:
-                        {
-                            ifdEntries.AddAscii(TiffTags.Copyright, metadata.Value);
-                            break;
-                        }
+                      case TiffMetadataNames.Copyright:
+                          {
+                              ifdEntries.AddAscii(TiffTags.Copyright, metadata.Value);
+                              break;
+                          }
 
-                    case TiffMetadataNames.DateTime:
-                        {
-                            ifdEntries.AddAscii(TiffTags.DateTime, metadata.Value);
-                            break;
-                        }
+                      case TiffMetadataNames.DateTime:
+                          {
+                              ifdEntries.AddAscii(TiffTags.DateTime, metadata.Value);
+                              break;
+                          }
 
-                    case TiffMetadataNames.HostComputer:
-                        {
-                            ifdEntries.AddAscii(TiffTags.HostComputer, metadata.Value);
-                            break;
-                        }
+                      case TiffMetadataNames.HostComputer:
+                          {
+                              ifdEntries.AddAscii(TiffTags.HostComputer, metadata.Value);
+                              break;
+                          }
 
-                    case TiffMetadataNames.ImageDescription:
-                        {
-                            ifdEntries.AddAscii(TiffTags.ImageDescription, metadata.Value);
-                            break;
-                        }
+                      case TiffMetadataNames.ImageDescription:
+                          {
+                              ifdEntries.AddAscii(TiffTags.ImageDescription, metadata.Value);
+                              break;
+                          }
 
-                    case TiffMetadataNames.Make:
-                        {
-                            ifdEntries.AddAscii(TiffTags.Make, metadata.Value);
-                            break;
-                        }
+                      case TiffMetadataNames.Make:
+                          {
+                              ifdEntries.AddAscii(TiffTags.Make, metadata.Value);
+                              break;
+                          }
 
-                    case TiffMetadataNames.Model:
-                        {
-                            ifdEntries.AddAscii(TiffTags.Model, metadata.Value);
-                            break;
-                        }
+                      case TiffMetadataNames.Model:
+                          {
+                              ifdEntries.AddAscii(TiffTags.Model, metadata.Value);
+                              break;
+                          }
 
-                    case TiffMetadataNames.Software:
-                        {
-                            ifdEntries.AddAscii(TiffTags.Software, metadata.Value);
-                            break;
-                        }
+                      case TiffMetadataNames.Software:
+                          {
+                              ifdEntries.AddAscii(TiffTags.Software, metadata.Value);
+                              break;
+                          }
+                    }
                 }
-            }
+              */
         }
 
         /// <summary>
@@ -222,7 +223,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="ifdEntries">The image format entries to add to the IFD.</param>
         public void AddImageFormat<TPixel>(Image<TPixel> image, List<TiffIfdEntry> ifdEntries)
-            where TPixel : struct, IPixel<TPixel>
+        where TPixel : struct, IPixel<TPixel>
         {
             throw new NotImplementedException();
         }

@@ -30,26 +30,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteDitherProcessor{TPixel}"/> class.
         /// </summary>
-        protected PaletteDitherProcessor(PaletteDitherProcessor definition)
+        /// <param name="definition">The <see cref="PaletteDitherProcessor"/> defining the processor parameters.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        protected PaletteDitherProcessor(PaletteDitherProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(source, sourceRectangle)
         {
             this.Definition = definition;
         }
 
         protected PaletteDitherProcessor Definition { get; }
 
-        protected override void BeforeFrameApply(
-            ImageFrame<TPixel> source,
-            Rectangle sourceRectangle,
-            Configuration configuration)
+        /// <inheritdoc/>
+        protected override void BeforeFrameApply(ImageFrame<TPixel> source)
         {
-            base.BeforeFrameApply(source, sourceRectangle, configuration);
+            base.BeforeFrameApply(source);
 
             // Lazy init palette:
             if (this.palette is null)
             {
                 ReadOnlySpan<Color> sourcePalette = this.Definition.Palette.Span;
                 this.palette = new TPixel[sourcePalette.Length];
-                Color.ToPixel<TPixel>(configuration, sourcePalette, this.palette);
+                Color.ToPixel<TPixel>(this.Configuration, sourcePalette, this.palette);
             }
 
             // Lazy init paletteVector:
@@ -57,7 +59,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             {
                 this.paletteVector = new Vector4[this.palette.Length];
                 PixelOperations<TPixel>.Instance.ToVector4(
-                    configuration,
+                    this.Configuration,
                     (ReadOnlySpan<TPixel>)this.palette,
                     (Span<Vector4>)this.paletteVector,
                     PixelConversionModifiers.Scale);

@@ -16,20 +16,26 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     internal class ErrorDiffusionPaletteProcessor<TPixel> : PaletteDitherProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        public ErrorDiffusionPaletteProcessor(ErrorDiffusionPaletteProcessor definition)
-            : base(definition)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ErrorDiffusionPaletteProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="definition">The <see cref="ErrorDiffusionPaletteProcessor"/> defining the processor parameters.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public ErrorDiffusionPaletteProcessor(ErrorDiffusionPaletteProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(definition, source, sourceRectangle)
         {
         }
 
         private new ErrorDiffusionPaletteProcessor Definition => (ErrorDiffusionPaletteProcessor)base.Definition;
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             byte threshold = (byte)MathF.Round(this.Definition.Threshold * 255F);
             bool isAlphaOnly = typeof(TPixel) == typeof(Alpha8);
 
-            var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
             int startY = interest.Y;
             int endY = interest.Bottom;
             int startX = interest.X;

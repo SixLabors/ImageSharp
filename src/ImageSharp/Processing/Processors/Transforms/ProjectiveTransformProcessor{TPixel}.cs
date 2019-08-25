@@ -22,7 +22,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     {
         private readonly ProjectiveTransformProcessor definition;
 
-        public ProjectiveTransformProcessor(ProjectiveTransformProcessor definition)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ProjectiveTransformProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="definition">The <see cref="ProjectiveTransformProcessor"/> defining the processor parameters.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public ProjectiveTransformProcessor(ProjectiveTransformProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(source, sourceRectangle)
         {
             this.definition = definition;
         }
@@ -30,26 +37,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private Size TargetDimensions => this.definition.TargetDimensions;
 
         /// <inheritdoc/>
-        protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
+        protected override Image<TPixel> CreateDestination()
         {
             // We will always be creating the clone even for mutate because we may need to resize the canvas
-            IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select<ImageFrame<TPixel>, ImageFrame<TPixel>>(
+            IEnumerable<ImageFrame<TPixel>> frames = this.Source.Frames.Select<ImageFrame<TPixel>, ImageFrame<TPixel>>(
                 x => new ImageFrame<TPixel>(
-                    source.GetConfiguration(),
+                    this.Source.GetConfiguration(),
                     this.TargetDimensions.Width,
                     this.TargetDimensions.Height,
                     x.Metadata.DeepClone()));
 
             // Use the overload to prevent an extra frame being added
-            return new Image<TPixel>(source.GetConfiguration(), source.Metadata.DeepClone(), frames);
+            return new Image<TPixel>(this.Source.GetConfiguration(), this.Source.Metadata.DeepClone(), frames);
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(
-            ImageFrame<TPixel> source,
-            ImageFrame<TPixel> destination,
-            Rectangle sourceRectangle,
-            Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
         {
             Matrix4x4 transformMatrix = this.definition.TransformMatrix;
 
@@ -73,7 +76,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 ParallelHelper.IterateRows(
                     targetBounds,
-                    configuration,
+                    this.Configuration,
                     rows =>
                         {
                             for (int y = rows.Min; y < rows.Max; y++)
@@ -86,7 +89,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                     int px = (int)MathF.Round(point.X);
                                     int py = (int)MathF.Round(point.Y);
 
-                                    if (sourceRectangle.Contains(px, py))
+                                    if (this.SourceRectangle.Contains(px, py))
                                     {
                                         destRow[x] = source[px, py];
                                     }
@@ -97,19 +100,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return;
             }
 
-            var kernel = new TransformKernelMap(configuration, source.Size(), destination.Size(), sampler);
+            var kernel = new TransformKernelMap(this.Configuration, source.Size(), destination.Size(), sampler);
             try
             {
                 ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
                     targetBounds,
-                    configuration,
+                    this.Configuration,
                     (rows, vectorBuffer) =>
                         {
                             Span<Vector4> vectorSpan = vectorBuffer.Span;
                             for (int y = rows.Min; y < rows.Max; y++)
                             {
                                 Span<TPixel> targetRowSpan = destination.GetPixelRowSpan(y);
-                                PixelOperations<TPixel>.Instance.ToVector4(configuration, targetRowSpan, vectorSpan);
+                                PixelOperations<TPixel>.Instance.ToVector4(this.Configuration, targetRowSpan, vectorSpan);
                                 ref float ySpanRef = ref kernel.GetYStartReference(y);
                                 ref float xSpanRef = ref kernel.GetXStartReference(y);
 
@@ -128,7 +131,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                 }
 
                                 PixelOperations<TPixel>.Instance.FromVector4Destructive(
-                                    configuration,
+                                    this.Configuration,
                                     vectorSpan,
                                     targetRowSpan);
                             }

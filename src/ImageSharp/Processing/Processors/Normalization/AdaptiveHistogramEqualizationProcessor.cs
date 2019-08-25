@@ -1,5 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
+
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 {
@@ -33,13 +35,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         public int NumberOfTiles { get; }
 
         /// <inheritdoc />
-        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
         {
             return new AdaptiveHistogramEqualizationProcessor<TPixel>(
                 this.LuminanceLevels,
                 this.ClipHistogram,
                 this.ClipLimitPercentage,
-                this.NumberOfTiles);
+                this.NumberOfTiles,
+                source,
+                sourceRectangle);
         }
     }
 }

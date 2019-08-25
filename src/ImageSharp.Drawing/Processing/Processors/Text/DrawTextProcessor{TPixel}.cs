@@ -27,7 +27,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
 
         private readonly DrawTextProcessor definition;
 
-        public DrawTextProcessor(DrawTextProcessor definition)
+        public DrawTextProcessor(DrawTextProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(source, sourceRectangle)
         {
             this.definition = definition;
         }
@@ -44,35 +45,35 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
 
         private IBrush Brush => this.definition.Brush;
 
-        protected override void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeImageApply()
         {
-            base.BeforeImageApply(source, sourceRectangle);
+            base.BeforeImageApply();
 
             // do everything at the image level as we are delegating the processing down to other processors
             var style = new RendererOptions(this.Font, this.Options.DpiX, this.Options.DpiY, this.Location)
-                            {
-                                ApplyKerning = this.Options.ApplyKerning,
-                                TabWidth = this.Options.TabWidth,
-                                WrappingWidth = this.Options.WrapTextWidth,
-                                HorizontalAlignment = this.Options.HorizontalAlignment,
-                                VerticalAlignment = this.Options.VerticalAlignment
-                            };
+            {
+                ApplyKerning = this.Options.ApplyKerning,
+                TabWidth = this.Options.TabWidth,
+                WrappingWidth = this.Options.WrapTextWidth,
+                HorizontalAlignment = this.Options.HorizontalAlignment,
+                VerticalAlignment = this.Options.VerticalAlignment
+            };
 
-            this.textRenderer = new CachingGlyphRenderer(source.GetMemoryAllocator(), this.Text.Length, this.Pen, this.Brush != null);
+            this.textRenderer = new CachingGlyphRenderer(this.Source.GetMemoryAllocator(), this.Text.Length, this.Pen, this.Brush != null);
             this.textRenderer.Options = (GraphicsOptions)this.Options;
             var renderer = new TextRenderer(this.textRenderer);
             renderer.RenderText(this.Text, style);
         }
 
-        protected override void AfterImageApply(Image<TPixel> source, Rectangle sourceRectangle)
+        protected override void AfterImageApply()
         {
-            base.AfterImageApply(source, sourceRectangle);
+            base.AfterImageApply();
             this.textRenderer?.Dispose();
             this.textRenderer = null;
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             // this is a no-op as we have processes all as an image, we should be able to pass out of before email apply a skip frames outcome
             Draw(this.textRenderer.FillOperations, this.Brush);
@@ -82,7 +83,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
             {
                 if (operations?.Count > 0)
                 {
-                    using (BrushApplicator<TPixel> app = brush.CreateApplicator(source, sourceRectangle, this.textRenderer.Options))
+                    using (BrushApplicator<TPixel> app = brush.CreateApplicator(source, this.SourceRectangle, this.textRenderer.Options))
                     {
                         foreach (DrawingOperation operation in operations)
                         {
@@ -279,19 +280,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
                 if (this.renderFill)
                 {
                     this.FillOperations.Add(new DrawingOperation
-                                                {
-                                                    Location = this.currentRenderPosition,
-                                                    Map = renderData.FillMap
-                                                });
+                    {
+                        Location = this.currentRenderPosition,
+                        Map = renderData.FillMap
+                    });
                 }
 
                 if (this.renderOutline)
                 {
                     this.OutlineOperations.Add(new DrawingOperation
-                                                   {
-                                                       Location = this.currentRenderPosition,
-                                                       Map = renderData.OutlineMap
-                                                   });
+                    {
+                        Location = this.currentRenderPosition,
+                        Map = renderData.OutlineMap
+                    });
                 }
             }
 

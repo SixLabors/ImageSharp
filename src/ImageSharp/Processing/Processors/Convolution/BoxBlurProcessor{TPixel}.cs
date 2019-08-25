@@ -20,7 +20,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// Initializes a new instance of the <see cref="BoxBlurProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="definition">The <see cref="BoxBlurProcessor"/> defining the processor parameters.</param>
-        public BoxBlurProcessor(BoxBlurProcessor definition)
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public BoxBlurProcessor(BoxBlurProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(source, sourceRectangle)
         {
             this.definition = definition;
             int kernelSize = (definition.Radius * 2) + 1;
@@ -39,14 +42,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         public DenseMatrix<float> KernelY { get; }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(
-            ImageFrame<TPixel> source,
-            Rectangle sourceRectangle,
-            Configuration configuration) =>
-            new Convolution2PassProcessor<TPixel>(this.KernelX, this.KernelY, false).Apply(
-                source,
-                sourceRectangle,
-                configuration);
+        protected override void OnFrameApply(ImageFrame<TPixel> source) =>
+            new Convolution2PassProcessor<TPixel>(this.KernelX, this.KernelY, false, this.Source, this.SourceRectangle).Apply(source);
 
         /// <summary>
         /// Create a 1 dimensional Box kernel.

@@ -13,6 +13,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
+#if DEBUG
     [Trait("Category", "Tiff_BlackBox")]
     public class TiffDecoderTests
     {
@@ -30,9 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             }
         }
 
-#if DEBUG
         [Fact]
-#endif
         public void DecodeManual()
         {
             string path = @"C:\Work\GitHub\SixLabors.ImageSharp\tests\Images\Input\Tiff\";
@@ -46,4 +45,5 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             }
         }
     }
+#endif
 }

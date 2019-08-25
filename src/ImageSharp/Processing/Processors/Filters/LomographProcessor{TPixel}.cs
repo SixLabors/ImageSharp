@@ -27,9 +27,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         }
 
         /// <inheritdoc/>
-        protected override void AfterFrameApply(ImageFrame<TPixel> source)
+        protected override void AfterImageApply()
         {
-            new VignetteProcessor(VeryDarkGreen).CreatePixelSpecificProcessor(this.Source, this.SourceRectangle).Apply();
+            new VignetteProcessor(VeryDarkGreen).Apply(this.Source, this.SourceRectangle);
+            base.AfterImageApply();
         }
     }
 }

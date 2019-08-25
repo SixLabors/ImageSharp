@@ -35,6 +35,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         {
             Rectangle rectangle;
 
+            // TODO: This is clunky. We should add behavior enum to ExtractFrame.
             // All frames have be the same size so we only need to calculate the correct dimensions for the first frame
             using (var temp = new Image<TPixel>(this.Configuration, this.Source.Metadata.DeepClone(), new[] { this.Source.Frames.RootFrame.Clone() }))
             {
@@ -51,6 +52,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
 
             new CropProcessor(rectangle, this.Source.Size()).Apply(this.Source, this.SourceRectangle);
+
+            base.BeforeImageApply();
         }
 
         /// <inheritdoc/>

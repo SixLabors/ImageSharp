@@ -43,10 +43,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             {
                 new GrayscaleBt709Processor(1F).Apply(this.Source, this.SourceRectangle);
             }
+
+            base.BeforeImageApply();
         }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
-            => new ConvolutionProcessor<TPixel>(this.KernelXY, true, this.Source, this.SourceRectangle).Apply(source);
+        {
+            using (var processor = new ConvolutionProcessor<TPixel>(this.KernelXY, true, this.Source, this.SourceRectangle))
+            {
+                processor.Apply(source);
+            }
+        }
     }
 }

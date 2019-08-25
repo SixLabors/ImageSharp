@@ -24,11 +24,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        private readonly ResizeProcessor parameterSource;
+        private bool isDisposed;
+
         // The following fields are not immutable but are optionally created on demand.
         private ResizeKernelMap horizontalKernelMap;
         private ResizeKernelMap verticalKernelMap;
-
-        private readonly ResizeProcessor parameterSource;
 
         public ResizeProcessor(ResizeProcessor parameterSource, Image<TPixel> source, Rectangle sourceRectangle)
             : base(source, sourceRectangle)
@@ -109,6 +110,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     sourceRectangle.Height,
                     memoryAllocator);
             }
+
+            base.BeforeImageApply(destination);
         }
 
         /// <inheritdoc/>
@@ -189,15 +192,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
         }
 
-        protected override void AfterImageApply(Image<TPixel> destination)
+        /// <inheritdoc/>
+        protected override void Dispose(bool disposing)
         {
-            base.AfterImageApply(destination);
+            if (this.isDisposed)
+            {
+                return;
+            }
 
-            // TODO: An exception in the processing chain can leave these buffers undisposed. We should consider making image processors IDisposable!
-            this.horizontalKernelMap?.Dispose();
-            this.horizontalKernelMap = null;
-            this.verticalKernelMap?.Dispose();
-            this.verticalKernelMap = null;
+            if (disposing)
+            {
+                this.horizontalKernelMap?.Dispose();
+                this.horizontalKernelMap = null;
+                this.verticalKernelMap?.Dispose();
+                this.verticalKernelMap = null;
+            }
+
+            this.isDisposed = true;
+            base.Dispose(disposing);
         }
     }
 }

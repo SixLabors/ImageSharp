@@ -53,41 +53,31 @@ namespace SixLabors.ImageSharp.Processing
         /// <inheritdoc/>
         public Size GetCurrentSize() => this.GetCurrentBounds().Size;
 
-        public IImageProcessingContext ApplyProcessor(IImageProcessor processor, Rectangle rectangle)
-        {
-            var processorImplementation = processor.CreatePixelSpecificProcessor<TPixel>();
-            return this.ApplyProcessor(processorImplementation, rectangle);
-        }
-
+        /// <inheritdoc/>
         public IImageProcessingContext ApplyProcessor(IImageProcessor processor)
         {
-            var processorImplementation = processor.CreatePixelSpecificProcessor<TPixel>();
-            return this.ApplyProcessor(processorImplementation);
+            return this.ApplyProcessor(processor, this.GetCurrentBounds());
         }
 
-        private IImageProcessingContext ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
+        /// <inheritdoc/>
+        public IImageProcessingContext ApplyProcessor(IImageProcessor processor, Rectangle rectangle)
         {
             if (!this.mutate && this.destination is null)
             {
                 // This will only work if the first processor applied is the cloning one thus
                 // realistically for this optimization to work the resize must the first processor
                 // applied any only up processors will take the double data path.
-                if (processor is ICloningImageProcessor<TPixel> cloningImageProcessor)
+                if (processor.CreatePixelSpecificProcessor(this.source, rectangle) is ICloningImageProcessor<TPixel> cloningImageProcessor)
                 {
-                    this.destination = cloningImageProcessor.CloneAndApply(this.source, rectangle);
+                    this.destination = cloningImageProcessor.CloneAndApply();
                     return this;
                 }
 
                 this.destination = this.source.Clone();
             }
 
-            processor.Apply(this.destination, rectangle);
+            processor.CreatePixelSpecificProcessor(this.destination, rectangle).Apply();
             return this;
-        }
-
-        private IImageProcessingContext ApplyProcessor(IImageProcessor<TPixel> processor)
-        {
-            return this.ApplyProcessor(processor, this.GetCurrentBounds());
         }
 
         private Rectangle GetCurrentBounds() => this.destination?.Bounds() ?? this.source.Bounds();

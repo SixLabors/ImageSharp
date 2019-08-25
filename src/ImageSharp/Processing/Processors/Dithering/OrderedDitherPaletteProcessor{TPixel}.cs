@@ -16,19 +16,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     internal class OrderedDitherPaletteProcessor<TPixel> : PaletteDitherProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        public OrderedDitherPaletteProcessor(OrderedDitherPaletteProcessor definition)
-            : base(definition)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OrderedDitherPaletteProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="definition">The <see cref="OrderedDitherPaletteProcessor"/> defining the processor parameters.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public OrderedDitherPaletteProcessor(OrderedDitherPaletteProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(definition, source, sourceRectangle)
         {
         }
 
         private new OrderedDitherPaletteProcessor Definition => (OrderedDitherPaletteProcessor)base.Definition;
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             bool isAlphaOnly = typeof(TPixel) == typeof(Alpha8);
 
-            var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
             int startY = interest.Y;
             int endY = interest.Bottom;
             int startX = interest.X;

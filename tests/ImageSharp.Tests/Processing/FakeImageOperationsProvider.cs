@@ -3,14 +3,15 @@
 
 using System.Collections.Generic;
 using System.Linq;
+
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Processing
 {
     internal class FakeImageOperationsProvider : IImageProcessingContextFactory
     {
@@ -19,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests
         public bool HasCreated<TPixel>(Image<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
         {
-            return Created(source).Any();
+            return this.Created(source).Any();
         }
         public IEnumerable<FakeImageOperations<TPixel>> Created<TPixel>(Image<TPixel> source) where TPixel : struct, IPixel<TPixel>
         {
@@ -29,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests
 
         public IEnumerable<FakeImageOperations<TPixel>.AppliedOperation> AppliedOperations<TPixel>(Image<TPixel> source) where TPixel : struct, IPixel<TPixel>
         {
-            return Created(source)
+            return this.Created(source)
                 .SelectMany(x => x.Applied);
         }
 

@@ -5,6 +5,7 @@ using System.Numerics;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Text;
+using SixLabors.ImageSharp.Tests.Processing;
 using SixLabors.Primitives;
 using Xunit;
 

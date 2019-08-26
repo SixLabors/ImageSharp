@@ -15,6 +15,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
     internal abstract class CloningImageProcessor<TPixel> : ICloningImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        private bool isDisposed;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="CloningImageProcessor{TPixel}"/> class.
         /// </summary>
@@ -54,6 +56,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     throw new ImageProcessingException($"An error occurred when processing the image using {this.GetType().Name}. The processor changed the number of frames.");
                 }
 
+                Configuration configuration = this.Source.GetConfiguration();
                 this.BeforeImageApply(clone);
 
                 for (int i = 0; i < this.Source.Frames.Count; i++)
@@ -95,6 +98,12 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
                 this.Source.SwapOrCopyPixelsBuffersFrom(cloned);
             }
+        }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            this.Dispose(true);
         }
 
         /// <summary>
@@ -143,6 +152,18 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="destination">The cloned/destination image. Cannot be null.</param>
         protected virtual void AfterImageApply(Image<TPixel> destination)
         {
+        }
+
+        /// <summary>
+        /// Disposes the object and frees resources for the Garbage Collector.
+        /// </summary>
+        /// <param name="disposing">Whether to dispose managed and unmanaged objects.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!this.isDisposed)
+            {
+                this.isDisposed = true;
+            }
         }
     }
 }

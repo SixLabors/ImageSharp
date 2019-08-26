@@ -39,7 +39,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         public DenseMatrix<float> KernelY { get; }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source) =>
-            new Convolution2PassProcessor<TPixel>(this.KernelX, this.KernelY, false, this.Source, this.SourceRectangle).Apply(source);
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
+        {
+            using (var processor = new Convolution2PassProcessor<TPixel>(this.KernelX, this.KernelY, false, this.Source, this.SourceRectangle))
+            {
+                processor.Apply(source);
+            }
+        }
     }
 }

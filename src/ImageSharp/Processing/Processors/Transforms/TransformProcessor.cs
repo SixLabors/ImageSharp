@@ -25,6 +25,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         /// <inheritdoc/>
         protected override void AfterImageApply(Image<TPixel> destination)
-            => TransformProcessorHelpers.UpdateDimensionalMetadata(destination);
+        {
+            TransformProcessorHelpers.UpdateDimensionalMetadata(destination);
+            base.AfterImageApply(destination);
+        }
     }
 }

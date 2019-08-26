@@ -44,8 +44,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <inheritdoc/>
         protected override void BeforeFrameApply(ImageFrame<TPixel> source)
         {
-            base.BeforeFrameApply(source);
-
             // Lazy init palette:
             if (this.palette is null)
             {
@@ -64,6 +62,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                     (Span<Vector4>)this.paletteVector,
                     PixelConversionModifiers.Scale);
             }
+
+            base.BeforeFrameApply(source);
         }
 
         /// <summary>

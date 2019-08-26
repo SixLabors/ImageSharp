@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Advanced;
@@ -67,16 +67,25 @@ namespace SixLabors.ImageSharp.Processing
                 // This will only work if the first processor applied is the cloning one thus
                 // realistically for this optimization to work the resize must the first processor
                 // applied any only up processors will take the double data path.
-                if (processor.CreatePixelSpecificProcessor(this.source, rectangle) is ICloningImageProcessor<TPixel> cloningImageProcessor)
+                using (IImageProcessor<TPixel> specificProcessor = processor.CreatePixelSpecificProcessor(this.source, rectangle))
                 {
-                    this.destination = cloningImageProcessor.CloneAndApply();
-                    return this;
+                    // TODO: if 'specificProcessor' is not an ICloningImageProcessor<TPixel> we are unnecessarily disposing and recreating it.
+                    // This should be solved in a future refactor.
+                    if (specificProcessor is ICloningImageProcessor<TPixel> cloningImageProcessor)
+                    {
+                        this.destination = cloningImageProcessor.CloneAndApply();
+                        return this;
+                    }
                 }
 
                 this.destination = this.source.Clone();
             }
 
-            processor.CreatePixelSpecificProcessor(this.destination, rectangle).Apply();
+            using (IImageProcessor<TPixel> specificProcessor = processor.CreatePixelSpecificProcessor(this.destination, rectangle))
+            {
+                specificProcessor.Apply();
+            }
+
             return this;
         }
 

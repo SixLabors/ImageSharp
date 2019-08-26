@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Drawing;
+using SixLabors.ImageSharp.Tests.Processing;
 using SixLabors.Shapes;
 using Xunit;
 

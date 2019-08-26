@@ -69,6 +69,8 @@ namespace SixLabors.ImageSharp.Processing
                 // applied any only up processors will take the double data path.
                 using (IImageProcessor<TPixel> specificProcessor = processor.CreatePixelSpecificProcessor(this.source, rectangle))
                 {
+                    // TODO: if 'specificProcessor' is not an ICloningImageProcessor<TPixel> we are unnecessarily disposing and recreating it.
+                    // This should be solved in a future refactor.
                     if (specificProcessor is ICloningImageProcessor<TPixel> cloningImageProcessor)
                     {
                         this.destination = cloningImageProcessor.CloneAndApply();

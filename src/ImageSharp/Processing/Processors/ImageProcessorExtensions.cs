@@ -10,8 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
     {
         public static void Apply(this IImageProcessor processor, Image source, Rectangle sourceRectangle)
         {
-            var visitor = new ApplyVisitor(processor, sourceRectangle);
-            source.AcceptVisitor(visitor);
+            source.AcceptVisitor(new ApplyVisitor(processor, sourceRectangle));
         }
 
         private class ApplyVisitor : IImageVisitor
@@ -29,8 +28,10 @@ namespace SixLabors.ImageSharp.Processing.Processors
             public void Visit<TPixel>(Image<TPixel> image)
                 where TPixel : struct, IPixel<TPixel>
             {
-                IImageProcessor<TPixel> processorImpl = this.processor.CreatePixelSpecificProcessor(image, this.sourceRectangle);
-                processorImpl.Apply();
+                using (IImageProcessor<TPixel> processorImpl = this.processor.CreatePixelSpecificProcessor(image, this.sourceRectangle))
+                {
+                    processorImpl.Apply();
+                }
             }
         }
     }

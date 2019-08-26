@@ -68,6 +68,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 default:
                     break;
             }
+
+            base.BeforeImageApply();
         }
 
         /// <inheritdoc/>

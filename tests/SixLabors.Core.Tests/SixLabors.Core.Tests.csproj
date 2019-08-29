@@ -23,8 +23,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <AdditionalFiles Include="..\..\stylecop.json" />
-    <Content Include="..\..\stylecop.json" Link="stylecop.json" />
+    <AdditionalFiles Include="..\..\shared-infrastructure\stylecop.json" />
   </ItemGroup>
 
   <ItemGroup>

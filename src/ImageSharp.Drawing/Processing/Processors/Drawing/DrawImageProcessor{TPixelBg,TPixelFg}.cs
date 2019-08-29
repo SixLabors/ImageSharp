@@ -20,19 +20,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
         where TPixelFg : struct, IPixel<TPixelFg>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="DrawImageProcessor{TPixelDst, TPixelSrc}"/> class.
+        /// Initializes a new instance of the <see cref="DrawImageProcessor{TPixelBg, TPixelFg}"/> class.
         /// </summary>
-        /// <param name="image">The image to blend with the currently processing image.</param>
+        /// <param name="image">The foreground <see cref="Image{TPixelFg}"/> to blend with the currently processing image.</param>
+        /// <param name="source">The source <see cref="Image{TPixelBg}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         /// <param name="location">The location to draw the blended image.</param>
         /// <param name="colorBlendingMode">The blending mode to use when drawing the image.</param>
         /// <param name="alphaCompositionMode">The Alpha blending mode to use when drawing the image.</param>
         /// <param name="opacity">The opacity of the image to blend. Must be between 0 and 1.</param>
         public DrawImageProcessor(
             Image<TPixelFg> image,
+            Image<TPixelBg> source,
+            Rectangle sourceRectangle,
             Point location,
             PixelColorBlendingMode colorBlendingMode,
             PixelAlphaCompositionMode alphaCompositionMode,
             float opacity)
+            : base(source, sourceRectangle)
         {
             Guard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
 
@@ -63,11 +68,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
         public Point Location { get; }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(
-            ImageFrame<TPixelBg> source,
-            Rectangle sourceRectangle,
-            Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixelBg> source)
         {
+            Rectangle sourceRectangle = this.SourceRectangle;
+            Configuration configuration = this.Configuration;
+
             Image<TPixelFg> targetImage = this.Image;
             PixelBlender<TPixelBg> blender = this.Blender;
             int locationY = this.Location.Y;
@@ -101,8 +106,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                         for (int y = rows.Min; y < rows.Max; y++)
                         {
                             Span<TPixelBg> background = source.GetPixelRowSpan(y).Slice(minX, width);
-                            Span<TPixelFg> foreground =
-                                targetImage.GetPixelRowSpan(y - locationY).Slice(targetX, width);
+                            Span<TPixelFg> foreground = targetImage.GetPixelRowSpan(y - locationY).Slice(targetX, width);
                             blender.Blend<TPixelFg>(configuration, background, background, foreground, this.Opacity);
                         }
                     });

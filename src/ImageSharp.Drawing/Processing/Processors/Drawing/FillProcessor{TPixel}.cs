@@ -21,14 +21,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
     {
         private readonly FillProcessor definition;
 
-        public FillProcessor(FillProcessor definition)
+        public FillProcessor(FillProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(source, sourceRectangle)
         {
             this.definition = definition;
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
+            Rectangle sourceRectangle = this.SourceRectangle;
+            Configuration configuration = this.Configuration;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
             int startY = sourceRectangle.Y;

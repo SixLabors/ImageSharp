@@ -37,15 +37,19 @@
 
     <ItemGroup>
         <Compile Include="..\..\shared-infrastructure\**\*.cs" />
+        <AdditionalFiles Include="..\..\shared-infrastructure\stylecop.json" />
     </ItemGroup>
-    
+    <PropertyGroup>
+        <CodeAnalysisRuleSet>..\..\shared-infrastructure\SixLabors.ruleset</CodeAnalysisRuleSet>
+    </PropertyGroup>
+
     <ItemGroup>
        <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
-        <PrivateAssets>All</PrivateAssets>
-      </PackageReference>
-    
-        <AdditionalFiles Include="..\..\stylecop.json" />
+           <PrivateAssets>All</PrivateAssets>
+       </PackageReference>
     </ItemGroup>
+
+    
  
     <ItemGroup>
        <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.1" />

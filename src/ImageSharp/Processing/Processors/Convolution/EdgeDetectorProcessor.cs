@@ -1,7 +1,8 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 {
@@ -25,7 +26,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         public bool Grayscale { get; }
 
         /// <inheritdoc />
-        public abstract IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+        public abstract IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>;
     }
 }

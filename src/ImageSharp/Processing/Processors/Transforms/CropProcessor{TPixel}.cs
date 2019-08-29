@@ -25,7 +25,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// Initializes a new instance of the <see cref="CropProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="definition">The <see cref="CropProcessor"/>.</param>
-        public CropProcessor(CropProcessor definition)
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public CropProcessor(CropProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(source, sourceRectangle)
         {
             this.definition = definition;
         }
@@ -33,25 +36,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private Rectangle CropRectangle => this.definition.CropRectangle;
 
         /// <inheritdoc/>
-        protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
+        protected override Image<TPixel> CreateDestination()
         {
             // We will always be creating the clone even for mutate because we may need to resize the canvas
-            IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select<ImageFrame<TPixel>, ImageFrame<TPixel>>(
+            IEnumerable<ImageFrame<TPixel>> frames = this.Source.Frames.Select<ImageFrame<TPixel>, ImageFrame<TPixel>>(
                 x => new ImageFrame<TPixel>(
-                    source.GetConfiguration(),
+                    this.Source.GetConfiguration(),
                     this.CropRectangle.Width,
                     this.CropRectangle.Height,
                     x.Metadata.DeepClone()));
 
             // Use the overload to prevent an extra frame being added
-            return new Image<TPixel>(source.GetConfiguration(), source.Metadata.DeepClone(), frames);
+            return new Image<TPixel>(this.Source.GetConfiguration(), this.Source.Metadata.DeepClone(), frames);
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
         {
             // Handle resize dimensions identical to the original
-            if (source.Width == destination.Width && source.Height == destination.Height && sourceRectangle == this.CropRectangle)
+            if (source.Width == destination.Width && source.Height == destination.Height && this.SourceRectangle == this.CropRectangle)
             {
                 // the cloned will be blank here copy all the pixel data over
                 source.GetPixelSpan().CopyTo(destination.GetPixelSpan());
@@ -61,7 +64,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Rectangle rect = this.CropRectangle;
 
             // Copying is cheap, we should process more pixels per task:
-            ParallelExecutionSettings parallelSettings = configuration.GetParallelSettings().MultiplyMinimumPixelsPerTask(4);
+            ParallelExecutionSettings parallelSettings = this.Configuration.GetParallelSettings().MultiplyMinimumPixelsPerTask(4);
 
             ParallelHelper.IterateRows(
                 rect,

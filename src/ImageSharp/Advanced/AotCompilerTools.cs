@@ -9,7 +9,6 @@ using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Advanced
 {
@@ -180,9 +179,8 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileResizeOperations<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            var resizeProcessor = new ResizeProcessor(new ResizeOptions(), default);
-            var genericResizeProcessor = new ResizeProcessor<TPixel>((ResizeProcessor)resizeProcessor.CreatePixelSpecificProcessor<TPixel>());
-            genericResizeProcessor.AotCreateDestination(new Image<TPixel>(0, 0), default);
+            var genericResizeProcessor = (ResizeProcessor<TPixel>)new ResizeProcessor(new ResizeOptions(), default).CreatePixelSpecificProcessor(new Image<TPixel>(0, 0), default);
+            genericResizeProcessor.AotCreateDestination();
         }
     }
 }

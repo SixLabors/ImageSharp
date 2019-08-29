@@ -1,16 +1,44 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using System.Linq;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
     /// Data structure for holding details of each TIFF IFD entry.
-    /// todo: join with <see cref="SixLabors.ImageSharp.MetaData.Profiles.Exif.ExifValue"/>
+    /// TODO: join with <see cref="Metadata.Profiles.Exif.ExifValue"/>
     /// </summary>
-    internal class TiffIfdEntry
+    public class TiffIfdEntry
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TiffIfdEntry" /> class.
+        /// </summary>
+        /// <param name="tag">The Tag ID for this entry.</param>
+        /// <param name="type">The data-type of this entry.</param>
+        /// <param name="count">The number of array items in this entry.</param>
+        /// <param name="rawValue">The raw value or offset.</param>
+        internal TiffIfdEntry(TiffTagId tag, TiffTagType type, uint count, byte[] rawValue)
+            : this((ushort)tag, type, count, rawValue)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TiffIfdEntry" /> class.
+        /// </summary>
+        /// <param name="tag">The Tag ID for this entry.</param>
+        /// <param name="type">The data-type of this entry.</param>
+        /// <param name="count">The number of array items in this entry.</param>
+        /// <param name="rawValue">The raw value or offset.</param>
+        internal TiffIfdEntry(ushort tag, TiffTagType type, uint count, byte[] rawValue)
+        {
+            this.Tag = tag;
+            this.Type = type;
+            this.Count = count;
+            this.RawValue = rawValue;
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="TiffIfdEntry" /> class.
         /// </summary>
@@ -22,34 +50,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             this.Tag = tag;
             this.Type = type;
             this.Count = count;
-            this.ValueOrOffset = null;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TiffIfdEntry" /> class.
-        /// </summary>
-        /// <param name="tag">The Tag ID for this entry.</param>
-        /// <param name="type">The data-type of this entry.</param>
-        /// <param name="count">The number of array items in this entry.</param>
-        /// <param name="valueOrOffset">The value or offset.</param>
-        public TiffIfdEntry(ushort tag, TiffTagType type, uint count, byte[] valueOrOffset)
-        {
-            this.Tag = (ushort)tag;
-            this.Type = type;
-            this.Count = count;
-            this.ValueOrOffset = valueOrOffset;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TiffIfdEntry" /> class.
-        /// </summary>
-        /// <param name="tag">The Tag ID for this entry.</param>
-        /// <param name="type">The data-type of this entry.</param>
-        /// <param name="count">The number of array items in this entry.</param>
-        /// <param name="valueOrOffset">The value or offset.</param>
-        public TiffIfdEntry(TiffTagId tag, TiffTagType type, uint count, byte[] valueOrOffset)
-            : this((ushort)tag, type, count, valueOrOffset)
-        {
+            this.RawValue = null;
         }
 
         /// <summary>
@@ -83,10 +84,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public bool HasExtData => this.SizeOfData > 4;
 
         /// <summary>
-        /// Gets the raw byte data for this entry - directly value or offset to the extended raw data.
-        /// todo: only for compatibility with encoder
+        /// Gets the raw byte data for this entry (directly value or offset to the extended raw data).
+        /// TODO: only for compatibility with encoder
         /// </summary>
-        public byte[] ValueOrOffset { get; }
+        public byte[] RawValue { get; }
 
         /// <summary>
         /// Gets the value data of the tag.
@@ -94,15 +95,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public object Value { get; private set; }
 
         /// <summary>
-        /// Gets or sets the ext data offset.
-        /// </summary>
-        private uint ExtDataOffset { get; set; }
-
-        /// <summary>
         /// Reads the specified stream.
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        public static TiffIfdEntry Read(TiffStream stream)
+        /// <param name="stream">The input stream.</param>
+        internal static TiffIfdEntry Read(TiffStream stream)
         {
             ushort tag = stream.ReadUInt16();
             var type = (TiffTagType)stream.ReadUInt16();
@@ -114,17 +110,19 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             return entry;
         }
 
-        public void ReadExtValueData(TiffStream stream)
+        internal void ReadExtValueData(TiffStream stream)
         {
             if (!this.HasExtData)
             {
                 return;
             }
 
+            (TiffTagId, uint) offset = stream.Context.ExtOffsets.First(t => t.Item1 == this.TagId);
             DebugGuard.MustBeNull(this.Value, "Value");
-            DebugGuard.MustBeGreaterThanOrEqualTo(this.ExtDataOffset, (uint)TiffConstants.SizeOfTiffHeader, nameof(this.ExtDataOffset));
+            DebugGuard.MustBeGreaterThanOrEqualTo(offset.Item2, (uint)TiffConstants.SizeOfTiffHeader, nameof(offset));
 
-            stream.Seek(this.ExtDataOffset);
+            stream.Context.ExtOffsets.Remove(offset);
+            stream.Seek(offset.Item2);
             this.Value = this.ReadValue(stream);
         }
 
@@ -132,7 +130,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             if (this.HasExtData)
             {
-                this.ExtDataOffset = stream.ReadUInt32();
+                uint offset = stream.ReadUInt32();
+                stream.Context.ExtOffsets.Add((this.TagId, offset));
                 return;
             }
 

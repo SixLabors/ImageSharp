@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
@@ -38,6 +38,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// Gets the stream position.
         /// </summary>
         public long Position => this.stream.Position;
+
+        public TiffReaderContext Context { get; } = new TiffReaderContext();
 
         public void Seek(uint offset)
         {

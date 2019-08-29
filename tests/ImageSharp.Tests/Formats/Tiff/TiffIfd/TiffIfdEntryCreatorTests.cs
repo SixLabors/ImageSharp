@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagId.ImageWidth, entry.TagId);
             Assert.Equal(TiffTagType.Byte, entry.Type);
             Assert.Equal(1u, entry.Count);
-            Assert.Equal(bytes, entry.ValueOrOffset);
+            Assert.Equal(bytes, entry.RawValue);
         }
 
         [Theory]
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagId.ImageWidth, entry.TagId);
             Assert.Equal(TiffTagType.Byte, entry.Type);
             Assert.Equal((uint)value.Length, entry.Count);
-            Assert.Equal(bytes, entry.ValueOrOffset);
+            Assert.Equal(bytes, entry.RawValue);
         }
 
         [Theory]
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagId.ImageWidth, entry.TagId);
             Assert.Equal(TiffTagType.Short, entry.Type);
             Assert.Equal(1u, entry.Count);
-            Assert.Equal(bytes, entry.ValueOrOffset);
+            Assert.Equal(bytes, entry.RawValue);
         }
 
         [Theory]
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagId.ImageWidth, entry.TagId);
             Assert.Equal(TiffTagType.Short, entry.Type);
             Assert.Equal((uint)value.Length, entry.Count);
-            Assert.Equal(bytes, entry.ValueOrOffset);
+            Assert.Equal(bytes, entry.RawValue);
         }
 
         [Theory]
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagId.ImageWidth, entry.TagId);
             Assert.Equal(TiffTagType.Long, entry.Type);
             Assert.Equal(1u, entry.Count);
-            Assert.Equal(bytes, entry.ValueOrOffset);
+            Assert.Equal(bytes, entry.RawValue);
         }
 
         [Theory]
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagId.ImageWidth, entry.TagId);
             Assert.Equal(TiffTagType.Long, entry.Type);
             Assert.Equal((uint)value.Length, entry.Count);
-            Assert.Equal(bytes, entry.ValueOrOffset);
+            Assert.Equal(bytes, entry.RawValue);
         }
 
         [Theory]
@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagId.ImageWidth, entry.TagId);
             Assert.Equal(TiffTagType.SByte, entry.Type);
             Assert.Equal(1u, entry.Count);
-            Assert.Equal(bytes, entry.ValueOrOffset);
+            Assert.Equal(bytes, entry.RawValue);
         }
 
         [Theory]
@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagId.ImageWidth, entry.TagId);
             Assert.Equal(TiffTagType.SByte, entry.Type);
             Assert.Equal((uint)value.Length, entry.Count);
-            Assert.Equal(bytes, entry.ValueOrOffset);
+            Assert.Equal(bytes, entry.RawValue);
         }
 
         [Theory]
@@ -170,7 +170,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagId.ImageWidth, entry.TagId);
             Assert.Equal(TiffTagType.SShort, entry.Type);
             Assert.Equal(1u, entry.Count);
-            Assert.Equal(bytes, entry.ValueOrOffset);
+            Assert.Equal(bytes, entry.RawValue);
         }
 
         [Theory]
@@ -187,7 +187,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagId.ImageWidth, entry.TagId);
             Assert.Equal(TiffTagType.SShort, entry.Type);
             Assert.Equal((uint)value.Length, entry.Count);
-            Assert.Equal(bytes, entry.ValueOrOffset);
+            Assert.Equal(bytes, entry.RawValue);
         }
 
         [Theory]
@@ -208,7 +208,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagId.ImageWidth, entry.TagId);
             Assert.Equal(TiffTagType.SLong, entry.Type);
             Assert.Equal(1u, entry.Count);
-            Assert.Equal(bytes, entry.ValueOrOffset);
+            Assert.Equal(bytes, entry.RawValue);
         }
 
         [Theory]
@@ -224,7 +224,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagId.ImageWidth, entry.TagId);
             Assert.Equal(TiffTagType.SLong, entry.Type);
             Assert.Equal((uint)value.Length, entry.Count);
-            Assert.Equal(bytes, entry.ValueOrOffset);
+            Assert.Equal(bytes, entry.RawValue);
         }
 
         [Theory]
@@ -242,7 +242,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagId.ImageWidth, entry.TagId);
             Assert.Equal(TiffTagType.Ascii, entry.Type);
             Assert.Equal((uint)bytes.Length, entry.Count);
-            Assert.Equal(bytes, entry.ValueOrOffset);
+            Assert.Equal(bytes, entry.RawValue);
         }
 
         [Theory]
@@ -259,7 +259,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagId.ImageWidth, entry.TagId);
             Assert.Equal(TiffTagType.Rational, entry.Type);
             Assert.Equal(1u, entry.Count);
-            Assert.Equal(bytes, entry.ValueOrOffset);
+            Assert.Equal(bytes, entry.RawValue);
         }
 
         [Theory]
@@ -277,7 +277,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagId.ImageWidth, entry.TagId);
             Assert.Equal(TiffTagType.Rational, entry.Type);
             Assert.Equal((uint)numerators.Length, entry.Count);
-            Assert.Equal(bytes, entry.ValueOrOffset);
+            Assert.Equal(bytes, entry.RawValue);
         }
 
         [Theory]
@@ -295,7 +295,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagId.ImageWidth, entry.TagId);
             Assert.Equal(TiffTagType.SRational, entry.Type);
             Assert.Equal(1u, entry.Count);
-            Assert.Equal(bytes, entry.ValueOrOffset);
+            Assert.Equal(bytes, entry.RawValue);
         }
 
         [Theory]
@@ -315,7 +315,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagId.ImageWidth, entry.TagId);
             Assert.Equal(TiffTagType.SRational, entry.Type);
             Assert.Equal((uint)numerators.Length, entry.Count);
-            Assert.Equal(bytes, entry.ValueOrOffset);
+            Assert.Equal(bytes, entry.RawValue);
         }
 
         [Theory]
@@ -335,7 +335,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagId.ImageWidth, entry.TagId);
             Assert.Equal(TiffTagType.Float, entry.Type);
             Assert.Equal(1u, entry.Count);
-            Assert.Equal(bytes, entry.ValueOrOffset);
+            Assert.Equal(bytes, entry.RawValue);
         }
 
         [Theory]
@@ -356,7 +356,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagId.ImageWidth, entry.TagId);
             Assert.Equal(TiffTagType.Float, entry.Type);
             Assert.Equal((uint)value.Length, entry.Count);
-            Assert.Equal(bytes, entry.ValueOrOffset);
+            Assert.Equal(bytes, entry.RawValue);
         }
 
         [Theory]
@@ -378,7 +378,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagId.ImageWidth, entry.TagId);
             Assert.Equal(TiffTagType.Double, entry.Type);
             Assert.Equal(1u, entry.Count);
-            Assert.Equal(bytes, entry.ValueOrOffset);
+            Assert.Equal(bytes, entry.RawValue);
         }
 
         [Theory]
@@ -401,7 +401,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagId.ImageWidth, entry.TagId);
             Assert.Equal(TiffTagType.Double, entry.Type);
             Assert.Equal((uint)value.Length, entry.Count);
-            Assert.Equal(bytes, entry.ValueOrOffset);
+            Assert.Equal(bytes, entry.RawValue);
         }
     }
 }

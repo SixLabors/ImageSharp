@@ -30,17 +30,17 @@ namespace SixLabors.ImageSharp.Tests
             switch (entry.Type)
             {
                 case TiffTagType.Byte:
-                    return entry.ValueOrOffset[0];
+                    return entry.RawValue[0];
                 case TiffTagType.SByte:
-                    return (sbyte)entry.ValueOrOffset[0];
+                    return (sbyte)entry.RawValue[0];
                 case TiffTagType.Short:
-                    return BitConverter.ToUInt16(entry.ValueOrOffset, 0);
+                    return BitConverter.ToUInt16(entry.RawValue, 0);
                 case TiffTagType.SShort:
-                    return BitConverter.ToInt16(entry.ValueOrOffset, 0);
+                    return BitConverter.ToInt16(entry.RawValue, 0);
                 case TiffTagType.Long:
-                    return (int)BitConverter.ToUInt32(entry.ValueOrOffset, 0);
+                    return (int)BitConverter.ToUInt32(entry.RawValue, 0);
                 case TiffTagType.SLong:
-                    return BitConverter.ToInt32(entry.ValueOrOffset, 0);
+                    return BitConverter.ToInt32(entry.RawValue, 0);
                 default:
                     Assert.True(1 == 1, "TIFF IFD entry is not convertable to an integer.");
                     return null;
@@ -59,8 +59,8 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(TiffTagType.Rational, entry.Type);
             Assert.Equal(1u, entry.Count);
 
-            uint numerator = BitConverter.ToUInt32(entry.ValueOrOffset, 0);
-            uint denominator = BitConverter.ToUInt32(entry.ValueOrOffset, 4);
+            uint numerator = BitConverter.ToUInt32(entry.RawValue, 0);
+            uint denominator = BitConverter.ToUInt32(entry.RawValue, 4);
 
             return new Rational(numerator, denominator);
         }
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests
 
             Assert.Equal(TiffTagType.Ascii, entry.Type);
 
-            return Encoding.UTF8.GetString(entry.ValueOrOffset, 0, (int)entry.Count);
+            return Encoding.UTF8.GetString(entry.RawValue, 0, (int)entry.Count);
         }
     }
 }

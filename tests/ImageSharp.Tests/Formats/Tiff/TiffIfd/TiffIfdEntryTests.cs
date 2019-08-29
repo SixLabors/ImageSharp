@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(10u, entry.Tag);
             Assert.Equal(TiffTagType.Short, entry.Type);
             Assert.Equal(20u, entry.Count);
-            Assert.Equal(new byte[] { 2, 4, 6, 8 }, entry.ValueOrOffset);
+            Assert.Equal(new byte[] { 2, 4, 6, 8 }, entry.RawValue);
         }
     }
 }

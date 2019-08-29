@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Encapsulates the means to encode and decode Tiff images.
     /// </summary>
-    public class TiffFormat : IImageFormat<TiffMetaData>
+    public class TiffFormat : IImageFormat<TiffMetaData, TiffFrameMetaData>
     {
         private TiffFormat()
         {
@@ -33,5 +33,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
         /// <inheritdoc/>
         public TiffMetaData CreateDefaultFormatMetadata() => new TiffMetaData();
+
+        /// <inheritdoc/>
+        public TiffFrameMetaData CreateDefaultFormatFrameMetadata() => new TiffFrameMetaData();
     }
 }

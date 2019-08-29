@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 // ReSharper disable InconsistentNaming
@@ -17,10 +17,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
     [Trait("Category", "Tiff_BlackBox")]
     public class TiffDecoderTests
     {
-        public static readonly string[] CommonTestImages = TestImages.Tiff.All;
+        public static readonly string[] SingleTestImages = TestImages.Tiff.All;
+
+        public static readonly string[] MultiframeTestImages = TestImages.Tiff.Multiframe_MatchingSizes;
+
 
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32)]
+        [WithFileCollection(nameof(SingleTestImages), PixelTypes.Rgba32)]
         public void Decode<TPixel>(TestImageProvider<TPixel> provider)
           where TPixel : struct, IPixel<TPixel>
         {
@@ -28,6 +31,28 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             {
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider, ImageComparer.Exact);
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(MultiframeTestImages), PixelTypes.Rgba32)]
+        public void DecodeMultiframe<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new TiffDecoder()))
+            {
+                Assert.Equal(2, image.Frames.Count);
+
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ImageComparer.Exact);
+
+                /*
+                foreach (var frame in image.Frames)
+                {
+                    frame.DebugSave(provider);
+                    frame.CompareToOriginal(provider, ImageComparer.Exact);
+                }
+                */
             }
         }
 

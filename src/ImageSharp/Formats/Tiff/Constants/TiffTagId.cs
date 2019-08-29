@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// Constants representing tag IDs in the Tiff file-format.
     /// todo: join with <see cref="SixLabors.ImageSharp.MetaData.Profiles.Exif.ExifTag"/>
     /// </summary>
-    internal enum TiffTagId : int
+    public enum TiffTagId : int
     {
         /// <summary>
         /// Artist (see Section 8: Baseline Fields).

@@ -49,6 +49,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             using (TiffWriter writer = new TiffWriter(stream))
             {
                 long firstIfdMarker = this.WriteHeader(writer);
+                //// todo: multiframing is not support
                 long nextIfdMarker = this.WriteImage(writer, image, firstIfdMarker);
             }
         }
@@ -97,15 +98,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 writer.Write((ushort)entry.Type);
                 writer.Write(entry.Count);
 
-                if (entry.ValueOrOffset.Length <= 4)
+                if (entry.RawValue.Length <= 4)
                 {
-                    writer.WritePadded(entry.ValueOrOffset);
+                    writer.WritePadded(entry.RawValue);
                 }
                 else
                 {
-                    largeDataBlocks.Add(entry.ValueOrOffset);
+                    largeDataBlocks.Add(entry.RawValue);
                     writer.Write(dataOffset);
-                    dataOffset += (uint)(entry.ValueOrOffset.Length + (entry.ValueOrOffset.Length % 2));
+                    dataOffset += (uint)(entry.RawValue.Length + (entry.RawValue.Length % 2));
                 }
             }
 
@@ -159,7 +160,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             ifdEntries.AddUnsignedRational(TiffTagId.YResolution, new Rational(image.Metadata.VerticalResolution));
             ifdEntries.AddUnsignedShort(TiffTagId.ResolutionUnit, (uint)TiffResolutionUnit.Inch);
 
-            TiffMetaData tiffMetadata = image.Metadata.GetFormatMetadata(TiffFormat.Instance);
+            TiffFrameMetaData tiffMetadata = image.Frames.RootFrame.Metadata.GetFormatMetadata(TiffFormat.Instance);
             foreach (TiffMetadataTag metadata in tiffMetadata.TextTags)
             {
                 switch (metadata.Name)

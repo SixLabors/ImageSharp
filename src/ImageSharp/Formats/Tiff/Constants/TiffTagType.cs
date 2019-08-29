@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Enumeration representing the data types understood by the Tiff file-format.
     /// </summary>
-    internal enum TiffTagType : ushort
+    public enum TiffTagType : ushort
     {
         /// <summary>
         /// Unsigned 8-bit integer.

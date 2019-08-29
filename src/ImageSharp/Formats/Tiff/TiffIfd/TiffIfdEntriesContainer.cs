@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -46,6 +46,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 throw new ArgumentException("Required tag is not founded: " + tag, nameof(tag));
             }
 
+            // todo: for simplicity, all enums are described as UINT
+            // all number values have UINT type, therefore, for correct work of casting, enum type must inherited from UINT
             return (TK)((object)value);
         }
 

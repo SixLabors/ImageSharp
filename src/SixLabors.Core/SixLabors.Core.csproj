@@ -36,7 +36,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="..\..\standards\**\*.cs" />
+        <Compile Include="..\..\shared-infrastructure\**\*.cs" />
     </ItemGroup>
     
     <ItemGroup>

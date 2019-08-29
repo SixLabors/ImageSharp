@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -43,10 +43,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public Size TargetDimensions { get; }
 
         /// <inheritdoc />
-        public virtual IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+        public virtual IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
         {
-            return new AffineTransformProcessor<TPixel>(this);
+            return new AffineTransformProcessor<TPixel>(this, source, sourceRectangle);
         }
     }
 }

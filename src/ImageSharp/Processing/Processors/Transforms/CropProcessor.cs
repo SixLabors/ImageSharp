@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -32,10 +32,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public Rectangle CropRectangle { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
         {
-            return new CropProcessor<TPixel>(this);
+            return new CropProcessor<TPixel>(this, source, sourceRectangle);
         }
     }
 }

@@ -10,23 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
     {
         public static void Apply(this IImageProcessor processor, Image source, Rectangle sourceRectangle)
         {
-            var visitor = new ApplyVisitor(processor, sourceRectangle);
-            source.AcceptVisitor(visitor);
-        }
-
-        /// <summary>
-        /// Apply an <see cref="IImageProcessor"/> to a frame.
-        /// Only works from processors implemented by an <see cref="ImageProcessor{TPixel}"/> subclass.
-        /// </summary>
-        internal static void Apply<TPixel>(
-            this IImageProcessor processor,
-            ImageFrame<TPixel> frame,
-            Rectangle sourceRectangle,
-            Configuration configuration)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            var processorImpl = (ImageProcessor<TPixel>)processor.CreatePixelSpecificProcessor<TPixel>();
-            processorImpl.Apply(frame, sourceRectangle, configuration);
+            source.AcceptVisitor(new ApplyVisitor(processor, sourceRectangle));
         }
 
         private class ApplyVisitor : IImageVisitor
@@ -44,8 +28,10 @@ namespace SixLabors.ImageSharp.Processing.Processors
             public void Visit<TPixel>(Image<TPixel> image)
                 where TPixel : struct, IPixel<TPixel>
             {
-                var processorImpl = this.processor.CreatePixelSpecificProcessor<TPixel>();
-                processorImpl.Apply(image, this.sourceRectangle);
+                using (IImageProcessor<TPixel> processorImpl = this.processor.CreatePixelSpecificProcessor(image, this.sourceRectangle))
+                {
+                    processorImpl.Apply();
+                }
             }
         }
     }

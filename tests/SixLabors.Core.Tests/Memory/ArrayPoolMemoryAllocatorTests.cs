@@ -66,7 +66,7 @@ namespace SixLabors.Memory.Tests
             [Fact]
             public void When_PoolSelectorThresholdInBytes_IsGreaterThan_MaxPooledBufferSizeInBytes_ExceptionIsThrown()
             {
-                Assert.ThrowsAny<Exception>(() => { new ArrayPoolMemoryAllocator(100, 200); });
+                Assert.ThrowsAny<Exception>(() => new ArrayPoolMemoryAllocator(100, 200));
             }
         }
 
@@ -169,13 +169,13 @@ namespace SixLabors.Memory.Tests
                 return;
             }
 
-            int arrayLengthThreshold = PoolSelectorThresholdInBytes / sizeof(int);
+            const int ArrayLengthThreshold = PoolSelectorThresholdInBytes / sizeof(int);
 
-            IMemoryOwner<int> small = this.MemoryAllocator.Allocate<int>(arrayLengthThreshold - 1);
+            IMemoryOwner<int> small = this.MemoryAllocator.Allocate<int>(ArrayLengthThreshold - 1);
             ref int ptr2Small = ref small.GetReference();
             small.Dispose();
 
-            IMemoryOwner<int> large = this.MemoryAllocator.Allocate<int>(arrayLengthThreshold + 1);
+            IMemoryOwner<int> large = this.MemoryAllocator.Allocate<int>(ArrayLengthThreshold + 1);
 
             Assert.False(Unsafe.AreSame(ref ptr2Small, ref large.GetReference()));
         }
@@ -227,7 +227,7 @@ namespace SixLabors.Memory.Tests
         [StructLayout(LayoutKind.Sequential)]
         private struct Rgba32
         {
-            private uint dummy;
+            private readonly uint dummy;
         }
 
         private const int SizeOfLargeStruct = MaxPooledBufferSizeInBytes / 5;
@@ -242,7 +242,7 @@ namespace SixLabors.Memory.Tests
         [InlineData((int.MaxValue / SizeOfLargeStruct) + 1)]
         public void AllocateIncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
         {
-            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.Allocate<LargeStruct>(length));
+            ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.Allocate<LargeStruct>(length));
             Assert.Equal("length", ex.ParamName);
         }
 
@@ -250,7 +250,7 @@ namespace SixLabors.Memory.Tests
         [InlineData(-1)]
         public void AllocateManagedByteBuffer_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
         {
-            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.AllocateManagedByteBuffer(length));
+            ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.AllocateManagedByteBuffer(length));
             Assert.Equal("length", ex.ParamName);
         }
     }

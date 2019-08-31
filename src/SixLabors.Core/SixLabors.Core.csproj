@@ -23,7 +23,7 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <CodeAnalysisRuleSet>..\SixLabors.ruleset</CodeAnalysisRuleSet>
+        <CodeAnalysisRuleSet>..\..\shared-infrastructure\SixLabors.ruleset</CodeAnalysisRuleSet>
     </PropertyGroup>
 
     <!-- TODO: Include .NETSTANDARD2.1 when released-->
@@ -34,14 +34,19 @@
     <PropertyGroup Condition=" $(TargetFramework.StartsWith('netcoreapp2.1')) ">
       <DefineConstants>$(DefineConstants);SUPPORTS_HASHCODE</DefineConstants>
     </PropertyGroup>
-  
+
+    <ItemGroup>
+        <Compile Include="..\..\shared-infrastructure\**\*.cs" />
+        <AdditionalFiles Include="..\..\shared-infrastructure\stylecop.json" />
+    </ItemGroup>
+
     <ItemGroup>
        <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
-        <PrivateAssets>All</PrivateAssets>
-      </PackageReference>
-    
-        <AdditionalFiles Include="..\..\stylecop.json" />
+           <PrivateAssets>All</PrivateAssets>
+       </PackageReference>
     </ItemGroup>
+
+    
  
     <ItemGroup>
        <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.1" />
@@ -54,5 +59,9 @@
 
     <ItemGroup Condition=" $(TargetFramework.StartsWith('netstandard')) ">
       <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Helpers" />
     </ItemGroup>
 </Project>

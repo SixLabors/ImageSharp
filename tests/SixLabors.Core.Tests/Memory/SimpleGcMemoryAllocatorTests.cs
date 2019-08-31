@@ -23,7 +23,7 @@ namespace SixLabors.Memory.Tests
         [InlineData(-1)]
         public void Allocate_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
         {
-            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.Allocate<BigStruct>(length));
+            ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.Allocate<BigStruct>(length));
             Assert.Equal("length", ex.ParamName);
         }
 
@@ -31,7 +31,7 @@ namespace SixLabors.Memory.Tests
         [InlineData(-1)]
         public void AllocateManagedByteBuffer_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
         {
-            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.AllocateManagedByteBuffer(length));
+            ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.AllocateManagedByteBuffer(length));
             Assert.Equal("length", ex.ParamName);
         }
 

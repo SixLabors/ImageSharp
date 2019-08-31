@@ -23,7 +23,7 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <CodeAnalysisRuleSet>..\SixLabors.ruleset</CodeAnalysisRuleSet>
+        <CodeAnalysisRuleSet>..\..\shared-infrastructure\SixLabors.ruleset</CodeAnalysisRuleSet>
     </PropertyGroup>
 
     <!-- TODO: Include .NETSTANDARD2.1 when released-->
@@ -39,9 +39,6 @@
         <Compile Include="..\..\shared-infrastructure\**\*.cs" />
         <AdditionalFiles Include="..\..\shared-infrastructure\stylecop.json" />
     </ItemGroup>
-    <PropertyGroup>
-        <CodeAnalysisRuleSet>..\..\shared-infrastructure\SixLabors.ruleset</CodeAnalysisRuleSet>
-    </PropertyGroup>
 
     <ItemGroup>
        <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">

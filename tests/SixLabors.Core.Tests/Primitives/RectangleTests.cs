@@ -173,11 +173,19 @@ namespace SixLabors.Primitives.Tests
 
             unchecked
             {
-                rCeiling = new Rectangle((int)Math.Ceiling(x), (int)Math.Ceiling(y),
-                    (int)Math.Ceiling(width), (int)Math.Ceiling(height));
+                rCeiling = new Rectangle(
+                    (int)Math.Ceiling(x),
+                    (int)Math.Ceiling(y),
+                    (int)Math.Ceiling(width),
+                    (int)Math.Ceiling(height));
+
                 rTruncate = new Rectangle((int)x, (int)y, (int)width, (int)height);
-                rRound = new Rectangle((int)Math.Round(x), (int)Math.Round(y),
-                    (int)Math.Round(width), (int)Math.Round(height));
+
+                rRound = new Rectangle(
+                    (int)Math.Round(x),
+                    (int)Math.Round(y),
+                    (int)Math.Round(width),
+                    (int)Math.Round(height));
             }
 
             Assert.Equal(rCeiling, Rectangle.Ceiling(rect));
@@ -315,7 +323,7 @@ namespace SixLabors.Primitives.Tests
         [InlineData(0, 0, 0, 0)]
         public void DeconstructTest(int x, int y, int width, int height)
         {
-            Rectangle r = new Rectangle(x, y, width, height);
+            var r = new Rectangle(x, y, width, height);
 
             (int dx, int dy, int dw, int dh) = r;
 

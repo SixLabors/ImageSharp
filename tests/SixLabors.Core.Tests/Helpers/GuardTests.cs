@@ -133,7 +133,7 @@ namespace SixLabors.Helpers.Tests
         [InlineData(1, 1)]
         public void MustBeLessThan_IsGreaterOrEqual_ThrowsNoException(int value, int max)
         {
-            var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
             {
                 Guard.MustBeLessThan(value, max, "myParamName");
             });
@@ -153,7 +153,7 @@ namespace SixLabors.Helpers.Tests
         [Fact]
         public void MustBeLessThanOrEqualTo_IsGreater_ThrowsNoException()
         {
-            var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
             {
                 Guard.MustBeLessThanOrEqualTo(2, 1, "myParamName");
             });
@@ -173,7 +173,7 @@ namespace SixLabors.Helpers.Tests
         [InlineData(1, 1)]
         public void MustBeGreaterThan_IsLessOrEqual_ThrowsNoException(int value, int min)
         {
-            var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
             {
                 Guard.MustBeGreaterThan(value, min, "myParamName");
             });
@@ -193,7 +193,7 @@ namespace SixLabors.Helpers.Tests
         [Fact]
         public void MustBeGreaterThanOrEqualTo_IsLess_ThrowsNoException()
         {
-            var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
             {
                 Guard.MustBeGreaterThanOrEqualTo(1, 2, "myParamName");
             });
@@ -216,7 +216,7 @@ namespace SixLabors.Helpers.Tests
         [InlineData(4, 1, 3)]
         public void MustBeBetweenOrEqualTo_IsLessOrGreater_ThrowsNoException(int value, int min, int max)
         {
-            var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
             {
                 Guard.MustBeBetweenOrEqualTo(value, min, max, "myParamName");
             });
@@ -236,7 +236,7 @@ namespace SixLabors.Helpers.Tests
         [Fact]
         public void MustBeSizedAtLeast_Array_LengthIsLess_ThrowsException()
         {
-            var exception = Assert.Throws<ArgumentException>(() =>
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
             {
                 Guard.MustBeSizedAtLeast<int>(new int[] { 1, 2 }, 3, "myParamName");
             });

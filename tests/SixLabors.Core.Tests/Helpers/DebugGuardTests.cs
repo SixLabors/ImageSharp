@@ -1,10 +1,11 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 // tell this file to enable debug conditional method calls, i.e. all the debug guard calls
 #define DEBUG
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
@@ -21,12 +22,12 @@ namespace SixLabors.Helpers.Tests
         [Fact]
         public void AllStaticMethodsOnOnDebugGuardHaveDEBUGConditional()
         {
-            var methods = typeof(DebugGuard).GetTypeInfo().GetMethods()
+            IEnumerable<MethodInfo> methods = typeof(DebugGuard).GetTypeInfo().GetMethods()
                 .Where(x => x.IsStatic);
 
-            foreach (var m in methods)
+            foreach (MethodInfo m in methods)
             {
-                var attribs = m.GetCustomAttributes<ConditionalAttribute>();
+                IEnumerable<ConditionalAttribute> attribs = m.GetCustomAttributes<ConditionalAttribute>();
                 Assert.True(attribs.Select(x => x.ConditionString).Contains("DEBUG"), $"Method '{m.Name}' does not have [Conditional(\"DEBUG\")] set.");
             }
         }
@@ -41,7 +42,7 @@ namespace SixLabors.Helpers.Tests
         [Fact]
         public void NotNull_WhenNotNull()
         {
-            Foo foo = new Foo();
+            var foo = new Foo();
             Guard.NotNull(foo, nameof(foo));
         }
 
@@ -152,10 +153,8 @@ namespace SixLabors.Helpers.Tests
         [InlineData(1, 1)]
         public void MustBeLessThan_IsGreaterOrEqual_ThrowsNoException(int value, int max)
         {
-            var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            {
-                DebugGuard.MustBeLessThan(value, max, "myParamName");
-            });
+            ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(
+                () => DebugGuard.MustBeLessThan(value, max, "myParamName"));
 
             Assert.Equal("myParamName", exception.ParamName);
             Assert.Contains($"Value {value} must be less than {max}.", exception.Message);
@@ -172,10 +171,7 @@ namespace SixLabors.Helpers.Tests
         [Fact]
         public void MustBeLessThanOrEqualTo_IsGreater_ThrowsNoException()
         {
-            var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            {
-                DebugGuard.MustBeLessThanOrEqualTo(2, 1, "myParamName");
-            });
+            ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() => DebugGuard.MustBeLessThanOrEqualTo(2, 1, "myParamName"));
 
             Assert.Equal("myParamName", exception.ParamName);
             Assert.Contains($"Value 2 must be less than or equal to 1.", exception.Message);
@@ -192,10 +188,8 @@ namespace SixLabors.Helpers.Tests
         [InlineData(1, 1)]
         public void MustBeGreaterThan_IsLessOrEqual_ThrowsNoException(int value, int min)
         {
-            var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            {
-                DebugGuard.MustBeGreaterThan(value, min, "myParamName");
-            });
+            ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(
+                () => DebugGuard.MustBeGreaterThan(value, min, "myParamName"));
 
             Assert.Equal("myParamName", exception.ParamName);
             Assert.Contains($"Value {value} must be greater than {min}.", exception.Message);
@@ -212,10 +206,8 @@ namespace SixLabors.Helpers.Tests
         [Fact]
         public void MustBeGreaterThanOrEqualTo_IsLess_ThrowsNoException()
         {
-            var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            {
-                DebugGuard.MustBeGreaterThanOrEqualTo(1, 2, "myParamName");
-            });
+            ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(
+                () => DebugGuard.MustBeGreaterThanOrEqualTo(1, 2, "myParamName"));
 
             Assert.Equal("myParamName", exception.ParamName);
             Assert.Contains($"Value 1 must be greater than or equal to 2.", exception.Message);
@@ -232,10 +224,8 @@ namespace SixLabors.Helpers.Tests
         [Fact]
         public void MustBeSizedAtLeast_Array_LengthIsLess_ThrowsException()
         {
-            var exception = Assert.Throws<ArgumentException>(() =>
-            {
-                DebugGuard.MustBeSizedAtLeast<int>(new int[] { 1, 2 }, 3, "myParamName");
-            });
+            ArgumentException exception = Assert.Throws<ArgumentException>(
+                () => DebugGuard.MustBeSizedAtLeast<int>(new int[] { 1, 2 }, 3, "myParamName"));
 
             Assert.Equal("myParamName", exception.ParamName);
             Assert.Contains($"The size must be at least 3.", exception.Message);

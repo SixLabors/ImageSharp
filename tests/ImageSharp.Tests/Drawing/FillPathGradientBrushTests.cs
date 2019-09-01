@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -142,6 +144,66 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     image.Mutate(x => x.Fill(brush));
                     image.DebugSave(provider, appendPixelTypeToFileName: false, appendSourceFileOrDescription: false);
                 });
+        }
+
+        [Fact]
+        public void ShouldThrowArgumentNullExceptionWhenLinesAreNull()
+        {
+            Color[] colors = { Color.Black, Color.Red, Color.Yellow, Color.Green };
+
+            PathGradientBrush Create() => new PathGradientBrush(null, colors, Color.White);
+
+            Assert.Throws<ArgumentNullException>(Create);
+        }
+
+        [Fact]
+        public void ShouldThrowArgumentOutOfRangeExceptionWhenLessThan3LinesAreGiven()
+        {
+            ILineSegment[] path =
+            {
+                new LinearLineSegment(new PointF(0, 0), new PointF(10, 0)),
+                new LinearLineSegment(new PointF(10, 0), new PointF(10, 10))
+            };
+
+            Color[] colors = { Color.Black, Color.Red, Color.Yellow, Color.Green };
+
+            PathGradientBrush Create() => new PathGradientBrush(path, colors, Color.White);
+
+            Assert.Throws<ArgumentOutOfRangeException>(Create);
+        }
+
+        [Fact]
+        public void ShouldThrowArgumentNullExceptionWhenColorsAreNull()
+        {
+            ILineSegment[] path =
+            {
+                new LinearLineSegment(new PointF(0, 0), new PointF(10, 0)),
+                new LinearLineSegment(new PointF(10, 0), new PointF(10, 10)),
+                new LinearLineSegment(new PointF(10, 10), new PointF(0, 10)),
+                new LinearLineSegment(new PointF(0, 10), new PointF(0, 0))
+            };
+
+            PathGradientBrush Create() => new PathGradientBrush(path, null, Color.White);
+
+            Assert.Throws<ArgumentNullException>(Create);
+        }
+
+        [Fact]
+        public void ShouldThrowArgumentOutOfRangeExceptionWhenEmptyColorArrayIsGiven()
+        {
+            ILineSegment[] path =
+            {
+                new LinearLineSegment(new PointF(0, 0), new PointF(10, 0)),
+                new LinearLineSegment(new PointF(10, 0), new PointF(10, 10)),
+                new LinearLineSegment(new PointF(10, 10), new PointF(0, 10)),
+                new LinearLineSegment(new PointF(0, 10), new PointF(0, 0))
+            };
+
+            var colors = new Color[0];
+
+            PathGradientBrush Create() => new PathGradientBrush(path, colors, Color.White);
+
+            Assert.Throws<ArgumentOutOfRangeException>(Create);
         }
     }
 }

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -31,6 +32,30 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="centerColor">Color at the center of the gradient area to which the other colors converge.</param>
         public PathGradientBrush(ILineSegment[] lines, Color[] colors, Color centerColor)
         {
+            if (lines == null)
+            {
+                throw new ArgumentNullException(nameof(lines));
+            }
+
+            if (lines.Length < 3)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(lines),
+                    "There must be at least 3 lines to construct a path gradient brush.");
+            }
+
+            if (colors == null)
+            {
+                throw new ArgumentNullException(nameof(colors));
+            }
+
+            if (!colors.Any())
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(colors),
+                    "One or more color is needed to construct a path gradient brush.");
+            }
+
             this.path = new Polygon(lines);
             this.centerColor = centerColor;
 
@@ -60,8 +85,22 @@ namespace SixLabors.ImageSharp.Processing
             return new PathGradientBrushApplicator<TPixel>(source, this.path, this.edges, this.centerColor, options);
         }
 
-        private static Color CalculateCenterColor(Color[] colors) =>
-            new Color(colors.Select(c => c.ToVector4()).Aggregate((p1, p2) => p1 + p2) / colors.Length);
+        private static Color CalculateCenterColor(Color[] colors)
+        {
+            if (colors == null)
+            {
+                throw new ArgumentNullException(nameof(colors));
+            }
+
+            if (!colors.Any())
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(colors),
+                    "One or more color is needed to construct a path gradient brush.");
+            }
+
+            return new Color(colors.Select(c => c.ToVector4()).Aggregate((p1, p2) => p1 + p2) / colors.Length);
+        }
 
         private static float DistanceBetween(PointF p1, PointF p2) => ((Vector2)(p2 - p1)).Length();
 

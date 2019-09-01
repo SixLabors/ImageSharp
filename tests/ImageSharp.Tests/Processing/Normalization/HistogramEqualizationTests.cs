@@ -9,6 +9,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Normalization
 {
+    // ReSharper disable InconsistentNaming
     public class HistogramEqualizationTests
     {
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0456F);
@@ -111,6 +112,31 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                 image.Mutate(x => x.HistogramEqualization(options));
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(ValidatorComparer, provider);
+            }
+        }
+
+        /// <summary>
+        /// This is regression test for a bug with the calculation of the y-start positions,
+        /// where it could happen that one too much start position was calculated in some cases.
+        /// See: https://github.com/SixLabors/ImageSharp/pull/984
+        /// </summary>
+        [Theory]
+        [WithTestPatternImages(110, 110, PixelTypes.Rgba32)]
+        [WithTestPatternImages(170, 170, PixelTypes.Rgba32)]
+        public void Issue984<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var options = new HistogramEqualizationOptions()
+                              {
+                                  Method = HistogramEqualizationMethod.AdaptiveTileInterpolation,
+                                  LuminanceLevels = 256,
+                                  ClipHistogram = true,
+                                  NumberOfTiles = 10
+                              };
+                image.Mutate(x => x.HistogramEqualization(options));
+                image.DebugSave(provider);
             }
         }
     }

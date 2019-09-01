@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
@@ -11,6 +11,15 @@
     <TargetFrameworks>netcoreapp2.1;netstandard1.3;netstandard2.0</TargetFrameworks>
   </PropertyGroup>
 
+  <!-- TODO: Include .NETSTANDARD2.1 when released-->
+  <PropertyGroup Condition=" $(TargetFramework.StartsWith('netcoreapp2')) ">
+    <DefineConstants>$(DefineConstants);SUPPORTS_MATHF</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" $(TargetFramework.StartsWith('netcoreapp2.1')) ">
+    <DefineConstants>$(DefineConstants);SUPPORTS_HASHCODE</DefineConstants>
+  </PropertyGroup>
+  
   <ItemGroup>
     <PackageReference Include="SixLabors.Fonts" />
     <PackageReference Include="SixLabors.Shapes" />

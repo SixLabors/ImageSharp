@@ -67,6 +67,19 @@ namespace SixLabors.ImageSharp.Processing
 
         private static float DistanceBetween(PointF p1, PointF p2) => ((Vector2)(p2 - p1)).Length();
 
+        private struct Intersection
+        {
+            public Intersection(PointF point, float distance)
+            {
+                this.Point = point;
+                this.Distance = distance;
+            }
+
+            public PointF Point { get; }
+
+            public float Distance { get; }
+        }
+
         /// <summary>
         /// An edge of the polygon that represents the gradient area.
         /// </summary>
@@ -102,7 +115,7 @@ namespace SixLabors.ImageSharp.Processing
 
             public Vector4 EndColor { get; }
 
-            public (PointF point, float distance)? FindIntersection(PointF start, PointF end)
+            public Intersection? FindIntersection(PointF start, PointF end)
             {
                 int intersections = this.path.FindIntersections(start, end, this.buffer);
 
@@ -113,9 +126,8 @@ namespace SixLabors.ImageSharp.Processing
 
                 return this.buffer
                     .Take(intersections)
-                    .Select(p => (point: p, distance: ((Vector2)(p - start)).Length()))
-                    .OrderBy(v => v.distance)
-                    .First();
+                    .Select(p => new Intersection(point: p, distance: ((Vector2)(p - start)).LengthSquared()))
+                    .Aggregate((min, current) => min.Distance > current.Distance ? current : min);
             }
 
             public Vector4 ColorAt(float distance)
@@ -192,12 +204,12 @@ namespace SixLabors.ImageSharp.Processing
 
                     PointF end = point + (PointF)(direction * this.maxDistance);
 
-                    (Edge edge, PointF intersection) = this.edges
-                        .Select(e => (edge: e, intersection: e.FindIntersection(point, end)))
-                        .Where(v => v.intersection.HasValue)
-                        .OrderBy(v => v.intersection.Value.distance)
-                        .Select(v => (v.edge, v.intersection.Value.point))
-                        .First();
+                    (Edge edge, Intersection? info) = this.edges
+                        .Select(e => (e, e.FindIntersection(point, end)))
+                        .Where(e => e.Item2.HasValue)
+                        .Aggregate((min, cur) => min.Item2.Value.Distance > cur.Item2.Value.Distance ? cur : min);
+
+                    PointF intersection = info.Value.Point;
 
                     Vector4 edgeColor = edge.ColorAt(intersection);
 

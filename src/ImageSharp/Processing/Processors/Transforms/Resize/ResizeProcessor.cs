@@ -130,10 +130,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public bool Compand { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return new ResizeProcessor<TPixel>(this);
-        }
+            => new ResizeProcessor<TPixel>(this, source, sourceRectangle);
     }
 }

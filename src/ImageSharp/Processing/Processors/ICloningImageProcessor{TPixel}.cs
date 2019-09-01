@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -16,17 +16,13 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Applies the process to the specified portion of the specified <see cref="ImageFrame{TPixel}"/>.
         /// </summary>
-        /// <param name="source">The source image. Cannot be null.</param>
-        /// <param name="sourceRectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
-        /// </param>
         /// <exception cref="System.ArgumentNullException">
-        /// <paramref name="source"/> is null.
+        /// The target <see cref="Image{TPixel}"/> is null.
         /// </exception>
         /// <exception cref="System.ArgumentException">
-        /// <paramref name="sourceRectangle"/> doesn't fit the dimension of the image.
+        /// The target <see cref="Rectangle"/> doesn't fit the dimension of the image.
         /// </exception>
         /// <returns>Returns the cloned image after there processor has been applied to it.</returns>
-        Image<TPixel> CloneAndApply(Image<TPixel> source, Rectangle sourceRectangle);
+        Image<TPixel> CloneAndApply();
     }
 }

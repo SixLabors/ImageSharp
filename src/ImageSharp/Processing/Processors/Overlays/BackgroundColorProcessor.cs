@@ -1,7 +1,8 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 {
@@ -32,10 +33,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         public Color Color { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
         {
-            return new BackgroundColorProcessor<TPixel>(this);
+            return new BackgroundColorProcessor<TPixel>(this, source, sourceRectangle);
         }
     }
 }

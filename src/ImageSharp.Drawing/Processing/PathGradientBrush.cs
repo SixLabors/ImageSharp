@@ -36,10 +36,8 @@ namespace SixLabors.ImageSharp.Processing
 
             Color ColorAt(int index) => colors[index % colors.Length];
 
-            this.edges = this.path.LineSegments
-                .Select(s => new Path(s))
-                .Select((path, i) => new Edge(path, ColorAt(i), ColorAt(i + 1)))
-                .ToList();
+            this.edges = this.path.LineSegments.Select(s => new Path(s))
+                .Select((path, i) => new Edge(path, ColorAt(i), ColorAt(i + 1))).ToList();
         }
 
         /// <summary>
@@ -124,8 +122,7 @@ namespace SixLabors.ImageSharp.Processing
                     return null;
                 }
 
-                return this.buffer
-                    .Take(intersections)
+                return this.buffer.Take(intersections)
                     .Select(p => new Intersection(point: p, distance: ((Vector2)(p - start)).LengthSquared()))
                     .Aggregate((min, current) => min.Distance > current.Distance ? current : min);
             }
@@ -204,10 +201,7 @@ namespace SixLabors.ImageSharp.Processing
 
                     PointF end = point + (PointF)(direction * this.maxDistance);
 
-                    (Edge edge, Intersection? info) = this.edges
-                        .Select(e => (e, e.FindIntersection(point, end)))
-                        .Where(e => e.Item2.HasValue)
-                        .Aggregate((min, cur) => min.Item2.Value.Distance > cur.Item2.Value.Distance ? cur : min);
+                    (Edge edge, Intersection? info) = this.FindIntersection(point, end);
 
                     PointF intersection = info.Value.Point;
 
@@ -220,6 +214,28 @@ namespace SixLabors.ImageSharp.Processing
 
                     return new Color(color).ToPixel<TPixel>();
                 }
+            }
+
+            private (Edge edge, Intersection? info) FindIntersection(PointF start, PointF end)
+            {
+                (Edge edge, Intersection? info) closest = default;
+
+                foreach (Edge edge in this.edges)
+                {
+                    Intersection? intersection = edge.FindIntersection(start, end);
+
+                    if (!intersection.HasValue)
+                    {
+                        continue;
+                    }
+
+                    if (closest.info == null || closest.info.Value.Distance > intersection.Value.Distance)
+                    {
+                        closest = (edge, intersection);
+                    }
+                }
+
+                return closest;
             }
 
             /// <inheritdoc />

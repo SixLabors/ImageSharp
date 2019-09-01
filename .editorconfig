@@ -79,6 +79,7 @@ dotnet_naming_rule.private_and_internal_fields_should_be_camel_case.symbols = pr
 dotnet_naming_rule.public_and_protected_declarations_should_be_pascal_case.severity = suggestion
 dotnet_naming_rule.public_and_protected_declarations_should_be_pascal_case.style = pascal_case
 dotnet_naming_rule.public_and_protected_declarations_should_be_pascal_case.symbols = public_and_protected_declarations
+dotnet_naming_symbols.public_and_protected_declarations.applicable_kinds = method, field, event, property
 
 dotnet_naming_rule.static_readonly_declarations_should_be_pascal_case.severity = suggestion
 dotnet_naming_rule.static_readonly_declarations_should_be_pascal_case.style = pascal_case
@@ -322,11 +323,11 @@ csharp_space_between_square_brackets = false
 #   suggest conditional delegate calls,
 #   suggest deconstructed variable declarations,
 #   generate expression-bodied accessors,
-#   don't generate expression-bodied constructors,
+#   generate expression-bodied constructors,
 #   generate expression-bodied indexers,
 #   generate expression-bodied lambdas,
-#   don't generate expression-bodied methods,
-#   don't generate expression-bodied operators,
+#   generate expression-bodied methods,
+#   generate expression-bodied operators,
 #   generate expression-bodied properties,
 #   suggest inlined variable declarations,
 #   suggest local over anonymous functions,
@@ -348,11 +349,11 @@ csharp_style_conditional_delegate_call = true:suggestion
 csharp_style_deconstructed_variable_declaration = true:suggestion
 
 csharp_style_expression_bodied_accessors = true:silent
-csharp_style_expression_bodied_constructors = false:silent
+csharp_style_expression_bodied_constructors = true:silent
 csharp_style_expression_bodied_indexers = true:silent
 csharp_style_expression_bodied_lambdas = true:silent
-csharp_style_expression_bodied_methods = false:silent
-csharp_style_expression_bodied_operators = false:silent
+csharp_style_expression_bodied_methods = true:silent
+csharp_style_expression_bodied_operators = true:silent
 csharp_style_expression_bodied_properties = true:silent
 
 csharp_style_inlined_variable_declaration = true:suggestion

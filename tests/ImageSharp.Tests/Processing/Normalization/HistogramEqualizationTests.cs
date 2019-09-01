@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
         [Theory]
         [WithTestPatternImages(110, 110, PixelTypes.Rgba32)]
         [WithTestPatternImages(170, 170, PixelTypes.Rgba32)]
-        public void Issue984_DoesNotThrowException<TPixel>(TestImageProvider<TPixel> provider)
+        public void Issue984<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -135,8 +135,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                                   ClipHistogram = true,
                                   NumberOfTiles = 10
                               };
-                System.Exception ex = Record.Exception(() => image.Mutate(x => x.HistogramEqualization(options)));
-                Assert.Null(ex);
+                image.Mutate(x => x.HistogramEqualization(options));
+                image.DebugSave(provider);
             }
         }
     }

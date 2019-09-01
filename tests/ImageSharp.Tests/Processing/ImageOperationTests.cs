@@ -12,7 +12,7 @@ using SixLabors.ImageSharp.Processing.Processors;
 
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Processing
 {
     /// <summary>
     /// Tests the configuration class.

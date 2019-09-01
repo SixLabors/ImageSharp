@@ -75,7 +75,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// Initializes a new instance of the <see cref="BokehBlurProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="definition">The <see cref="BoxBlurProcessor"/> defining the processor parameters.</param>
-        public BokehBlurProcessor(BokehBlurProcessor definition)
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public BokehBlurProcessor(BokehBlurProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(source, sourceRectangle)
         {
             this.radius = definition.Radius;
             this.kernelSize = (this.radius * 2) + 1;
@@ -271,36 +274,36 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             // Preliminary gamma highlight pass
-            this.ApplyGammaExposure(source.PixelBuffer, sourceRectangle, configuration);
+            this.ApplyGammaExposure(source.PixelBuffer, this.SourceRectangle, this.Configuration);
 
             // Create a 0-filled buffer to use to store the result of the component convolutions
-            using (Buffer2D<Vector4> processing = configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size(), AllocationOptions.Clean))
+            using (Buffer2D<Vector4> processing = this.Configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size(), AllocationOptions.Clean))
             {
                 if (this.executionMode == BokehBlurExecutionMode.PreferLowMemoryUsage)
                 {
                     // Memory usage priority: allocate a shared buffer and execute the second convolution in sequential mode
-                    using (Buffer2D<ComplexVector4> buffer = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Width, source.Height + this.radius))
+                    using (Buffer2D<ComplexVector4> buffer = this.Configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Width, source.Height + this.radius))
                     using (Buffer2D<ComplexVector4> firstPassBuffer = buffer.Slice(this.radius, source.Height))
                     using (Buffer2D<ComplexVector4> secondPassBuffer = buffer.Slice(0, source.Height))
                     {
-                        this.OnFrameApplyCore(source, sourceRectangle, configuration, processing, firstPassBuffer, secondPassBuffer);
+                        this.OnFrameApplyCore(source, this.SourceRectangle, this.Configuration, processing, firstPassBuffer, secondPassBuffer);
                     }
                 }
                 else
                 {
                     // Performance priority: allocate two independent buffers and execute both convolutions in parallel mode
-                    using (Buffer2D<ComplexVector4> firstPassValues = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
-                    using (Buffer2D<ComplexVector4> secondPassBuffer = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
+                    using (Buffer2D<ComplexVector4> firstPassValues = this.Configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
+                    using (Buffer2D<ComplexVector4> secondPassBuffer = this.Configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
                     {
-                        this.OnFrameApplyCore(source, sourceRectangle, configuration, processing, firstPassValues, secondPassBuffer);
+                        this.OnFrameApplyCore(source, this.SourceRectangle, this.Configuration, processing, firstPassValues, secondPassBuffer);
                     }
                 }
 
                 // Apply the inverse gamma exposure pass, and write the final pixel data
-                this.ApplyInverseGammaExposure(source.PixelBuffer, processing, sourceRectangle, configuration);
+                this.ApplyInverseGammaExposure(source.PixelBuffer, processing, this.SourceRectangle, this.Configuration);
             }
         }
 

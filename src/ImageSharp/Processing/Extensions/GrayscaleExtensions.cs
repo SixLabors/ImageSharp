@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Processing.Processors;
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Processing
         {
             IImageProcessor processor = mode == GrayscaleMode.Bt709
                ? (IImageProcessor)new GrayscaleBt709Processor(amount)
-               : new GrayscaleBt601Processor(1F);
+               : new GrayscaleBt601Processor(amount);
 
             source.ApplyProcessor(processor);
             return source;

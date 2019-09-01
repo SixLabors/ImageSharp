@@ -52,7 +52,7 @@
 
   <!-- Default settings that are otherwise undefined -->
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)standards/SixLabors.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)shared-infrastructure/SixLabors.snk</AssemblyOriginatorKeyFile>
     <Copyright>Copyright © Six Labors and Contributors</Copyright>
     <Features>strict;IOperation</Features>
     <HighEntropyVA>true</HighEntropyVA>

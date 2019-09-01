@@ -73,10 +73,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
                 var tileYStartPositions = new List<(int y, int cdfY)>();
                 int cdfY = 0;
-                for (int y = halfTileHeight; y < sourceHeight - halfTileHeight; y += tileHeight)
+                int yStart = halfTileHeight;
+                for (int tile = 0; tile < tileCount - 1; tile++)
                 {
-                    tileYStartPositions.Add((y, cdfY));
+                    tileYStartPositions.Add((yStart, cdfY));
                     cdfY++;
+                    yStart += tileHeight;
                 }
 
                 Parallel.For(
@@ -92,7 +94,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                             ref TPixel sourceBase = ref source.GetPixelReference(0, 0);
 
                             int cdfX = 0;
-                            for (int x = halfTileWidth; x < sourceWidth - halfTileWidth; x += tileWidth)
+                            int x = halfTileWidth;
+                            for (int tile = 0; tile < tileCount - 1; tile++)
                             {
                                 int tileY = 0;
                                 int yEnd = Math.Min(y + tileHeight, sourceHeight);
@@ -125,24 +128,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                                 }
 
                                 cdfX++;
+                                x += tileWidth;
                             }
                         });
 
                 ref TPixel pixelsBase = ref source.GetPixelReference(0, 0);
 
                 // Fix left column
-                ProcessBorderColumn(ref pixelsBase, cdfData, 0, sourceWidth, sourceHeight, tileWidth, tileHeight, xStart: 0, xEnd: halfTileWidth, luminanceLevels);
+                ProcessBorderColumn(ref pixelsBase, cdfData, 0, sourceWidth, sourceHeight, this.Tiles, tileHeight, xStart: 0, xEnd: halfTileWidth, luminanceLevels);
 
                 // Fix right column
                 int rightBorderStartX = ((this.Tiles - 1) * tileWidth) + halfTileWidth;
-                ProcessBorderColumn(ref pixelsBase, cdfData, this.Tiles - 1, sourceWidth, sourceHeight, tileWidth, tileHeight, xStart: rightBorderStartX, xEnd: sourceWidth, luminanceLevels);
+                ProcessBorderColumn(ref pixelsBase, cdfData, this.Tiles - 1, sourceWidth, sourceHeight, this.Tiles, tileHeight, xStart: rightBorderStartX, xEnd: sourceWidth, luminanceLevels);
 
                 // Fix top row
-                ProcessBorderRow(ref pixelsBase, cdfData, 0, sourceWidth, tileWidth, yStart: 0, yEnd: halfTileHeight, luminanceLevels);
+                ProcessBorderRow(ref pixelsBase, cdfData, 0, sourceWidth, this.Tiles, tileWidth, yStart: 0, yEnd: halfTileHeight, luminanceLevels);
 
                 // Fix bottom row
                 int bottomBorderStartY = ((this.Tiles - 1) * tileHeight) + halfTileHeight;
-                ProcessBorderRow(ref pixelsBase, cdfData, this.Tiles - 1, sourceWidth, tileWidth, yStart: bottomBorderStartY, yEnd: sourceHeight, luminanceLevels);
+                ProcessBorderRow(ref pixelsBase, cdfData, this.Tiles - 1, sourceWidth, this.Tiles, tileWidth, yStart: bottomBorderStartY, yEnd: sourceHeight, luminanceLevels);
 
                 // Left top corner
                 ProcessCornerTile(ref pixelsBase, cdfData, sourceWidth, 0, 0, xStart: 0, xEnd: halfTileWidth, yStart: 0, yEnd: halfTileHeight, luminanceLevels);
@@ -206,7 +210,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="cdfX">The X index of the lookup table to use.</param>
         /// <param name="sourceWidth">The source image width.</param>
         /// <param name="sourceHeight">The source image height.</param>
-        /// <param name="tileWidth">The width of a tile.</param>
+        /// <param name="tileCount">The number of vertical tiles.</param>
         /// <param name="tileHeight">The height of a tile.</param>
         /// <param name="xStart">X start position in the image.</param>
         /// <param name="xEnd">X end position of the image.</param>
@@ -220,7 +224,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int cdfX,
             int sourceWidth,
             int sourceHeight,
-            int tileWidth,
+            int tileCount,
             int tileHeight,
             int xStart,
             int xEnd,
@@ -229,7 +233,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int halfTileHeight = tileHeight / 2;
 
             int cdfY = 0;
-            for (int y = halfTileHeight; y < sourceHeight - halfTileHeight; y += tileHeight)
+            int y = halfTileHeight;
+            for (int tile = 0; tile < tileCount - 1; tile++)
             {
                 int yLimit = Math.Min(y + tileHeight, sourceHeight - 1);
                 int tileY = 0;
@@ -247,6 +252,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 }
 
                 cdfY++;
+                y += tileHeight;
             }
         }
 
@@ -257,6 +263,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="cdfData">The pre-computed lookup tables to remap the grey values for each tiles.</param>
         /// <param name="cdfY">The Y index of the lookup table to use.</param>
         /// <param name="sourceWidth">The source image width.</param>
+        /// <param name="tileCount">The number of horizontal tiles.</param>
         /// <param name="tileWidth">The width of a tile.</param>
         /// <param name="yStart">Y start position in the image.</param>
         /// <param name="yEnd">Y end position of the image.</param>
@@ -269,6 +276,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             CdfTileData cdfData,
             int cdfY,
             int sourceWidth,
+            int tileCount,
             int tileWidth,
             int yStart,
             int yEnd,
@@ -277,7 +285,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int halfTileWidth = tileWidth / 2;
 
             int cdfX = 0;
-            for (int x = halfTileWidth; x < sourceWidth - halfTileWidth; x += tileWidth)
+            int x = halfTileWidth;
+            for (int tile = 0; tile < tileCount - 1; tile++)
             {
                 for (int dy = yStart; dy < yEnd; dy++)
                 {
@@ -294,6 +303,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 }
 
                 cdfX++;
+                x += tileWidth;
             }
         }
 

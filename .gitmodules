@@ -2,6 +2,6 @@
 	path = tests/Images/External
 	url = https://github.com/SixLabors/Imagesharp.Tests.Images.git
 	branch = master
-[submodule "standards"]
-	path = standards
-	url = https://github.com/SixLabors/Standards
+[submodule "shared-infrastructure"]
+	path = shared-infrastructure
+	url = https://github.com/SixLabors/SharedInfrastructure

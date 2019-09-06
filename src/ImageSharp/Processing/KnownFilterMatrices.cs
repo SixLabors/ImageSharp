@@ -433,6 +433,48 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <summary>
+        /// Create a lightness filter matrix using the given amount.
+        /// </summary>
+        /// <remarks>
+        /// A value of 0 will create an image that is completely black. A value of 1 makes the image completely white.
+        /// Other values are linear multipliers on the effect. Values of an amount over 1 are allowed, providing brighter results.
+        /// </remarks>
+        /// <param name="amount">The proportion of the conversion. Must be greater than or equal to 0.</param>
+        /// <returns>The <see cref="ColorMatrix"/></returns>
+        public static ColorMatrix CreateLightnessFilter(float amount)
+        {
+            Guard.MustBeBetweenOrEqualTo(amount, 0, 1F, nameof(amount));
+
+
+            /// James Jackson-South @JimBobSquarePants 03:54
+            /// Our colormatrix is a column-major version of the Android colormatrix
+            ///     ```
+            ///     // | 0| 1| 2| 3| 4|   |0|5|10|15|   |M11|M12|M13|M14|
+            ///     // | 5| 6| 7| 8| 9|   |1|6|11|16|   |M21|M22|M23|M24|
+            ///     // |10|11|12|13|14| = |2|7|12|17| = |M31|M32|M33|M34|
+            ///     // |15|16|17|18|19|   |3|8|13|18|   |M41|M42|M43|M44|
+            ///     //                    |4|9|14|19|   |M51|M52|M53|M54|
+            ///     ```
+            /// 
+            /// James Jackson-South @JimBobSquarePants 03:54
+            /// So given the information you have supplied and the stackoverflow answer (which has one too many rows in the code) you would use
+            /// the identity matrix and change 4, 9, 14 in the android matrix. In our matrix you would use identity again but change M51, M52, M53.
+            /// We use column major layout as that matches the system drawing matrix.
+            ///
+            // See https://en.wikipedia.org/wiki/HSL_and_HSV#Lightness and https://stackoverflow.com/questions/9175088/adjusting-lightness-using-colormatrix#answer-27179516
+            return new ColorMatrix
+                   {
+                       M11 = 1F,
+                       M22 = 1F,
+                       M33 = 1F,
+                       M44 = 1F,
+                       M51 = amount,
+                       M52 = amount,
+                       M53 = amount
+                   };
+        }
+
+        /// <summary>
         /// Create a sepia filter matrix using the given amount.
         /// The formula used matches the svg specification. <see href="http://www.w3.org/TR/filter-effects/#sepiaEquivalent"/>
         /// </summary>

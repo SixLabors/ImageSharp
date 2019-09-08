@@ -45,15 +45,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// Gets the target width.
         /// </summary>
-        public int Width => this.parameterSource.Width;
+        public int TargetWidth => this.parameterSource.TargetWidth;
 
         /// <summary>
         /// Gets the target height.
         /// </summary>
-        public int Height => this.parameterSource.Height;
+        public int TargetHeight => this.parameterSource.TargetHeight;
 
         /// <summary>
-        /// Gets the resize rectangle.
+        /// Gets the target resize rectangle.
         /// </summary>
         public Rectangle TargetRectangle => this.parameterSource.TargetRectangle;
 
@@ -80,8 +80,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select<ImageFrame<TPixel>, ImageFrame<TPixel>>(
                 x => new ImageFrame<TPixel>(
                     configuration,
-                    this.Width,
-                    this.Height,
+                    this.TargetWidth,
+                    this.TargetHeight,
                     x.Metadata.DeepClone()));
 
             // Use the overload to prevent an extra frame being added
@@ -128,8 +128,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return;
             }
 
-            int width = this.Width;
-            int height = this.Height;
+            int width = this.TargetWidth;
+            int height = this.TargetHeight;
             int sourceX = sourceRectangle.X;
             int sourceY = sourceRectangle.Y;
             int startY = this.TargetRectangle.Y;

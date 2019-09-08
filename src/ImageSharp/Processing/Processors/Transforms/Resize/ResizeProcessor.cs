@@ -26,19 +26,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         {
             Guard.NotNull(sampler, nameof(sampler));
 
-            // Ensure size is populated across both dimensions.
+            // Ensure target size is populated across both dimensions.
             // If only one of the incoming dimensions is 0, it will be modified here to maintain aspect ratio.
             // If it is not possible to keep aspect ratio, make sure at least the minimum is is kept.
-            const int min = 1;
+            const int Min = 1;
             if (width == 0 && height > 0)
             {
-                width = (int)MathF.Max(min, MathF.Round(sourceSize.Width * height / (float)sourceSize.Height));
+                width = (int)MathF.Max(Min, MathF.Round(sourceSize.Width * height / (float)sourceSize.Height));
                 targetRectangle.Width = width;
             }
 
             if (height == 0 && width > 0)
             {
-                height = (int)MathF.Max(min, MathF.Round(sourceSize.Height * width / (float)sourceSize.Width));
+                height = (int)MathF.Max(Min, MathF.Round(sourceSize.Height * width / (float)sourceSize.Width));
                 targetRectangle.Height = height;
             }
 
@@ -46,8 +46,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
             this.Sampler = sampler;
-            this.Width = width;
-            this.Height = height;
+            this.TargetWidth = width;
+            this.TargetHeight = height;
             this.TargetRectangle = targetRectangle;
             this.Compand = compand;
         }
@@ -62,32 +62,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Guard.NotNull(options, nameof(options));
             Guard.NotNull(options.Sampler, nameof(options.Sampler));
 
-            int targetWidth = options.Size.Width;
-            int targetHeight = options.Size.Height;
-
-            // Ensure size is populated across both dimensions.
-            // These dimensions are used to calculate the final dimensions determined by the mode algorithm.
-            // If only one of the incoming dimensions is 0, it will be modified here to maintain aspect ratio.
-            // If it is not possible to keep aspect ratio, make sure at least the minimum is is kept.
-            const int min = 1;
-            if (targetWidth == 0 && targetHeight > 0)
-            {
-                targetWidth = (int)MathF.Max(min, MathF.Round(sourceSize.Width * targetHeight / (float)sourceSize.Height));
-            }
-
-            if (targetHeight == 0 && targetWidth > 0)
-            {
-                targetHeight = (int)MathF.Max(min, MathF.Round(sourceSize.Height * targetWidth / (float)sourceSize.Width));
-            }
-
-            Guard.MustBeGreaterThan(targetWidth, 0, nameof(targetWidth));
-            Guard.MustBeGreaterThan(targetHeight, 0, nameof(targetHeight));
-
-            (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(sourceSize, options, targetWidth, targetHeight);
+            (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(sourceSize, options);
 
             this.Sampler = options.Sampler;
-            this.Width = size.Width;
-            this.Height = size.Height;
+            this.TargetWidth = size.Width;
+            this.TargetHeight = size.Height;
             this.TargetRectangle = rectangle;
             this.Compand = options.Compand;
         }
@@ -112,12 +91,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// Gets the target width.
         /// </summary>
-        public int Width { get; }
+        public int TargetWidth { get; }
 
         /// <summary>
         /// Gets the target height.
         /// </summary>
-        public int Height { get; }
+        public int TargetHeight { get; }
 
         /// <summary>
         /// Gets the resize rectangle.

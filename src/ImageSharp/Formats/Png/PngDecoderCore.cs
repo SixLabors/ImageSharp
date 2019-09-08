@@ -175,10 +175,17 @@ namespace SixLabors.ImageSharp.Formats.Png
                                     this.InitializeImage(metadata, out image);
                                 }
 
-                                using (var deframeStream = new ZlibInflateStream(this.currentStream, this.ReadNextDataChunk))
+                                var deframeStream = new ZlibInflateStream(this.currentStream, this.ReadNextDataChunk);
+                                try
                                 {
-                                    deframeStream.AllocateNewBytes(chunk.Length);
+                                    deframeStream.AllocateNewBytes(chunk.Length, true);
                                     this.ReadScanlines(deframeStream.CompressedStream, image.Frames.RootFrame, pngMetadata);
+                                }
+                                finally
+                                {
+                                    // If an invalid Zlib stream is discovered the decoder will throw an exception
+                                    // due to the critical nature of the data chunk.
+                                    deframeStream.Dispose();
                                 }
 
                                 break;
@@ -924,7 +931,11 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             ReadOnlySpan<byte> compressedData = data.Slice(zeroIndex + 2);
-            metadata.TextData.Add(new PngTextData(name, this.UncompressTextData(compressedData, PngConstants.Encoding), string.Empty, string.Empty));
+
+            if (this.TryUncompressTextData(compressedData, PngConstants.Encoding, out string uncompressed))
+            {
+                metadata.TextData.Add(new PngTextData(name, uncompressed, string.Empty, string.Empty));
+            }
         }
 
         /// <summary>
@@ -987,7 +998,11 @@ namespace SixLabors.ImageSharp.Formats.Png
             if (compressionFlag == 1)
             {
                 ReadOnlySpan<byte> compressedData = data.Slice(dataStartIdx);
-                metadata.TextData.Add(new PngTextData(keyword, this.UncompressTextData(compressedData, PngConstants.TranslatedEncoding), language, translatedKeyword));
+
+                if (this.TryUncompressTextData(compressedData, PngConstants.TranslatedEncoding, out string uncompressed))
+                {
+                    metadata.TextData.Add(new PngTextData(keyword, uncompressed, language, translatedKeyword));
+                }
             }
             else
             {
@@ -1001,13 +1016,19 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="compressedData">Compressed text data bytes.</param>
         /// <param name="encoding">The string encoding to use.</param>
-        /// <returns>A string.</returns>
-        private string UncompressTextData(ReadOnlySpan<byte> compressedData, Encoding encoding)
+        /// <param name="value">The uncompressed value.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        private bool TryUncompressTextData(ReadOnlySpan<byte> compressedData, Encoding encoding, out string value)
         {
             using (var memoryStream = new MemoryStream(compressedData.ToArray()))
             using (var inflateStream = new ZlibInflateStream(memoryStream, () => 0))
             {
-                inflateStream.AllocateNewBytes(compressedData.Length);
+                if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
+                {
+                    value = null;
+                    return false;
+                }
+
                 var uncompressedBytes = new List<byte>();
 
                 // Note: this uses the a buffer which is only 4 bytes long to read the stream, maybe allocating a larger buffer makes sense here.
@@ -1018,7 +1039,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                     bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
                 }
 
-                return encoding.GetString(uncompressedBytes.ToArray());
+                value = encoding.GetString(uncompressedBytes.ToArray());
+                return true;
             }
         }
 

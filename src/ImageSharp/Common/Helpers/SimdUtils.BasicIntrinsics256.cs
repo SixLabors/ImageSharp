@@ -19,6 +19,7 @@ namespace SixLabors.ImageSharp
         {
             public static bool IsAvailable { get; } = IsAvx2CompatibleArchitecture;
 
+#if !SUPPORTS_EXTENDED_INTRINSICS
             /// <summary>
             /// <see cref="BulkConvertByteToNormalizedFloat"/> as many elements as possible, slicing them down (keeping the remainder).
             /// </summary>
@@ -74,6 +75,7 @@ namespace SixLabors.ImageSharp
                     dest = dest.Slice(adjustedCount);
                 }
             }
+#endif
 
             /// <summary>
             /// SIMD optimized implementation for <see cref="SimdUtils.BulkConvertByteToNormalizedFloat"/>.

@@ -90,6 +90,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string CorruptedChunk = "Png/big-corrupted-chunk.png";
                 public const string ZlibOverflow = "Png/zlib-overflow.png";
                 public const string ZlibOverflow2 = "Png/zlib-overflow2.png";
+                public const string ZlibZtxtBadHeader = "Png/zlib-ztxt-bad-header.png";
             }
 
             public static readonly string[] All =

@@ -2,9 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Linq;
 using System.Numerics;
-
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
@@ -30,17 +28,32 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         /// <param name="sourceSize">The source image size.</param>
         /// <param name="options">The resize options.</param>
-        /// <param name="width">The target width</param>
-        /// <param name="height">The target height</param>
         /// <returns>
         /// The tuple representing the location and the bounds
         /// </returns>
-        public static (Size, Rectangle) CalculateTargetLocationAndBounds(
-            Size sourceSize,
-            ResizeOptions options,
-            int width,
-            int height)
+        public static (Size, Rectangle) CalculateTargetLocationAndBounds(Size sourceSize, ResizeOptions options)
         {
+            int width = options.Size.Width;
+            int height = options.Size.Height;
+
+            // Ensure target size is populated across both dimensions.
+            // These dimensions are used to calculate the final dimensions determined by the mode algorithm.
+            // If only one of the incoming dimensions is 0, it will be modified here to maintain aspect ratio.
+            // If it is not possible to keep aspect ratio, make sure at least the minimum is is kept.
+            const int Min = 1;
+            if (width == 0 && height > 0)
+            {
+                width = (int)MathF.Max(Min, MathF.Round(sourceSize.Width * height / (float)sourceSize.Height));
+            }
+
+            if (height == 0 && width > 0)
+            {
+                height = (int)MathF.Max(Min, MathF.Round(sourceSize.Height * width / (float)sourceSize.Width));
+            }
+
+            Guard.MustBeGreaterThan(width, 0, nameof(width));
+            Guard.MustBeGreaterThan(height, 0, nameof(height));
+
             switch (options.Mode)
             {
                 case ResizeMode.Crop:
@@ -50,9 +63,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 case ResizeMode.BoxPad:
                     return CalculateBoxPadRectangle(sourceSize, options, width, height);
                 case ResizeMode.Max:
-                    return CalculateMaxRectangle(sourceSize, options, width, height);
+                    return CalculateMaxRectangle(sourceSize, width, height);
                 case ResizeMode.Min:
-                    return CalculateMinRectangle(sourceSize, options, width, height);
+                    return CalculateMinRectangle(sourceSize, width, height);
 
                 // Last case ResizeMode.Stretch:
                 default:
@@ -66,11 +79,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int width,
             int height)
         {
-            if (width <= 0 || height <= 0)
-            {
-                return (new Size(source.Width, source.Height), new Rectangle(0, 0, source.Width, source.Height));
-            }
-
             int sourceWidth = source.Width;
             int sourceHeight = source.Height;
 
@@ -84,55 +92,55 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // Only calculate if upscaling.
             if (sourceWidth < boxPadWidth && sourceHeight < boxPadHeight)
             {
-                int destinationX;
-                int destinationY;
-                int destinationWidth = sourceWidth;
-                int destinationHeight = sourceHeight;
+                int targetX;
+                int targetY;
+                int targetWidth = sourceWidth;
+                int targetHeight = sourceHeight;
                 width = boxPadWidth;
                 height = boxPadHeight;
 
                 switch (options.Position)
                 {
                     case AnchorPositionMode.Left:
-                        destinationY = (height - sourceHeight) / 2;
-                        destinationX = 0;
+                        targetY = (height - sourceHeight) / 2;
+                        targetX = 0;
                         break;
                     case AnchorPositionMode.Right:
-                        destinationY = (height - sourceHeight) / 2;
-                        destinationX = width - sourceWidth;
+                        targetY = (height - sourceHeight) / 2;
+                        targetX = width - sourceWidth;
                         break;
                     case AnchorPositionMode.TopRight:
-                        destinationY = 0;
-                        destinationX = width - sourceWidth;
+                        targetY = 0;
+                        targetX = width - sourceWidth;
                         break;
                     case AnchorPositionMode.Top:
-                        destinationY = 0;
-                        destinationX = (width - sourceWidth) / 2;
+                        targetY = 0;
+                        targetX = (width - sourceWidth) / 2;
                         break;
                     case AnchorPositionMode.TopLeft:
-                        destinationY = 0;
-                        destinationX = 0;
+                        targetY = 0;
+                        targetX = 0;
                         break;
                     case AnchorPositionMode.BottomRight:
-                        destinationY = height - sourceHeight;
-                        destinationX = width - sourceWidth;
+                        targetY = height - sourceHeight;
+                        targetX = width - sourceWidth;
                         break;
                     case AnchorPositionMode.Bottom:
-                        destinationY = height - sourceHeight;
-                        destinationX = (width - sourceWidth) / 2;
+                        targetY = height - sourceHeight;
+                        targetX = (width - sourceWidth) / 2;
                         break;
                     case AnchorPositionMode.BottomLeft:
-                        destinationY = height - sourceHeight;
-                        destinationX = 0;
+                        targetY = height - sourceHeight;
+                        targetX = 0;
                         break;
                     default:
-                        destinationY = (height - sourceHeight) / 2;
-                        destinationX = (width - sourceWidth) / 2;
+                        targetY = (height - sourceHeight) / 2;
+                        targetX = (width - sourceWidth) / 2;
                         break;
                 }
 
-                return (new Size(width, height),
-                           new Rectangle(destinationX, destinationY, destinationWidth, destinationHeight));
+                // Target image width and height can be different to the rectangle width and height.
+                return (new Size(width, height), new Rectangle(targetX, targetY, targetWidth, targetHeight));
             }
 
             // Switch to pad mode to downscale and calculate from there.
@@ -145,19 +153,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int width,
             int height)
         {
-            if (width <= 0 || height <= 0)
-            {
-                return (new Size(source.Width, source.Height), new Rectangle(0, 0, source.Width, source.Height));
-            }
-
             float ratio;
             int sourceWidth = source.Width;
             int sourceHeight = source.Height;
 
-            int destinationX = 0;
-            int destinationY = 0;
-            int destinationWidth = width;
-            int destinationHeight = height;
+            int targetX = 0;
+            int targetY = 0;
+            int targetWidth = width;
+            int targetHeight = height;
 
             // Fractional variants for preserving aspect ratio.
             float percentHeight = MathF.Abs(height / (float)sourceHeight);
@@ -167,19 +170,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 ratio = percentWidth;
 
-                if (options.CenterCoordinates.Any())
+                if (options.CenterCoordinates.HasValue)
                 {
-                    float center = -(ratio * sourceHeight) * options.CenterCoordinates.ToArray()[1];
-                    destinationY = (int)MathF.Round(center + (height / 2F));
+                    float center = -(ratio * sourceHeight) * options.CenterCoordinates.Value.Y;
+                    targetY = (int)MathF.Round(center + (height / 2F));
 
-                    if (destinationY > 0)
+                    if (targetY > 0)
                     {
-                        destinationY = 0;
+                        targetY = 0;
                     }
 
-                    if (destinationY < (int)MathF.Round(height - (sourceHeight * ratio)))
+                    if (targetY < (int)MathF.Round(height - (sourceHeight * ratio)))
                     {
-                        destinationY = (int)MathF.Round(height - (sourceHeight * ratio));
+                        targetY = (int)MathF.Round(height - (sourceHeight * ratio));
                     }
                 }
                 else
@@ -189,38 +192,38 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                         case AnchorPositionMode.Top:
                         case AnchorPositionMode.TopLeft:
                         case AnchorPositionMode.TopRight:
-                            destinationY = 0;
+                            targetY = 0;
                             break;
                         case AnchorPositionMode.Bottom:
                         case AnchorPositionMode.BottomLeft:
                         case AnchorPositionMode.BottomRight:
-                            destinationY = (int)MathF.Round(height - (sourceHeight * ratio));
+                            targetY = (int)MathF.Round(height - (sourceHeight * ratio));
                             break;
                         default:
-                            destinationY = (int)MathF.Round((height - (sourceHeight * ratio)) / 2F);
+                            targetY = (int)MathF.Round((height - (sourceHeight * ratio)) / 2F);
                             break;
                     }
                 }
 
-                destinationHeight = (int)MathF.Ceiling(sourceHeight * percentWidth);
+                targetHeight = (int)MathF.Ceiling(sourceHeight * percentWidth);
             }
             else
             {
                 ratio = percentHeight;
 
-                if (options.CenterCoordinates.Any())
+                if (options.CenterCoordinates.HasValue)
                 {
-                    float center = -(ratio * sourceWidth) * options.CenterCoordinates.First();
-                    destinationX = (int)MathF.Round(center + (width / 2F));
+                    float center = -(ratio * sourceWidth) * options.CenterCoordinates.Value.X;
+                    targetX = (int)MathF.Round(center + (width / 2F));
 
-                    if (destinationX > 0)
+                    if (targetX > 0)
                     {
-                        destinationX = 0;
+                        targetX = 0;
                     }
 
-                    if (destinationX < (int)MathF.Round(width - (sourceWidth * ratio)))
+                    if (targetX < (int)MathF.Round(width - (sourceWidth * ratio)))
                     {
-                        destinationX = (int)MathF.Round(width - (sourceWidth * ratio));
+                        targetX = (int)MathF.Round(width - (sourceWidth * ratio));
                     }
                 }
                 else
@@ -230,68 +233,64 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                         case AnchorPositionMode.Left:
                         case AnchorPositionMode.TopLeft:
                         case AnchorPositionMode.BottomLeft:
-                            destinationX = 0;
+                            targetX = 0;
                             break;
                         case AnchorPositionMode.Right:
                         case AnchorPositionMode.TopRight:
                         case AnchorPositionMode.BottomRight:
-                            destinationX = (int)MathF.Round(width - (sourceWidth * ratio));
+                            targetX = (int)MathF.Round(width - (sourceWidth * ratio));
                             break;
                         default:
-                            destinationX = (int)MathF.Round((width - (sourceWidth * ratio)) / 2F);
+                            targetX = (int)MathF.Round((width - (sourceWidth * ratio)) / 2F);
                             break;
                     }
                 }
 
-                destinationWidth = (int)MathF.Ceiling(sourceWidth * percentHeight);
+                targetWidth = (int)MathF.Ceiling(sourceWidth * percentHeight);
             }
 
-            return (new Size(width, height),
-                       new Rectangle(destinationX, destinationY, destinationWidth, destinationHeight));
+            // Target image width and height can be different to the rectangle width and height.
+            return (new Size(width, height), new Rectangle(targetX, targetY, targetWidth, targetHeight));
         }
 
         private static (Size, Rectangle) CalculateMaxRectangle(
             Size source,
-            ResizeOptions options,
             int width,
             int height)
         {
-            int destinationWidth = width;
-            int destinationHeight = height;
+            int targetWidth = width;
+            int targetHeight = height;
 
             // Fractional variants for preserving aspect ratio.
             float percentHeight = MathF.Abs(height / (float)source.Height);
             float percentWidth = MathF.Abs(width / (float)source.Width);
 
             // Integers must be cast to floats to get needed precision
-            float ratio = options.Size.Height / (float)options.Size.Width;
+            float ratio = height / (float)width;
             float sourceRatio = source.Height / (float)source.Width;
 
             if (sourceRatio < ratio)
             {
-                destinationHeight = (int)MathF.Round(source.Height * percentWidth);
-                height = destinationHeight;
+                targetHeight = (int)MathF.Round(source.Height * percentWidth);
             }
             else
             {
-                destinationWidth = (int)MathF.Round(source.Width * percentHeight);
-                width = destinationWidth;
+                targetWidth = (int)MathF.Round(source.Width * percentHeight);
             }
 
             // Replace the size to match the rectangle.
-            return (new Size(width, height), new Rectangle(0, 0, destinationWidth, destinationHeight));
+            return (new Size(targetWidth, targetHeight), new Rectangle(0, 0, targetWidth, targetHeight));
         }
 
         private static (Size, Rectangle) CalculateMinRectangle(
             Size source,
-            ResizeOptions options,
             int width,
             int height)
         {
             int sourceWidth = source.Width;
             int sourceHeight = source.Height;
-            int destinationWidth;
-            int destinationHeight;
+            int targetWidth = width;
+            int targetHeight = height;
 
             // Don't upscale
             if (width > sourceWidth || height > sourceHeight)
@@ -306,58 +305,45 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             if (widthDiff < heightDiff)
             {
                 float sourceRatio = (float)sourceHeight / sourceWidth;
-                destinationHeight = (int)MathF.Round(width * sourceRatio);
-                height = destinationHeight;
-                destinationWidth = width;
+                targetHeight = (int)MathF.Round(width * sourceRatio);
             }
             else if (widthDiff > heightDiff)
             {
                 float sourceRatioInverse = (float)sourceWidth / sourceHeight;
-                destinationWidth = (int)MathF.Round(height * sourceRatioInverse);
-                destinationHeight = height;
-                width = destinationWidth;
+                targetWidth = (int)MathF.Round(height * sourceRatioInverse);
             }
             else
             {
                 if (height > width)
                 {
-                    destinationWidth = width;
                     float percentWidth = MathF.Abs(width / (float)sourceWidth);
-                    destinationHeight = (int)MathF.Round(sourceHeight * percentWidth);
-                    height = destinationHeight;
+                    targetHeight = (int)MathF.Round(sourceHeight * percentWidth);
                 }
                 else
                 {
-                    destinationHeight = height;
                     float percentHeight = MathF.Abs(height / (float)sourceHeight);
-                    destinationWidth = (int)MathF.Round(sourceWidth * percentHeight);
-                    width = destinationWidth;
+                    targetWidth = (int)MathF.Round(sourceWidth * percentHeight);
                 }
             }
 
             // Replace the size to match the rectangle.
-            return (new Size(width, height), new Rectangle(0, 0, destinationWidth, destinationHeight));
+            return (new Size(targetWidth, targetHeight), new Rectangle(0, 0, targetWidth, targetHeight));
         }
 
         private static (Size, Rectangle) CalculatePadRectangle(
-            Size source,
+            Size sourceSize,
             ResizeOptions options,
             int width,
             int height)
         {
-            if (width <= 0 || height <= 0)
-            {
-                return (new Size(source.Width, source.Height), new Rectangle(0, 0, source.Width, source.Height));
-            }
-
             float ratio;
-            int sourceWidth = source.Width;
-            int sourceHeight = source.Height;
+            int sourceWidth = sourceSize.Width;
+            int sourceHeight = sourceSize.Height;
 
-            int destinationX = 0;
-            int destinationY = 0;
-            int destinationWidth = width;
-            int destinationHeight = height;
+            int targetX = 0;
+            int targetY = 0;
+            int targetWidth = width;
+            int targetHeight = height;
 
             // Fractional variants for preserving aspect ratio.
             float percentHeight = MathF.Abs(height / (float)sourceHeight);
@@ -366,50 +352,50 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             if (percentHeight < percentWidth)
             {
                 ratio = percentHeight;
-                destinationWidth = (int)MathF.Round(sourceWidth * percentHeight);
+                targetWidth = (int)MathF.Round(sourceWidth * percentHeight);
 
                 switch (options.Position)
                 {
                     case AnchorPositionMode.Left:
                     case AnchorPositionMode.TopLeft:
                     case AnchorPositionMode.BottomLeft:
-                        destinationX = 0;
+                        targetX = 0;
                         break;
                     case AnchorPositionMode.Right:
                     case AnchorPositionMode.TopRight:
                     case AnchorPositionMode.BottomRight:
-                        destinationX = (int)MathF.Round(width - (sourceWidth * ratio));
+                        targetX = (int)MathF.Round(width - (sourceWidth * ratio));
                         break;
                     default:
-                        destinationX = (int)MathF.Round((width - (sourceWidth * ratio)) / 2F);
+                        targetX = (int)MathF.Round((width - (sourceWidth * ratio)) / 2F);
                         break;
                 }
             }
             else
             {
                 ratio = percentWidth;
-                destinationHeight = (int)MathF.Round(sourceHeight * percentWidth);
+                targetHeight = (int)MathF.Round(sourceHeight * percentWidth);
 
                 switch (options.Position)
                 {
                     case AnchorPositionMode.Top:
                     case AnchorPositionMode.TopLeft:
                     case AnchorPositionMode.TopRight:
-                        destinationY = 0;
+                        targetY = 0;
                         break;
                     case AnchorPositionMode.Bottom:
                     case AnchorPositionMode.BottomLeft:
                     case AnchorPositionMode.BottomRight:
-                        destinationY = (int)MathF.Round(height - (sourceHeight * ratio));
+                        targetY = (int)MathF.Round(height - (sourceHeight * ratio));
                         break;
                     default:
-                        destinationY = (int)MathF.Round((height - (sourceHeight * ratio)) / 2F);
+                        targetY = (int)MathF.Round((height - (sourceHeight * ratio)) / 2F);
                         break;
                 }
             }
 
-            return (new Size(width, height),
-                       new Rectangle(destinationX, destinationY, destinationWidth, destinationHeight));
+            // Target image width and height can be different to the rectangle width and height.
+            return (new Size(width, height), new Rectangle(targetX, targetY, targetWidth, targetHeight));
         }
     }
 }

@@ -36,6 +36,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int width = options.Size.Width;
             int height = options.Size.Height;
 
+            if (width <= 0 && height <= 0)
+            {
+                ThrowInvalid($"Target width {width} and height {height} must be greater than zero.");
+            }
+
             // Ensure target size is populated across both dimensions.
             // These dimensions are used to calculate the final dimensions determined by the mode algorithm.
             // If only one of the incoming dimensions is 0, it will be modified here to maintain aspect ratio.
@@ -51,9 +56,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 height = (int)MathF.Max(Min, MathF.Round(sourceSize.Height * width / (float)sourceSize.Width));
             }
 
-            Guard.MustBeGreaterThan(width, 0, nameof(width));
-            Guard.MustBeGreaterThan(height, 0, nameof(height));
-
             switch (options.Mode)
             {
                 case ResizeMode.Crop:
@@ -66,8 +68,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     return CalculateMaxRectangle(sourceSize, width, height);
                 case ResizeMode.Min:
                     return CalculateMinRectangle(sourceSize, width, height);
+                case ResizeMode.Manual:
+                    return CalculateManualRectangle(options, width, height);
 
-                // Last case ResizeMode.Stretch:
+                // case ResizeMode.Stretch:
                 default:
                     return (new Size(width, height), new Rectangle(0, 0, width, height));
             }
@@ -397,5 +401,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // Target image width and height can be different to the rectangle width and height.
             return (new Size(width, height), new Rectangle(targetX, targetY, targetWidth, targetHeight));
         }
+
+        private static (Size, Rectangle) CalculateManualRectangle(
+            ResizeOptions options,
+            int width,
+            int height)
+        {
+            if (!options.TargetRectangle.HasValue)
+            {
+                ThrowInvalid("Manual resizing requires a target location and size.");
+            }
+
+            Rectangle targetRectangle = options.TargetRectangle.Value;
+
+            int targetX = targetRectangle.X;
+            int targetY = targetRectangle.Y;
+            int targetWidth = targetRectangle.Width > 0 ? targetRectangle.Width : width;
+            int targetHeight = targetRectangle.Height > 0 ? targetRectangle.Height : height;
+
+            // Target image width and height can be different to the rectangle width and height.
+            return (new Size(width, height), new Rectangle(targetX, targetY, targetWidth, targetHeight));
+        }
+
+        private static void ThrowInvalid(string message) => throw new InvalidOperationException(message);
     }
 }

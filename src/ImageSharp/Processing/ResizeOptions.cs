@@ -41,5 +41,10 @@ namespace SixLabors.ImageSharp.Processing
         /// or expand individual pixel colors the value on processing.
         /// </summary>
         public bool Compand { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets the target rectangle to resize into.
+        /// </summary>
+        public Rectangle? TargetRectangle { get; set; }
     }
 }

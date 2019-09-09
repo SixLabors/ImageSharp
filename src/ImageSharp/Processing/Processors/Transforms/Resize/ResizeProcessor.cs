@@ -16,45 +16,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// Initializes a new instance of the <see cref="ResizeProcessor"/> class.
         /// </summary>
-        /// <param name="sampler">The <see cref="IResampler"/>.</param>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
-        /// <param name="sourceSize">The size of the source image.</param>
-        /// <param name="targetRectangle">The target rectangle to resize into.</param>
-        /// <param name="compand">A value indicating whether to apply RGBA companding.</param>
-        public ResizeProcessor(IResampler sampler, int width, int height, Size sourceSize, Rectangle targetRectangle, bool compand)
-        {
-            Guard.NotNull(sampler, nameof(sampler));
-
-            // Ensure target size is populated across both dimensions.
-            // If only one of the incoming dimensions is 0, it will be modified here to maintain aspect ratio.
-            // If it is not possible to keep aspect ratio, make sure at least the minimum is is kept.
-            const int Min = 1;
-            if (width == 0 && height > 0)
-            {
-                width = (int)MathF.Max(Min, MathF.Round(sourceSize.Width * height / (float)sourceSize.Height));
-                targetRectangle.Width = width;
-            }
-
-            if (height == 0 && width > 0)
-            {
-                height = (int)MathF.Max(Min, MathF.Round(sourceSize.Height * width / (float)sourceSize.Width));
-                targetRectangle.Height = height;
-            }
-
-            Guard.MustBeGreaterThan(width, 0, nameof(width));
-            Guard.MustBeGreaterThan(height, 0, nameof(height));
-
-            this.Sampler = sampler;
-            this.TargetWidth = width;
-            this.TargetHeight = height;
-            this.TargetRectangle = targetRectangle;
-            this.Compand = compand;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ResizeProcessor"/> class.
-        /// </summary>
         /// <param name="options">The resize options.</param>
         /// <param name="sourceSize">The source image size.</param>
         public ResizeProcessor(ResizeOptions options, Size sourceSize)
@@ -69,18 +30,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.TargetHeight = size.Height;
             this.TargetRectangle = rectangle;
             this.Compand = options.Compand;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ResizeProcessor"/> class.
-        /// </summary>
-        /// <param name="sampler">The sampler to perform the resize operation.</param>
-        /// <param name="width">The target width.</param>
-        /// <param name="height">The target height.</param>
-        /// <param name="sourceSize">The source image size</param>
-        public ResizeProcessor(IResampler sampler, int width, int height, Size sourceSize)
-            : this(sampler, width, height, sourceSize, new Rectangle(0, 0, width, height), false)
-        {
         }
 
         /// <summary>

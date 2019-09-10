@@ -5,6 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -175,18 +176,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                     this.InitializeImage(metadata, out image);
                                 }
 
-                                var deframeStream = new ZlibInflateStream(this.currentStream, this.ReadNextDataChunk);
-                                try
-                                {
-                                    deframeStream.AllocateNewBytes(chunk.Length, true);
-                                    this.ReadScanlines(deframeStream.CompressedStream, image.Frames.RootFrame, pngMetadata);
-                                }
-                                finally
-                                {
-                                    // If an invalid Zlib stream is discovered the decoder will throw an exception
-                                    // due to the critical nature of the data chunk.
-                                    deframeStream.Dispose();
-                                }
+                                this.ReadScanlines(chunk, image.Frames.RootFrame, pngMetadata);
 
                                 break;
                             case PngChunkType.Palette:
@@ -472,19 +462,25 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Reads the scanlines within the image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="dataStream">The <see cref="MemoryStream"/> containing data.</param>
+        /// <param name="chunk">The png chunk containing the compressed scanline data.</param>
         /// <param name="image"> The pixel data.</param>
         /// <param name="pngMetadata">The png metadata</param>
-        private void ReadScanlines<TPixel>(Stream dataStream, ImageFrame<TPixel> image, PngMetadata pngMetadata)
+        private void ReadScanlines<TPixel>(PngChunk chunk, ImageFrame<TPixel> image, PngMetadata pngMetadata)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (this.header.InterlaceMethod == PngInterlaceMode.Adam7)
+            using (var deframeStream = new ZlibInflateStream(this.currentStream, this.ReadNextDataChunk))
             {
-                this.DecodeInterlacedPixelData(dataStream, image, pngMetadata);
-            }
-            else
-            {
-                this.DecodePixelData(dataStream, image, pngMetadata);
+                deframeStream.AllocateNewBytes(chunk.Length, true);
+                DeflateStream dataStream = deframeStream.CompressedStream;
+
+                if (this.header.InterlaceMethod == PngInterlaceMode.Adam7)
+                {
+                    this.DecodeInterlacedPixelData(dataStream, image, pngMetadata);
+                }
+                else
+                {
+                    this.DecodePixelData(dataStream, image, pngMetadata);
+                }
             }
         }
 
@@ -1021,7 +1017,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private bool TryUncompressTextData(ReadOnlySpan<byte> compressedData, Encoding encoding, out string value)
         {
             using (var memoryStream = new MemoryStream(compressedData.ToArray()))
-            using (var inflateStream = new ZlibInflateStream(memoryStream, () => 0))
+            using (var inflateStream = new ZlibInflateStream(memoryStream))
             {
                 if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
                 {

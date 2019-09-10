@@ -20,14 +20,14 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         private static readonly byte[] ChecksumBuffer = new byte[4];
 
         /// <summary>
+        /// A default delegate to get more data from the inner stream.
+        /// </summary>
+        private static readonly Func<int> GetDataNoOp = () => 0;
+
+        /// <summary>
         /// The inner raw memory stream
         /// </summary>
         private readonly Stream innerStream;
-
-        /// <summary>
-        /// The compressed stream sitting over the top of the deframer
-        /// </summary>
-        private DeflateStream compressedStream;
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -55,8 +55,17 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <summary>
         /// Initializes a new instance of the <see cref="ZlibInflateStream"/> class.
         /// </summary>
-        /// <param name="innerStream">The inner raw stream</param>
-        /// <param name="getData">A delegate to get more data from the inner stream</param>
+        /// <param name="innerStream">The inner raw stream.</param>
+        public ZlibInflateStream(Stream innerStream)
+            : this(innerStream, GetDataNoOp)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ZlibInflateStream"/> class.
+        /// </summary>
+        /// <param name="innerStream">The inner raw stream.</param>
+        /// <param name="getData">A delegate to get more data from the inner stream.</param>
         public ZlibInflateStream(Stream innerStream, Func<int> getData)
         {
             this.innerStream = innerStream;
@@ -76,12 +85,12 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         public override long Length => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        public override long Position { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
 
         /// <summary>
         /// Gets the compressed stream over the deframed inner stream
         /// </summary>
-        public DeflateStream CompressedStream => this.compressedStream;
+        public DeflateStream CompressedStream { get; private set; }
 
         /// <summary>
         /// Adds new bytes from a frame found in the original stream
@@ -92,7 +101,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         public bool AllocateNewBytes(int bytes, bool isCriticalChunk)
         {
             this.currentDataRemaining = bytes;
-            if (this.compressedStream is null)
+            if (this.CompressedStream is null)
             {
                 return this.InitializeInflateStream(isCriticalChunk);
             }
@@ -101,10 +110,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         }
 
         /// <inheritdoc/>
-        public override void Flush()
-        {
-            throw new NotSupportedException();
-        }
+        public override void Flush() => throw new NotSupportedException();
 
         /// <inheritdoc/>
         public override int ReadByte()
@@ -186,10 +192,10 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             if (disposing)
             {
                 // dispose managed resources
-                if (this.compressedStream != null)
+                if (this.CompressedStream != null)
                 {
-                    this.compressedStream.Dispose();
-                    this.compressedStream = null;
+                    this.CompressedStream.Dispose();
+                    this.CompressedStream = null;
                 }
             }
 
@@ -264,7 +270,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             }
 
             // Initialize the deflate Stream.
-            this.compressedStream = new DeflateStream(this, CompressionMode.Decompress, true);
+            this.CompressedStream = new DeflateStream(this, CompressionMode.Decompress, true);
 
             return true;
         }

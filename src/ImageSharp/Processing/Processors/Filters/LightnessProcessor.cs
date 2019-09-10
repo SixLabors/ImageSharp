@@ -1,5 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
+
 namespace SixLabors.ImageSharp.Processing.Processors.Filters
 {
     /// <summary>
@@ -7,7 +8,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// </summary>
     public sealed class LightnessProcessor : FilterProcessor
     {
-
         /// <summary>
         /// Initializes a new instance of the <see cref="LightnessProcessor"/> class.
         /// </summary>

@@ -445,22 +445,19 @@ namespace SixLabors.ImageSharp.Processing
         {
             Guard.MustBeBetweenOrEqualTo(amount, 0, 1F, nameof(amount));
 
-
-            /// James Jackson-South @JimBobSquarePants 03:54
-            /// Our colormatrix is a column-major version of the Android colormatrix
-            ///     ```
-            ///     // | 0| 1| 2| 3| 4|   |0|5|10|15|   |M11|M12|M13|M14|
-            ///     // | 5| 6| 7| 8| 9|   |1|6|11|16|   |M21|M22|M23|M24|
-            ///     // |10|11|12|13|14| = |2|7|12|17| = |M31|M32|M33|M34|
-            ///     // |15|16|17|18|19|   |3|8|13|18|   |M41|M42|M43|M44|
-            ///     //                    |4|9|14|19|   |M51|M52|M53|M54|
-            ///     ```
-            /// 
-            /// James Jackson-South @JimBobSquarePants 03:54
-            /// So given the information you have supplied and the stackoverflow answer (which has one too many rows in the code) you would use
-            /// the identity matrix and change 4, 9, 14 in the android matrix. In our matrix you would use identity again but change M51, M52, M53.
-            /// We use column major layout as that matches the system drawing matrix.
-            ///
+            // James Jackson-South @JimBobSquarePants 03:54
+            // Our colormatrix is a column-major version of the Android colormatrix
+            //
+            //     | 0| 1| 2| 3| 4|   |0|5|10|15|   |M11|M12|M13|M14|
+            //     | 5| 6| 7| 8| 9|   |1|6|11|16|   |M21|M22|M23|M24|
+            //     |10|11|12|13|14| = |2|7|12|17| = |M31|M32|M33|M34|
+            //     |15|16|17|18|19|   |3|8|13|18|   |M41|M42|M43|M44|
+            //                        |4|9|14|19|   |M51|M52|M53|M54|
+            // James Jackson-South @JimBobSquarePants 03:54
+            // So given the information you have supplied and the stackoverflow answer (which has one too many rows in the code) you would use
+            // the identity matrix and change 4, 9, 14 in the android matrix. In our matrix you would use identity again but change M51, M52, M53.
+            // We use column major layout as that matches the system drawing matrix.
+            //
             // See https://en.wikipedia.org/wiki/HSL_and_HSV#Lightness and https://stackoverflow.com/questions/9175088/adjusting-lightness-using-colormatrix#answer-27179516
             return new ColorMatrix
                    {

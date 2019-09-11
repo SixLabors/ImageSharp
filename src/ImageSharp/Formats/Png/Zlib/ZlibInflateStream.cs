@@ -20,14 +20,14 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         private static readonly byte[] ChecksumBuffer = new byte[4];
 
         /// <summary>
+        /// A default delegate to get more data from the inner stream.
+        /// </summary>
+        private static readonly Func<int> GetDataNoOp = () => 0;
+
+        /// <summary>
         /// The inner raw memory stream
         /// </summary>
         private readonly Stream innerStream;
-
-        /// <summary>
-        /// The compressed stream sitting over the top of the deframer
-        /// </summary>
-        private DeflateStream compressedStream;
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -55,8 +55,17 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <summary>
         /// Initializes a new instance of the <see cref="ZlibInflateStream"/> class.
         /// </summary>
-        /// <param name="innerStream">The inner raw stream</param>
-        /// <param name="getData">A delegate to get more data from the inner stream</param>
+        /// <param name="innerStream">The inner raw stream.</param>
+        public ZlibInflateStream(Stream innerStream)
+            : this(innerStream, GetDataNoOp)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ZlibInflateStream"/> class.
+        /// </summary>
+        /// <param name="innerStream">The inner raw stream.</param>
+        /// <param name="getData">A delegate to get more data from the inner stream.</param>
         public ZlibInflateStream(Stream innerStream, Func<int> getData)
         {
             this.innerStream = innerStream;
@@ -76,31 +85,32 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         public override long Length => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        public override long Position { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
 
         /// <summary>
         /// Gets the compressed stream over the deframed inner stream
         /// </summary>
-        public DeflateStream CompressedStream => this.compressedStream;
+        public DeflateStream CompressedStream { get; private set; }
 
         /// <summary>
         /// Adds new bytes from a frame found in the original stream
         /// </summary>
         /// <param name="bytes">blabla</param>
-        public void AllocateNewBytes(int bytes)
+        /// <param name="isCriticalChunk">Whether the chunk to be inflated is a critical chunk.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        public bool AllocateNewBytes(int bytes, bool isCriticalChunk)
         {
             this.currentDataRemaining = bytes;
-            if (this.compressedStream is null)
+            if (this.CompressedStream is null)
             {
-                this.InitializeInflateStream();
+                return this.InitializeInflateStream(isCriticalChunk);
             }
+
+            return true;
         }
 
         /// <inheritdoc/>
-        public override void Flush()
-        {
-            throw new NotSupportedException();
-        }
+        public override void Flush() => throw new NotSupportedException();
 
         /// <inheritdoc/>
         public override int ReadByte()
@@ -182,10 +192,10 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             if (disposing)
             {
                 // dispose managed resources
-                if (this.compressedStream != null)
+                if (this.CompressedStream != null)
                 {
-                    this.compressedStream.Dispose();
-                    this.compressedStream = null;
+                    this.CompressedStream.Dispose();
+                    this.CompressedStream = null;
                 }
             }
 
@@ -197,7 +207,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             this.isDisposed = true;
         }
 
-        private void InitializeInflateStream()
+        private bool InitializeInflateStream(bool isCriticalChunk)
         {
             // Read the zlib header : http://tools.ietf.org/html/rfc1950
             // CMF(Compression Method and flags)
@@ -215,7 +225,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             this.currentDataRemaining -= 2;
             if (cmf == -1 || flag == -1)
             {
-                return;
+                return false;
             }
 
             if ((cmf & 0x0F) == 8)
@@ -225,14 +235,28 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
                 if (cinfo > 7)
                 {
-                    // Values of CINFO above 7 are not allowed in RFC1950.
-                    // CINFO is not defined in this specification for CM not equal to 8.
-                    throw new ImageFormatException($"Invalid window size for ZLIB header: cinfo={cinfo}");
+                    if (isCriticalChunk)
+                    {
+                        // Values of CINFO above 7 are not allowed in RFC1950.
+                        // CINFO is not defined in this specification for CM not equal to 8.
+                        throw new ImageFormatException($"Invalid window size for ZLIB header: cinfo={cinfo}");
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
             }
             else
             {
-                throw new ImageFormatException($"Bad method for ZLIB header: cmf={cmf}");
+                if (isCriticalChunk)
+                {
+                    throw new ImageFormatException($"Bad method for ZLIB header: cmf={cmf}");
+                }
+                else
+                {
+                    return false;
+                }
             }
 
             // The preset dictionary.
@@ -246,7 +270,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             }
 
             // Initialize the deflate Stream.
-            this.compressedStream = new DeflateStream(this, CompressionMode.Decompress, true);
+            this.CompressedStream = new DeflateStream(this, CompressionMode.Decompress, true);
+
+            return true;
         }
     }
 }

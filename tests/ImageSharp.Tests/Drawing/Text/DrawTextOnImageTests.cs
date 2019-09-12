@@ -66,6 +66,24 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         }
 
         [Theory]
+        [WithSolidFilledImages(1500, 500, "White", PixelTypes.Rgba32)]
+        public void DoesntThrowExceptionWhenOverlappingRightEdge_Issue688_2<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> img = provider.GetImage())
+            {
+                Font font = SystemFonts.CreateFont("Arial", 39, FontStyle.Regular);
+                string text = new string('a', 10000); // exception
+                                                      // string text = "Hello"; // no exception
+                Rgba32 color = Rgba32.Black;
+                var point = new PointF(100, 100);
+
+                img.Mutate(ctx => ctx.DrawText(text, font, color, point));
+            }
+        }
+
+
+        [Theory]
         [WithSolidFilledImages(200, 100, "White", PixelTypes.Rgba32, 50, 0, 0, "SixLaborsSampleAB.woff", AB)]
         [WithSolidFilledImages(900, 100, "White", PixelTypes.Rgba32, 50, 0, 0, "OpenSans-Regular.ttf", TestText)]
         [WithSolidFilledImages(400, 40, "White", PixelTypes.Rgba32, 20, 0, 0, "OpenSans-Regular.ttf", TestText)]

@@ -90,26 +90,31 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
                             Buffer2D<float> buffer = operation.Map;
                             int startY = operation.Location.Y;
                             int startX = operation.Location.X;
-                            int offSetSpan = 0;
+                            int offsetSpan = 0;
                             if (startX < 0)
                             {
-                                offSetSpan = -startX;
+                                offsetSpan = -startX;
                                 startX = 0;
                             }
 
-                            int fistRow = 0;
+                            if (startX >= source.Width)
+                            {
+                                continue;
+                            }
+
+                            int firstRow = 0;
                             if (startY < 0)
                             {
-                                fistRow = -startY;
+                                firstRow = -startY;
                             }
 
                             int maxHeight = source.Height - startY;
                             int end = Math.Min(operation.Map.Height, maxHeight);
 
-                            for (int row = fistRow; row < end; row++)
+                            for (int row = firstRow; row < end; row++)
                             {
                                 int y = startY + row;
-                                Span<float> span = buffer.GetRowSpan(row).Slice(offSetSpan);
+                                Span<float> span = buffer.GetRowSpan(row).Slice(offsetSpan);
                                 app.Apply(span, startX, y);
                             }
                         }

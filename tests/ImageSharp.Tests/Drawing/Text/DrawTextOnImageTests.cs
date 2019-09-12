@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         {
             using (Image<TPixel> img = provider.GetImage())
             {
-                Font font = SystemFonts.CreateFont("Arial", 39, FontStyle.Regular);
+                Font font = SystemFonts.CreateFont("OpenSans-Regular.ttf", 39, FontStyle.Regular);
                 string text = new string('a', 10000); // exception
                                                       // string text = "Hello"; // no exception
                 Rgba32 color = Rgba32.Black;

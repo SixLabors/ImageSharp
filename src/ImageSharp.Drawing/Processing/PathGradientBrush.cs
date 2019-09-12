@@ -18,8 +18,6 @@ namespace SixLabors.ImageSharp.Processing
     /// </summary>
     public sealed class PathGradientBrush : IBrush
     {
-        private readonly Polygon path;
-
         private readonly IList<Edge> edges;
 
         private readonly Color centerColor;
@@ -27,20 +25,20 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Initializes a new instance of the <see cref="PathGradientBrush"/> class.
         /// </summary>
-        /// <param name="lines">Line segments of a polygon that represents the gradient area.</param>
+        /// <param name="points">Points that constitute a polygon that represents the gradient area.</param>
         /// <param name="colors">Array of colors that correspond to each point in the polygon.</param>
         /// <param name="centerColor">Color at the center of the gradient area to which the other colors converge.</param>
-        public PathGradientBrush(ILineSegment[] lines, Color[] colors, Color centerColor)
+        public PathGradientBrush(PointF[] points, Color[] colors, Color centerColor)
         {
-            if (lines == null)
+            if (points == null)
             {
-                throw new ArgumentNullException(nameof(lines));
+                throw new ArgumentNullException(nameof(points));
             }
 
-            if (lines.Length < 3)
+            if (points.Length < 3)
             {
                 throw new ArgumentOutOfRangeException(
-                    nameof(lines),
+                    nameof(points),
                     "There must be at least 3 lines to construct a path gradient brush.");
             }
 
@@ -56,22 +54,30 @@ namespace SixLabors.ImageSharp.Processing
                     "One or more color is needed to construct a path gradient brush.");
             }
 
-            this.path = new Polygon(lines);
+            int size = points.Length;
+
+            var lines = new ILineSegment[size];
+
+            for (int i = 0; i < size; i++)
+            {
+                lines[i] = new LinearLineSegment(points[i % size], points[(i + 1) % size]);
+            }
+
             this.centerColor = centerColor;
 
             Color ColorAt(int index) => colors[index % colors.Length];
 
-            this.edges = this.path.LineSegments.Select(s => new Path(s))
+            this.edges = lines.Select(s => new Path(s))
                 .Select((path, i) => new Edge(path, ColorAt(i), ColorAt(i + 1))).ToList();
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PathGradientBrush"/> class.
         /// </summary>
-        /// <param name="lines">Line segments of a polygon that represents the gradient area.</param>
+        /// <param name="points">Points that constitute a polygon that represents the gradient area.</param>
         /// <param name="colors">Array of colors that correspond to each point in the polygon.</param>
-        public PathGradientBrush(ILineSegment[] lines, Color[] colors)
-            : this(lines, colors, CalculateCenterColor(colors))
+        public PathGradientBrush(PointF[] points, Color[] colors)
+            : this(points, colors, CalculateCenterColor(colors))
         {
         }
 
@@ -82,7 +88,7 @@ namespace SixLabors.ImageSharp.Processing
             GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            return new PathGradientBrushApplicator<TPixel>(source, this.path, this.edges, this.centerColor, options);
+            return new PathGradientBrushApplicator<TPixel>(source, this.edges, this.centerColor, options);
         }
 
         private static Color CalculateCenterColor(Color[] colors)
@@ -182,8 +188,6 @@ namespace SixLabors.ImageSharp.Processing
         private class PathGradientBrushApplicator<TPixel> : BrushApplicator<TPixel>
             where TPixel : struct, IPixel<TPixel>
         {
-            private readonly Path path;
-
             private readonly PointF center;
 
             private readonly Vector4 centerColor;
@@ -196,24 +200,21 @@ namespace SixLabors.ImageSharp.Processing
             /// Initializes a new instance of the <see cref="PathGradientBrushApplicator{TPixel}"/> class.
             /// </summary>
             /// <param name="source">The source image.</param>
-            /// <param name="path">A polygon that represents the gradient area.</param>
             /// <param name="edges">Edges of the polygon.</param>
             /// <param name="centerColor">Color at the center of the gradient area to which the other colors converge.</param>
             /// <param name="options">The options.</param>
             public PathGradientBrushApplicator(
                 ImageFrame<TPixel> source,
-                Path path,
                 IList<Edge> edges,
                 Color centerColor,
                 GraphicsOptions options)
                 : base(source, options)
             {
-                this.path = path;
                 this.edges = edges;
 
-                PointF[] points = path.LineSegments.Select(s => s.EndPoint).ToArray();
+                PointF[] points = edges.Select(s => s.Start).ToArray();
 
-                this.center = points.Aggregate((p1, p2) => p1 + p2) / points.Length;
+                this.center = points.Aggregate((p1, p2) => p1 + p2) / edges.Count;
                 this.centerColor = centerColor.ToVector4();
 
                 this.maxDistance = points.Select(p => (Vector2)(p - this.center)).Select(d => d.Length()).Max();

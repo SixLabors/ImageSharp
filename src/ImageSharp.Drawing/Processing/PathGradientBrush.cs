@@ -237,6 +237,11 @@ namespace SixLabors.ImageSharp.Processing
 
                     (Edge edge, Intersection? info) = this.FindIntersection(point, end);
 
+                    if (!info.HasValue)
+                    {
+                        return Color.Transparent.ToPixel<TPixel>();
+                    }
+
                     PointF intersection = info.Value.Point;
 
                     Vector4 edgeColor = edge.ColorAt(intersection);

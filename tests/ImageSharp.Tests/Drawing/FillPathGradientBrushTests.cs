@@ -7,7 +7,6 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
-using SixLabors.Shapes;
 
 using Xunit;
 
@@ -27,17 +26,10 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 TolerantComparer,
                 image =>
                 {
-                    ILineSegment[] path =
-                    {
-                        new LinearLineSegment(new PointF(0, 0), new PointF(10, 0)),
-                        new LinearLineSegment(new PointF(10, 0), new PointF(10, 10)),
-                        new LinearLineSegment(new PointF(10, 10), new PointF(0, 10)),
-                        new LinearLineSegment(new PointF(0, 10), new PointF(0, 0))
-                    };
-
+                    PointF[] points = { new PointF(0, 0), new PointF(10, 0), new PointF(10, 10), new PointF(0, 10) };
                     Color[] colors = { Color.Black, Color.Red, Color.Yellow, Color.Green };
 
-                    var brush = new PathGradientBrush(path, colors);
+                    var brush = new PathGradientBrush(points, colors);
 
                     image.Mutate(x => x.Fill(brush));
                     image.DebugSave(provider, appendPixelTypeToFileName: false, appendSourceFileOrDescription: false);
@@ -53,16 +45,10 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 TolerantComparer,
                 image =>
                 {
-                    ILineSegment[] path =
-                    {
-                        new LinearLineSegment(new PointF(5, 0), new PointF(10, 10)),
-                        new LinearLineSegment(new PointF(10, 10), new PointF(0, 10)),
-                        new LinearLineSegment(new PointF(0, 10), new PointF(5, 0))
-                    };
-
+                    PointF[] points = { new PointF(5, 0), new PointF(10, 10), new PointF(0, 10) };
                     Color[] colors = { Color.Red, Color.Green, Color.Blue };
 
-                    var brush = new PathGradientBrush(path, colors);
+                    var brush = new PathGradientBrush(points, colors);
 
                     image.Mutate(x => x.Fill(brush));
                     image.DebugSave(provider, appendPixelTypeToFileName: false, appendSourceFileOrDescription: false);
@@ -76,17 +62,10 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                ILineSegment[] path =
-                {
-                    new LinearLineSegment(new PointF(0, 0), new PointF(10, 0)),
-                    new LinearLineSegment(new PointF(10, 0), new PointF(10, 10)),
-                    new LinearLineSegment(new PointF(10, 10), new PointF(0, 10)),
-                    new LinearLineSegment(new PointF(0, 10), new PointF(0, 0))
-                };
-
+                PointF[] points = { new PointF(0, 0), new PointF(10, 0), new PointF(10, 10), new PointF(0, 10) };
                 Color[] colors = { Color.Red };
 
-                var brush = new PathGradientBrush(path, colors);
+                var brush = new PathGradientBrush(points, colors);
 
                 image.Mutate(x => x.Fill(brush));
 
@@ -103,17 +82,10 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 TolerantComparer,
                 image =>
                 {
-                    ILineSegment[] path =
-                    {
-                        new LinearLineSegment(new PointF(0, 0), new PointF(10, 0)),
-                        new LinearLineSegment(new PointF(10, 0), new PointF(10, 10)),
-                        new LinearLineSegment(new PointF(10, 10), new PointF(0, 10)),
-                        new LinearLineSegment(new PointF(0, 10), new PointF(0, 0))
-                    };
-
+                    PointF[] points = { new PointF(0, 0), new PointF(10, 0), new PointF(10, 10), new PointF(0, 10) };
                     Color[] colors = { Color.Red, Color.Yellow };
 
-                    var brush = new PathGradientBrush(path, colors);
+                    var brush = new PathGradientBrush(points, colors);
 
                     image.Mutate(x => x.Fill(brush));
                     image.DebugSave(provider, appendPixelTypeToFileName: false, appendSourceFileOrDescription: false);
@@ -129,17 +101,10 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 TolerantComparer,
                 image =>
                 {
-                    ILineSegment[] path =
-                    {
-                        new LinearLineSegment(new PointF(0, 0), new PointF(10, 0)),
-                        new LinearLineSegment(new PointF(10, 0), new PointF(10, 10)),
-                        new LinearLineSegment(new PointF(10, 10), new PointF(0, 10)),
-                        new LinearLineSegment(new PointF(0, 10), new PointF(0, 0))
-                    };
-
+                    PointF[] points = { new PointF(0, 0), new PointF(10, 0), new PointF(10, 10), new PointF(0, 10) };
                     Color[] colors = { Color.Black, Color.Red, Color.Yellow, Color.Green };
 
-                    var brush = new PathGradientBrush(path, colors, Color.White);
+                    var brush = new PathGradientBrush(points, colors, Color.White);
 
                     image.Mutate(x => x.Fill(brush));
                     image.DebugSave(provider, appendPixelTypeToFileName: false, appendSourceFileOrDescription: false);
@@ -157,17 +122,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         }
 
         [Fact]
-        public void ShouldThrowArgumentOutOfRangeExceptionWhenLessThan3LinesAreGiven()
+        public void ShouldThrowArgumentOutOfRangeExceptionWhenLessThan3PointsAreGiven()
         {
-            ILineSegment[] path =
-            {
-                new LinearLineSegment(new PointF(0, 0), new PointF(10, 0)),
-                new LinearLineSegment(new PointF(10, 0), new PointF(10, 10))
-            };
-
+            PointF[] points = { new PointF(0, 0), new PointF(10, 0) };
             Color[] colors = { Color.Black, Color.Red, Color.Yellow, Color.Green };
 
-            PathGradientBrush Create() => new PathGradientBrush(path, colors, Color.White);
+            PathGradientBrush Create() => new PathGradientBrush(points, colors, Color.White);
 
             Assert.Throws<ArgumentOutOfRangeException>(Create);
         }
@@ -175,15 +135,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ShouldThrowArgumentNullExceptionWhenColorsAreNull()
         {
-            ILineSegment[] path =
-            {
-                new LinearLineSegment(new PointF(0, 0), new PointF(10, 0)),
-                new LinearLineSegment(new PointF(10, 0), new PointF(10, 10)),
-                new LinearLineSegment(new PointF(10, 10), new PointF(0, 10)),
-                new LinearLineSegment(new PointF(0, 10), new PointF(0, 0))
-            };
+            PointF[] points = { new PointF(0, 0), new PointF(10, 0), new PointF(10, 10), new PointF(0, 10) };
 
-            PathGradientBrush Create() => new PathGradientBrush(path, null, Color.White);
+            PathGradientBrush Create() => new PathGradientBrush(points, null, Color.White);
 
             Assert.Throws<ArgumentNullException>(Create);
         }
@@ -191,17 +145,11 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ShouldThrowArgumentOutOfRangeExceptionWhenEmptyColorArrayIsGiven()
         {
-            ILineSegment[] path =
-            {
-                new LinearLineSegment(new PointF(0, 0), new PointF(10, 0)),
-                new LinearLineSegment(new PointF(10, 0), new PointF(10, 10)),
-                new LinearLineSegment(new PointF(10, 10), new PointF(0, 10)),
-                new LinearLineSegment(new PointF(0, 10), new PointF(0, 0))
-            };
+            PointF[] points = { new PointF(0, 0), new PointF(10, 0), new PointF(10, 10), new PointF(0, 10) };
 
             var colors = new Color[0];
 
-            PathGradientBrush Create() => new PathGradientBrush(path, colors, Color.White);
+            PathGradientBrush Create() => new PathGradientBrush(points, colors, Color.White);
 
             Assert.Throws<ArgumentOutOfRangeException>(Create);
         }

@@ -231,11 +231,6 @@ namespace SixLabors.ImageSharp.Processing
                         return new Color(this.centerColor).ToPixel<TPixel>();
                     }
 
-                    if (!this.path.Contains(point))
-                    {
-                        return Color.Transparent.ToPixel<TPixel>();
-                    }
-
                     Vector2 direction = Vector2.Normalize(point - this.center);
 
                     PointF end = point + (PointF)(direction * this.maxDistance);

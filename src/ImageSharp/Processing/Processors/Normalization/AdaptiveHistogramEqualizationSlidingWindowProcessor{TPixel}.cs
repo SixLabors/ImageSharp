@@ -29,18 +29,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="luminanceLevels">The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
         /// or 65536 for 16-bit grayscale images.</param>
         /// <param name="clipHistogram">Indicating whether to clip the histogram bins at a specific value.</param>
-        /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels in the tile. Histogram bins which exceed this limit, will be capped at this value.</param>
+        /// <param name="clipLimit">The histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.</param>
         /// <param name="tiles">The number of tiles the image is split into (horizontal and vertically). Minimum value is 2. Maximum value is 100.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public AdaptiveHistogramEqualizationSlidingWindowProcessor(
             int luminanceLevels,
             bool clipHistogram,
-            float clipLimitPercentage,
+            int clipLimit,
             int tiles,
             Image<TPixel> source,
             Rectangle sourceRectangle)
-            : base(luminanceLevels, clipHistogram, clipLimitPercentage, source, sourceRectangle)
+            : base(luminanceLevels, clipHistogram, clipLimit, source, sourceRectangle)
         {
             Guard.MustBeGreaterThanOrEqualTo(tiles, 2, nameof(tiles));
             Guard.MustBeLessThanOrEqualTo(tiles, 100, nameof(tiles));
@@ -210,7 +210,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                             {
                                 // Clipping the histogram, but doing it on a copy to keep the original un-clipped values for the next iteration.
                                 histogram.CopyTo(histogramCopy);
-                                this.ClipHistogram(histogramCopy, this.ClipLimitPercentage, swInfos.PixelInTile);
+                                this.ClipHistogram(histogramCopy, this.ClipLimit);
                             }
 
                             // Calculate the cumulative distribution function, which will map each input pixel in the current tile to a new value.

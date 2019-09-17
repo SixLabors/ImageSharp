@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -117,17 +117,6 @@ namespace SixLabors.ImageSharp
                 source.Save(stream, format);
                 stream.Flush();
                 return $"data:{format.DefaultMimeType};base64,{Convert.ToBase64String(stream.ToArray())}";
-            }
-        }
-
-        /// <summary>
-        /// Throws <see cref="ObjectDisposedException"/> if the image is disposed.
-        /// </summary>
-        internal static void EnsureNotDisposed(this Image image)
-        {
-            if (image.IsDisposed)
-            {
-                throw new ObjectDisposedException(nameof(image), "Trying to execute an operation on a disposed image.");
             }
         }
     }

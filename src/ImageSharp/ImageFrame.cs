@@ -74,7 +74,17 @@ namespace SixLabors.ImageSharp
         public Rectangle Bounds() => new Rectangle(0, 0, this.Width, this.Height);
 
         /// <inheritdoc />
-        public abstract void Dispose();
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Disposes the object and frees resources for the Garbage Collector.
+        /// </summary>
+        /// <param name="disposing">Whether to dispose of managed and unmanaged objects.</param>
+        protected abstract void Dispose(bool disposing);
 
         internal abstract void CopyPixelsTo<TDestinationPixel>(Span<TDestinationPixel> destination)
             where TDestinationPixel : struct, IPixel<TDestinationPixel>;

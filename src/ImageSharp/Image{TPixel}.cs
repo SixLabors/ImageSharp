@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -188,7 +188,7 @@ namespace SixLabors.ImageSharp
         protected override void DisposeImpl() => this.Frames.Dispose();
 
         /// <inheritdoc />
-        internal override void AcceptVisitor(IImageVisitor visitor)
+        protected internal override void Accept(IImageVisitor visitor)
         {
             this.EnsureNotDisposed();
 

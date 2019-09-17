@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         = new TheoryData<float>
         {
             .5F,
-           1.5F
+            .5F
         };
 
         [Theory]

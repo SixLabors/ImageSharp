@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp
     /// For generic <see cref="Image{TPixel}"/>-s the pixel type is known at compile time.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public class Image<TPixel> : Image
+    public sealed class Image<TPixel> : Image
         where TPixel : struct, IPixel<TPixel>
     {
         private bool isDisposed;

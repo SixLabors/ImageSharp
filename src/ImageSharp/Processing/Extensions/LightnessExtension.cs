@@ -6,13 +6,12 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Defines extensions that allow the alteration of the hue component of an <see cref="Image"/>
-    /// using Mutate/Clone.
+    /// Defines extensions that allow to change image lightness in terms of HSL.
     /// </summary>
     public static class LightnessExtension
     {
         /// <summary>
-        /// Alters the hue component of the image.
+        /// Alters the lightness parameter of the image.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="lightness">Lightness parameter of image in HSL color scheme.</param>
@@ -21,7 +20,7 @@ namespace SixLabors.ImageSharp.Processing
             => source.ApplyProcessor(new LightnessProcessor(lightness));
 
         /// <summary>
-        /// Alters the hue component of the image.
+        /// Alters the lightness parameter of the image.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="lightness">Lightness parameter of image in HSL color scheme.</param>

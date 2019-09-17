@@ -3,7 +3,6 @@
 
 using System;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors
 {
@@ -15,14 +14,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="Image{TPixel}"/>.
+        /// Executes the process against the specified <see cref="Image{TPixel}"/>.
         /// </summary>
-        /// <exception cref="ArgumentNullException">
-        /// The target <see cref="Image{TPixel}"/> is null.
-        /// </exception>
-        /// <exception cref="ArgumentException">
-        /// The target <see cref="Rectangle"/> doesn't fit the dimension of the image.
-        /// </exception>
-        void Apply();
+        void Execute();
     }
 }

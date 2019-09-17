@@ -7,15 +7,12 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing.Processors
 {
     /// <summary>
-    /// Defines an algorithm to alter the pixels of an image.
-    /// Non-generic <see cref="IImageProcessor"/> implementations are responsible for:
-    /// 1. Encapsulating the parameters of the algorithm.
-    /// 2. Creating the generic <see cref="IImageProcessor{TPixel}"/> instance to execute the algorithm.
+    /// The base class for all cloning image processors.
     /// </summary>
-    public interface IImageProcessor
+    public abstract class CloningImageProcessor : IImageProcessor
     {
         /// <summary>
-        /// Creates a pixel specific <see cref="IImageProcessor{TPixel}"/> that is capable of executing
+        /// Creates a pixel specific <see cref="ICloningImageProcessor{TPixel}"/> that is capable of executing
         /// the processing algorithm on an <see cref="Image{TPixel}"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type.</typeparam>
@@ -23,8 +20,12 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
-        /// <returns>The <see cref="IImageProcessor{TPixel}"/></returns>
-        IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
+        /// <returns>The <see cref="ICloningImageProcessor{TPixel}"/></returns>
+        public abstract ICloningImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>;
+
+        /// <inheritdoc/>
+        IImageProcessor<TPixel> IImageProcessor.CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
+            => this.CreatePixelSpecificProcessor(source, sourceRectangle);
     }
 }

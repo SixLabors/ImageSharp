@@ -12,9 +12,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = true)]
     internal sealed class ExifTagDescriptionAttribute : Attribute
     {
-        private readonly object value;
-        private readonly string description;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="ExifTagDescriptionAttribute"/> class.
         /// </summary>
@@ -22,8 +19,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// <param name="description">The description for the value of the exif tag.</param>
         public ExifTagDescriptionAttribute(object value, string description)
         {
-            this.value = value;
-            this.description = description;
         }
 
         /// <summary>

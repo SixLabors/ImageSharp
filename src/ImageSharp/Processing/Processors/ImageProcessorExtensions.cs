@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             {
                 using (IImageProcessor<TPixel> processorImpl = this.processor.CreatePixelSpecificProcessor(image, this.sourceRectangle))
                 {
-                    processorImpl.Apply();
+                    processorImpl.Execute();
                 }
             }
         }

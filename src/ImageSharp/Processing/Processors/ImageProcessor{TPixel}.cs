@@ -9,10 +9,11 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing.Processors
 {
     /// <summary>
-    /// Allows the application of processors to images.
+    /// The base class for all pixel specific image processors.
+    /// Allows the application of processing algorithms to the image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class ImageProcessor<TPixel> : IImageProcessor<TPixel>
+    public abstract class ImageProcessor<TPixel> : IImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private bool isDisposed;
@@ -45,7 +46,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         protected Configuration Configuration { get; }
 
         /// <inheritdoc/>
-        public void Apply()
+        public void Execute()
         {
             try
             {
@@ -71,7 +72,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <summary>
-        /// Applies the processor to just a single ImageBase.
+        /// Applies the processor to a single image frame.
         /// </summary>
         /// <param name="source">the source image.</param>
         public void Apply(ImageFrame<TPixel> source)

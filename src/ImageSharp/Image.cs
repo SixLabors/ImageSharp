@@ -130,14 +130,6 @@ namespace SixLabors.ImageSharp
             where TPixel2 : struct, IPixel<TPixel2>;
 
         /// <summary>
-        /// Accepts a <see cref="IImageVisitor"/>.
-        /// Implemented by <see cref="Image{TPixel}"/> invoking <see cref="IImageVisitor.Visit{TPixel}"/>
-        /// with the pixel type of the image.
-        /// </summary>
-        /// <param name="visitor">The visitor.</param>
-        protected internal abstract void Accept(IImageVisitor visitor);
-
-        /// <summary>
         /// Update the size of the image after mutation.
         /// </summary>
         /// <param name="size">The <see cref="Size"/>.</param>
@@ -147,6 +139,14 @@ namespace SixLabors.ImageSharp
         /// Implements the Dispose logic.
         /// </summary>
         protected abstract void DisposeImpl();
+
+        /// <summary>
+        /// Accepts a <see cref="IImageVisitor"/>.
+        /// Implemented by <see cref="Image{TPixel}"/> invoking <see cref="IImageVisitor.Visit{TPixel}"/>
+        /// with the pixel type of the image.
+        /// </summary>
+        /// <param name="visitor">The visitor.</param>
+        internal abstract void Accept(IImageVisitor visitor);
 
         private class EncodeVisitor : IImageVisitor
         {

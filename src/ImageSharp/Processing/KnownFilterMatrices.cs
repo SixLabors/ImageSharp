@@ -436,14 +436,13 @@ namespace SixLabors.ImageSharp.Processing
         /// Create a lightness filter matrix using the given amount.
         /// </summary>
         /// <remarks>
-        /// A value of 0 will create an image that is completely black. A value of 1 makes the image completely white.
-        /// Other values are linear multipliers on the effect. Values of an amount over 1 are allowed, providing brighter results.
+        /// A value of -1 will create an image that is completely black. A value of 1 makes the image completely white.
         /// </remarks>
-        /// <param name="amount">The proportion of the conversion. Must be greater than or equal to 0.</param>
+        /// <param name="amount">The proportion of the conversion. Must be between -1 and 1.</param>
         /// <returns>The <see cref="ColorMatrix"/></returns>
         public static ColorMatrix CreateLightnessFilter(float amount)
         {
-            Guard.MustBeBetweenOrEqualTo(amount, 0, 1F, nameof(amount));
+            Guard.MustBeBetweenOrEqualTo(amount, -1F, 1F, nameof(amount));
             return new ColorMatrix
                    {
                        M11 = 1F,

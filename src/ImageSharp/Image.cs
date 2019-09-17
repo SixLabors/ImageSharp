@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
 
 using SixLabors.ImageSharp.Advanced;
@@ -80,21 +81,11 @@ namespace SixLabors.ImageSharp
         /// </summary>
         Configuration IConfigurable.Configuration => this.Configuration;
 
-        /// <summary>
-        /// Gets a value indicating whether the image instance is disposed.
-        /// </summary>
-        public bool IsDisposed { get; private set; }
-
         /// <inheritdoc />
         public void Dispose()
         {
-            if (this.IsDisposed)
-            {
-                return;
-            }
-
-            this.IsDisposed = true;
-            this.DisposeImpl();
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>
@@ -109,7 +100,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(encoder, nameof(encoder));
             this.EnsureNotDisposed();
 
-            EncodeVisitor visitor = new EncodeVisitor(encoder, stream);
+            var visitor = new EncodeVisitor(encoder, stream);
             this.AcceptVisitor(visitor);
         }
 
@@ -144,9 +135,15 @@ namespace SixLabors.ImageSharp
         protected void UpdateSize(Size size) => this.size = size;
 
         /// <summary>
-        /// Implements the Dispose logic.
+        /// Disposes the object and frees resources for the Garbage Collector.
         /// </summary>
-        protected abstract void DisposeImpl();
+        /// <param name="disposing">Whether to dispose of managed and unmanaged objects.</param>
+        protected abstract void Dispose(bool disposing);
+
+        /// <summary>
+        /// Throws <see cref="ObjectDisposedException"/> if the image is disposed.
+        /// </summary>
+        internal abstract void EnsureNotDisposed();
 
         private class EncodeVisitor : IImageVisitor
         {

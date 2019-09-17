@@ -16,8 +16,6 @@ namespace SixLabors.ImageSharp.Processing.Processors
     public abstract class ImageProcessor<TPixel> : IImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private bool isDisposed;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageProcessor{TPixel}"/> class.
         /// </summary>
@@ -98,6 +96,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         public virtual void Dispose()
         {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>
@@ -143,10 +143,6 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="disposing">Whether to dispose managed and unmanaged objects.</param>
         protected virtual void Dispose(bool disposing)
         {
-            if (!this.isDisposed)
-            {
-                this.isDisposed = true;
-            }
         }
     }
 }

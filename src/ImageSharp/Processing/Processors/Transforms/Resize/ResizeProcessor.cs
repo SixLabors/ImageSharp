@@ -1,9 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
@@ -11,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// <summary>
     /// Defines an image resizing operation with the given <see cref="IResampler"/> and dimensional parameters.
     /// </summary>
-    public class ResizeProcessor : IImageProcessor
+    public class ResizeProcessor : CloningImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResizeProcessor"/> class.
@@ -58,8 +55,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public bool Compand { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
-            where TPixel : struct, IPixel<TPixel>
+        public override ICloningImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
             => new ResizeProcessor<TPixel>(this, source, sourceRectangle);
     }
 }

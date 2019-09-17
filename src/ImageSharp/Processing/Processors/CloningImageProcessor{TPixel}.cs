@@ -9,10 +9,12 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing.Processors
 {
     /// <summary>
-    /// Allows the application of processing algorithms to a clone of the original image.
+    /// The base class for all pixel specific cloning image processors.
+    /// Allows the application of processing algorithms to the image.
+    /// The image is cloned before operating upon and the buffers swapped upon completion.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class CloningImageProcessor<TPixel> : ICloningImageProcessor<TPixel>
+    public abstract class CloningImageProcessor<TPixel> : ICloningImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private bool isDisposed;
@@ -45,16 +47,12 @@ namespace SixLabors.ImageSharp.Processing.Processors
         protected Configuration Configuration { get; }
 
         /// <inheritdoc/>
-        public Image<TPixel> CloneAndApply()
+        public Image<TPixel> CloneAndExecute()
         {
             try
             {
                 Image<TPixel> clone = this.CreateDestination();
-
-                if (clone.Frames.Count != this.Source.Frames.Count)
-                {
-                    throw new ImageProcessingException($"An error occurred when processing the image using {this.GetType().Name}. The processor changed the number of frames.");
-                }
+                this.CheckFrameCount(this.Source, clone);
 
                 Configuration configuration = this.Source.GetConfiguration();
                 this.BeforeImageApply(clone);
@@ -86,17 +84,24 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc/>
-        public void Apply()
+        public void Execute()
         {
-            using (Image<TPixel> cloned = this.CloneAndApply())
+            // Create an interim clone of the source image to operate on.
+            // Doing this allows for the application of transforms that will alter
+            // the dimensions of the image.
+            Image<TPixel> clone = default;
+            try
             {
-                // we now need to move the pixel data/size data from one image base to another
-                if (cloned.Frames.Count != this.Source.Frames.Count)
-                {
-                    throw new ImageProcessingException($"An error occurred when processing the image using {this.GetType().Name}. The processor changed the number of frames.");
-                }
+                clone = this.CloneAndExecute();
 
-                this.Source.SwapOrCopyPixelsBuffersFrom(cloned);
+                // We now need to move the pixel data/size data from the clone to the source.
+                this.CheckFrameCount(this.Source, clone);
+                this.Source.SwapOrCopyPixelsBuffersFrom(clone);
+            }
+            finally
+            {
+                // Dispose of the clone now that we have swapped the pixel/size data.
+                clone?.Dispose();
             }
         }
 
@@ -163,6 +168,14 @@ namespace SixLabors.ImageSharp.Processing.Processors
             if (!this.isDisposed)
             {
                 this.isDisposed = true;
+            }
+        }
+
+        private void CheckFrameCount(Image<TPixel> a, Image<TPixel> b)
+        {
+            if (a.Frames.Count != b.Frames.Count)
+            {
+                throw new ImageProcessingException($"An error occurred when processing the image using {this.GetType().Name}. The processor changed the number of frames.");
             }
         }
     }

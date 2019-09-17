@@ -100,8 +100,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(encoder, nameof(encoder));
             this.EnsureNotDisposed();
 
-            var visitor = new EncodeVisitor(encoder, stream);
-            this.AcceptVisitor(visitor);
+            this.AcceptVisitor(new EncodeVisitor(encoder, stream));
         }
 
         /// <summary>
@@ -122,13 +121,6 @@ namespace SixLabors.ImageSharp
             where TPixel2 : struct, IPixel<TPixel2>;
 
         /// <summary>
-        /// Accept a <see cref="IImageVisitor"/>.
-        /// Implemented by <see cref="Image{TPixel}"/> invoking <see cref="IImageVisitor.Visit{TPixel}"/>
-        /// with the pixel type of the image.
-        /// </summary>
-        internal abstract void AcceptVisitor(IImageVisitor visitor);
-
-        /// <summary>
         /// Update the size of the image after mutation.
         /// </summary>
         /// <param name="size">The <see cref="Size"/>.</param>
@@ -144,6 +136,14 @@ namespace SixLabors.ImageSharp
         /// Throws <see cref="ObjectDisposedException"/> if the image is disposed.
         /// </summary>
         internal abstract void EnsureNotDisposed();
+
+        /// <summary>
+        /// Accepts a <see cref="IImageVisitor"/>.
+        /// Implemented by <see cref="Image{TPixel}"/> invoking <see cref="IImageVisitor.Visit{TPixel}"/>
+        /// with the pixel type of the image.
+        /// </summary>
+        /// <param name="visitor">The visitor.</param>
+        internal abstract void Accept(IImageVisitor visitor);
 
         private class EncodeVisitor : IImageVisitor
         {

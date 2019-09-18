@@ -211,16 +211,16 @@ namespace SixLabors.ImageSharp
             }
         }
 
+        /// <inheritdoc/>
+        public override string ToString() => $"Image<{typeof(TPixel).Name}>: {this.Width}x{this.Height}";
+
         /// <inheritdoc />
-        internal override void AcceptVisitor(IImageVisitor visitor)
+        internal override void Accept(IImageVisitor visitor)
         {
             this.EnsureNotDisposed();
 
             visitor.Visit(this);
         }
-
-        /// <inheritdoc/>
-        public override string ToString() => $"Image<{typeof(TPixel).Name}>: {this.Width}x{this.Height}";
 
         /// <summary>
         /// Switches the buffers used by the image and the pixelSource meaning that the Image will "own" the buffer from the pixelSource and the pixelSource will now own the Images buffer.

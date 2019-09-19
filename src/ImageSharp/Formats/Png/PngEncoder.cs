@@ -63,6 +63,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         public PngInterlaceMode? InterlaceMethod { get; set; }
 
         /// <summary>
+        /// Gets a value indicating whether this instance should skip certain chunks to decrease file size
+        /// </summary>
+        public bool Optimized { get; }
+
+        /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>

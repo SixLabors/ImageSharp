@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public Rectangle CropRectangle { get; }
 
         /// <inheritdoc />
-        public override ICloningImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
+        public override ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
             => new CropProcessor<TPixel>(this, source, sourceRectangle);
     }
 }

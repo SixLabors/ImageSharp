@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             stream.Write(PngConstants.HeaderBytes, 0, PngConstants.HeaderBytes.Length);
 
             this.WriteHeaderChunk(stream);
-            this.WritePaletteChunk(stream, quantized);
+            this.WritePaletteChunk(stream, quantized, this.options.Optimized);
             this.WriteTransparencyChunk(stream, pngMetadata);
 
             if (!this.options.Optimized)
@@ -552,7 +552,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="quantized">The quantized frame.</param>
-        private void WritePaletteChunk<TPixel>(Stream stream, IQuantizedFrame<TPixel> quantized)
+        /// <param name="optimized">If optimized make fully transparent pixels black.</param>
+        private void WritePaletteChunk<TPixel>(Stream stream, IQuantizedFrame<TPixel> quantized, bool optimized)
             where TPixel : struct, IPixel<TPixel>
         {
             if (quantized == null)
@@ -584,9 +585,9 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                         byte alpha = rgba.A;
 
-                        Unsafe.Add(ref colorTableRef, offset) = rgba.R;
-                        Unsafe.Add(ref colorTableRef, offset + 1) = rgba.G;
-                        Unsafe.Add(ref colorTableRef, offset + 2) = rgba.B;
+                        Unsafe.Add(ref colorTableRef, offset) = optimized && alpha == 0 ? (byte)0 : rgba.R;
+                        Unsafe.Add(ref colorTableRef, offset + 1) = optimized && alpha == 0 ? (byte)0 : rgba.G;
+                        Unsafe.Add(ref colorTableRef, offset + 2) = optimized && alpha == 0 ? (byte)0 : rgba.B;
 
                         if (alpha > this.options.Threshold)
                         {

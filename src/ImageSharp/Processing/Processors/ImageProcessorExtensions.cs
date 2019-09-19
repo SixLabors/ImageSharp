@@ -9,18 +9,21 @@ namespace SixLabors.ImageSharp.Processing.Processors
 {
     internal static class ImageProcessorExtensions
     {
-        public static void Apply(this IImageProcessor processor, Image source, Rectangle sourceRectangle)
-        {
-            source.AcceptVisitor(new ApplyVisitor(processor, sourceRectangle));
-        }
+        /// <summary>
+        /// Executes the processor against the given source image and rectangle bounds.
+        /// </summary>
+        /// <param name="processor">The processor.</param>
+        /// <param name="source">The source image.</param>
+        /// <param name="sourceRectangle">The source bounds.</param>
+        public static void Execute(this IImageProcessor processor, Image source, Rectangle sourceRectangle)
+            => source.AcceptVisitor(new ExecuteVisitor(processor, sourceRectangle));
 
-        private class ApplyVisitor : IImageVisitor
+        private class ExecuteVisitor : IImageVisitor
         {
             private readonly IImageProcessor processor;
-
             private readonly Rectangle sourceRectangle;
 
-            public ApplyVisitor(IImageProcessor processor, Rectangle sourceRectangle)
+            public ExecuteVisitor(IImageProcessor processor, Rectangle sourceRectangle)
             {
                 this.processor = processor;
                 this.sourceRectangle = sourceRectangle;

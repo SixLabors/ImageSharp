@@ -29,6 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.Quantizer = source.Quantizer;
             this.Threshold = source.Threshold;
             this.InterlaceMethod = source.InterlaceMethod;
+            this.Optimized = source.Optimized;
         }
 
         /// <summary>
@@ -78,5 +79,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Gets or sets a value indicating whether this instance should write an Adam7 interlaced image.
         /// </summary>
         public PngInterlaceMode? InterlaceMethod { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance should skip certain chunks to decrease file size
+        /// </summary>
+        public bool Optimized { get; set; }
     }
 }

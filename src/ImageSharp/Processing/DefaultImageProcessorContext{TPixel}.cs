@@ -69,9 +69,9 @@ namespace SixLabors.ImageSharp.Processing
             {
                 // When cloning an image we can optimize the processing pipeline by avoiding an unnecessary
                 // interim clone if the first processor in the pipeline is a cloning processor.
-                if (processor is CloningImageProcessor cloningImageProcessor)
+                if (processor is ICloningImageProcessor cloningImageProcessor)
                 {
-                    using (ICloningImageProcessor<TPixel> pixelProcessor = cloningImageProcessor.CreatePixelSpecificProcessor(this.source, rectangle))
+                    using (ICloningImageProcessor<TPixel> pixelProcessor = cloningImageProcessor.CreatePixelSpecificCloningProcessor(this.source, rectangle))
                     {
                         this.destination = pixelProcessor.CloneAndExecute();
                         return this;

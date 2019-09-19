@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public float Degrees { get; }
 
         /// <inheritdoc />
-        public override ICloningImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
+        public override ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
             => new RotateProcessor<TPixel>(this, source, sourceRectangle);
     }
 }

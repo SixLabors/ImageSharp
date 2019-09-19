@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Processing.Processors
 {
     /// <summary>
-    /// Encapsulates methods to alter the pixels of a new image, cloned from the original image.
+    /// Implements an algorithm to alter the pixels of a cloned image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     public interface ICloningImageProcessor<TPixel> : IImageProcessor<TPixel>

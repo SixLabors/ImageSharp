@@ -34,33 +34,33 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             switch (orientation)
             {
                 case OrientationMode.TopRight:
-                    new FlipProcessor(FlipMode.Horizontal).Apply(this.Source, this.SourceRectangle);
+                    new FlipProcessor(FlipMode.Horizontal).Execute(this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.BottomRight:
-                    new RotateProcessor((int)RotateMode.Rotate180, size).Apply(this.Source, this.SourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate180, size).Execute(this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.BottomLeft:
-                    new FlipProcessor(FlipMode.Vertical).Apply(this.Source, this.SourceRectangle);
+                    new FlipProcessor(FlipMode.Vertical).Execute(this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.LeftTop:
-                    new RotateProcessor((int)RotateMode.Rotate90, size).Apply(this.Source, this.SourceRectangle);
-                    new FlipProcessor(FlipMode.Horizontal).Apply(this.Source, this.SourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate90, size).Execute(this.Source, this.SourceRectangle);
+                    new FlipProcessor(FlipMode.Horizontal).Execute(this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.RightTop:
-                    new RotateProcessor((int)RotateMode.Rotate90, size).Apply(this.Source, this.SourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate90, size).Execute(this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.RightBottom:
-                    new FlipProcessor(FlipMode.Vertical).Apply(this.Source, this.SourceRectangle);
-                    new RotateProcessor((int)RotateMode.Rotate270, size).Apply(this.Source, this.SourceRectangle);
+                    new FlipProcessor(FlipMode.Vertical).Execute(this.Source, this.SourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate270, size).Execute(this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.LeftBottom:
-                    new RotateProcessor((int)RotateMode.Rotate270, size).Apply(this.Source, this.SourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate270, size).Execute(this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.Unknown:

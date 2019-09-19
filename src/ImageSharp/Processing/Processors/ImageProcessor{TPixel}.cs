@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         protected Configuration Configuration { get; }
 
         /// <inheritdoc/>
-        public void Execute()
+        void IImageProcessor<TPixel>.Execute()
         {
             try
             {

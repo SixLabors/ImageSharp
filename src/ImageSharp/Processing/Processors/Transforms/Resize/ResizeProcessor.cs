@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public bool Compand { get; }
 
         /// <inheritdoc />
-        public override ICloningImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
+        public override ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
             => new ResizeProcessor<TPixel>(this, source, sourceRectangle);
     }
 }

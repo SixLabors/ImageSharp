@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public PngInterlaceMode? InterlaceMethod { get; set; }
 
         /// <summary>
-        /// Gets a value indicating whether this instance should skip certain chunks to decrease file size
+        /// Gets or sets a value indicating whether this instance should skip certain chunks to decrease file size
         /// </summary>
         public bool Optimized { get; set; }
 

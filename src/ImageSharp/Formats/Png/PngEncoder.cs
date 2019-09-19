@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Gets a value indicating whether this instance should skip certain chunks to decrease file size
         /// </summary>
-        public bool Optimized { get; }
+        public bool Optimized { get; set; }
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.

@@ -155,10 +155,15 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.WriteHeaderChunk(stream);
             this.WritePaletteChunk(stream, quantized);
             this.WriteTransparencyChunk(stream, pngMetadata);
-            this.WritePhysicalChunk(stream, metadata);
-            this.WriteGammaChunk(stream);
-            this.WriteExifChunk(stream, metadata);
-            this.WriteTextChunks(stream, pngMetadata);
+
+            if (!this.options.Optimized)
+            {
+                this.WritePhysicalChunk(stream, metadata);
+                this.WriteGammaChunk(stream);
+                this.WriteExifChunk(stream, metadata);
+                this.WriteTextChunks(stream, pngMetadata);
+            }
+
             this.WriteDataChunks(image.Frames.RootFrame, quantized, stream);
             this.WriteEndChunk(stream);
             stream.Flush();

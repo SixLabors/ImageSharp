@@ -57,5 +57,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Gets a value indicating whether this instance should write an Adam7 interlaced image.
         /// </summary>
         PngInterlaceMode? InterlaceMethod { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance should skip certain chunks to decrease file size
+        /// </summary>
+        bool Optimized { get; }
     }
 }

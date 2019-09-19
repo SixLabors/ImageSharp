@@ -196,6 +196,40 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.Rgb, PngBitDepth.Bit8)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgba64, PngColorType.Rgb, PngBitDepth.Bit16)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgba64, PngColorType.RgbWithAlpha, PngBitDepth.Bit16)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.Palette, PngBitDepth.Bit1)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.Palette, PngBitDepth.Bit2)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.Palette, PngBitDepth.Bit4)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.Palette, PngBitDepth.Bit8)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgb24, PngColorType.Grayscale, PngBitDepth.Bit1)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgb24, PngColorType.Grayscale, PngBitDepth.Bit2)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgb24, PngColorType.Grayscale, PngBitDepth.Bit4)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgb24, PngColorType.Grayscale, PngBitDepth.Bit8)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgb48, PngColorType.Grayscale, PngBitDepth.Bit16)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit8)]
+        [WithTestPatternImages(24, 24, PixelTypes.Rgba64, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit16)]
+        public void WorksWithAllBitDepthsOptimized<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType, PngBitDepth pngBitDepth)
+          where TPixel : struct, IPixel<TPixel>
+        {
+            foreach (PngInterlaceMode interlaceMode in InterlaceMode)
+            {
+                TestPngEncoderCore(
+                provider,
+                pngColorType,
+                PngFilterMethod.Adaptive,
+                pngBitDepth,
+                interlaceMode,
+                appendPngColorType: true,
+                appendPixelType: true,
+                appendPngBitDepth: true,
+                optimized: true);
+            }
+        }
+
+        [Theory]
         [WithFile(TestImages.Png.Palette8Bpp, nameof(PaletteLargeOnly), PixelTypes.Rgba32)]
         public void PaletteColorType_WuQuantizer<TPixel>(TestImageProvider<TPixel> provider, int paletteSize)
             where TPixel : struct, IPixel<TPixel>
@@ -356,7 +390,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             bool appendPixelType = false,
             bool appendCompressionLevel = false,
             bool appendPaletteSize = false,
-            bool appendPngBitDepth = false)
+            bool appendPngBitDepth = false,
+            bool optimized = false)
         where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -368,7 +403,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     CompressionLevel = compressionLevel,
                     BitDepth = bitDepth,
                     Quantizer = new WuQuantizer(paletteSize),
-                    InterlaceMethod = interlaceMode
+                    InterlaceMethod = interlaceMode,
+                    Optimized = optimized,
                 };
 
                 string pngColorTypeInfo = appendPngColorType ? pngColorType.ToString() : string.Empty;

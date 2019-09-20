@@ -147,13 +147,43 @@ namespace SixLabors.ImageSharp.Formats.Png
             ImageMetadata metadata = image.Metadata;
             PngMetadata pngMetadata = metadata.GetFormatMetadata(PngFormat.Instance);
             PngEncoderOptionsHelpers.AdjustOptions(this.options, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
-            IQuantizedFrame<TPixel> quantized = PngEncoderOptionsHelpers.CreateQuantizedFrame(this.options, image);
-            this.bitDepth = PngEncoderOptionsHelpers.CalculateBitDepth(this.options, image, quantized);
+
+            IQuantizedFrame<TPixel> quantized;
+
+            if (((this.options.OptimizeMethod ?? PngOptimizeMethod.None) & PngOptimizeMethod.MakeTransparentBlack) == PngOptimizeMethod.MakeTransparentBlack)
+            {
+                using (Image<TPixel> tempImage = image.Clone())
+                {
+                    Span<TPixel> span = tempImage.GetPixelSpan();
+                    foreach (TPixel pixel in span)
+                    {
+                        Rgba32 rgba32 = Rgba32.Transparent;
+                        pixel.ToRgba32(ref rgba32);
+
+                        if (rgba32.A == 0)
+                        {
+                            rgba32.R = 0;
+                            rgba32.G = 0;
+                            rgba32.B = 0;
+                        }
+
+                        pixel.FromRgba32(rgba32);
+                    }
+
+                    quantized = PngEncoderOptionsHelpers.CreateQuantizedFrame(this.options, tempImage);
+                    this.bitDepth = PngEncoderOptionsHelpers.CalculateBitDepth(this.options, tempImage, quantized);
+                }
+            }
+            else
+            {
+                quantized = PngEncoderOptionsHelpers.CreateQuantizedFrame(this.options, image);
+                this.bitDepth = PngEncoderOptionsHelpers.CalculateBitDepth(this.options, image, quantized);
+            }
 
             stream.Write(PngConstants.HeaderBytes, 0, PngConstants.HeaderBytes.Length);
 
             this.WriteHeaderChunk(stream);
-            this.WritePaletteChunk(stream, quantized, this.options.OptimizeMethod);
+            this.WritePaletteChunk(stream, quantized);
             this.WriteTransparencyChunk(stream, pngMetadata);
 
             if (((this.options.OptimizeMethod ?? PngOptimizeMethod.None) & PngOptimizeMethod.SuppressPhysicalChunk) != PngOptimizeMethod.SuppressPhysicalChunk)
@@ -564,8 +594,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="quantized">The quantized frame.</param>
-        /// <param name="optimizeMethod">The optimize method.</param>
-        private void WritePaletteChunk<TPixel>(Stream stream, IQuantizedFrame<TPixel> quantized, PngOptimizeMethod? optimizeMethod)
+        private void WritePaletteChunk<TPixel>(Stream stream, IQuantizedFrame<TPixel> quantized)
             where TPixel : struct, IPixel<TPixel>
         {
             if (quantized == null)
@@ -588,8 +617,6 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 Rgba32 rgba = default;
 
-                bool makeTransparentBlack = ((optimizeMethod ?? PngOptimizeMethod.None) & PngOptimizeMethod.MakeTransparentBlack) == PngOptimizeMethod.MakeTransparentBlack;
-
                 for (int i = 0; i < paletteLength; i++)
                 {
                     if (quantizedSpan.IndexOf((byte)i) > -1)
@@ -599,18 +626,9 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                         byte alpha = rgba.A;
 
-                        if (makeTransparentBlack && alpha == 0)
-                        {
-                            Unsafe.Add(ref colorTableRef, offset) = 0;
-                            Unsafe.Add(ref colorTableRef, offset + 1) = 0;
-                            Unsafe.Add(ref colorTableRef, offset + 2) = 0;
-                        }
-                        else
-                        {
-                            Unsafe.Add(ref colorTableRef, offset) = rgba.R;
-                            Unsafe.Add(ref colorTableRef, offset + 1) = rgba.G;
-                            Unsafe.Add(ref colorTableRef, offset + 2) = rgba.B;
-                        }
+                        Unsafe.Add(ref colorTableRef, offset) = rgba.R;
+                        Unsafe.Add(ref colorTableRef, offset + 1) = rgba.G;
+                        Unsafe.Add(ref colorTableRef, offset + 2) = rgba.B;
 
                         if (alpha > this.options.Threshold)
                         {

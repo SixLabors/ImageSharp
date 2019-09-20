@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Effects
         [Fact]
         public void Lightness_amount_LightnessProcessorDefaultsSet()
         {
-            this.operations.Lightness(1.5F);
+            this.operations.Lightness(.5F);
             LightnessProcessor processor = this.Verify<LightnessProcessor>();
 
             Assert.Equal(.5F, processor.Lightness);
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Effects
         [Fact]
         public void Lightness_amount_rect_LightnessProcessorDefaultsSet()
         {
-            this.operations.Lightness(1.5F, this.rect);
+            this.operations.Lightness(.5F, this.rect);
             LightnessProcessor processor = this.Verify<LightnessProcessor>(this.rect);
 
             Assert.Equal(.5F, processor.Lightness);

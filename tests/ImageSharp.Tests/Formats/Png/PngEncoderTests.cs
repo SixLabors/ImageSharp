@@ -225,14 +225,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 appendPngColorType: true,
                 appendPixelType: true,
                 appendPngBitDepth: true,
-                optimized: true);
+                optimizeMethod: PngOptimizeMethod.All);
             }
         }
 
         [Theory]
         [WithFile(TestImages.Png.Palette8Bpp, nameof(PaletteLargeOnly), PixelTypes.Rgba32)]
         public void PaletteColorType_WuQuantizer<TPixel>(TestImageProvider<TPixel> provider, int paletteSize)
-            where TPixel : struct, IPixel<TPixel>
+        where TPixel : struct, IPixel<TPixel>
         {
             foreach (PngInterlaceMode interlaceMode in InterlaceMode)
             {
@@ -391,7 +391,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             bool appendCompressionLevel = false,
             bool appendPaletteSize = false,
             bool appendPngBitDepth = false,
-            bool optimized = false)
+            PngOptimizeMethod optimizeMethod = PngOptimizeMethod.None)
         where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -404,7 +404,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     BitDepth = bitDepth,
                     Quantizer = new WuQuantizer(paletteSize),
                     InterlaceMethod = interlaceMode,
-                    Optimized = optimized,
+                    OptimizeMethod = optimizeMethod,
                 };
 
                 string pngColorTypeInfo = appendPngColorType ? pngColorType.ToString() : string.Empty;

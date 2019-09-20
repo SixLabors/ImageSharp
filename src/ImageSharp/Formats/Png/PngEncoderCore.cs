@@ -155,19 +155,17 @@ namespace SixLabors.ImageSharp.Formats.Png
                 using (Image<TPixel> tempImage = image.Clone())
                 {
                     Span<TPixel> span = tempImage.GetPixelSpan();
-                    foreach (TPixel pixel in span)
+                    for (int i = 0; i < span.Length; i++)
                     {
-                        Rgba32 rgba32 = Rgba32.Transparent;
-                        pixel.ToRgba32(ref rgba32);
-
+                        Rgba32 rgba32 = default;
+                        span[i].ToRgba32(ref rgba32);
                         if (rgba32.A == 0)
                         {
                             rgba32.R = 0;
                             rgba32.G = 0;
                             rgba32.B = 0;
                         }
-
-                        pixel.FromRgba32(rgba32);
+                        span[i].FromRgba32(rgba32);
                     }
 
                     quantized = PngEncoderOptionsHelpers.CreateQuantizedFrame(this.options, tempImage);

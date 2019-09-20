@@ -159,12 +159,14 @@ namespace SixLabors.ImageSharp.Formats.Png
                     {
                         Rgba32 rgba32 = default;
                         span[i].ToRgba32(ref rgba32);
+
                         if (rgba32.A == 0)
                         {
                             rgba32.R = 0;
                             rgba32.G = 0;
                             rgba32.B = 0;
                         }
+
                         span[i].FromRgba32(rgba32);
                     }
 

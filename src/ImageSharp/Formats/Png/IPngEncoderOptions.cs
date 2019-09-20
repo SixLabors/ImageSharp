@@ -59,8 +59,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         PngInterlaceMode? InterlaceMethod { get; }
 
         /// <summary>
-        /// Gets a value indicating whether this instance should skip certain chunks to decrease file size
+        /// Gets the optimize method.
         /// </summary>
-        bool Optimized { get; }
+        PngOptimizeMethod? OptimizeMethod { get; }
     }
 }

@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.Quantizer = source.Quantizer;
             this.Threshold = source.Threshold;
             this.InterlaceMethod = source.InterlaceMethod;
-            this.Optimized = source.Optimized;
+            this.OptimizeMethod = source.OptimizeMethod;
         }
 
         /// <summary>
@@ -81,8 +81,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         public PngInterlaceMode? InterlaceMethod { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether this instance should skip certain chunks to decrease file size
+        /// Gets or sets a the optimize method.
         /// </summary>
-        public bool Optimized { get; set; }
+        public PngOptimizeMethod? OptimizeMethod { get; set; }
     }
 }

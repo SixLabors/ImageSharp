@@ -16,6 +16,15 @@ namespace SixLabors.ImageSharp.Advanced
     public static class AdvancedImageExtensions
     {
         /// <summary>
+        /// Accepts a <see cref="IImageVisitor"/> to implement a double-dispatch pattern in order to
+        /// apply pixel-specific operations on non-generic <see cref="Image"/> instances
+        /// </summary>
+        /// <param name="source">The source.</param>
+        /// <param name="visitor">The visitor.</param>
+        public static void AcceptVisitor(this Image source, IImageVisitor visitor)
+            => source.Accept(visitor);
+
+        /// <summary>
         /// Gets the configuration for the image.
         /// </summary>
         /// <param name="source">The source image.</param>

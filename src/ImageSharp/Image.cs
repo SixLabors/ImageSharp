@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
 
 using SixLabors.ImageSharp.Advanced;
@@ -80,21 +81,11 @@ namespace SixLabors.ImageSharp
         /// </summary>
         Configuration IConfigurable.Configuration => this.Configuration;
 
-        /// <summary>
-        /// Gets a value indicating whether the image instance is disposed.
-        /// </summary>
-        public bool IsDisposed { get; private set; }
-
         /// <inheritdoc />
         public void Dispose()
         {
-            if (this.IsDisposed)
-            {
-                return;
-            }
-
-            this.IsDisposed = true;
-            this.DisposeImpl();
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>
@@ -109,8 +100,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(encoder, nameof(encoder));
             this.EnsureNotDisposed();
 
-            EncodeVisitor visitor = new EncodeVisitor(encoder, stream);
-            this.AcceptVisitor(visitor);
+            this.AcceptVisitor(new EncodeVisitor(encoder, stream));
         }
 
         /// <summary>
@@ -131,22 +121,29 @@ namespace SixLabors.ImageSharp
             where TPixel2 : struct, IPixel<TPixel2>;
 
         /// <summary>
-        /// Accept a <see cref="IImageVisitor"/>.
-        /// Implemented by <see cref="Image{TPixel}"/> invoking <see cref="IImageVisitor.Visit{TPixel}"/>
-        /// with the pixel type of the image.
-        /// </summary>
-        internal abstract void AcceptVisitor(IImageVisitor visitor);
-
-        /// <summary>
         /// Update the size of the image after mutation.
         /// </summary>
         /// <param name="size">The <see cref="Size"/>.</param>
         protected void UpdateSize(Size size) => this.size = size;
 
         /// <summary>
-        /// Implements the Dispose logic.
+        /// Disposes the object and frees resources for the Garbage Collector.
         /// </summary>
-        protected abstract void DisposeImpl();
+        /// <param name="disposing">Whether to dispose of managed and unmanaged objects.</param>
+        protected abstract void Dispose(bool disposing);
+
+        /// <summary>
+        /// Throws <see cref="ObjectDisposedException"/> if the image is disposed.
+        /// </summary>
+        internal abstract void EnsureNotDisposed();
+
+        /// <summary>
+        /// Accepts a <see cref="IImageVisitor"/>.
+        /// Implemented by <see cref="Image{TPixel}"/> invoking <see cref="IImageVisitor.Visit{TPixel}"/>
+        /// with the pixel type of the image.
+        /// </summary>
+        /// <param name="visitor">The visitor.</param>
+        internal abstract void Accept(IImageVisitor visitor);
 
         private class EncodeVisitor : IImageVisitor
         {

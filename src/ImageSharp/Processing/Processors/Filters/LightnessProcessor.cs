@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         /// <summary>
         /// Initializes a new instance of the <see cref="LightnessProcessor"/> class.
         /// </summary>
-        /// <param name="lightness">Lightness of image in HSL color scheme</param>
+        /// <param name="lightness">Lightness of image</param>
         public LightnessProcessor(float lightness)
         : base(KnownFilterMatrices.CreateLightnessFilter(lightness))
         {
@@ -19,8 +19,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         }
 
         /// <summary>
-        /// Gets Lightness of image in HSL color scheme.
-        /// The "brightness relative to the brightness of a similarly illuminated white" https://en.wikipedia.org/wiki/HSL_and_HSV#Lightness
+        /// Gets Lightness of image.
         /// </summary>
         public float Lightness { get; }
     }

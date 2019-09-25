@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 
 using SixLabors.ImageSharp.Advanced;
@@ -20,7 +18,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private readonly ProjectiveTransformProcessor definition;
+        private Size targetSize;
+        private readonly IResampler resampler;
+        private Matrix4x4 transformMatrix;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProjectiveTransformProcessor{TPixel}"/> class.
@@ -31,52 +31,37 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public ProjectiveTransformProcessor(ProjectiveTransformProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(source, sourceRectangle)
         {
-            this.definition = definition;
+            this.targetSize = definition.TargetDimensions;
+            this.transformMatrix = definition.TransformMatrix;
+            this.resampler = definition.Sampler;
         }
 
-        private Size TargetDimensions => this.definition.TargetDimensions;
-
-        /// <inheritdoc/>
-        protected override Image<TPixel> CreateDestination()
-        {
-            // We will always be creating the clone even for mutate because we may need to resize the canvas
-            IEnumerable<ImageFrame<TPixel>> frames = this.Source.Frames.Select<ImageFrame<TPixel>, ImageFrame<TPixel>>(
-                x => new ImageFrame<TPixel>(
-                    this.Source.GetConfiguration(),
-                    this.TargetDimensions.Width,
-                    this.TargetDimensions.Height,
-                    x.Metadata.DeepClone()));
-
-            // Use the overload to prevent an extra frame being added
-            return new Image<TPixel>(this.Source.GetConfiguration(), this.Source.Metadata.DeepClone(), frames);
-        }
+        protected override Size GetTargetSize() => this.targetSize;
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
         {
-            Matrix4x4 transformMatrix = this.definition.TransformMatrix;
-
             // Handle transforms that result in output identical to the original.
-            if (transformMatrix.Equals(default) || transformMatrix.Equals(Matrix4x4.Identity))
+            if (this.transformMatrix.Equals(default) || this.transformMatrix.Equals(Matrix4x4.Identity))
             {
                 // The clone will be blank here copy all the pixel data over
                 source.GetPixelSpan().CopyTo(destination.GetPixelSpan());
                 return;
             }
 
-            int width = this.TargetDimensions.Width;
-            var targetBounds = new Rectangle(Point.Empty, this.TargetDimensions);
+            int width = this.targetSize.Width;
+            Rectangle sourceBounds = this.SourceRectangle;
+            var targetBounds = new Rectangle(Point.Empty, this.targetSize);
+            Configuration configuration = this.Configuration;
 
             // Convert from screen to world space.
-            Matrix4x4.Invert(transformMatrix, out Matrix4x4 matrix);
+            Matrix4x4.Invert(this.transformMatrix, out Matrix4x4 matrix);
 
-            IResampler sampler = this.definition.Sampler;
-
-            if (sampler is NearestNeighborResampler)
+            if (this.resampler is NearestNeighborResampler)
             {
                 ParallelHelper.IterateRows(
                     targetBounds,
-                    this.Configuration,
+                    configuration,
                     rows =>
                         {
                             for (int y = rows.Min; y < rows.Max; y++)
@@ -89,7 +74,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                     int px = (int)MathF.Round(point.X);
                                     int py = (int)MathF.Round(point.Y);
 
-                                    if (this.SourceRectangle.Contains(px, py))
+                                    if (sourceBounds.Contains(px, py))
                                     {
                                         destRow[x] = source[px, py];
                                     }
@@ -100,19 +85,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return;
             }
 
-            var kernel = new TransformKernelMap(this.Configuration, source.Size(), destination.Size(), sampler);
+            var kernel = new TransformKernelMap(configuration, source.Size(), destination.Size(), this.resampler);
+
             try
             {
                 ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
                     targetBounds,
-                    this.Configuration,
+                    configuration,
                     (rows, vectorBuffer) =>
                         {
                             Span<Vector4> vectorSpan = vectorBuffer.Span;
                             for (int y = rows.Min; y < rows.Max; y++)
                             {
                                 Span<TPixel> targetRowSpan = destination.GetPixelRowSpan(y);
-                                PixelOperations<TPixel>.Instance.ToVector4(this.Configuration, targetRowSpan, vectorSpan);
+                                PixelOperations<TPixel>.Instance.ToVector4(configuration, targetRowSpan, vectorSpan);
                                 ref float ySpanRef = ref kernel.GetYStartReference(y);
                                 ref float xSpanRef = ref kernel.GetXStartReference(y);
 
@@ -131,7 +117,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                 }
 
                                 PixelOperations<TPixel>.Instance.FromVector4Destructive(
-                                    this.Configuration,
+                                    configuration,
                                     vectorSpan,
                                     targetRowSpan);
                             }

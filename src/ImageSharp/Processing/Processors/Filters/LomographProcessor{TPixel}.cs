@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         /// <inheritdoc/>
         protected override void AfterImageApply()
         {
-            new VignetteProcessor(VeryDarkGreen).Apply(this.Source, this.SourceRectangle);
+            new VignetteProcessor(VeryDarkGreen).Execute(this.Source, this.SourceRectangle);
             base.AfterImageApply();
         }
     }

@@ -2,12 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Moq;
-
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
-
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing
@@ -21,6 +19,8 @@ namespace SixLabors.ImageSharp.Tests.Processing
 
         private readonly Mock<IImageProcessor> processorDefinition;
 
+        private readonly Mock<ICloningImageProcessor> cloningProcessorDefinition;
+
         private readonly Mock<IImageProcessor<Rgba32>> regularProcessorImpl;
 
         private readonly Mock<ICloningImageProcessor<Rgba32>> cloningProcessorImpl;
@@ -30,18 +30,20 @@ namespace SixLabors.ImageSharp.Tests.Processing
         public ImageProcessingContextTests()
         {
             this.processorDefinition = new Mock<IImageProcessor>();
+            this.cloningProcessorDefinition = new Mock<ICloningImageProcessor>();
             this.regularProcessorImpl = new Mock<IImageProcessor<Rgba32>>();
             this.cloningProcessorImpl = new Mock<ICloningImageProcessor<Rgba32>>();
         }
 
         // bool throwException, bool useBounds
         public static readonly TheoryData<bool, bool> ProcessorTestData = new TheoryData<bool, bool>()
-                                                                          {
-                                                                              { false, false },
-                                                                              { false, true },
-                                                                              { true, false },
-                                                                              { true, true }
-                                                                          };
+        {
+            { false, false },
+            { false, true },
+            { true, false },
+            { true, true }
+        };
+
         [Theory]
         [MemberData(nameof(ProcessorTestData))]
         public void Mutate_RegularProcessor(bool throwException, bool useBounds)
@@ -50,14 +52,14 @@ namespace SixLabors.ImageSharp.Tests.Processing
 
             if (throwException)
             {
-                Assert.Throws<ImageProcessingException>(() => this.MutateApply(useBounds));
+                Assert.Throws<ImageProcessingException>(() => this.MutateRegularApply(useBounds));
             }
             else
             {
-                this.MutateApply(useBounds);
+                this.MutateRegularApply(useBounds);
             }
 
-            this.regularProcessorImpl.Verify(p => p.Apply(), Times.Once());
+            this.regularProcessorImpl.Verify(p => p.Execute(), Times.Once());
             this.regularProcessorImpl.Verify(p => p.Dispose(), Times.Once());
         }
 
@@ -69,16 +71,15 @@ namespace SixLabors.ImageSharp.Tests.Processing
 
             if (throwException)
             {
-                Assert.Throws<ImageProcessingException>(() => this.CloneApply(useBounds));
+                Assert.Throws<ImageProcessingException>(() => this.CloneRegularApply(useBounds));
             }
             else
             {
-                this.CloneApply(useBounds);
+                this.CloneRegularApply(useBounds);
             }
 
-            // TODO: This should be Times.Once(). See comments in DefaultImageProcessingContext<T>.ApplyProcessor()
-            this.regularProcessorImpl.Verify(p => p.Apply(), Times.AtLeast(1));
-            this.regularProcessorImpl.Verify(p => p.Dispose(), Times.AtLeast(1));
+            this.regularProcessorImpl.Verify(p => p.Execute(), Times.Once);
+            this.regularProcessorImpl.Verify(p => p.Dispose(), Times.Once);
         }
 
         [Theory]
@@ -89,14 +90,14 @@ namespace SixLabors.ImageSharp.Tests.Processing
 
             if (throwException)
             {
-                Assert.Throws<ImageProcessingException>(() => this.MutateApply(useBounds));
+                Assert.Throws<ImageProcessingException>(() => this.MutateCloneApply(useBounds));
             }
             else
             {
-                this.MutateApply(useBounds);
+                this.MutateCloneApply(useBounds);
             }
 
-            this.cloningProcessorImpl.Verify(p => p.Apply(), Times.Once());
+            this.cloningProcessorImpl.Verify(p => p.Execute(), Times.Once());
             this.cloningProcessorImpl.Verify(p => p.Dispose(), Times.Once());
         }
 
@@ -108,18 +109,18 @@ namespace SixLabors.ImageSharp.Tests.Processing
 
             if (throwException)
             {
-                Assert.Throws<ImageProcessingException>(() => this.CloneApply(useBounds));
+                Assert.Throws<ImageProcessingException>(() => this.CloneCloneApply(useBounds));
             }
             else
             {
-                this.CloneApply(useBounds);
+                this.CloneCloneApply(useBounds);
             }
 
-            this.cloningProcessorImpl.Verify(p => p.CloneAndApply(), Times.Once());
+            this.cloningProcessorImpl.Verify(p => p.CloneAndExecute(), Times.Once());
             this.cloningProcessorImpl.Verify(p => p.Dispose(), Times.Once());
         }
 
-        private void MutateApply(bool useBounds)
+        private void MutateRegularApply(bool useBounds)
         {
             if (useBounds)
             {
@@ -131,7 +132,19 @@ namespace SixLabors.ImageSharp.Tests.Processing
             }
         }
 
-        private void CloneApply(bool useBounds)
+        private void MutateCloneApply(bool useBounds)
+        {
+            if (useBounds)
+            {
+                this.image.Mutate(c => c.ApplyProcessor(this.cloningProcessorDefinition.Object, Bounds));
+            }
+            else
+            {
+                this.image.Mutate(c => c.ApplyProcessor(this.cloningProcessorDefinition.Object));
+            }
+        }
+
+        private void CloneRegularApply(bool useBounds)
         {
             if (useBounds)
             {
@@ -143,11 +156,23 @@ namespace SixLabors.ImageSharp.Tests.Processing
             }
         }
 
+        private void CloneCloneApply(bool useBounds)
+        {
+            if (useBounds)
+            {
+                this.image.Clone(c => c.ApplyProcessor(this.cloningProcessorDefinition.Object, Bounds)).Dispose();
+            }
+            else
+            {
+                this.image.Clone(c => c.ApplyProcessor(this.cloningProcessorDefinition.Object)).Dispose();
+            }
+        }
+
         private void SetupRegularProcessor(bool throwsException)
         {
             if (throwsException)
             {
-                this.regularProcessorImpl.Setup(p => p.Apply()).Throws(new ImageProcessingException("Test"));
+                this.regularProcessorImpl.Setup(p => p.Execute()).Throws(new ImageProcessingException("Test"));
             }
 
             this.processorDefinition
@@ -159,11 +184,15 @@ namespace SixLabors.ImageSharp.Tests.Processing
         {
             if (throwsException)
             {
-                this.cloningProcessorImpl.Setup(p => p.Apply()).Throws(new ImageProcessingException("Test"));
-                this.cloningProcessorImpl.Setup(p => p.CloneAndApply()).Throws(new ImageProcessingException("Test"));
+                this.cloningProcessorImpl.Setup(p => p.Execute()).Throws(new ImageProcessingException("Test"));
+                this.cloningProcessorImpl.Setup(p => p.CloneAndExecute()).Throws(new ImageProcessingException("Test"));
             }
 
-            this.processorDefinition
+            this.cloningProcessorDefinition
+                .Setup(p => p.CreatePixelSpecificCloningProcessor(It.IsAny<Image<Rgba32>>(), It.IsAny<Rectangle>()))
+                .Returns(this.cloningProcessorImpl.Object);
+
+            this.cloningProcessorDefinition
                 .Setup(p => p.CreatePixelSpecificProcessor(It.IsAny<Image<Rgba32>>(), It.IsAny<Rectangle>()))
                 .Returns(this.cloningProcessorImpl.Object);
         }

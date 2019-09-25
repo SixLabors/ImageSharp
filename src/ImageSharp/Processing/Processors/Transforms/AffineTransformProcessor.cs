@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
-
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
@@ -11,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// <summary>
     /// Defines an affine transformation applicable on an <see cref="Image"/>.
     /// </summary>
-    public class AffineTransformProcessor : IImageProcessor
+    public class AffineTransformProcessor : CloningImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="AffineTransformProcessor"/> class.
@@ -42,11 +40,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         public Size TargetDimensions { get; }
 
-        /// <inheritdoc />
-        public virtual IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            return new AffineTransformProcessor<TPixel>(this, source, sourceRectangle);
-        }
+        /// <inheritdoc/>
+        public override ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
+            => new AffineTransformProcessor<TPixel>(this, source, sourceRectangle);
     }
 }

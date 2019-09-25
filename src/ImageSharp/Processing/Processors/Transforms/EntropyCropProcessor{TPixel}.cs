@@ -42,16 +42,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 Configuration configuration = this.Source.GetConfiguration();
 
                 // Detect the edges.
-                new SobelProcessor(false).Apply(temp, this.SourceRectangle);
+                new SobelProcessor(false).Execute(temp, this.SourceRectangle);
 
                 // Apply threshold binarization filter.
-                new BinaryThresholdProcessor(this.definition.Threshold).Apply(temp, this.SourceRectangle);
+                new BinaryThresholdProcessor(this.definition.Threshold).Execute(temp, this.SourceRectangle);
 
                 // Search for the first white pixels
                 rectangle = ImageMaths.GetFilteredBoundingRectangle(temp.Frames.RootFrame, 0);
             }
 
-            new CropProcessor(rectangle, this.Source.Size()).Apply(this.Source, this.SourceRectangle);
+            new CropProcessor(rectangle, this.Source.Size()).Execute(this.Source, this.SourceRectangle);
 
             base.BeforeImageApply();
         }

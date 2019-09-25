@@ -31,8 +31,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         /// <inheritdoc/>
         protected override void AfterImageApply()
         {
-            new VignetteProcessor(VeryDarkOrange).Apply(this.Source, this.SourceRectangle);
-            new GlowProcessor(LightOrange, this.Source.Width / 4F).Apply(this.Source, this.SourceRectangle);
+            new VignetteProcessor(VeryDarkOrange).Execute(this.Source, this.SourceRectangle);
+            new GlowProcessor(LightOrange, this.Source.Width / 4F).Execute(this.Source, this.SourceRectangle);
             base.AfterImageApply();
         }
     }

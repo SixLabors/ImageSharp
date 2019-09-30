@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
@@ -9,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// <summary>
     /// Defines a crop operation on an image.
     /// </summary>
-    public sealed class CropProcessor : IImageProcessor
+    public sealed class CropProcessor : CloningImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="CropProcessor"/> class.
@@ -23,6 +22,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 new Rectangle(Point.Empty, sourceSize).Contains(cropRectangle),
                 nameof(cropRectangle),
                 "Crop rectangle should be smaller than the source bounds.");
+
             this.CropRectangle = cropRectangle;
         }
 
@@ -32,10 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public Rectangle CropRectangle { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            return new CropProcessor<TPixel>(this, source, sourceRectangle);
-        }
+        public override ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
+            => new CropProcessor<TPixel>(this, source, sourceRectangle);
     }
 }

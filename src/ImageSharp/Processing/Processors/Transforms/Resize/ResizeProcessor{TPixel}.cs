@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
@@ -24,74 +22,34 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private readonly ResizeProcessor parameterSource;
         private bool isDisposed;
+        private readonly int targetWidth;
+        private readonly int targetHeight;
+        private readonly IResampler resampler;
+        private Rectangle targetRectangle;
+        private readonly bool compand;
 
         // The following fields are not immutable but are optionally created on demand.
         private ResizeKernelMap horizontalKernelMap;
         private ResizeKernelMap verticalKernelMap;
 
-        public ResizeProcessor(ResizeProcessor parameterSource, Image<TPixel> source, Rectangle sourceRectangle)
+        public ResizeProcessor(ResizeProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(source, sourceRectangle)
         {
-            this.parameterSource = parameterSource;
+            this.targetWidth = definition.TargetWidth;
+            this.targetHeight = definition.TargetHeight;
+            this.targetRectangle = definition.TargetRectangle;
+            this.resampler = definition.Sampler;
+            this.compand = definition.Compand;
         }
-
-        /// <summary>
-        /// Gets the sampler to perform the resize operation.
-        /// </summary>
-        public IResampler Sampler => this.parameterSource.Sampler;
-
-        /// <summary>
-        /// Gets the target width.
-        /// </summary>
-        public int Width => this.parameterSource.Width;
-
-        /// <summary>
-        /// Gets the target height.
-        /// </summary>
-        public int Height => this.parameterSource.Height;
-
-        /// <summary>
-        /// Gets the resize rectangle.
-        /// </summary>
-        public Rectangle TargetRectangle => this.parameterSource.TargetRectangle;
-
-        /// <summary>
-        /// Gets a value indicating whether to compress or expand individual pixel color values on processing.
-        /// </summary>
-        public bool Compand => this.parameterSource.Compand;
-
-        /// <summary>
-        /// This is a shim for tagging the CreateDestination virtual generic method for the AoT iOS compiler.
-        /// This method should never be referenced outside of the AotCompiler code.
-        /// </summary>
-        /// <returns>The result returned from <see cref="M:CreateDestination"/>.</returns>
-        internal Image<TPixel> AotCreateDestination()
-            => this.CreateDestination();
 
         /// <inheritdoc/>
-        protected override Image<TPixel> CreateDestination()
-        {
-            Image<TPixel> source = this.Source;
-            Configuration configuration = this.Configuration;
-
-            // We will always be creating the clone even for mutate because we may need to resize the canvas
-            IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select<ImageFrame<TPixel>, ImageFrame<TPixel>>(
-                x => new ImageFrame<TPixel>(
-                    configuration,
-                    this.Width,
-                    this.Height,
-                    x.Metadata.DeepClone()));
-
-            // Use the overload to prevent an extra frame being added
-            return new Image<TPixel>(configuration, source.Metadata.DeepClone(), frames);
-        }
+        protected override Size GetTargetSize() => new Size(this.targetWidth, this.targetHeight);
 
         /// <inheritdoc/>
         protected override void BeforeImageApply(Image<TPixel> destination)
         {
-            if (!(this.Sampler is NearestNeighborResampler))
+            if (!(this.resampler is NearestNeighborResampler))
             {
                 Image<TPixel> source = this.Source;
                 Rectangle sourceRectangle = this.SourceRectangle;
@@ -99,14 +57,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 // Since all image frame dimensions have to be the same we can calculate this for all frames.
                 MemoryAllocator memoryAllocator = source.GetMemoryAllocator();
                 this.horizontalKernelMap = ResizeKernelMap.Calculate(
-                    this.Sampler,
-                    this.TargetRectangle.Width,
+                    this.resampler,
+                    this.targetRectangle.Width,
                     sourceRectangle.Width,
                     memoryAllocator);
 
                 this.verticalKernelMap = ResizeKernelMap.Calculate(
-                    this.Sampler,
-                    this.TargetRectangle.Height,
+                    this.resampler,
+                    this.targetRectangle.Height,
                     sourceRectangle.Height,
                     memoryAllocator);
             }
@@ -121,29 +79,29 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Configuration configuration = this.Configuration;
 
             // Handle resize dimensions identical to the original
-            if (source.Width == destination.Width && source.Height == destination.Height && sourceRectangle == this.TargetRectangle)
+            if (source.Width == destination.Width && source.Height == destination.Height && sourceRectangle == this.targetRectangle)
             {
                 // The cloned will be blank here copy all the pixel data over
                 source.GetPixelSpan().CopyTo(destination.GetPixelSpan());
                 return;
             }
 
-            int width = this.Width;
-            int height = this.Height;
+            int width = this.targetWidth;
+            int height = this.targetHeight;
             int sourceX = sourceRectangle.X;
             int sourceY = sourceRectangle.Y;
-            int startY = this.TargetRectangle.Y;
-            int startX = this.TargetRectangle.X;
+            int startY = this.targetRectangle.Y;
+            int startX = this.targetRectangle.X;
 
             var targetWorkingRect = Rectangle.Intersect(
-                this.TargetRectangle,
+                this.targetRectangle,
                 new Rectangle(0, 0, width, height));
 
-            if (this.Sampler is NearestNeighborResampler)
+            if (this.resampler is NearestNeighborResampler)
             {
                 // Scaling factors
-                float widthFactor = sourceRectangle.Width / (float)this.TargetRectangle.Width;
-                float heightFactor = sourceRectangle.Height / (float)this.TargetRectangle.Height;
+                float widthFactor = sourceRectangle.Width / (float)this.targetRectangle.Width;
+                float heightFactor = sourceRectangle.Height / (float)this.targetRectangle.Height;
 
                 ParallelHelper.IterateRows(
                     targetWorkingRect,
@@ -153,8 +111,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                         for (int y = rows.Min; y < rows.Max; y++)
                         {
                             // Y coordinates of source points
-                            Span<TPixel> sourceRow =
-                                source.GetPixelRowSpan((int)(((y - startY) * heightFactor) + sourceY));
+                            Span<TPixel> sourceRow = source.GetPixelRowSpan((int)(((y - startY) * heightFactor) + sourceY));
                             Span<TPixel> targetRow = destination.GetPixelRowSpan(y);
 
                             for (int x = targetWorkingRect.Left; x < targetWorkingRect.Right; x++)
@@ -169,7 +126,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
 
             PixelConversionModifiers conversionModifiers =
-                PixelConversionModifiers.Premultiply.ApplyCompanding(this.Compand);
+                PixelConversionModifiers.Premultiply.ApplyCompanding(this.compand);
 
             BufferArea<TPixel> sourceArea = source.PixelBuffer.GetArea(sourceRectangle);
 
@@ -183,7 +140,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 this.verticalKernelMap,
                 width,
                 targetWorkingRect,
-                this.TargetRectangle.Location))
+                this.targetRectangle.Location))
             {
                 worker.Initialize();
 

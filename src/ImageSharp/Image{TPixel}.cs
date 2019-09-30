@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -21,6 +21,8 @@ namespace SixLabors.ImageSharp
     public sealed class Image<TPixel> : Image
         where TPixel : struct, IPixel<TPixel>
     {
+        private bool isDisposed;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
         /// with the height and the width of the image.
@@ -185,18 +187,40 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc/>
-        protected override void DisposeImpl() => this.Frames.Dispose();
+        protected override void Dispose(bool disposing)
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                this.Frames.Dispose();
+            }
+
+            this.isDisposed = true;
+        }
+
+        /// <inheritdoc/>
+        internal override void EnsureNotDisposed()
+        {
+            if (this.isDisposed)
+            {
+                throw new ObjectDisposedException("Trying to execute an operation on a disposed image.");
+            }
+        }
+
+        /// <inheritdoc/>
+        public override string ToString() => $"Image<{typeof(TPixel).Name}>: {this.Width}x{this.Height}";
 
         /// <inheritdoc />
-        internal override void AcceptVisitor(IImageVisitor visitor)
+        internal override void Accept(IImageVisitor visitor)
         {
             this.EnsureNotDisposed();
 
             visitor.Visit(this);
         }
-
-        /// <inheritdoc/>
-        public override string ToString() => $"Image<{typeof(TPixel).Name}>: {this.Width}x{this.Height}";
 
         /// <summary>
         /// Switches the buffers used by the image and the pixelSource meaning that the Image will "own" the buffer from the pixelSource and the pixelSource will now own the Images buffer.

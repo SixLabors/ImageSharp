@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
@@ -12,16 +12,6 @@ namespace SixLabors.ImageSharp.Processing
     /// </summary>
     public static class ResizeExtensions
     {
-        /// <summary>
-        /// Resizes an image in accordance with the given <see cref="ResizeOptions"/>.
-        /// </summary>
-        /// <param name="source">The image to resize.</param>
-        /// <param name="options">The resize options.</param>
-        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
-        /// <remarks>Passing zero for one of height or width within the resize options will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
-        public static IImageProcessingContext Resize(this IImageProcessingContext source, ResizeOptions options)
-            => source.ApplyProcessor(new ResizeProcessor(options, source.GetCurrentSize()));
-
         /// <summary>
         /// Resizes an image to the given <see cref="Size"/>.
         /// </summary>
@@ -128,7 +118,18 @@ namespace SixLabors.ImageSharp.Processing
             Rectangle sourceRectangle,
             Rectangle targetRectangle,
             bool compand)
-            => source.ApplyProcessor(new ResizeProcessor(sampler, width, height, source.GetCurrentSize(), targetRectangle, compand), sourceRectangle);
+        {
+            var options = new ResizeOptions
+            {
+                Size = new Size(width, height),
+                Mode = ResizeMode.Manual,
+                Sampler = sampler,
+                TargetRectangle = targetRectangle,
+                Compand = compand
+            };
+
+            return source.ApplyProcessor(new ResizeProcessor(options, source.GetCurrentSize()), sourceRectangle);
+        }
 
         /// <summary>
         /// Resizes an image to the given width and height with the given sampler and source rectangle.
@@ -150,6 +151,27 @@ namespace SixLabors.ImageSharp.Processing
             IResampler sampler,
             Rectangle targetRectangle,
             bool compand)
-            => source.ApplyProcessor(new ResizeProcessor(sampler, width, height, source.GetCurrentSize(), targetRectangle, compand));
+        {
+            var options = new ResizeOptions
+            {
+                Size = new Size(width, height),
+                Mode = ResizeMode.Manual,
+                Sampler = sampler,
+                TargetRectangle = targetRectangle,
+                Compand = compand
+            };
+
+            return Resize(source, options);
+        }
+
+        /// <summary>
+        /// Resizes an image in accordance with the given <see cref="ResizeOptions"/>.
+        /// </summary>
+        /// <param name="source">The image to resize.</param>
+        /// <param name="options">The resize options.</param>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+        /// <remarks>Passing zero for one of height or width within the resize options will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
+        public static IImageProcessingContext Resize(this IImageProcessingContext source, ResizeOptions options)
+            => source.ApplyProcessor(new ResizeProcessor(options, source.GetCurrentSize()));
     }
 }

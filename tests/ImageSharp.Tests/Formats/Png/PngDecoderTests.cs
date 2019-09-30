@@ -40,7 +40,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             TestImages.Png.GrayAlpha8Bit,
             TestImages.Png.Gray1BitTrans,
             TestImages.Png.Bad.ZlibOverflow,
-            TestImages.Png.Bad.ZlibOverflow2
+            TestImages.Png.Bad.ZlibOverflow2,
+            TestImages.Png.Bad.ZlibZtxtBadHeader,
         };
 
         public static readonly string[] TestImages48Bpp =

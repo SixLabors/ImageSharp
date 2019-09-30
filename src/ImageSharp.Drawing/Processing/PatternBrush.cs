@@ -99,7 +99,6 @@ namespace SixLabors.ImageSharp.Processing
             new PatternBrushApplicator<TPixel>(
                 source,
                 this.pattern.ToPixelMatrix<TPixel>(source.Configuration),
-                this.patternVector,
                 options);
 
         /// <summary>
@@ -112,20 +111,17 @@ namespace SixLabors.ImageSharp.Processing
             /// The pattern.
             /// </summary>
             private readonly DenseMatrix<TPixel> pattern;
-            private readonly DenseMatrix<Vector4> patternVector;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="PatternBrushApplicator{TPixel}" /> class.
             /// </summary>
             /// <param name="source">The source image.</param>
             /// <param name="pattern">The pattern.</param>
-            /// <param name="patternVector">The patternVector.</param>
             /// <param name="options">The options</param>
-            public PatternBrushApplicator(ImageFrame<TPixel> source, in DenseMatrix<TPixel> pattern, DenseMatrix<Vector4> patternVector, GraphicsOptions options)
+            public PatternBrushApplicator(ImageFrame<TPixel> source, in DenseMatrix<TPixel> pattern, GraphicsOptions options)
                 : base(source, options)
             {
                 this.pattern = pattern;
-                this.patternVector = patternVector;
             }
 
             /// <summary>

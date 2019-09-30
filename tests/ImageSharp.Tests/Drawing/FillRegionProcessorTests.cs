@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             };
             var processor = new FillRegionProcessor(brush.Object, region, options);
             var img = new Image<Rgba32>(1, 1);
-            processor.Apply(img, bounds);
+            processor.Execute(img, bounds);
 
             Assert.Equal(4, region.ScanInvocationCounter);
         }
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             var options = new GraphicsOptions(true);
             var processor = new FillRegionProcessor(brush.Object, new MockRegion1(), options);
             var img = new Image<Rgba32>(10, 10);
-            processor.Apply(img, bounds);
+            processor.Execute(img, bounds);
         }
 
         [Fact]

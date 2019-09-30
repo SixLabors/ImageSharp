@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 
             var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
 
-            // not a valid operation because rectangle does not overlap with this image.
+            // Not a valid operation because rectangle does not overlap with this image.
             if (workingRect.Width <= 0 || workingRect.Height <= 0)
             {
                 throw new ImageProcessingException(
@@ -102,14 +102,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                 workingRect,
                 configuration,
                 rows =>
+                {
+                    for (int y = rows.Min; y < rows.Max; y++)
                     {
-                        for (int y = rows.Min; y < rows.Max; y++)
-                        {
-                            Span<TPixelBg> background = source.GetPixelRowSpan(y).Slice(minX, width);
-                            Span<TPixelFg> foreground = targetImage.GetPixelRowSpan(y - locationY).Slice(targetX, width);
-                            blender.Blend<TPixelFg>(configuration, background, background, foreground, this.Opacity);
-                        }
-                    });
+                        Span<TPixelBg> background = source.GetPixelRowSpan(y).Slice(minX, width);
+                        Span<TPixelFg> foreground = targetImage.GetPixelRowSpan(y - locationY).Slice(targetX, width);
+                        blender.Blend<TPixelFg>(configuration, background, background, foreground, this.Opacity);
+                    }
+                });
         }
     }
 }

@@ -121,8 +121,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
         /// See: https://github.com/SixLabors/ImageSharp/pull/984
         /// </summary>
         [Theory]
-        [WithTestPatternImages(110, 110, PixelTypes.Rgba32)]
-        [WithTestPatternImages(170, 170, PixelTypes.Rgba32)]
+        [WithTestPatternImages(110, 110, PixelTypes.Rgb24)]
+        [WithTestPatternImages(170, 170, PixelTypes.Rgb24)]
         public void Issue984<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

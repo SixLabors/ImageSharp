@@ -25,8 +25,7 @@ namespace SixLabors.ImageSharp.Processing
             Guard.NotNull(operation, nameof(operation));
             source.EnsureNotDisposed();
 
-            var visitor = new ProcessingVisitor(operation, true);
-            source.AcceptVisitor(visitor);
+            source.AcceptVisitor(new ProcessingVisitor(operation, true));
         }
 
         /// <summary>
@@ -42,8 +41,10 @@ namespace SixLabors.ImageSharp.Processing
             Guard.NotNull(operation, nameof(operation));
             source.EnsureNotDisposed();
 
-            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider
-                .CreateImageProcessingContext(source, true);
+            IInternalImageProcessingContext<TPixel> operationsRunner
+                = source.GetConfiguration()
+                        .ImageOperationsProvider.CreateImageProcessingContext(source, true);
+
             operation(operationsRunner);
         }
 
@@ -60,8 +61,10 @@ namespace SixLabors.ImageSharp.Processing
             Guard.NotNull(operations, nameof(operations));
             source.EnsureNotDisposed();
 
-            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider
-                .CreateImageProcessingContext(source, true);
+            IInternalImageProcessingContext<TPixel> operationsRunner
+                = source.GetConfiguration()
+                        .ImageOperationsProvider.CreateImageProcessingContext(source, true);
+
             operationsRunner.ApplyProcessors(operations);
         }
 
@@ -96,8 +99,10 @@ namespace SixLabors.ImageSharp.Processing
             Guard.NotNull(operation, nameof(operation));
             source.EnsureNotDisposed();
 
-            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider
-                .CreateImageProcessingContext(source, false);
+            IInternalImageProcessingContext<TPixel> operationsRunner
+                = source.GetConfiguration()
+                        .ImageOperationsProvider.CreateImageProcessingContext(source, false);
+
             operation(operationsRunner);
             return operationsRunner.GetResultImage();
         }
@@ -116,8 +121,10 @@ namespace SixLabors.ImageSharp.Processing
             Guard.NotNull(operations, nameof(operations));
             source.EnsureNotDisposed();
 
-            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider
-                .CreateImageProcessingContext(source, false);
+            IInternalImageProcessingContext<TPixel> operationsRunner
+                = source.GetConfiguration()
+                        .ImageOperationsProvider.CreateImageProcessingContext(source, false);
+
             operationsRunner.ApplyProcessors(operations);
             return operationsRunner.GetResultImage();
         }
@@ -157,8 +164,10 @@ namespace SixLabors.ImageSharp.Processing
             public void Visit<TPixel>(Image<TPixel> image)
                 where TPixel : struct, IPixel<TPixel>
             {
-                IInternalImageProcessingContext<TPixel> operationsRunner = image.GetConfiguration()
-                    .ImageOperationsProvider.CreateImageProcessingContext(image, this.mutate);
+                IInternalImageProcessingContext<TPixel> operationsRunner =
+                    image.GetConfiguration()
+                         .ImageOperationsProvider.CreateImageProcessingContext(image, this.mutate);
+
                 this.operation(operationsRunner);
                 this.ResultImage = operationsRunner.GetResultImage();
             }

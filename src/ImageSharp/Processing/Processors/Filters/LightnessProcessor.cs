@@ -4,23 +4,27 @@
 namespace SixLabors.ImageSharp.Processing.Processors.Filters
 {
     /// <summary>
-    /// Applies a lightness filter matrix using
+    /// Applies a lightness filter matrix using the given amount.
     /// </summary>
     public sealed class LightnessProcessor : FilterProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="LightnessProcessor"/> class.
         /// </summary>
-        /// <param name="lightness">Lightness of image</param>
-        public LightnessProcessor(float lightness)
-        : base(KnownFilterMatrices.CreateLightnessFilter(lightness))
+        /// <remarks>
+        /// A value of <value>0</value> will create an image that is completely black. A value of <value>1</value> leaves the input unchanged.
+        /// Other values are linear multipliers on the effect. Values of an amount over 1 are allowed, providing lighter results.
+        /// </remarks>
+        /// <param name="amount">The proportion of the conversion. Must be greater than or equal to 0.</param>
+        public LightnessProcessor(float amount)
+            : base(KnownFilterMatrices.CreateLightnessFilter(amount))
         {
-            this.Lightness = lightness;
+            this.Amount = amount;
         }
 
         /// <summary>
-        /// Gets Lightness of image.
+        /// Gets the proportion of the conversion
         /// </summary>
-        public float Lightness { get; }
+        public float Amount { get; }
     }
 }

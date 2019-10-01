@@ -20,16 +20,19 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="pngMetadata">The PNG metadata.</param>
         /// <param name="use16Bit">if set to <c>true</c> [use16 bit].</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
-        public static void AdjustOptions(
+        public static void AdjustOptions<TPixel>(
             PngEncoderOptions options,
             PngMetadata pngMetadata,
             out bool use16Bit,
             out int bytesPerPixel)
+            where TPixel : struct, IPixel<TPixel>
         {
             // Always take the encoder options over the metadata values.
             options.Gamma = options.Gamma ?? pngMetadata.Gamma;
-            options.ColorType = options.ColorType ?? pngMetadata.ColorType;
-            options.BitDepth = options.BitDepth ?? pngMetadata.BitDepth;
+
+            options.ColorType = options.ColorType ?? SuggestColorType<TPixel>() ?? pngMetadata.ColorType;
+            options.BitDepth = options.BitDepth ?? SuggestBitDepth<TPixel>() ?? pngMetadata.BitDepth;
+
             options.InterlaceMethod = options.InterlaceMethod ?? pngMetadata.InterlaceMethod;
 
             use16Bit = options.BitDepth == PngBitDepth.Bit16;
@@ -147,6 +150,72 @@ namespace SixLabors.ImageSharp.Formats.Png
                 default:
                     return use16Bit ? 8 : 4;
             }
+        }
+
+        /// <summary>
+        /// Comes up with the appropriate PngColorType for some kinds of
+        /// IPixel. This is not exhaustive because not all options have
+        /// reasonable defaults
+        /// </summary>
+        private static PngColorType? SuggestColorType<TPixel>()
+        where TPixel : struct, IPixel<TPixel>
+        {
+            Type tPixel = typeof(TPixel);
+
+            if (tPixel == typeof(Alpha8))
+            {
+                return PngColorType.GrayscaleWithAlpha;
+            }
+            if (tPixel == typeof(Argb32))
+            {
+                return PngColorType.RgbWithAlpha;
+            }
+            if (tPixel == typeof(Rgb24))
+            {
+                return PngColorType.Rgb;
+            }
+            if (tPixel == typeof(Gray16))
+            {
+                return PngColorType.Grayscale;
+            }
+            if (tPixel == typeof(Gray8))
+            {
+                return PngColorType.Grayscale;
+            }
+            return default;
+        }
+
+        /// <summary>
+        /// Comes up with the appropriate PngBitDepth for some kinds of
+        /// IPixel. This is not exhaustive because not all options have
+        /// reasonable defaults
+        /// </summary>
+        private static PngBitDepth? SuggestBitDepth<TPixel>()
+        where TPixel : struct, IPixel<TPixel>
+        {
+            Type tPixel = typeof(TPixel);
+
+            if (tPixel == typeof(Alpha8))
+            {
+                return PngBitDepth.Bit8;
+            }
+            if (tPixel == typeof(Argb32))
+            {
+                return PngBitDepth.Bit8;
+            }
+            if (tPixel == typeof(Rgb24))
+            {
+                return PngBitDepth.Bit8;
+            }
+            if (tPixel == typeof(Gray16))
+            {
+                return PngBitDepth.Bit16;
+            }
+            if (tPixel == typeof(Gray8))
+            {
+                return PngBitDepth.Bit8;
+            }
+            return default;
         }
     }
 }

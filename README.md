@@ -63,6 +63,10 @@ The **ImageSharp** library is made up of multiple packages:
 - Do you have questions? We are happy to help! Please [join our gitter channel](https://gitter.im/ImageSharp/General), or ask them on [stackoverflow](https://stackoverflow.com) using the `ImageSharp` tag. **Do not** open issues for questions!
 - Please read our [Contribution Guide](https://github.com/SixLabors/ImageSharp/blob/master/.github/CONTRIBUTING.md) before opening issues or pull requests!
 
+### Code of Conduct  
+This project has adopted the code of conduct defined by the [Contributor Covenant](https://contributor-covenant.org/) to clarify expected behavior in our community.
+For more information, see the [.NET Foundation Code of Conduct](https://dotnetfoundation.org/code-of-conduct).
+
 ### API 
 
 Our API is designed to be simple to consume. Here's an example of the code required to resize an image using the default Bicubic resampler then turn the colors into their grayscale equivalent using the BT709 standard matrix.

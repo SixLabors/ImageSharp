@@ -20,7 +20,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
         /// <summary>
         /// Gets or sets the number of different luminance levels. Typical values are 256 for 8-bit grayscale images
-        /// or 65536 for 16-bit grayscale images. Defaults to 256.
+        /// or 65536 for 16-bit grayscale images.
+        /// Defaults to 256.
         /// </summary>
         public int LuminanceLevels { get; set; } = 256;
 
@@ -32,12 +33,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         public bool ClipHistogram { get; set; } = false;
 
         /// <summary>
-        /// Gets or sets the histogram clip limit. Histogram bins which exceed this limit, will be capped at this value. Defaults to 350.
+        /// Gets or sets the histogram clip limit. Adaptive histogram equalization may cause noise to be amplified in near constant
+        /// regions. To reduce this problem, histogram bins which exceed a given limit will be capped at this value. The exceeding values
+        /// will be redistributed equally to all other bins. The clipLimit depends on the size of the tiles the image is split into
+        /// and therefore the image size itself.
+        /// Defaults to 350.
         /// </summary>
+        /// <remarks>For more information, see also: https://en.wikipedia.org/wiki/Adaptive_histogram_equalization#Contrast_Limited_AHE</remarks>
         public int ClipLimit { get; set; } = 350;
 
         /// <summary>
-        /// Gets or sets the number of tiles the image is split into (horizontal and vertically) for the adaptive histogram equalization. Defaults to 8.
+        /// Gets or sets the number of tiles the image is split into (horizontal and vertically) for the adaptive histogram equalization.
+        /// Defaults to 8.
         /// </summary>
         public int NumberOfTiles { get; set; } = 8;
     }

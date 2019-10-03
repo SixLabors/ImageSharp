@@ -166,22 +166,27 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 return PngColorType.GrayscaleWithAlpha;
             }
+
             if (tPixel == typeof(Argb32))
             {
                 return PngColorType.RgbWithAlpha;
             }
+
             if (tPixel == typeof(Rgb24))
             {
                 return PngColorType.Rgb;
             }
+
             if (tPixel == typeof(Gray16))
             {
                 return PngColorType.Grayscale;
             }
+
             if (tPixel == typeof(Gray8))
             {
                 return PngColorType.Grayscale;
             }
+
             return default;
         }
 
@@ -199,22 +204,27 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 return PngBitDepth.Bit8;
             }
+
             if (tPixel == typeof(Argb32))
             {
                 return PngBitDepth.Bit8;
             }
+
             if (tPixel == typeof(Rgb24))
             {
                 return PngBitDepth.Bit8;
             }
+
             if (tPixel == typeof(Gray16))
             {
                 return PngBitDepth.Bit16;
             }
+
             if (tPixel == typeof(Gray8))
             {
                 return PngBitDepth.Bit8;
             }
+
             return default;
         }
     }

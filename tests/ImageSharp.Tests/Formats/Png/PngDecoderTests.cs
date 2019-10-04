@@ -75,6 +75,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 TestImages.Png.GrayAlpha8BitInterlaced
             };
 
+        public static readonly string[] TestImagesIssue1014 =
+        {
+            TestImages.Png.Issue1014_1, TestImages.Png.Issue1014_2,
+            TestImages.Png.Issue1014_3, TestImages.Png.Issue1014_4,
+            TestImages.Png.Issue1014_5, TestImages.Png.Issue1014_6
+        };
+
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32)]
         public void Decode<TPixel>(TestImageProvider<TPixel> provider)
@@ -198,6 +205,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             {
                 Assert.Equal(expectedPixelSize, Image.Identify(stream)?.PixelType?.BitsPerPixel);
             }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(TestImagesIssue1014), PixelTypes.Rgba32)]
+        public void Issue1014<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            System.Exception ex = Record.Exception(
+                () =>
+                {
+                    using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+                    {
+                        image.DebugSave(provider);
+                        // TODO: compare to expected output
+                    }
+                });
+            Assert.Null(ex);
         }
     }
 }

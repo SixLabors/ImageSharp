@@ -31,16 +31,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// or 65536 for 16-bit grayscale images.
         /// </param>
         /// <param name="clipHistogram">Indicating whether to clip the histogram bins at a specific value.</param>
-        /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels. Histogram bins which exceed this limit, will be capped at this value.</param>
+        /// <param name="clipLimit">The histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public GlobalHistogramEqualizationProcessor(
             int luminanceLevels,
             bool clipHistogram,
-            float clipLimitPercentage,
+            int clipLimit,
             Image<TPixel> source,
             Rectangle sourceRectangle)
-            : base(luminanceLevels, clipHistogram, clipLimitPercentage, source, sourceRectangle)
+            : base(luminanceLevels, clipHistogram, clipLimit, source, sourceRectangle)
         {
         }
 
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 Span<int> histogram = histogramBuffer.GetSpan();
                 if (this.ClipHistogramEnabled)
                 {
-                    this.ClipHistogram(histogram, this.ClipLimitPercentage, numberOfPixels);
+                    this.ClipHistogram(histogram, this.ClipLimit);
                 }
 
                 // Calculate the cumulative distribution function, which will map each input pixel to a new value.

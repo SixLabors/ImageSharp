@@ -69,25 +69,106 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 var image = new Image<TPixel>(this.configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
-                using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(this.fileHeader.Width, 3, 0))
+                switch (this.fileHeader.PixelDepth)
                 {
-                    for (int y = 0; y < this.fileHeader.Height; y++)
-                    {
-                        this.currentStream.Read(row);
-                        Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-                        PixelOperations<TPixel>.Instance.FromBgr24Bytes(
-                            this.configuration,
-                            row.GetSpan(),
-                            pixelSpan,
-                            this.fileHeader.Width);
-                    }
+                    case 8:
+                        this.ReadMonoChrome(pixels);
+                        break;
+
+                    case 16:
+                        this.ReadBgra16(pixels);
+                        break;
+
+                    case 24:
+                        this.ReadBgr24(pixels);
+                        break;
+
+                    case 32:
+                        this.ReadBgra32(pixels);
+                        break;
+
+                    default:
+                        TgaThrowHelper.ThrowNotSupportedException("Does not support this kind of tga files.");
+                        break;
                 }
 
                 return image;
             }
-            catch (Exception e)
+            catch (IndexOutOfRangeException e)
             {
                 throw new ImageFormatException("TGA image does not have a valid format.", e);
+            }
+        }
+
+        private void ReadMonoChrome<TPixel>(Buffer2D<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(this.fileHeader.Width, 1, 0))
+            {
+                for (int y = 0; y < this.fileHeader.Height; y++)
+                {
+                    this.currentStream.Read(row);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                    PixelOperations<TPixel>.Instance.FromGray8Bytes(
+                        this.configuration,
+                        row.GetSpan(),
+                        pixelSpan,
+                        this.fileHeader.Width);
+                }
+            }
+        }
+
+        private void ReadBgra16<TPixel>(Buffer2D<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(this.fileHeader.Width, 2, 0))
+            {
+                for (int y = 0; y < this.fileHeader.Height; y++)
+                {
+                    this.currentStream.Read(row);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                    PixelOperations<TPixel>.Instance.FromBgra5551Bytes(
+                        this.configuration,
+                        row.GetSpan(),
+                        pixelSpan,
+                        this.fileHeader.Width);
+                }
+            }
+        }
+
+        private void ReadBgr24<TPixel>(Buffer2D<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(this.fileHeader.Width, 3, 0))
+            {
+                for (int y = 0; y < this.fileHeader.Height; y++)
+                {
+                    this.currentStream.Read(row);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                    PixelOperations<TPixel>.Instance.FromBgr24Bytes(
+                        this.configuration,
+                        row.GetSpan(),
+                        pixelSpan,
+                        this.fileHeader.Width);
+                }
+            }
+        }
+
+        private void ReadBgra32<TPixel>(Buffer2D<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(this.fileHeader.Width, 4, 0))
+            {
+                for (int y = 0; y < this.fileHeader.Height; y++)
+                {
+                    this.currentStream.Read(row);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                    PixelOperations<TPixel>.Instance.FromBgra32Bytes(
+                        this.configuration,
+                        row.GetSpan(),
+                        pixelSpan,
+                        this.fileHeader.Width);
+                }
             }
         }
 

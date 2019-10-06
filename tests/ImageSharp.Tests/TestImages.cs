@@ -372,6 +372,10 @@ namespace SixLabors.ImageSharp.Tests
             public const string Bit24 = "Tga/bike_24bit.tga";
             public const string Bit16 = "Tga/bike_16bit.tga";
             public const string Grey = "Tga/bike_8bit.tga";
+            public const string Bit32Rle = "Tga/bike_32bit_rle.tga";
+            public const string Bit24Rle = "Tga/bike_24bit_rle.tga";
+            public const string Bit16Rle = "Tga/bike_16bit_rle.tga";
+            public const string GreyRle = "Tga/bike_8bit_rle.tga";
         }
     }
 }

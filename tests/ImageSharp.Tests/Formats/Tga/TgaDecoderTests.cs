@@ -67,6 +67,54 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
             }
         }
 
+        [Theory]
+        [WithFile(GreyRle, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_RunLenghtEncoded_MonoChrome<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            {
+                image.DebugSave(provider);
+                CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit16Rle, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_RunLenghtEncoded_16Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            {
+                image.DebugSave(provider);
+                CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit24Rle, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_RunLenghtEncoded_24Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            {
+                image.DebugSave(provider);
+                CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit32Rle, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_RunLenghtEncoded_32Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            {
+                image.DebugSave(provider);
+                CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
         private void CompareWithReferenceDecoder<TPixel>(TestImageProvider<TPixel> provider, Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {

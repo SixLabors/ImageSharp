@@ -365,5 +365,13 @@ namespace SixLabors.ImageSharp.Tests
 
             public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin, Leo, Ratio4x1, Ratio1x4 };
         }
+
+        public static class Tga
+        {
+            public const string Bit32 = "Tga/bike_32bit.tga";
+            public const string Bit24 = "Tga/bike_24bit.tga";
+            public const string Bit16 = "Tga/bike_16bit.tga";
+            public const string Grey = "Tga/bike_8bit.tga";
+        }
     }
 }

@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.Memory;
@@ -150,6 +151,7 @@ namespace SixLabors.ImageSharp
         /// <see cref="JpegConfigurationModule"/>
         /// <see cref="GifConfigurationModule"/>
         /// <see cref="BmpConfigurationModule"/>.
+        /// <see cref="TgaConfigurationModule"/>.
         /// </summary>
         /// <returns>The default configuration of <see cref="Configuration"/>.</returns>
         internal static Configuration CreateDefaultInstance()
@@ -158,7 +160,8 @@ namespace SixLabors.ImageSharp
                 new PngConfigurationModule(),
                 new JpegConfigurationModule(),
                 new GifConfigurationModule(),
-                new BmpConfigurationModule());
+                new BmpConfigurationModule(),
+                new TgaConfigurationModule());
         }
     }
 }

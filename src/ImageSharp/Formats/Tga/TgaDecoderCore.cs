@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 
@@ -123,7 +124,10 @@ namespace SixLabors.ImageSharp.Formats.Tga
             where TPixel : struct, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(this.fileHeader.Width, 2, 0))
+            using (IMemoryOwner<Bgra5551> bgraRow = this.memoryAllocator.Allocate<Bgra5551>(this.fileHeader.Width))
             {
+                Span<Bgra5551> bgraRowSpan = bgraRow.GetSpan();
+                long currentPosition = this.currentStream.Position;
                 for (int y = 0; y < this.fileHeader.Height; y++)
                 {
                     this.currentStream.Read(row);
@@ -133,6 +137,28 @@ namespace SixLabors.ImageSharp.Formats.Tga
                         row.GetSpan(),
                         pixelSpan,
                         this.fileHeader.Width);
+                }
+
+                // We need to set each alpha component value to fully opaque.
+                // Reset our stream for a second pass.
+                this.currentStream.Position = currentPosition;
+                for (int y = 0; y < this.fileHeader.Height; y++)
+                {
+                    this.currentStream.Read(row);
+                    PixelOperations<Bgra5551>.Instance.FromBgra5551Bytes(
+                        this.configuration,
+                        row.GetSpan(),
+                        bgraRowSpan,
+                        this.fileHeader.Width);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(this.fileHeader.Height - y - 1);
+
+                    for (int x = 0; x < this.fileHeader.Width; x++)
+                    {
+                        Bgra5551 bgra = bgraRowSpan[x];
+                        bgra.PackedValue = (ushort)(bgra.PackedValue | (1 << 15));
+                        ref TPixel pixel = ref pixelSpan[x];
+                        pixel.FromBgra5551(bgra);
+                    }
                 }
             }
         }

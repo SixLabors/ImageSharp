@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -108,7 +109,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 for (int y = 0; y < this.fileHeader.Height; y++)
                 {
                     this.currentStream.Read(row);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(this.fileHeader.Height - y - 1);
                     PixelOperations<TPixel>.Instance.FromGray8Bytes(
                         this.configuration,
                         row.GetSpan(),
@@ -126,7 +127,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 for (int y = 0; y < this.fileHeader.Height; y++)
                 {
                     this.currentStream.Read(row);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(this.fileHeader.Height - y - 1);
                     PixelOperations<TPixel>.Instance.FromBgra5551Bytes(
                         this.configuration,
                         row.GetSpan(),
@@ -144,7 +145,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 for (int y = 0; y < this.fileHeader.Height; y++)
                 {
                     this.currentStream.Read(row);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(this.fileHeader.Height - y - 1);
                     PixelOperations<TPixel>.Instance.FromBgr24Bytes(
                         this.configuration,
                         row.GetSpan(),
@@ -162,7 +163,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 for (int y = 0; y < this.fileHeader.Height; y++)
                 {
                     this.currentStream.Read(row);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(this.fileHeader.Height - y - 1);
                     PixelOperations<TPixel>.Instance.FromBgra32Bytes(
                         this.configuration,
                         row.GetSpan(),
@@ -201,6 +202,9 @@ namespace SixLabors.ImageSharp.Formats.Tga
 #endif
             this.currentStream.Read(buffer, 0, TgaFileHeader.Size);
             this.fileHeader = TgaFileHeader.Parse(buffer);
+
+            // TODO: no meta data yet.
+            this.metadata = new ImageMetadata();
         }
     }
 }

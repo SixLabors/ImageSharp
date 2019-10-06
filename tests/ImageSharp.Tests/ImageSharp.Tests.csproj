@@ -14,7 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Magick.NET-Q16-AnyCPU" />
+    <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="7.14.4" />
     <PackageReference Include="Moq" />
     <PackageReference Include="System.Drawing.Common" />
     <PackageReference Include="xunit.runner.console" />

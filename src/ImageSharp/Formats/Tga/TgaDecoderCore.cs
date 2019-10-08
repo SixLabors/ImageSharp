@@ -82,7 +82,15 @@ namespace SixLabors.ImageSharp.Formats.Tga
                         break;
 
                     case 24:
-                        this.ReadBgr24(pixels);
+                        if (this.fileHeader.ImageType.IsRunLengthEncoded())
+                        {
+                            this.ReadRle24(pixels, this.fileHeader.Width, this.fileHeader.Height);
+                        }
+                        else
+                        {
+                            this.ReadBgr24(pixels);
+                        }
+
                         break;
 
                     case 32:
@@ -177,6 +185,80 @@ namespace SixLabors.ImageSharp.Formats.Tga
                         row.GetSpan(),
                         pixelSpan,
                         this.fileHeader.Width);
+                }
+            }
+        }
+
+        private void ReadRle24<TPixel>(Buffer2D<TPixel> pixels, int width, int height)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel color = default;
+            using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * 3, AllocationOptions.Clean))
+            {
+                Span<byte> bufferSpan = buffer.GetSpan();
+                this.UncompressRle24(width, bufferSpan);
+                for (int y = 0; y < height; y++)
+                {
+                    Span<TPixel> pixelRow = pixels.GetRowSpan(this.fileHeader.Height - y - 1);
+                    for (int x = 0; x < width; x++)
+                    {
+                        int idx = (y * width * 3) + (x * 3);
+                        color.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));
+                        pixelRow[x] = color;
+                    }
+                }
+            }
+        }
+
+        private void UncompressRle24(int w, Span<byte> buffer)
+        {
+            int uncompressedPixels = 0;
+#if NETCOREAPP2_1
+            Span<byte> pixel = stackalloc byte[3];
+#else
+            var pixel = new byte[3];
+#endif
+            int totalPixels = this.fileHeader.Height * this.fileHeader.Width;
+            while (uncompressedPixels < totalPixels)
+            {
+                byte runLengthByte = (byte)this.currentStream.ReadByte();
+
+                // The high bit of the run length value is always 1, to indicate that this is a run-length encoded packet.
+                int highBit = runLengthByte >> 7;
+                if (highBit == 1)
+                {
+                    int runLength = runLengthByte & 127;
+                    if (runLength == 0)
+                    {
+                        // TgaThrowHelper.ThrowImageFormatException("invalid run length of zero");
+                    }
+
+                    this.currentStream.Read(pixel, 0, 3);
+                    int bufferIdx = uncompressedPixels * 3;
+                    for (int i = 0; i < runLength + 1; i++, uncompressedPixels++)
+                    {
+                        buffer[bufferIdx++] = pixel[0];
+                        buffer[bufferIdx++] = pixel[1];
+                        buffer[bufferIdx++] = pixel[2];
+                    }
+                }
+                else
+                {
+                    // Non-run-length encoded packet.
+                    int runLength = runLengthByte;
+                    if (runLength == 0)
+                    {
+                        // TgaThrowHelper.ThrowImageFormatException("invalid run length of zero");
+                    }
+
+                    int bufferIdx = uncompressedPixels * 3;
+                    for (int i = 0; i < runLength + 1; i++, uncompressedPixels++)
+                    {
+                        this.currentStream.Read(pixel, 0, 3);
+                        buffer[bufferIdx++] = pixel[0];
+                        buffer[bufferIdx++] = pixel[1];
+                        buffer[bufferIdx++] = pixel[2];
+                    }
                 }
             }
         }

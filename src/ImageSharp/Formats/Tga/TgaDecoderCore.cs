@@ -74,11 +74,28 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 switch (this.fileHeader.PixelDepth)
                 {
                     case 8:
-                        this.ReadMonoChrome(pixels);
+                        if (this.fileHeader.ImageType.IsRunLengthEncoded())
+                        {
+                            this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 1);
+                        }
+                        else
+                        {
+                            this.ReadMonoChrome(pixels);
+                        }
+
                         break;
 
                     case 16:
-                        this.ReadBgra16(pixels);
+                        if (this.fileHeader.ImageType.IsRunLengthEncoded())
+                        {
+                            long currentPosition = this.currentStream.Position;
+                            this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 2);
+                        }
+                        else
+                        {
+                            this.ReadBgra16(pixels);
+                        }
+
                         break;
 
                     case 24:
@@ -156,26 +173,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 }
 
                 // We need to set each alpha component value to fully opaque.
-                // Reset our stream for a second pass.
-                this.currentStream.Position = currentPosition;
-                for (int y = 0; y < this.fileHeader.Height; y++)
-                {
-                    this.currentStream.Read(row);
-                    PixelOperations<Bgra5551>.Instance.FromBgra5551Bytes(
-                        this.configuration,
-                        row.GetSpan(),
-                        bgraRowSpan,
-                        this.fileHeader.Width);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(this.fileHeader.Height - y - 1);
-
-                    for (int x = 0; x < this.fileHeader.Width; x++)
-                    {
-                        Bgra5551 bgra = bgraRowSpan[x];
-                        bgra.PackedValue = (ushort)(bgra.PackedValue | (1 << 15));
-                        ref TPixel pixel = ref pixelSpan[x];
-                        pixel.FromBgra5551(bgra);
-                    }
-                }
+                this.MakeOpaque(pixels, currentPosition, row, bgraRowSpan);
             }
         }
 
@@ -232,11 +230,18 @@ namespace SixLabors.ImageSharp.Formats.Tga
                         int idx = rowStartIdx + (x * bytesPerPixel);
                         switch (bytesPerPixel)
                         {
-                            case 4:
-                                color.FromBgra32(Unsafe.As<byte, Bgra32>(ref bufferSpan[idx]));
+                            case 1:
+                                color.FromGray8(Unsafe.As<byte, Gray8>(ref bufferSpan[idx]));
+                                break;
+                            case 2:
+                                bufferSpan[idx + 1] = (byte)(bufferSpan[idx + 1] | 128);
+                                color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref bufferSpan[idx]));
                                 break;
                             case 3:
                                 color.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));
+                                break;
+                            case 4:
+                                color.FromBgra32(Unsafe.As<byte, Bgra32>(ref bufferSpan[idx]));
                                 break;
                         }
 
@@ -279,6 +284,31 @@ namespace SixLabors.ImageSharp.Formats.Tga
                         pixel.AsSpan().CopyTo(buffer.Slice(bufferIdx));
                         bufferIdx += bytesPerPixel;
                     }
+                }
+            }
+        }
+
+        private void MakeOpaque<TPixel>(Buffer2D<TPixel> pixels, long currentPosition, IManagedByteBuffer row, Span<Bgra5551> bgraRowSpan)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            // Reset our stream for a second pass.
+            this.currentStream.Position = currentPosition;
+            for (int y = 0; y < this.fileHeader.Height; y++)
+            {
+                this.currentStream.Read(row);
+                PixelOperations<Bgra5551>.Instance.FromBgra5551Bytes(
+                    this.configuration,
+                    row.GetSpan(),
+                    bgraRowSpan,
+                    this.fileHeader.Width);
+                Span<TPixel> pixelSpan = pixels.GetRowSpan(this.fileHeader.Height - y - 1);
+
+                for (int x = 0; x < this.fileHeader.Width; x++)
+                {
+                    Bgra5551 bgra = bgraRowSpan[x];
+                    bgra.PackedValue = (ushort)(bgra.PackedValue | (1 << 15));
+                    ref TPixel pixel = ref pixelSpan[x];
+                    pixel.FromBgra5551(bgra);
                 }
             }
         }

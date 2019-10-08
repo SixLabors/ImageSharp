@@ -94,7 +94,15 @@ namespace SixLabors.ImageSharp.Formats.Tga
                         break;
 
                     case 32:
-                        this.ReadBgra32(pixels);
+                        if (this.fileHeader.ImageType.IsRunLengthEncoded())
+                        {
+                            this.ReadRle32(pixels, this.fileHeader.Width, this.fileHeader.Height);
+                        }
+                        else
+                        {
+                            this.ReadBgra32(pixels);
+                        }
+
                         break;
 
                     default:
@@ -196,7 +204,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * 3, AllocationOptions.Clean))
             {
                 Span<byte> bufferSpan = buffer.GetSpan();
-                this.UncompressRle24(width, bufferSpan);
+                this.UncompressRle24(width, height, bufferSpan);
                 for (int y = 0; y < height; y++)
                 {
                     Span<TPixel> pixelRow = pixels.GetRowSpan(this.fileHeader.Height - y - 1);
@@ -210,54 +218,38 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
-        private void UncompressRle24(int w, Span<byte> buffer)
+        private void UncompressRle24(int width, int height, Span<byte> buffer)
         {
             int uncompressedPixels = 0;
-#if NETCOREAPP2_1
-            Span<byte> pixel = stackalloc byte[3];
-#else
             var pixel = new byte[3];
-#endif
-            int totalPixels = this.fileHeader.Height * this.fileHeader.Width;
+            int totalPixels = width * height;
             while (uncompressedPixels < totalPixels)
             {
                 byte runLengthByte = (byte)this.currentStream.ReadByte();
 
-                // The high bit of the run length value is always 1, to indicate that this is a run-length encoded packet.
+                // The high bit of a run length packet is set to 1.
                 int highBit = runLengthByte >> 7;
                 if (highBit == 1)
                 {
                     int runLength = runLengthByte & 127;
-                    if (runLength == 0)
-                    {
-                        // TgaThrowHelper.ThrowImageFormatException("invalid run length of zero");
-                    }
-
                     this.currentStream.Read(pixel, 0, 3);
                     int bufferIdx = uncompressedPixels * 3;
                     for (int i = 0; i < runLength + 1; i++, uncompressedPixels++)
                     {
-                        buffer[bufferIdx++] = pixel[0];
-                        buffer[bufferIdx++] = pixel[1];
-                        buffer[bufferIdx++] = pixel[2];
+                        pixel.AsSpan().CopyTo(buffer.Slice(bufferIdx));
+                        bufferIdx += 3;
                     }
                 }
                 else
                 {
                     // Non-run-length encoded packet.
                     int runLength = runLengthByte;
-                    if (runLength == 0)
-                    {
-                        // TgaThrowHelper.ThrowImageFormatException("invalid run length of zero");
-                    }
-
                     int bufferIdx = uncompressedPixels * 3;
                     for (int i = 0; i < runLength + 1; i++, uncompressedPixels++)
                     {
                         this.currentStream.Read(pixel, 0, 3);
-                        buffer[bufferIdx++] = pixel[0];
-                        buffer[bufferIdx++] = pixel[1];
-                        buffer[bufferIdx++] = pixel[2];
+                        pixel.AsSpan().CopyTo(buffer.Slice(bufferIdx));
+                        bufferIdx += 3;
                     }
                 }
             }
@@ -277,6 +269,64 @@ namespace SixLabors.ImageSharp.Formats.Tga
                         row.GetSpan(),
                         pixelSpan,
                         this.fileHeader.Width);
+                }
+            }
+        }
+
+        private void ReadRle32<TPixel>(Buffer2D<TPixel> pixels, int width, int height)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel color = default;
+            using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * 4, AllocationOptions.Clean))
+            {
+                Span<byte> bufferSpan = buffer.GetSpan();
+                this.UncompressRle32(width, height, bufferSpan);
+                for (int y = 0; y < height; y++)
+                {
+                    Span<TPixel> pixelRow = pixels.GetRowSpan(this.fileHeader.Height - y - 1);
+                    for (int x = 0; x < width; x++)
+                    {
+                        int idx = (y * width * 4) + (x * 4);
+                        color.FromBgra32(Unsafe.As<byte, Bgra32>(ref bufferSpan[idx]));
+                        pixelRow[x] = color;
+                    }
+                }
+            }
+        }
+
+        private void UncompressRle32(int width, int height, Span<byte> buffer)
+        {
+            int uncompressedPixels = 0;
+            var pixel = new byte[4];
+            int totalPixels = width * height;
+            while (uncompressedPixels < totalPixels)
+            {
+                byte runLengthByte = (byte)this.currentStream.ReadByte();
+
+                // The high bit of a run length packet is set to 1.
+                int highBit = runLengthByte >> 7;
+                if (highBit == 1)
+                {
+                    int runLength = runLengthByte & 127;
+                    this.currentStream.Read(pixel, 0, 4);
+                    int bufferIdx = uncompressedPixels * 4;
+                    for (int i = 0; i < runLength + 1; i++, uncompressedPixels++)
+                    {
+                        pixel.AsSpan().CopyTo(buffer.Slice(bufferIdx));
+                        bufferIdx += 4;
+                    }
+                }
+                else
+                {
+                    // Non-run-length encoded packet.
+                    int runLength = runLengthByte;
+                    int bufferIdx = uncompressedPixels * 4;
+                    for (int i = 0; i < runLength + 1; i++, uncompressedPixels++)
+                    {
+                        this.currentStream.Read(pixel, 0, 4);
+                        pixel.AsSpan().CopyTo(buffer.Slice(bufferIdx));
+                        bufferIdx += 4;
+                    }
                 }
             }
         }

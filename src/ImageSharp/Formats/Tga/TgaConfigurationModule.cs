@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <inheritdoc/>
         public void Configure(Configuration configuration)
         {
+            configuration.ImageFormatsManager.SetEncoder(TgaFormat.Instance, new TgaEncoder());
             configuration.ImageFormatsManager.SetDecoder(TgaFormat.Instance, new TgaDecoder());
             configuration.ImageFormatsManager.AddImageFormatDetector(new TgaImageFormatDetector());
         }

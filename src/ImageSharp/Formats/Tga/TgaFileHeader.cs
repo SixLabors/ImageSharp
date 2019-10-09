@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Tga
@@ -134,6 +135,13 @@ namespace SixLabors.ImageSharp.Formats.Tga
         public static TgaFileHeader Parse(Span<byte> data)
         {
             return MemoryMarshal.Cast<byte, TgaFileHeader>(data)[0];
+        }
+
+        public void WriteTo(Span<byte> buffer)
+        {
+            ref TgaFileHeader dest = ref Unsafe.As<byte, TgaFileHeader>(ref MemoryMarshal.GetReference(buffer));
+
+            dest = this;
         }
     }
 }

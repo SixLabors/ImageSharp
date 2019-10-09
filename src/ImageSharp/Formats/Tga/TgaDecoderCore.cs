@@ -21,6 +21,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private ImageMetadata metadata;
 
         /// <summary>
+        /// The tga specific metadata.
+        /// </summary>
+        private TgaMetadata tgaMetadata;
+
+        /// <summary>
         /// The file header containing general information about the image.
         /// </summary>
         private TgaFileHeader fileHeader;
@@ -342,9 +347,9 @@ namespace SixLabors.ImageSharp.Formats.Tga
 #endif
             this.currentStream.Read(buffer, 0, TgaFileHeader.Size);
             this.fileHeader = TgaFileHeader.Parse(buffer);
-
-            // TODO: no meta data yet.
             this.metadata = new ImageMetadata();
+            this.tgaMetadata = this.metadata.GetFormatMetadata(TgaFormat.Instance);
+            this.tgaMetadata.BitsPerPixel = (TgaBitsPerPixel)this.fileHeader.PixelDepth;
         }
     }
 }

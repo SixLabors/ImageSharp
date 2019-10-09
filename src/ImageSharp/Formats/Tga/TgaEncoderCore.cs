@@ -96,13 +96,73 @@ namespace SixLabors.ImageSharp.Formats.Tga
             Buffer2D<TPixel> pixels = image.PixelBuffer;
             switch (this.bitsPerPixel)
             {
+                case TgaBitsPerPixel.Pixel8:
+                    this.Write8Bit(stream, pixels);
+                    break;
+
+                case TgaBitsPerPixel.Pixel16:
+                    this.Write16Bit(stream, pixels);
+                    break;
+
                 case TgaBitsPerPixel.Pixel24:
                     this.Write24Bit(stream, pixels);
+                    break;
+
+                case TgaBitsPerPixel.Pixel32:
+                    this.Write32Bit(stream, pixels);
                     break;
             }
         }
 
         private IManagedByteBuffer AllocateRow(int width, int bytesPerPixel) => this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, 0);
+
+        /// <summary>
+        /// Writes the 8bit pixels uncompressed to the stream.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
+        private void Write8Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 1))
+            {
+                for (int y = pixels.Height - 1; y >= 0; y--)
+                {
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                    PixelOperations<TPixel>.Instance.ToGray8Bytes(
+                        this.configuration,
+                        pixelSpan,
+                        row.GetSpan(),
+                        pixelSpan.Length);
+                    stream.Write(row.Array, 0, row.Length());
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes the 16bit pixels uncompressed to the stream.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
+        private void Write16Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 2))
+            {
+                for (int y = pixels.Height - 1; y >= 0; y--)
+                {
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                    PixelOperations<TPixel>.Instance.ToBgra5551Bytes(
+                        this.configuration,
+                        pixelSpan,
+                        row.GetSpan(),
+                        pixelSpan.Length);
+                    stream.Write(row.Array, 0, row.Length());
+                }
+            }
+        }
 
         /// <summary>
         /// Writes the 24bit pixels uncompressed to the stream.
@@ -119,6 +179,30 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 {
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
                     PixelOperations<TPixel>.Instance.ToBgr24Bytes(
+                        this.configuration,
+                        pixelSpan,
+                        row.GetSpan(),
+                        pixelSpan.Length);
+                    stream.Write(row.Array, 0, row.Length());
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes the 32bit pixels uncompressed to the stream.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
+        private void Write32Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 4))
+            {
+                for (int y = pixels.Height - 1; y >= 0; y--)
+                {
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                    PixelOperations<TPixel>.Instance.ToBgra32Bytes(
                         this.configuration,
                         pixelSpan,
                         row.GetSpan(),

@@ -72,8 +72,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             try
             {
                 this.ReadFileHeader(stream);
-
-                // TODO: parse ID
+                this.currentStream.Skip(this.fileHeader.IdLength);
 
                 // Parse the color map, if present.
                 if (this.fileHeader.ColorMapType != 0 && this.fileHeader.ColorMapType != 1)
@@ -81,9 +80,12 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     TgaThrowHelper.ThrowNotSupportedException($"Unknown tga colormap type {this.fileHeader.ColorMapType} found");
                 }
 
+                var image = new Image<TPixel>(this.configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
+                Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
+
                 byte[] palette = null;
                 int colorMapPixelSizeInBytes = 0;
-                if (this.fileHeader.ColorMapType == 1)
+                if (this.fileHeader.ColorMapType is 1)
                 {
                     if (this.fileHeader.CMapLength <= 0)
                     {
@@ -98,19 +100,16 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     colorMapPixelSizeInBytes = this.fileHeader.CMapDepth / 8;
                     palette = new byte[this.fileHeader.CMapLength * colorMapPixelSizeInBytes];
                     this.currentStream.Read(palette, this.fileHeader.CMapStart, palette.Length);
-                }
 
-                var image = new Image<TPixel>(this.configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
-                Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
-
-                if (this.fileHeader.ImageType == TgaImageType.ColorMapped)
-                {
-                    if (palette is null)
+                    if (this.fileHeader.ImageType is TgaImageType.RleColorMapped)
                     {
-                        TgaThrowHelper.ThrowImageFormatException("Tga image is missing a color palette");
+                        this.ReadPalettedRle(this.fileHeader.Width, this.fileHeader.Height, pixels, palette, colorMapPixelSizeInBytes);
+                    }
+                    else
+                    {
+                        this.ReadPaletted(this.fileHeader.Width, this.fileHeader.Height, pixels, palette, colorMapPixelSizeInBytes);
                     }
 
-                    this.ReadPaletted(this.fileHeader.Width, this.fileHeader.Height, pixels, palette, colorMapPixelSizeInBytes);
                     return image;
                 }
 
@@ -128,6 +127,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
 
                         break;
 
+                    case 15:
                     case 16:
                         if (this.fileHeader.ImageType.IsRunLengthEncoded())
                         {
@@ -178,7 +178,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
-        private void ReadPaletted<TPixel>(int width, int height, Buffer2D<TPixel> pixels, byte[] palette, int pixelSizeInBytes)
+        private void ReadPaletted<TPixel>(int width, int height, Buffer2D<TPixel> pixels, byte[] palette, int colorMapPixelSizeInBytes)
             where TPixel : struct, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.memoryAllocator.AllocateManagedByteBuffer(width, AllocationOptions.Clean))
@@ -190,23 +190,13 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 {
                     this.currentStream.Read(row);
                     Span<TPixel> pixelRow = pixels.GetRowSpan(height - y - 1);
-                    switch (pixelSizeInBytes)
+                    switch (colorMapPixelSizeInBytes)
                     {
-                        case 1:
-                            for (int x = 0; x < width; x++)
-                            {
-                                int colorIndex = rowSpan[x];
-                                color.FromGray8(Unsafe.As<byte, Gray8>(ref palette[colorIndex]));
-                                pixelRow[x] = color;
-                            }
-
-                            break;
-
                         case 2:
                             for (int x = 0; x < width; x++)
                             {
                                 int colorIndex = rowSpan[x];
-                                color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref palette[colorIndex * pixelSizeInBytes]));
+                                color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref palette[colorIndex * colorMapPixelSizeInBytes]));
                                 pixelRow[x] = color;
                             }
 
@@ -216,7 +206,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                             for (int x = 0; x < width; x++)
                             {
                                 int colorIndex = rowSpan[x];
-                                color.FromBgr24(Unsafe.As<byte, Bgr24>(ref palette[colorIndex * pixelSizeInBytes]));
+                                color.FromBgr24(Unsafe.As<byte, Bgr24>(ref palette[colorIndex * colorMapPixelSizeInBytes]));
                                 pixelRow[x] = color;
                             }
 
@@ -226,11 +216,50 @@ namespace SixLabors.ImageSharp.Formats.Tga
                             for (int x = 0; x < width; x++)
                             {
                                 int colorIndex = rowSpan[x];
-                                color.FromBgra32(Unsafe.As<byte, Bgra32>(ref palette[colorIndex * pixelSizeInBytes]));
+                                color.FromBgra32(Unsafe.As<byte, Bgra32>(ref palette[colorIndex * colorMapPixelSizeInBytes]));
                                 pixelRow[x] = color;
                             }
 
                             break;
+                    }
+                }
+            }
+        }
+
+        private void ReadPalettedRle<TPixel>(int width, int height, Buffer2D<TPixel> pixels, byte[] palette, int colorMapPixelSizeInBytes)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            int bytesPerPixel = 1;
+            using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * bytesPerPixel, AllocationOptions.Clean))
+            {
+                TPixel color = default;
+                Span<byte> bufferSpan = buffer.GetSpan();
+                this.UncompressRle(width, height, bufferSpan, bytesPerPixel: 1);
+
+                for (int y = 0; y < height; y++)
+                {
+                    Span<TPixel> pixelRow = pixels.GetRowSpan(this.fileHeader.Height - y - 1);
+                    int rowStartIdx = y * width * bytesPerPixel;
+                    for (int x = 0; x < width; x++)
+                    {
+                        int idx = rowStartIdx + x;
+                        switch (colorMapPixelSizeInBytes)
+                        {
+                            case 1:
+                                color.FromGray8(Unsafe.As<byte, Gray8>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
+                                break;
+                            case 2:
+                                color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
+                                break;
+                            case 3:
+                                color.FromBgr24(Unsafe.As<byte, Bgr24>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
+                                break;
+                            case 4:
+                                color.FromBgra32(Unsafe.As<byte, Bgra32>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
+                                break;
+                        }
+
+                        pixelRow[x] = color;
                     }
                 }
             }
@@ -335,6 +364,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                                 color.FromGray8(Unsafe.As<byte, Gray8>(ref bufferSpan[idx]));
                                 break;
                             case 2:
+                                // Set bit 16 to 1, to treat it as opaque for Bgra5551.
                                 bufferSpan[idx + 1] = (byte)(bufferSpan[idx + 1] | 128);
                                 color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref bufferSpan[idx]));
                                 break;

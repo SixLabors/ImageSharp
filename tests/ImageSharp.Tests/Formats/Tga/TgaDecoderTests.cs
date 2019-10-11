@@ -32,8 +32,44 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         }
 
         [Theory]
+        [WithFile(Bit15, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_Uncompressed_15Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            {
+                image.DebugSave(provider);
+                CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit15Rle, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_RunLengthEncoded_15Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            {
+                image.DebugSave(provider);
+                CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
         [WithFile(Bit16, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_Uncompressed_16Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            {
+                image.DebugSave(provider);
+                CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit16PalRle, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_RunLengthEncoded_WithPalette_16Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
@@ -106,6 +142,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Bit32Rle, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_RunLenghtEncoded_32Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            {
+                image.DebugSave(provider);
+                CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit16Pal, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_WithPalette_16Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            {
+                image.DebugSave(provider);
+                CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit24Pal, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_WithPalette_24Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))

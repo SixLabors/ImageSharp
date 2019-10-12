@@ -1,0 +1,27 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+namespace SixLabors.ImageSharp.Formats.WebP
+{
+    internal class WebPImageInfo
+    {
+        /// <summary>
+        /// Gets or sets the bitmap width in pixels (signed integer).
+        /// </summary>
+        public int Width { get; set; }
+
+        /// <summary>
+        /// Gets or sets the bitmap height in pixels (signed integer).
+        /// </summary>
+        public int Height { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether this image uses a looseless compression.
+        /// </summary>
+        public bool IsLooseLess { get; set; }
+
+        public int Version { get; set; }
+
+        public uint DataSize { get; set; }
+    }
+}

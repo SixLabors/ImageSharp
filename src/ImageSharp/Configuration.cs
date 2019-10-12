@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.WebP;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.Memory;
@@ -158,7 +159,8 @@ namespace SixLabors.ImageSharp
                 new PngConfigurationModule(),
                 new JpegConfigurationModule(),
                 new GifConfigurationModule(),
-                new BmpConfigurationModule());
+                new BmpConfigurationModule(),
+                new WebPConfigurationModule());
         }
     }
 }

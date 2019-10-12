@@ -15,6 +15,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
+            // TODO: [brianpopow] parse chunks and decide which decoder (subclass of WebPDecoderCoreBase) to use
             throw new System.NotImplementedException();
         }
 

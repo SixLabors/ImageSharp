@@ -43,6 +43,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private Stream currentStream;
 
         /// <summary>
+        /// The metadata.
+        /// </summary>
+        private ImageMetadata metadata;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="WebPDecoderCore"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
@@ -61,17 +66,60 @@ namespace SixLabors.ImageSharp.Formats.WebP
             WebPMetadata webpMetadata = metadata.GetFormatMetadata(WebPFormat.Instance);
             this.currentStream = stream;
 
+            uint chunkSize = this.ReadImageHeader();
+            WebPImageInfo imageInfo = this.ReadVp8Info();
+            // TODO: there can be optional chunks after that, like EXIF.
+
+            var image = new Image<TPixel>(this.configuration, imageInfo.Width, imageInfo.Height, this.metadata);
+            Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
+            if (imageInfo.IsLooseLess)
+            {
+                ReadSimpleLossless(pixels, image.Width, image.Height);
+            }
+            else
+            {
+                ReadSimpleLossy(pixels, image.Width, image.Height);
+            }
+
+            return image;
+        }
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream.
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        public IImageInfo Identify(Stream stream)
+        {
+            var metadata = new ImageMetadata();
+            WebPMetadata webpMetadata = metadata.GetFormatMetadata(WebPFormat.Instance);
+            this.currentStream = stream;
+
+            this.ReadImageHeader();
+            WebPImageInfo imageInfo = this.ReadVp8Info();
+
+            // TODO: not sure yet where to get this info. Assuming 24 bits for now.
+            int bitsPerPixel = 24;
+            return new ImageInfo(new PixelTypeInfo(bitsPerPixel), imageInfo.Width, imageInfo.Height, this.metadata);
+        }
+
+        private uint ReadImageHeader()
+        {
             // Skip FourCC header, we already know its a RIFF file at this point.
             this.currentStream.Skip(4);
 
             // Read Chunk size.
             this.currentStream.Read(this.buffer, 0, 4);
-            uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(buffer);
+            uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
 
             // Skip 'WEBP' from the header.
             this.currentStream.Skip(4);
 
-            // Read VP8 header.
+            return chunkSize;
+        }
+
+        private WebPImageInfo ReadVp8Info()
+        {
+            // Read VP8 chunk header.
             this.currentStream.Read(this.buffer, 0, 4);
             if (this.buffer.AsSpan().SequenceEqual(WebPConstants.AlphaHeader))
             {
@@ -83,7 +131,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 WebPThrowHelper.ThrowImageFormatException("Vp8X is not yet supported");
             }
 
-            if (!(this.buffer.AsSpan().SequenceEqual(WebPConstants.Vp8Header) || this.buffer.AsSpan().SequenceEqual(WebPConstants.Vp8LHeader)))
+            if (!(this.buffer.AsSpan().SequenceEqual(WebPConstants.Vp8Header)
+                  || this.buffer.AsSpan().SequenceEqual(WebPConstants.Vp8LHeader)))
             {
                 WebPThrowHelper.ThrowImageFormatException("Unrecognized VP8 header");
             }
@@ -96,35 +145,25 @@ namespace SixLabors.ImageSharp.Formats.WebP
             uint dataSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
 
             // https://tools.ietf.org/html/rfc6386#page-30
-            byte[] c = new byte[11];
-            this.currentStream.Read(c, 0, c.Length);
-            int tmp = (c[2] << 16) | (c[1] << 8) | c[0];
+            var imageInfo = new byte[11];
+            this.currentStream.Read(imageInfo, 0, imageInfo.Length);
+            int tmp = (imageInfo[2] << 16) | (imageInfo[1] << 8) | imageInfo[0];
             int isKeyFrame = tmp & 0x1;
             int version = (tmp >> 1) & 0x7;
             int showFrame = (tmp >> 4) & 0x1;
+
             // TODO: Get horizontal and vertical scale
-            int width = BinaryPrimitives.ReadInt16LittleEndian(c.AsSpan(7)) & 0x3fff;
-            int height = BinaryPrimitives.ReadInt16LittleEndian(c.AsSpan(9)) & 0x3fff;
+            int width = BinaryPrimitives.ReadInt16LittleEndian(imageInfo.AsSpan(7)) & 0x3fff;
+            int height = BinaryPrimitives.ReadInt16LittleEndian(imageInfo.AsSpan(9)) & 0x3fff;
 
-            // TODO: DO something with the data
-
-            // var image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height, this.metadata);
-
-            // TODO: there can be optional chunks after that, like EXIF.
-
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Reads the raw image information from the specified stream.
-        /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        public IImageInfo Identify(Stream stream)
-        {
-            throw new NotImplementedException();
-
-            //this.ReadImageHeaders(stream, out _, out _);
-            //return new ImageInfo(new PixelTypeInfo(this.infoHeader.BitsPerPixel), this.infoHeader.Width, this.infoHeader.Height, this.metadata);
+            return new WebPImageInfo()
+            {
+                Width = width,
+                Height = height,
+                IsLooseLess = isLossLess,
+                Version = version,
+                DataSize = dataSize
+            };
         }
 
         private void ReadSimpleLossy<TPixel>(Buffer2D<TPixel> pixels, int width, int height)

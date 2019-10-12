@@ -356,6 +356,35 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Benchmarks", "te
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Sandbox46", "tests\ImageSharp.Sandbox46\ImageSharp.Sandbox46.csproj", "{561B880A-D9EE-44EF-90F5-817C54A9D9AB}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Webp", "Webp", "{7BEE9435-1833-4686-8B36-C4EE2F13D908}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lossy", "Lossy", "{41D10A70-59CE-4634-9145-CE9B60050371}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Images\Input\WebP\Lossy\1.webp = tests\Images\Input\WebP\Lossy\1.webp
+		tests\Images\Input\WebP\Lossy\2.webp = tests\Images\Input\WebP\Lossy\2.webp
+		tests\Images\Input\WebP\Lossy\3.webp = tests\Images\Input\WebP\Lossy\3.webp
+		tests\Images\Input\WebP\Lossy\4.webp = tests\Images\Input\WebP\Lossy\4.webp
+		tests\Images\Input\WebP\Lossy\5.webp = tests\Images\Input\WebP\Lossy\5.webp
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lossless", "Lossless", "{F19E6F18-4102-4134-8A96-FEC2AB67F794}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Images\Input\WebP\Lossless\1_webp_ll.webp = tests\Images\Input\WebP\Lossless\1_webp_ll.webp
+		tests\Images\Input\WebP\Lossless\2_webp_ll.webp = tests\Images\Input\WebP\Lossless\2_webp_ll.webp
+		tests\Images\Input\WebP\Lossless\3_webp_ll.webp = tests\Images\Input\WebP\Lossless\3_webp_ll.webp
+		tests\Images\Input\WebP\Lossless\4_webp_ll.webp = tests\Images\Input\WebP\Lossless\4_webp_ll.webp
+		tests\Images\Input\WebP\Lossless\5_webp_ll.webp = tests\Images\Input\WebP\Lossless\5_webp_ll.webp
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Alpha", "Alpha", "{E6B81E19-B27F-4656-9169-4B8415D064A2}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Images\Input\WebP\Lossy\Alpha\1_webp_a.webp = tests\Images\Input\WebP\Lossy\Alpha\1_webp_a.webp
+		tests\Images\Input\WebP\Lossy\Alpha\2_webp_a.webp = tests\Images\Input\WebP\Lossy\Alpha\2_webp_a.webp
+		tests\Images\Input\WebP\Lossy\Alpha\3_webp_a.webp = tests\Images\Input\WebP\Lossy\Alpha\3_webp_a.webp
+		tests\Images\Input\WebP\Lossy\Alpha\4_webp_a.webp = tests\Images\Input\WebP\Lossy\Alpha\4_webp_a.webp
+		tests\Images\Input\WebP\Lossy\Alpha\5_webp_a.webp = tests\Images\Input\WebP\Lossy\Alpha\5_webp_a.webp
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -453,6 +482,10 @@ Global
 		{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{2BF743D8-2A06-412D-96D7-F448F00C5EA5} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{561B880A-D9EE-44EF-90F5-817C54A9D9AB} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
+		{7BEE9435-1833-4686-8B36-C4EE2F13D908} = {9DA226A1-8656-49A8-A58A-A8B5C081AD66}
+		{41D10A70-59CE-4634-9145-CE9B60050371} = {7BEE9435-1833-4686-8B36-C4EE2F13D908}
+		{F19E6F18-4102-4134-8A96-FEC2AB67F794} = {7BEE9435-1833-4686-8B36-C4EE2F13D908}
+		{E6B81E19-B27F-4656-9169-4B8415D064A2} = {41D10A70-59CE-4634-9145-CE9B60050371}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5F8B9D1F-CD8B-4CC5-8216-D531E25BD795}

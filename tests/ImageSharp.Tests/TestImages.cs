@@ -373,6 +373,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string Bit16 = "Tga/targa_16bit.tga";
             public const string Bit16PalRle = "Tga/ccm8.tga";
             public const string Bit24 = "Tga/targa_24bit.tga";
+            public const string Bit24TopLeft = "Tga/targa_24bit_origin_topleft.tga";
+            public const string Bit24RleTopLeft = "Tga/targa_24bit_rle_origin_topleft.tga";
             public const string Bit32 = "Tga/targa_32bit.tga";
             public const string Grey = "Tga/targa_8bit.tga";
             public const string GreyRle = "Tga/targa_8bit_rle.tga";

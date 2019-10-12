@@ -6,7 +6,7 @@ using System;
 namespace SixLabors.ImageSharp.Formats.WebP
 {
     /// <summary>
-    /// Detects WebP file headers
+    /// Detects WebP file headers.
     /// </summary>
     public sealed class WebPImageFormatDetector : IImageFormatDetector
     {
@@ -26,20 +26,24 @@ namespace SixLabors.ImageSharp.Formats.WebP
                    this.IsWebPFile(header);
         }
 
+        /// <summary>
+        /// Checks, if the header starts with a valid RIFF FourCC.
+        /// </summary>
+        /// <param name="header">The header bytes.</param>
+        /// <returns>True, if its a valid RIFF FourCC.</returns>
         private bool IsRiffContainer(ReadOnlySpan<byte> header)
         {
-            return header[0] == 0x52 && // R
-                   header[1] == 0x49 && // I
-                   header[2] == 0x46 && // F
-                   header[3] == 0x46; // F
+            return header.Slice(0, 4).SequenceEqual(WebPConstants.FourCcBytes);
         }
 
+        /// <summary>
+        /// Checks if 'WEBP' is present in the header.
+        /// </summary>
+        /// <param name="header">The header bytes.</param>
+        /// <returns>True, if its a webp file.</returns>
         private bool IsWebPFile(ReadOnlySpan<byte> header)
         {
-            return header[8] == 0x57 && // W
-                   header[9] == 0x45 && // E
-                   header[10] == 0x42 && // B
-                   header[11] == 0x50; // P
+            return header.Slice(8, 4).SequenceEqual(WebPConstants.WebPHeader);
         }
     }
 }

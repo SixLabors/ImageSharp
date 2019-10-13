@@ -33,6 +33,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private TgaBitsPerPixel? bitsPerPixel;
 
         /// <summary>
+        /// Indicates if run length compression should be used.
+        /// </summary>
+        private readonly bool useCompression;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="TgaEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The encoder options.</param>
@@ -41,6 +46,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         {
             this.memoryAllocator = memoryAllocator;
             this.bitsPerPixel = options.BitsPerPixel;
+            this.useCompression = options.Compress;
         }
 
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
@@ -54,10 +60,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
             TgaMetadata tgaMetadata = metadata.GetFormatMetadata(TgaFormat.Instance);
             this.bitsPerPixel = this.bitsPerPixel ?? tgaMetadata.BitsPerPixel;
 
+            TgaImageType imageType = this.useCompression ? TgaImageType.RleTrueColor : TgaImageType.TrueColor;
             var fileHeader = new TgaFileHeader(
                 idLength: 0,
                 colorMapType: 0,
-                imageType: TgaImageType.TrueColor,
+                imageType: imageType,
                 cMapStart: 0,
                 cMapLength: 0,
                 cMapDepth: 0,
@@ -77,7 +84,14 @@ namespace SixLabors.ImageSharp.Formats.Tga
 
             stream.Write(buffer, 0, TgaFileHeader.Size);
 
-            this.WriteImage(stream, image.Frames.RootFrame);
+            if (this.useCompression)
+            {
+                this.WriteRunLengthEndcodedImage(stream, image.Frames.RootFrame);
+            }
+            else
+            {
+                this.WriteImage(stream, image.Frames.RootFrame);
+            }
 
             stream.Flush();
         }
@@ -112,6 +126,51 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     this.Write32Bit(stream, pixels);
                     break;
             }
+        }
+
+        private void WriteRunLengthEndcodedImage<TPixel>(Stream stream, ImageFrame<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Rgba32 color = default;
+            Buffer2D<TPixel> pixels = image.PixelBuffer;
+            Span<TPixel> pixelSpan = pixels.Span;
+            int totalPixels = image.Width * image.Height;
+            int encodedPixels = 0;
+            while (encodedPixels < totalPixels)
+            {
+                TPixel currentPixel = pixelSpan[encodedPixels];
+                currentPixel.ToRgba32(ref color);
+                byte equalPixelCount = this.FindEqualPixels(pixelSpan.Slice(encodedPixels));
+                stream.WriteByte((byte)(equalPixelCount | 128));
+                stream.WriteByte(color.B);
+                stream.WriteByte(color.G);
+                stream.WriteByte(color.R);
+                encodedPixels += equalPixelCount + 1;
+            }
+        }
+
+        private byte FindEqualPixels<TPixel>(Span<TPixel> pixelSpan)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            int idx = 0;
+            byte equalPixelCount = 0;
+            while (equalPixelCount < 127 && idx < pixelSpan.Length - 1)
+            {
+                TPixel currentPixel = pixelSpan[idx];
+                TPixel nextPixel = pixelSpan[idx + 1];
+                if (currentPixel.Equals(nextPixel))
+                {
+                    equalPixelCount++;
+                }
+                else
+                {
+                    return equalPixelCount;
+                }
+
+                idx++;
+            }
+
+            return equalPixelCount;
         }
 
         private IManagedByteBuffer AllocateRow(int width, int bytesPerPixel) => this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, 0);

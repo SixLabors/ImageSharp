@@ -590,7 +590,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
             this.tgaMetadata = this.metadata.GetFormatMetadata(TgaFormat.Instance);
             this.tgaMetadata.BitsPerPixel = (TgaBitsPerPixel)this.fileHeader.PixelDepth;
 
-            if (this.fileHeader.YOffset > 0)
+            // Bit at position 3 of the descriptor indicates, that the origin is top left instead of bottom right.
+            if ((this.fileHeader.ImageDescriptor & (1 << 5)) != 0)
             {
                 return true;
             }

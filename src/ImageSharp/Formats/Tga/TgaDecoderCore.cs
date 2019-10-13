@@ -50,6 +50,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// </summary>
         private readonly ITgaDecoderOptions options;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TgaDecoderCore"/> class.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="options">The options.</param>
         public TgaDecoderCore(Configuration configuration, ITgaDecoderOptions options)
         {
             this.configuration = configuration;
@@ -183,6 +188,16 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
+        /// <summary>
+        /// Reads a uncompressed TGA image with a palette.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type.</typeparam>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
+        /// <param name="palette">The color palette.</param>
+        /// <param name="colorMapPixelSizeInBytes">Color map size of one entry in bytes.</param>
+        /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
         private void ReadPaletted<TPixel>(int width, int height, Buffer2D<TPixel> pixels, byte[] palette, int colorMapPixelSizeInBytes, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -236,6 +251,16 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
+        /// <summary>
+        /// Reads a run length encoded TGA image with a palette.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type.</typeparam>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
+        /// <param name="palette">The color palette.</param>
+        /// <param name="colorMapPixelSizeInBytes">Color map size of one entry in bytes.</param>
+        /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
         private void ReadPalettedRle<TPixel>(int width, int height, Buffer2D<TPixel> pixels, byte[] palette, int colorMapPixelSizeInBytes, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -279,6 +304,14 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
+        /// <summary>
+        /// Reads a uncompressed monochrome TGA image.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type.</typeparam>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
+        /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
         private void ReadMonoChrome<TPixel>(int width, int height, Buffer2D<TPixel> pixels, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -298,6 +331,14 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
+        /// <summary>
+        /// Reads a uncompressed TGA image where each pixels has 16 bit.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type.</typeparam>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
+        /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
         private void ReadBgra16<TPixel>(int width, int height, Buffer2D<TPixel> pixels, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -323,6 +364,14 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
+        /// <summary>
+        /// Reads a uncompressed TGA image where each pixels has 24 bit.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type.</typeparam>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
+        /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
         private void ReadBgr24<TPixel>(int width, int height, Buffer2D<TPixel> pixels, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -342,6 +391,14 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
+        /// <summary>
+        /// Reads a uncompressed TGA image where each pixels has 32 bit.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type.</typeparam>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
+        /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
         private void ReadBgra32<TPixel>(int width, int height, Buffer2D<TPixel> pixels, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -361,6 +418,15 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
+        /// <summary>
+        /// Reads a run length encoded TGA image.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type.</typeparam>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
+        /// <param name="bytesPerPixel">The bytes per pixel.</param>
+        /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
         private void ReadRle<TPixel>(int width, int height, Buffer2D<TPixel> pixels, int bytesPerPixel, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -415,6 +481,13 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 this.metadata);
         }
 
+        /// <summary>
+        /// Produce uncompressed tga data from a run length encoded stream.
+        /// </summary>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="buffer">Buffer for uncompressed data.</param>
+        /// <param name="bytesPerPixel">The bytes used per pixel.</param>
         private void UncompressRle(int width, int height, Span<byte> buffer, int bytesPerPixel)
         {
             int uncompressedPixels = 0;
@@ -452,6 +525,16 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
+        /// <summary>
+        /// Helper method for decoding BGRA5551 images. Makes the pixels opaque, because the high bit does not
+        /// represent an alpha channel.
+        /// TODO: maybe there is a better/faster way to achieve this.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type.</typeparam>
+        /// <param name="pixels">The destination pixel buffer.</param>
+        /// <param name="currentPosition">The start position of pixel data.</param>
+        /// <param name="row">A byte array to store the read pixel data.</param>
+        /// <param name="bgraRowSpan">Bgra pixel row span.</param>
         private void MakeOpaque<TPixel>(Buffer2D<TPixel> pixels, long currentPosition, IManagedByteBuffer row, Span<Bgra5551> bgraRowSpan)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -477,6 +560,13 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
+        /// <summary>
+        /// Returns the y- value based on the given height.
+        /// </summary>
+        /// <param name="y">The y- value representing the current row.</param>
+        /// <param name="height">The height of the bitmap.</param>
+        /// <param name="inverted">Whether the bitmap is inverted.</param>
+        /// <returns>The <see cref="int"/> representing the inverted value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Invert(int y, int height, bool inverted) => (!inverted) ? height - y - 1 : y;
 

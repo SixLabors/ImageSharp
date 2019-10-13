@@ -74,6 +74,9 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 imageType = this.useCompression ? TgaImageType.RleBlackAndWhite : TgaImageType.BlackAndWhite;
             }
 
+            // If compression is used, set byte 3 of the image descriptor to indicate an left top origin.
+            byte imageDescriptor = (byte)(this.useCompression ? 32 : 0);
+
             var fileHeader = new TgaFileHeader(
                 idLength: 0,
                 colorMapType: 0,
@@ -86,7 +89,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 width: (short)image.Width,
                 height: (short)image.Height,
                 pixelDepth: (byte)this.bitsPerPixel.Value,
-                imageDescriptor: 0);
+                imageDescriptor: (byte)(this.useCompression ? 32 : 0));
 
 #if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[TgaFileHeader.Size];
@@ -327,7 +330,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <summary>
         /// Convert the pixel values to grayscale using ITU-R Recommendation BT.709.
         /// </summary>
-        /// <param name="sourcePixel">The pixel to get the luminance from</param>
+        /// <param name="sourcePixel">The pixel to get the luminance from.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int GetLuminance<TPixel>(TPixel sourcePixel)
             where TPixel : struct, IPixel<TPixel>
@@ -339,7 +342,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <summary>
         /// Convert the pixel values to grayscale using ITU-R Recommendation BT.709.
         /// </summary>
-        /// <param name="vector">The vector to get the luminance from</param>
+        /// <param name="vector">The vector to get the luminance from.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int GetLuminance(ref Vector4 vector)
             => (int)MathF.Round(((.2126F * vector.X) + (.7152F * vector.Y) + (.0722F * vector.Y)) * (256 - 1));

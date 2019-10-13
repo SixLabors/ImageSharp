@@ -14,6 +14,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
 
     public class TgaEncoderTests
     {
+        public static readonly TheoryData<TgaBitsPerPixel> BitsPerPixel =
+            new TheoryData<TgaBitsPerPixel>
+            {
+                TgaBitsPerPixel.Pixel24,
+                TgaBitsPerPixel.Pixel32
+            };
+
         public static readonly TheoryData<string, TgaBitsPerPixel> TgaBitsPerPixelFiles =
             new TheoryData<string, TgaBitsPerPixel>
             {
@@ -65,6 +72,68 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
                     {
                         TgaMetadata meta = output.Metadata.GetFormatMetadata(TgaFormat.Instance);
                         Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
+                    }
+                }
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit32, PixelTypes.Rgba32)]
+        public void Encode_Bit8_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel8)
+            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel);
+
+        [Theory]
+        [WithFile(Bit32, PixelTypes.Rgba32)]
+        public void Encode_Bit16_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel16)
+            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel);
+
+        [Theory]
+        [WithFile(Bit32, PixelTypes.Rgba32)]
+        public void Encode_Bit24_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel24)
+            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel);
+
+        [Theory]
+        [WithFile(Bit32, PixelTypes.Rgba32)]
+        public void Encode_Bit32_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel32)
+            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel);
+
+        [Theory]
+        [WithFile(Bit32, PixelTypes.Rgba32)]
+        public void Encode_Bit8_WithRunLengthEncoding_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel8)
+            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, true);
+
+        [Theory]
+        [WithFile(Bit32, PixelTypes.Rgba32)]
+        public void Encode_Bit16_WithRunLengthEncoding_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel16)
+            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, true);
+
+        [Theory]
+        [WithFile(Bit32, PixelTypes.Rgba32)]
+        public void Encode_Bit24_WithRunLengthEncoding_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel24)
+            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, true);
+
+        [Theory]
+        [WithFile(Bit32, PixelTypes.Rgba32)]
+        public void Encode_Bit32_WithRunLengthEncoding_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel32)
+            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, true);
+
+        private static void TestTgaEncoderCore<TPixel>(
+            TestImageProvider<TPixel> provider,
+            TgaBitsPerPixel bitsPerPixel,
+            bool useCompression = false)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var encoder = new TgaEncoder { BitsPerPixel = bitsPerPixel, Compress = useCompression};
+
+                using (var memStream = new MemoryStream())
+                {
+                    image.Save(memStream, encoder);
+                    memStream.Position = 0;
+                    using (var encodedImage = (Image<TPixel>)Image.Load(memStream))
+                    {
+                        TgaTestUtils.CompareWithReferenceDecoder(provider, encodedImage);
                     }
                 }
             }

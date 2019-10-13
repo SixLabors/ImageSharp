@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 cMapLength: 0,
                 cMapDepth: 0,
                 xOffset: 0,
-                yOffset: 0,
+                yOffset: this.useCompression ? (short)image.Height : (short)0, // When run length encoding is used, the origin should be top left instead of the default bottom left.
                 width: (short)image.Width,
                 height: (short)image.Height,
                 pixelDepth: (byte)this.bitsPerPixel.Value,

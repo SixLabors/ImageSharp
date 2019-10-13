@@ -111,6 +111,13 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     return image;
                 }
 
+                // Even if the image type indicates it is not a paletted image, it can still contain a palette. Skip those bytes.
+                if (this.fileHeader.CMapLength > 0)
+                {
+                    int colorMapPixelSizeInBytes = this.fileHeader.CMapDepth / 8;
+                    this.currentStream.Skip(this.fileHeader.CMapLength * colorMapPixelSizeInBytes);
+                }
+
                 switch (this.fileHeader.PixelDepth)
                 {
                     case 8:

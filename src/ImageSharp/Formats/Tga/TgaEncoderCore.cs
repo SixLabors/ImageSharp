@@ -3,6 +3,8 @@
 
 using System;
 using System.IO;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
@@ -61,6 +63,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
             this.bitsPerPixel = this.bitsPerPixel ?? tgaMetadata.BitsPerPixel;
 
             TgaImageType imageType = this.useCompression ? TgaImageType.RleTrueColor : TgaImageType.TrueColor;
+            if (this.bitsPerPixel == TgaBitsPerPixel.Pixel8)
+            {
+                imageType = this.useCompression ? TgaImageType.RleBlackAndWhite : TgaImageType.BlackAndWhite;
+            }
+
             var fileHeader = new TgaFileHeader(
                 idLength: 0,
                 colorMapType: 0,
@@ -141,10 +148,38 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 TPixel currentPixel = pixelSpan[encodedPixels];
                 currentPixel.ToRgba32(ref color);
                 byte equalPixelCount = this.FindEqualPixels(pixelSpan.Slice(encodedPixels));
+
+                // Write the number of equal pixels, with the high bit set, indicating ist a compressed pixel run.
                 stream.WriteByte((byte)(equalPixelCount | 128));
-                stream.WriteByte(color.B);
-                stream.WriteByte(color.G);
-                stream.WriteByte(color.R);
+                switch (this.bitsPerPixel)
+                {
+                    case TgaBitsPerPixel.Pixel8:
+                        int luminance = GetLuminance(currentPixel);
+                        stream.WriteByte((byte)luminance);
+                        break;
+
+                    case TgaBitsPerPixel.Pixel16:
+                        // TODO: this seems to be wrong
+                        var bgra5551 = new Bgra5551(color.ToVector4());
+                        stream.WriteByte((byte)(bgra5551.PackedValue & 0xFF));
+                        stream.WriteByte((byte)(bgra5551.PackedValue & 0xFF00));
+
+                        break;
+
+                    case TgaBitsPerPixel.Pixel24:
+                        stream.WriteByte(color.B);
+                        stream.WriteByte(color.G);
+                        stream.WriteByte(color.R);
+                        break;
+
+                    case TgaBitsPerPixel.Pixel32:
+                        stream.WriteByte(color.B);
+                        stream.WriteByte(color.G);
+                        stream.WriteByte(color.R);
+                        stream.WriteByte(color.A);
+                        break;
+                }
+
                 encodedPixels += equalPixelCount + 1;
             }
         }
@@ -270,5 +305,25 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 }
             }
         }
+
+        /// <summary>
+        /// Convert the pixel values to grayscale using ITU-R Recommendation BT.709.
+        /// </summary>
+        /// <param name="sourcePixel">The pixel to get the luminance from</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int GetLuminance<TPixel>(TPixel sourcePixel)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Vector4 vector = sourcePixel.ToVector4();
+            return GetLuminance(ref vector);
+        }
+
+        /// <summary>
+        /// Convert the pixel values to grayscale using ITU-R Recommendation BT.709.
+        /// </summary>
+        /// <param name="vector">The vector to get the luminance from</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int GetLuminance(ref Vector4 vector)
+            => (int)MathF.Round(((.2126F * vector.X) + (.7152F * vector.Y) + (.0722F * vector.Y)) * (256 - 1));
     }
 }

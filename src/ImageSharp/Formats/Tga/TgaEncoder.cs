@@ -8,12 +8,20 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tga
 {
+    /// <summary>
+    /// Image encoder for writing an image to a stream as a targa truevision image.
+    /// </summary>
     public sealed class TgaEncoder : IImageEncoder, ITgaEncoderOptions
     {
         /// <summary>
         /// Gets or sets the number of bits per pixel.
         /// </summary>
         public TgaBitsPerPixel? BitsPerPixel { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether run length compression should be used.
+        /// </summary>
+        public bool Compress { get; set; }
 
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)

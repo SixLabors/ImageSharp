@@ -12,5 +12,10 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// Gets the number of bits per pixel.
         /// </summary>
         TgaBitsPerPixel? BitsPerPixel { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether run length compression should be used.
+        /// </summary>
+        bool Compress { get; }
     }
 }

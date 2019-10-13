@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
 
         [Theory]
         [WithFile(Bit24TopLeft, PixelTypes.Rgba32)]
-        public void TgaDecoder_CanDecode_Uncompressed_WithTopLeftOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
+        public void TgaDecoder_CanDecode_Palette_WithTopLeftOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))

@@ -218,7 +218,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
                     {
                         image.DebugSave(provider);
-                        // TODO: compare to expected output
+                        image.CompareToOriginal(provider, ImageComparer.Exact);
                     }
                 });
             Assert.Null(ex);

@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         {
             try
             {
-                this.ReadFileHeader(stream);
+                bool inverted = this.ReadFileHeader(stream);
                 this.currentStream.Skip(this.fileHeader.IdLength);
 
                 // Parse the color map, if present.
@@ -83,8 +83,6 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 var image = new Image<TPixel>(this.configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
-                byte[] palette = null;
-                int colorMapPixelSizeInBytes = 0;
                 if (this.fileHeader.ColorMapType is 1)
                 {
                     if (this.fileHeader.CMapLength <= 0)
@@ -97,17 +95,17 @@ namespace SixLabors.ImageSharp.Formats.Tga
                         TgaThrowHelper.ThrowImageFormatException("Missing tga color map depth");
                     }
 
-                    colorMapPixelSizeInBytes = this.fileHeader.CMapDepth / 8;
-                    palette = new byte[this.fileHeader.CMapLength * colorMapPixelSizeInBytes];
+                    int colorMapPixelSizeInBytes = this.fileHeader.CMapDepth / 8;
+                    var palette = new byte[this.fileHeader.CMapLength * colorMapPixelSizeInBytes];
                     this.currentStream.Read(palette, this.fileHeader.CMapStart, palette.Length);
 
                     if (this.fileHeader.ImageType is TgaImageType.RleColorMapped)
                     {
-                        this.ReadPalettedRle(this.fileHeader.Width, this.fileHeader.Height, pixels, palette, colorMapPixelSizeInBytes);
+                        this.ReadPalettedRle(this.fileHeader.Width, this.fileHeader.Height, pixels, palette, colorMapPixelSizeInBytes, inverted);
                     }
                     else
                     {
-                        this.ReadPaletted(this.fileHeader.Width, this.fileHeader.Height, pixels, palette, colorMapPixelSizeInBytes);
+                        this.ReadPaletted(this.fileHeader.Width, this.fileHeader.Height, pixels, palette, colorMapPixelSizeInBytes, inverted);
                     }
 
                     return image;
@@ -118,11 +116,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     case 8:
                         if (this.fileHeader.ImageType.IsRunLengthEncoded())
                         {
-                            this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 1);
+                            this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 1, inverted);
                         }
                         else
                         {
-                            this.ReadMonoChrome(this.fileHeader.Width, this.fileHeader.Height, pixels);
+                            this.ReadMonoChrome(this.fileHeader.Width, this.fileHeader.Height, pixels, inverted);
                         }
 
                         break;
@@ -132,11 +130,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
                         if (this.fileHeader.ImageType.IsRunLengthEncoded())
                         {
                             long currentPosition = this.currentStream.Position;
-                            this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 2);
+                            this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 2, inverted);
                         }
                         else
                         {
-                            this.ReadBgra16(this.fileHeader.Width, this.fileHeader.Height, pixels);
+                            this.ReadBgra16(this.fileHeader.Width, this.fileHeader.Height, pixels, inverted);
                         }
 
                         break;
@@ -144,11 +142,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     case 24:
                         if (this.fileHeader.ImageType.IsRunLengthEncoded())
                         {
-                            this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 3);
+                            this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 3, inverted);
                         }
                         else
                         {
-                            this.ReadBgr24(this.fileHeader.Width, this.fileHeader.Height, pixels);
+                            this.ReadBgr24(this.fileHeader.Width, this.fileHeader.Height, pixels, inverted);
                         }
 
                         break;
@@ -156,11 +154,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     case 32:
                         if (this.fileHeader.ImageType.IsRunLengthEncoded())
                         {
-                            this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 4);
+                            this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 4, inverted);
                         }
                         else
                         {
-                            this.ReadBgra32(this.fileHeader.Width, this.fileHeader.Height, pixels);
+                            this.ReadBgra32(this.fileHeader.Width, this.fileHeader.Height, pixels, inverted);
                         }
 
                         break;
@@ -178,7 +176,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
-        private void ReadPaletted<TPixel>(int width, int height, Buffer2D<TPixel> pixels, byte[] palette, int colorMapPixelSizeInBytes)
+        private void ReadPaletted<TPixel>(int width, int height, Buffer2D<TPixel> pixels, byte[] palette, int colorMapPixelSizeInBytes, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.memoryAllocator.AllocateManagedByteBuffer(width, AllocationOptions.Clean))
@@ -189,7 +187,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 for (int y = 0; y < height; y++)
                 {
                     this.currentStream.Read(row);
-                    Span<TPixel> pixelRow = pixels.GetRowSpan(height - y - 1);
+                    int newY = Invert(y, height, inverted);
+                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
                     switch (colorMapPixelSizeInBytes)
                     {
                         case 2:
@@ -226,7 +225,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
-        private void ReadPalettedRle<TPixel>(int width, int height, Buffer2D<TPixel> pixels, byte[] palette, int colorMapPixelSizeInBytes)
+        private void ReadPalettedRle<TPixel>(int width, int height, Buffer2D<TPixel> pixels, byte[] palette, int colorMapPixelSizeInBytes, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
             int bytesPerPixel = 1;
@@ -238,7 +237,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
 
                 for (int y = 0; y < height; y++)
                 {
-                    Span<TPixel> pixelRow = pixels.GetRowSpan(this.fileHeader.Height - y - 1);
+                    int newY = Invert(y, height, inverted);
+                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
                     int rowStartIdx = y * width * bytesPerPixel;
                     for (int x = 0; x < width; x++)
                     {
@@ -265,7 +265,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
-        private void ReadMonoChrome<TPixel>(int width, int height, Buffer2D<TPixel> pixels)
+        private void ReadMonoChrome<TPixel>(int width, int height, Buffer2D<TPixel> pixels, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 1, 0))
@@ -273,7 +273,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 for (int y = 0; y < height; y++)
                 {
                     this.currentStream.Read(row);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(height - y - 1);
+                    int newY = Invert(y, height, inverted);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
                     PixelOperations<TPixel>.Instance.FromGray8Bytes(
                         this.configuration,
                         row.GetSpan(),
@@ -283,7 +284,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
-        private void ReadBgra16<TPixel>(int width, int height, Buffer2D<TPixel> pixels)
+        private void ReadBgra16<TPixel>(int width, int height, Buffer2D<TPixel> pixels, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 2, 0))
@@ -294,7 +295,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 for (int y = 0; y < this.fileHeader.Height; y++)
                 {
                     this.currentStream.Read(row);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(height - y - 1);
+                    int newY = Invert(y, height, inverted);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
                     PixelOperations<TPixel>.Instance.FromBgra5551Bytes(
                         this.configuration,
                         row.GetSpan(),
@@ -307,7 +309,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
-        private void ReadBgr24<TPixel>(int width, int height, Buffer2D<TPixel> pixels)
+        private void ReadBgr24<TPixel>(int width, int height, Buffer2D<TPixel> pixels, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 3, 0))
@@ -315,7 +317,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 for (int y = 0; y < height; y++)
                 {
                     this.currentStream.Read(row);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(height - y - 1);
+                    int newY = Invert(y, height, inverted);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
                     PixelOperations<TPixel>.Instance.FromBgr24Bytes(
                         this.configuration,
                         row.GetSpan(),
@@ -325,7 +328,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
-        private void ReadBgra32<TPixel>(int width, int height, Buffer2D<TPixel> pixels)
+        private void ReadBgra32<TPixel>(int width, int height, Buffer2D<TPixel> pixels, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, 0))
@@ -333,7 +336,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 for (int y = 0; y < height; y++)
                 {
                     this.currentStream.Read(row);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(height - y - 1);
+                    int newY = Invert(y, height, inverted);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
                     PixelOperations<TPixel>.Instance.FromBgra32Bytes(
                         this.configuration,
                         row.GetSpan(),
@@ -343,7 +347,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
-        private void ReadRle<TPixel>(int width, int height, Buffer2D<TPixel> pixels, int bytesPerPixel)
+        private void ReadRle<TPixel>(int width, int height, Buffer2D<TPixel> pixels, int bytesPerPixel, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel color = default;
@@ -353,7 +357,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 this.UncompressRle(width, height, bufferSpan, bytesPerPixel);
                 for (int y = 0; y < height; y++)
                 {
-                    Span<TPixel> pixelRow = pixels.GetRowSpan(this.fileHeader.Height - y - 1);
+                    int newY = Invert(y, height, inverted);
+                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
                     int rowStartIdx = y * width * bytesPerPixel;
                     for (int x = 0; x < width; x++)
                     {
@@ -380,6 +385,20 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream.
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        public IImageInfo Identify(Stream stream)
+        {
+            this.ReadFileHeader(stream);
+            return new ImageInfo(
+                new PixelTypeInfo(this.fileHeader.PixelDepth),
+                this.fileHeader.Width,
+                this.fileHeader.Height,
+                this.metadata);
         }
 
         private void UncompressRle(int width, int height, Span<byte> buffer, int bytesPerPixel)
@@ -444,25 +463,15 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
-        /// <summary>
-        /// Reads the raw image information from the specified stream.
-        /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        public IImageInfo Identify(Stream stream)
-        {
-            this.ReadFileHeader(stream);
-            return new ImageInfo(
-                new PixelTypeInfo(this.fileHeader.PixelDepth),
-                this.fileHeader.Width,
-                this.fileHeader.Height,
-                this.metadata);
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int Invert(int y, int height, bool inverted) => (!inverted) ? height - y - 1 : y;
 
         /// <summary>
         /// Reads the tga file header from the stream.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        private void ReadFileHeader(Stream stream)
+        /// <returns>true, if the image origin is top left.</returns>
+        private bool ReadFileHeader(Stream stream)
         {
             this.currentStream = stream;
 
@@ -476,6 +485,13 @@ namespace SixLabors.ImageSharp.Formats.Tga
             this.metadata = new ImageMetadata();
             this.tgaMetadata = this.metadata.GetFormatMetadata(TgaFormat.Instance);
             this.tgaMetadata.BitsPerPixel = (TgaBitsPerPixel)this.fileHeader.PixelDepth;
+
+            if (this.fileHeader.YOffset > 0)
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 }

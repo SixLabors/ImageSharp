@@ -195,7 +195,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
                             for (int x = 0; x < width; x++)
                             {
                                 int colorIndex = rowSpan[x];
-                                color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref palette[colorIndex * colorMapPixelSizeInBytes]));
+
+                                // Set bit 16 to 1, to treat it as opaque for Bgra5551.
+                                Bgra5551 bgra = Unsafe.As<byte, Bgra5551>(ref palette[colorIndex * colorMapPixelSizeInBytes]);
+                                bgra.PackedValue = (ushort)(bgra.PackedValue | 0x8000);
+                                color.FromBgra5551(bgra);
                                 pixelRow[x] = color;
                             }
 
@@ -249,7 +253,10 @@ namespace SixLabors.ImageSharp.Formats.Tga
                                 color.FromGray8(Unsafe.As<byte, Gray8>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
                                 break;
                             case 2:
-                                color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
+                                // Set bit 16 to 1, to treat it as opaque for Bgra5551.
+                                Bgra5551 bgra = Unsafe.As<byte, Bgra5551>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]);
+                                bgra.PackedValue = (ushort)(bgra.PackedValue | 0x8000);
+                                color.FromBgra5551(bgra);
                                 break;
                             case 3:
                                 color.FromBgr24(Unsafe.As<byte, Bgr24>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));

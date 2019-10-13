@@ -51,6 +51,12 @@ namespace SixLabors.ImageSharp.Formats.Tga
             this.useCompression = options.Compress;
         }
 
+        /// <summary>
+        /// Encodes the image to the specified stream from the <see cref="ImageFrame{TPixel}"/>.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
+        /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -135,6 +141,12 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
+        /// <summary>
+        /// Writes a run length encoded tga image to the stream.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type.</typeparam>
+        /// <param name="stream">The stream to write the image to.</param>
+        /// <param name="image">The image to encode.</param>
         private void WriteRunLengthEndcodedImage<TPixel>(Stream stream, ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -184,6 +196,12 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
+        /// <summary>
+        /// Finds consecutive pixels, which have the same value starting from the pixel span offset 0.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type.</typeparam>
+        /// <param name="pixelSpan">The pixel span to search in.</param>
+        /// <returns>The number of equal pixels.</returns>
         private byte FindEqualPixels<TPixel>(Span<TPixel> pixelSpan)
             where TPixel : struct, IPixel<TPixel>
         {

@@ -365,5 +365,54 @@ namespace SixLabors.ImageSharp.Tests
 
             public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin, Leo, Ratio4x1, Ratio1x4 };
         }
+
+        public static class WebP
+        {
+            public static class Lossless
+            {
+                public const string SampleWebpOne = "WebP/Lossless/1_webp_ll.webp";
+                public const string SampleWebpTwo = "WebP/Lossless/2_webp_ll.webp";
+                public const string SampleWebpThree = "WebP/Lossless/3_webp_ll.webp";
+                public const string SampleWebpFour = "WebP/Lossless/4_webp_ll.webp";
+                public const string SampleWebpFive = "WebP/Lossless/5_webp_ll.webp";
+            }
+
+            public static class Lossy
+            {
+                public const string SampleWebpOne = "WebP/Lossy/1.webp";
+                public const string SampleWebpTwo = "WebP/Lossy/2.webp";
+                public const string SampleWebpThree = "WebP/Lossy/3.webp";
+                public const string SampleWebpFour = "WebP/Lossy/4.webp";
+                public const string SampleWebpFive = "WebP/Lossy/5.webp";
+
+                public static class Alpha
+                {
+                    public const string SampleWebpOne = "WebP/Lossy/Alpha/1_webp_a.webp";
+                    public const string SampleWebpTwo = "WebP/Lossy/Alpha/2_webp_a.webp";
+                    public const string SampleWebpThree = "WebP/Lossy/Alpha/3_webp_a.webp";
+                    public const string SampleWebpFour = "WebP/Lossy/Alpha/4_webp_a.webp";
+                    public const string SampleWebpFive = "WebP/Lossy/Alpha/5_webp_a.webp";
+                }
+            }
+
+            public static readonly string[] All =
+            {
+                Lossless.SampleWebpOne,
+                Lossless.SampleWebpTwo,
+                Lossless.SampleWebpThree,
+                Lossless.SampleWebpFour,
+                Lossless.SampleWebpFive,
+                Lossy.SampleWebpOne,
+                Lossy.SampleWebpTwo,
+                Lossy.SampleWebpThree,
+                Lossy.SampleWebpFour,
+                Lossy.SampleWebpFive,
+                Lossy.Alpha.SampleWebpOne,
+                Lossy.Alpha.SampleWebpTwo,
+                Lossy.Alpha.SampleWebpThree,
+                Lossy.Alpha.SampleWebpFour,
+                Lossy.Alpha.SampleWebpFive
+            };
+        }
     }
 }

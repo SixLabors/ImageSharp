@@ -1,19 +1,15 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.IO;
-using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
-
 using Xunit;
 
 // ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests.Formats.WebP
 {
+    using SixLabors.ImageSharp.Formats.WebP;
     using SixLabors.ImageSharp.Metadata;
     using static TestImages.Bmp;
 
@@ -38,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         public void BmpDecoder_CanDecode_MiscellaneousBitmaps<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            using (Image<TPixel> image = provider.GetImage(new WebPDecoder()))
             {
                 image.DebugSave(provider);
                 if (TestEnvironment.IsWindows)
@@ -54,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         public void BmpDecoder_CanDecode_Inverted<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+            using (Image<TPixel> image = provider.GetImage(new WebPDecoder()))
             {
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider);
@@ -92,7 +88,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                var decoder = new BmpDecoder();
+                var decoder = new WebPDecoder();
                 using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
                 {
                     ImageMetadata meta = image.Metadata;

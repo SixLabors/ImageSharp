@@ -4,6 +4,7 @@
 using System.IO;
 
 using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Formats.WebP;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
@@ -17,23 +18,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         [Fact]
         public void CloneIsDeep()
         {
-            var meta = new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Pixel24 };
-            var clone = (BmpMetadata)meta.DeepClone();
+            /* TODO:
+            var meta = new WebPMetadata { BitsPerPixel = BmpBitsPerPixel.Pixel24 };
+            var clone = (WebPMetadata)meta.DeepClone();
 
             clone.BitsPerPixel = BmpBitsPerPixel.Pixel32;
 
-            Assert.False(meta.BitsPerPixel.Equals(clone.BitsPerPixel));
+            Assert.False(meta.BitsPerPixel.Equals(clone.BitsPerPixel));*/
         }
 
         [Theory]
-        [InlineData(WinBmpv2, BmpInfoHeaderType.WinVersion2)]
-        [InlineData(WinBmpv3, BmpInfoHeaderType.WinVersion3)]
-        [InlineData(WinBmpv4, BmpInfoHeaderType.WinVersion4)]
-        [InlineData(WinBmpv5, BmpInfoHeaderType.WinVersion5)]
-        [InlineData(Os2v2Short, BmpInfoHeaderType.Os2Version2Short)]
-        [InlineData(Rgb32h52AdobeV3, BmpInfoHeaderType.AdobeVersion3)]
-        [InlineData(Rgba32bf56AdobeV3, BmpInfoHeaderType.AdobeVersion3WithAlpha)]
-        [InlineData(Os2v2, BmpInfoHeaderType.Os2Version2)]
+        [InlineData(TestImages.WebP.Lossy.SampleWebpOne, BmpInfoHeaderType.WinVersion2)]
         public void Identify_DetectsCorrectBitmapInfoHeaderType(string imagePath, BmpInfoHeaderType expectedInfoHeaderType)
         {
             var testFile = TestFile.Create(imagePath);
@@ -41,9 +36,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
             {
                 IImageInfo imageInfo = Image.Identify(stream);
                 Assert.NotNull(imageInfo);
-                BmpMetadata bitmapMetaData = imageInfo.Metadata.GetFormatMetadata(BmpFormat.Instance);
-                Assert.NotNull(bitmapMetaData);
-                Assert.Equal(expectedInfoHeaderType, bitmapMetaData.InfoHeaderType);
+                WebPMetadata webpMetaData = imageInfo.Metadata.GetFormatMetadata(WebPFormat.Instance);
+                Assert.NotNull(webpMetaData);
+                //TODO:
+                //Assert.Equal(expectedInfoHeaderType, webpMetaData.InfoHeaderType);
             }
         }
     }

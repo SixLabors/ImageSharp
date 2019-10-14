@@ -16,9 +16,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public int Height { get; set; }
 
         /// <summary>
-        /// Gets or sets whether this image uses a looseless compression.
+        /// Gets or sets whether this image uses a lossless compression.
         /// </summary>
-        public bool IsLooseLess { get; set; }
+        public bool IsLossLess { get; set; }
 
         public int Version { get; set; }
 

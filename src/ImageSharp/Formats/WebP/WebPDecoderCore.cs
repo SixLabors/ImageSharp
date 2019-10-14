@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             var image = new Image<TPixel>(this.configuration, imageInfo.Width, imageInfo.Height, this.metadata);
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
-            if (imageInfo.IsLooseLess)
+            if (imageInfo.IsLossLess)
             {
                 ReadSimpleLossless(pixels, image.Width, image.Height);
             }
@@ -160,7 +160,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             {
                 Width = width,
                 Height = height,
-                IsLooseLess = isLossLess,
+                IsLossLess = isLossLess,
                 Version = version,
                 DataSize = dataSize
             };

@@ -4,6 +4,7 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
+using System.Linq;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -108,6 +109,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.currentStream.Skip(4);
 
             // Read Chunk size.
+            // The size of the file in bytes starting at offset 8.
+            // The file size in the header is the total size of the chunks that follow plus 4 bytes for the ‘WEBP’ FourCC.
             this.currentStream.Read(this.buffer, 0, 4);
             uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
 
@@ -126,19 +129,57 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 WebPThrowHelper.ThrowImageFormatException("Alpha channel is not yet supported");
             }
 
-            if (this.buffer.AsSpan().SequenceEqual(WebPConstants.Vp8XHeader))
+            var vp8HeaderType = Vp8HeaderType.Invalid;
+            if (this.buffer.AsSpan().SequenceEqual(WebPConstants.Vp8Header))
             {
-                WebPThrowHelper.ThrowImageFormatException("Vp8X is not yet supported");
+                vp8HeaderType = Vp8HeaderType.Vp8;
             }
-
-            if (!(this.buffer.AsSpan().SequenceEqual(WebPConstants.Vp8Header)
-                  || this.buffer.AsSpan().SequenceEqual(WebPConstants.Vp8LHeader)))
+            else if (this.buffer.AsSpan().SequenceEqual(WebPConstants.Vp8LHeader))
+            {
+                vp8HeaderType = Vp8HeaderType.Vp8L;
+            }
+            else if (this.buffer.SequenceEqual(WebPConstants.Vp8XHeader))
+            {
+                vp8HeaderType = Vp8HeaderType.Vp8X;
+            }
+            else
             {
                 WebPThrowHelper.ThrowImageFormatException("Unrecognized VP8 header");
             }
 
-            bool isLossLess = this.buffer[3] == WebPConstants.LossLessFlag;
+            return vp8HeaderType == Vp8HeaderType.Vp8X ? this.ReadVp8XHeader() : this.ReadVp8Header(vp8HeaderType);
+        }
 
+        private WebPImageInfo ReadVp8XHeader()
+        {
+            this.currentStream.Read(this.buffer, 0, 4);
+            uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
+
+            byte imageFeatures = (byte)this.currentStream.ReadByte();
+
+            // 3 reserved bytes should follow which are supposed to be zero.
+            this.currentStream.Read(this.buffer, 0, 3);
+
+            // 3 bytes for the width.
+            this.currentStream.Read(this.buffer, 0, 3);
+            this.buffer[3] = 0;
+            int width = BinaryPrimitives.ReadInt32LittleEndian(this.buffer) + 1;
+
+            // 3 bytes for the height.
+            this.currentStream.Read(this.buffer, 0, 3);
+            this.buffer[3] = 0;
+            int height = BinaryPrimitives.ReadInt32LittleEndian(this.buffer) + 1;
+
+            return new WebPImageInfo()
+                   {
+                       Width = width,
+                       Height = height,
+                       IsLossLess = false, // note: this is maybe incorrect here
+                   };
+        }
+
+        private WebPImageInfo ReadVp8Header(Vp8HeaderType vp8HeaderType)
+        {
             // VP8 data size.
             this.currentStream.Read(this.buffer, 0, 3);
             this.buffer[3] = 0;
@@ -157,13 +198,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int height = BinaryPrimitives.ReadInt16LittleEndian(imageInfo.AsSpan(9)) & 0x3fff;
 
             return new WebPImageInfo()
-            {
-                Width = width,
-                Height = height,
-                IsLossLess = isLossLess,
-                Version = version,
-                DataSize = dataSize
-            };
+                   {
+                       Width = width,
+                       Height = height,
+                       IsLossLess = vp8HeaderType == Vp8HeaderType.Vp8L,
+                   };
         }
 
         private void ReadSimpleLossy<TPixel>(Buffer2D<TPixel> pixels, int width, int height)

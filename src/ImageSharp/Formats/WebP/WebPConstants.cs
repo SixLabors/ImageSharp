@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             0x56, // V
             0x50, // P
             0x38, // 8
-            0x88, // X
+            0x58, // X
         };
 
         public static readonly byte LossLessFlag = 0x4C; // L

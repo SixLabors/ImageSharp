@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
     /// Note there are faster functions for when the backdrop color is known
     /// to be opaque
     /// </remarks>
-    internal static class DefaultPixelBlenders<TPixel>
+    public static class DefaultPixelBlenders<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
 
@@ -68,9 +68,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         foreach(var blender in blenders) {
 
             var blender_composer= $"{blender}{composer}";
-
 #>
-            internal class <#= blender_composer#> : PixelBlender<TPixel>
+            /// <summary>
+            /// A pixel blender that implements the "<#= blender_composer#>" composition equation.
+            /// </summary>
+            public class <#= blender_composer#> : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.

@@ -1,10 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Buffers;
 using System.Numerics;
-
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.PixelFormats
@@ -13,7 +12,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Abstract base class for calling pixel composition functions
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel</typeparam>
-    internal abstract class PixelBlender<TPixel>
+    public abstract class PixelBlender<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -23,9 +22,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="source">The source color.</param>
         /// <param name="amount">
         /// A value between 0 and 1 indicating the weight of the second source vector.
-        /// At amount = 0, "from" is returned, at amount = 1, "to" is returned.
+        /// At amount = 0, "background" is returned, at amount = 1, "source" is returned.
         /// </param>
-        /// <returns>The final pixel value after composition</returns>
+        /// <returns>The final pixel value after composition.</returns>
         public abstract TPixel Blend(TPixel background, TPixel source, float amount);
 
         /// <summary>
@@ -36,7 +35,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="source">the source span</param>
         /// <param name="amount">
         /// A value between 0 and 1 indicating the weight of the second source vector.
-        /// At amount = 0, "from" is returned, at amount = 1, "to" is returned.
+        /// At amount = 0, "background" is returned, at amount = 1, "source" is returned.
         /// </param>
         protected abstract void BlendFunction(
             Span<Vector4> destination,
@@ -52,7 +51,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="source">the source span</param>
         /// <param name="amount">
         /// A span with values between 0 and 1 indicating the weight of the second source vector.
-        /// At amount = 0, "from" is returned, at amount = 1, "to" is returned.
+        /// At amount = 0, "background" is returned, at amount = 1, "source" is returned.
         /// </param>
         protected abstract void BlendFunction(
             Span<Vector4> destination,
@@ -69,7 +68,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="source">the source span</param>
         /// <param name="amount">
         /// A span with values between 0 and 1 indicating the weight of the second source vector.
-        /// At amount = 0, "from" is returned, at amount = 1, "to" is returned.
+        /// At amount = 0, "background" is returned, at amount = 1, "source" is returned.
         /// </param>
         public void Blend(
             Configuration configuration,
@@ -91,7 +90,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="source">the source span</param>
         /// <param name="amount">
         /// A span with values between 0 and 1 indicating the weight of the second source vector.
-        /// At amount = 0, "from" is returned, at amount = 1, "to" is returned.
+        /// At amount = 0, "background" is returned, at amount = 1, "source" is returned.
         /// </param>
         public void Blend<TPixelSrc>(
             Configuration configuration,
@@ -134,7 +133,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="source">the source span</param>
         /// <param name="amount">
         /// A value between 0 and 1 indicating the weight of the second source vector.
-        /// At amount = 0, "from" is returned, at amount = 1, "to" is returned.
+        /// At amount = 0, "background" is returned, at amount = 1, "source" is returned.
         /// </param>
         public void Blend<TPixelSrc>(
             Configuration configuration,

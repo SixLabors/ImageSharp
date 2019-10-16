@@ -22,11 +22,15 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
     /// Note there are faster functions for when the backdrop color is known
     /// to be opaque
     /// </remarks>
-    internal static class DefaultPixelBlenders<TPixel>
+    public static class DefaultPixelBlenders<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
 
-            internal class NormalSrc : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "NormalSrc" composition equation.
+            /// </summary>
+            public class NormalSrc : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -61,7 +65,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class MultiplySrc : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "MultiplySrc" composition equation.
+            /// </summary>
+            public class MultiplySrc : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -96,7 +104,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class AddSrc : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "AddSrc" composition equation.
+            /// </summary>
+            public class AddSrc : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -131,7 +143,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class SubtractSrc : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "SubtractSrc" composition equation.
+            /// </summary>
+            public class SubtractSrc : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -166,7 +182,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class ScreenSrc : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "ScreenSrc" composition equation.
+            /// </summary>
+            public class ScreenSrc : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -201,7 +221,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class DarkenSrc : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "DarkenSrc" composition equation.
+            /// </summary>
+            public class DarkenSrc : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -236,7 +260,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class LightenSrc : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "LightenSrc" composition equation.
+            /// </summary>
+            public class LightenSrc : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -271,7 +299,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class OverlaySrc : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "OverlaySrc" composition equation.
+            /// </summary>
+            public class OverlaySrc : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -306,7 +338,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLightSrc : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "HardLightSrc" composition equation.
+            /// </summary>
+            public class HardLightSrc : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -341,7 +377,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class NormalSrcAtop : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "NormalSrcAtop" composition equation.
+            /// </summary>
+            public class NormalSrcAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -376,7 +416,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class MultiplySrcAtop : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "MultiplySrcAtop" composition equation.
+            /// </summary>
+            public class MultiplySrcAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -411,7 +455,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class AddSrcAtop : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "AddSrcAtop" composition equation.
+            /// </summary>
+            public class AddSrcAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -446,7 +494,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class SubtractSrcAtop : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "SubtractSrcAtop" composition equation.
+            /// </summary>
+            public class SubtractSrcAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -481,7 +533,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class ScreenSrcAtop : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "ScreenSrcAtop" composition equation.
+            /// </summary>
+            public class ScreenSrcAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -516,7 +572,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class DarkenSrcAtop : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "DarkenSrcAtop" composition equation.
+            /// </summary>
+            public class DarkenSrcAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -551,7 +611,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class LightenSrcAtop : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "LightenSrcAtop" composition equation.
+            /// </summary>
+            public class LightenSrcAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -586,7 +650,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class OverlaySrcAtop : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "OverlaySrcAtop" composition equation.
+            /// </summary>
+            public class OverlaySrcAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -621,7 +689,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLightSrcAtop : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "HardLightSrcAtop" composition equation.
+            /// </summary>
+            public class HardLightSrcAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -656,7 +728,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class NormalSrcOver : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "NormalSrcOver" composition equation.
+            /// </summary>
+            public class NormalSrcOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -691,7 +767,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class MultiplySrcOver : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "MultiplySrcOver" composition equation.
+            /// </summary>
+            public class MultiplySrcOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -726,7 +806,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class AddSrcOver : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "AddSrcOver" composition equation.
+            /// </summary>
+            public class AddSrcOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -761,7 +845,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class SubtractSrcOver : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "SubtractSrcOver" composition equation.
+            /// </summary>
+            public class SubtractSrcOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -796,7 +884,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class ScreenSrcOver : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "ScreenSrcOver" composition equation.
+            /// </summary>
+            public class ScreenSrcOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -831,7 +923,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class DarkenSrcOver : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "DarkenSrcOver" composition equation.
+            /// </summary>
+            public class DarkenSrcOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -866,7 +962,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class LightenSrcOver : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "LightenSrcOver" composition equation.
+            /// </summary>
+            public class LightenSrcOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -901,7 +1001,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class OverlaySrcOver : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "OverlaySrcOver" composition equation.
+            /// </summary>
+            public class OverlaySrcOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -936,7 +1040,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLightSrcOver : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "HardLightSrcOver" composition equation.
+            /// </summary>
+            public class HardLightSrcOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -971,7 +1079,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class NormalSrcIn : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "NormalSrcIn" composition equation.
+            /// </summary>
+            public class NormalSrcIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1006,7 +1118,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class MultiplySrcIn : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "MultiplySrcIn" composition equation.
+            /// </summary>
+            public class MultiplySrcIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1041,7 +1157,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class AddSrcIn : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "AddSrcIn" composition equation.
+            /// </summary>
+            public class AddSrcIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1076,7 +1196,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class SubtractSrcIn : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "SubtractSrcIn" composition equation.
+            /// </summary>
+            public class SubtractSrcIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1111,7 +1235,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class ScreenSrcIn : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "ScreenSrcIn" composition equation.
+            /// </summary>
+            public class ScreenSrcIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1146,7 +1274,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class DarkenSrcIn : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "DarkenSrcIn" composition equation.
+            /// </summary>
+            public class DarkenSrcIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1181,7 +1313,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class LightenSrcIn : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "LightenSrcIn" composition equation.
+            /// </summary>
+            public class LightenSrcIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1216,7 +1352,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class OverlaySrcIn : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "OverlaySrcIn" composition equation.
+            /// </summary>
+            public class OverlaySrcIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1251,7 +1391,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLightSrcIn : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "HardLightSrcIn" composition equation.
+            /// </summary>
+            public class HardLightSrcIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1286,7 +1430,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class NormalSrcOut : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "NormalSrcOut" composition equation.
+            /// </summary>
+            public class NormalSrcOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1321,7 +1469,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class MultiplySrcOut : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "MultiplySrcOut" composition equation.
+            /// </summary>
+            public class MultiplySrcOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1356,7 +1508,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class AddSrcOut : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "AddSrcOut" composition equation.
+            /// </summary>
+            public class AddSrcOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1391,7 +1547,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class SubtractSrcOut : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "SubtractSrcOut" composition equation.
+            /// </summary>
+            public class SubtractSrcOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1426,7 +1586,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class ScreenSrcOut : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "ScreenSrcOut" composition equation.
+            /// </summary>
+            public class ScreenSrcOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1461,7 +1625,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class DarkenSrcOut : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "DarkenSrcOut" composition equation.
+            /// </summary>
+            public class DarkenSrcOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1496,7 +1664,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class LightenSrcOut : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "LightenSrcOut" composition equation.
+            /// </summary>
+            public class LightenSrcOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1531,7 +1703,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class OverlaySrcOut : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "OverlaySrcOut" composition equation.
+            /// </summary>
+            public class OverlaySrcOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1566,7 +1742,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLightSrcOut : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "HardLightSrcOut" composition equation.
+            /// </summary>
+            public class HardLightSrcOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1601,7 +1781,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class NormalDest : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "NormalDest" composition equation.
+            /// </summary>
+            public class NormalDest : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1636,7 +1820,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class MultiplyDest : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "MultiplyDest" composition equation.
+            /// </summary>
+            public class MultiplyDest : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1671,7 +1859,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class AddDest : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "AddDest" composition equation.
+            /// </summary>
+            public class AddDest : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1706,7 +1898,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class SubtractDest : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "SubtractDest" composition equation.
+            /// </summary>
+            public class SubtractDest : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1741,7 +1937,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class ScreenDest : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "ScreenDest" composition equation.
+            /// </summary>
+            public class ScreenDest : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1776,7 +1976,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class DarkenDest : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "DarkenDest" composition equation.
+            /// </summary>
+            public class DarkenDest : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1811,7 +2015,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class LightenDest : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "LightenDest" composition equation.
+            /// </summary>
+            public class LightenDest : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1846,7 +2054,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class OverlayDest : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "OverlayDest" composition equation.
+            /// </summary>
+            public class OverlayDest : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1881,7 +2093,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLightDest : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "HardLightDest" composition equation.
+            /// </summary>
+            public class HardLightDest : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1916,7 +2132,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class NormalDestAtop : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "NormalDestAtop" composition equation.
+            /// </summary>
+            public class NormalDestAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1951,7 +2171,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class MultiplyDestAtop : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "MultiplyDestAtop" composition equation.
+            /// </summary>
+            public class MultiplyDestAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -1986,7 +2210,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class AddDestAtop : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "AddDestAtop" composition equation.
+            /// </summary>
+            public class AddDestAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2021,7 +2249,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class SubtractDestAtop : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "SubtractDestAtop" composition equation.
+            /// </summary>
+            public class SubtractDestAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2056,7 +2288,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class ScreenDestAtop : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "ScreenDestAtop" composition equation.
+            /// </summary>
+            public class ScreenDestAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2091,7 +2327,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class DarkenDestAtop : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "DarkenDestAtop" composition equation.
+            /// </summary>
+            public class DarkenDestAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2126,7 +2366,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class LightenDestAtop : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "LightenDestAtop" composition equation.
+            /// </summary>
+            public class LightenDestAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2161,7 +2405,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class OverlayDestAtop : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "OverlayDestAtop" composition equation.
+            /// </summary>
+            public class OverlayDestAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2196,7 +2444,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLightDestAtop : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "HardLightDestAtop" composition equation.
+            /// </summary>
+            public class HardLightDestAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2231,7 +2483,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class NormalDestOver : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "NormalDestOver" composition equation.
+            /// </summary>
+            public class NormalDestOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2266,7 +2522,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class MultiplyDestOver : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "MultiplyDestOver" composition equation.
+            /// </summary>
+            public class MultiplyDestOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2301,7 +2561,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class AddDestOver : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "AddDestOver" composition equation.
+            /// </summary>
+            public class AddDestOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2336,7 +2600,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class SubtractDestOver : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "SubtractDestOver" composition equation.
+            /// </summary>
+            public class SubtractDestOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2371,7 +2639,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class ScreenDestOver : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "ScreenDestOver" composition equation.
+            /// </summary>
+            public class ScreenDestOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2406,7 +2678,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class DarkenDestOver : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "DarkenDestOver" composition equation.
+            /// </summary>
+            public class DarkenDestOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2441,7 +2717,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class LightenDestOver : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "LightenDestOver" composition equation.
+            /// </summary>
+            public class LightenDestOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2476,7 +2756,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class OverlayDestOver : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "OverlayDestOver" composition equation.
+            /// </summary>
+            public class OverlayDestOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2511,7 +2795,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLightDestOver : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "HardLightDestOver" composition equation.
+            /// </summary>
+            public class HardLightDestOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2546,7 +2834,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class NormalDestIn : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "NormalDestIn" composition equation.
+            /// </summary>
+            public class NormalDestIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2581,7 +2873,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class MultiplyDestIn : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "MultiplyDestIn" composition equation.
+            /// </summary>
+            public class MultiplyDestIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2616,7 +2912,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class AddDestIn : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "AddDestIn" composition equation.
+            /// </summary>
+            public class AddDestIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2651,7 +2951,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class SubtractDestIn : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "SubtractDestIn" composition equation.
+            /// </summary>
+            public class SubtractDestIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2686,7 +2990,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class ScreenDestIn : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "ScreenDestIn" composition equation.
+            /// </summary>
+            public class ScreenDestIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2721,7 +3029,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class DarkenDestIn : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "DarkenDestIn" composition equation.
+            /// </summary>
+            public class DarkenDestIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2756,7 +3068,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class LightenDestIn : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "LightenDestIn" composition equation.
+            /// </summary>
+            public class LightenDestIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2791,7 +3107,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class OverlayDestIn : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "OverlayDestIn" composition equation.
+            /// </summary>
+            public class OverlayDestIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2826,7 +3146,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLightDestIn : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "HardLightDestIn" composition equation.
+            /// </summary>
+            public class HardLightDestIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2861,7 +3185,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class NormalDestOut : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "NormalDestOut" composition equation.
+            /// </summary>
+            public class NormalDestOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2896,7 +3224,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class MultiplyDestOut : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "MultiplyDestOut" composition equation.
+            /// </summary>
+            public class MultiplyDestOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2931,7 +3263,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class AddDestOut : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "AddDestOut" composition equation.
+            /// </summary>
+            public class AddDestOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -2966,7 +3302,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class SubtractDestOut : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "SubtractDestOut" composition equation.
+            /// </summary>
+            public class SubtractDestOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3001,7 +3341,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class ScreenDestOut : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "ScreenDestOut" composition equation.
+            /// </summary>
+            public class ScreenDestOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3036,7 +3380,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class DarkenDestOut : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "DarkenDestOut" composition equation.
+            /// </summary>
+            public class DarkenDestOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3071,7 +3419,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class LightenDestOut : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "LightenDestOut" composition equation.
+            /// </summary>
+            public class LightenDestOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3106,7 +3458,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class OverlayDestOut : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "OverlayDestOut" composition equation.
+            /// </summary>
+            public class OverlayDestOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3141,7 +3497,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLightDestOut : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "HardLightDestOut" composition equation.
+            /// </summary>
+            public class HardLightDestOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3176,7 +3536,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class NormalClear : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "NormalClear" composition equation.
+            /// </summary>
+            public class NormalClear : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3211,7 +3575,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class MultiplyClear : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "MultiplyClear" composition equation.
+            /// </summary>
+            public class MultiplyClear : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3246,7 +3614,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class AddClear : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "AddClear" composition equation.
+            /// </summary>
+            public class AddClear : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3281,7 +3653,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class SubtractClear : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "SubtractClear" composition equation.
+            /// </summary>
+            public class SubtractClear : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3316,7 +3692,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class ScreenClear : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "ScreenClear" composition equation.
+            /// </summary>
+            public class ScreenClear : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3351,7 +3731,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class DarkenClear : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "DarkenClear" composition equation.
+            /// </summary>
+            public class DarkenClear : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3386,7 +3770,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class LightenClear : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "LightenClear" composition equation.
+            /// </summary>
+            public class LightenClear : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3421,7 +3809,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class OverlayClear : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "OverlayClear" composition equation.
+            /// </summary>
+            public class OverlayClear : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3456,7 +3848,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLightClear : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "HardLightClear" composition equation.
+            /// </summary>
+            public class HardLightClear : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3491,7 +3887,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class NormalXor : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "NormalXor" composition equation.
+            /// </summary>
+            public class NormalXor : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3526,7 +3926,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class MultiplyXor : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "MultiplyXor" composition equation.
+            /// </summary>
+            public class MultiplyXor : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3561,7 +3965,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class AddXor : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "AddXor" composition equation.
+            /// </summary>
+            public class AddXor : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3596,7 +4004,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class SubtractXor : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "SubtractXor" composition equation.
+            /// </summary>
+            public class SubtractXor : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3631,7 +4043,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class ScreenXor : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "ScreenXor" composition equation.
+            /// </summary>
+            public class ScreenXor : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3666,7 +4082,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class DarkenXor : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "DarkenXor" composition equation.
+            /// </summary>
+            public class DarkenXor : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3701,7 +4121,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class LightenXor : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "LightenXor" composition equation.
+            /// </summary>
+            public class LightenXor : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3736,7 +4160,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class OverlayXor : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "OverlayXor" composition equation.
+            /// </summary>
+            public class OverlayXor : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
@@ -3771,7 +4199,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLightXor : PixelBlender<TPixel>
+
+            /// <summary>
+            /// A pixel blender that implements the "HardLightXor" composition equation.
+            /// </summary>
+            public class HardLightXor : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.

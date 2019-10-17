@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <returns>True, if its a valid RIFF FourCC.</returns>
         private bool IsRiffContainer(ReadOnlySpan<byte> header)
         {
-            return header.Slice(0, 4).SequenceEqual(WebPConstants.FourCcBytes);
+            return header.Slice(0, 4).SequenceEqual(WebPConstants.RiffFourCc);
         }
 
         /// <summary>

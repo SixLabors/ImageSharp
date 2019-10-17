@@ -69,6 +69,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             uint chunkSize = this.ReadImageHeader();
             WebPImageInfo imageInfo = this.ReadVp8Info();
+
             // TODO: there can be optional chunks after that, like EXIF.
 
             var image = new Image<TPixel>(this.configuration, imageInfo.Width, imageInfo.Height, this.metadata);
@@ -124,30 +125,25 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             // Read VP8 chunk header.
             this.currentStream.Read(this.buffer, 0, 4);
-            if (this.buffer.AsSpan().SequenceEqual(WebPConstants.AlphaHeader))
-            {
-                WebPThrowHelper.ThrowImageFormatException("Alpha channel is not yet supported");
-            }
 
-            var vp8HeaderType = Vp8HeaderType.Invalid;
             if (this.buffer.AsSpan().SequenceEqual(WebPConstants.Vp8Header))
             {
-                vp8HeaderType = Vp8HeaderType.Vp8;
-            }
-            else if (this.buffer.AsSpan().SequenceEqual(WebPConstants.Vp8LHeader))
-            {
-                vp8HeaderType = Vp8HeaderType.Vp8L;
-            }
-            else if (this.buffer.SequenceEqual(WebPConstants.Vp8XHeader))
-            {
-                vp8HeaderType = Vp8HeaderType.Vp8X;
-            }
-            else
-            {
-                WebPThrowHelper.ThrowImageFormatException("Unrecognized VP8 header");
+                return this.ReadVp8Header();
             }
 
-            return vp8HeaderType == Vp8HeaderType.Vp8X ? this.ReadVp8XHeader() : this.ReadVp8Header(vp8HeaderType);
+            if (this.buffer.AsSpan().SequenceEqual(WebPConstants.Vp8LHeader))
+            {
+                return this.ReadVp8LHeader();
+            }
+
+            if (this.buffer.SequenceEqual(WebPConstants.Vp8XHeader))
+            {
+                return this.ReadVp8XHeader();
+            }
+
+            WebPThrowHelper.ThrowImageFormatException("Unrecognized VP8 header");
+
+            return new WebPImageInfo();
         }
 
         private WebPImageInfo ReadVp8XHeader()
@@ -175,10 +171,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
                        Width = width,
                        Height = height,
                        IsLossLess = false, // note: this is maybe incorrect here
+                       DataSize = chunkSize
                    };
         }
 
-        private WebPImageInfo ReadVp8Header(Vp8HeaderType vp8HeaderType)
+        private WebPImageInfo ReadVp8Header()
         {
             // VP8 data size.
             this.currentStream.Read(this.buffer, 0, 3);
@@ -186,22 +183,64 @@ namespace SixLabors.ImageSharp.Formats.WebP
             uint dataSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
 
             // https://tools.ietf.org/html/rfc6386#page-30
-            var imageInfo = new byte[11];
-            this.currentStream.Read(imageInfo, 0, imageInfo.Length);
-            int tmp = (imageInfo[2] << 16) | (imageInfo[1] << 8) | imageInfo[0];
+            // Frame tag that contains four fields:
+            // - A 1-bit frame type (0 for key frames, 1 for interframes).
+            // - A 3-bit version number.
+            // - A 1-bit show_frame flag.
+            // - A 19-bit field containing the size of the first data partition in bytes.
+            this.currentStream.Read(this.buffer, 0, 3);
+            int tmp = (this.buffer[2] << 16) | (this.buffer[1] << 8) | this.buffer[0];
             int isKeyFrame = tmp & 0x1;
             int version = (tmp >> 1) & 0x7;
             int showFrame = (tmp >> 4) & 0x1;
 
+            // Check for VP8 magic bytes.
+            this.currentStream.Read(this.buffer, 0, 4);
+            if (!this.buffer.AsSpan(1).SequenceEqual(WebPConstants.Vp8MagicBytes))
+            {
+                WebPThrowHelper.ThrowImageFormatException("VP8 magic bytes not found");
+            }
+
+            this.currentStream.Read(this.buffer, 0, 4);
+
             // TODO: Get horizontal and vertical scale
-            int width = BinaryPrimitives.ReadInt16LittleEndian(imageInfo.AsSpan(7)) & 0x3fff;
-            int height = BinaryPrimitives.ReadInt16LittleEndian(imageInfo.AsSpan(9)) & 0x3fff;
+            int width = BinaryPrimitives.ReadInt16LittleEndian(this.buffer) & 0x3fff;
+            int height = BinaryPrimitives.ReadInt16LittleEndian(this.buffer.AsSpan(2)) & 0x3fff;
 
             return new WebPImageInfo()
                    {
                        Width = width,
                        Height = height,
-                       IsLossLess = vp8HeaderType == Vp8HeaderType.Vp8L,
+                       IsLossLess = false,
+                       DataSize = dataSize
+                   };
+        }
+
+        private WebPImageInfo ReadVp8LHeader()
+        {
+            // VP8 data size.
+            this.currentStream.Read(this.buffer, 0, 4);
+            uint dataSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
+
+            // One byte signature, should be 0x2f.
+            byte signature = (byte)this.currentStream.ReadByte();
+            if (signature != WebPConstants.Vp8LMagicByte)
+            {
+                WebPThrowHelper.ThrowImageFormatException("Invalid VP8L signature");
+            }
+
+            // The first 28 bits of the bitstream specify the width and height of the image.
+            this.currentStream.Read(this.buffer, 0, 4);
+            // TODO: A bitreader should be used from here on which reads least-significant-bit-first
+            int height = 0;
+            int width = 0;
+
+            return new WebPImageInfo()
+                   {
+                       Width = width,
+                       Height = height,
+                       IsLossLess = true,
+                       DataSize = dataSize
                    };
         }
 

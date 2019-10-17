@@ -368,13 +368,10 @@ namespace SixLabors.ImageSharp.Tests
 
         public static class WebP
         {
+            //TODO: actualize it with fresh sample images
             public static class Lossless
             {
-                public const string SampleWebpOne = "WebP/Lossless/1_webp_ll.webp";
-                public const string SampleWebpTwo = "WebP/Lossless/2_webp_ll.webp";
-                public const string SampleWebpThree = "WebP/Lossless/3_webp_ll.webp";
-                public const string SampleWebpFour = "WebP/Lossless/4_webp_ll.webp";
-                public const string SampleWebpFive = "WebP/Lossless/5_webp_ll.webp";
+                public const string Lossless1 = "WebP/lossless1.webp";
             }
 
             public static class Lossy
@@ -397,21 +394,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public static readonly string[] All =
             {
-                Lossless.SampleWebpOne,
-                Lossless.SampleWebpTwo,
-                Lossless.SampleWebpThree,
-                Lossless.SampleWebpFour,
-                Lossless.SampleWebpFive,
-                Lossy.SampleWebpOne,
-                Lossy.SampleWebpTwo,
-                Lossy.SampleWebpThree,
-                Lossy.SampleWebpFour,
-                Lossy.SampleWebpFive,
-                Lossy.Alpha.SampleWebpOne,
-                Lossy.Alpha.SampleWebpTwo,
-                Lossy.Alpha.SampleWebpThree,
-                Lossy.Alpha.SampleWebpFour,
-                Lossy.Alpha.SampleWebpFive
+                Lossless.Lossless1
             };
         }
     }

@@ -230,15 +230,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             // The first 28 bits of the bitstream specify the width and height of the image.
-            this.currentStream.Read(this.buffer, 0, 4);
-            // TODO: A bitreader should be used from here on which reads least-significant-bit-first
-            int height = 0;
-            int width = 0;
+            var bitReader = new Vp8LBitreader(this.currentStream);
+            uint height = bitReader.Read(WebPConstants.Vp8LImageSizeBits) + 1;
+            uint width = bitReader.Read(WebPConstants.Vp8LImageSizeBits) + 1;
 
             return new WebPImageInfo()
                    {
-                       Width = width,
-                       Height = height,
+                       Width = (int)width,
+                       Height = (int)height,
                        IsLossLess = true,
                        DataSize = dataSize
                    };

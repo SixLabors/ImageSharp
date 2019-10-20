@@ -230,9 +230,69 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             // The first 28 bits of the bitstream specify the width and height of the image.
-            var bitReader = new Vp8LBitreader(this.currentStream);
+            var bitReader = new Vp8LBitReader(this.currentStream);
             uint width = bitReader.Read(WebPConstants.Vp8LImageSizeBits) + 1;
             uint height = bitReader.Read(WebPConstants.Vp8LImageSizeBits) + 1;
+
+            // The alpha_is_used flag should be set to 0 when all alpha values are 255 in the picture, and 1 otherwise.
+            bool alphaIsUsed = bitReader.ReadBit();
+
+            // The next 3 bytes are the version. The version_number is a 3 bit code that must be set to 0.
+            // Any other value should be treated as an error.
+            uint version = bitReader.Read(3);
+            if (version != 0)
+            {
+                WebPThrowHelper.ThrowImageFormatException($"Unexpected webp version number: {version}");
+            }
+
+            // Next bit indicates, if a transformation is present.
+            bool transformPresent = bitReader.ReadBit();
+            int numberOfTransformsPresent = 0;
+            while (transformPresent)
+            {
+                var transformType = (WebPTransformType)bitReader.Read(2);
+                switch (transformType)
+                {
+                    case WebPTransformType.SubtractGreen:
+                        // There is no data associated with this transform.
+                        break;
+                    case WebPTransformType.ColorIndexingTransform:
+                        // The transform data contains color table size and the entries in the color table.
+                        // 8 bit value for color table size.
+                        uint colorTableSize = bitReader.Read(8) + 1;
+                        // TODO: color table should follow here?
+                        break;
+
+                    case WebPTransformType.PredictorTransform:
+                    {
+                        // The first 3 bits of prediction data define the block width and height in number of bits.
+                        // The number of block columns, block_xsize, is used in indexing two-dimensionally.
+                        uint sizeBits = bitReader.Read(3) + 2;
+                        int blockWidth = 1 << (int)sizeBits;
+                        int blockHeight = 1 << (int)sizeBits;
+
+                        break;
+                    }
+
+                    case WebPTransformType.ColorTransform:
+                    {
+                        // The first 3 bits of the color transform data contain the width and height of the image block in number of bits,
+                        // just like the predictor transform:
+                        uint sizeBits = bitReader.Read(3) + 2;
+                        int blockWidth = 1 << (int)sizeBits;
+                        int blockHeight = 1 << (int)sizeBits;
+                        break;
+                    }
+                }
+
+                numberOfTransformsPresent++;
+                if (numberOfTransformsPresent == 4)
+                {
+                    break;
+                }
+
+                transformPresent = bitReader.ReadBit();
+            }
 
             return new WebPImageInfo()
                    {

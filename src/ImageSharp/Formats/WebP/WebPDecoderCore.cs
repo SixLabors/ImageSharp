@@ -231,8 +231,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             // The first 28 bits of the bitstream specify the width and height of the image.
             var bitReader = new Vp8LBitreader(this.currentStream);
-            uint height = bitReader.Read(WebPConstants.Vp8LImageSizeBits) + 1;
             uint width = bitReader.Read(WebPConstants.Vp8LImageSizeBits) + 1;
+            uint height = bitReader.Read(WebPConstants.Vp8LImageSizeBits) + 1;
 
             return new WebPImageInfo()
                    {

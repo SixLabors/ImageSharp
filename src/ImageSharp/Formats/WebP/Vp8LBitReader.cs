@@ -8,15 +8,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// <summary>
     /// A bit reader for VP8 streams.
     /// </summary>
-    public class Vp8LBitreader
+    public class Vp8LBitReader
     {
         private readonly Stream stream;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Vp8LBitreader"/> class.
+        /// Initializes a new instance of the <see cref="Vp8LBitReader"/> class.
         /// </summary>
         /// <param name="stream">The stream to read from.</param>
-        public Vp8LBitreader(Stream stream)
+        public Vp8LBitReader(Stream stream)
         {
             this.stream = new MemoryStream();
             stream.CopyTo(this.stream);
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private int Bit { get; set; }
 
         /// <summary>
-        /// Check if the offset is inside the stream length.
+        /// Gets a value indicating whether the offset is inside the stream length.
         /// </summary>
         private bool ValidPosition
         {
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <returns>True, if the bit is one, otherwise false.</returns>
         public bool ReadBit()
         {
-            if (!ValidPosition)
+            if (!this.ValidPosition)
             {
                 WebPThrowHelper.ThrowImageFormatException("The image stream does not contain enough data");
             }

@@ -368,7 +368,11 @@ namespace SixLabors.ImageSharp.Tests
 
         public static class WebP
         {
-            //TODO: actualize it with fresh sample images
+            public static class Animated
+            {
+                public const string Animated1 = "WebP/animated-webp.webp";
+            }
+
             public static class Lossless
             {
                 public const string Lossless1 = "WebP/lossless1.webp";

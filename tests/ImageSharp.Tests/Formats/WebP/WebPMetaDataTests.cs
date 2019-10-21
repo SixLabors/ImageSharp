@@ -11,6 +11,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.WebP
 {
+    using static SixLabors.ImageSharp.Tests.TestImages.WebP;
     using static TestImages.Bmp;
 
     public class WebPMetaDataTests
@@ -18,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         [Fact]
         public void CloneIsDeep()
         {
-            /* TODO:
+            /*TODO:
             var meta = new WebPMetadata { BitsPerPixel = BmpBitsPerPixel.Pixel24 };
             var clone = (WebPMetadata)meta.DeepClone();
 
@@ -28,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         }
 
         [Theory]
-        [InlineData(TestImages.WebP.Lossy.SampleWebpOne, BmpInfoHeaderType.WinVersion2)]
+        [InlineData(Lossless.Lossless1, BmpInfoHeaderType.WinVersion2)]
         public void Identify_DetectsCorrectBitmapInfoHeaderType(string imagePath, BmpInfoHeaderType expectedInfoHeaderType)
         {
             var testFile = TestFile.Create(imagePath);
@@ -36,9 +37,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
             {
                 IImageInfo imageInfo = Image.Identify(stream);
                 Assert.NotNull(imageInfo);
-                WebPMetadata webpMetaData = imageInfo.Metadata.GetFormatMetadata(WebPFormat.Instance);
-                Assert.NotNull(webpMetaData);
-                //TODO:
+                Assert.Equal(24, imageInfo.PixelType.BitsPerPixel);
+                //var webpMetaData = imageInfo.Metadata.GetFormatMetadata(WebPFormat.Instance);
+                //Assert.NotNull(webpMetaData);
                 //Assert.Equal(expectedInfoHeaderType, webpMetaData.InfoHeaderType);
             }
         }

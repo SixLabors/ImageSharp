@@ -4,7 +4,6 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
-using System.Linq;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -74,14 +73,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
             if (imageInfo.IsLossLess)
             {
-                ReadSimpleLossless(pixels, image.Width, image.Height);
+                ReadSimpleLossless(pixels, image.Width, image.Height, (int)imageInfo.DataSize);
             }
             else
             {
-                ReadSimpleLossy(pixels, image.Width, image.Height);
+                ReadSimpleLossy(pixels, image.Width, image.Height, (int)imageInfo.DataSize);
             }
 
             // TODO: there can be optional chunks after the image data, like EXIF, XMP etc.
+            this.ParseOptionalChunks();
 
             return image;
         }
@@ -123,22 +123,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private WebPImageInfo ReadVp8Info(int vpxWidth = 0, int vpxHeight = 0)
         {
-            // Read VP8 chunk header.
-            this.currentStream.Read(this.buffer, 0, 4);
+            WebPChunkType type = this.ReadChunkType();
 
-            if (this.buffer.AsSpan().SequenceEqual(WebPConstants.Vp8Header))
+            switch (type)
             {
-                return this.ReadVp8Header(vpxWidth, vpxHeight);
-            }
-
-            if (this.buffer.AsSpan().SequenceEqual(WebPConstants.Vp8LHeader))
-            {
-                return this.ReadVp8LHeader(vpxWidth, vpxHeight);
-            }
-
-            if (this.buffer.SequenceEqual(WebPConstants.Vp8XHeader))
-            {
-                return this.ReadVp8XHeader();
+                case WebPChunkType.Vp8:
+                    return this.ReadVp8Header(vpxWidth, vpxHeight);
+                case WebPChunkType.Vp8L:
+                    return this.ReadVp8LHeader(vpxWidth, vpxHeight);
+                case WebPChunkType.Vp8X:
+                    return this.ReadVp8XHeader();
             }
 
             WebPThrowHelper.ThrowImageFormatException("Unrecognized VP8 header");
@@ -185,6 +179,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int height = BinaryPrimitives.ReadInt32LittleEndian(this.buffer) + 1;
 
             // TODO: optional chunks ICCP and ANIM can follow here. Ignoring them for now.
+            this.ParseOptionalChunks();
 
             // A VP8 or VP8L chunk will follow here.
             return this.ReadVp8Info(width, height);
@@ -324,22 +319,43 @@ namespace SixLabors.ImageSharp.Formats.WebP
                    };
         }
 
-        private void ReadSimpleLossy<TPixel>(Buffer2D<TPixel> pixels, int width, int height)
-            where TPixel : struct, IPixel<TPixel>
+        private void ParseOptionalChunks()
         {
-            // TODO: implement decoding
+            // Read VP8 chunk header.
+            this.currentStream.Read(this.buffer, 0, 4);
         }
 
-        private void ReadSimpleLossless<TPixel>(Buffer2D<TPixel> pixels, int width, int height)
+        private void ReadSimpleLossy<TPixel>(Buffer2D<TPixel> pixels, int width, int height, int chunkSize)
             where TPixel : struct, IPixel<TPixel>
         {
-            // TODO: implement decoding
+            // TODO: implement decoding, for simulating the decoding, skipping the chunk size bytes.
+            this.currentStream.Skip(chunkSize);
+        }
+
+        private void ReadSimpleLossless<TPixel>(Buffer2D<TPixel> pixels, int width, int height, int chunkSize)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            // TODO: implement decoding, for simulating the decoding, skipping the chunk size bytes.
+            this.currentStream.Skip(chunkSize);
         }
 
         private void ReadExtended<TPixel>(Buffer2D<TPixel> pixels, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
             // TODO: implement decoding
+        }
+
+        /// <summary>
+        /// Identifies the chunk type from the chunk.
+        /// </summary>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the input stream is not valid.
+        /// </exception>
+        private WebPChunkType ReadChunkType()
+        {
+            return this.currentStream.Read(this.buffer, 0, 4) == 4
+                       ? (WebPChunkType)BinaryPrimitives.ReadUInt32BigEndian(this.buffer)
+                       : throw new ImageFormatException("Invalid WebP data.");
         }
     }
 }

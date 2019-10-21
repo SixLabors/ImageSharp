@@ -371,6 +371,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Webp", "Webp", "{983A31E2-5
 		tests\Images\Input\WebP\alpha_filter_3_method_0.webp = tests\Images\Input\WebP\alpha_filter_3_method_0.webp
 		tests\Images\Input\WebP\alpha_filter_3_method_1.webp = tests\Images\Input\WebP\alpha_filter_3_method_1.webp
 		tests\Images\Input\WebP\alpha_no_compression.webp = tests\Images\Input\WebP\alpha_no_compression.webp
+		tests\Images\Input\WebP\animated-webp.webp = tests\Images\Input\WebP\animated-webp.webp
 		tests\Images\Input\WebP\bad_palette_index.webp = tests\Images\Input\WebP\bad_palette_index.webp
 		tests\Images\Input\WebP\big_endian_bug_393.webp = tests\Images\Input\WebP\big_endian_bug_393.webp
 		tests\Images\Input\WebP\bryce.webp = tests\Images\Input\WebP\bryce.webp

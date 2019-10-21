@@ -94,12 +94,70 @@ namespace SixLabors.ImageSharp.Formats.WebP
             LossLessFlag // L
         };
 
+        /// <summary>
+        /// Chunk contains information about the alpha channel.
+        /// </summary>
         public static readonly byte[] AlphaHeader =
         {
             0x41, // A
             0x4C, // L
             0x50, // P
             0x48, // H
+        };
+
+        /// <summary>
+        /// Chunk which contains a color profile.
+        /// </summary>
+        public static readonly byte[] IccpHeader =
+        {
+            0x49, // I
+            0x43, // C
+            0x43, // C
+            0x50, // P
+        };
+
+        /// <summary>
+        /// Chunk which contains EXIF metadata about the image.
+        /// </summary>
+        public static readonly byte[] ExifHeader =
+        {
+            0x45, // E
+            0x58, // X
+            0x49, // I
+            0x46, // F
+        };
+
+        /// <summary>
+        /// Chunk contains XMP metadata about the image.
+        /// </summary>
+        public static readonly byte[] XmpHeader =
+        {
+            0x58, // X
+            0x4D, // M
+            0x50, // P
+            0x20, // Space
+        };
+
+        /// <summary>
+        /// For an animated image, this chunk contains the global parameters of the animation.
+        /// </summary>
+        public static readonly byte[] AnimationParameterHeader =
+        {
+            0x41, // A
+            0x4E, // N
+            0x49, // I
+            0x4D, // M
+        };
+
+        /// <summary>
+        /// For animated images, this chunk contains information about a single frame. If the Animation flag is not set, then this chunk SHOULD NOT be present.
+        /// </summary>
+        public static readonly byte[] AnimationHeader =
+        {
+            0x41, // A
+            0x4E, // N
+            0x4D, // M
+            0x46, // F
         };
     }
 }

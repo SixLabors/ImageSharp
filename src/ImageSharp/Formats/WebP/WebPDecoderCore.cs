@@ -151,7 +151,25 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.currentStream.Read(this.buffer, 0, 4);
             uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
 
+            // This byte contains information about the image features used.
+            // The first two bit should and the last bit should be 0.
+            // TODO: should an exception be thrown if its not the case, or just ignore it?
             byte imageFeatures = (byte)this.currentStream.ReadByte();
+
+            // If bit 3 is set, a ICC Profile Chunk should be present.
+            bool isIccPresent = (imageFeatures & (1 << 5)) != 0;
+
+            // If bit 4 is set, any of the frames of the image contain transparency information ("alpha" chunk).
+            bool isAlphaPresent = (imageFeatures & (1 << 4)) != 0;
+
+            // If bit 5 is set, a EXIF metadata should be present.
+            bool isExifPresent = (imageFeatures & (1 << 3)) != 0;
+
+            // If bit 6 is set, XMP metadata should be present.
+            bool isXmpPresent = (imageFeatures & (1 << 2)) != 0;
+
+            // If bit 7 is set, animation should be present.
+            bool isAnimationPresent = (imageFeatures & (1 << 7)) != 0;
 
             // 3 reserved bytes should follow which are supposed to be zero.
             this.currentStream.Read(this.buffer, 0, 3);
@@ -165,6 +183,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.currentStream.Read(this.buffer, 0, 3);
             this.buffer[3] = 0;
             int height = BinaryPrimitives.ReadInt32LittleEndian(this.buffer) + 1;
+
+            // TODO: optional chunks ICCP and ANIM can follow here.
 
             return new WebPImageInfo()
                    {

@@ -70,8 +70,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             uint chunkSize = this.ReadImageHeader();
             WebPImageInfo imageInfo = this.ReadVp8Info();
 
-            // TODO: there can be optional chunks after that, like EXIF.
-
             var image = new Image<TPixel>(this.configuration, imageInfo.Width, imageInfo.Height, this.metadata);
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
             if (imageInfo.IsLossLess)
@@ -82,6 +80,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             {
                 ReadSimpleLossy(pixels, image.Width, image.Height);
             }
+
+            // TODO: there can be optional chunks after the image data, like EXIF, XMP etc.
 
             return image;
         }
@@ -121,19 +121,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return chunkSize;
         }
 
-        private WebPImageInfo ReadVp8Info()
+        private WebPImageInfo ReadVp8Info(int vpxWidth = 0, int vpxHeight = 0)
         {
             // Read VP8 chunk header.
             this.currentStream.Read(this.buffer, 0, 4);
 
             if (this.buffer.AsSpan().SequenceEqual(WebPConstants.Vp8Header))
             {
-                return this.ReadVp8Header();
+                return this.ReadVp8Header(vpxWidth, vpxHeight);
             }
 
             if (this.buffer.AsSpan().SequenceEqual(WebPConstants.Vp8LHeader))
             {
-                return this.ReadVp8LHeader();
+                return this.ReadVp8LHeader(vpxWidth, vpxHeight);
             }
 
             if (this.buffer.SequenceEqual(WebPConstants.Vp8XHeader))
@@ -184,18 +184,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.buffer[3] = 0;
             int height = BinaryPrimitives.ReadInt32LittleEndian(this.buffer) + 1;
 
-            // TODO: optional chunks ICCP and ANIM can follow here.
+            // TODO: optional chunks ICCP and ANIM can follow here. Ignoring them for now.
 
-            return new WebPImageInfo()
-                   {
-                       Width = width,
-                       Height = height,
-                       IsLossLess = false, // note: this is maybe incorrect here
-                       DataSize = chunkSize
-                   };
+            // A VP8 or VP8L chunk will follow here.
+            return this.ReadVp8Info(width, height);
         }
 
-        private WebPImageInfo ReadVp8Header()
+        private WebPImageInfo ReadVp8Header(int vpxWidth = 0, int vpxHeight = 0)
         {
             // VP8 data size.
             this.currentStream.Read(this.buffer, 0, 3);
@@ -227,16 +222,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int width = BinaryPrimitives.ReadInt16LittleEndian(this.buffer) & 0x3fff;
             int height = BinaryPrimitives.ReadInt16LittleEndian(this.buffer.AsSpan(2)) & 0x3fff;
 
+            // Use the width and height from the VP8X information, if its provided, because its 3 bytes instead of 14 bits.
+            bool isVpxDimensionsPresent = vpxHeight != 0 || vpxWidth != 0;
+
             return new WebPImageInfo()
                    {
-                       Width = width,
-                       Height = height,
+                       Width = isVpxDimensionsPresent ? vpxWidth : width,
+                       Height = isVpxDimensionsPresent ? vpxHeight : height,
                        IsLossLess = false,
                        DataSize = dataSize
                    };
         }
 
-        private WebPImageInfo ReadVp8LHeader()
+        private WebPImageInfo ReadVp8LHeader(int vpxWidth = 0, int vpxHeight = 0)
         {
             // VP8 data size.
             this.currentStream.Read(this.buffer, 0, 4);
@@ -314,10 +312,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 transformPresent = bitReader.ReadBit();
             }
 
+            // Use the width and height from the VP8X information, if its provided, because its 3 bytes instead of 14 bits.
+            bool isVpxDimensionsPresent = vpxHeight != 0 || vpxWidth != 0;
+
             return new WebPImageInfo()
                    {
-                       Width = (int)width,
-                       Height = (int)height,
+                       Width = isVpxDimensionsPresent ? vpxWidth : (int)width,
+                       Height = isVpxDimensionsPresent ? vpxHeight : (int)height,
                        IsLossLess = true,
                        DataSize = dataSize
                    };

@@ -15,11 +15,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8LBitReader"/> class.
         /// </summary>
-        /// <param name="stream">The stream to read from.</param>
-        public Vp8LBitReader(Stream stream)
+        /// <param name="inputStream">The input stream to read from.</param>
+        public Vp8LBitReader(Stream inputStream)
         {
             this.stream = new MemoryStream();
-            stream.CopyTo(this.stream);
+            long inputStreamPos = inputStream.Position;
+            inputStream.CopyTo(this.stream);
+            inputStream.Position = inputStreamPos;
             this.Offset = 0;
             this.Bit = 0;
         }
@@ -29,7 +31,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private int Bit { get; set; }
 
         /// <summary>
-        /// Gets a value indicating whether the offset is inside the stream length.
+        /// Gets a value indicating whether the offset is inside the inputStream length.
         /// </summary>
         private bool ValidPosition
         {
@@ -40,7 +42,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         /// <summary>
-        /// Reads a unsigned short value from the stream. The bits of each byte are read in least-significant-bit-first order.
+        /// Reads a unsigned short value from the inputStream. The bits of each byte are read in least-significant-bit-first order.
         /// </summary>
         /// <param name="count">The number of bits to read (should not exceed 16).</param>
         /// <returns>A ushort value.</returns>
@@ -67,7 +69,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             if (!this.ValidPosition)
             {
-                WebPThrowHelper.ThrowImageFormatException("The image stream does not contain enough data");
+                WebPThrowHelper.ThrowImageFormatException("The image inputStream does not contain enough data");
             }
 
             this.stream.Seek(this.Offset, SeekOrigin.Begin);
@@ -79,7 +81,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         /// <summary>
-        /// Advances the stream by one Bit.
+        /// Advances the inputStream by one Bit.
         /// </summary>
         public void AdvanceBit()
         {

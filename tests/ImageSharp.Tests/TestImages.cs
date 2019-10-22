@@ -376,7 +376,7 @@ namespace SixLabors.ImageSharp.Tests
             public static class Lossless
             {
                 public const string Lossless1 = "WebP/lossless1.webp";
-                public const string Lossless2 = "WebP/lossles2.webp";
+                public const string Lossless2 = "WebP/lossless2.webp";
                 public const string Lossless3 = "WebP/lossless3.webp";
                 public const string Lossless4 = "WebP/lossless4.webp";
             }

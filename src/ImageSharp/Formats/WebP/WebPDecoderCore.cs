@@ -120,16 +120,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return chunkSize;
         }
 
-        private WebPImageInfo ReadVp8Info(int vpxWidth = 0, int vpxHeight = 0)
+        private WebPImageInfo ReadVp8Info()
         {
             WebPChunkType chunkType = this.ReadChunkType();
 
             switch (chunkType)
             {
                 case WebPChunkType.Vp8:
-                    return this.ReadVp8Header(vpxWidth, vpxHeight);
+                    return this.ReadVp8Header();
                 case WebPChunkType.Vp8L:
-                    return this.ReadVp8LHeader(vpxWidth, vpxHeight);
+                    return this.ReadVp8LHeader();
                 case WebPChunkType.Vp8X:
                     return this.ReadVp8XHeader();
             }
@@ -208,11 +208,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 this.currentStream.Skip((int)alphaChunkSize);
             }
 
-            // A VP8 or VP8L chunk will follow here.
-            return this.ReadVp8Info(width, height);
+            return new WebPImageInfo()
+                   {
+                       Width = width,
+                       Height = height,
+                       IsLossLess = false,
+                       DataSize = chunkSize
+                   };
         }
 
-        private WebPImageInfo ReadVp8Header(int vpxWidth = 0, int vpxHeight = 0)
+        private WebPImageInfo ReadVp8Header()
         {
             // VP8 data size.
             this.currentStream.Read(this.buffer, 0, 3);
@@ -244,13 +249,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int width = BinaryPrimitives.ReadInt16LittleEndian(this.buffer) & 0x3fff;
             int height = BinaryPrimitives.ReadInt16LittleEndian(this.buffer.AsSpan(2)) & 0x3fff;
 
-            // Use the width and height from the VP8X information, if its provided, because its 3 bytes instead of 14 bits.
-            bool isVpxDimensionsPresent = vpxHeight != 0 || vpxWidth != 0;
-
             return new WebPImageInfo()
                    {
-                       Width = isVpxDimensionsPresent ? vpxWidth : width,
-                       Height = isVpxDimensionsPresent ? vpxHeight : height,
+                       Width = width,
+                       Height = height,
                        IsLossLess = false,
                        DataSize = dataSize
                    };

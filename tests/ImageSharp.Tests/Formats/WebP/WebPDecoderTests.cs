@@ -23,10 +23,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         };
 
         [Theory]
-        //[InlineData(Lossless.Lossless1, 1000, 307)]
-        //[InlineData(Lossless.Lossless2, 1000, 307)]
-        //[InlineData(Lossy.Alpha.LossyAlpha1, 1000, 307)]
-        //[InlineData(Lossy.Alpha.LossyAlpha2, 1000, 307)]
+        [InlineData(Lossless.Lossless1, 1000, 307)]
+        [InlineData(Lossless.Lossless2, 1000, 307)]
+        [InlineData(Lossy.Alpha.LossyAlpha1, 1000, 307)]
+        [InlineData(Lossy.Alpha.LossyAlpha2, 1000, 307)]
         [InlineData(Animated.Animated1, 400, 400)]
         public void Identify_DetectsCorrectDimensions(string imagePath, int expectedWidth, int expectedHeight)
         {

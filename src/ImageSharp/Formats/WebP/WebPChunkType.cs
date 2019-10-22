@@ -52,5 +52,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// For animated images, this chunk contains information about a single frame. If the Animation flag is not set, then this chunk SHOULD NOT be present.
         /// </summary>
         Animation = 0x414E4D46,
+
+        /// <summary>
+        /// TODO: not sure what this is for yet.
+        /// </summary>
+        FRGM = 0x4652474D,
     }
 }

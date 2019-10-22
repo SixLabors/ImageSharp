@@ -28,38 +28,6 @@ namespace SixLabors.ImageSharp.PixelFormats
         public abstract TPixel Blend(TPixel background, TPixel source, float amount);
 
         /// <summary>
-        /// Blend 2 rows together.
-        /// </summary>
-        /// <param name="destination">destination span</param>
-        /// <param name="background">the background span</param>
-        /// <param name="source">the source span</param>
-        /// <param name="amount">
-        /// A value between 0 and 1 indicating the weight of the second source vector.
-        /// At amount = 0, "background" is returned, at amount = 1, "source" is returned.
-        /// </param>
-        protected abstract void BlendFunction(
-            Span<Vector4> destination,
-            ReadOnlySpan<Vector4> background,
-            ReadOnlySpan<Vector4> source,
-            float amount);
-
-        /// <summary>
-        /// Blend 2 rows together.
-        /// </summary>
-        /// <param name="destination">destination span</param>
-        /// <param name="background">the background span</param>
-        /// <param name="source">the source span</param>
-        /// <param name="amount">
-        /// A span with values between 0 and 1 indicating the weight of the second source vector.
-        /// At amount = 0, "background" is returned, at amount = 1, "source" is returned.
-        /// </param>
-        protected abstract void BlendFunction(
-            Span<Vector4> destination,
-            ReadOnlySpan<Vector4> background,
-            ReadOnlySpan<Vector4> source,
-            ReadOnlySpan<float> amount);
-
-        /// <summary>
         /// Blends 2 rows together
         /// </summary>
         /// <param name="configuration"><see cref="Configuration"/> to use internally</param>
@@ -76,9 +44,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             ReadOnlySpan<TPixel> background,
             ReadOnlySpan<TPixel> source,
             ReadOnlySpan<float> amount)
-        {
-            this.Blend<TPixel>(configuration, destination, background, source, amount);
-        }
+            => this.Blend<TPixel>(configuration, destination, background, source, amount);
 
         /// <summary>
         /// Blends 2 rows together
@@ -165,5 +131,37 @@ namespace SixLabors.ImageSharp.PixelFormats
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, sourceVectors, destination, PixelConversionModifiers.Scale);
             }
         }
+
+        /// <summary>
+        /// Blend 2 rows together.
+        /// </summary>
+        /// <param name="destination">destination span</param>
+        /// <param name="background">the background span</param>
+        /// <param name="source">the source span</param>
+        /// <param name="amount">
+        /// A value between 0 and 1 indicating the weight of the second source vector.
+        /// At amount = 0, "background" is returned, at amount = 1, "source" is returned.
+        /// </param>
+        protected abstract void BlendFunction(
+            Span<Vector4> destination,
+            ReadOnlySpan<Vector4> background,
+            ReadOnlySpan<Vector4> source,
+            float amount);
+
+        /// <summary>
+        /// Blend 2 rows together.
+        /// </summary>
+        /// <param name="destination">destination span</param>
+        /// <param name="background">the background span</param>
+        /// <param name="source">the source span</param>
+        /// <param name="amount">
+        /// A span with values between 0 and 1 indicating the weight of the second source vector.
+        /// At amount = 0, "background" is returned, at amount = 1, "source" is returned.
+        /// </param>
+        protected abstract void BlendFunction(
+            Span<Vector4> destination,
+            ReadOnlySpan<Vector4> background,
+            ReadOnlySpan<Vector4> source,
+            ReadOnlySpan<float> amount);
     }
 }

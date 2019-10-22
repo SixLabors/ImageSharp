@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
     /// Note there are faster functions for when the backdrop color is known
     /// to be opaque
     /// </remarks>
-    public static partial class PorterDuffFunctions
+    internal static partial class PorterDuffFunctions
     {
         /// <summary>
         /// Returns the result of the "Normal" compositing equation.

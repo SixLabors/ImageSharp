@@ -17,19 +17,14 @@ namespace SixLabors.ImageSharp.ParallelUtils
     /// Parallel execution is optimized for image processing.
     /// Use this instead of direct <see cref="Parallel"/> calls!
     /// </summary>
-    internal static class ParallelHelper
+    public static class ParallelHelper
     {
-        /// <summary>
-        /// Get the default <see cref="ParallelExecutionSettings"/> for a <see cref="Configuration"/>
-        /// </summary>
-        public static ParallelExecutionSettings GetParallelSettings(this Configuration configuration)
-        {
-            return new ParallelExecutionSettings(configuration.MaxDegreeOfParallelism, configuration.MemoryAllocator);
-        }
-
         /// <summary>
         /// Iterate through the rows of a rectangle in optimized batches defined by <see cref="RowInterval"/>-s.
         /// </summary>
+        /// <param name="rectangle">The <see cref="Rectangle"/>.</param>
+        /// <param name="configuration">The <see cref="Configuration"/> to get the parallel settings from.</param>
+        /// <param name="body">The method body defining the iteration logic on a single <see cref="RowInterval"/>.</param>
         public static void IterateRows(Rectangle rectangle, Configuration configuration, Action<RowInterval> body)
         {
             ParallelExecutionSettings parallelSettings = configuration.GetParallelSettings();
@@ -40,7 +35,7 @@ namespace SixLabors.ImageSharp.ParallelUtils
         /// <summary>
         /// Iterate through the rows of a rectangle in optimized batches defined by <see cref="RowInterval"/>-s.
         /// </summary>
-        public static void IterateRows(
+        internal static void IterateRows(
             Rectangle rectangle,
             in ParallelExecutionSettings parallelSettings,
             Action<RowInterval> body)
@@ -78,10 +73,18 @@ namespace SixLabors.ImageSharp.ParallelUtils
         }
 
         /// <summary>
+        /// Get the default <see cref="ParallelExecutionSettings"/> for a <see cref="Configuration"/>
+        /// </summary>
+        internal static ParallelExecutionSettings GetParallelSettings(this Configuration configuration)
+        {
+            return new ParallelExecutionSettings(configuration.MaxDegreeOfParallelism, configuration.MemoryAllocator);
+        }
+
+        /// <summary>
         /// Iterate through the rows of a rectangle in optimized batches defined by <see cref="RowInterval"/>-s
         /// instantiating a temporary buffer for each <paramref name="body"/> invocation.
         /// </summary>
-        public static void IterateRowsWithTempBuffer<T>(
+        internal static void IterateRowsWithTempBuffer<T>(
             Rectangle rectangle,
             in ParallelExecutionSettings parallelSettings,
             Action<RowInterval, Memory<T>> body)
@@ -133,7 +136,7 @@ namespace SixLabors.ImageSharp.ParallelUtils
         /// Iterate through the rows of a rectangle in optimized batches defined by <see cref="RowInterval"/>-s
         /// instantiating a temporary buffer for each <paramref name="body"/> invocation.
         /// </summary>
-        public static void IterateRowsWithTempBuffer<T>(
+        internal static void IterateRowsWithTempBuffer<T>(
             Rectangle rectangle,
             Configuration configuration,
             Action<RowInterval, Memory<T>> body)

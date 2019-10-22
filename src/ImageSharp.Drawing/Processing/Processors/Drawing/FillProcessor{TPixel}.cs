@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 
             int width = maxX - minX;
 
-            var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
+            Rectangle workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
 
             IBrush brush = this.definition.Brush;
             GraphicsOptions options = this.definition.Options;

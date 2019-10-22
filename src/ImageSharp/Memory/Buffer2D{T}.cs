@@ -12,7 +12,11 @@ namespace SixLabors.ImageSharp.Memory
     /// Represents a buffer of value type objects
     /// interpreted as a 2D region of <see cref="Width"/> x <see cref="Height"/> elements.
     /// </summary>
+    /// <remarks>
+    /// Before RC1, this class might be target of API changes, use it on your own risk!
+    /// </remarks>
     /// <typeparam name="T">The value type.</typeparam>
+    // TODO: Consider moving this type to the SixLabors.Memory namespace (SixLabors.Core).
     public sealed class Buffer2D<T> : IDisposable
         where T : struct
     {
@@ -38,7 +42,7 @@ namespace SixLabors.ImageSharp.Memory
 
         /// <summary>
         /// Gets the height.
-        /// </summary>
+        /// </summary>Bu
         public int Height { get; private set; }
 
         /// <summary>

@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             source.W *= opacity;
 
-            return In(backdrop, source, <#=blender#>(backdrop, source));
+            return In(backdrop, source);
         }
 
         /// <summary>
@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             source.W *= opacity;
 
-            return In(source, backdrop, <#=blender#>(source, backdrop));
+            return In(source, backdrop);
         }
 
         /// <summary>

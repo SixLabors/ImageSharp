@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             source.W *= opacity;
 
-            return In(backdrop, source, Normal(backdrop, source));
+            return In(backdrop, source);
         }
 
         /// <summary>
@@ -144,7 +144,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             source.W *= opacity;
 
-            return In(source, backdrop, Normal(source, backdrop));
+            return In(source, backdrop);
         }
 
         /// <summary>
@@ -477,7 +477,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             source.W *= opacity;
 
-            return In(backdrop, source, Multiply(backdrop, source));
+            return In(backdrop, source);
         }
 
         /// <summary>
@@ -550,7 +550,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             source.W *= opacity;
 
-            return In(source, backdrop, Multiply(source, backdrop));
+            return In(source, backdrop);
         }
 
         /// <summary>
@@ -883,7 +883,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             source.W *= opacity;
 
-            return In(backdrop, source, Add(backdrop, source));
+            return In(backdrop, source);
         }
 
         /// <summary>
@@ -956,7 +956,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             source.W *= opacity;
 
-            return In(source, backdrop, Add(source, backdrop));
+            return In(source, backdrop);
         }
 
         /// <summary>
@@ -1289,7 +1289,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             source.W *= opacity;
 
-            return In(backdrop, source, Subtract(backdrop, source));
+            return In(backdrop, source);
         }
 
         /// <summary>
@@ -1362,7 +1362,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             source.W *= opacity;
 
-            return In(source, backdrop, Subtract(source, backdrop));
+            return In(source, backdrop);
         }
 
         /// <summary>
@@ -1695,7 +1695,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             source.W *= opacity;
 
-            return In(backdrop, source, Screen(backdrop, source));
+            return In(backdrop, source);
         }
 
         /// <summary>
@@ -1768,7 +1768,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             source.W *= opacity;
 
-            return In(source, backdrop, Screen(source, backdrop));
+            return In(source, backdrop);
         }
 
         /// <summary>
@@ -2101,7 +2101,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             source.W *= opacity;
 
-            return In(backdrop, source, Darken(backdrop, source));
+            return In(backdrop, source);
         }
 
         /// <summary>
@@ -2174,7 +2174,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             source.W *= opacity;
 
-            return In(source, backdrop, Darken(source, backdrop));
+            return In(source, backdrop);
         }
 
         /// <summary>
@@ -2507,7 +2507,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             source.W *= opacity;
 
-            return In(backdrop, source, Lighten(backdrop, source));
+            return In(backdrop, source);
         }
 
         /// <summary>
@@ -2580,7 +2580,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             source.W *= opacity;
 
-            return In(source, backdrop, Lighten(source, backdrop));
+            return In(source, backdrop);
         }
 
         /// <summary>
@@ -2913,7 +2913,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             source.W *= opacity;
 
-            return In(backdrop, source, Overlay(backdrop, source));
+            return In(backdrop, source);
         }
 
         /// <summary>
@@ -2986,7 +2986,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             source.W *= opacity;
 
-            return In(source, backdrop, Overlay(source, backdrop));
+            return In(source, backdrop);
         }
 
         /// <summary>
@@ -3319,7 +3319,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             source.W *= opacity;
 
-            return In(backdrop, source, HardLight(backdrop, source));
+            return In(backdrop, source);
         }
 
         /// <summary>
@@ -3392,7 +3392,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             source.W *= opacity;
 
-            return In(source, backdrop, HardLight(source, backdrop));
+            return In(source, backdrop);
         }
 
         /// <summary>

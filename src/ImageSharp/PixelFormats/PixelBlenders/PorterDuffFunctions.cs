@@ -208,12 +208,10 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// </summary>
         /// <param name="destination">The destination vector.</param>
         /// <param name="source">The source vector.</param>
-        /// <param name="blend">The amount to blend. Range 0..1</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 In(Vector4 destination, Vector4 source, Vector4 blend)
+        public static Vector4 In(Vector4 destination, Vector4 source)
         {
-            // TODO: blend is not used?
             float alpha = destination.W * source.W;
 
             Vector4 color = source * alpha;                    // premultiply

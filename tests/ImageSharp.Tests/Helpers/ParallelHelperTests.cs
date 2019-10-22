@@ -332,7 +332,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
                         });
 
                 // Assert:
-                TestImageExtensions.CompareBuffers(expected.Span, actual.Span);
+                TestImageExtensions.CompareBuffers(expected.GetSpan(), actual.GetSpan());
             }
         }
 

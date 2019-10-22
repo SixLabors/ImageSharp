@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 {
-    public static partial class PorterDuffFunctions
+    internal static partial class PorterDuffFunctions
     {
 
 

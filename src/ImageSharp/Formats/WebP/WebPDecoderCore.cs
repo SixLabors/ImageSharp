@@ -112,8 +112,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // Read Chunk size.
             // The size of the file in bytes starting at offset 8.
             // The file size in the header is the total size of the chunks that follow plus 4 bytes for the ‘WEBP’ FourCC.
-            this.currentStream.Read(this.buffer, 0, 4);
-            uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
+            uint chunkSize = this.ReadChunkSize();
 
             // Skip 'WEBP' from the header.
             this.currentStream.Skip(4);
@@ -123,9 +122,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private WebPImageInfo ReadVp8Info(int vpxWidth = 0, int vpxHeight = 0)
         {
-            WebPChunkType type = this.ReadChunkType();
+            WebPChunkType chunkType = this.ReadChunkType();
 
-            switch (type)
+            switch (chunkType)
             {
                 case WebPChunkType.Vp8:
                     return this.ReadVp8Header(vpxWidth, vpxHeight);
@@ -142,8 +141,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private WebPImageInfo ReadVp8XHeader()
         {
-            this.currentStream.Read(this.buffer, 0, 4);
-            uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
+            uint chunkSize = this.ReadChunkSize();
 
             // This byte contains information about the image features used.
             // The first two bit should and the last bit should be 0.
@@ -163,7 +161,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             bool isXmpPresent = (imageFeatures & (1 << 2)) != 0;
 
             // If bit 7 is set, animation should be present.
-            bool isAnimationPresent = (imageFeatures & (1 << 7)) != 0;
+            bool isAnimationPresent = (imageFeatures & (1 << 1)) != 0;
 
             // 3 reserved bytes should follow which are supposed to be zero.
             this.currentStream.Read(this.buffer, 0, 3);
@@ -178,8 +176,37 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.buffer[3] = 0;
             int height = BinaryPrimitives.ReadInt32LittleEndian(this.buffer) + 1;
 
-            // TODO: optional chunks ICCP and ANIM can follow here. Ignoring them for now.
-            this.ParseOptionalChunks();
+            // Optional chunks ALPH, ICCP and ANIM can follow here. Ignoring them for now.
+            if (isIccPresent)
+            {
+                WebPChunkType chunkType = this.ReadChunkType();
+                uint iccpChunkSize = this.ReadChunkSize();
+                this.currentStream.Skip((int)iccpChunkSize);
+            }
+
+            if (isAnimationPresent)
+            {
+                // ANIM chunk will be followed by n ANMF chunks
+                WebPChunkType chunkType = this.ReadChunkType();
+                uint animationParameterChunkSize = this.ReadChunkSize();
+                this.currentStream.Skip((int)animationParameterChunkSize);
+                chunkType = this.ReadChunkType();
+                while (chunkType == WebPChunkType.Animation)
+                {
+                    uint animationChunkSize = this.ReadChunkSize();
+                    this.currentStream.Skip((int)animationChunkSize);
+                    chunkType = this.ReadChunkType();
+                }
+
+                // TODO: there seems to follow something here after the last ANMF, im not sure yet how to parse.
+            }
+
+            if (isAlphaPresent)
+            {
+                WebPChunkType chunkType = this.ReadChunkType();
+                uint alphaChunkSize = this.ReadChunkSize();
+                this.currentStream.Skip((int)alphaChunkSize);
+            }
 
             // A VP8 or VP8L chunk will follow here.
             return this.ReadVp8Info(width, height);
@@ -232,8 +259,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private WebPImageInfo ReadVp8LHeader(int vpxWidth = 0, int vpxHeight = 0)
         {
             // VP8 data size.
-            this.currentStream.Read(this.buffer, 0, 4);
-            uint dataSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
+            uint dataSize = this.ReadChunkSize();
 
             // One byte signature, should be 0x2f.
             byte signature = (byte)this.currentStream.ReadByte();
@@ -322,7 +348,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private void ParseOptionalChunks()
         {
             // Read VP8 chunk header.
-            this.currentStream.Read(this.buffer, 0, 4);
+            // WebPChunkType chunkType = this.ReadChunkType();
         }
 
         private void ReadSimpleLossy<TPixel>(Buffer2D<TPixel> pixels, int width, int height, int chunkSize)
@@ -330,6 +356,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             // TODO: implement decoding, for simulating the decoding, skipping the chunk size bytes.
             this.currentStream.Skip(chunkSize);
+
+            this.ParseOptionalChunks();
         }
 
         private void ReadSimpleLossless<TPixel>(Buffer2D<TPixel> pixels, int width, int height, int chunkSize)
@@ -337,6 +365,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             // TODO: implement decoding, for simulating the decoding, skipping the chunk size bytes.
             this.currentStream.Skip(chunkSize);
+
+            this.ParseOptionalChunks();
         }
 
         private void ReadExtended<TPixel>(Buffer2D<TPixel> pixels, int width, int height)
@@ -355,6 +385,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             return this.currentStream.Read(this.buffer, 0, 4) == 4
                        ? (WebPChunkType)BinaryPrimitives.ReadUInt32BigEndian(this.buffer)
+                       : throw new ImageFormatException("Invalid WebP data.");
+        }
+
+        /// <summary>
+        /// Reads the chunk size.
+        /// </summary>
+        /// <returns>The chunk size in bytes.</returns>
+        private uint ReadChunkSize()
+        {
+            return this.currentStream.Read(this.buffer, 0, 4) == 4
+                       ? BinaryPrimitives.ReadUInt32LittleEndian(this.buffer)
                        : throw new ImageFormatException("Invalid WebP data.");
         }
     }

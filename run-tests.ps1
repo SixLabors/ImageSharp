@@ -70,9 +70,12 @@ else {
     cd .\tests\ImageSharp.Tests
     $xunitArgs = "-nobuild -c Release -framework $targetFramework"
 
+    # There were issues matching the correct installed runtime if we do not specify it explicitly:
     if ($targetFramework -eq "netcoreapp2.1") {
-        # There were issues matching the correct installed runtime if we do not specify it explicitly:
         $xunitArgs += " --fx-version 2.1.0"
+    }
+    if ($targetFramework -eq "netcoreapp3.0") {
+        $xunitArgs += " --fx-version 3.0.0"
     }
 
     if ($is32Bit -eq "True") {

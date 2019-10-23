@@ -19,6 +19,8 @@ branches:
     - coverity_scan
 
 script:
+  - sudo apt install libc6-dev 
+  - sudo apt install libgdiplus
   - git submodule -q update --init
   - dotnet restore
   - dotnet test tests/ImageSharp.Tests/ImageSharp.Tests.csproj -c Release -f "netcoreapp2.1"

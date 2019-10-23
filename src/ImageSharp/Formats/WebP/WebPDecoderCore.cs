@@ -92,8 +92,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         public IImageInfo Identify(Stream stream)
         {
-            var metadata = new ImageMetadata();
-            WebPMetadata webpMetadata = metadata.GetFormatMetadata(WebPFormat.Instance);
             this.currentStream = stream;
 
             this.ReadImageHeader();
@@ -122,6 +120,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private WebPImageInfo ReadVp8Info()
         {
+            var metadata = new ImageMetadata();
+            WebPMetadata webpMetadata = metadata.GetFormatMetadata(WebPFormat.Instance);
+            this.metadata = new ImageMetadata();
+
             WebPChunkType chunkType = this.ReadChunkType();
 
             switch (chunkType)

@@ -66,21 +66,21 @@ namespace SixLabors.ImageSharp.Formats.WebP
             WebPMetadata webpMetadata = metadata.GetFormatMetadata(WebPFormat.Instance);
             this.currentStream = stream;
 
-            uint chunkSize = this.ReadImageHeader();
+            uint fileSize = this.ReadImageHeader();
             WebPImageInfo imageInfo = this.ReadVp8Info();
 
             var image = new Image<TPixel>(this.configuration, imageInfo.Width, imageInfo.Height, this.metadata);
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
             if (imageInfo.IsLossLess)
             {
-                ReadSimpleLossless(pixels, image.Width, image.Height, (int)imageInfo.DataSize);
+                ReadSimpleLossless(pixels, image.Width, image.Height, (int)imageInfo.ImageDataSize);
             }
             else
             {
-                ReadSimpleLossy(pixels, image.Width, image.Height, (int)imageInfo.DataSize);
+                ReadSimpleLossy(pixels, image.Width, image.Height, (int)imageInfo.ImageDataSize);
             }
 
-            // TODO: there can be optional chunks after the image data, like EXIF, XMP etc.
+            // There can be optional chunks after the image data, like EXIF, XMP etc.
             this.ParseOptionalChunks();
 
             return image;
@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // Skip FourCC header, we already know its a RIFF file at this point.
             this.currentStream.Skip(4);
 
-            // Read Chunk size.
+            // Read file size.
             // The size of the file in bytes starting at offset 8.
             // The file size in the header is the total size of the chunks that follow plus 4 bytes for the ‘WEBP’ FourCC.
             uint chunkSize = this.ReadChunkSize();
@@ -179,9 +179,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int height = BinaryPrimitives.ReadInt32LittleEndian(this.buffer) + 1;
 
             // Optional chunks ALPH, ICCP and ANIM can follow here. Ignoring them for now.
+            WebPChunkType chunkType;
             if (isIccPresent)
             {
-                WebPChunkType chunkType = this.ReadChunkType();
+                chunkType = this.ReadChunkType();
                 uint iccpChunkSize = this.ReadChunkSize();
                 this.currentStream.Skip((int)iccpChunkSize);
             }
@@ -189,34 +190,42 @@ namespace SixLabors.ImageSharp.Formats.WebP
             if (isAnimationPresent)
             {
                 // ANIM chunk will be followed by n ANMF chunks
-                WebPChunkType chunkType = this.ReadChunkType();
+                chunkType = this.ReadChunkType();
                 uint animationParameterChunkSize = this.ReadChunkSize();
                 this.currentStream.Skip((int)animationParameterChunkSize);
                 chunkType = this.ReadChunkType();
+
+                // TODO: not sure yet how to determine how many animation chunks there will be.
                 while (chunkType == WebPChunkType.Animation)
                 {
                     uint animationChunkSize = this.ReadChunkSize();
                     this.currentStream.Skip((int)animationChunkSize);
                     chunkType = this.ReadChunkType();
                 }
-
-                // TODO: there seems to follow something here after the last ANMF, im not sure yet how to parse.
             }
 
             if (isAlphaPresent)
             {
-                WebPChunkType chunkType = this.ReadChunkType();
+                chunkType = this.ReadChunkType();
                 uint alphaChunkSize = this.ReadChunkSize();
                 this.currentStream.Skip((int)alphaChunkSize);
             }
 
-            return new WebPImageInfo()
-                   {
-                       Width = width,
-                       Height = height,
-                       IsLossLess = false,
-                       DataSize = chunkSize
-                   };
+            // A VP8 or VP8L chunk should follow here.
+            chunkType = this.ReadChunkType();
+
+            // TOOD: image width and height from VP8X should overrule VP8 or VP8L info, because its 3 bytes instead of just 14 bit.
+            switch (chunkType)
+            {
+                case WebPChunkType.Vp8:
+                    return this.ReadVp8Header();
+                case WebPChunkType.Vp8L:
+                    return this.ReadVp8LHeader();
+            }
+
+            WebPThrowHelper.ThrowImageFormatException("Unexpected chunk followed VP8X header");
+
+            return new WebPImageInfo();
         }
 
         private WebPImageInfo ReadVp8Header()
@@ -256,11 +265,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
                        Width = width,
                        Height = height,
                        IsLossLess = false,
-                       DataSize = dataSize
+                       ImageDataSize = dataSize
                    };
         }
 
-        private WebPImageInfo ReadVp8LHeader(int vpxWidth = 0, int vpxHeight = 0)
+        private WebPImageInfo ReadVp8LHeader()
         {
             // VP8 data size.
             uint dataSize = this.ReadChunkSize();
@@ -337,46 +346,46 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 transformPresent = bitReader.ReadBit();
             }
 
-            // Use the width and height from the VP8X information, if its provided, because its 3 bytes instead of 14 bits.
-            bool isVpxDimensionsPresent = vpxHeight != 0 || vpxWidth != 0;
-
             return new WebPImageInfo()
                    {
-                       Width = isVpxDimensionsPresent ? vpxWidth : (int)width,
-                       Height = isVpxDimensionsPresent ? vpxHeight : (int)height,
+                       Width = (int)width,
+                       Height = (int)height,
                        IsLossLess = true,
-                       DataSize = dataSize
+                       ImageDataSize = dataSize
                    };
         }
 
-        private void ParseOptionalChunks()
-        {
-            // Read VP8 chunk header.
-            // WebPChunkType chunkType = this.ReadChunkType();
-        }
-
-        private void ReadSimpleLossy<TPixel>(Buffer2D<TPixel> pixels, int width, int height, int chunkSize)
+        private void ReadSimpleLossy<TPixel>(Buffer2D<TPixel> pixels, int width, int height, int imageDataSize)
             where TPixel : struct, IPixel<TPixel>
         {
             // TODO: implement decoding, for simulating the decoding, skipping the chunk size bytes.
-            this.currentStream.Skip(chunkSize);
-
-            this.ParseOptionalChunks();
+            this.currentStream.Skip(imageDataSize - 10);  // 10 bytes because of VP8X header.
         }
 
-        private void ReadSimpleLossless<TPixel>(Buffer2D<TPixel> pixels, int width, int height, int chunkSize)
+        private void ReadSimpleLossless<TPixel>(Buffer2D<TPixel> pixels, int width, int height, int imageDataSize)
             where TPixel : struct, IPixel<TPixel>
         {
             // TODO: implement decoding, for simulating the decoding, skipping the chunk size bytes.
-            this.currentStream.Skip(chunkSize);
-
-            this.ParseOptionalChunks();
+            this.currentStream.Skip(imageDataSize - 10); // 10 bytes because of VP8X header.
         }
 
         private void ReadExtended<TPixel>(Buffer2D<TPixel> pixels, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
             // TODO: implement decoding
+        }
+
+        private void ParseOptionalChunks()
+        {
+            while (this.currentStream.Position < this.currentStream.Length)
+            {
+                // Read chunk header.
+                WebPChunkType chunkType = this.ReadChunkType();
+                uint chunkLength = this.ReadChunkSize();
+
+                // Skip chunk data for now.
+                this.currentStream.Skip((int)chunkLength);
+            }
         }
 
         /// <summary>
@@ -393,14 +402,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         /// <summary>
-        /// Reads the chunk size.
+        /// Reads the chunk size. If Chunk Size is odd, a single padding byte will be added to the payload,
+        /// so the chunk size will be increased by 1 in those cases.
         /// </summary>
         /// <returns>The chunk size in bytes.</returns>
         private uint ReadChunkSize()
         {
-            return this.currentStream.Read(this.buffer, 0, 4) == 4
-                       ? BinaryPrimitives.ReadUInt32LittleEndian(this.buffer)
-                       : throw new ImageFormatException("Invalid WebP data.");
+            if (this.currentStream.Read(this.buffer, 0, 4) == 4)
+            {
+                uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
+                return (chunkSize % 2 == 0) ? chunkSize : chunkSize + 1;
+            }
+
+            throw new ImageFormatException("Invalid WebP data.");
         }
     }
 }

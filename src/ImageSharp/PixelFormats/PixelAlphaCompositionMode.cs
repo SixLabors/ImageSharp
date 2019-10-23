@@ -9,17 +9,17 @@ namespace SixLabors.ImageSharp.PixelFormats
     public enum PixelAlphaCompositionMode
     {
         /// <summary>
-        /// returns the destination over the source.
+        /// Returns the destination over the source.
         /// </summary>
         SrcOver = 0,
 
         /// <summary>
-        /// returns the source colors.
+        /// Returns the source colors.
         /// </summary>
         Src,
 
         /// <summary>
-        /// returns the source over the destination.
+        /// Returns the source over the destination.
         /// </summary>
         SrcAtop,
 

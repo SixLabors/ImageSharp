@@ -20,6 +20,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </summary>
         public bool IsLossLess { get; set; }
 
-        public uint DataSize { get; set; }
+        /// <summary>
+        /// The bytes of the image payload.
+        /// </summary>
+        public uint ImageDataSize { get; set; }
     }
 }

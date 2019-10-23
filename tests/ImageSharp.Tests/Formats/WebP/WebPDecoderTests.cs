@@ -8,27 +8,17 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.WebP
 {
-    using SixLabors.ImageSharp.Metadata;
     using static SixLabors.ImageSharp.Tests.TestImages.WebP;
-    using static TestImages.Bmp;
 
     public class WebPDecoderTests
     {
-        public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
-        new TheoryData<string, int, int, PixelResolutionUnit>
-        {
-            { Car, 3780, 3780 , PixelResolutionUnit.PixelsPerMeter },
-            { V5Header, 3780, 3780 , PixelResolutionUnit.PixelsPerMeter },
-            { RLE8, 2835, 2835, PixelResolutionUnit.PixelsPerMeter }
-        };
-
         [Theory]
-        [InlineData(Lossless.Lossless1, 1000, 307)]
-        [InlineData(Lossless.Lossless2, 1000, 307)]
-        [InlineData(Lossy.Alpha.LossyAlpha1, 1000, 307)]
-        [InlineData(Lossy.Alpha.LossyAlpha2, 1000, 307)]
-        [InlineData(Animated.Animated1, 400, 400)]
-        public void Identify_DetectsCorrectDimensions(string imagePath, int expectedWidth, int expectedHeight)
+        [InlineData(Lossless.Lossless1, 1000, 307, 24)]
+        [InlineData(Lossless.Lossless2, 1000, 307, 24)]
+        [InlineData(Lossy.Alpha.LossyAlpha1, 1000, 307, 24)]
+        [InlineData(Lossy.Alpha.LossyAlpha2, 1000, 307, 24)]
+        [InlineData(Animated.Animated1, 400, 400, 24)]
+        public void Identify_DetectsCorrectDimensions(string imagePath, int expectedWidth, int expectedHeight, int expectedBitsPerPixel)
         {
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
@@ -37,6 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
                 Assert.NotNull(imageInfo);
                 Assert.Equal(expectedWidth, imageInfo.Width);
                 Assert.Equal(expectedHeight, imageInfo.Height);
+                Assert.Equal(expectedBitsPerPixel, imageInfo.PixelType.BitsPerPixel);
             }
         }
     }

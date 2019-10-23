@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.0;net462;net472</TargetFrameworks>
+    <TargetFrameworks>netcoreapp2.1;netcoreapp3.0;net462;net472</TargetFrameworks>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <DebugType Condition="$(codecov) != ''">full</DebugType>

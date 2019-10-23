@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats.PixelBlenders;
@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <param name="options">the blending and composition to apply</param>
         /// <returns>A <see cref="PixelBlender{TPixel}"/>.</returns>
-        internal PixelBlender<TPixel> GetPixelBlender(GraphicsOptions options)
+        public PixelBlender<TPixel> GetPixelBlender(GraphicsOptions options)
         {
             return this.GetPixelBlender(options.ColorBlendingMode, options.AlphaCompositionMode);
         }
@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="colorMode">The color blending mode to apply</param>
         /// <param name="alphaMode">The alpha composition mode to apply</param>
         /// <returns>A <see cref="PixelBlender{TPixel}"/>.</returns>
-        internal virtual PixelBlender<TPixel> GetPixelBlender(PixelColorBlendingMode colorMode, PixelAlphaCompositionMode alphaMode)
+        public virtual PixelBlender<TPixel> GetPixelBlender(PixelColorBlendingMode colorMode, PixelAlphaCompositionMode alphaMode)
         {
             switch (alphaMode)
             {

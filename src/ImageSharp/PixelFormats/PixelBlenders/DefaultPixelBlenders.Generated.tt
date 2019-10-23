@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
     /// Note there are faster functions for when the backdrop color is known
     /// to be opaque
     /// </remarks>
-    public static class DefaultPixelBlenders<TPixel>
+    internal static class DefaultPixelBlenders<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
 

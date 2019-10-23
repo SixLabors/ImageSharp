@@ -1,15 +1,15 @@
 version: 1.0.0.{build}
-image: Visual Studio 2017
+image: Visual Studio 2019
 
 # prevent the double build when a branch has an active PR
 skip_branch_with_pr: true
 
 environment:
   matrix:
-    - target_framework: netcoreapp2.1
+    - target_framework: netcoreapp3.0
       is_32bit: False
 
-    - target_framework: netcoreapp2.1
+    - target_framework: netcoreapp3.0
       is_32bit: True
 
     - target_framework: net472

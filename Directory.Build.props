@@ -56,7 +56,7 @@
     <Copyright>Copyright © Six Labors and Contributors</Copyright>
     <Features>strict;IOperation</Features>
     <HighEntropyVA>true</HighEntropyVA>
-    <LangVersion>7.3</LangVersion>
+    <LangVersion>8.0</LangVersion>
     <NeutralLanguage>en</NeutralLanguage>
     <OverwriteReadOnlyFiles>true</OverwriteReadOnlyFiles>
     <PackageIconUrl>https://raw.githubusercontent.com/SixLabors/Branding/master/icons/imagesharp/sixlabors.imagesharp.128.png</PackageIconUrl>

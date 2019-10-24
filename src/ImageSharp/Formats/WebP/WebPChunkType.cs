@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// <summary>
     /// Contains a list of different webp chunk types.
     /// </summary>
-    internal enum WebPChunkType : uint
+    public enum WebPChunkType : uint
     {
         /// <summary>
         /// Header signaling the use of VP8 video format.

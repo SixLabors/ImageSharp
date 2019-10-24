@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private ulong GetBytes()
         {
             ulong temp = 0;
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < JpegConstants.Huffman.FetchLoop; i++)
             {
                 int b = this.ReadStream();
 

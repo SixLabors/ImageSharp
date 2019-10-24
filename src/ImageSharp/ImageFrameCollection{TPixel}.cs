@@ -351,7 +351,7 @@ namespace SixLabors.ImageSharp
                 this.parent.GetConfiguration(),
                 source.Size(),
                 source.Metadata.DeepClone());
-            source.CopyPixelsTo(result.PixelBuffer.Span);
+            source.CopyPixelsTo(result.PixelBuffer.GetSpan());
             return result;
         }
     }

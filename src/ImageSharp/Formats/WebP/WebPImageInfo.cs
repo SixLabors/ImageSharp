@@ -21,6 +21,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public bool IsLossLess { get; set; }
 
         /// <summary>
+        /// Gets or sets whether this image is a animation.
+        /// </summary>
+        public bool IsAnimation { get; set; }
+
+        /// <summary>
         /// The bytes of the image payload.
         /// </summary>
         public uint ImageDataSize { get; set; }

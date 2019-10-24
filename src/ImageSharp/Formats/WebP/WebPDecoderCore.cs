@@ -73,6 +73,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             uint fileSize = this.ReadImageHeader();
             WebPImageInfo imageInfo = this.ReadVp8Info();
+            if (imageInfo.IsAnimation)
+            {
+                WebPThrowHelper.ThrowNotSupportedException("Animations are not supported");
+            }
 
             var image = new Image<TPixel>(this.configuration, imageInfo.Width, imageInfo.Height, this.metadata);
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
@@ -195,19 +199,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             {
                 this.webpMetadata.Animated = true;
 
-                // ANIM chunk will be followed by n ANMF chunks
-                chunkType = this.ReadChunkType();
-                uint animationParameterChunkSize = this.ReadChunkSize();
-                this.currentStream.Skip((int)animationParameterChunkSize);
-                chunkType = this.ReadChunkType();
-
-                // TODO: not sure yet how to determine how many animation chunks there will be.
-                while (chunkType == WebPChunkType.Animation)
-                {
-                    uint animationChunkSize = this.ReadChunkSize();
-                    this.currentStream.Skip((int)animationChunkSize);
-                    chunkType = this.ReadChunkType();
-                }
+                return new WebPImageInfo()
+                       {
+                           Width = width,
+                           Height = height,
+                           IsAnimation = true
+                       };
             }
 
             if (isAlphaPresent)

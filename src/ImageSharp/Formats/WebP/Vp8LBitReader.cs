@@ -18,10 +18,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <param name="inputStream">The input stream to read from.</param>
         public Vp8LBitReader(Stream inputStream)
         {
-            this.stream = new MemoryStream();
-            long inputStreamPos = inputStream.Position;
-            inputStream.CopyTo(this.stream);
-            inputStream.Position = inputStreamPos;
+            this.stream = inputStream;
             this.Offset = 0;
             this.Bit = 0;
         }

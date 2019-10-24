@@ -251,9 +251,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             public const int RegisterSize = 64;
 
             /// <summary>
-            /// The minimum number of bits required by the <see cref="HuffmanScanBuffer"/>.
+            /// The number of bits to fetch when filling the <see cref="HuffmanScanBuffer"/> buffer.
             /// </summary>
-            public const int MinBits = 48;
+            public const int FetchBits = 48;
+
+            /// <summary>
+            /// The minimum number of bits allowed before by the <see cref="HuffmanScanBuffer"/> before fetching.
+            /// </summary>
+            public const int MinBits = RegisterSize - FetchBits;
 
             /// <summary>
             /// If the next Huffman code is no more than this number of bits, we can obtain its length

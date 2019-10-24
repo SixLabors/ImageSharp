@@ -48,6 +48,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private ImageMetadata metadata;
 
         /// <summary>
+        /// The webp specific metadata.
+        /// </summary>
+        private WebPMetadata webpMetadata;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="WebPDecoderCore"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
@@ -120,9 +125,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private WebPImageInfo ReadVp8Info()
         {
-            var metadata = new ImageMetadata();
-            WebPMetadata webpMetadata = metadata.GetFormatMetadata(WebPFormat.Instance);
             this.metadata = new ImageMetadata();
+            this.webpMetadata = metadata.GetFormatMetadata(WebPFormat.Instance);
 
             WebPChunkType chunkType = this.ReadChunkType();
 
@@ -189,6 +193,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             if (isAnimationPresent)
             {
+                this.webpMetadata.Animated = true;
+
                 // ANIM chunk will be followed by n ANMF chunks
                 chunkType = this.ReadChunkType();
                 uint animationParameterChunkSize = this.ReadChunkSize();
@@ -230,6 +236,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private WebPImageInfo ReadVp8Header()
         {
+            this.webpMetadata.Format = WebPFormatType.Lossy;
+
             // VP8 data size.
             this.currentStream.Read(this.buffer, 0, 3);
             this.buffer[3] = 0;
@@ -271,6 +279,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private WebPImageInfo ReadVp8LHeader()
         {
+            this.webpMetadata.Format = WebPFormatType.Lossless;
+
             // VP8 data size.
             uint dataSize = this.ReadChunkSize();
 

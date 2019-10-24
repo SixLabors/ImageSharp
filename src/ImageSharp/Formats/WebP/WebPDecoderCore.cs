@@ -67,8 +67,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public Image<TPixel> Decode<TPixel>(Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            var metadata = new ImageMetadata();
-            WebPMetadata webpMetadata = metadata.GetFormatMetadata(WebPFormat.Instance);
             this.currentStream = stream;
 
             uint fileSize = this.ReadImageHeader();
@@ -298,11 +296,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             // The next 3 bytes are the version. The version_number is a 3 bit code that must be set to 0.
             // Any other value should be treated as an error.
+            // TODO: should we throw here when version number is != 0?
             uint version = bitReader.Read(3);
-            if (version != 0)
-            {
-                WebPThrowHelper.ThrowImageFormatException($"Unexpected webp version number: {version}");
-            }
 
             // Next bit indicates, if a transformation is present.
             bool transformPresent = bitReader.ReadBit();
@@ -365,15 +360,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private void ReadSimpleLossy<TPixel>(Buffer2D<TPixel> pixels, int width, int height, int imageDataSize)
             where TPixel : struct, IPixel<TPixel>
         {
-            // TODO: implement decoding, for simulating the decoding, skipping the chunk size bytes.
-            this.currentStream.Skip(imageDataSize - 10);  // 10 bytes because of VP8X header.
+            // TODO: implement decoding. For simulating the decoding: skipping the chunk size bytes.
+            this.currentStream.Skip(imageDataSize); // TODO: this does not seem to work in all cases
         }
 
         private void ReadSimpleLossless<TPixel>(Buffer2D<TPixel> pixels, int width, int height, int imageDataSize)
             where TPixel : struct, IPixel<TPixel>
         {
-            // TODO: implement decoding, for simulating the decoding, skipping the chunk size bytes.
-            this.currentStream.Skip(imageDataSize - 10); // 10 bytes because of VP8X header.
+            // TODO: implement decoding. For simulating the decoding: skipping the chunk size bytes.
+            this.currentStream.Skip(imageDataSize); // TODO: this does not seem to work in all cases
         }
 
         private void ReadExtended<TPixel>(Buffer2D<TPixel> pixels, int width, int height)
@@ -403,9 +398,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </exception>
         private WebPChunkType ReadChunkType()
         {
-            return this.currentStream.Read(this.buffer, 0, 4) == 4
-                       ? (WebPChunkType)BinaryPrimitives.ReadUInt32BigEndian(this.buffer)
-                       : throw new ImageFormatException("Invalid WebP data.");
+            if (this.currentStream.Read(this.buffer, 0, 4) == 4)
+            {
+                var chunkType = (WebPChunkType)BinaryPrimitives.ReadUInt32BigEndian(this.buffer);
+                this.webpMetadata.ChunkTypes.Enqueue(chunkType);
+                return chunkType;
+            }
+
+            throw new ImageFormatException("Invalid WebP data.");
         }
 
         /// <summary>

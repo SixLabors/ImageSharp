@@ -1,6 +1,9 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections;
+using System.Collections.Generic;
+
 namespace SixLabors.ImageSharp.Formats.WebP
 {
     /// <summary>
@@ -32,6 +35,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// The webp format used. Either lossless or lossy.
         /// </summary>
         public WebPFormatType Format { get; set; }
+
+        /// <summary>
+        /// All found chunk types ordered by appearance.
+        /// </summary>
+        public Queue<WebPChunkType> ChunkTypes { get; set; } = new Queue<WebPChunkType>();
 
         /// <summary>
         /// Indicates, if the webp file contains a animation.

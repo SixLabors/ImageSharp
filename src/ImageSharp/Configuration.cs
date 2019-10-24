@@ -63,9 +63,9 @@ namespace SixLabors.ImageSharp
             get => this.maxDegreeOfParallelism;
             set
             {
-                if (value <= 0)
+                if (value == 0 || value < -1)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(this.MaxDegreeOfParallelism));
+                    throw new ArgumentOutOfRangeException(nameof(MaxDegreeOfParallelism));
                 }
 
                 this.maxDegreeOfParallelism = value;

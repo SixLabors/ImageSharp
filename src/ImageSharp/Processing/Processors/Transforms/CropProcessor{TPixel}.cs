@@ -3,7 +3,7 @@
 
 using System;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.ParallelUtils;
+using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -47,10 +47,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Rectangle bounds = this.cropRectangle;
 
             // Copying is cheap, we should process more pixels per task:
-            ParallelExecutionSettings parallelSettings
-                = this.Configuration
-                      .GetParallelSettings()
-                      .MultiplyMinimumPixelsPerTask(4);
+            ParallelExecutionSettings parallelSettings = ParallelExecutionSettings.FromConfiguration(this.Configuration)
+                .MultiplyMinimumPixelsPerTask(4);
 
             ParallelHelper.IterateRows(
                 bounds,

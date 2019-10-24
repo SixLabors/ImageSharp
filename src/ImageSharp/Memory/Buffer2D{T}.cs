@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Memory
 
         /// <summary>
         /// Gets the height.
-        /// </summary>Bu
+        /// </summary>
         public int Height { get; private set; }
 
         /// <summary>

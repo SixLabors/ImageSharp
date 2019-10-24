@@ -10,12 +10,13 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.Memory;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.ParallelUtils
+namespace SixLabors.ImageSharp.Advanced.ParallelUtils
 {
     /// <summary>
     /// Utility methods for batched processing of pixel row intervals.
-    /// Parallel execution is optimized for image processing.
-    /// Use this instead of direct <see cref="Parallel"/> calls!
+    /// Parallel execution is optimized for image processing based on values defined
+    /// <see cref="ParallelExecutionSettings"/> or <see cref="Configuration"/>.
+    /// Using this class is preferred over direct usage of <see cref="Parallel"/> utility methods.
     /// </summary>
     public static class ParallelHelper
     {
@@ -27,7 +28,7 @@ namespace SixLabors.ImageSharp.ParallelUtils
         /// <param name="body">The method body defining the iteration logic on a single <see cref="RowInterval"/>.</param>
         public static void IterateRows(Rectangle rectangle, Configuration configuration, Action<RowInterval> body)
         {
-            ParallelExecutionSettings parallelSettings = configuration.GetParallelSettings();
+            ParallelExecutionSettings parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
 
             IterateRows(rectangle, parallelSettings, body);
         }
@@ -35,14 +36,19 @@ namespace SixLabors.ImageSharp.ParallelUtils
         /// <summary>
         /// Iterate through the rows of a rectangle in optimized batches defined by <see cref="RowInterval"/>-s.
         /// </summary>
-        internal static void IterateRows(
+        /// <param name="rectangle">The <see cref="Rectangle"/>.</param>
+        /// <param name="parallelSettings">The <see cref="ParallelExecutionSettings"/>.</param>
+        /// <param name="body">The method body defining the iteration logic on a single <see cref="RowInterval"/>.</param>
+        public static void IterateRows(
             Rectangle rectangle,
             in ParallelExecutionSettings parallelSettings,
             Action<RowInterval> body)
         {
             ValidateRectangle(rectangle);
 
-            int maxSteps = DivideCeil(rectangle.Width * rectangle.Height, parallelSettings.MinimumPixelsProcessedPerTask);
+            int maxSteps = DivideCeil(
+                rectangle.Width * rectangle.Height,
+                parallelSettings.MinimumPixelsProcessedPerTask);
 
             int numOfSteps = Math.Min(parallelSettings.MaxDegreeOfParallelism, maxSteps);
 
@@ -70,14 +76,6 @@ namespace SixLabors.ImageSharp.ParallelUtils
                         var rows = new RowInterval(yMin, yMax);
                         body(rows);
                     });
-        }
-
-        /// <summary>
-        /// Get the default <see cref="ParallelExecutionSettings"/> for a <see cref="Configuration"/>
-        /// </summary>
-        internal static ParallelExecutionSettings GetParallelSettings(this Configuration configuration)
-        {
-            return new ParallelExecutionSettings(configuration.MaxDegreeOfParallelism, configuration.MemoryAllocator);
         }
 
         /// <summary>
@@ -142,7 +140,7 @@ namespace SixLabors.ImageSharp.ParallelUtils
             Action<RowInterval, Memory<T>> body)
             where T : unmanaged
         {
-            IterateRowsWithTempBuffer(rectangle, configuration.GetParallelSettings(), body);
+            IterateRowsWithTempBuffer(rectangle, ParallelExecutionSettings.FromConfiguration(configuration), body);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

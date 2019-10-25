@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// An <see cref="IImageProcessor{TPixel}"/> that dithers an image using error diffusion.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class ErrorDiffusionPaletteProcessor<TPixel> : PaletteDitherProcessor<TPixel>
+    internal sealed class ErrorDiffusionPaletteProcessor<TPixel> : PaletteDitherProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                     }
 
                     TPixel transformedPixel = luminance >= threshold ? pair.Second : pair.First;
-                    this.Definition.Diffuser.Dither(source, sourcePixel, transformedPixel, x, y, startX, startY, endX, endY);
+                    this.Definition.Diffuser.Dither(source, sourcePixel, transformedPixel, x, y, startX, endX, endY);
                 }
             }
         }

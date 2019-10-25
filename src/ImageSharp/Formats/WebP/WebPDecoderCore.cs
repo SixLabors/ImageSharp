@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             uint fileSize = this.ReadImageHeader();
             WebPImageInfo imageInfo = this.ReadVp8Info();
-            if (imageInfo.IsAnimation)
+            if (imageInfo.Features != null && imageInfo.Features.Animation)
             {
                 WebPThrowHelper.ThrowNotSupportedException("Animations are not supported");
             }
@@ -88,7 +88,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             // There can be optional chunks after the image data, like EXIF, XMP etc.
-            this.ParseOptionalChunks();
+            if (imageInfo.Features != null)
+            {
+                this.ParseOptionalChunks(imageInfo.Features);
+            }
 
             return image;
         }
@@ -201,7 +204,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                        {
                            Width = width,
                            Height = height,
-                           IsAnimation = true
+                           Features = new WebPFeatures()
+                           {
+                               Animation = true
+                           }
                        };
             }
 
@@ -212,6 +218,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 this.currentStream.Skip((int)alphaChunkSize);
             }
 
+            var features = new WebPFeatures()
+                                    {
+                                        Animation = isAnimationPresent,
+                                        Alpha = isAlphaPresent,
+                                        ExifProfile = isExifPresent,
+                                        IccProfile = isIccPresent,
+                                        XmpMetaData = isXmpPresent
+                                    };
+
             // A VP8 or VP8L chunk should follow here.
             chunkType = this.ReadChunkType();
 
@@ -219,9 +234,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
             switch (chunkType)
             {
                 case WebPChunkType.Vp8:
-                    return this.ReadVp8Header();
+                    return this.ReadVp8Header(features);
                 case WebPChunkType.Vp8L:
-                    return this.ReadVp8LHeader();
+                    return this.ReadVp8LHeader(features);
             }
 
             WebPThrowHelper.ThrowImageFormatException("Unexpected chunk followed VP8X header");
@@ -229,7 +244,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return new WebPImageInfo();
         }
 
-        private WebPImageInfo ReadVp8Header()
+        private WebPImageInfo ReadVp8Header(WebPFeatures features = null)
         {
             this.webpMetadata.Format = WebPFormatType.Lossy;
 
@@ -268,11 +283,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
                        Width = width,
                        Height = height,
                        IsLossLess = false,
-                       ImageDataSize = dataSize
+                       ImageDataSize = dataSize,
+                       Features = features
                    };
         }
 
-        private WebPImageInfo ReadVp8LHeader()
+        private WebPImageInfo ReadVp8LHeader(WebPFeatures features = null)
         {
             this.webpMetadata.Format = WebPFormatType.Lossless;
 
@@ -304,7 +320,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
                        Width = (int)width,
                        Height = (int)height,
                        IsLossLess = true,
-                       ImageDataSize = dataSize
+                       ImageDataSize = dataSize,
+                       Features = features
                    };
         }
 
@@ -312,7 +329,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             where TPixel : struct, IPixel<TPixel>
         {
             // TODO: implement decoding. For simulating the decoding: skipping the chunk size bytes.
-            this.currentStream.Skip(imageDataSize - 10);
+            this.currentStream.Skip(imageDataSize - 10); // TODO: Not sure why we need to skip 10 bytes less here
         }
 
         private void ReadSimpleLossless<TPixel>(Buffer2D<TPixel> pixels, int width, int height, int imageDataSize)
@@ -322,7 +339,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             losslessDecoder.Decode(pixels, width, height, imageDataSize);
 
             // TODO: implement decoding. For simulating the decoding: skipping the chunk size bytes.
-            this.currentStream.Skip(imageDataSize); // TODO: this does not seem to work in all cases
+            this.currentStream.Skip(imageDataSize + 34); // TODO: Not sure why the additional data starts at offset +34 at the moment.
         }
 
         private void ReadExtended<TPixel>(Buffer2D<TPixel> pixels, int width, int height)
@@ -331,8 +348,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // TODO: implement decoding
         }
 
-        private void ParseOptionalChunks()
+        private void ParseOptionalChunks(WebPFeatures features)
         {
+            if (features.ExifProfile == false && features.XmpMetaData == false)
+            {
+                return;
+            }
+
             while (this.currentStream.Position < this.currentStream.Length)
             {
                 // Read chunk header.

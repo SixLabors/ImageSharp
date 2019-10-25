@@ -21,9 +21,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public bool IsLossLess { get; set; }
 
         /// <summary>
-        /// Gets or sets whether this image is a animation.
+        /// Gets or sets additional features present in a VP8X image.
         /// </summary>
-        public bool IsAnimation { get; set; }
+        public WebPFeatures Features { get; set; }
 
         /// <summary>
         /// The bytes of the image payload.

@@ -299,55 +299,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // TODO: should we throw here when version number is != 0?
             uint version = bitReader.Read(3);
 
-            // Next bit indicates, if a transformation is present.
-            bool transformPresent = bitReader.ReadBit();
-            int numberOfTransformsPresent = 0;
-            while (transformPresent)
-            {
-                var transformType = (WebPTransformType)bitReader.Read(2);
-                switch (transformType)
-                {
-                    case WebPTransformType.SubtractGreen:
-                        // There is no data associated with this transform.
-                        break;
-                    case WebPTransformType.ColorIndexingTransform:
-                        // The transform data contains color table size and the entries in the color table.
-                        // 8 bit value for color table size.
-                        uint colorTableSize = bitReader.Read(8) + 1;
-                        // TODO: color table should follow here?
-                        break;
-
-                    case WebPTransformType.PredictorTransform:
-                    {
-                        // The first 3 bits of prediction data define the block width and height in number of bits.
-                        // The number of block columns, block_xsize, is used in indexing two-dimensionally.
-                        uint sizeBits = bitReader.Read(3) + 2;
-                        int blockWidth = 1 << (int)sizeBits;
-                        int blockHeight = 1 << (int)sizeBits;
-
-                        break;
-                    }
-
-                    case WebPTransformType.ColorTransform:
-                    {
-                        // The first 3 bits of the color transform data contain the width and height of the image block in number of bits,
-                        // just like the predictor transform:
-                        uint sizeBits = bitReader.Read(3) + 2;
-                        int blockWidth = 1 << (int)sizeBits;
-                        int blockHeight = 1 << (int)sizeBits;
-                        break;
-                    }
-                }
-
-                numberOfTransformsPresent++;
-                if (numberOfTransformsPresent == 4)
-                {
-                    break;
-                }
-
-                transformPresent = bitReader.ReadBit();
-            }
-
             return new WebPImageInfo()
                    {
                        Width = (int)width,
@@ -361,12 +312,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
             where TPixel : struct, IPixel<TPixel>
         {
             // TODO: implement decoding. For simulating the decoding: skipping the chunk size bytes.
-            this.currentStream.Skip(imageDataSize); // TODO: this does not seem to work in all cases
+            this.currentStream.Skip(imageDataSize - 10);
         }
 
         private void ReadSimpleLossless<TPixel>(Buffer2D<TPixel> pixels, int width, int height, int imageDataSize)
             where TPixel : struct, IPixel<TPixel>
         {
+            var losslessDecoder = new WebPLosslessDecoder(this.currentStream);
+            losslessDecoder.Decode(pixels, width, height, imageDataSize);
+
             // TODO: implement decoding. For simulating the decoding: skipping the chunk size bytes.
             this.currentStream.Skip(imageDataSize); // TODO: this does not seem to work in all cases
         }

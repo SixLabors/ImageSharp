@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -28,6 +29,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// The global configuration.
         /// </summary>
         private Configuration configuration;
+
+        /// <summary>
+        /// Reusable buffer for writing data.
+        /// </summary>
+        private readonly byte[] buffer = new byte[2];
 
         /// <summary>
         /// The color depth, in number of bits per pixel.
@@ -74,7 +80,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 imageType = this.useCompression ? TgaImageType.RleBlackAndWhite : TgaImageType.BlackAndWhite;
             }
 
-            // If compression is used, set byte 3 of the image descriptor to indicate an left top origin.
+            // If compression is used, set bit 5 of the image descriptor to indicate an left top origin.
             byte imageDescriptor = (byte)(this.useCompression ? 32 : 0);
 
             var fileHeader = new TgaFileHeader(
@@ -89,7 +95,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 width: (short)image.Width,
                 height: (short)image.Height,
                 pixelDepth: (byte)this.bitsPerPixel.Value,
-                imageDescriptor: (byte)(this.useCompression ? 32 : 0));
+                imageDescriptor: imageDescriptor);
 
 #if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[TgaFileHeader.Size];
@@ -174,10 +180,10 @@ namespace SixLabors.ImageSharp.Formats.Tga
                         break;
 
                     case TgaBitsPerPixel.Pixel16:
-                        // TODO: this seems to be wrong
                         var bgra5551 = new Bgra5551(color.ToVector4());
-                        stream.WriteByte((byte)(bgra5551.PackedValue & 0xFF));
-                        stream.WriteByte((byte)(bgra5551.PackedValue & 0xFF00));
+                        BinaryPrimitives.TryWriteInt16LittleEndian(this.buffer, (short)bgra5551.PackedValue);
+                        stream.WriteByte(this.buffer[0]);
+                        stream.WriteByte(this.buffer[1]);
 
                         break;
 

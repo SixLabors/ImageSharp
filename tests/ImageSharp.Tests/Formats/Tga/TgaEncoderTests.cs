@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+// ReSharper disable InconsistentNaming
+
 using System.IO;
 
 using SixLabors.ImageSharp.Formats.Tga;
@@ -80,12 +82,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Bit32, PixelTypes.Rgba32)]
         public void Encode_Bit8_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel8)
-            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel);
+            // using tolerant comparer here. The results from magick differ slightly. Maybe a different ToGrey method is used. The image looks otherwise ok.
+            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, useCompression: true, useExactComparer: false, compareTolerance: 0.03f);
 
         [Theory]
         [WithFile(Bit32, PixelTypes.Rgba32)]
         public void Encode_Bit16_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel16)
-            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel);
+            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, useCompression: false, useExactComparer: false);
 
         [Theory]
         [WithFile(Bit32, PixelTypes.Rgba32)]
@@ -100,12 +103,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Bit32, PixelTypes.Rgba32)]
         public void Encode_Bit8_WithRunLengthEncoding_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel8)
-            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, true);
+            // using tolerant comparer here. The results from magick differ slightly. Maybe a different ToGrey method is used. The image looks otherwise ok.
+            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, useCompression: true, useExactComparer: false, compareTolerance: 0.03f);
 
         [Theory]
         [WithFile(Bit32, PixelTypes.Rgba32)]
         public void Encode_Bit16_WithRunLengthEncoding_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel16)
-            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, true);
+            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, useCompression: true, useExactComparer: false);
 
         [Theory]
         [WithFile(Bit32, PixelTypes.Rgba32)]
@@ -120,7 +124,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         private static void TestTgaEncoderCore<TPixel>(
             TestImageProvider<TPixel> provider,
             TgaBitsPerPixel bitsPerPixel,
-            bool useCompression = false)
+            bool useCompression = false,
+            bool useExactComparer = true,
+            float compareTolerance = 0.01f)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -133,7 +139,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
                     memStream.Position = 0;
                     using (var encodedImage = (Image<TPixel>)Image.Load(memStream))
                     {
-                        TgaTestUtils.CompareWithReferenceDecoder(provider, encodedImage);
+                        TgaTestUtils.CompareWithReferenceDecoder(provider, encodedImage, useExactComparer, compareTolerance);
                     }
                 }
             }

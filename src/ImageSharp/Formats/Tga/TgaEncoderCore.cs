@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
 #if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[TgaFileHeader.Size];
 #else
-            var buffer = new byte[TgaFileHeader.Size];
+            byte[] buffer = new byte[TgaFileHeader.Size];
 #endif
             fileHeader.WriteTo(buffer);
 
@@ -161,7 +161,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         {
             Rgba32 color = default;
             Buffer2D<TPixel> pixels = image.PixelBuffer;
-            Span<TPixel> pixelSpan = pixels.Span;
+            Span<TPixel> pixelSpan = pixels.GetSpan();
             int totalPixels = image.Width * image.Height;
             int encodedPixels = 0;
             while (encodedPixels < totalPixels)
@@ -341,7 +341,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         public static int GetLuminance<TPixel>(TPixel sourcePixel)
             where TPixel : struct, IPixel<TPixel>
         {
-            Vector4 vector = sourcePixel.ToVector4();
+            var vector = sourcePixel.ToVector4();
             return GetLuminance(ref vector);
         }
 

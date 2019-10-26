@@ -328,8 +328,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private void ReadSimpleLossy<TPixel>(Buffer2D<TPixel> pixels, int width, int height, int imageDataSize)
             where TPixel : struct, IPixel<TPixel>
         {
-            // TODO: implement decoding. For simulating the decoding: skipping the chunk size bytes.
-            this.currentStream.Skip(imageDataSize - 10); // TODO: Not sure why we need to skip 10 bytes less here
+            var lossyDecoder = new WebPLossyDecoder(this.configuration, this.currentStream);
+            lossyDecoder.Decode(pixels, width, height, imageDataSize);
         }
 
         private void ReadSimpleLossless<TPixel>(Buffer2D<TPixel> pixels, int width, int height, int imageDataSize)

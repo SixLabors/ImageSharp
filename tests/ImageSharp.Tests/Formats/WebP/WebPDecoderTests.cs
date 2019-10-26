@@ -30,5 +30,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
                 Assert.Equal(expectedBitsPerPixel, imageInfo.PixelType.BitsPerPixel);
             }
         }
+
+        [Theory]
+        [InlineData(Lossy.Alpha.LossyAlpha1, 1000, 307, 24)]
+        public void DecodeLossyImage_Tmp(string imagePath, int expectedWidth, int expectedHeight, int expectedBitsPerPixel)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using (var stream = new MemoryStream(testFile.Bytes, false))
+            {
+                var image = Image.Load(stream);
+                Assert.Equal(expectedWidth, image.Width);
+                Assert.Equal(expectedHeight, image.Height);
+            }
+        }
     }
 }

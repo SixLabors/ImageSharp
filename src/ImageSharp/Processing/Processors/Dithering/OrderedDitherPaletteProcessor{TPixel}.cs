@@ -32,8 +32,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            bool isAlphaOnly = typeof(TPixel) == typeof(Alpha8);
-
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
             int startY = interest.Y;
             int endY = interest.Bottom;
@@ -48,7 +46,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             sourcePixel.ToRgba32(ref rgba);
 
             // Convert to grayscale using ITU-R Recommendation BT.709 if required
-            byte luminance = isAlphaOnly ? rgba.A : ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
+            byte luminance = ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
 
             for (int y = startY; y < endY; y++)
             {
@@ -71,7 +69,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                         }
 
                         sourcePixel.ToRgba32(ref rgba);
-                        luminance = isAlphaOnly ? rgba.A : ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
+                        luminance = ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
 
                         // Setup the previous pointer
                         previousPixel = sourcePixel;

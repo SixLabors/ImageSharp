@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+// ReSharper disable InconsistentNaming
+
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -122,7 +124,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
 
         [Theory]
         [WithFile(GreyRle, PixelTypes.Rgba32)]
-        public void TgaDecoder_CanDecode_RunLenghtEncoded_MonoChrome<TPixel>(TestImageProvider<TPixel> provider)
+        public void TgaDecoder_CanDecode_RunLengthEncoded_MonoChrome<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
@@ -134,7 +136,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
 
         [Theory]
         [WithFile(Bit16Rle, PixelTypes.Rgba32)]
-        public void TgaDecoder_CanDecode_RunLenghtEncoded_16Bit<TPixel>(TestImageProvider<TPixel> provider)
+        public void TgaDecoder_CanDecode_RunLengthEncoded_16Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
@@ -146,7 +148,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
 
         [Theory]
         [WithFile(Bit24Rle, PixelTypes.Rgba32)]
-        public void TgaDecoder_CanDecode_RunLenghtEncoded_24Bit<TPixel>(TestImageProvider<TPixel> provider)
+        public void TgaDecoder_CanDecode_RunLengthEncoded_24Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
@@ -158,7 +160,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
 
         [Theory]
         [WithFile(Bit32Rle, PixelTypes.Rgba32)]
-        public void TgaDecoder_CanDecode_RunLenghtEncoded_32Bit<TPixel>(TestImageProvider<TPixel> provider)
+        public void TgaDecoder_CanDecode_RunLengthEncoded_32Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))

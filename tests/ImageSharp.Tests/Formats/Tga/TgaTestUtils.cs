@@ -11,7 +11,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
 {
     public static class TgaTestUtils
     {
-        public static void CompareWithReferenceDecoder<TPixel>(TestImageProvider<TPixel> provider, Image<TPixel> image)
+        public static void CompareWithReferenceDecoder<TPixel>(TestImageProvider<TPixel> provider,
+                                                               Image<TPixel> image,
+                                                               bool useExactComparer = true,
+                                                               float compareTolerance = 0.01f)
             where TPixel : struct, IPixel<TPixel>
         {
             string path = TestImageProvider<TPixel>.GetFilePathOrNull(provider);
@@ -22,7 +25,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
 
             TestFile testFile = TestFile.Create(path);
             Image<Rgba32> magickImage = DecodeWithMagick<Rgba32>(Configuration.Default, new FileInfo(testFile.FullPath));
-            ImageComparer.Exact.VerifySimilarity(image, magickImage);
+            if (useExactComparer)
+            {
+                ImageComparer.Exact.VerifySimilarity(magickImage, image);
+            }
+            else
+            {
+                ImageComparer.Tolerant(compareTolerance).VerifySimilarity(magickImage, image);
+            }
         }
 
         public static Image<TPixel> DecodeWithMagick<TPixel>(Configuration configuration, FileInfo fileInfo)

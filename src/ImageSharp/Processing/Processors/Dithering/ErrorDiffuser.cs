@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// </summary>
     public abstract class ErrorDiffuser : IErrorDiffuser
     {
-        private readonly int startingOffset;
+        private readonly int offset;
         private readonly DenseMatrix<float> matrix;
 
         /// <summary>
@@ -24,13 +24,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <param name="matrix">The dithering matrix.</param>
         internal ErrorDiffuser(in DenseMatrix<float> matrix)
         {
-            this.startingOffset = 0;
+            // Calculate the offset position of the pixel relative to
+            // the diffusion matrix.
+            this.offset = 0;
 
             for (int col = 0; col < matrix.Columns; col++)
             {
                 if (matrix[0, col] != 0)
                 {
-                    this.startingOffset = col - 1;
+                    this.offset = col - 1;
                     break;
                 }
             }
@@ -45,7 +47,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         {
             image[x, y] = transformed;
 
-            // Equal? Break out as there's nothing to pass.
+            // Equal? Break out as there's no error to pass.
             if (source.Equals(transformed))
             {
                 return;
@@ -60,18 +62,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         private void DoDither<TPixel>(ImageFrame<TPixel> image, int x, int y, int minX, int maxX, int maxY, Vector4 error)
             where TPixel : struct, IPixel<TPixel>
         {
-            int offset = this.startingOffset;
+            int offset = this.offset;
             DenseMatrix<float> matrix = this.matrix;
 
             // Loop through and distribute the error amongst neighboring pixels.
-            for (int row = 0, targetY = y + row; row < matrix.Rows && targetY < maxY; row++)
+            for (int row = 0, targetY = y; row < matrix.Rows && targetY < maxY; row++, targetY++)
             {
                 Span<TPixel> rowSpan = image.GetPixelRowSpan(targetY);
 
                 for (int col = 0; col < matrix.Columns; col++)
                 {
                     int targetX = x + (col - offset);
-                    if (targetX > minX && targetX < maxX)
+                    if (targetX >= minX && targetX < maxX)
                     {
                         float coefficient = matrix[row, col];
                         if (coefficient == 0)
@@ -80,9 +82,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                         }
 
                         ref TPixel pixel = ref rowSpan[targetX];
-                        var offsetColor = pixel.ToVector4();
+                        var result = pixel.ToVector4();
 
-                        Vector4 result = (error * coefficient) + offsetColor;
+                        result += error * coefficient;
                         pixel.FromVector4(result);
                     }
                 }

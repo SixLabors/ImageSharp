@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Samplers
 // 
 // #### After ####
 // 
-// |    Method |  Job | Runtime |     Mean |    Error |   StdDev | Gen 0 | Gen 1 | Gen 2 | Allocated |
-// |---------- |----- |-------- |---------:|---------:|---------:|------:|------:|------:|----------:|
-// | DoDiffuse |  Clr |     Clr | 12.94 ms | 22.48 ms | 1.232 ms |     - |     - |     - |   4.25 KB |
-// | DoDiffuse | Core |    Core | 10.95 ms | 19.31 ms | 1.058 ms |     - |     - |     - |   4.13 KB |
+// |    Method |  Job | Runtime |      Mean |     Error |    StdDev | Gen 0 | Gen 1 | Gen 2 | Allocated |
+// |---------- |----- |-------- |----------:|----------:|----------:|------:|------:|------:|----------:|
+// | DoDiffuse |  Clr |     Clr | 124.93 ms | 33.297 ms | 1.8251 ms |     - |     - |     - |      2 KB |
+// | DoDiffuse | Core |    Core |  89.63 ms |  9.895 ms | 0.5424 ms |     - |     - |     - |   1.91 KB |

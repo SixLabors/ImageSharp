@@ -5,8 +5,8 @@ using System;
 using System.Buffers;
 
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 
             int width = maxX - minX;
 
-            var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
+            Rectangle workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
 
             IBrush brush = this.definition.Brush;
             GraphicsOptions options = this.definition.Options;
@@ -53,9 +53,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             // If there's no reason for blending, then avoid it.
             if (this.IsSolidBrushWithoutBlending(out SolidBrush solidBrush))
             {
-                ParallelExecutionSettings parallelSettings = configuration.GetParallelSettings().MultiplyMinimumPixelsPerTask(4);
+                ParallelExecutionSettings parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration)
+                    .MultiplyMinimumPixelsPerTask(4);
 
-                TPixel colorPixel = solidBrush.Color.ToPixel<TPixel>();
+                var colorPixel = solidBrush.Color.ToPixel<TPixel>();
 
                 ParallelHelper.IterateRows(
                     workingRect,

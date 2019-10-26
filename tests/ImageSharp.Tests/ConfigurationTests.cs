@@ -63,12 +63,28 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData(0)]
-        [InlineData(-42)]
-        public void Set_MaxDegreeOfParallelism_ToNonPositiveValue_Throws(int value)
+        [InlineData(-3, true)]
+        [InlineData(-2, true)]
+        [InlineData(-1, false)]
+        [InlineData(0, true)]
+        [InlineData(1, false)]
+        [InlineData(5, false)]
+        public void MaxDegreeOfParallelism_CompatibleWith_ParallelOptions(int maxDegreeOfParallelism, bool throws)
         {
             var cfg = new Configuration();
-            Assert.Throws<ArgumentOutOfRangeException>(() => cfg.MaxDegreeOfParallelism = value);
+            if (throws)
+            {
+                Assert.Throws<ArgumentOutOfRangeException>(
+                    () =>
+                    {
+                        cfg.MaxDegreeOfParallelism = maxDegreeOfParallelism;
+                    });
+            }
+            else
+            {
+                cfg.MaxDegreeOfParallelism = maxDegreeOfParallelism;
+                Assert.Equal(maxDegreeOfParallelism, cfg.MaxDegreeOfParallelism);
+            }
         }
 
 

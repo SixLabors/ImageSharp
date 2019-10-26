@@ -25,7 +25,7 @@
     <PackageReference Update="BenchmarkDotNet" Version="0.11.5" />
     <PackageReference Update="Colourful" Version="2.0.2" />
     <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="7.12.0" />
-    <PackageReference Update="Microsoft.Net.Compilers.Toolset" Version="3.1.0" />
+    <PackageReference Update="Microsoft.Net.Compilers.Toolset" Version="3.3.1" />
     <PackageReference Update="Microsoft.NET.Test.Sdk" Version="15.9.0" />
     <PackageReference Update="Moq" Version="4.10.0" />
     <PackageReference Update="SixLabors.Core" Version="1.0.0-beta0008" />

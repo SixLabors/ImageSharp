@@ -6,9 +6,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
-using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -218,10 +218,10 @@ namespace SixLabors.ImageSharp
             if (typeof(TPixel) == typeof(TDestinationPixel))
             {
                 Span<TPixel> dest1 = MemoryMarshal.Cast<TDestinationPixel, TPixel>(destination);
-                this.PixelBuffer.Span.CopyTo(dest1);
+                this.PixelBuffer.GetSpan().CopyTo(dest1);
             }
 
-            PixelOperations<TPixel>.Instance.To(this.Configuration, this.PixelBuffer.Span, destination);
+            PixelOperations<TPixel>.Instance.To(this.Configuration, this.PixelBuffer.GetSpan(), destination);
         }
 
         /// <inheritdoc/>

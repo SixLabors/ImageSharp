@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp
         [MethodImpl(InliningOptions.ShortMethod)]
         public static Color FromHex(string hex)
         {
-            Rgba32 rgba = Rgba32.FromHex(hex);
+            var rgba = Rgba32.FromHex(hex);
 
             return new Color(rgba);
         }
@@ -178,7 +178,7 @@ namespace SixLabors.ImageSharp
             where TPixel : struct, IPixel<TPixel>
         {
             ReadOnlySpan<Rgba64> rgba64Span = MemoryMarshal.Cast<Color, Rgba64>(source);
-            PixelOperations<TPixel>.Instance.FromRgba64(Configuration.Default, rgba64Span, destination);
+            PixelOperations<TPixel>.Instance.FromRgba64(configuration, rgba64Span, destination);
         }
     }
 }

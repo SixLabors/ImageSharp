@@ -11,12 +11,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
 {
     public class TgaFileHeaderTests
     {
-        private static readonly byte[] Data = { 0, 0, 0 };
+        private static readonly byte[] Data = {
+                                                  0,
+                                                  0,
+                                                  15 // invalid tga image type
+                                              };
 
         private MemoryStream Stream { get; } = new MemoryStream(Data);
 
         [Fact]
-        public void ImageLoad_WithoutEnoughData_Throws_UnknownImageFormatException()
+        public void ImageLoad_WithInvalidImageType_Throws_UnknownImageFormatException()
         {
             Assert.Throws<UnknownImageFormatException>(() =>
             {

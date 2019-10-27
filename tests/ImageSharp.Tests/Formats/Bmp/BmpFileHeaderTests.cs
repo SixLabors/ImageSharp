@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
@@ -12,10 +13,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 {
     public class BmpFileHeaderTests
     {
-        private static readonly byte[] Data = BitConverter.GetBytes(BmpConstants.TypeMarkers.Bitmap);
-
-        private MemoryStream Stream { get; } = new MemoryStream(Data);
-
         [Fact]
         public void TestWrite()
         {
@@ -26,17 +23,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             header.WriteTo(buffer);
 
             Assert.Equal("AQACAAAAAwAAAAQAAAA=", Convert.ToBase64String(buffer));
-        }
-
-        [Fact]
-        public void ImageLoad_WithoutEnoughData_Throws_UnknownImageFormatException()
-        {
-            Assert.Throws<UnknownImageFormatException>(() =>
-            {
-                using (Image.Load(Configuration.Default, this.Stream, out IImageFormat _))
-                {
-                }
-            });
         }
     }
 }

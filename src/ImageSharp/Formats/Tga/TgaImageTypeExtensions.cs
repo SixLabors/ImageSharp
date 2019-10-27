@@ -22,5 +22,30 @@ namespace SixLabors.ImageSharp.Formats.Tga
 
             return false;
         }
+
+        /// <summary>
+        /// Checks, if the image type has valid value.
+        /// </summary>
+        /// <param name="imageType">The image type.</param>
+        /// <returns>true, if its a valid tga image type.</returns>
+        public static bool IsValid(this TgaImageType imageType)
+        {
+            byte imageTypeVal = (byte)imageType;
+
+            switch (imageTypeVal)
+            {
+                case 0:
+                case 1:
+                case 2:
+                case 3:
+                case 9:
+                case 10:
+                case 11:
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
     }
 }

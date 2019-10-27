@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <summary>
         /// Defines the size of the data structure in the targa file.
         /// </summary>
-        public const int Size = 18;
+        public const int Size = TgaConstants.FileHeaderLength;
 
         public TgaFileHeader(
             byte idLength,

@@ -85,6 +85,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     TgaThrowHelper.ThrowNotSupportedException($"Unknown tga colormap type {this.fileHeader.ColorMapType} found");
                 }
 
+                if (this.fileHeader.Width == 0 || this.fileHeader.Height == 0)
+                {
+                    throw new UnknownImageFormatException("Width or height cannot be 0");
+                }
+
                 var image = new Image<TPixel>(this.configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 

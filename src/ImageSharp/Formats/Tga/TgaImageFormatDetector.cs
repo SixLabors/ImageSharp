@@ -23,7 +23,13 @@ namespace SixLabors.ImageSharp.Formats.Tga
         {
             if (header.Length >= this.HeaderSize)
             {
-                // There is no magick bytes in a tga file, so at least the image type in the header will be checked for a valid value.
+                // There is no magick bytes in a tga file, so at least the image type
+                // and the colormap type in the header will be checked for a valid value.
+                if (header[1] != 0 && header[1] != 1)
+                {
+                    return false;
+                }
+
                 var imageType = (TgaImageType)header[2];
                 return imageType.IsValid();
             }

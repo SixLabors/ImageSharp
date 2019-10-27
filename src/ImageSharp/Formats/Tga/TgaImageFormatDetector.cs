@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
     public sealed class TgaImageFormatDetector : IImageFormatDetector
     {
         /// <inheritdoc/>
-        public int HeaderSize => 18;
+        public int HeaderSize => TgaConstants.FileHeaderLength;
 
         /// <inheritdoc/>
         public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
@@ -21,7 +21,14 @@ namespace SixLabors.ImageSharp.Formats.Tga
 
         private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
         {
-            return header.Length >= this.HeaderSize;
+            if (header.Length >= this.HeaderSize)
+            {
+                // There is no magick bytes in a tga file, so at least the image type in the header will be checked for a valid value.
+                var imageType = (TgaImageType)header[2];
+                return imageType.IsValid();
+            }
+
+            return true;
         }
     }
 }

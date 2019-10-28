@@ -53,10 +53,47 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             byte version = (byte)((bitReader.ReadBit() ? 2 : 0) | (bitReader.ReadBit() ? 1 : 0));
+            (ReconstructionFilter rec, LoopFilter loop) = DecodeVersion(version);
+
             bool isShowFrame = bitReader.ReadBit();
 
             uint firstPartitionSize = (bitReader.Read(16) << 3) | bitReader.Read(3);
         }
+
+        private (ReconstructionFilter, LoopFilter) DecodeVersion(byte version)
+        {
+            var rec = ReconstructionFilter.None;
+            var loop = LoopFilter.None;
+
+            switch (version)
+            {
+                case 0:
+                    return (ReconstructionFilter.Bicubic, LoopFilter.Normal);
+                case 1:
+                    return (ReconstructionFilter.Bilinear, LoopFilter.Simple);
+                case 2:
+                    return (ReconstructionFilter.Bilinear, LoopFilter.None);
+                case 3:
+                    return (ReconstructionFilter.None, LoopFilter.None);
+                default:
+                    // https://tools.ietf.org/html/rfc6386#page-30
+                    throw new NotSupportedException("reserved for future use in Spec");
+            }
+        }
+    }
+
+    enum ReconstructionFilter
+    {
+        None,
+        Bicubic,
+        Bilinear
+    }
+
+    enum LoopFilter
+    {
+        Normal,
+        Simple,
+        None
     }
 
     struct YUVPixel

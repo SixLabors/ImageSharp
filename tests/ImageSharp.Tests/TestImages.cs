@@ -371,6 +371,9 @@ namespace SixLabors.ImageSharp.Tests
             public static class Animated
             {
                 public const string Animated1 = "WebP/animated-webp.webp";
+                public const string Animated2 = "WebP/animated2.webp";
+                public const string Animated3 = "WebP/animated3.webp";
+                public const string Animated4 = "WebP/animated_lossy.webp";
             }
 
             public static class Lossless

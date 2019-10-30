@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
 using System.IO;
 
 using SixLabors.ImageSharp.Memory;
@@ -11,29 +12,226 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// <summary>
     /// Decoder for lossless webp images.
     /// </summary>
+    /// <remarks>
+    /// The lossless specification can be found here:
+    /// https://developers.google.com/speed/webp/docs/webp_lossless_bitstream_specification
+    /// </remarks>
     internal sealed class WebPLosslessDecoder
     {
-        private Vp8LBitReader bitReader;
+        private readonly Vp8LBitReader bitReader;
 
-        public WebPLosslessDecoder(Stream stream)
+        private readonly int imageDataSize;
+
+        public WebPLosslessDecoder(Stream stream, int imageDataSize)
         {
             this.bitReader = new Vp8LBitReader(stream);
+            this.imageDataSize = imageDataSize;
+
+            // TODO: implement decoding. For simulating the decoding: skipping the chunk size bytes.
+            //stream.Skip(imageDataSize + 34); // TODO: Not sure why the additional data starts at offset +34 at the moment.
         }
 
-        public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height, int imageDataSize)
+        public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
-            //ReadTransformations();
+            this.ReadTransformations();
+            int xsize = 0, ysize = 0;
+            this.ReadHuffmanCodes(xsize, ysize);
+        }
+
+        private void ReadHuffmanCodes(int xsize, int ysize)
+        {
+            int maxAlphabetSize = 0;
+            int colorCacheBits = 0;
+            int numHtreeGroups = 1;
+            int numHtreeGroupsMax = 1;
+
+            // Read color cache, if present.
+            bool colorCachePresent = this.bitReader.ReadBit();
+            if (colorCachePresent)
+            {
+                colorCacheBits = (int)this.bitReader.Read(4);
+                int colorCacheSize = 1 << colorCacheBits;
+                if (!(colorCacheBits >= 1 && colorCacheBits <= WebPConstants.MaxColorCacheBits))
+                {
+                    WebPThrowHelper.ThrowImageFormatException("Invalid color cache bits found");
+                }
+            }
+
+            // Read the Huffman codes.
+            // If the next bit is zero, there is only one meta Huffman code used everywhere in the image. No more data is stored.
+            // If this bit is one, the image uses multiple meta Huffman codes. These meta Huffman codes are stored as an entropy image.
+            bool isEntropyImage = this.bitReader.ReadBit();
+            if (isEntropyImage)
+            {
+                uint huffmanPrecision = this.bitReader.Read(3) + 2;
+                int huffmanXSize = SubSampleSize(xsize, (int)huffmanPrecision);
+                int huffmanYSize = SubSampleSize(ysize, (int)huffmanPrecision);
+
+                // TODO: decode entropy image
+                return;
+            }
+
+            // Find maximum alphabet size for the htree group.
+            for (int j = 0; j < WebPConstants.HuffmanCodesPerMetaCode; j++)
+            {
+                int alphabetSize = WebPConstants.kAlphabetSize[j];
+                if (j == 0 && colorCacheBits > 0)
+                {
+                    alphabetSize += 1 << colorCacheBits;
+                }
+
+                if (maxAlphabetSize < alphabetSize)
+                {
+                    maxAlphabetSize = alphabetSize;
+                }
+            }
+
+            for (int i = 0; i < numHtreeGroupsMax; i++)
+            {
+                int size;
+                int totalSize = 0;
+                int isTrivialLiteral = 1;
+                int maxBits = 0;
+                var codeLengths = new int[maxAlphabetSize];
+                for (int j = 0; j < WebPConstants.HuffmanCodesPerMetaCode; j++)
+                {
+                    int alphabetSize = WebPConstants.kAlphabetSize[j];
+                    if (j == 0 && colorCacheBits > 0)
+                    {
+                        alphabetSize += 1 << colorCacheBits;
+                        size = this.ReadHuffmanCode(alphabetSize, codeLengths);
+                        if (size is 0)
+                        {
+                            WebPThrowHelper.ThrowImageFormatException("Huffman table size is zero");
+                        }
+                    }
+                }
+            }
+        }
+
+        private int ReadHuffmanCode(int alphabetSize, int[] codeLengths)
+        {
+            bool simpleCode = this.bitReader.ReadBit();
+            if (simpleCode)
+            {
+                // (i) Simple Code Length Code.
+                // This variant is used in the special case when only 1 or 2 Huffman code lengths are non - zero,
+                // and are in the range of[0, 255].All other Huffman code lengths are implicitly zeros.
+
+                // Read symbols, codes & code lengths directly.
+                uint numSymbols = this.bitReader.Read(1) + 1;
+                uint firstSymbolLenCode = this.bitReader.Read(1);
+
+                // The first code is either 1 bit or 8 bit code.
+                uint symbol = this.bitReader.Read((firstSymbolLenCode == 0) ? 1 : 8);
+                codeLengths[symbol] = 1;
+
+                // The second code (if present), is always 8 bit long.
+                if (numSymbols == 2)
+                {
+                    symbol = this.bitReader.Read(8);
+                    codeLengths[symbol] = 1;
+                }
+            }
+            else
+            {
+                // (ii)Normal Code Length Code:
+                // The code lengths of a Huffman code are read as follows: num_code_lengths specifies the number of code lengths;
+                // the rest of the code lengths (according to the order in kCodeLengthCodeOrder) are zeros.
+                var codeLengthCodeLengths = new int[WebPConstants.NumLengthCodes];
+                uint numCodes = this.bitReader.Read(4) + 4;
+                if (numCodes > WebPConstants.NumCodeLengthCodes)
+                {
+                    WebPThrowHelper.ThrowImageFormatException("Bitstream error, numCodes has an invalid value");
+                }
+
+                for (int i = 0; i < numCodes; i++)
+                {
+                    codeLengthCodeLengths[WebPConstants.KCodeLengthCodeOrder[i]] = (int)this.bitReader.Read(3);
+                }
+
+                // TODO: ReadHuffmanCodeLengths
+            }
+
+            int size = 0;
+            // TODO: VP8LBuildHuffmanTable
+
+            return size;
+        }
+
+        private int BuildHuffmanTable(int rootBits, int[] codeLengths, int codeLengthsSize,
+                                      int[] sorted) // sorted[code_lengths_size] is a pre-allocated array for sorting symbols by code length.
+        {
+            // total size root table + 2nd level table
+            int totalSize = 1 << rootBits;
+            // current code length
+            int len;
+            // symbol index in original or sorted table
+            int symbol;
+            // number of codes of each length:
+            var count = new int[WebPConstants.MaxAllowedCodeLength + 1];
+            // offsets in sorted table for each length
+            var offset = new int[WebPConstants.MaxAllowedCodeLength + 1];
+
+            // Build histogram of code lengths.
+            for (symbol = 0; symbol < codeLengthsSize; ++symbol)
+            {
+                if (codeLengths[symbol] > WebPConstants.MaxAllowedCodeLength)
+                {
+                    return 0;
+                }
+
+                ++count[codeLengths[symbol]];
+            }
+
+            // Generate offsets into sorted symbol table by code length.
+            offset[1] = 0;
+            for (len = 1; len < WebPConstants.MaxAllowedCodeLength; ++len)
+            {
+                if (count[len] > (1 << len))
+                {
+                    return 0;
+                }
+
+                offset[len + 1] = offset[len] + count[len];
+            }
+
+            // Sort symbols by length, by symbol order within each length.
+            for (symbol = 0; symbol < codeLengthsSize; ++symbol)
+            {
+                int symbolCodeLength = codeLengths[symbol];
+                if (codeLengths[symbol] > 0)
+                {
+                    sorted[offset[symbolCodeLength]++] = symbol;
+                }
+            }
+
+            // Special case code with only one value.
+            if (offset[WebPConstants.MaxAllowedCodeLength] is 1)
+            {
+                var huffmanCode = new HuffmanCode()
+                                          {
+                                              BitsUsed = 0,
+                                              Value = sorted[0]
+                                          };
+
+                return totalSize;
+            }
+
+            return 0;
         }
 
         private void ReadTransformations()
         {
             // Next bit indicates, if a transformation is present.
-            bool transformPresent = bitReader.ReadBit();
+            bool transformPresent = this.bitReader.ReadBit();
             int numberOfTransformsPresent = 0;
+            var transforms = new List<WebPTransformType>(WebPConstants.MaxNumberOfTransforms);
             while (transformPresent)
             {
-                var transformType = (WebPTransformType)bitReader.Read(2);
+                var transformType = (WebPTransformType)this.bitReader.Read(2);
+                transforms.Add(transformType);
                 switch (transformType)
                 {
                     case WebPTransformType.SubtractGreen:
@@ -42,7 +240,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     case WebPTransformType.ColorIndexingTransform:
                         // The transform data contains color table size and the entries in the color table.
                         // 8 bit value for color table size.
-                        uint colorTableSize = bitReader.Read(8) + 1;
+                        uint colorTableSize = this.bitReader.Read(8) + 1;
 
                         // TODO: color table should follow here?
                         break;
@@ -51,7 +249,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         {
                             // The first 3 bits of prediction data define the block width and height in number of bits.
                             // The number of block columns, block_xsize, is used in indexing two-dimensionally.
-                            uint sizeBits = bitReader.Read(3) + 2;
+                            uint sizeBits = this.bitReader.Read(3) + 2;
                             int blockWidth = 1 << (int)sizeBits;
                             int blockHeight = 1 << (int)sizeBits;
 
@@ -62,7 +260,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         {
                             // The first 3 bits of the color transform data contain the width and height of the image block in number of bits,
                             // just like the predictor transform:
-                            uint sizeBits = bitReader.Read(3) + 2;
+                            uint sizeBits = this.bitReader.Read(3) + 2;
                             int blockWidth = 1 << (int)sizeBits;
                             int blockHeight = 1 << (int)sizeBits;
                             break;
@@ -70,15 +268,23 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
 
                 numberOfTransformsPresent++;
-                if (numberOfTransformsPresent == 4)
-                {
-                    break;
-                }
 
-                transformPresent = bitReader.ReadBit();
+                transformPresent = this.bitReader.ReadBit();
+                if (numberOfTransformsPresent == WebPConstants.MaxNumberOfTransforms && transformPresent)
+                {
+                    WebPThrowHelper.ThrowImageFormatException("The maximum number of transforms was exceeded");
+                }
             }
 
             // TODO: return transformation in an appropriate form.
+        }
+
+        /// <summary>
+        /// Computes sampled size of 'size' when sampling using 'sampling bits'.
+        /// </summary>
+        private int SubSampleSize(int size, int samplingBits)
+        {
+            return (size + (1 << samplingBits) - 1) >> samplingBits;
         }
     }
 }

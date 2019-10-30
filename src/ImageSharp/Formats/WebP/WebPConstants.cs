@@ -28,16 +28,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         };
 
         /// <summary>
-        /// Signature byte which identifies a VP8L header.
-        /// </summary>
-        public static byte Vp8LMagicByte = 0x2F;
-
-        /// <summary>
-        /// Bits for width and height infos of a VPL8 image.
-        /// </summary>
-        public static int Vp8LImageSizeBits = 14;
-
-        /// <summary>
         /// The header bytes identifying RIFF file.
         /// </summary>
         public static readonly byte[] RiffFourCc =
@@ -58,5 +48,50 @@ namespace SixLabors.ImageSharp.Formats.WebP
             0x42, // B
             0x50 // P
         };
+
+        /// <summary>
+        /// Signature byte which identifies a VP8L header.
+        /// </summary>
+        public static byte Vp8LMagicByte = 0x2F;
+
+        /// <summary>
+        /// 3 bits reserved for version.
+        /// </summary>
+        public static int Vp8LVersionBits = 3;
+
+        /// <summary>
+        /// Bits for width and height infos of a VPL8 image.
+        /// </summary>
+        public static int Vp8LImageSizeBits = 14;
+
+        /// <summary>
+        /// Maximum number of color cache bits.
+        /// </summary>
+        public static int MaxColorCacheBits = 11;
+
+        /// <summary>
+        /// The maximum number of allowed transforms in a bitstream.
+        /// </summary>
+        public static int MaxNumberOfTransforms = 4;
+
+        public static int MaxAllowedCodeLength = 15;
+
+        public static int HuffmanCodesPerMetaCode = 5;
+
+        public static int NumLiteralCodes = 256;
+
+        public static int NumLengthCodes = 24;
+
+        public static int NumDistanceCodes = 40;
+
+        public static int NumCodeLengthCodes = 19;
+
+        public static byte[] KCodeLengthCodeOrder = { 17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+
+        public static int[] kAlphabetSize = {
+                                                NumLiteralCodes + NumLengthCodes,
+                                                NumLiteralCodes, NumLiteralCodes, NumLiteralCodes,
+                                                NumDistanceCodes
+                                            };
     }
 }

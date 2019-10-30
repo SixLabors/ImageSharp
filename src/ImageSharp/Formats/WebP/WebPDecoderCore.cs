@@ -80,11 +80,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
             if (imageInfo.IsLossLess)
             {
-                ReadSimpleLossless(pixels, image.Width, image.Height, (int)imageInfo.ImageDataSize);
+                var losslessDecoder = new WebPLosslessDecoder(this.currentStream, (int)imageInfo.ImageDataSize);
+                losslessDecoder.Decode(pixels, image.Width, image.Height);
             }
             else
             {
-                ReadSimpleLossy(pixels, image.Width, image.Height, (int)imageInfo.ImageDataSize);
+                var lossyDecoder = new WebPLossyDecoder(this.configuration, this.currentStream);
+                lossyDecoder.Decode(pixels, image.Width, image.Height, (int)imageInfo.ImageDataSize);
             }
 
             // There can be optional chunks after the image data, like EXIF, XMP etc.
@@ -310,10 +312,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // The alpha_is_used flag should be set to 0 when all alpha values are 255 in the picture, and 1 otherwise.
             bool alphaIsUsed = bitReader.ReadBit();
 
-            // The next 3 bytes are the version. The version_number is a 3 bit code that must be set to 0.
+            // The next 3 bits are the version. The version_number is a 3 bit code that must be set to 0.
             // Any other value should be treated as an error.
             // TODO: should we throw here when version number is != 0?
-            uint version = bitReader.Read(3);
+            uint version = bitReader.Read(WebPConstants.Vp8LVersionBits);
 
             return new WebPImageInfo()
                    {
@@ -328,18 +330,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private void ReadSimpleLossy<TPixel>(Buffer2D<TPixel> pixels, int width, int height, int imageDataSize)
             where TPixel : struct, IPixel<TPixel>
         {
-            var lossyDecoder = new WebPLossyDecoder(this.configuration, this.currentStream);
-            lossyDecoder.Decode(pixels, width, height, imageDataSize);
-        }
-
-        private void ReadSimpleLossless<TPixel>(Buffer2D<TPixel> pixels, int width, int height, int imageDataSize)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            var losslessDecoder = new WebPLosslessDecoder(this.currentStream);
-            losslessDecoder.Decode(pixels, width, height, imageDataSize);
-
-            // TODO: implement decoding. For simulating the decoding: skipping the chunk size bytes.
-            this.currentStream.Skip(imageDataSize + 34); // TODO: Not sure why the additional data starts at offset +34 at the moment.
+            
         }
 
         private void ReadExtended<TPixel>(Buffer2D<TPixel> pixels, int width, int height)

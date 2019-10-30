@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public Vp8LBitReader(Stream inputStream)
         {
             this.stream = inputStream;
-            this.Offset = 0;
+            this.Offset = inputStream.Position;
             this.Bit = 0;
         }
 

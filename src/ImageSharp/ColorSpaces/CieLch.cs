@@ -155,9 +155,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
             float result = 100 * (this.C / this.L);
 
             if (float.IsNaN(result))
-            {
                 return 0;
-            }
 
             return result;
         }

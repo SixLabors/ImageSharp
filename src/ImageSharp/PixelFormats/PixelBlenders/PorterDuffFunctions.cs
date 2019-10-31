@@ -164,7 +164,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             float srcW = source.W - blendW;
 
             // calculate final alpha
-            float alpha = dstW + srcW + blendW;
+            float alpha = dstW + source.W;
 
             // calculate final color
             Vector4 color = (destination * dstW) + (source * srcW) + (blend * blendW);
@@ -191,7 +191,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             float dstW = destination.W - blendW;
 
             // calculate final alpha
-            float alpha = dstW + blendW;
+            float alpha = destination.W;
 
             // calculate final color
             Vector4 color = (destination * dstW) + (blend * blendW);

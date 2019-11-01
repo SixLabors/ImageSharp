@@ -125,11 +125,12 @@ namespace SixLabors.ImageSharp.Processing
                         var toAsVector = to.Color.ToVector4();
                         float onLocalGradient = (positionOnCompleteGradient - from.Ratio) / (to.Ratio - from.Ratio);
 
-                        // TODO: this should be changeble for different gradienting functions
                         Vector4 result = PorterDuffFunctions.NormalSrcOver(
                             fromAsVector,
                             toAsVector,
                             onLocalGradient);
+
+                        result.W = fromAsVector.W + ((toAsVector.W - fromAsVector.W) * onLocalGradient);
 
                         TPixel resultColor = default;
                         resultColor.FromVector4(result);

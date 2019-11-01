@@ -8,6 +8,8 @@ using System.Text;
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.Primitives;
+using SixLabors.Shapes;
 
 using Xunit;
 // ReSharper disable InconsistentNaming
@@ -392,5 +394,43 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 false,
                 false);
         }
+
+        [Theory]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32)]
+        public void GradientsWithTransparencyOnExistingBackground<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            provider.VerifyOperation(
+                image =>
+                {
+                    image.Mutate(i => i.Fill(Color.Red));
+                    image.Mutate(ApplyGloss);
+
+                });
+
+            void ApplyGloss(IImageProcessingContext ctx)
+            {
+                Size size = ctx.GetCurrentSize();
+                IPathCollection glossPath = BuildGloss(size.Width, size.Height);
+                var graphicsOptions = new GraphicsOptions(true)
+                                      {
+                                          ColorBlendingMode = PixelColorBlendingMode.Normal,
+                                          AlphaCompositionMode = PixelAlphaCompositionMode.SrcAtop
+                                      };
+                var linearGradientBrush = new LinearGradientBrush(new Point(0, 0), new Point(0, size.Height / 2), GradientRepetitionMode.Repeat, new ColorStop(0, Color.White.WithAlpha(0.5f)), new ColorStop(1, Color.White.WithAlpha(0.25f)));
+                ctx.Fill(graphicsOptions, linearGradientBrush, glossPath);
+            }
+
+            IPathCollection BuildGloss(int imageWidth, int imageHeight)
+            {
+                var pathBuilder = new PathBuilder();
+                pathBuilder.AddLine(new PointF(0, 0), new PointF(imageWidth, 0));
+                pathBuilder.AddLine(new PointF(imageWidth, 0), new PointF(imageWidth, imageHeight * 0.4f));
+                pathBuilder.AddBezier(new PointF(imageWidth, imageHeight * 0.4f), new PointF(imageWidth / 2, imageHeight * 0.6f), new PointF(0, imageHeight * 0.4f));
+                pathBuilder.CloseFigure();
+                return new PathCollection(pathBuilder.Build());
+            }
+        }
+
     }
 }

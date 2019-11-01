@@ -101,10 +101,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     {
                         alphabetSize += 1 << colorCacheBits;
                         size = this.ReadHuffmanCode(alphabetSize, codeLengths);
-                        if (size is 0)
+                        /*if (size is 0)
                         {
                             WebPThrowHelper.ThrowImageFormatException("Huffman table size is zero");
-                        }
+                        }*/
                     }
                 }
             }
@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     codeLengthCodeLengths[WebPConstants.KCodeLengthCodeOrder[i]] = (int)this.bitReader.Read(3);
                 }
 
-                // TODO: ReadHuffmanCodeLengths
+                this.ReadHuffmanCodeLengths(codeLengthCodeLengths, alphabetSize, codeLengths);
             }
 
             int size = 0;
@@ -160,9 +160,66 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return size;
         }
 
-        private int BuildHuffmanTable(int rootBits, int[] codeLengths, int codeLengthsSize,
-                                      int[] sorted) // sorted[code_lengths_size] is a pre-allocated array for sorting symbols by code length.
+        private void ReadHuffmanCodeLengths(int[] codeLengthCodeLengths, int numSymbols, int[] codeLengths)
         {
+            int maxSymbol;
+            int symbol = 0;
+            int prevCodeLen = WebPConstants.DefaultCodeLength;
+            BuildHuffmanTable(WebPConstants.LengthTableBits, codeLengthCodeLengths, WebPConstants.NumCodeLengthCodes);
+            if (this.bitReader.ReadBit())
+            {
+                int lengthNBits = 2 + (2 * (int)this.bitReader.Read(3));
+                maxSymbol = 2 + (int)this.bitReader.Read(lengthNBits);
+            }
+            else
+            {
+                maxSymbol = numSymbols;
+            }
+
+            while (symbol < numSymbols)
+            {
+                int codeLen;
+                if (maxSymbol-- == 0)
+                {
+                    break;
+                }
+
+                codeLen = int.MaxValue; // TODO: this is wrong
+                if (codeLen < WebPConstants.kCodeLengthLiterals)
+                {
+                    codeLengths[symbol++] = codeLen;
+                    if (codeLen != 0)
+                    {
+                        prevCodeLen = codeLen;
+                    }
+                }
+                else
+                {
+                    bool usePrev = codeLen == WebPConstants.kCodeLengthRepeatCode;
+                    int slot = codeLen - WebPConstants.kCodeLengthLiterals;
+                    int extraBits = WebPConstants.kCodeLengthExtraBits[slot];
+                    int repeatOffset = WebPConstants.kCodeLengthRepeatOffsets[slot];
+                    int repeat = (int)(this.bitReader.Read(extraBits) + repeatOffset);
+                    if (symbol + repeat > numSymbols)
+                    {
+                        return;
+                    }
+                    else
+                    {
+                        int length = usePrev ? prevCodeLen : 0;
+                        while (repeat-- > 0)
+                        {
+                            codeLengths[symbol++] = length;
+                        }
+                    }
+                }
+            }
+        }
+
+        private int BuildHuffmanTable(int rootBits, int[] codeLengths, int codeLengthsSize)
+        {
+            // sorted[code_lengths_size] is a pre-allocated array for sorting symbols by code length.
+            var sorted = new int[codeLengthsSize];
             // total size root table + 2nd level table
             int totalSize = 1 << rootBits;
             // current code length
@@ -217,6 +274,36 @@ namespace SixLabors.ImageSharp.Formats.WebP
                                           };
 
                 return totalSize;
+            }
+
+            int step; // step size to replicate values in current table
+            int low = -1;     // low bits for current root entry
+            int mask = totalSize - 1;    // mask for low bits
+            int key = 0;      // reversed prefix code
+            int numNodes = 1;     // number of Huffman tree nodes
+            int numOpen = 1;      // number of open branches in current tree level
+            int tableBits = rootBits;        // key length of current table
+            int tableSize = 1 << tableBits;  // size of current table
+            symbol = 0;
+            // Fill in root table.
+            for (len = 1, step = 2; len <= rootBits; ++len, step <<= 1)
+            {
+                numOpen <<= 1;
+                numNodes += numOpen;
+                numOpen -= count[len];
+                if (numOpen < 0)
+                {
+                    return 0;
+                }
+
+                for (; count[len] > 0; --count[len])
+                {
+                    var code = new HuffmanCode()
+                                       {
+                                            BitsUsed = len,
+                                            Value = sorted[symbol++]
+                                       };
+                }
             }
 
             return 0;

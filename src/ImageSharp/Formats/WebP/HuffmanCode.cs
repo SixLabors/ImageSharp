@@ -1,8 +1,11 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Diagnostics;
+
 namespace SixLabors.ImageSharp.Formats.WebP
 {
+    [DebuggerDisplay("BitsUsed: {BitsUsed}, Value: {Value}")]
     internal class HuffmanCode
     {
         /// <summary>

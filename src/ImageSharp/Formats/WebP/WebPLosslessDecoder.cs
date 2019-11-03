@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -87,6 +88,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
             }
 
+            // TODO: not sure about the correct tabelSize here. Harcoded for now.
+            //int tableSize = kTableSize[colorCacheBits];
+            int tableSize = 2970;
+            var table = new HuffmanCode[numHtreeGroups * tableSize];
             for (int i = 0; i < numHtreeGroupsMax; i++)
             {
                 int size;
@@ -99,18 +104,22 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     int alphabetSize = WebPConstants.kAlphabetSize[j];
                     if (j == 0 && colorCacheBits > 0)
                     {
-                        alphabetSize += 1 << colorCacheBits;
-                        size = this.ReadHuffmanCode(alphabetSize, codeLengths);
-                        /*if (size is 0)
+                        if (j == 0 && colorCacheBits > 0)
+                        {
+                            alphabetSize += 1 << colorCacheBits;
+                        }
+
+                        size = this.ReadHuffmanCode(alphabetSize, codeLengths, table);
+                        if (size is 0)
                         {
                             WebPThrowHelper.ThrowImageFormatException("Huffman table size is zero");
-                        }*/
+                        }
                     }
                 }
             }
         }
 
-        private int ReadHuffmanCode(int alphabetSize, int[] codeLengths)
+        private int ReadHuffmanCode(int alphabetSize, int[] codeLengths, HuffmanCode[] table)
         {
             bool simpleCode = this.bitReader.ReadBit();
             if (simpleCode)
@@ -139,7 +148,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 // (ii)Normal Code Length Code:
                 // The code lengths of a Huffman code are read as follows: num_code_lengths specifies the number of code lengths;
                 // the rest of the code lengths (according to the order in kCodeLengthCodeOrder) are zeros.
-                var codeLengthCodeLengths = new int[WebPConstants.NumLengthCodes];
+                var codeLengthCodeLengths = new int[WebPConstants.NumCodeLengthCodes];
                 uint numCodes = this.bitReader.Read(4) + 4;
                 if (numCodes > WebPConstants.NumCodeLengthCodes)
                 {
@@ -151,7 +160,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     codeLengthCodeLengths[WebPConstants.KCodeLengthCodeOrder[i]] = (int)this.bitReader.Read(3);
                 }
 
-                this.ReadHuffmanCodeLengths(codeLengthCodeLengths, alphabetSize, codeLengths);
+                this.ReadHuffmanCodeLengths(table, codeLengthCodeLengths, alphabetSize, codeLengths);
             }
 
             int size = 0;
@@ -160,12 +169,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return size;
         }
 
-        private void ReadHuffmanCodeLengths(int[] codeLengthCodeLengths, int numSymbols, int[] codeLengths)
+        private void ReadHuffmanCodeLengths(HuffmanCode[] table, int[] codeLengthCodeLengths, int numSymbols, int[] codeLengths)
         {
             int maxSymbol;
             int symbol = 0;
             int prevCodeLen = WebPConstants.DefaultCodeLength;
-            BuildHuffmanTable(WebPConstants.LengthTableBits, codeLengthCodeLengths, WebPConstants.NumCodeLengthCodes);
+            HuffmanUtils.BuildHuffmanTable(table, WebPConstants.LengthTableBits, codeLengthCodeLengths, WebPConstants.NumCodeLengthCodes);
             if (this.bitReader.ReadBit())
             {
                 int lengthNBits = 2 + (2 * (int)this.bitReader.Read(3));
@@ -214,99 +223,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     }
                 }
             }
-        }
-
-        private int BuildHuffmanTable(int rootBits, int[] codeLengths, int codeLengthsSize)
-        {
-            // sorted[code_lengths_size] is a pre-allocated array for sorting symbols by code length.
-            var sorted = new int[codeLengthsSize];
-            // total size root table + 2nd level table
-            int totalSize = 1 << rootBits;
-            // current code length
-            int len;
-            // symbol index in original or sorted table
-            int symbol;
-            // number of codes of each length:
-            var count = new int[WebPConstants.MaxAllowedCodeLength + 1];
-            // offsets in sorted table for each length
-            var offset = new int[WebPConstants.MaxAllowedCodeLength + 1];
-
-            // Build histogram of code lengths.
-            for (symbol = 0; symbol < codeLengthsSize; ++symbol)
-            {
-                if (codeLengths[symbol] > WebPConstants.MaxAllowedCodeLength)
-                {
-                    return 0;
-                }
-
-                ++count[codeLengths[symbol]];
-            }
-
-            // Generate offsets into sorted symbol table by code length.
-            offset[1] = 0;
-            for (len = 1; len < WebPConstants.MaxAllowedCodeLength; ++len)
-            {
-                if (count[len] > (1 << len))
-                {
-                    return 0;
-                }
-
-                offset[len + 1] = offset[len] + count[len];
-            }
-
-            // Sort symbols by length, by symbol order within each length.
-            for (symbol = 0; symbol < codeLengthsSize; ++symbol)
-            {
-                int symbolCodeLength = codeLengths[symbol];
-                if (codeLengths[symbol] > 0)
-                {
-                    sorted[offset[symbolCodeLength]++] = symbol;
-                }
-            }
-
-            // Special case code with only one value.
-            if (offset[WebPConstants.MaxAllowedCodeLength] is 1)
-            {
-                var huffmanCode = new HuffmanCode()
-                                          {
-                                              BitsUsed = 0,
-                                              Value = sorted[0]
-                                          };
-
-                return totalSize;
-            }
-
-            int step; // step size to replicate values in current table
-            int low = -1;     // low bits for current root entry
-            int mask = totalSize - 1;    // mask for low bits
-            int key = 0;      // reversed prefix code
-            int numNodes = 1;     // number of Huffman tree nodes
-            int numOpen = 1;      // number of open branches in current tree level
-            int tableBits = rootBits;        // key length of current table
-            int tableSize = 1 << tableBits;  // size of current table
-            symbol = 0;
-            // Fill in root table.
-            for (len = 1, step = 2; len <= rootBits; ++len, step <<= 1)
-            {
-                numOpen <<= 1;
-                numNodes += numOpen;
-                numOpen -= count[len];
-                if (numOpen < 0)
-                {
-                    return 0;
-                }
-
-                for (; count[len] > 0; --count[len])
-                {
-                    var code = new HuffmanCode()
-                                       {
-                                            BitsUsed = len,
-                                            Value = sorted[symbol++]
-                                       };
-                }
-            }
-
-            return 0;
         }
 
         private void ReadTransformations()

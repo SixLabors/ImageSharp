@@ -2,20 +2,16 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 
 namespace SixLabors.ImageSharp.Formats.WebP
 {
     internal static class HuffmanUtils
     {
-        public static List<HuffmanCode> BuildHuffmanTable(HuffmanCode[] table, int rootBits, int[] codeLengths, int codeLengthsSize)
+        public static int BuildHuffmanTable(HuffmanCode[] table, int rootBits, int[] codeLengths, int codeLengthsSize)
         {
             Guard.MustBeGreaterThan(rootBits, 0, nameof(rootBits));
             Guard.NotNull(codeLengths, nameof(codeLengths));
             Guard.MustBeGreaterThan(codeLengthsSize, 0, nameof(codeLengthsSize));
-
-            // TODO: not sure yet howto store the codes properly
-            var huffmanCodes = new List<HuffmanCode>();
 
             // sorted[code_lengths_size] is a pre-allocated array for sorting symbols by code length.
             var sorted = new int[codeLengthsSize];
@@ -35,7 +31,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             {
                 if (codeLengths[symbol] > WebPConstants.MaxAllowedCodeLength)
                 {
-                    return huffmanCodes;
+                    return 0;
                 }
 
                 ++count[codeLengths[symbol]];
@@ -47,7 +43,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             {
                 if (count[len] > (1 << len))
                 {
-                    return huffmanCodes;
+                    return 0;
                 }
 
                 offset[len + 1] = offset[len] + count[len];
@@ -71,9 +67,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     BitsUsed = 0,
                     Value = sorted[0]
                 };
-                huffmanCodes.Add(huffmanCode);
-
-                return huffmanCodes;
+                ReplicateValue(table, 1, totalSize, huffmanCode);
+                return totalSize;
             }
 
             int step; // step size to replicate values in current table
@@ -93,7 +88,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 numOpen -= count[len];
                 if (numOpen < 0)
                 {
-                    return huffmanCodes;
+                    return 0;
                 }
 
                 for (; count[len] > 0; --count[len])
@@ -103,20 +98,77 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         BitsUsed = len,
                         Value = sorted[symbol++]
                     };
-                    huffmanCodes.Add(huffmanCode);
-                    ReplicateValue(table, step, tableSize, huffmanCode);
+                    ReplicateValue(table.AsSpan(key), step, tableSize, huffmanCode);
                     key = GetNextKey(key, len);
                 }
             }
 
-            return huffmanCodes;
+            // Fill in 2nd level tables and add pointers to root table.
+            for (len = rootBits + 1, step = 2; len <= WebPConstants.MaxAllowedCodeLength; ++len, step <<= 1)
+            {
+                numOpen <<= 1;
+                numNodes += numOpen;
+                numOpen -= count[len];
+                if (numOpen < 0)
+                {
+                    return 0;
+                }
+
+                Span<HuffmanCode> tableSpan = table.AsSpan();
+                for (; count[len] > 0; --count[len])
+                {
+                    if ((key & mask) != low)
+                    {
+                        tableSpan = tableSpan.Slice(tableSize);
+                        tableBits = NextTableBitSize(count, len, rootBits);
+                        tableSize = 1 << tableBits;
+                        totalSize += tableSize;
+                        low = key & mask;
+                        // TODO: fix this
+                        //rootTable[low].bits = (tableBits + rootBits);
+                        //rootTable[low].value = ((table - rootTable) - low);
+                    }
+
+                    var huffmanCode = new HuffmanCode
+                    {
+                        BitsUsed = len - rootBits,
+                        Value = sorted[symbol++]
+                    };
+                    ReplicateValue(tableSpan.Slice(key >> rootBits), step, tableSize, huffmanCode);
+                    key = GetNextKey(key, len);
+                }
+            }
+
+            return totalSize;
+        }
+
+        /// <summary>
+        /// Returns the table width of the next 2nd level table. count is the histogram of bit lengths for the remaining symbols,
+        /// len is the code length of the next processed symbol.
+        /// </summary>
+        private static int NextTableBitSize(int[] count, int len, int rootBits)
+        {
+            int left = 1 << (len - rootBits);
+            while (len < WebPConstants.MaxAllowedCodeLength)
+            {
+                left -= count[len];
+                if (left <= 0)
+                {
+                    break;
+                }
+
+                ++len;
+                left <<= 1;
+            }
+
+            return len - rootBits;
         }
 
         /// <summary>
         /// Stores code in table[0], table[step], table[2*step], ..., table[end].
         /// Assumes that end is an integer multiple of step.
         /// </summary>
-        private static void ReplicateValue(HuffmanCode[] table, int step, int end, HuffmanCode code)
+        private static void ReplicateValue(Span<HuffmanCode> table, int step, int end, HuffmanCode code)
         {
             Guard.IsTrue(end % step == 0, nameof(end), "end must be a multiple of step");
 

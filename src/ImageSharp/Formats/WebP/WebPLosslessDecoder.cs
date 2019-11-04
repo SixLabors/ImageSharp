@@ -174,7 +174,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int maxSymbol;
             int symbol = 0;
             int prevCodeLen = WebPConstants.DefaultCodeLength;
-            HuffmanUtils.BuildHuffmanTable(table, WebPConstants.LengthTableBits, codeLengthCodeLengths, WebPConstants.NumCodeLengthCodes);
+            int size = HuffmanUtils.BuildHuffmanTable(table, WebPConstants.LengthTableBits, codeLengthCodeLengths, WebPConstants.NumCodeLengthCodes);
+            if (size is 0)
+            {
+                WebPThrowHelper.ThrowImageFormatException("Error building huffman table");
+            }
+
             if (this.bitReader.ReadBit())
             {
                 int lengthNBits = 2 + (2 * (int)this.bitReader.Read(3));

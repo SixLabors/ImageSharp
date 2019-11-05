@@ -140,8 +140,8 @@ namespace SixLabors.ImageSharp.Processing
                 using (IMemoryOwner<float> amountBuffer = this.Target.MemoryAllocator.Allocate<float>(scanline.Length))
                 using (IMemoryOwner<TPixel> overlay = this.Target.MemoryAllocator.Allocate<TPixel>(scanline.Length))
                 {
-                    Span<float> amountSpan = amountBuffer.GetSpan();
-                    Span<TPixel> overlaySpan = overlay.GetSpan();
+                    Span<float> amountSpan = amountBuffer.Memory.Span;
+                    Span<TPixel> overlaySpan = overlay.Memory.Span;
 
                     int sourceY = (y - this.offsetY) % this.yLength;
                     int offsetX = x - this.offsetX;

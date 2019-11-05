@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -71,8 +71,8 @@ namespace SixLabors.ImageSharp.Processing
             using (IMemoryOwner<float> amountBuffer = memoryAllocator.Allocate<float>(scanline.Length))
             using (IMemoryOwner<TPixel> overlay = memoryAllocator.Allocate<TPixel>(scanline.Length))
             {
-                Span<float> amountSpan = amountBuffer.GetSpan();
-                Span<TPixel> overlaySpan = overlay.GetSpan();
+                Span<float> amountSpan = amountBuffer.Memory.Span;
+                Span<TPixel> overlaySpan = overlay.Memory.Span;
 
                 for (int i = 0; i < scanline.Length; i++)
                 {

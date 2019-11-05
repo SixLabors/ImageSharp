@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
     /// Performs binary threshold filtering against an image using error diffusion.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class BinaryErrorDiffusionProcessor<TPixel> : ImageProcessor<TPixel>
+    internal sealed class BinaryErrorDiffusionProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly BinaryErrorDiffusionProcessor definition;
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                     }
 
                     TPixel transformedPixel = luminance >= threshold ? upperColor : lowerColor;
-                    diffuser.Dither(source, sourcePixel, transformedPixel, x, y, startX, startY, endX, endY);
+                    diffuser.Dither(source, sourcePixel, transformedPixel, x, y, startX, endX, endY);
                 }
             }
         }

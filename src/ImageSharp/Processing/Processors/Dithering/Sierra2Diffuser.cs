@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Primitives;
@@ -11,21 +11,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// </summary>
     public sealed class Sierra2Diffuser : ErrorDiffuser
     {
+        private const float Divisor = 16F;
+
         /// <summary>
         /// The diffusion matrix
         /// </summary>
         private static readonly DenseMatrix<float> Sierra2Matrix =
             new float[,]
             {
-               { 0, 0, 0, 4, 3 },
-               { 1, 2, 3, 2, 1 }
+               { 0, 0, 0, 4 / Divisor, 3 / Divisor },
+               { 1 / Divisor, 2 / Divisor, 3 / Divisor, 2 / Divisor, 1 / Divisor }
             };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Sierra2Diffuser"/> class.
         /// </summary>
         public Sierra2Diffuser()
-            : base(Sierra2Matrix, 16)
+            : base(Sierra2Matrix)
         {
         }
     }

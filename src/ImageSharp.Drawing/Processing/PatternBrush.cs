@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -61,8 +61,8 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="pattern">The pattern.</param>
         internal PatternBrush(Color foreColor, Color backColor, in DenseMatrix<bool> pattern)
         {
-            var foreColorVector = foreColor.ToVector4();
-            var backColorVector = backColor.ToVector4();
+            var foreColorVector = (Vector4)foreColor;
+            var backColorVector = (Vector4)backColor;
             this.pattern = new DenseMatrix<Color>(pattern.Columns, pattern.Rows);
             this.patternVector = new DenseMatrix<Vector4>(pattern.Columns, pattern.Rows);
             for (int i = 0; i < pattern.Data.Length; i++)

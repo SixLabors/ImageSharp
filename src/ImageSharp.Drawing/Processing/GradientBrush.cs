@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -92,10 +92,10 @@ namespace SixLabors.ImageSharp.Processing
                             // onLocalGradient = Math.Min(0, Math.Max(1, onLocalGradient));
                             break;
                         case GradientRepetitionMode.Repeat:
-                            positionOnCompleteGradient = positionOnCompleteGradient % 1;
+                            positionOnCompleteGradient %= 1;
                             break;
                         case GradientRepetitionMode.Reflect:
-                            positionOnCompleteGradient = positionOnCompleteGradient % 2;
+                            positionOnCompleteGradient %= 2;
                             if (positionOnCompleteGradient > 1)
                             {
                                 positionOnCompleteGradient = 2 - positionOnCompleteGradient;
@@ -121,19 +121,12 @@ namespace SixLabors.ImageSharp.Processing
                     }
                     else
                     {
-                        var fromAsVector = from.Color.ToVector4();
-                        var toAsVector = to.Color.ToVector4();
                         float onLocalGradient = (positionOnCompleteGradient - from.Ratio) / (to.Ratio - from.Ratio);
 
                         // TODO: this should be changeble for different gradienting functions
-                        Vector4 result = PorterDuffFunctions.NormalSrcOver(
-                            fromAsVector,
-                            toAsVector,
-                            onLocalGradient);
-
-                        TPixel resultColor = default;
-                        resultColor.FromVector4(result);
-                        return resultColor;
+                        return PixelOperations<TPixel>
+                            .Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver)
+                            .Blend(from.Color.ToPixel<TPixel>(), to.Color.ToPixel<TPixel>(), onLocalGradient);
                     }
                 }
             }

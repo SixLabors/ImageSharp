@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
@@ -119,7 +119,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="SixLabors.ImageSharp.Drawing" />
+    <!--<InternalsVisibleTo Include="SixLabors.ImageSharp.Drawing" />-->
   </ItemGroup>
 
   <ItemGroup>

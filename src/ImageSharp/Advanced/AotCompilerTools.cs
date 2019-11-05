@@ -136,7 +136,7 @@ namespace SixLabors.ImageSharp.Advanced
             TPixel pixel = default;
             using (var image = new ImageFrame<TPixel>(Configuration.Default, 1, 1))
             {
-                test.Dither(image, pixel, pixel, 0, 0, 0, 0, 0, 0);
+                test.Dither(image, pixel, pixel, 0, 0, 0, 0, 0);
             }
         }
 

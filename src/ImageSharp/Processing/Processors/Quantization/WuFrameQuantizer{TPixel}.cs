@@ -117,6 +117,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         private Box[] colorCube;
 
+        private bool isDisposed;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="WuFrameQuantizer{TPixel}"/> class.
         /// </summary>
@@ -158,15 +160,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         /// <inheritdoc/>
-        public override void Dispose()
+        protected override void Dispose(bool disposing)
         {
-            this.vwt?.Dispose();
-            this.vmr?.Dispose();
-            this.vmg?.Dispose();
-            this.vmb?.Dispose();
-            this.vma?.Dispose();
-            this.m2?.Dispose();
-            this.tag?.Dispose();
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                this.vwt?.Dispose();
+                this.vmr?.Dispose();
+                this.vmg?.Dispose();
+                this.vmb?.Dispose();
+                this.vma?.Dispose();
+                this.m2?.Dispose();
+                this.tag?.Dispose();
+            }
 
             this.vwt = null;
             this.vmr = null;
@@ -175,6 +185,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.vma = null;
             this.m2 = null;
             this.tag = null;
+
+            this.isDisposed = true;
+            base.Dispose(true);
         }
 
         internal ReadOnlyMemory<TPixel> AotGetPalette() => this.GetPalette();
@@ -260,7 +273,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                     if (this.Dither)
                     {
                         // Apply the dithering matrix. We have to reapply the value now as the original has changed.
-                        this.Diffuser.Dither(source, sourcePixel, transformedPixel, x, y, 0, 0, width, height);
+                        this.Diffuser.Dither(source, sourcePixel, transformedPixel, x, y, 0, width, height);
                     }
 
                     output[(y * source.Width) + x] = pixelValue;

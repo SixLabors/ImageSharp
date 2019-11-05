@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Processing
                 : base(source, options)
             {
                 this.Colors = source.MemoryAllocator.Allocate<TPixel>(source.Width);
-                this.Colors.GetSpan().Fill(color);
+                this.Colors.Memory.Span.Fill(color);
             }
 
             /// <summary>
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Processing
             /// <returns>
             /// The color
             /// </returns>
-            internal override TPixel this[int x, int y] => this.Colors.GetSpan()[x];
+            internal override TPixel this[int x, int y] => this.Colors.Memory.Span[x];
 
             /// <inheritdoc />
             public override void Dispose()
@@ -106,13 +106,13 @@ namespace SixLabors.ImageSharp.Processing
 
                 if (this.Options.BlendPercentage == 1f)
                 {
-                    this.Blender.Blend(configuration, destinationRow, destinationRow, this.Colors.GetSpan(), scanline);
+                    this.Blender.Blend(configuration, destinationRow, destinationRow, this.Colors.Memory.Span, scanline);
                 }
                 else
                 {
                     using (IMemoryOwner<float> amountBuffer = memoryAllocator.Allocate<float>(scanline.Length))
                     {
-                        Span<float> amountSpan = amountBuffer.GetSpan();
+                        Span<float> amountSpan = amountBuffer.Memory.Span;
 
                         for (int i = 0; i < scanline.Length; i++)
                         {
@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp.Processing
                             configuration,
                             destinationRow,
                             destinationRow,
-                            this.Colors.GetSpan(),
+                            this.Colors.Memory.Span,
                             amountSpan);
                     }
                 }

@@ -326,6 +326,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
                 {
                     float subpixelFraction = 1f / subpixelCount;
                     float subpixelFractionPoint = subpixelFraction / subpixelCount;
+                    Span<PointF> intersectionSpan = rowIntersectionBuffer.Memory.Span;
+                    Span<float> buffer = bufferBacking.Memory.Span;
 
                     for (int y = 0; y <= size.Height; y++)
                     {
@@ -337,8 +339,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
                         {
                             var start = new PointF(path.Bounds.Left - 1, subPixel);
                             var end = new PointF(path.Bounds.Right + 1, subPixel);
-                            Span<PointF> intersectionSpan = rowIntersectionBuffer.GetSpan();
-                            Span<float> buffer = bufferBacking.GetSpan();
                             int pointsFound = path.FindIntersections(start, end, intersectionSpan);
 
                             if (pointsFound == 0)

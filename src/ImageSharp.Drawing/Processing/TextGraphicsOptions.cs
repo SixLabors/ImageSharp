@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.Fonts;
@@ -11,12 +11,12 @@ namespace SixLabors.ImageSharp.Processing
     /// </summary>
     public struct TextGraphicsOptions
     {
-        private const int DefaultTextDpi = 72;
-
         /// <summary>
         /// Represents the default <see cref="TextGraphicsOptions"/>.
         /// </summary>
         public static readonly TextGraphicsOptions Default = new TextGraphicsOptions(true);
+
+        private const int DefaultTextDpi = 72;
 
         private float? blendPercentage;
 
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Processing
             this.antialiasSubpixelDepth = 16;
             this.ColorBlendingMode = PixelColorBlendingMode.Normal;
             this.AlphaCompositionMode = PixelAlphaCompositionMode.SrcOver;
-            this.blendPercentage = 1;
+            this.blendPercentage = 1F;
             this.antialias = enableAntialiasing;
             this.dpiX = DefaultTextDpi;
             this.dpiY = DefaultTextDpi;
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets or sets a value indicating the blending percentage to apply to the drawing operation
         /// </summary>
-        public float BlendPercentage { get => (this.blendPercentage ?? 1).Clamp(0, 1); set => this.blendPercentage = value; }
+        public float BlendPercentage { get => this.blendPercentage ?? 1F; set => this.blendPercentage = NumberUtils.ClampFloat(value, 0, 1F); }
 
         // In the future we could expose a PixelBlender<TPixel> directly on here
         // or some forms of PixelBlender factory for each pixel type. Will need

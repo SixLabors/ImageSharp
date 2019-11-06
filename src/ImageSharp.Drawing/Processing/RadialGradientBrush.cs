@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -9,7 +9,7 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// A Circular Gradient Brush, defined by center point and radius.
+    /// A radial gradient brush, defined by center point and radius.
     /// </summary>
     public sealed class RadialGradientBrush : GradientBrush
     {
@@ -35,16 +35,18 @@ namespace SixLabors.ImageSharp.Processing
 
         /// <inheritdoc />
         public override BrushApplicator<TPixel> CreateApplicator<TPixel>(
+            Configuration configuration,
             ImageFrame<TPixel> source,
             RectangleF region,
             GraphicsOptions options) =>
             new RadialGradientBrushApplicator<TPixel>(
+                configuration,
                 source,
-                options,
                 this.center,
                 this.radius,
                 this.ColorStops,
-                this.RepetitionMode);
+                this.RepetitionMode,
+                options);
 
         /// <inheritdoc />
         private sealed class RadialGradientBrushApplicator<TPixel> : GradientBrushApplicator<TPixel>
@@ -57,28 +59,25 @@ namespace SixLabors.ImageSharp.Processing
             /// <summary>
             /// Initializes a new instance of the <see cref="RadialGradientBrushApplicator{TPixel}" /> class.
             /// </summary>
-            /// <param name="target">The target image</param>
-            /// <param name="options">The options.</param>
+            /// <param name="configuration">The configuration instance to use when performing operations.</param>
+            /// <param name="target">The target image.</param>
             /// <param name="center">Center point of the gradient.</param>
             /// <param name="radius">Radius of the gradient.</param>
             /// <param name="colorStops">Definition of colors.</param>
             /// <param name="repetitionMode">How the colors are repeated beyond the first gradient.</param>
+            /// <param name="options">The graphics options.</param>
             public RadialGradientBrushApplicator(
+                Configuration configuration,
                 ImageFrame<TPixel> target,
-                GraphicsOptions options,
                 PointF center,
                 float radius,
                 ColorStop[] colorStops,
-                GradientRepetitionMode repetitionMode)
-                : base(target, options, colorStops, repetitionMode)
+                GradientRepetitionMode repetitionMode,
+                GraphicsOptions options)
+                : base(configuration, target, colorStops, repetitionMode, options)
             {
                 this.center = center;
                 this.radius = radius;
-            }
-
-            /// <inheritdoc cref="Dispose" />
-            public override void Dispose()
-            {
             }
 
             /// <summary>
@@ -90,6 +89,7 @@ namespace SixLabors.ImageSharp.Processing
             /// <returns>the position on the color gradient.</returns>
             protected override float PositionOnGradient(float x, float y)
             {
+                // TODO: Can this not use Vector2 distance?
                 float distance = MathF.Sqrt(MathF.Pow(this.center.X - x, 2) + MathF.Pow(this.center.Y - y, 2));
                 return distance / this.radius;
             }

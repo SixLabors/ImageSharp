@@ -83,12 +83,13 @@ namespace SixLabors.ImageSharp.Processing
 
         /// <inheritdoc />
         public BrushApplicator<TPixel> CreateApplicator<TPixel>(
+            Configuration configuration,
             ImageFrame<TPixel> source,
             RectangleF region,
             GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            return new PathGradientBrushApplicator<TPixel>(source, this.edges, this.centerColor, options);
+            return new PathGradientBrushApplicator<TPixel>(configuration, source, this.edges, this.centerColor, options);
         }
 
         private static Color CalculateCenterColor(Color[] colors)
@@ -199,16 +200,18 @@ namespace SixLabors.ImageSharp.Processing
             /// <summary>
             /// Initializes a new instance of the <see cref="PathGradientBrushApplicator{TPixel}"/> class.
             /// </summary>
+            /// <param name="configuration">The configuration instance to use when performing operations.</param>
             /// <param name="source">The source image.</param>
             /// <param name="edges">Edges of the polygon.</param>
             /// <param name="centerColor">Color at the center of the gradient area to which the other colors converge.</param>
-            /// <param name="options">The options.</param>
+            /// <param name="options">The graphics options.</param>
             public PathGradientBrushApplicator(
+                Configuration configuration,
                 ImageFrame<TPixel> source,
                 IList<Edge> edges,
                 Color centerColor,
                 GraphicsOptions options)
-                : base(source, options)
+                : base(configuration, source, options)
             {
                 this.edges = edges;
 
@@ -232,7 +235,7 @@ namespace SixLabors.ImageSharp.Processing
                         return new Color(this.centerColor).ToPixel<TPixel>();
                     }
 
-                    Vector2 direction = Vector2.Normalize(point - this.center);
+                    var direction = Vector2.Normalize(point - this.center);
 
                     PointF end = point + (PointF)(direction * this.maxDistance);
 
@@ -250,7 +253,7 @@ namespace SixLabors.ImageSharp.Processing
                     float length = DistanceBetween(intersection, this.center);
                     float ratio = length > 0 ? DistanceBetween(intersection, point) / length : 0;
 
-                    Vector4 color = Vector4.Lerp(edgeColor, this.centerColor, ratio);
+                    var color = Vector4.Lerp(edgeColor, this.centerColor, ratio);
 
                     return new Color(color).ToPixel<TPixel>();
                 }
@@ -276,11 +279,6 @@ namespace SixLabors.ImageSharp.Processing
                 }
 
                 return closest;
-            }
-
-            /// <inheritdoc />
-            public override void Dispose()
-            {
             }
         }
     }

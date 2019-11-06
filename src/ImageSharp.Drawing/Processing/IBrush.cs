@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -19,17 +19,19 @@ namespace SixLabors.ImageSharp.Processing
         /// Creates the applicator for this brush.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type.</typeparam>
+        /// <param name="configuration">The configuration instance to use when performing operations.</param>
         /// <param name="source">The source image.</param>
         /// <param name="region">The region the brush will be applied to.</param>
         /// <param name="options">The graphic options</param>
         /// <returns>
-        /// The brush applicator for this brush
+        /// The <see cref="BrushApplicator{TPixel}"/> for this brush.
         /// </returns>
         /// <remarks>
         /// The <paramref name="region" /> when being applied to things like shapes would usually be the
-        /// bounding box of the shape not necessarily the bounds of the whole image
+        /// bounding box of the shape not necessarily the bounds of the whole image.
         /// </remarks>
         BrushApplicator<TPixel> CreateApplicator<TPixel>(
+            Configuration configuration,
             ImageFrame<TPixel> source,
             RectangleF region,
             GraphicsOptions options)

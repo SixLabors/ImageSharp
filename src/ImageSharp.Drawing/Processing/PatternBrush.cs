@@ -158,7 +158,7 @@ namespace SixLabors.ImageSharp.Processing
 
                     for (int i = 0; i < scanline.Length; i++)
                     {
-                        amountSpan[i] = (scanline[i] * this.Options.BlendPercentage).Clamp(0, 1);
+                        amountSpan[i] = NumberUtils.ClampFloat(scanline[i] * this.Options.BlendPercentage, 0, 1F);
 
                         int patternX = (x + i) % this.pattern.Columns;
                         overlaySpan[i] = this.pattern[patternY, patternX];

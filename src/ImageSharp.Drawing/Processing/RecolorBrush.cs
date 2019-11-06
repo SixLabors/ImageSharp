@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using System.Numerics;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -38,9 +37,6 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets the source color.
         /// </summary>
-        /// <value>
-        /// The color of the source.
-        /// </value>
         public Color SourceColor { get; }
 
         /// <summary>
@@ -50,12 +46,14 @@ namespace SixLabors.ImageSharp.Processing
 
         /// <inheritdoc />
         public BrushApplicator<TPixel> CreateApplicator<TPixel>(
+            Configuration configuration,
             ImageFrame<TPixel> source,
             RectangleF region,
             GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
             return new RecolorBrushApplicator<TPixel>(
+                configuration,
                 source,
                 this.SourceColor.ToPixel<TPixel>(),
                 this.TargetColor.ToPixel<TPixel>(),
@@ -75,11 +73,6 @@ namespace SixLabors.ImageSharp.Processing
             private readonly Vector4 sourceColor;
 
             /// <summary>
-            /// The target color.
-            /// </summary>
-            private readonly Vector4 targetColor;
-
-            /// <summary>
             /// The threshold.
             /// </summary>
             private readonly float threshold;
@@ -89,16 +82,22 @@ namespace SixLabors.ImageSharp.Processing
             /// <summary>
             /// Initializes a new instance of the <see cref="RecolorBrushApplicator{TPixel}" /> class.
             /// </summary>
+            /// <param name="configuration">The configuration instance to use when performing operations.</param>
             /// <param name="source">The source image.</param>
             /// <param name="sourceColor">Color of the source.</param>
             /// <param name="targetColor">Color of the target.</param>
             /// <param name="threshold">The threshold .</param>
             /// <param name="options">The options</param>
-            public RecolorBrushApplicator(ImageFrame<TPixel> source, TPixel sourceColor, TPixel targetColor, float threshold, GraphicsOptions options)
-                : base(source, options)
+            public RecolorBrushApplicator(
+                Configuration configuration,
+                ImageFrame<TPixel> source,
+                TPixel sourceColor,
+                TPixel targetColor,
+                float threshold,
+                GraphicsOptions options)
+                : base(configuration, source, options)
             {
                 this.sourceColor = sourceColor.ToVector4();
-                this.targetColor = targetColor.ToVector4();
                 this.targetColorPixel = targetColor;
 
                 // Lets hack a min max extremes for a color space by letting the IPackedPixel clamp our values to something in the correct spaces :)
@@ -109,14 +108,7 @@ namespace SixLabors.ImageSharp.Processing
                 this.threshold = Vector4.DistanceSquared(maxColor.ToVector4(), minColor.ToVector4()) * threshold;
             }
 
-            /// <summary>
-            /// Gets the color for a single pixel.
-            /// </summary>
-            /// <param name="x">The x.</param>
-            /// <param name="y">The y.</param>
-            /// <returns>
-            /// The color
-            /// </returns>
+            /// <inheritdoc />
             internal override TPixel this[int x, int y]
             {
                 get
@@ -136,11 +128,6 @@ namespace SixLabors.ImageSharp.Processing
 
                     return result;
                 }
-            }
-
-            /// <inheritdoc />
-            public override void Dispose()
-            {
             }
 
             /// <inheritdoc />
@@ -167,7 +154,7 @@ namespace SixLabors.ImageSharp.Processing
 
                     Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
                     this.Blender.Blend(
-                        this.Target.Configuration,
+                        this.Configuration,
                         destinationRow,
                         destinationRow,
                         overlaySpan,

@@ -92,13 +92,15 @@ namespace SixLabors.ImageSharp.Processing
 
         /// <inheritdoc />
         public BrushApplicator<TPixel> CreateApplicator<TPixel>(
+            Configuration configuration,
             ImageFrame<TPixel> source,
             RectangleF region,
             GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel> =>
             new PatternBrushApplicator<TPixel>(
+                configuration,
                 source,
-                this.pattern.ToPixelMatrix<TPixel>(source.Configuration),
+                this.pattern.ToPixelMatrix<TPixel>(configuration),
                 options);
 
         /// <summary>
@@ -115,39 +117,31 @@ namespace SixLabors.ImageSharp.Processing
             /// <summary>
             /// Initializes a new instance of the <see cref="PatternBrushApplicator{TPixel}" /> class.
             /// </summary>
+            /// <param name="configuration">The configuration instance to use when performing operations.</param>
             /// <param name="source">The source image.</param>
             /// <param name="pattern">The pattern.</param>
-            /// <param name="options">The options</param>
-            public PatternBrushApplicator(ImageFrame<TPixel> source, in DenseMatrix<TPixel> pattern, GraphicsOptions options)
-                : base(source, options)
+            /// <param name="options">The graphics options.</param>
+            public PatternBrushApplicator(
+                Configuration configuration,
+                ImageFrame<TPixel> source,
+                in DenseMatrix<TPixel> pattern,
+                GraphicsOptions options)
+                : base(configuration, source, options)
             {
                 this.pattern = pattern;
             }
 
-            /// <summary>
-            /// Gets the color for a single pixel.
-            /// </summary>#
-            /// <param name="x">The x.</param>
-            /// <param name="y">The y.</param>
-            /// <returns>
-            /// The Color.
-            /// </returns>
+            /// <inheritdoc/>
             internal override TPixel this[int x, int y]
             {
                 get
                 {
-                    x = x % this.pattern.Columns;
-                    y = y % this.pattern.Rows;
+                    x %= this.pattern.Columns;
+                    y %= this.pattern.Rows;
 
                     // 2d array index at row/column
                     return this.pattern[y, x];
                 }
-            }
-
-            /// <inheritdoc />
-            public override void Dispose()
-            {
-                // noop
             }
 
             /// <inheritdoc />
@@ -172,7 +166,7 @@ namespace SixLabors.ImageSharp.Processing
 
                     Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
                     this.Blender.Blend(
-                        this.Target.Configuration,
+                        this.Configuration,
                         destinationRow,
                         destinationRow,
                         overlaySpan,

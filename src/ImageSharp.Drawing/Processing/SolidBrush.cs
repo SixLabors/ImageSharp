@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -18,32 +17,28 @@ namespace SixLabors.ImageSharp.Processing
     public class SolidBrush : IBrush
     {
         /// <summary>
-        /// The color to paint.
-        /// </summary>
-        private readonly Color color;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="SolidBrush"/> class.
         /// </summary>
         /// <param name="color">The color.</param>
         public SolidBrush(Color color)
         {
-            this.color = color;
+            this.Color = color;
         }
 
         /// <summary>
         /// Gets the color.
         /// </summary>
-        /// <value>
-        /// The color.
-        /// </value>
-        public Color Color => this.color;
+        public Color Color { get; }
 
         /// <inheritdoc />
-        public BrushApplicator<TPixel> CreateApplicator<TPixel>(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
+        public BrushApplicator<TPixel> CreateApplicator<TPixel>(
+            Configuration configuration,
+            ImageFrame<TPixel> source,
+            RectangleF region,
+            GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            return new SolidBrushApplicator<TPixel>(source, this.color.ToPixel<TPixel>(), options);
+            return new SolidBrushApplicator<TPixel>(configuration, source, this.Color.ToPixel<TPixel>(), options);
         }
 
         /// <summary>
@@ -52,14 +47,21 @@ namespace SixLabors.ImageSharp.Processing
         private class SolidBrushApplicator<TPixel> : BrushApplicator<TPixel>
             where TPixel : struct, IPixel<TPixel>
         {
+            private bool isDisposed;
+
             /// <summary>
             /// Initializes a new instance of the <see cref="SolidBrushApplicator{TPixel}"/> class.
             /// </summary>
+            /// <param name="configuration">The configuration instance to use when performing operations.</param>
             /// <param name="source">The source image.</param>
             /// <param name="color">The color.</param>
-            /// <param name="options">The options</param>
-            public SolidBrushApplicator(ImageFrame<TPixel> source, TPixel color, GraphicsOptions options)
-                : base(source, options)
+            /// <param name="options">The graphics options.</param>
+            public SolidBrushApplicator(
+                Configuration configuration,
+                ImageFrame<TPixel> source,
+                TPixel color,
+                GraphicsOptions options)
+                : base(configuration, source, options)
             {
                 this.Colors = source.MemoryAllocator.Allocate<TPixel>(source.Width);
                 this.Colors.Memory.Span.Fill(color);
@@ -68,22 +70,26 @@ namespace SixLabors.ImageSharp.Processing
             /// <summary>
             /// Gets the colors.
             /// </summary>
-            protected IMemoryOwner<TPixel> Colors { get; }
+            protected IMemoryOwner<TPixel> Colors { get; private set; }
 
-            /// <summary>
-            /// Gets the color for a single pixel.
-            /// </summary>
-            /// <param name="x">The x.</param>
-            /// <param name="y">The y.</param>
-            /// <returns>
-            /// The color
-            /// </returns>
+            /// <inheritdoc/>
             internal override TPixel this[int x, int y] => this.Colors.Memory.Span[x];
 
             /// <inheritdoc />
-            public override void Dispose()
+            protected override void Dispose(bool disposing)
             {
-                this.Colors.Dispose();
+                if (this.isDisposed)
+                {
+                    return;
+                }
+
+                if (disposing)
+                {
+                    this.Colors.Dispose();
+                }
+
+                this.Colors = null;
+                this.isDisposed = true;
             }
 
             /// <inheritdoc />
@@ -102,7 +108,7 @@ namespace SixLabors.ImageSharp.Processing
                 }
 
                 MemoryAllocator memoryAllocator = this.Target.MemoryAllocator;
-                Configuration configuration = this.Target.Configuration;
+                Configuration configuration = this.Configuration;
 
                 if (this.Options.BlendPercentage == 1f)
                 {

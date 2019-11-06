@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -47,17 +47,19 @@ namespace SixLabors.ImageSharp.Processing
 
         /// <inheritdoc />
         public override BrushApplicator<TPixel> CreateApplicator<TPixel>(
+            Configuration configuration,
             ImageFrame<TPixel> source,
             RectangleF region,
             GraphicsOptions options) =>
             new RadialGradientBrushApplicator<TPixel>(
+                configuration,
                 source,
-                options,
                 this.center,
                 this.referenceAxisEnd,
                 this.axisRatio,
                 this.ColorStops,
-                this.RepetitionMode);
+                this.RepetitionMode,
+                options);
 
         /// <inheritdoc />
         private sealed class RadialGradientBrushApplicator<TPixel> : GradientBrushApplicator<TPixel>
@@ -86,24 +88,26 @@ namespace SixLabors.ImageSharp.Processing
             /// <summary>
             /// Initializes a new instance of the <see cref="RadialGradientBrushApplicator{TPixel}" /> class.
             /// </summary>
-            /// <param name="target">The target image</param>
-            /// <param name="options">The options</param>
-            /// <param name="center">Center of the ellipse</param>
+            /// <param name="configuration">The configuration instance to use when performing operations.</param>
+            /// <param name="target">The target image.</param>
+            /// <param name="center">Center of the ellipse.</param>
             /// <param name="referenceAxisEnd">Point on one angular points of the ellipse.</param>
             /// <param name="axisRatio">
             /// Ratio of the axis length's. Used to determine the length of the second axis,
             /// the first is defined by <see cref="center"/> and <see cref="referenceAxisEnd"/>.</param>
-            /// <param name="colorStops">Definition of colors</param>
+            /// <param name="colorStops">Definition of colors.</param>
             /// <param name="repetitionMode">Defines how the gradient colors are repeated.</param>
+            /// <param name="options">The graphics options.</param>
             public RadialGradientBrushApplicator(
+                Configuration configuration,
                 ImageFrame<TPixel> target,
-                GraphicsOptions options,
                 PointF center,
                 PointF referenceAxisEnd,
                 float axisRatio,
                 ColorStop[] colorStops,
-                GradientRepetitionMode repetitionMode)
-                : base(target, options, colorStops, repetitionMode)
+                GradientRepetitionMode repetitionMode,
+                GraphicsOptions options)
+                : base(configuration, target, colorStops, repetitionMode, options)
             {
                 this.center = center;
                 this.referenceAxisEnd = referenceAxisEnd;
@@ -123,11 +127,6 @@ namespace SixLabors.ImageSharp.Processing
             }
 
             /// <inheritdoc />
-            public override void Dispose()
-            {
-            }
-
-            /// <inheritdoc />
             protected override float PositionOnGradient(float xt, float yt)
             {
                 float x0 = xt - this.center.X;
@@ -139,16 +138,13 @@ namespace SixLabors.ImageSharp.Processing
                 float xSquared = x * x;
                 float ySquared = y * y;
 
-                var inBoundaryChecker = (xSquared / this.referenceRadiusSquared)
-                                        + (ySquared / this.secondRadiusSquared);
-
-                return inBoundaryChecker;
+                return (xSquared / this.referenceRadiusSquared) + (ySquared / this.secondRadiusSquared);
             }
 
             private float AngleBetween(PointF junction, PointF a, PointF b)
             {
-                var vA = a - junction;
-                var vB = b - junction;
+                PointF vA = a - junction;
+                PointF vB = b - junction;
                 return MathF.Atan2(vB.Y, vB.X) - MathF.Atan2(vA.Y, vA.X);
             }
 
@@ -156,6 +152,7 @@ namespace SixLabors.ImageSharp.Processing
                 PointF p1,
                 PointF p2)
             {
+                // TODO: Can we not just use Vector2 distance here?
                 float dX = p1.X - p2.X;
                 float dXsquared = dX * dX;
 

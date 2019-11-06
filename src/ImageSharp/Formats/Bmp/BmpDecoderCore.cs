@@ -831,11 +831,17 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 padding = 4 - padding;
             }
 
+            int[] colorsUsed = new int[colors.Length >> 2];
+            int highestColorUsed = 0;
             using (IManagedByteBuffer row = this.memoryAllocator.AllocateManagedByteBuffer(arrayWidth + padding, AllocationOptions.Clean))
             {
                 TPixel color = default;
                 Span<byte> rowSpan = row.GetSpan();
 
+                // Save the pixel starting position.
+                long position = this.stream.Position;
+
+                // Find all of used colors in the palette;
                 for (int y = 0; y < height; y++)
                 {
                     int newY = Invert(y, height, inverted);
@@ -849,14 +855,80 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         for (int shift = 0, newX = colOffset; shift < ppb && newX < width; shift++, newX++)
                         {
                             int colorIndex = ((rowSpan[offset] >> (8 - bitsPerPixel - (shift * bitsPerPixel))) & mask) * bytesPerColorMapEntry;
+                            colorIndex >>= 2;
+                            colorsUsed[colorIndex] += 1;
+                            if (colorIndex > highestColorUsed)
+                            {
+                                highestColorUsed = colorIndex;
+                            }
+                        }
 
-                            color.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIndex]));
+                        offset++;
+                    }
+                }
+
+                // Fixup the color palette to include alpha;
+                // specifically, looking for the used transparent color being 0x00000000.
+                // This is an emperical algorithm.
+                // We've seen cases where the last used color in the palette was the transparent color.
+                // As well, we've seen cases where the first used color in the palette was the transparent color.
+                // There may be other situations where the transparent color falls somewhere else in the palette.
+                // The algorithm will likely give the desired result in those cases.
+                bool foundTransparentColor = false;
+                for (int i = highestColorUsed; i >= 0; i--)
+                {
+                    int offset = i << 2;
+                    if (!foundTransparentColor)
+                    {
+                        if (colorsUsed[i] > 0)
+                        {
+                            color.FromBgra32(Unsafe.As<byte, Bgra32>(ref colors[i]));
+                            if (colors[offset + 0] == 0x00 &&
+                                colors[offset + 1] == 0x00 &&
+                                colors[offset + 2] == 0x00 &&
+                                colors[offset + 3] == 0x00)
+                            {
+                                foundTransparentColor = true;
+                            }
+                            else
+                            {
+                                // Saturate the color
+                                colors[offset + 3] = 0xFF;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Saturate the remaining colors
+                        colors[offset + 3] = 0xFF;
+                    }
+                }
+
+                // Go back to the starting pixel position.
+                this.stream.Seek(position, SeekOrigin.Begin);
+
+                // Now go through the pixels and assign the adjusted colors.
+                for (int y = 0; y < height; y++)
+                {
+                    int newY = Invert(y, height, inverted);
+                    this.stream.Read(row.Array, 0, row.Length());
+                    int offset = 0;
+                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+
+                    for (int x = 0; x < arrayWidth; x++)
+                    {
+                        int colOffset = x * ppb;
+                        for (int shift = 0, newX = colOffset; shift < ppb && newX < width; shift++, newX++)
+                        {
+                            int colorIndex = ((rowSpan[offset] >> (8 - bitsPerPixel - (shift * bitsPerPixel))) & mask) * bytesPerColorMapEntry;
+                            color.FromBgra32(Unsafe.As<byte, Bgra32>(ref colors[colorIndex]));
                             pixelRow[newX] = color;
                         }
 
                         offset++;
                     }
                 }
+
             }
         }
 
@@ -1322,8 +1394,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.bmpMetadata = this.metadata.GetFormatMetadata(BmpFormat.Instance);
             this.bmpMetadata.InfoHeaderType = infoHeaderType;
 
-            // We can only encode at these bit rates so far (1 bit and 4 bit are still missing).
-            if (bitsPerPixel.Equals((short)BmpBitsPerPixel.Pixel8)
+            // We can only decode at these bit rates so far.
+            if (bitsPerPixel.Equals((short)BmpBitsPerPixel.Pixel1)
+                || bitsPerPixel.Equals((short)BmpBitsPerPixel.Pixel4)
+                || bitsPerPixel.Equals((short)BmpBitsPerPixel.Pixel8)
                 || bitsPerPixel.Equals((short)BmpBitsPerPixel.Pixel16)
                 || bitsPerPixel.Equals((short)BmpBitsPerPixel.Pixel24)
                 || bitsPerPixel.Equals((short)BmpBitsPerPixel.Pixel32))
@@ -1406,7 +1480,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     switch (this.fileMarkerType)
                     {
                         case BmpFileMarkerType.Bitmap:
-                            colorMapSizeBytes = this.fileHeader.Offset - BmpFileHeader.Size - this.infoHeader.HeaderSize;
+                            colorMapSizeBytes = 1 << (this.infoHeader.BitsPerPixel + 2);
                             int colorCountForBitDepth = ImageMaths.GetColorCountForBitDepth(this.infoHeader.BitsPerPixel);
                             bytesPerColorMapEntry = colorMapSizeBytes / colorCountForBitDepth;
 
@@ -1435,13 +1509,17 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             if (colorMapSizeBytes > 0)
             {
-                // Usually the color palette is 1024 byte (256 colors * 4), but the documentation does not mention a size limit.
-                // Make sure, that we will not read pass the bitmap offset (starting position of image data).
-                if ((this.stream.Position + colorMapSizeBytes) > this.fileHeader.Offset)
-                {
-                    BmpThrowHelper.ThrowImageFormatException(
-                        $"Reading the color map would read beyond the bitmap offset. Either the color map size of '{colorMapSizeBytes}' is invalid or the bitmap offset.");
-                }
+                // Hmmm: The following fragment isn't working as expected for 1, 4 or 8 bit color palettes.
+                // What problem is the code trying to detect?
+                // The size of the color palette for 1, 4, and 8 bit pixels is fixed and the pixels follow the palette.
+
+                //// Usually the color palette is 1024 byte (256 colors * 4), but the documentation does not mention a size limit.
+                //// Make sure, that we will not read pass the bitmap offset (starting position of image data).
+                //if ((this.stream.Position + colorMapSizeBytes) > this.fileHeader.Offset)
+                //{
+                //    BmpThrowHelper.ThrowImageFormatException(
+                //        $"Reading the color map would read beyond the bitmap offset. Either the color map size of '{colorMapSizeBytes}' is invalid or the bitmap offset.");
+                //}
 
                 palette = new byte[colorMapSizeBytes];
 

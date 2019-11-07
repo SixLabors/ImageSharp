@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         [MethodImpl(InliningOptions.ShortMethod)]
         public void CheckBits()
         {
-            if (this.remainingBits < 16)
+            if (this.remainingBits < JpegConstants.Huffman.MinBits)
             {
                 this.FillBuffer();
             }
@@ -85,8 +85,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             // Attempt to load at least the minimum number of required bits into the buffer.
             // We fail to do so only if we hit a marker or reach the end of the input stream.
-            this.remainingBits += 48;
-            this.data = (this.data << 48) | this.GetBytes();
+            this.remainingBits += JpegConstants.Huffman.FetchBits;
+            this.data = (this.data << JpegConstants.Huffman.FetchBits) | this.GetBytes();
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private ulong GetBytes()
         {
             ulong temp = 0;
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < JpegConstants.Huffman.FetchLoop; i++)
             {
                 int b = this.ReadStream();
 

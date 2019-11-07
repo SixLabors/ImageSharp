@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             {
                 Assert.Equal(width, buffer.Width);
                 Assert.Equal(height, buffer.Height);
-                Assert.Equal(width * height, buffer.Memory.Length);
+                Assert.Equal(width * height, buffer.GetMemory().Length);
             }
         }
 
@@ -72,22 +72,6 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 // Assert.Equal(width * y, span.Start);
                 Assert.Equal(width, span.Length);
                 Assert.SpanPointsTo(span, buffer.MemorySource.MemoryOwner, width * y);
-            }
-        }
-
-        [Theory]
-        [InlineData(7, 42, 0, 0)]
-        [InlineData(7, 42, 3, 10)]
-        [InlineData(17, 42, 0, 41)]
-        public void GetRowSpanXY(int width, int height, int x, int y)
-        {
-            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
-            {
-                Span<TestStructs.Foo> span = buffer.GetRowSpan(x, y);
-
-                // Assert.Equal(width * y + x, span.Start);
-                Assert.Equal(width - x, span.Length);
-                Assert.SpanPointsTo(span, buffer.MemorySource.MemoryOwner, width * y + x);
             }
         }
 
@@ -140,7 +124,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             var rnd = new Random(123);
             using (Buffer2D<float> b = this.MemoryAllocator.Allocate2D<float>(width, height))
             {
-                rnd.RandomFill(b.Span, 0, 1);
+                rnd.RandomFill(b.GetSpan(), 0, 1);
 
                 b.CopyColumns(startIndex, destIndex, columnCount);
 
@@ -162,7 +146,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             var rnd = new Random(123);
             using (Buffer2D<float> b = this.MemoryAllocator.Allocate2D<float>(100, 100))
             {
-                rnd.RandomFill(b.Span, 0, 1);
+                rnd.RandomFill(b.GetSpan(), 0, 1);
 
                 b.CopyColumns(0, 50, 22);
                 b.CopyColumns(0, 50, 22);

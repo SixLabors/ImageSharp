@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         {
             var options = new TgaEncoder()
                           {
-                              Compress = true
+                              Compression = TgaCompression.RunLength
                           };
 
             TestFile testFile = TestFile.Create(imagePath);
@@ -83,55 +83,55 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [WithFile(Bit32, PixelTypes.Rgba32)]
         public void Encode_Bit8_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel8)
             // using tolerant comparer here. The results from magick differ slightly. Maybe a different ToGrey method is used. The image looks otherwise ok.
-            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, useCompression: true, useExactComparer: false, compareTolerance: 0.03f);
+            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, TgaCompression.None, useExactComparer: false, compareTolerance: 0.03f);
 
         [Theory]
         [WithFile(Bit32, PixelTypes.Rgba32)]
         public void Encode_Bit16_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel16)
-            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, useCompression: false, useExactComparer: false);
+            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, TgaCompression.None, useExactComparer: false);
 
         [Theory]
         [WithFile(Bit32, PixelTypes.Rgba32)]
         public void Encode_Bit24_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel24)
-            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel);
+            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, TgaCompression.None);
 
         [Theory]
         [WithFile(Bit32, PixelTypes.Rgba32)]
         public void Encode_Bit32_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel32)
-            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel);
+            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, TgaCompression.None);
 
         [Theory]
         [WithFile(Bit32, PixelTypes.Rgba32)]
         public void Encode_Bit8_WithRunLengthEncoding_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel8)
             // using tolerant comparer here. The results from magick differ slightly. Maybe a different ToGrey method is used. The image looks otherwise ok.
-            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, useCompression: true, useExactComparer: false, compareTolerance: 0.03f);
+            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, TgaCompression.RunLength, useExactComparer: false, compareTolerance: 0.03f);
 
         [Theory]
         [WithFile(Bit32, PixelTypes.Rgba32)]
         public void Encode_Bit16_WithRunLengthEncoding_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel16)
-            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, useCompression: true, useExactComparer: false);
+            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, TgaCompression.RunLength, useExactComparer: false);
 
         [Theory]
         [WithFile(Bit32, PixelTypes.Rgba32)]
         public void Encode_Bit24_WithRunLengthEncoding_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel24)
-            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, true);
+            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, TgaCompression.RunLength);
 
         [Theory]
         [WithFile(Bit32, PixelTypes.Rgba32)]
         public void Encode_Bit32_WithRunLengthEncoding_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel32)
-            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, true);
+            where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, TgaCompression.RunLength);
 
         private static void TestTgaEncoderCore<TPixel>(
             TestImageProvider<TPixel> provider,
             TgaBitsPerPixel bitsPerPixel,
-            bool useCompression = false,
+            TgaCompression compression = TgaCompression.None,
             bool useExactComparer = true,
             float compareTolerance = 0.01f)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                var encoder = new TgaEncoder { BitsPerPixel = bitsPerPixel, Compress = useCompression};
+                var encoder = new TgaEncoder { BitsPerPixel = bitsPerPixel, Compression = compression};
 
                 using (var memStream = new MemoryStream())
                 {

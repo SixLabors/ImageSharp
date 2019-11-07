@@ -16,6 +16,6 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <summary>
         /// Gets a value indicating whether run length compression should be used.
         /// </summary>
-        bool Compress { get; }
+        TgaCompression Compression { get; }
     }
 }

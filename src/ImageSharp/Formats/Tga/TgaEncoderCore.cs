@@ -43,7 +43,12 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <summary>
         /// Indicates if run length compression should be used.
         /// </summary>
-        private readonly bool useCompression;
+        private readonly TgaCompression compression;
+
+        /// <summary>
+        /// Vector for converting pixel to gray value.
+        /// </summary>
+        private static readonly Vector4 Bt709 = new Vector4(.2126f, .7152f, .0722f, 0.0f);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TgaEncoderCore"/> class.
@@ -54,7 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         {
             this.memoryAllocator = memoryAllocator;
             this.bitsPerPixel = options.BitsPerPixel;
-            this.useCompression = options.Compress;
+            this.compression = options.Compression;
         }
 
         /// <summary>
@@ -74,14 +79,14 @@ namespace SixLabors.ImageSharp.Formats.Tga
             TgaMetadata tgaMetadata = metadata.GetFormatMetadata(TgaFormat.Instance);
             this.bitsPerPixel = this.bitsPerPixel ?? tgaMetadata.BitsPerPixel;
 
-            TgaImageType imageType = this.useCompression ? TgaImageType.RleTrueColor : TgaImageType.TrueColor;
+            TgaImageType imageType = this.compression is TgaCompression.RunLength ? TgaImageType.RleTrueColor : TgaImageType.TrueColor;
             if (this.bitsPerPixel == TgaBitsPerPixel.Pixel8)
             {
-                imageType = this.useCompression ? TgaImageType.RleBlackAndWhite : TgaImageType.BlackAndWhite;
+                imageType = this.compression is TgaCompression.RunLength ? TgaImageType.RleBlackAndWhite : TgaImageType.BlackAndWhite;
             }
 
             // If compression is used, set bit 5 of the image descriptor to indicate an left top origin.
-            byte imageDescriptor = (byte)(this.useCompression ? 32 : 0);
+            byte imageDescriptor = (byte)(this.compression is TgaCompression.RunLength ? 32 : 0);
 
             var fileHeader = new TgaFileHeader(
                 idLength: 0,
@@ -91,7 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 cMapLength: 0,
                 cMapDepth: 0,
                 xOffset: 0,
-                yOffset: this.useCompression ? (short)image.Height : (short)0, // When run length encoding is used, the origin should be top left instead of the default bottom left.
+                yOffset: this.compression is TgaCompression.RunLength ? (short)image.Height : (short)0, // When run length encoding is used, the origin should be top left instead of the default bottom left.
                 width: (short)image.Width,
                 height: (short)image.Height,
                 pixelDepth: (byte)this.bitsPerPixel.Value,
@@ -106,7 +111,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
 
             stream.Write(buffer, 0, TgaFileHeader.Size);
 
-            if (this.useCompression)
+            if (this.compression is TgaCompression.RunLength)
             {
                 this.WriteRunLengthEndcodedImage(stream, image.Frames.RootFrame);
             }
@@ -351,6 +356,6 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="vector">The vector to get the luminance from.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int GetLuminance(ref Vector4 vector)
-            => (int)MathF.Round(((.2126F * vector.X) + (.7152F * vector.Y) + (.0722F * vector.Y)) * (256 - 1));
+            => (int)MathF.Round(Vector4.Dot(vector, Bt709) * (256 - 1));
     }
 }

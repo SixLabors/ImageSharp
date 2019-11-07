@@ -12,7 +12,6 @@ namespace SixLabors.
     {
         /// <summary>
         /// No image data included.
-        /// Not sure what this is used for.
         /// </summary>
         NoImageData = 0,
 

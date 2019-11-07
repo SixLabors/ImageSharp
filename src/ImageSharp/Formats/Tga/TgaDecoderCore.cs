@@ -106,16 +106,31 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     }
 
                     int colorMapPixelSizeInBytes = this.fileHeader.CMapDepth / 8;
-                    var palette = new byte[this.fileHeader.CMapLength * colorMapPixelSizeInBytes];
-                    this.currentStream.Read(palette, this.fileHeader.CMapStart, palette.Length);
+                    int colorMapSizeInBytes = this.fileHeader.CMapLength * colorMapPixelSizeInBytes;
+                    using (IManagedByteBuffer palette = this.memoryAllocator.AllocateManagedByteBuffer(colorMapSizeInBytes, AllocationOptions.Clean))
+                    {
+                        this.currentStream.Read(palette.Array, this.fileHeader.CMapStart, colorMapSizeInBytes);
 
-                    if (this.fileHeader.ImageType is TgaImageType.RleColorMapped)
-                    {
-                        this.ReadPalettedRle(this.fileHeader.Width, this.fileHeader.Height, pixels, palette, colorMapPixelSizeInBytes, inverted);
-                    }
-                    else
-                    {
-                        this.ReadPaletted(this.fileHeader.Width, this.fileHeader.Height, pixels, palette, colorMapPixelSizeInBytes, inverted);
+                        if (this.fileHeader.ImageType is TgaImageType.RleColorMapped)
+                        {
+                            this.ReadPalettedRle(
+                                this.fileHeader.Width,
+                                this.fileHeader.Height,
+                                pixels,
+                                palette.Array,
+                                colorMapPixelSizeInBytes,
+                                inverted);
+                        }
+                        else
+                        {
+                            this.ReadPaletted(
+                                this.fileHeader.Width,
+                                this.fileHeader.Height,
+                                pixels,
+                                palette.Array,
+                                colorMapPixelSizeInBytes,
+                                inverted);
+                        }
                     }
 
                     return image;

@@ -19,9 +19,9 @@ namespace SixLabors.ImageSharp.Formats.Tga
         public TgaBitsPerPixel? BitsPerPixel { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether run length compression should be used.
+        /// Gets or sets a value indicating whether no compression or run length compression should be used.
         /// </summary>
-        public bool Compress { get; set; }
+        public TgaCompression Compression { get; set; }
 
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)

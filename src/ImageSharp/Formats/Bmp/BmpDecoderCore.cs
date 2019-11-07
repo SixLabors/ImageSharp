@@ -1473,9 +1473,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int colorMapSizeBytes = -1;
             if (this.infoHeader.ClrUsed == 0)
             {
-                if (this.infoHeader.BitsPerPixel == 1
-                    || this.infoHeader.BitsPerPixel == 4
-                    || this.infoHeader.BitsPerPixel == 8)
+                if (this.infoHeader.BitsPerPixel <= 8)
                 {
                     switch (this.fileMarkerType)
                     {
@@ -1512,14 +1510,16 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 // Hmmm: The following fragment isn't working as expected for 1, 4 or 8 bit color palettes.
                 // What problem is the code trying to detect?
                 // The size of the color palette for 1, 4, and 8 bit pixels is fixed and the pixels follow the palette.
-
-                //// Usually the color palette is 1024 byte (256 colors * 4), but the documentation does not mention a size limit.
-                //// Make sure, that we will not read pass the bitmap offset (starting position of image data).
-                //if ((this.stream.Position + colorMapSizeBytes) > this.fileHeader.Offset)
-                //{
-                //    BmpThrowHelper.ThrowImageFormatException(
-                //        $"Reading the color map would read beyond the bitmap offset. Either the color map size of '{colorMapSizeBytes}' is invalid or the bitmap offset.");
-                //}
+                if (this.infoHeader.BitsPerPixel > 8)
+                {
+                    // Usually the color palette is 1024 byte (256 colors * 4), but the documentation does not mention a size limit.
+                    // Make sure, that we will not read pass the bitmap offset (starting position of image data).
+                    if ((this.stream.Position + colorMapSizeBytes) > this.fileHeader.Offset)
+                    {
+                        BmpThrowHelper.ThrowImageFormatException(
+                            $"Reading the color map would read beyond the bitmap offset. Either the color map size of '{colorMapSizeBytes}' is invalid or the bitmap offset.");
+                    }
+                }
 
                 palette = new byte[colorMapSizeBytes];
 

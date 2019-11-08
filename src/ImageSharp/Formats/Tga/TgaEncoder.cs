@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <summary>
         /// Gets or sets a value indicating whether no compression or run length compression should be used.
         /// </summary>
-        public TgaCompression Compression { get; set; }
+        public TgaCompression Compression { get; set; } = TgaCompression.RunLength;
 
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)

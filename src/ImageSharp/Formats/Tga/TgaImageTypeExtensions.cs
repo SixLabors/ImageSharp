@@ -30,17 +30,15 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <returns>true, if its a valid tga image type.</returns>
         public static bool IsValid(this TgaImageType imageType)
         {
-            byte imageTypeVal = (byte)imageType;
-
-            switch (imageTypeVal)
+            switch (imageType)
             {
-                case 0:
-                case 1:
-                case 2:
-                case 3:
-                case 9:
-                case 10:
-                case 11:
+                case TgaImageType.NoImageData:
+                case TgaImageType.ColorMapped:
+                case TgaImageType.TrueColor:
+                case TgaImageType.BlackAndWhite:
+                case TgaImageType.RleColorMapped:
+                case TgaImageType.RleTrueColor:
+                case TgaImageType.RleBlackAndWhite:
                     return true;
 
                 default:

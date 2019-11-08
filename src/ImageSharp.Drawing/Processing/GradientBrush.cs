@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
+using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -120,10 +120,8 @@ namespace SixLabors.ImageSharp.Processing
                         float onLocalGradient = (positionOnCompleteGradient - from.Ratio) / (to.Ratio - from.Ratio);
 
                         // TODO: this should be changeble for different gradienting functions.
-                        // TODO: Why not use Blender property?
-                        return PixelOperations<TPixel>
-                            .Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver)
-                            .Blend(from.Color.ToPixel<TPixel>(), to.Color.ToPixel<TPixel>(), onLocalGradient);
+                        // TODO: Is the comment above still relevent?
+                        return new Color(Vector4.Lerp((Vector4)from.Color, (Vector4)to.Color, onLocalGradient)).ToPixel<TPixel>();
                     }
                 }
             }

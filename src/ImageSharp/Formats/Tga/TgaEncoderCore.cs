@@ -46,11 +46,6 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private readonly TgaCompression compression;
 
         /// <summary>
-        /// Vector for converting pixel to gray value.
-        /// </summary>
-        private static readonly Vector4 Bt709 = new Vector4(.2126f, .7152f, .0722f, 0.0f);
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="TgaEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The encoder options.</param>
@@ -347,15 +342,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             where TPixel : struct, IPixel<TPixel>
         {
             var vector = sourcePixel.ToVector4();
-            return GetLuminance(ref vector);
+            return ImageMaths.GetBT709Luminance(ref vector, 256);
         }
-
-        /// <summary>
-        /// Convert the pixel values to grayscale using ITU-R Recommendation BT.709.
-        /// </summary>
-        /// <param name="vector">The vector to get the luminance from.</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static int GetLuminance(ref Vector4 vector)
-            => (int)MathF.Round(Vector4.Dot(vector, Bt709) * (256 - 1));
     }
 }

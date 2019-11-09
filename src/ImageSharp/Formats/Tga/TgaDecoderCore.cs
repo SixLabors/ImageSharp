@@ -366,7 +366,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             {
                 Span<Bgra5551> bgraRowSpan = bgraRow.GetSpan();
                 long currentPosition = this.currentStream.Position;
-                for (int y = 0; y < this.fileHeader.Height; y++)
+                for (int y = 0; y < height; y++)
                 {
                     this.currentStream.Read(row);
                     int newY = Invert(y, height, inverted);
@@ -379,7 +379,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 }
 
                 // We need to set each alpha component value to fully opaque.
-                this.MakeOpaque(pixels, currentPosition, row, bgraRowSpan);
+                this.MakeOpaque(pixels, width, height, currentPosition, row, bgraRowSpan);
             }
         }
 
@@ -551,15 +551,17 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// </summary>
         /// <typeparam name="TPixel">The pixel type.</typeparam>
         /// <param name="pixels">The destination pixel buffer.</param>
-        /// <param name="currentPosition">The start position of pixel data.</param>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="pixelDataStart">The start position of pixel data.</param>
         /// <param name="row">A byte array to store the read pixel data.</param>
         /// <param name="bgraRowSpan">Bgra pixel row span.</param>
-        private void MakeOpaque<TPixel>(Buffer2D<TPixel> pixels, long currentPosition, IManagedByteBuffer row, Span<Bgra5551> bgraRowSpan)
+        private void MakeOpaque<TPixel>(Buffer2D<TPixel> pixels, int width, int height, long pixelDataStart, IManagedByteBuffer row, Span<Bgra5551> bgraRowSpan)
             where TPixel : struct, IPixel<TPixel>
         {
             // Reset our stream for a second pass.
-            this.currentStream.Position = currentPosition;
-            for (int y = 0; y < this.fileHeader.Height; y++)
+            this.currentStream.Position = pixelDataStart;
+            for (int y = 0; y < width; y++)
             {
                 this.currentStream.Read(row);
                 PixelOperations<Bgra5551>.Instance.FromBgra5551Bytes(
@@ -567,9 +569,9 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     row.GetSpan(),
                     bgraRowSpan,
                     this.fileHeader.Width);
-                Span<TPixel> pixelSpan = pixels.GetRowSpan(this.fileHeader.Height - y - 1);
+                Span<TPixel> pixelSpan = pixels.GetRowSpan(height - y - 1);
 
-                for (int x = 0; x < this.fileHeader.Width; x++)
+                for (int x = 0; x < width; x++)
                 {
                     Bgra5551 bgra = bgraRowSpan[x];
                     bgra.PackedValue = (ushort)(bgra.PackedValue | (1 << 15));

@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
 {
     public class FillPolygon : BaseImageOperationsExtensionTest
     {
-        GraphicsOptions noneDefault = new GraphicsOptions();
+        GraphicsOptions noneDefault = new GraphicsOptions(false);
         Color color = Color.HotPink;
         SolidBrush brush = Brushes.Solid(Rgba32.HotPink);
         SixLabors.Primitives.PointF[] path = {

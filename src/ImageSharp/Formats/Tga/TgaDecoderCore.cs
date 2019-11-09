@@ -362,24 +362,26 @@ namespace SixLabors.ImageSharp.Formats.Tga
             where TPixel : struct, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 2, 0))
-            using (IMemoryOwner<Bgra5551> bgraRow = this.memoryAllocator.Allocate<Bgra5551>(width))
             {
-                Span<Bgra5551> bgraRowSpan = bgraRow.GetSpan();
-                long currentPosition = this.currentStream.Position;
                 for (int y = 0; y < height; y++)
                 {
                     this.currentStream.Read(row);
+                    Span<byte> rowSpan = row.GetSpan();
+
+                    // We need to set each alpha component value to fully opaque.
+                    for (int x = 1; x < rowSpan.Length; x += 2)
+                    {
+                        rowSpan[x] = (byte)(rowSpan[x] | (1 << 7));
+                    }
+
                     int newY = Invert(y, height, inverted);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
                     PixelOperations<TPixel>.Instance.FromBgra5551Bytes(
                         this.configuration,
-                        row.GetSpan(),
+                        rowSpan,
                         pixelSpan,
                         width);
                 }
-
-                // We need to set each alpha component value to fully opaque.
-                this.MakeOpaque(pixels, width, height, currentPosition, row, bgraRowSpan);
             }
         }
 
@@ -540,43 +542,6 @@ namespace SixLabors.ImageSharp.Formats.Tga
                         pixel.AsSpan().CopyTo(buffer.Slice(bufferIdx));
                         bufferIdx += bytesPerPixel;
                     }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Helper method for decoding BGRA5551 images. Makes the pixels opaque, because the high bit does not
-        /// represent an alpha channel.
-        /// TODO: maybe there is a better/faster way to achieve this.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel type.</typeparam>
-        /// <param name="pixels">The destination pixel buffer.</param>
-        /// <param name="width">The width of the image.</param>
-        /// <param name="height">The height of the image.</param>
-        /// <param name="pixelDataStart">The start position of pixel data.</param>
-        /// <param name="row">A byte array to store the read pixel data.</param>
-        /// <param name="bgraRowSpan">Bgra pixel row span.</param>
-        private void MakeOpaque<TPixel>(Buffer2D<TPixel> pixels, int width, int height, long pixelDataStart, IManagedByteBuffer row, Span<Bgra5551> bgraRowSpan)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            // Reset our stream for a second pass.
-            this.currentStream.Position = pixelDataStart;
-            for (int y = 0; y < width; y++)
-            {
-                this.currentStream.Read(row);
-                PixelOperations<Bgra5551>.Instance.FromBgra5551Bytes(
-                    this.configuration,
-                    row.GetSpan(),
-                    bgraRowSpan,
-                    this.fileHeader.Width);
-                Span<TPixel> pixelSpan = pixels.GetRowSpan(height - y - 1);
-
-                for (int x = 0; x < width; x++)
-                {
-                    Bgra5551 bgra = bgraRowSpan[x];
-                    bgra.PackedValue = (ushort)(bgra.PackedValue | (1 << 15));
-                    ref TPixel pixel = ref pixelSpan[x];
-                    pixel.FromBgra5551(bgra);
                 }
             }
         }

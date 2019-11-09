@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
 {
     public class FillPathCollection : BaseImageOperationsExtensionTest
     {
-        GraphicsOptions noneDefault = new GraphicsOptions();
+        GraphicsOptions noneDefault = new GraphicsOptions(false);
         Color color = Color.HotPink;
         SolidBrush brush = Brushes.Solid(Rgba32.HotPink);
         IPath path1 = new Path(new LinearLineSegment(new SixLabors.Primitives.PointF[] {

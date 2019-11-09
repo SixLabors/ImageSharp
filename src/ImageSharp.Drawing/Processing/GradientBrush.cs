@@ -118,9 +118,6 @@ namespace SixLabors.ImageSharp.Processing
                     else
                     {
                         float onLocalGradient = (positionOnCompleteGradient - from.Ratio) / (to.Ratio - from.Ratio);
-
-                        // TODO: this should be changeble for different gradienting functions.
-                        // TODO: Is the comment above still relevent?
                         return new Color(Vector4.Lerp((Vector4)from.Color, (Vector4)to.Color, onLocalGradient)).ToPixel<TPixel>();
                     }
                 }

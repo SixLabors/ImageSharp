@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Buffers;
@@ -11,8 +11,18 @@ namespace SixLabors.ImageSharp.Memory
     /// <summary>
     /// Extension methods for <see cref="MemoryAllocator"/>.
     /// </summary>
-    internal static class MemoryAllocatorExtensions
+    public static class MemoryAllocatorExtensions
     {
+        /// <summary>
+        /// Allocates a buffer of value type objects interpreted as a 2D region
+        /// of <paramref name="width"/> x <paramref name="height"/> elements.
+        /// </summary>
+        /// <typeparam name="T">The type of buffer items to allocate.</typeparam>
+        /// <param name="memoryAllocator">The memory allocator.</param>
+        /// <param name="width">The buffer width.</param>
+        /// <param name="height">The buffer heght.</param>
+        /// <param name="options">The allocation options.</param>
+        /// <returns>The <see cref="Buffer2D{T}"/>.</returns>
         public static Buffer2D<T> Allocate2D<T>(
             this MemoryAllocator memoryAllocator,
             int width,
@@ -26,6 +36,15 @@ namespace SixLabors.ImageSharp.Memory
             return new Buffer2D<T>(memorySource, width, height);
         }
 
+        /// <summary>
+        /// Allocates a buffer of value type objects interpreted as a 2D region
+        /// of <paramref name="size"/> width x <paramref name="size"/> height elements.
+        /// </summary>
+        /// <typeparam name="T">The type of buffer items to allocate.</typeparam>
+        /// <param name="memoryAllocator">The memory allocator.</param>
+        /// <param name="size">The buffer size.</param>
+        /// <param name="options">The allocation options.</param>
+        /// <returns>The <see cref="Buffer2D{T}"/>.</returns>
         public static Buffer2D<T> Allocate2D<T>(
             this MemoryAllocator memoryAllocator,
             Size size,
@@ -41,7 +60,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="pixelSizeInBytes">The pixel size in bytes, eg. 3 for RGB</param>
         /// <param name="paddingInBytes">The padding</param>
         /// <returns>A <see cref="IManagedByteBuffer"/></returns>
-        public static IManagedByteBuffer AllocatePaddedPixelRowBuffer(
+        internal static IManagedByteBuffer AllocatePaddedPixelRowBuffer(
             this MemoryAllocator memoryAllocator,
             int width,
             int pixelSizeInBytes,

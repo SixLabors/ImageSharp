@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
                 VerticalAlignment = this.Options.VerticalAlignment
             };
 
-            this.textRenderer = new CachingGlyphRenderer(this.Source.GetMemoryAllocator(), this.Text.Length, this.Pen, this.Brush != null);
+            this.textRenderer = new CachingGlyphRenderer(this.Configuration.MemoryAllocator, this.Text.Length, this.Pen, this.Brush != null);
             this.textRenderer.Options = (GraphicsOptions)this.Options;
             var renderer = new TextRenderer(this.textRenderer);
             renderer.RenderText(this.Text, style);

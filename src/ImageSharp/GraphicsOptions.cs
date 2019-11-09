@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
@@ -8,108 +9,115 @@ namespace SixLabors.ImageSharp
     /// <summary>
     /// Options for influencing the drawing functions.
     /// </summary>
-    public struct GraphicsOptions
+    public class GraphicsOptions
     {
+        private static readonly Lazy<GraphicsOptions> Lazy = new Lazy<GraphicsOptions>();
+        private int antialiasSubpixelDepth;
+        private float blendPercentage;
+
         /// <summary>
-        /// Represents the default <see cref="GraphicsOptions"/>.
+        /// Initializes a new instance of the <see cref="GraphicsOptions"/> class.
         /// </summary>
-        public static readonly GraphicsOptions Default = new GraphicsOptions(true);
-
-        private float? blendPercentage;
-
-        private int? antialiasSubpixelDepth;
-
-        private bool? antialias;
+        public GraphicsOptions()
+            : this(true)
+        {
+        }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GraphicsOptions"/> struct.
+        /// Initializes a new instance of the <see cref="GraphicsOptions"/> class.
         /// </summary>
         /// <param name="enableAntialiasing">If set to <c>true</c> [enable antialiasing].</param>
         public GraphicsOptions(bool enableAntialiasing)
+            : this(enableAntialiasing, 1F)
         {
-            this.ColorBlendingMode = PixelColorBlendingMode.Normal;
-            this.AlphaCompositionMode = PixelAlphaCompositionMode.SrcOver;
-            this.blendPercentage = 1;
-            this.antialiasSubpixelDepth = 16;
-            this.antialias = enableAntialiasing;
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GraphicsOptions"/> struct.
+        /// Initializes a new instance of the <see cref="GraphicsOptions"/> class.
         /// </summary>
         /// <param name="enableAntialiasing">If set to <c>true</c> [enable antialiasing].</param>
-        /// <param name="opacity">blending percentage to apply to the drawing operation</param>
-        public GraphicsOptions(bool enableAntialiasing, float opacity)
+        /// <param name="blendPercentage">The blending percentage to apply to the drawing operation</param>
+        public GraphicsOptions(bool enableAntialiasing, float blendPercentage)
+            : this(enableAntialiasing, PixelColorBlendingMode.Normal, blendPercentage)
         {
-            Guard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
-
-            this.ColorBlendingMode = PixelColorBlendingMode.Normal;
-            this.AlphaCompositionMode = PixelAlphaCompositionMode.SrcOver;
-            this.blendPercentage = opacity;
-            this.antialiasSubpixelDepth = 16;
-            this.antialias = enableAntialiasing;
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GraphicsOptions"/> struct.
+        /// Initializes a new instance of the <see cref="GraphicsOptions"/> class.
         /// </summary>
         /// <param name="enableAntialiasing">If set to <c>true</c> [enable antialiasing].</param>
-        /// <param name="opacity">blending percentage to apply to the drawing operation</param>
-        /// <param name="blending">color blending mode to apply to the drawing operation</param>
-        public GraphicsOptions(bool enableAntialiasing, PixelColorBlendingMode blending, float opacity)
+        /// <param name="blending">The color blending mode to apply to the drawing operation</param>
+        /// <param name="blendPercentage">The blending percentage to apply to the drawing operation</param>
+        public GraphicsOptions(
+            bool enableAntialiasing,
+            PixelColorBlendingMode blending,
+            float blendPercentage)
+            : this(enableAntialiasing, blending, PixelAlphaCompositionMode.SrcOver, blendPercentage)
         {
-            Guard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
-
-            this.ColorBlendingMode = blending;
-            this.AlphaCompositionMode = PixelAlphaCompositionMode.SrcOver;
-            this.blendPercentage = opacity;
-            this.antialiasSubpixelDepth = 16;
-            this.antialias = enableAntialiasing;
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GraphicsOptions"/> struct.
+        /// Initializes a new instance of the <see cref="GraphicsOptions"/> class.
         /// </summary>
         /// <param name="enableAntialiasing">If set to <c>true</c> [enable antialiasing].</param>
-        /// <param name="opacity">blending percentage to apply to the drawing operation</param>
-        /// <param name="blending">color blending mode to apply to the drawing operation</param>
-        /// <param name="composition">alpha composition mode to apply to the drawing operation</param>
-        public GraphicsOptions(bool enableAntialiasing, PixelColorBlendingMode blending, PixelAlphaCompositionMode composition, float opacity)
+        /// <param name="blending">The color blending mode to apply to the drawing operation</param>
+        /// <param name="composition">The alpha composition mode to apply to the drawing operation</param>
+        /// <param name="blendPercentage">The blending percentage to apply to the drawing operation</param>
+        public GraphicsOptions(
+            bool enableAntialiasing,
+            PixelColorBlendingMode blending,
+            PixelAlphaCompositionMode composition,
+            float blendPercentage)
         {
-            Guard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
-
             this.ColorBlendingMode = blending;
             this.AlphaCompositionMode = composition;
-            this.blendPercentage = opacity;
-            this.antialiasSubpixelDepth = 16;
-            this.antialias = enableAntialiasing;
+            this.BlendPercentage = blendPercentage;
+            this.AntialiasSubpixelDepth = 16;
+            this.Antialias = enableAntialiasing;
         }
+
+        /// <summary>
+        /// Gets the default <see cref="GraphicsOptions"/> instance.
+        /// </summary>
+        public static GraphicsOptions Default { get; } = Lazy.Value;
 
         /// <summary>
         /// Gets or sets a value indicating whether antialiasing should be applied.
         /// </summary>
-        public bool Antialias
-        {
-            get => this.antialias ?? true;
-            set => this.antialias = value;
-        }
+        public bool Antialias { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating the number of subpixels to use while rendering with antialiasing enabled.
         /// </summary>
         public int AntialiasSubpixelDepth
         {
-            get => this.antialiasSubpixelDepth ?? 16;
-            set => this.antialiasSubpixelDepth = value;
+            get
+            {
+                return this.antialiasSubpixelDepth;
+            }
+
+            set
+            {
+                Guard.MustBeGreaterThanOrEqualTo(value, 0, nameof(this.AntialiasSubpixelDepth));
+                this.antialiasSubpixelDepth = value;
+            }
         }
 
         /// <summary>
-        /// Gets or sets a value indicating the blending percentage to apply to the drawing operation
+        /// Gets or sets a value indicating the blending percentage to apply to the drawing operation.
         /// </summary>
         public float BlendPercentage
         {
-            get => (this.blendPercentage ?? 1).Clamp(0, 1);
-            set => this.blendPercentage = value;
+            get
+            {
+                return this.blendPercentage;
+            }
+
+            set
+            {
+                Guard.MustBeBetweenOrEqualTo(value, 0, 1F, nameof(this.BlendPercentage));
+                this.blendPercentage = value;
+            }
         }
 
         // In the future we could expose a PixelBlender<TPixel> directly on here

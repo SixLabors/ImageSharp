@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 using System;
 using System.Collections.Generic;
@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 }
             }
         }
-            
+
 
         [Theory]
         [WithBlankImages(nameof(modes), 250, 250, PixelTypes.Rgba32)]
@@ -46,7 +46,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                             Color.DarkBlue,
                             new Rectangle(0 * scaleX, 40 * scaleY, 100 * scaleX, 20 * scaleY)
                             )
-                        .Fill(new GraphicsOptions(true) { ColorBlendingMode = blending, AlphaCompositionMode=composition },
+                        .Fill(
+                            new GraphicsOptions { Antialias = true, ColorBlendingMode = blending, AlphaCompositionMode = composition },
                             Color.HotPink,
                             new Rectangle(20 * scaleX, 0 * scaleY, 30 * scaleX, 100 * scaleY))
                     );
@@ -73,12 +74,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         new Rectangle(0 * scaleX, 40 * scaleY, 100 * scaleX, 20 * scaleY)));
                 img.Mutate(
                     x => x.Fill(
-                        new GraphicsOptions(true) { ColorBlendingMode = blending, AlphaCompositionMode = composition },
+                        new GraphicsOptions { Antialias = true, ColorBlendingMode = blending, AlphaCompositionMode = composition },
                         Color.HotPink,
                         new Rectangle(20 * scaleX, 0 * scaleY, 30 * scaleX, 100 * scaleY)));
                 img.Mutate(
                     x => x.Fill(
-                        new GraphicsOptions(true) { ColorBlendingMode = blending, AlphaCompositionMode = composition },
+                        new GraphicsOptions { Antialias = true, ColorBlendingMode = blending, AlphaCompositionMode = composition },
                         Color.Transparent,
                         new Shapes.EllipsePolygon(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY))
                     );
@@ -105,7 +106,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         new Rectangle(0 * scaleX, 40, 100 * scaleX, 20 * scaleY)));
                 img.Mutate(
                     x => x.Fill(
-                        new GraphicsOptions(true) { ColorBlendingMode = blending, AlphaCompositionMode = composition },
+                        new GraphicsOptions { Antialias = true, ColorBlendingMode = blending, AlphaCompositionMode = composition },
                         Color.HotPink,
                         new Rectangle(20 * scaleX, 0, 30 * scaleX, 100 * scaleY)));
 
@@ -113,7 +114,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
                 img.Mutate(
                     x => x.Fill(
-                        new GraphicsOptions(true) { ColorBlendingMode = blending, AlphaCompositionMode = composition },
+                        new GraphicsOptions { Antialias = true, ColorBlendingMode = blending, AlphaCompositionMode = composition },
                         transparentRed,
                         new Shapes.EllipsePolygon(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY))
                     );
@@ -130,7 +131,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             PixelAlphaCompositionMode composition)
             where TPixel : struct, IPixel<TPixel>
         {
-            using(Image<TPixel> dstImg = provider.GetImage(), srcImg = provider.GetImage())
+            using (Image<TPixel> dstImg = provider.GetImage(), srcImg = provider.GetImage())
             {
                 int scaleX = (dstImg.Width / 100);
                 int scaleY = (dstImg.Height / 100);
@@ -146,13 +147,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         new Shapes.EllipsePolygon(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY)));
 
                 dstImg.Mutate(
-                    x => x.DrawImage(srcImg, new GraphicsOptions(true) { ColorBlendingMode = blending, AlphaCompositionMode = composition })
-                    );                
+                    x => x.DrawImage(srcImg, new GraphicsOptions { Antialias = true, ColorBlendingMode = blending, AlphaCompositionMode = composition })
+                    );
 
                 VerifyImage(provider, blending, composition, dstImg);
             }
         }
-        
+
         private static void VerifyImage<TPixel>(
             TestImageProvider<TPixel> provider,
             PixelColorBlendingMode blending,
@@ -165,13 +166,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 new { composition, blending },
                 appendPixelTypeToFileName: false,
                 appendSourceFileOrDescription: false);
-            
+
             var comparer = ImageComparer.TolerantPercentage(0.01f, 3);
             img.CompareFirstFrameToReferenceOutput(comparer,
                 provider,
                 new { composition, blending },
                 appendPixelTypeToFileName: false,
-                appendSourceFileOrDescription: false);            
+                appendSourceFileOrDescription: false);
         }
     }
 }

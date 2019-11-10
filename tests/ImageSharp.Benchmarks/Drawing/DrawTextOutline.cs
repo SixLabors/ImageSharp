@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Drawing;
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Params(10, 100)]
         public int TextIterations { get; set; }
         public string TextPhrase { get; set; } = "Hello World";
-        public string TextToRender => string.Join(" ", Enumerable.Repeat(TextPhrase, TextIterations));
+        public string TextToRender => string.Join(" ", Enumerable.Repeat(this.TextPhrase, this.TextIterations));
 
         [Benchmark(Baseline = true, Description = "System.Drawing Draw Text Outline")]
         public void DrawTextSystemDrawing()
@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                 using (var font = new Font("Arial", 12, GraphicsUnit.Point))
                 using (var gp = new GraphicsPath())
                 {
-                    gp.AddString(TextToRender, font.FontFamily, (int)font.Style, font.Size, new RectangleF(10, 10, 780, 780), new StringFormat());
+                    gp.AddString(this.TextToRender, font.FontFamily, (int)font.Style, font.Size, new RectangleF(10, 10, 780, 780), new StringFormat());
                     graphics.DrawPath(pen, gp);
                 }
             }
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Benchmarks
             using (var image = new Image<Rgba32>(800, 800))
             {
                 var font = SixLabors.Fonts.SystemFonts.CreateFont("Arial", 12);
-                image.Mutate(x => x.ApplyProcessor(new DrawTextProcessor(new TextGraphicsOptions(true) { WrapTextWidth = 780 }, TextToRender, font, null, Processing.Pens.Solid(Rgba32.HotPink, 10), new SixLabors.Primitives.PointF(10, 10))));
+                image.Mutate(x => x.ApplyProcessor(new DrawTextProcessor(new TextGraphicsOptions { Antialias = true, WrapTextWidth = 780 }, this.TextToRender, font, null, Processing.Pens.Solid(Rgba32.HotPink, 10), new SixLabors.Primitives.PointF(10, 10))));
             }
         }
 
@@ -56,8 +56,8 @@ namespace SixLabors.ImageSharp.Benchmarks
                 image.Mutate(
                     x => DrawTextOldVersion(
                         x,
-                        new TextGraphicsOptions(true) { WrapTextWidth = 780 },
-                        TextToRender,
+                        new TextGraphicsOptions { Antialias = true, WrapTextWidth = 780 },
+                        this.TextToRender,
                         font,
                         null,
                         Processing.Pens.Solid(Rgba32.HotPink, 10),

@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
 {
     public class FillRectangle : BaseImageOperationsExtensionTest
     {
-        GraphicsOptions noneDefault = new GraphicsOptions(false);
+        GraphicsOptions noneDefault = new GraphicsOptions { Antialias = false };
         Color color = Color.HotPink;
         SolidBrush brush = Brushes.Solid(Rgba32.HotPink);
         SixLabors.Primitives.Rectangle rectangle = new SixLabors.Primitives.Rectangle(10, 10, 77, 76);

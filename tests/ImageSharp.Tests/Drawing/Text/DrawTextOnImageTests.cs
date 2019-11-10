@@ -55,8 +55,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
                 var scaledFont = new Font(font, scalingFactor * font.Size);
 
                 var center = new PointF(img.Width / 2, img.Height / 2);
-                var textGraphicOptions = new TextGraphicsOptions(true)
+                var textGraphicOptions = new TextGraphicsOptions
                 {
+                    Antialias = true,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center
                 };
@@ -222,7 +223,11 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
 
             string text = Repeat("Beware the Jabberwock, my son!  The jaws that bite, the claws that catch!  Beware the Jubjub bird, and shun The frumious Bandersnatch!\n",
                 20);
-            var textOptions = new TextGraphicsOptions(true) { WrapTextWidth = 1000 };
+            var textOptions = new TextGraphicsOptions
+            {
+                Antialias = true,
+                WrapTextWidth = 1000
+            };
 
             string details = fontName.Replace(" ", "");
 

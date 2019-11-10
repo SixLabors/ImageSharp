@@ -11,83 +11,23 @@ namespace SixLabors.ImageSharp
     /// </summary>
     public class GraphicsOptions
     {
-        private static readonly Lazy<GraphicsOptions> Lazy = new Lazy<GraphicsOptions>();
-        private int antialiasSubpixelDepth;
-        private float blendPercentage;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GraphicsOptions"/> class.
-        /// </summary>
-        public GraphicsOptions()
-            : this(true)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GraphicsOptions"/> class.
-        /// </summary>
-        /// <param name="enableAntialiasing">If set to <c>true</c> [enable antialiasing].</param>
-        public GraphicsOptions(bool enableAntialiasing)
-            : this(enableAntialiasing, 1F)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GraphicsOptions"/> class.
-        /// </summary>
-        /// <param name="enableAntialiasing">If set to <c>true</c> [enable antialiasing].</param>
-        /// <param name="blendPercentage">The blending percentage to apply to the drawing operation</param>
-        public GraphicsOptions(bool enableAntialiasing, float blendPercentage)
-            : this(enableAntialiasing, PixelColorBlendingMode.Normal, blendPercentage)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GraphicsOptions"/> class.
-        /// </summary>
-        /// <param name="enableAntialiasing">If set to <c>true</c> [enable antialiasing].</param>
-        /// <param name="blending">The color blending mode to apply to the drawing operation</param>
-        /// <param name="blendPercentage">The blending percentage to apply to the drawing operation</param>
-        public GraphicsOptions(
-            bool enableAntialiasing,
-            PixelColorBlendingMode blending,
-            float blendPercentage)
-            : this(enableAntialiasing, blending, PixelAlphaCompositionMode.SrcOver, blendPercentage)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GraphicsOptions"/> class.
-        /// </summary>
-        /// <param name="enableAntialiasing">If set to <c>true</c> [enable antialiasing].</param>
-        /// <param name="blending">The color blending mode to apply to the drawing operation</param>
-        /// <param name="composition">The alpha composition mode to apply to the drawing operation</param>
-        /// <param name="blendPercentage">The blending percentage to apply to the drawing operation</param>
-        public GraphicsOptions(
-            bool enableAntialiasing,
-            PixelColorBlendingMode blending,
-            PixelAlphaCompositionMode composition,
-            float blendPercentage)
-        {
-            this.ColorBlendingMode = blending;
-            this.AlphaCompositionMode = composition;
-            this.BlendPercentage = blendPercentage;
-            this.AntialiasSubpixelDepth = 16;
-            this.Antialias = enableAntialiasing;
-        }
+        private int antialiasSubpixelDepth = 16;
+        private float blendPercentage = 1F;
 
         /// <summary>
         /// Gets the default <see cref="GraphicsOptions"/> instance.
         /// </summary>
-        public static GraphicsOptions Default { get; } = Lazy.Value;
+        public static GraphicsOptions Default { get; } = new GraphicsOptions();
 
         /// <summary>
         /// Gets or sets a value indicating whether antialiasing should be applied.
+        /// Defaults to true.
         /// </summary>
-        public bool Antialias { get; set; }
+        public bool Antialias { get; set; } = true;
 
         /// <summary>
         /// Gets or sets a value indicating the number of subpixels to use while rendering with antialiasing enabled.
+        /// Defaults to 16.
         /// </summary>
         public int AntialiasSubpixelDepth
         {
@@ -104,7 +44,8 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Gets or sets a value indicating the blending percentage to apply to the drawing operation.
+        /// Gets or sets a value between indicating the blending percentage to apply to the drawing operation.
+        /// Range 0..1; Defaults to 1.
         /// </summary>
         public float BlendPercentage
         {
@@ -120,18 +61,32 @@ namespace SixLabors.ImageSharp
             }
         }
 
-        // In the future we could expose a PixelBlender<TPixel> directly on here
-        // or some forms of PixelBlender factory for each pixel type. Will need
-        // some API thought post V1.
-
         /// <summary>
-        /// Gets or sets a value indicating the color blending mode to apply to the drawing operation
+        /// Gets or sets a value indicating the color blending mode to apply to the drawing operation.
+        /// Defaults to <see cref="PixelColorBlendingMode.Normal"/>.
         /// </summary>
-        public PixelColorBlendingMode ColorBlendingMode { get; set; }
+        public PixelColorBlendingMode ColorBlendingMode { get; set; } = PixelColorBlendingMode.Normal;
 
         /// <summary>
         /// Gets or sets a value indicating the alpha composition mode to apply to the drawing operation
+        /// Defaults to <see cref="PixelAlphaCompositionMode.SrcOver"/>.
         /// </summary>
-        public PixelAlphaCompositionMode AlphaCompositionMode { get; set; }
+        public PixelAlphaCompositionMode AlphaCompositionMode { get; set; } = PixelAlphaCompositionMode.SrcOver;
+
+        /// <summary>
+        /// Creates a shallow copy of the <see cref="GraphicsOptions"/>.
+        /// </summary>
+        /// <returns>A new options instance.</returns>
+        public GraphicsOptions Clone()
+        {
+            return new GraphicsOptions
+            {
+                AlphaCompositionMode = this.AlphaCompositionMode,
+                Antialias = this.Antialias,
+                AntialiasSubpixelDepth = this.AntialiasSubpixelDepth,
+                BlendPercentage = this.BlendPercentage,
+                ColorBlendingMode = this.ColorBlendingMode
+            };
+        }
     }
 }

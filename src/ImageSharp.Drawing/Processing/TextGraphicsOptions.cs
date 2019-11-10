@@ -12,51 +12,22 @@ namespace SixLabors.ImageSharp.Processing
     /// </summary>
     public class TextGraphicsOptions
     {
-        private static readonly Lazy<TextGraphicsOptions> Lazy = new Lazy<TextGraphicsOptions>();
-        private int antialiasSubpixelDepth;
-        private float blendPercentage;
-        private float tabWidth;
-        private float dpiX;
-        private float dpiY;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TextGraphicsOptions"/> class.
-        /// </summary>
-        public TextGraphicsOptions()
-            : this(true)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TextGraphicsOptions" /> class.
-        /// </summary>
-        /// <param name="enableAntialiasing">If set to <c>true</c> [enable antialiasing].</param>
-        public TextGraphicsOptions(bool enableAntialiasing)
-        {
-            this.ApplyKerning = true;
-            this.TabWidth = 4F;
-            this.WrapTextWidth = 0;
-            this.HorizontalAlignment = HorizontalAlignment.Left;
-            this.VerticalAlignment = VerticalAlignment.Top;
-
-            this.antialiasSubpixelDepth = 16;
-            this.ColorBlendingMode = PixelColorBlendingMode.Normal;
-            this.AlphaCompositionMode = PixelAlphaCompositionMode.SrcOver;
-            this.blendPercentage = 1F;
-            this.Antialias = enableAntialiasing;
-            this.dpiX = 72F;
-            this.dpiY = 72F;
-        }
+        private int antialiasSubpixelDepth = 16;
+        private float blendPercentage = 1F;
+        private float tabWidth = 4F;
+        private float dpiX = 72F;
+        private float dpiY = 72F;
 
         /// <summary>
         /// Gets the default <see cref="TextGraphicsOptions"/> instance.
         /// </summary>
-        public static TextGraphicsOptions Default { get; } = Lazy.Value;
+        public static TextGraphicsOptions Default { get; } = new TextGraphicsOptions();
 
         /// <summary>
         /// Gets or sets a value indicating whether antialiasing should be applied.
+        /// Defaults to true.
         /// </summary>
-        public bool Antialias { get; set; }
+        public bool Antialias { get; set; } = true;
 
         /// <summary>
         /// Gets or sets a value indicating the number of subpixels to use while rendering with antialiasing enabled.
@@ -92,27 +63,27 @@ namespace SixLabors.ImageSharp.Processing
             }
         }
 
-        // In the future we could expose a PixelBlender<TPixel> directly on here
-        // or some forms of PixelBlender factory for each pixel type. Will need
-        // some API thought post V1.
+        /// <summary>
+        /// Gets or sets a value indicating the color blending percentage to apply to the drawing operation.
+        /// Defaults to <see cref= "PixelColorBlendingMode.Normal" />.
+        /// </summary>
+        public PixelColorBlendingMode ColorBlendingMode { get; set; } = PixelColorBlendingMode.Normal;
 
         /// <summary>
         /// Gets or sets a value indicating the color blending percentage to apply to the drawing operation
+        /// Defaults to <see cref= "PixelAlphaCompositionMode.SrcOver" />.
         /// </summary>
-        public PixelColorBlendingMode ColorBlendingMode { get; set; }
-
-        /// <summary>
-        /// Gets or sets a value indicating the color blending percentage to apply to the drawing operation
-        /// </summary>
-        public PixelAlphaCompositionMode AlphaCompositionMode { get; set; }
+        public PixelAlphaCompositionMode AlphaCompositionMode { get; set; } = PixelAlphaCompositionMode.SrcOver;
 
         /// <summary>
         /// Gets or sets a value indicating whether the text should be drawing with kerning enabled.
+        /// Defaults to true;
         /// </summary>
-        public bool ApplyKerning { get; set; }
+        public bool ApplyKerning { get; set; } = true;
 
         /// <summary>
         /// Gets or sets a value indicating the number of space widths a tab should lock to.
+        /// Defaults to 4.
         /// </summary>
         public float TabWidth
         {
@@ -130,11 +101,13 @@ namespace SixLabors.ImageSharp.Processing
 
         /// <summary>
         /// Gets or sets a value, if greater than 0, indicating the width at which text should wrap.
+        /// Defaults to 0.
         /// </summary>
         public float WrapTextWidth { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating the DPI to render text along the X axis.
+        /// Gets or sets a value indicating the DPI (Dots Per Inch) to render text along the X axis.
+        /// Defaults to 72.
         /// </summary>
         public float DpiX
         {
@@ -151,7 +124,8 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <summary>
-        /// Gets or sets a value indicating the DPI to render text along the Y axis.
+        /// Gets or sets a value indicating the DPI (Dots Per Inch) to render text along the Y axis.
+        /// Defaults to 72.
         /// </summary>
         public float DpiY
         {
@@ -172,13 +146,15 @@ namespace SixLabors.ImageSharp.Processing
         /// If <see cref="WrapTextWidth"/> is greater than zero it will align relative to the space
         /// defined by the location and width, if <see cref="WrapTextWidth"/> equals zero, and thus
         /// wrapping disabled, then the alignment is relative to the drawing location.
+        /// Defaults to <see cref="HorizontalAlignment.Left"/>.
         /// </summary>
-        public HorizontalAlignment HorizontalAlignment { get; set; }
+        public HorizontalAlignment HorizontalAlignment { get; set; } = HorizontalAlignment.Left;
 
         /// <summary>
         /// Gets or sets a value indicating how to align the text relative to the rendering space.
+        /// Defaults to <see cref="VerticalAlignment.Top"/>.
         /// </summary>
-        public VerticalAlignment VerticalAlignment { get; set; }
+        public VerticalAlignment VerticalAlignment { get; set; } = VerticalAlignment.Top;
 
         /// <summary>
         /// Performs an implicit conversion from <see cref="GraphicsOptions"/> to <see cref="TextGraphicsOptions"/>.
@@ -189,8 +165,9 @@ namespace SixLabors.ImageSharp.Processing
         /// </returns>
         public static implicit operator TextGraphicsOptions(GraphicsOptions options)
         {
-            return new TextGraphicsOptions(options.Antialias)
+            return new TextGraphicsOptions()
             {
+                Antialias = options.Antialias,
                 AntialiasSubpixelDepth = options.AntialiasSubpixelDepth,
                 blendPercentage = options.BlendPercentage,
                 ColorBlendingMode = options.ColorBlendingMode,
@@ -207,12 +184,36 @@ namespace SixLabors.ImageSharp.Processing
         /// </returns>
         public static explicit operator GraphicsOptions(TextGraphicsOptions options)
         {
-            return new GraphicsOptions(options.Antialias)
+            return new GraphicsOptions()
             {
+                Antialias = options.Antialias,
                 AntialiasSubpixelDepth = options.AntialiasSubpixelDepth,
                 ColorBlendingMode = options.ColorBlendingMode,
                 AlphaCompositionMode = options.AlphaCompositionMode,
                 BlendPercentage = options.BlendPercentage
+            };
+        }
+
+        /// <summary>
+        /// Creates a shallow copy of the <see cref="TextGraphicsOptions"/>.
+        /// </summary>
+        /// <returns>A new options instance.</returns>
+        public TextGraphicsOptions Clone()
+        {
+            return new TextGraphicsOptions
+            {
+                AlphaCompositionMode = this.AlphaCompositionMode,
+                Antialias = this.Antialias,
+                AntialiasSubpixelDepth = this.AntialiasSubpixelDepth,
+                ApplyKerning = this.ApplyKerning,
+                BlendPercentage = this.BlendPercentage,
+                ColorBlendingMode = this.ColorBlendingMode,
+                DpiX = this.DpiX,
+                DpiY = this.DpiY,
+                HorizontalAlignment = this.HorizontalAlignment,
+                TabWidth = this.TabWidth,
+                WrapTextWidth = this.WrapTextWidth,
+                VerticalAlignment = this.VerticalAlignment
             };
         }
     }

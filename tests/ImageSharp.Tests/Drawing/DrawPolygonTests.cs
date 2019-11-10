@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 };
             Color color = TestUtils.GetColorByName(colorName).WithAlpha(alpha);
 
-            GraphicsOptions options = new GraphicsOptions(antialias);
+            GraphicsOptions options = new GraphicsOptions { Antialias = antialias };
 
             string aa = antialias ? "" : "_NoAntialias";
             FormattableString outputDetails = $"{colorName}_A({alpha})_T({thickness}){aa}";

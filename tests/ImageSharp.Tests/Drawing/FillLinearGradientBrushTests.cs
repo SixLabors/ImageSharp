@@ -412,8 +412,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             {
                 Size size = ctx.GetCurrentSize();
                 IPathCollection glossPath = BuildGloss(size.Width, size.Height);
-                var graphicsOptions = new GraphicsOptions(true)
+                var graphicsOptions = new GraphicsOptions
                 {
+                    Antialias = true,
                     ColorBlendingMode = PixelColorBlendingMode.Normal,
                     AlphaCompositionMode = PixelAlphaCompositionMode.SrcAtop
                 };

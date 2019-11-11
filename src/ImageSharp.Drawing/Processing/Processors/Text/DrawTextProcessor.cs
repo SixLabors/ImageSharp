@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -72,10 +72,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
         public PointF Location { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
         {
-            return new DrawTextProcessor<TPixel>(this);
+            return new DrawTextProcessor<TPixel>(this, source, sourceRectangle);
         }
     }
 }

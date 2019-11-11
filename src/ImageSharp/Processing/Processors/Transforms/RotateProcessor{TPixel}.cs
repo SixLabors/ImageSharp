@@ -4,8 +4,8 @@
 using System;
 
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
-using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -18,8 +18,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal class RotateProcessor<TPixel> : AffineTransformProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        public RotateProcessor(RotateProcessor definition)
-            : base(definition)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RotateProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="definition">The <see cref="RotateProcessor"/> defining the processor parameters.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public RotateProcessor(RotateProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(definition, source, sourceRectangle)
         {
             this.Degrees = definition.Degrees;
         }
@@ -27,10 +33,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private float Degrees { get; }
 
         /// <inheritdoc/>
-        protected override void AfterImageApply(
-            Image<TPixel> source,
-            Image<TPixel> destination,
-            Rectangle sourceRectangle)
+        protected override void AfterImageApply(Image<TPixel> destination)
         {
             ExifProfile profile = destination.Metadata.ExifProfile;
             if (profile is null)
@@ -46,22 +49,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             profile.RemoveValue(ExifTag.Orientation);
 
-            base.AfterImageApply(source, destination, sourceRectangle);
+            base.AfterImageApply(destination);
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(
-            ImageFrame<TPixel> source,
-            ImageFrame<TPixel> destination,
-            Rectangle sourceRectangle,
-            Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
         {
-            if (this.OptimizedApply(source, destination, configuration))
+            if (this.OptimizedApply(source, destination, this.Configuration))
             {
                 return;
             }
 
-            base.OnFrameApply(source, destination, sourceRectangle, configuration);
+            base.OnFrameApply(source, destination);
         }
 
         /// <summary>

@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <summary>
-    /// Unpacked pixel type containing four 16-bit floating-point values typically ranging from 0 to 1.
+    /// Unpacked pixel type containing four 32-bit floating-point values typically ranging from 0 to 1.
     /// The color components are stored in red, green, blue, and alpha order.
     /// <para>
     /// Ranges from [0, 0, 0, 0] to [1, 1, 1, 1] in vector form.

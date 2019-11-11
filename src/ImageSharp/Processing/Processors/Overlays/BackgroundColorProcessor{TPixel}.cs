@@ -5,8 +5,8 @@ using System;
 using System.Buffers;
 
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -24,24 +24,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         /// <summary>
         /// Initializes a new instance of the <see cref="BackgroundColorProcessor{TPixel}"/> class.
         /// </summary>
-        public BackgroundColorProcessor(BackgroundColorProcessor definition)
+        /// <param name="definition">The <see cref="BackgroundColorProcessor"/> defining the processor parameters.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public BackgroundColorProcessor(BackgroundColorProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(source, sourceRectangle)
         {
             this.definition = definition;
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(
-            ImageFrame<TPixel> source,
-            Rectangle sourceRectangle,
-            Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             TPixel color = this.definition.Color.ToPixel<TPixel>();
             GraphicsOptions graphicsOptions = this.definition.GraphicsOptions;
 
-            int startY = sourceRectangle.Y;
-            int endY = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
+            int startY = this.SourceRectangle.Y;
+            int endY = this.SourceRectangle.Bottom;
+            int startX = this.SourceRectangle.X;
+            int endX = this.SourceRectangle.Right;
 
             // Align start/end positions.
             int minX = Math.Max(0, startX);
@@ -78,7 +79,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 
                 ParallelHelper.IterateRows(
                     workingRect,
-                    configuration,
+                    this.Configuration,
                     rows =>
                         {
                             for (int y = rows.Min; y < rows.Max; y++)

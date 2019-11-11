@@ -6,9 +6,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
-using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp
     /// In all other cases it is the only frame of the image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>, IDisposable
+    public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private bool isDisposed;
@@ -196,20 +196,20 @@ namespace SixLabors.ImageSharp
             this.UpdateSize(this.PixelBuffer.Size());
         }
 
-        /// <summary>
-        /// Disposes the object and frees resources for the Garbage Collector.
-        /// </summary>
-        public override void Dispose()
+        /// <inheritdoc/>
+        protected override void Dispose(bool disposing)
         {
             if (this.isDisposed)
             {
                 return;
             }
 
-            this.PixelBuffer?.Dispose();
-            this.PixelBuffer = null;
+            if (disposing)
+            {
+                this.PixelBuffer?.Dispose();
+                this.PixelBuffer = null;
+            }
 
-            // Note disposing is done.
             this.isDisposed = true;
         }
 
@@ -218,10 +218,10 @@ namespace SixLabors.ImageSharp
             if (typeof(TPixel) == typeof(TDestinationPixel))
             {
                 Span<TPixel> dest1 = MemoryMarshal.Cast<TDestinationPixel, TPixel>(destination);
-                this.PixelBuffer.Span.CopyTo(dest1);
+                this.PixelBuffer.GetSpan().CopyTo(dest1);
             }
 
-            PixelOperations<TPixel>.Instance.To(this.Configuration, this.PixelBuffer.Span, destination);
+            PixelOperations<TPixel>.Instance.To(this.Configuration, this.PixelBuffer.GetSpan(), destination);
         }
 
         /// <inheritdoc/>

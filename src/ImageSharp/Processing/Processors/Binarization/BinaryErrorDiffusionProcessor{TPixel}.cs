@@ -14,18 +14,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
     /// Performs binary threshold filtering against an image using error diffusion.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class BinaryErrorDiffusionProcessor<TPixel> : ImageProcessor<TPixel>
+    internal sealed class BinaryErrorDiffusionProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly BinaryErrorDiffusionProcessor definition;
 
-        public BinaryErrorDiffusionProcessor(BinaryErrorDiffusionProcessor definition)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BinaryErrorDiffusionProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="definition">The <see cref="BinaryErrorDiffusionProcessor"/> defining the processor parameters.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public BinaryErrorDiffusionProcessor(BinaryErrorDiffusionProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(source, sourceRectangle)
         {
             this.definition = definition;
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             TPixel upperColor = this.definition.UpperColor.ToPixel<TPixel>();
             TPixel lowerColor = this.definition.LowerColor.ToPixel<TPixel>();
@@ -34,7 +41,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             byte threshold = (byte)MathF.Round(this.definition.Threshold * 255F);
             bool isAlphaOnly = typeof(TPixel) == typeof(Alpha8);
 
-            var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
             int startY = interest.Y;
             int endY = interest.Bottom;
             int startX = interest.X;
@@ -69,7 +76,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                     }
 
                     TPixel transformedPixel = luminance >= threshold ? upperColor : lowerColor;
-                    diffuser.Dither(source, sourcePixel, transformedPixel, x, y, startX, startY, endX, endY);
+                    diffuser.Dither(source, sourcePixel, transformedPixel, x, y, startX, endX, endY);
                 }
             }
         }

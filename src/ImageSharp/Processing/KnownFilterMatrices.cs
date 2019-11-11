@@ -433,6 +433,32 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <summary>
+        /// Create a lightness filter matrix using the given amount.
+        /// </summary>
+        /// <remarks>
+        /// A value of 0 will create an image that is completely black. A value of 1 leaves the input unchanged.
+        /// Other values are linear multipliers on the effect. Values of an amount over 1 are allowed, providing lighter results.
+        /// </remarks>
+        /// <param name="amount">The proportion of the conversion. Must be greater than or equal to 0.</param>
+        /// <returns>The <see cref="ColorMatrix"/></returns>
+        public static ColorMatrix CreateLightnessFilter(float amount)
+        {
+            Guard.MustBeGreaterThanOrEqualTo(amount, 0, nameof(amount));
+            amount--;
+
+            return new ColorMatrix
+            {
+                M11 = 1F,
+                M22 = 1F,
+                M33 = 1F,
+                M44 = 1F,
+                M51 = amount,
+                M52 = amount,
+                M53 = amount
+            };
+        }
+
+        /// <summary>
         /// Create a sepia filter matrix using the given amount.
         /// The formula used matches the svg specification. <see href="http://www.w3.org/TR/filter-effects/#sepiaEquivalent"/>
         /// </summary>

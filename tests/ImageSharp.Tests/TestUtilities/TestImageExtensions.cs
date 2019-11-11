@@ -7,9 +7,9 @@ using System.IO;
 using System.Numerics;
 
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors;
@@ -448,10 +448,10 @@ namespace SixLabors.ImageSharp.Tests
             {
                 imageFrame.ComparePixelBufferTo(expectedPixel);
             }
-            
+
             return image;
         }
-        
+
         /// <summary>
         /// All pixels in all frames should be exactly equal to 'expectedPixelColor.ToPixel()'.
         /// </summary>
@@ -462,7 +462,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 imageFrame.ComparePixelBufferTo(expectedPixelColor.ToPixel<TPixel>());
             }
-            
+
             return image;
         }
 
@@ -481,7 +481,7 @@ namespace SixLabors.ImageSharp.Tests
 
             return imageFrame;
         }
-        
+
         public static ImageFrame<TPixel> ComparePixelBufferTo<TPixel>(
                     this ImageFrame<TPixel> image,
                     Span<TPixel> expectedPixels)
@@ -524,7 +524,7 @@ namespace SixLabors.ImageSharp.Tests
             var testFile = TestFile.Create(path);
 
             referenceDecoder = referenceDecoder ?? TestEnvironment.GetReferenceDecoder(path);
-            
+
             using (var original = Image.Load<TPixel>(testFile.Bytes, referenceDecoder))
             {
                 comparer.VerifySimilarity(original, image);
@@ -558,7 +558,7 @@ namespace SixLabors.ImageSharp.Tests
                     appendPixelTypeToFileName: appendPixelTypeToFileName,
                     appendSourceFileOrDescription: appendSourceFileOrDescription);
 
-                image.CompareToReferenceOutput(comparer, 
+                image.CompareToReferenceOutput(comparer,
                     provider,
                     testOutputDetails,
                     appendPixelTypeToFileName: appendPixelTypeToFileName,
@@ -678,25 +678,31 @@ namespace SixLabors.ImageSharp.Tests
 
         private class MakeOpaqueProcessor : IImageProcessor
         {
-            public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+            public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
                 where TPixel : struct, IPixel<TPixel>
-            {
-                return new MakeOpaqueProcessor<TPixel>();
-            }
+                => new MakeOpaqueProcessor<TPixel>(source, sourceRectangle);
         }
 
         private class MakeOpaqueProcessor<TPixel> : ImageProcessor<TPixel>
             where TPixel : struct, IPixel<TPixel>
         {
-            protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+            public MakeOpaqueProcessor(Image<TPixel> source, Rectangle sourceRectangle)
+                : base(source, sourceRectangle)
             {
+
+            }
+
+            protected override void OnFrameApply(ImageFrame<TPixel> source)
+            {
+                Rectangle sourceRectangle = this.SourceRectangle;
+                Configuration configuration = this.Configuration;
                 ParallelHelper.IterateRowsWithTempBuffer<Vector4>(sourceRectangle, configuration,
                     (rows, temp) =>
                         {
                             Span<Vector4> tempSpan = temp.Span;
                             for (int y = rows.Min; y < rows.Max; y++)
                             {
-                                var rowSpan = source.GetPixelRowSpan(y).Slice(sourceRectangle.Left, sourceRectangle.Width);
+                                Span<TPixel> rowSpan = source.GetPixelRowSpan(y).Slice(sourceRectangle.Left, sourceRectangle.Width);
                                 PixelOperations<TPixel>.Instance.ToVector4(configuration, rowSpan, tempSpan, PixelConversionModifiers.Scale);
                                 for (int i = 0; i < tempSpan.Length; i++)
                                 {

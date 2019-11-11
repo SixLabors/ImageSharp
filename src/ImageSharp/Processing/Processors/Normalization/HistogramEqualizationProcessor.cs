@@ -1,7 +1,8 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 {
@@ -16,12 +17,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="luminanceLevels">The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
         /// or 65536 for 16-bit grayscale images.</param>
         /// <param name="clipHistogram">Indicates, if histogram bins should be clipped.</param>
-        /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels in the tile. Histogram bins which exceed this limit, will be capped at this value.</param>
-        protected HistogramEqualizationProcessor(int luminanceLevels, bool clipHistogram, float clipLimitPercentage)
+        /// <param name="clipLimit">The histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.</param>
+        protected HistogramEqualizationProcessor(int luminanceLevels, bool clipHistogram, int clipLimit)
         {
             this.LuminanceLevels = luminanceLevels;
             this.ClipHistogram = clipHistogram;
-            this.ClipLimitPercentage = clipLimitPercentage;
+            this.ClipLimit = clipLimit;
         }
 
         /// <summary>
@@ -35,12 +36,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         public bool ClipHistogram { get; }
 
         /// <summary>
-        /// Gets the histogram clip limit in percent of the total pixels in the tile. Histogram bins which exceed this limit, will be capped at this value.
+        /// Gets the histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.
         /// </summary>
-        public float ClipLimitPercentage { get; }
+        public int ClipLimit { get; }
 
         /// <inheritdoc />
-        public abstract IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+        public abstract IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>;
 
         /// <summary>
@@ -59,14 +60,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     processor = new GlobalHistogramEqualizationProcessor(
                         options.LuminanceLevels,
                         options.ClipHistogram,
-                        options.ClipLimitPercentage);
+                        options.ClipLimit);
                     break;
 
                 case HistogramEqualizationMethod.AdaptiveTileInterpolation:
                     processor = new AdaptiveHistogramEqualizationProcessor(
                         options.LuminanceLevels,
                         options.ClipHistogram,
-                        options.ClipLimitPercentage,
+                        options.ClipLimit,
                         options.NumberOfTiles);
                     break;
 
@@ -74,7 +75,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     processor = new AdaptiveHistogramEqualizationSlidingWindowProcessor(
                         options.LuminanceLevels,
                         options.ClipHistogram,
-                        options.ClipLimitPercentage,
+                        options.ClipLimit,
                         options.NumberOfTiles);
                     break;
 
@@ -82,7 +83,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     processor = new GlobalHistogramEqualizationProcessor(
                         options.LuminanceLevels,
                         options.ClipHistogram,
-                        options.ClipLimitPercentage);
+                        options.ClipLimit);
                     break;
             }
 

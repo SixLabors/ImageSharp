@@ -27,8 +27,8 @@ namespace SixLabors.ImageSharp.Processing
                 new DrawImageProcessor(
                     image,
                     Point.Empty,
-                    GraphicsOptions.Default.ColorBlendingMode,
-                    GraphicsOptions.Default.AlphaCompositionMode,
+                    new GraphicsOptions().ColorBlendingMode,
+                    new GraphicsOptions().AlphaCompositionMode,
                     opacity));
 
         /// <summary>
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Processing
                     image,
                     Point.Empty,
                     colorBlending,
-                    GraphicsOptions.Default.AlphaCompositionMode,
+                    new GraphicsOptions().AlphaCompositionMode,
                     opacity));
 
         /// <summary>
@@ -105,8 +105,8 @@ namespace SixLabors.ImageSharp.Processing
                 new DrawImageProcessor(
                     image,
                     location,
-                    GraphicsOptions.Default.ColorBlendingMode,
-                    GraphicsOptions.Default.AlphaCompositionMode,
+                    new GraphicsOptions().ColorBlendingMode,
+                    new GraphicsOptions().AlphaCompositionMode,
                     opacity));
 
         /// <summary>
@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Processing
                     image,
                     location,
                     colorBlending,
-                    GraphicsOptions.Default.AlphaCompositionMode,
+                    new GraphicsOptions().AlphaCompositionMode,
                     opacity));
 
         /// <summary>

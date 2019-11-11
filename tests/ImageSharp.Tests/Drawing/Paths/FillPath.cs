@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Drawing;
 using SixLabors.ImageSharp.Tests.Processing;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.Shapes;
 using Xunit;
 
@@ -14,7 +15,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
 {
     public class FillPath : BaseImageOperationsExtensionTest
     {
-        GraphicsOptions noneDefault = new GraphicsOptions { Antialias = false };
+        private static readonly GraphicsOptionsComparer graphicsOptionsComparer = new GraphicsOptionsComparer();
+
+        GraphicsOptions nonDefault = new GraphicsOptions { Antialias = false };
         Color color = Color.HotPink;
         SolidBrush brush = Brushes.Solid(Rgba32.HotPink);
         IPath path = new Path(new LinearLineSegment(new SixLabors.Primitives.PointF[] {
@@ -30,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
             this.operations.Fill(this.brush, this.path);
             var processor = this.Verify<FillRegionProcessor>();
 
-            Assert.Equal(GraphicsOptions.Default, processor.Options);
+            Assert.Equal(new GraphicsOptions(), processor.Options, graphicsOptionsComparer);
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
 
@@ -44,10 +47,10 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsBrushPathOptions()
         {
-            this.operations.Fill(this.noneDefault, this.brush, this.path);
+            this.operations.Fill(this.nonDefault, this.brush, this.path);
             var processor = this.Verify<FillRegionProcessor>();
 
-            Assert.Equal(this.noneDefault, processor.Options);
+            Assert.Equal(this.nonDefault, processor.Options, graphicsOptionsComparer);
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
             Polygon polygon = Assert.IsType<Polygon>(region.Shape);
@@ -62,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
             this.operations.Fill(this.color, this.path);
             var processor = this.Verify<FillRegionProcessor>();
 
-            Assert.Equal(GraphicsOptions.Default, processor.Options);
+            Assert.Equal(new GraphicsOptions(), processor.Options, graphicsOptionsComparer);
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
             Polygon polygon = Assert.IsType<Polygon>(region.Shape);
@@ -75,10 +78,10 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsColorPathAndOptions()
         {
-            this.operations.Fill(this.noneDefault, this.color, this.path);
+            this.operations.Fill(this.nonDefault, this.color, this.path);
             var processor = this.Verify<FillRegionProcessor>();
 
-            Assert.Equal(this.noneDefault, processor.Options);
+            Assert.Equal(this.nonDefault, processor.Options);
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
             Polygon polygon = Assert.IsType<Polygon>(region.Shape);

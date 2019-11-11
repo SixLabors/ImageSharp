@@ -2,24 +2,24 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
     public class GraphicsOptionsTests
     {
+        private static readonly GraphicsOptionsComparer graphicsOptionsComparer = new GraphicsOptionsComparer();
         private readonly GraphicsOptions newGraphicsOptions = new GraphicsOptions();
-        private readonly GraphicsOptions defaultGraphicsOptions = GraphicsOptions.Default;
-        private readonly GraphicsOptions cloneGraphicsOptions = GraphicsOptions.Default.Clone();
+        private readonly GraphicsOptions cloneGraphicsOptions = new GraphicsOptions().DeepClone();
 
         [Fact]
-        public void DefaultGraphicsOptionsIsNotNull() => Assert.True(this.defaultGraphicsOptions != null);
+        public void CloneGraphicsOptionsIsNotNull() => Assert.True(this.cloneGraphicsOptions != null);
 
         [Fact]
         public void DefaultGraphicsOptionsAntialias()
         {
             Assert.True(this.newGraphicsOptions.Antialias);
-            Assert.True(this.defaultGraphicsOptions.Antialias);
             Assert.True(this.cloneGraphicsOptions.Antialias);
         }
 
@@ -28,7 +28,6 @@ namespace SixLabors.ImageSharp.Tests
         {
             const int Expected = 16;
             Assert.Equal(Expected, this.newGraphicsOptions.AntialiasSubpixelDepth);
-            Assert.Equal(Expected, this.defaultGraphicsOptions.AntialiasSubpixelDepth);
             Assert.Equal(Expected, this.cloneGraphicsOptions.AntialiasSubpixelDepth);
         }
 
@@ -37,7 +36,6 @@ namespace SixLabors.ImageSharp.Tests
         {
             const float Expected = 1F;
             Assert.Equal(Expected, this.newGraphicsOptions.BlendPercentage);
-            Assert.Equal(Expected, this.defaultGraphicsOptions.BlendPercentage);
             Assert.Equal(Expected, this.cloneGraphicsOptions.BlendPercentage);
         }
 
@@ -46,7 +44,6 @@ namespace SixLabors.ImageSharp.Tests
         {
             const PixelColorBlendingMode Expected = PixelColorBlendingMode.Normal;
             Assert.Equal(Expected, this.newGraphicsOptions.ColorBlendingMode);
-            Assert.Equal(Expected, this.defaultGraphicsOptions.ColorBlendingMode);
             Assert.Equal(Expected, this.cloneGraphicsOptions.ColorBlendingMode);
         }
 
@@ -55,8 +52,39 @@ namespace SixLabors.ImageSharp.Tests
         {
             const PixelAlphaCompositionMode Expected = PixelAlphaCompositionMode.SrcOver;
             Assert.Equal(Expected, this.newGraphicsOptions.AlphaCompositionMode);
-            Assert.Equal(Expected, this.defaultGraphicsOptions.AlphaCompositionMode);
             Assert.Equal(Expected, this.cloneGraphicsOptions.AlphaCompositionMode);
+        }
+
+        [Fact]
+        public void NonDefaultClone()
+        {
+            var expected = new GraphicsOptions
+            {
+                AlphaCompositionMode = PixelAlphaCompositionMode.DestAtop,
+                Antialias = false,
+                AntialiasSubpixelDepth = 23,
+                BlendPercentage = .25F,
+                ColorBlendingMode = PixelColorBlendingMode.HardLight,
+            };
+
+            GraphicsOptions actual = expected.DeepClone();
+
+            Assert.Equal(expected, actual, graphicsOptionsComparer);
+        }
+
+        [Fact]
+        public void CloneIsDeep()
+        {
+            var expected = new GraphicsOptions();
+            GraphicsOptions actual = expected.DeepClone();
+
+            actual.AlphaCompositionMode = PixelAlphaCompositionMode.DestAtop;
+            actual.Antialias = false;
+            actual.AntialiasSubpixelDepth = 23;
+            actual.BlendPercentage = .25F;
+            actual.ColorBlendingMode = PixelColorBlendingMode.HardLight;
+
+            Assert.NotEqual(expected, actual, graphicsOptionsComparer);
         }
 
         [Fact]

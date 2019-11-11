@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -10,13 +9,36 @@ namespace SixLabors.ImageSharp.Processing
     /// <summary>
     /// Options for influencing the drawing functions.
     /// </summary>
-    public class TextGraphicsOptions
+    public class TextGraphicsOptions : IDeepCloneable<TextGraphicsOptions>
     {
         private int antialiasSubpixelDepth = 16;
         private float blendPercentage = 1F;
         private float tabWidth = 4F;
         private float dpiX = 72F;
         private float dpiY = 72F;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TextGraphicsOptions"/> class.
+        /// </summary>
+        public TextGraphicsOptions()
+        {
+        }
+
+        private TextGraphicsOptions(TextGraphicsOptions source)
+        {
+            this.AlphaCompositionMode = source.AlphaCompositionMode;
+            this.Antialias = source.Antialias;
+            this.AntialiasSubpixelDepth = source.AntialiasSubpixelDepth;
+            this.ApplyKerning = source.ApplyKerning;
+            this.BlendPercentage = source.BlendPercentage;
+            this.ColorBlendingMode = source.ColorBlendingMode;
+            this.DpiX = source.DpiX;
+            this.DpiY = source.DpiY;
+            this.HorizontalAlignment = source.HorizontalAlignment;
+            this.TabWidth = source.TabWidth;
+            this.WrapTextWidth = source.WrapTextWidth;
+            this.VerticalAlignment = source.VerticalAlignment;
+        }
 
         /// <summary>
         /// Gets the default <see cref="TextGraphicsOptions"/> instance.
@@ -194,27 +216,7 @@ namespace SixLabors.ImageSharp.Processing
             };
         }
 
-        /// <summary>
-        /// Creates a shallow copy of the <see cref="TextGraphicsOptions"/>.
-        /// </summary>
-        /// <returns>A new options instance.</returns>
-        public TextGraphicsOptions Clone()
-        {
-            return new TextGraphicsOptions
-            {
-                AlphaCompositionMode = this.AlphaCompositionMode,
-                Antialias = this.Antialias,
-                AntialiasSubpixelDepth = this.AntialiasSubpixelDepth,
-                ApplyKerning = this.ApplyKerning,
-                BlendPercentage = this.BlendPercentage,
-                ColorBlendingMode = this.ColorBlendingMode,
-                DpiX = this.DpiX,
-                DpiY = this.DpiY,
-                HorizontalAlignment = this.HorizontalAlignment,
-                TabWidth = this.TabWidth,
-                WrapTextWidth = this.WrapTextWidth,
-                VerticalAlignment = this.VerticalAlignment
-            };
-        }
+        /// <inheritdoc/>
+        public TextGraphicsOptions DeepClone() => new TextGraphicsOptions(this);
     }
 }

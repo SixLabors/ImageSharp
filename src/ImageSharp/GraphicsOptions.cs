@@ -30,11 +30,6 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Gets the default <see cref="GraphicsOptions"/> instance.
-        /// </summary>
-        public static GraphicsOptions Default { get; } = new GraphicsOptions();
-
-        /// <summary>
         /// Gets or sets a value indicating whether antialiasing should be applied.
         /// Defaults to true.
         /// </summary>

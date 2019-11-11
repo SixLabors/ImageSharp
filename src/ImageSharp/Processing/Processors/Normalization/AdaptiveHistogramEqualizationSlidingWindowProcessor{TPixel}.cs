@@ -29,10 +29,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="luminanceLevels">The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
         /// or 65536 for 16-bit grayscale images.</param>
         /// <param name="clipHistogram">Indicating whether to clip the histogram bins at a specific value.</param>
-        /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels in the tile. Histogram bins which exceed this limit, will be capped at this value.</param>
+        /// <param name="clipLimit">The histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.</param>
         /// <param name="tiles">The number of tiles the image is split into (horizontal and vertically). Minimum value is 2. Maximum value is 100.</param>
-        public AdaptiveHistogramEqualizationSlidingWindowProcessor(int luminanceLevels, bool clipHistogram, float clipLimitPercentage, int tiles)
-            : base(luminanceLevels, clipHistogram, clipLimitPercentage)
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public AdaptiveHistogramEqualizationSlidingWindowProcessor(
+            int luminanceLevels,
+            bool clipHistogram,
+            int clipLimit,
+            int tiles,
+            Image<TPixel> source,
+            Rectangle sourceRectangle)
+            : base(luminanceLevels, clipHistogram, clipLimit, source, sourceRectangle)
         {
             Guard.MustBeGreaterThanOrEqualTo(tiles, 2, nameof(tiles));
             Guard.MustBeLessThanOrEqualTo(tiles, 100, nameof(tiles));
@@ -46,11 +54,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         private int Tiles { get; }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
+            MemoryAllocator memoryAllocator = this.Configuration.MemoryAllocator;
 
-            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism };
+            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = this.Configuration.MaxDegreeOfParallelism };
             int tileWidth = source.Width / this.Tiles;
             int tileHeight = tileWidth;
             int pixelInTile = tileWidth * tileHeight;
@@ -58,7 +66,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int halfTileWidth = halfTileHeight;
             var slidingWindowInfos = new SlidingWindowInfos(tileWidth, tileHeight, halfTileWidth, halfTileHeight, pixelInTile);
 
-            using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Width, source.Height))
+            using (Buffer2D<TPixel> targetPixels = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(source.Width, source.Height))
             {
                 // Process the inner tiles, which do not require to check the borders.
                 Parallel.For(
@@ -73,7 +81,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         yStart: halfTileHeight,
                         yEnd: source.Height - halfTileHeight,
                         useFastPath: true,
-                        configuration));
+                        this.Configuration));
 
                 // Process the left border of the image.
                 Parallel.For(
@@ -88,7 +96,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         yStart: 0,
                         yEnd: source.Height,
                         useFastPath: false,
-                        configuration));
+                        this.Configuration));
 
                 // Process the right border of the image.
                 Parallel.For(
@@ -103,7 +111,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         yStart: 0,
                         yEnd: source.Height,
                         useFastPath: false,
-                        configuration));
+                        this.Configuration));
 
                 // Process the top border of the image.
                 Parallel.For(
@@ -118,7 +126,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         yStart: 0,
                         yEnd: halfTileHeight,
                         useFastPath: false,
-                        configuration));
+                        this.Configuration));
 
                 // Process the bottom border of the image.
                 Parallel.For(
@@ -133,7 +141,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         yStart: source.Height - halfTileHeight,
                         yEnd: source.Height,
                         useFastPath: false,
-                        configuration));
+                        this.Configuration));
 
                 Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
             }
@@ -202,7 +210,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                             {
                                 // Clipping the histogram, but doing it on a copy to keep the original un-clipped values for the next iteration.
                                 histogram.CopyTo(histogramCopy);
-                                this.ClipHistogram(histogramCopy, this.ClipLimitPercentage, swInfos.PixelInTile);
+                                this.ClipHistogram(histogramCopy, this.ClipLimit);
                             }
 
                             // Calculate the cumulative distribution function, which will map each input pixel in the current tile to a new value.

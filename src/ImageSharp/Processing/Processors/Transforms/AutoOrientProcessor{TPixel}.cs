@@ -16,41 +16,51 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal class AutoOrientProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        /// <inheritdoc/>
-        protected override void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AutoOrientProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public AutoOrientProcessor(Image<TPixel> source, Rectangle sourceRectangle)
+            : base(source, sourceRectangle)
         {
-            OrientationMode orientation = GetExifOrientation(source);
-            Size size = sourceRectangle.Size;
+        }
+
+        /// <inheritdoc/>
+        protected override void BeforeImageApply()
+        {
+            OrientationMode orientation = GetExifOrientation(this.Source);
+            Size size = this.SourceRectangle.Size;
             switch (orientation)
             {
                 case OrientationMode.TopRight:
-                    new FlipProcessor(FlipMode.Horizontal).Apply(source, sourceRectangle);
+                    new FlipProcessor(FlipMode.Horizontal).Execute(this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.BottomRight:
-                    new RotateProcessor((int)RotateMode.Rotate180, size).Apply(source, sourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate180, size).Execute(this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.BottomLeft:
-                    new FlipProcessor(FlipMode.Vertical).Apply(source, sourceRectangle);
+                    new FlipProcessor(FlipMode.Vertical).Execute(this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.LeftTop:
-                    new RotateProcessor((int)RotateMode.Rotate90, size).Apply(source, sourceRectangle);
-                    new FlipProcessor(FlipMode.Horizontal).Apply(source, sourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate90, size).Execute(this.Source, this.SourceRectangle);
+                    new FlipProcessor(FlipMode.Horizontal).Execute(this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.RightTop:
-                    new RotateProcessor((int)RotateMode.Rotate90, size).Apply(source, sourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate90, size).Execute(this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.RightBottom:
-                    new FlipProcessor(FlipMode.Vertical).Apply(source, sourceRectangle);
-                    new RotateProcessor((int)RotateMode.Rotate270, size).Apply(source, sourceRectangle);
+                    new FlipProcessor(FlipMode.Vertical).Execute(this.Source, this.SourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate270, size).Execute(this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.LeftBottom:
-                    new RotateProcessor((int)RotateMode.Rotate270, size).Apply(source, sourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate270, size).Execute(this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.Unknown:
@@ -58,13 +68,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 default:
                     break;
             }
+
+            base.BeforeImageApply();
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(
-            ImageFrame<TPixel> sourceBase,
-            Rectangle sourceRectangle,
-            Configuration config)
+        protected override void OnFrameApply(ImageFrame<TPixel> sourceBase)
         {
             // All processing happens at the image level within BeforeImageApply();
         }

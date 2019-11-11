@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Advanced;
@@ -29,6 +29,8 @@ namespace SixLabors.ImageSharp.Processing
         {
             this.mutate = mutate;
             this.source = source;
+
+            // Mutate acts upon the source image only.
             if (this.mutate)
             {
                 this.destination = source;
@@ -43,7 +45,8 @@ namespace SixLabors.ImageSharp.Processing
         {
             if (!this.mutate && this.destination is null)
             {
-                // Ensure we have cloned it if we are not mutating as we might have failed to register any processors
+                // Ensure we have cloned the source if we are not mutating as we might have failed
+                // to register any processors.
                 this.destination = this.source.Clone();
             }
 
@@ -53,41 +56,39 @@ namespace SixLabors.ImageSharp.Processing
         /// <inheritdoc/>
         public Size GetCurrentSize() => this.GetCurrentBounds().Size;
 
-        public IImageProcessingContext ApplyProcessor(IImageProcessor processor, Rectangle rectangle)
-        {
-            var processorImplementation = processor.CreatePixelSpecificProcessor<TPixel>();
-            return this.ApplyProcessor(processorImplementation, rectangle);
-        }
-
+        /// <inheritdoc/>
         public IImageProcessingContext ApplyProcessor(IImageProcessor processor)
         {
-            var processorImplementation = processor.CreatePixelSpecificProcessor<TPixel>();
-            return this.ApplyProcessor(processorImplementation);
+            return this.ApplyProcessor(processor, this.GetCurrentBounds());
         }
 
-        private IImageProcessingContext ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
+        /// <inheritdoc/>
+        public IImageProcessingContext ApplyProcessor(IImageProcessor processor, Rectangle rectangle)
         {
             if (!this.mutate && this.destination is null)
             {
-                // This will only work if the first processor applied is the cloning one thus
-                // realistically for this optimization to work the resize must the first processor
-                // applied any only up processors will take the double data path.
-                if (processor is ICloningImageProcessor<TPixel> cloningImageProcessor)
+                // When cloning an image we can optimize the processing pipeline by avoiding an unnecessary
+                // interim clone if the first processor in the pipeline is a cloning processor.
+                if (processor is ICloningImageProcessor cloningImageProcessor)
                 {
-                    this.destination = cloningImageProcessor.CloneAndApply(this.source, rectangle);
-                    return this;
+                    using (ICloningImageProcessor<TPixel> pixelProcessor = cloningImageProcessor.CreatePixelSpecificCloningProcessor(this.source, rectangle))
+                    {
+                        this.destination = pixelProcessor.CloneAndExecute();
+                        return this;
+                    }
                 }
 
+                // Not a cloning processor? We need to create a clone to operate on.
                 this.destination = this.source.Clone();
             }
 
-            processor.Apply(this.destination, rectangle);
-            return this;
-        }
+            // Standard processing pipeline.
+            using (IImageProcessor<TPixel> specificProcessor = processor.CreatePixelSpecificProcessor(this.destination, rectangle))
+            {
+                specificProcessor.Execute();
+            }
 
-        private IImageProcessingContext ApplyProcessor(IImageProcessor<TPixel> processor)
-        {
-            return this.ApplyProcessor(processor, this.GetCurrentBounds());
+            return this;
         }
 
         private Rectangle GetCurrentBounds() => this.destination?.Bounds() ?? this.source.Bounds();

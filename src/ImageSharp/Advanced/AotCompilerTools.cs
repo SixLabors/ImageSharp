@@ -2,13 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
-using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace SixLabors.ImageSharp.Advanced
 {
@@ -81,9 +80,8 @@ namespace SixLabors.ImageSharp.Advanced
             AotCompileWuQuantizer<TPixel>();
             AotCompileDithering<TPixel>();
             AotCompilePixelOperations<TPixel>();
-            AotCompileResizeOperations<TPixel>();
 
-            System.Runtime.CompilerServices.Unsafe.SizeOf<TPixel>();
+            Unsafe.SizeOf<TPixel>();
 
             AotCodec<TPixel>(new Formats.Png.PngDecoder(), new Formats.Png.PngEncoder());
             AotCodec<TPixel>(new Formats.Bmp.BmpDecoder(), new Formats.Bmp.BmpEncoder());
@@ -107,8 +105,10 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileOctreeQuantizer<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            var test = new OctreeFrameQuantizer<TPixel>(new OctreeQuantizer(false));
-            test.AotGetPalette();
+            using (var test = new OctreeFrameQuantizer<TPixel>(new OctreeQuantizer(false)))
+            {
+                test.AotGetPalette();
+            }
         }
 
         /// <summary>
@@ -118,9 +118,11 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileWuQuantizer<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            var test = new WuFrameQuantizer<TPixel>(Configuration.Default.MemoryAllocator, new WuQuantizer(false));
-            test.QuantizeFrame(new ImageFrame<TPixel>(Configuration.Default, 1, 1));
-            test.AotGetPalette();
+            using (var test = new WuFrameQuantizer<TPixel>(Configuration.Default.MemoryAllocator, new WuQuantizer(false)))
+            {
+                test.QuantizeFrame(new ImageFrame<TPixel>(Configuration.Default, 1, 1));
+                test.AotGetPalette();
+            }
         }
 
         /// <summary>
@@ -132,7 +134,10 @@ namespace SixLabors.ImageSharp.Advanced
         {
             var test = new FloydSteinbergDiffuser();
             TPixel pixel = default;
-            test.Dither(new ImageFrame<TPixel>(Configuration.Default, 1, 1), pixel, pixel, 0, 0, 0, 0, 0, 0);
+            using (var image = new ImageFrame<TPixel>(Configuration.Default, 1, 1))
+            {
+                test.Dither(image, pixel, pixel, 0, 0, 0, 0, 0);
+            }
         }
 
         /// <summary>
@@ -170,18 +175,6 @@ namespace SixLabors.ImageSharp.Advanced
         {
             var pixelOp = new PixelOperations<TPixel>();
             pixelOp.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.Clear);
-        }
-
-        /// <summary>
-        /// This method pre-seeds the ResizeProcessor for the AoT compiler on iOS.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        private static void AotCompileResizeOperations<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
-        {
-            var resizeProcessor = new ResizeProcessor(new ResizeOptions(), default);
-            var genericResizeProcessor = new ResizeProcessor<TPixel>((ResizeProcessor)resizeProcessor.CreatePixelSpecificProcessor<TPixel>());
-            genericResizeProcessor.AotCreateDestination(new Image<TPixel>(0, 0), default);
         }
     }
 }

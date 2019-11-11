@@ -2,12 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
-
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.ParallelUtils;
+using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -20,52 +17,46 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        public AffineTransformProcessor(AffineTransformProcessor definition)
+        private Size targetSize;
+        private Matrix3x2 transformMatrix;
+        private readonly IResampler resampler;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AffineTransformProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="definition">The <see cref="AffineTransformProcessor"/> defining the processor parameters.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public AffineTransformProcessor(AffineTransformProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(source, sourceRectangle)
         {
-            this.Definition = definition;
+            this.targetSize = definition.TargetDimensions;
+            this.transformMatrix = definition.TransformMatrix;
+            this.resampler = definition.Sampler;
         }
 
-        protected AffineTransformProcessor Definition { get; }
-
-        private Size TargetDimensions => this.Definition.TargetDimensions;
-
-        private Matrix3x2 TransformMatrix => this.Definition.TransformMatrix;
+        protected override Size GetTargetSize() => this.targetSize;
 
         /// <inheritdoc/>
-        protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
-        {
-            // We will always be creating the clone even for mutate because we may need to resize the canvas
-            IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select<ImageFrame<TPixel>, ImageFrame<TPixel>>(
-                x => new ImageFrame<TPixel>(source.GetConfiguration(), this.TargetDimensions, x.Metadata.DeepClone()));
-
-            // Use the overload to prevent an extra frame being added
-            return new Image<TPixel>(source.GetConfiguration(), source.Metadata.DeepClone(), frames);
-        }
-
-        /// <inheritdoc/>
-        protected override void OnFrameApply(
-            ImageFrame<TPixel> source,
-            ImageFrame<TPixel> destination,
-            Rectangle sourceRectangle,
-            Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
         {
             // Handle transforms that result in output identical to the original.
-            if (this.TransformMatrix.Equals(default) || this.TransformMatrix.Equals(Matrix3x2.Identity))
+            if (this.transformMatrix.Equals(default) || this.transformMatrix.Equals(Matrix3x2.Identity))
             {
                 // The clone will be blank here copy all the pixel data over
                 source.GetPixelSpan().CopyTo(destination.GetPixelSpan());
                 return;
             }
 
-            int width = this.TargetDimensions.Width;
-            var targetBounds = new Rectangle(Point.Empty, this.TargetDimensions);
+            int width = this.targetSize.Width;
+            Rectangle sourceBounds = this.SourceRectangle;
+            var targetBounds = new Rectangle(Point.Empty, this.targetSize);
+            Configuration configuration = this.Configuration;
 
             // Convert from screen to world space.
-            Matrix3x2.Invert(this.TransformMatrix, out Matrix3x2 matrix);
+            Matrix3x2.Invert(this.transformMatrix, out Matrix3x2 matrix);
 
-            var sampler = this.Definition.Sampler;
-
-            if (sampler is NearestNeighborResampler)
+            if (this.resampler is NearestNeighborResampler)
             {
                 ParallelHelper.IterateRows(
                     targetBounds,
@@ -79,7 +70,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                 for (int x = 0; x < width; x++)
                                 {
                                     var point = Point.Transform(new Point(x, y), matrix);
-                                    if (sourceRectangle.Contains(point.X, point.Y))
+                                    if (sourceBounds.Contains(point.X, point.Y))
                                     {
                                         destRow[x] = source[point.X, point.Y];
                                     }
@@ -90,7 +81,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return;
             }
 
-            var kernel = new TransformKernelMap(configuration, source.Size(), destination.Size(), sampler);
+            var kernel = new TransformKernelMap(configuration, source.Size(), destination.Size(), this.resampler);
+
             try
             {
                 ParallelHelper.IterateRowsWithTempBuffer<Vector4>(

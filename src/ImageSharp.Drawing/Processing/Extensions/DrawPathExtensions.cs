@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="path">The path.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext Draw(this IImageProcessingContext source, IPen pen, IPath path) =>
-            source.Draw(GraphicsOptions.Default, pen, path);
+            source.Draw(new GraphicsOptions(), pen, path);
 
         /// <summary>
         /// Draws the outline of the polygon with the provided brush at the provided thickness.

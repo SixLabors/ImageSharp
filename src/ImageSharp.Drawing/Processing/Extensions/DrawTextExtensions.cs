@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Processing
             Font font,
             Color color,
             PointF location) =>
-            source.DrawText(TextGraphicsOptions.Default, text, font, color, location);
+            source.DrawText(new TextGraphicsOptions(), text, font, color, location);
 
         /// <summary>
         /// Draws the text onto the the image filled via the brush.
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Processing
             Font font,
             IBrush brush,
             PointF location) =>
-            source.DrawText(TextGraphicsOptions.Default, text, font, brush, location);
+            source.DrawText(new TextGraphicsOptions(), text, font, brush, location);
 
         /// <summary>
         /// Draws the text onto the the image filled via the brush.
@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Processing
             Font font,
             IPen pen,
             PointF location) =>
-            source.DrawText(TextGraphicsOptions.Default, text, font, pen, location);
+            source.DrawText(new TextGraphicsOptions(), text, font, pen, location);
 
         /// <summary>
         /// Draws the text onto the the image outlined via the pen.
@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Processing
             IBrush brush,
             IPen pen,
             PointF location) =>
-            source.DrawText(TextGraphicsOptions.Default, text, font, brush, pen, location);
+            source.DrawText(new TextGraphicsOptions(), text, font, brush, pen, location);
 
         /// <summary>
         /// Draws the text using the default resolution of <value>72dpi</value> onto the the image filled via the brush then outlined via the pen.

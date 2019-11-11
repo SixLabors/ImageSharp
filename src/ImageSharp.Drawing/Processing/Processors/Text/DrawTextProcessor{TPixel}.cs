@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
                 VerticalAlignment = this.Options.VerticalAlignment
             };
 
-            this.textRenderer = new CachingGlyphRenderer(this.Source.GetMemoryAllocator(), this.Text.Length, this.Pen, this.Brush != null);
+            this.textRenderer = new CachingGlyphRenderer(this.Configuration.MemoryAllocator, this.Text.Length, this.Pen, this.Brush != null);
             this.textRenderer.Options = (GraphicsOptions)this.Options;
             var renderer = new TextRenderer(this.textRenderer);
             renderer.RenderText(this.Text, style);
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
             {
                 if (operations?.Count > 0)
                 {
-                    using (BrushApplicator<TPixel> app = brush.CreateApplicator(source, this.SourceRectangle, this.textRenderer.Options))
+                    using (BrushApplicator<TPixel> app = brush.CreateApplicator(this.Configuration, this.textRenderer.Options, source, this.SourceRectangle))
                     {
                         foreach (DrawingOperation operation in operations)
                         {
@@ -326,6 +326,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
                 {
                     float subpixelFraction = 1f / subpixelCount;
                     float subpixelFractionPoint = subpixelFraction / subpixelCount;
+                    Span<PointF> intersectionSpan = rowIntersectionBuffer.Memory.Span;
+                    Span<float> buffer = bufferBacking.Memory.Span;
 
                     for (int y = 0; y <= size.Height; y++)
                     {
@@ -337,8 +339,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
                         {
                             var start = new PointF(path.Bounds.Left - 1, subPixel);
                             var end = new PointF(path.Bounds.Right + 1, subPixel);
-                            Span<PointF> intersectionSpan = rowIntersectionBuffer.GetSpan();
-                            Span<float> buffer = bufferBacking.GetSpan();
                             int pointsFound = path.FindIntersections(start, end, intersectionSpan);
 
                             if (pointsFound == 0)

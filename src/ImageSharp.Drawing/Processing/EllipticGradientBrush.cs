@@ -89,6 +89,7 @@ namespace SixLabors.ImageSharp.Processing
             /// Initializes a new instance of the <see cref="RadialGradientBrushApplicator{TPixel}" /> class.
             /// </summary>
             /// <param name="configuration">The configuration instance to use when performing operations.</param>
+            /// <param name="options">The graphics options.</param>
             /// <param name="target">The target image.</param>
             /// <param name="center">Center of the ellipse.</param>
             /// <param name="referenceAxisEnd">Point on one angular points of the ellipse.</param>
@@ -97,7 +98,6 @@ namespace SixLabors.ImageSharp.Processing
             /// the first is defined by <see cref="center"/> and <see cref="referenceAxisEnd"/>.</param>
             /// <param name="colorStops">Definition of colors.</param>
             /// <param name="repetitionMode">Defines how the gradient colors are repeated.</param>
-            /// <param name="options">The graphics options.</param>
             public RadialGradientBrushApplicator(
                 Configuration configuration,
                 GraphicsOptions options,

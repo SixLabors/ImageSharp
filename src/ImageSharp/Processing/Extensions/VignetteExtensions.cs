@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Primitives;
@@ -166,7 +166,7 @@ namespace SixLabors.ImageSharp.Processing
             ValueSize radiusX,
             ValueSize radiusY,
             Rectangle rectangle) =>
-            source.ApplyProcessor(new VignetteProcessor(color, radiusX, radiusY, options), rectangle);
+            source.ApplyProcessor(new VignetteProcessor(options, color, radiusX, radiusY), rectangle);
 
         private static IImageProcessingContext VignetteInternal(
             this IImageProcessingContext source,
@@ -174,6 +174,6 @@ namespace SixLabors.ImageSharp.Processing
             Color color,
             ValueSize radiusX,
             ValueSize radiusY) =>
-            source.ApplyProcessor(new VignetteProcessor(color, radiusX, radiusY, options));
+            source.ApplyProcessor(new VignetteProcessor(options, color, radiusX, radiusY));
     }
 }

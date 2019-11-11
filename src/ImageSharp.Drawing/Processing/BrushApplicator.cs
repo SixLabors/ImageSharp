@@ -21,9 +21,9 @@ namespace SixLabors.ImageSharp.Processing
         /// Initializes a new instance of the <see cref="BrushApplicator{TPixel}"/> class.
         /// </summary>
         /// <param name="configuration">The configuration instance to use when performing operations.</param>
+        /// <param name="options">The graphics options.</param>
         /// <param name="target">The target.</param>
-        /// <param name="options">The options.</param>
-        internal BrushApplicator(Configuration configuration, ImageFrame<TPixel> target, GraphicsOptions options)
+        internal BrushApplicator(Configuration configuration, GraphicsOptions options, ImageFrame<TPixel> target)
         {
             this.Configuration = configuration;
             this.Target = target;

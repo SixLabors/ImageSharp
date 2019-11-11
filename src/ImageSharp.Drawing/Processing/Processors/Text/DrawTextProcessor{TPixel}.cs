@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
             {
                 if (operations?.Count > 0)
                 {
-                    using (BrushApplicator<TPixel> app = brush.CreateApplicator(this.Configuration, source, this.SourceRectangle, this.textRenderer.Options))
+                    using (BrushApplicator<TPixel> app = brush.CreateApplicator(this.Configuration, this.textRenderer.Options, source, this.SourceRectangle))
                     {
                         foreach (DrawingOperation operation in operations)
                         {

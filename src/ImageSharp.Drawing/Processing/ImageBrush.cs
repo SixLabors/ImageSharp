@@ -32,19 +32,19 @@ namespace SixLabors.ImageSharp.Processing
         /// <inheritdoc />
         public BrushApplicator<TPixel> CreateApplicator<TPixel>(
             Configuration configuration,
+            GraphicsOptions options,
             ImageFrame<TPixel> source,
-            RectangleF region,
-            GraphicsOptions options)
+            RectangleF region)
             where TPixel : struct, IPixel<TPixel>
         {
             if (this.image is Image<TPixel> specificImage)
             {
-                return new ImageBrushApplicator<TPixel>(configuration, source, specificImage, region, false, options);
+                return new ImageBrushApplicator<TPixel>(configuration, options, source, specificImage, region, false);
             }
 
             specificImage = this.image.CloneAs<TPixel>();
 
-            return new ImageBrushApplicator<TPixel>(configuration, source, specificImage, region, true, options);
+            return new ImageBrushApplicator<TPixel>(configuration, options, source, specificImage, region, true);
         }
 
         /// <summary>
@@ -85,19 +85,19 @@ namespace SixLabors.ImageSharp.Processing
             /// Initializes a new instance of the <see cref="ImageBrushApplicator{TPixel}"/> class.
             /// </summary>
             /// <param name="configuration">The configuration instance to use when performing operations.</param>
+            /// <param name="options">The graphics options.</param>
             /// <param name="target">The target image.</param>
             /// <param name="image">The image.</param>
             /// <param name="region">The region.</param>
             /// <param name="shouldDisposeImage">Whether to dispose the image on disposal of the applicator.</param>
-            /// <param name="options">The graphics options.</param>
             public ImageBrushApplicator(
                 Configuration configuration,
+                GraphicsOptions options,
                 ImageFrame<TPixel> target,
                 Image<TPixel> image,
                 RectangleF region,
-                bool shouldDisposeImage,
-                GraphicsOptions options)
-                : base(configuration, target, options)
+                bool shouldDisposeImage)
+                : base(configuration, options, target)
             {
                 this.sourceImage = image;
                 this.sourceFrame = image.Frames.RootFrame;

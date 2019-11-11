@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Processing
             this IImageProcessingContext source,
             IPen pen,
             params PointF[] points) =>
-            source.Draw(GraphicsOptions.Default, pen, new Polygon(new LinearLineSegment(points)));
+            source.Draw(new GraphicsOptions(), pen, new Polygon(new LinearLineSegment(points)));
 
         /// <summary>
         /// Draws the provided Points as a closed Linear Polygon with the provided Pen.

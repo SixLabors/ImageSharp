@@ -14,9 +14,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         /// <summary>
         /// Initializes a new instance of the <see cref="BackgroundColorProcessor"/> class.
         /// </summary>
-        /// <param name="color">The <see cref="Color"/> to set the background color to.</param>
         /// <param name="options">The options defining blending algorithm and amount.</param>
-        public BackgroundColorProcessor(Color color, GraphicsOptions options)
+        /// <param name="color">The <see cref="Color"/> to set the background color to.</param>
+        public BackgroundColorProcessor(GraphicsOptions options, Color color)
         {
             this.Color = color;
             this.GraphicsOptions = options;

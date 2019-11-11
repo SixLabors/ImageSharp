@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         public void FillsForEachACharacterWhenBrushSetAndNotPen()
         {
             this.operations.DrawText(
-                new TextGraphicsOptions(true),
+                new TextGraphicsOptions { Antialias = true },
                 "123",
                 this.Font,
                 Brushes.Solid(Color.Red),
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         [Fact]
         public void FillsForEachACharacterWhenBrushSet()
         {
-            this.operations.DrawText(new TextGraphicsOptions(true), "123", this.Font, Brushes.Solid(Color.Red), Vector2.Zero);
+            this.operations.DrawText(new TextGraphicsOptions { Antialias = true }, "123", this.Font, Brushes.Solid(Color.Red), Vector2.Zero);
 
             this.Verify<DrawTextProcessor>(0);
         }
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         [Fact]
         public void FillsForEachACharacterWhenColorSet()
         {
-            this.operations.DrawText(new TextGraphicsOptions(true), "123", this.Font, Color.Red, Vector2.Zero);
+            this.operations.DrawText(new TextGraphicsOptions { Antialias = true }, "123", this.Font, Color.Red, Vector2.Zero);
 
             var processor = this.Verify<DrawTextProcessor>(0);
 
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         public void DrawForEachACharacterWhenPenSetAndNotBrush()
         {
             this.operations.DrawText(
-                new TextGraphicsOptions(true),
+                new TextGraphicsOptions { Antialias = true },
                 "123",
                 this.Font,
                 null,
@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         [Fact]
         public void DrawForEachACharacterWhenPenSet()
         {
-            this.operations.DrawText(new TextGraphicsOptions(true), "123", this.Font, Pens.Dash(Color.Red, 1), Vector2.Zero);
+            this.operations.DrawText(new TextGraphicsOptions { Antialias = true }, "123", this.Font, Pens.Dash(Color.Red, 1), Vector2.Zero);
 
             this.Verify<DrawTextProcessor>(0);
         }
@@ -132,7 +132,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         public void DrawForEachACharacterWhenPenSetAndFillFroEachWhenBrushSet()
         {
             this.operations.DrawText(
-                new TextGraphicsOptions(true),
+                new TextGraphicsOptions { Antialias = true },
                 "123",
                 this.Font,
                 Brushes.Solid(Color.Red),

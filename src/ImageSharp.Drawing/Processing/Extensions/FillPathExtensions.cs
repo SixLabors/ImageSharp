@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="path">The path.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext Fill(this IImageProcessingContext source, IBrush brush, IPath path) =>
-            source.Fill(GraphicsOptions.Default, brush, new ShapeRegion(path));
+            source.Fill(new GraphicsOptions(), brush, new ShapeRegion(path));
 
         /// <summary>
         /// Flood fills the image in the shape of the provided polygon with the specified brush..

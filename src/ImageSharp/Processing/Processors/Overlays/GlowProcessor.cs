@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         /// <param name="color">The color or the glow.</param>
         /// <param name="radius">The radius of the glow.</param>
         internal GlowProcessor(Color color, ValueSize radius)
-            : this(color, radius, GraphicsOptions.Default)
+            : this(color, radius, new GraphicsOptions())
         {
         }
 

@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                 }
             }
 
-            using (BrushApplicator<TPixel> applicator = brush.CreateApplicator(configuration, source, rect, options))
+            using (BrushApplicator<TPixel> applicator = brush.CreateApplicator(configuration, options, source, rect))
             {
                 int scanlineWidth = maxX - minX;
                 using (IMemoryOwner<float> bBuffer = source.MemoryAllocator.Allocate<float>(maxIntersections))

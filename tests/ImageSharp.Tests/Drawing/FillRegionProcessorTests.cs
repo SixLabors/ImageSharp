@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 Antialias = antialias,
                 AntialiasSubpixelDepth = 1
             };
-            var processor = new FillRegionProcessor(brush.Object, region, options);
+            var processor = new FillRegionProcessor(options, brush.Object, region);
             var img = new Image<Rgba32>(1, 1);
             processor.Execute(img, bounds);
 
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             var bounds = new Rectangle(-100, -10, 10, 10);
             var brush = new Mock<IBrush>();
             var options = new GraphicsOptions { Antialias = true };
-            var processor = new FillRegionProcessor(brush.Object, new MockRegion1(), options);
+            var processor = new FillRegionProcessor(options, brush.Object, new MockRegion1());
             var img = new Image<Rgba32>(10, 10);
             processor.Execute(img, bounds);
         }
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void DoesNotThrowForIssue928()
         {
             var rectText = new RectangleF(0, 0, 2000, 2000);
-            using (Image<Rgba32> img = new Image<Rgba32>((int)rectText.Width, (int)rectText.Height))
+            using (var img = new Image<Rgba32>((int)rectText.Width, (int)rectText.Height))
             {
                 img.Mutate(x => x.Fill(Rgba32.Transparent));
 

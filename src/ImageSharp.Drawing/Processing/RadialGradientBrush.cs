@@ -36,17 +36,17 @@ namespace SixLabors.ImageSharp.Processing
         /// <inheritdoc />
         public override BrushApplicator<TPixel> CreateApplicator<TPixel>(
             Configuration configuration,
+            GraphicsOptions options,
             ImageFrame<TPixel> source,
-            RectangleF region,
-            GraphicsOptions options) =>
+            RectangleF region) =>
             new RadialGradientBrushApplicator<TPixel>(
                 configuration,
+                options,
                 source,
                 this.center,
                 this.radius,
                 this.ColorStops,
-                this.RepetitionMode,
-                options);
+                this.RepetitionMode);
 
         /// <inheritdoc />
         private sealed class RadialGradientBrushApplicator<TPixel> : GradientBrushApplicator<TPixel>
@@ -60,21 +60,21 @@ namespace SixLabors.ImageSharp.Processing
             /// Initializes a new instance of the <see cref="RadialGradientBrushApplicator{TPixel}" /> class.
             /// </summary>
             /// <param name="configuration">The configuration instance to use when performing operations.</param>
+            /// <param name="options">The graphics options.</param>
             /// <param name="target">The target image.</param>
             /// <param name="center">Center point of the gradient.</param>
             /// <param name="radius">Radius of the gradient.</param>
             /// <param name="colorStops">Definition of colors.</param>
             /// <param name="repetitionMode">How the colors are repeated beyond the first gradient.</param>
-            /// <param name="options">The graphics options.</param>
             public RadialGradientBrushApplicator(
                 Configuration configuration,
+                GraphicsOptions options,
                 ImageFrame<TPixel> target,
                 PointF center,
                 float radius,
                 ColorStop[] colorStops,
-                GradientRepetitionMode repetitionMode,
-                GraphicsOptions options)
-                : base(configuration, target, colorStops, repetitionMode, options)
+                GradientRepetitionMode repetitionMode)
+                : base(configuration, options, target, colorStops, repetitionMode)
             {
                 this.center = center;
                 this.radius = radius;

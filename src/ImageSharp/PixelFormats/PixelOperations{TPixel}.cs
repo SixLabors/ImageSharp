@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination colors.</param>
         /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the conversion</param>
-        internal virtual void FromVector4Destructive(
+        public virtual void FromVector4Destructive(
             Configuration configuration,
             Span<Vector4> sourceVectors,
             Span<TPixel> destPixels,
@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination colors.</param>
-        internal void FromVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<TPixel> destPixels) =>
+        public void FromVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<TPixel> destPixels) =>
             this.FromVector4Destructive(configuration, sourceVectors, destPixels, PixelConversionModifiers.None);
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source colors.</param>
         /// <param name="destVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
         /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the conversion</param>
-        internal virtual void ToVector4(
+        public virtual void ToVector4(
             Configuration configuration,
             ReadOnlySpan<TPixel> sourcePixels,
             Span<Vector4> destVectors,
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source colors.</param>
         /// <param name="destVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
-        internal virtual void ToVector4(
+        public virtual void ToVector4(
             Configuration configuration,
             ReadOnlySpan<TPixel> sourcePixels,
             Span<Vector4> destVectors) =>

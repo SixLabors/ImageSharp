@@ -48,18 +48,18 @@ namespace SixLabors.ImageSharp.Processing
         /// <inheritdoc />
         public override BrushApplicator<TPixel> CreateApplicator<TPixel>(
             Configuration configuration,
+            GraphicsOptions options,
             ImageFrame<TPixel> source,
-            RectangleF region,
-            GraphicsOptions options) =>
+            RectangleF region) =>
             new RadialGradientBrushApplicator<TPixel>(
                 configuration,
+                options,
                 source,
                 this.center,
                 this.referenceAxisEnd,
                 this.axisRatio,
                 this.ColorStops,
-                this.RepetitionMode,
-                options);
+                this.RepetitionMode);
 
         /// <inheritdoc />
         private sealed class RadialGradientBrushApplicator<TPixel> : GradientBrushApplicator<TPixel>
@@ -100,14 +100,14 @@ namespace SixLabors.ImageSharp.Processing
             /// <param name="options">The graphics options.</param>
             public RadialGradientBrushApplicator(
                 Configuration configuration,
+                GraphicsOptions options,
                 ImageFrame<TPixel> target,
                 PointF center,
                 PointF referenceAxisEnd,
                 float axisRatio,
                 ColorStop[] colorStops,
-                GradientRepetitionMode repetitionMode,
-                GraphicsOptions options)
-                : base(configuration, target, colorStops, repetitionMode, options)
+                GradientRepetitionMode repetitionMode)
+                : base(configuration, options, target, colorStops, repetitionMode)
             {
                 this.center = center;
                 this.referenceAxisEnd = referenceAxisEnd;

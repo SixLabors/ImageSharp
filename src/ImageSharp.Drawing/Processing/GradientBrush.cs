@@ -37,9 +37,9 @@ namespace SixLabors.ImageSharp.Processing
         /// <inheritdoc />
         public abstract BrushApplicator<TPixel> CreateApplicator<TPixel>(
             Configuration configuration,
+            GraphicsOptions options,
             ImageFrame<TPixel> source,
-            RectangleF region,
-            GraphicsOptions options)
+            RectangleF region)
             where TPixel : struct, IPixel<TPixel>;
 
         /// <summary>
@@ -58,17 +58,17 @@ namespace SixLabors.ImageSharp.Processing
             /// Initializes a new instance of the <see cref="GradientBrushApplicator{TPixel}"/> class.
             /// </summary>
             /// <param name="configuration">The configuration instance to use when performing operations.</param>
+            /// <param name="options">The graphics options.</param>
             /// <param name="target">The target image.</param>
             /// <param name="colorStops">An array of color stops sorted by their position.</param>
             /// <param name="repetitionMode">Defines if and how the gradient should be repeated.</param>
-            /// <param name="options">The graphics options.</param>
             protected GradientBrushApplicator(
                 Configuration configuration,
+                GraphicsOptions options,
                 ImageFrame<TPixel> target,
                 ColorStop[] colorStops,
-                GradientRepetitionMode repetitionMode,
-                GraphicsOptions options)
-                : base(configuration, target, options)
+                GradientRepetitionMode repetitionMode)
+                : base(configuration, options, target)
             {
                 this.colorStops = colorStops; // TODO: requires colorStops to be sorted by position - should that be checked?
                 this.repetitionMode = repetitionMode;

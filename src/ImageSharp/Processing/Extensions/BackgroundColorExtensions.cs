@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Processing
             this IImageProcessingContext source,
             GraphicsOptions options,
             Color color) =>
-            source.ApplyProcessor(new BackgroundColorProcessor(color, options));
+            source.ApplyProcessor(new BackgroundColorProcessor(options, color));
 
         /// <summary>
         /// Replaces the background color of image with the given one.
@@ -64,6 +64,6 @@ namespace SixLabors.ImageSharp.Processing
             GraphicsOptions options,
             Color color,
             Rectangle rectangle) =>
-            source.ApplyProcessor(new BackgroundColorProcessor(color, options), rectangle);
+            source.ApplyProcessor(new BackgroundColorProcessor(options, color), rectangle);
     }
 }

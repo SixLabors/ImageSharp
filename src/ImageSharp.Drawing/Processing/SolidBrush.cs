@@ -33,12 +33,12 @@ namespace SixLabors.ImageSharp.Processing
         /// <inheritdoc />
         public BrushApplicator<TPixel> CreateApplicator<TPixel>(
             Configuration configuration,
+            GraphicsOptions options,
             ImageFrame<TPixel> source,
-            RectangleF region,
-            GraphicsOptions options)
+            RectangleF region)
             where TPixel : struct, IPixel<TPixel>
         {
-            return new SolidBrushApplicator<TPixel>(configuration, source, this.Color.ToPixel<TPixel>(), options);
+            return new SolidBrushApplicator<TPixel>(configuration, options, source, this.Color.ToPixel<TPixel>());
         }
 
         /// <summary>
@@ -53,15 +53,15 @@ namespace SixLabors.ImageSharp.Processing
             /// Initializes a new instance of the <see cref="SolidBrushApplicator{TPixel}"/> class.
             /// </summary>
             /// <param name="configuration">The configuration instance to use when performing operations.</param>
+            /// <param name="options">The graphics options.</param>
             /// <param name="source">The source image.</param>
             /// <param name="color">The color.</param>
-            /// <param name="options">The graphics options.</param>
             public SolidBrushApplicator(
                 Configuration configuration,
+                GraphicsOptions options,
                 ImageFrame<TPixel> source,
-                TPixel color,
-                GraphicsOptions options)
-                : base(configuration, source, options)
+                TPixel color)
+                : base(configuration, options, source)
             {
                 this.Colors = source.MemoryAllocator.Allocate<TPixel>(source.Width);
                 this.Colors.Memory.Span.Fill(color);

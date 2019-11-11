@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Primitives;
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Processing
             GraphicsOptions options,
             IBrush brush,
             Region region) =>
-            source.ApplyProcessor(new FillRegionProcessor(brush, region, options));
+            source.ApplyProcessor(new FillRegionProcessor(options, brush, region));
 
         /// <summary>
         /// Flood fills the image with the specified brush.
@@ -90,6 +90,6 @@ namespace SixLabors.ImageSharp.Processing
             this IImageProcessingContext source,
             GraphicsOptions options,
             IBrush brush) =>
-            source.ApplyProcessor(new FillProcessor(brush, options));
+            source.ApplyProcessor(new FillProcessor(options, brush));
     }
 }

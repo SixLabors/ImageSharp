@@ -15,9 +15,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
         /// <summary>
         /// Initializes a new instance of the <see cref="FillProcessor"/> class.
         /// </summary>
-        /// <param name="brush">The brush to use for filling.</param>
         /// <param name="options">The <see cref="GraphicsOptions"/> defining how to blend the brush pixels over the image pixels.</param>
-        public FillProcessor(IBrush brush, GraphicsOptions options)
+        /// <param name="brush">The brush to use for filling.</param>
+        public FillProcessor(GraphicsOptions options, IBrush brush)
         {
             this.Brush = brush;
             this.Options = options;

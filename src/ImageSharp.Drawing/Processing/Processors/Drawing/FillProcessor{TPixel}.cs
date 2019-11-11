@@ -85,9 +85,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                 using (IMemoryOwner<float> amount = source.MemoryAllocator.Allocate<float>(width))
                 using (BrushApplicator<TPixel> applicator = brush.CreateApplicator(
                     configuration,
+                    options,
                     source,
-                    sourceRectangle,
-                    options))
+                    sourceRectangle))
                 {
                     amount.Memory.Span.Fill(1f);
 

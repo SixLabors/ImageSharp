@@ -84,12 +84,12 @@ namespace SixLabors.ImageSharp.Processing
         /// <inheritdoc />
         public BrushApplicator<TPixel> CreateApplicator<TPixel>(
             Configuration configuration,
+            GraphicsOptions options,
             ImageFrame<TPixel> source,
-            RectangleF region,
-            GraphicsOptions options)
+            RectangleF region)
             where TPixel : struct, IPixel<TPixel>
         {
-            return new PathGradientBrushApplicator<TPixel>(configuration, source, this.edges, this.centerColor, options);
+            return new PathGradientBrushApplicator<TPixel>(configuration, options, source, this.edges, this.centerColor);
         }
 
         private static Color CalculateCenterColor(Color[] colors)
@@ -201,17 +201,17 @@ namespace SixLabors.ImageSharp.Processing
             /// Initializes a new instance of the <see cref="PathGradientBrushApplicator{TPixel}"/> class.
             /// </summary>
             /// <param name="configuration">The configuration instance to use when performing operations.</param>
+            /// <param name="options">The graphics options.</param>
             /// <param name="source">The source image.</param>
             /// <param name="edges">Edges of the polygon.</param>
             /// <param name="centerColor">Color at the center of the gradient area to which the other colors converge.</param>
-            /// <param name="options">The graphics options.</param>
             public PathGradientBrushApplicator(
                 Configuration configuration,
+                GraphicsOptions options,
                 ImageFrame<TPixel> source,
                 IList<Edge> edges,
-                Color centerColor,
-                GraphicsOptions options)
-                : base(configuration, source, options)
+                Color centerColor)
+                : base(configuration, options, source)
             {
                 this.edges = edges;
 

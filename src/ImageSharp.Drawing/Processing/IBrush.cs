@@ -20,9 +20,9 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <typeparam name="TPixel">The pixel type.</typeparam>
         /// <param name="configuration">The configuration instance to use when performing operations.</param>
+        /// <param name="options">The graphic options.</param>
         /// <param name="source">The source image.</param>
         /// <param name="region">The region the brush will be applied to.</param>
-        /// <param name="options">The graphic options</param>
         /// <returns>
         /// The <see cref="BrushApplicator{TPixel}"/> for this brush.
         /// </returns>
@@ -32,9 +32,9 @@ namespace SixLabors.ImageSharp.Processing
         /// </remarks>
         BrushApplicator<TPixel> CreateApplicator<TPixel>(
             Configuration configuration,
+            GraphicsOptions options,
             ImageFrame<TPixel> source,
-            RectangleF region,
-            GraphicsOptions options)
+            RectangleF region)
             where TPixel : struct, IPixel<TPixel>;
     }
 }

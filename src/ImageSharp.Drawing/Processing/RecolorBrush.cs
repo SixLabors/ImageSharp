@@ -47,18 +47,18 @@ namespace SixLabors.ImageSharp.Processing
         /// <inheritdoc />
         public BrushApplicator<TPixel> CreateApplicator<TPixel>(
             Configuration configuration,
+            GraphicsOptions options,
             ImageFrame<TPixel> source,
-            RectangleF region,
-            GraphicsOptions options)
+            RectangleF region)
             where TPixel : struct, IPixel<TPixel>
         {
             return new RecolorBrushApplicator<TPixel>(
                 configuration,
+                options,
                 source,
                 this.SourceColor.ToPixel<TPixel>(),
                 this.TargetColor.ToPixel<TPixel>(),
-                this.Threshold,
-                options);
+                this.Threshold);
         }
 
         /// <summary>
@@ -83,19 +83,19 @@ namespace SixLabors.ImageSharp.Processing
             /// Initializes a new instance of the <see cref="RecolorBrushApplicator{TPixel}" /> class.
             /// </summary>
             /// <param name="configuration">The configuration instance to use when performing operations.</param>
+            /// <param name="options">The options</param>
             /// <param name="source">The source image.</param>
             /// <param name="sourceColor">Color of the source.</param>
             /// <param name="targetColor">Color of the target.</param>
             /// <param name="threshold">The threshold .</param>
-            /// <param name="options">The options</param>
             public RecolorBrushApplicator(
                 Configuration configuration,
+                GraphicsOptions options,
                 ImageFrame<TPixel> source,
                 TPixel sourceColor,
                 TPixel targetColor,
-                float threshold,
-                GraphicsOptions options)
-                : base(configuration, source, options)
+                float threshold)
+                : base(configuration, options, source)
             {
                 this.sourceColor = sourceColor.ToVector4();
                 this.targetColorPixel = targetColor;

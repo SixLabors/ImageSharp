@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Primitives;
@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.Processing
             Color color,
             ValueSize radius,
             Rectangle rectangle) =>
-            source.ApplyProcessor(new GlowProcessor(color, radius, options), rectangle);
+            source.ApplyProcessor(new GlowProcessor(options, color, radius), rectangle);
 
         /// <summary>
         /// Applies a radial glow effect to an image.
@@ -170,6 +170,6 @@ namespace SixLabors.ImageSharp.Processing
             GraphicsOptions options,
             Color color,
             ValueSize radius) =>
-            source.ApplyProcessor(new GlowProcessor(color, radius, options));
+            source.ApplyProcessor(new GlowProcessor(options, color, radius));
     }
 }

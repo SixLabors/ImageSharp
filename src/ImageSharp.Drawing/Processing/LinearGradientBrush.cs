@@ -40,17 +40,17 @@ namespace SixLabors.ImageSharp.Processing
         /// <inheritdoc />
         public override BrushApplicator<TPixel> CreateApplicator<TPixel>(
             Configuration configuration,
+            GraphicsOptions options,
             ImageFrame<TPixel> source,
-            RectangleF region,
-            GraphicsOptions options) =>
+            RectangleF region) =>
             new LinearGradientBrushApplicator<TPixel>(
                 configuration,
+                options,
                 source,
                 this.p1,
                 this.p2,
                 this.ColorStops,
-                this.RepetitionMode,
-                options);
+                this.RepetitionMode);
 
         /// <summary>
         /// The linear gradient brush applicator.
@@ -96,21 +96,21 @@ namespace SixLabors.ImageSharp.Processing
             /// Initializes a new instance of the <see cref="LinearGradientBrushApplicator{TPixel}" /> class.
             /// </summary>
             /// <param name="configuration">The configuration instance to use when performing operations.</param>
+            /// <param name="options">The graphics options.</param>
             /// <param name="source">The source image.</param>
-            /// <param name="start">start point of the gradient.</param>
-            /// <param name="end">end point of the gradient.</param>
-            /// <param name="colorStops">tuple list of colors and their respective position between 0 and 1 on the line.</param>
-            /// <param name="repetitionMode">defines how the gradient colors are repeated.</param>
-            /// <param name="options">the graphics options.</param>
+            /// <param name="start">The start point of the gradient.</param>
+            /// <param name="end">The end point of the gradient.</param>
+            /// <param name="colorStops">A tuple list of colors and their respective position between 0 and 1 on the line.</param>
+            /// <param name="repetitionMode">Defines how the gradient colors are repeated.</param>
             public LinearGradientBrushApplicator(
                 Configuration configuration,
+                GraphicsOptions options,
                 ImageFrame<TPixel> source,
                 PointF start,
                 PointF end,
                 ColorStop[] colorStops,
-                GradientRepetitionMode repetitionMode,
-                GraphicsOptions options)
-                : base(configuration, source, colorStops, repetitionMode, options)
+                GradientRepetitionMode repetitionMode)
+                : base(configuration, options, source, colorStops, repetitionMode)
             {
                 this.start = start;
                 this.end = end;

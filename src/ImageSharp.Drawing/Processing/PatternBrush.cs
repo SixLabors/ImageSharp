@@ -93,15 +93,15 @@ namespace SixLabors.ImageSharp.Processing
         /// <inheritdoc />
         public BrushApplicator<TPixel> CreateApplicator<TPixel>(
             Configuration configuration,
+            GraphicsOptions options,
             ImageFrame<TPixel> source,
-            RectangleF region,
-            GraphicsOptions options)
+            RectangleF region)
             where TPixel : struct, IPixel<TPixel> =>
             new PatternBrushApplicator<TPixel>(
                 configuration,
+                options,
                 source,
-                this.pattern.ToPixelMatrix<TPixel>(configuration),
-                options);
+                this.pattern.ToPixelMatrix<TPixel>(configuration));
 
         /// <summary>
         /// The pattern brush applicator.
@@ -118,15 +118,15 @@ namespace SixLabors.ImageSharp.Processing
             /// Initializes a new instance of the <see cref="PatternBrushApplicator{TPixel}" /> class.
             /// </summary>
             /// <param name="configuration">The configuration instance to use when performing operations.</param>
+            /// <param name="options">The graphics options.</param>
             /// <param name="source">The source image.</param>
             /// <param name="pattern">The pattern.</param>
-            /// <param name="options">The graphics options.</param>
             public PatternBrushApplicator(
                 Configuration configuration,
+                GraphicsOptions options,
                 ImageFrame<TPixel> source,
-                in DenseMatrix<TPixel> pattern,
-                GraphicsOptions options)
-                : base(configuration, source, options)
+                in DenseMatrix<TPixel> pattern)
+                : base(configuration, options, source)
             {
                 this.pattern = pattern;
             }

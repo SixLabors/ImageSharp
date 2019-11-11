@@ -83,12 +83,13 @@ namespace SixLabors.ImageSharp.Processing
 
         /// <inheritdoc />
         public BrushApplicator<TPixel> CreateApplicator<TPixel>(
+            Configuration configuration,
+            GraphicsOptions options,
             ImageFrame<TPixel> source,
-            RectangleF region,
-            GraphicsOptions options)
+            RectangleF region)
             where TPixel : struct, IPixel<TPixel>
         {
-            return new PathGradientBrushApplicator<TPixel>(source, this.edges, this.centerColor, options);
+            return new PathGradientBrushApplicator<TPixel>(configuration, options, source, this.edges, this.centerColor);
         }
 
         private static Color CalculateCenterColor(Color[] colors)
@@ -105,7 +106,7 @@ namespace SixLabors.ImageSharp.Processing
                     "One or more color is needed to construct a path gradient brush.");
             }
 
-            return new Color(colors.Select(c => c.ToVector4()).Aggregate((p1, p2) => p1 + p2) / colors.Length);
+            return new Color(colors.Select(c => (Vector4)c).Aggregate((p1, p2) => p1 + p2) / colors.Length);
         }
 
         private static float DistanceBetween(PointF p1, PointF p2) => ((Vector2)(p2 - p1)).Length();
@@ -141,10 +142,10 @@ namespace SixLabors.ImageSharp.Processing
                 Vector2[] points = path.LineSegments.SelectMany(s => s.Flatten()).Select(p => (Vector2)p).ToArray();
 
                 this.Start = points.First();
-                this.StartColor = startColor.ToVector4();
+                this.StartColor = (Vector4)startColor;
 
                 this.End = points.Last();
-                this.EndColor = endColor.ToVector4();
+                this.EndColor = (Vector4)endColor;
 
                 this.length = DistanceBetween(this.End, this.Start);
                 this.buffer = new PointF[this.path.MaxIntersections];
@@ -199,23 +200,25 @@ namespace SixLabors.ImageSharp.Processing
             /// <summary>
             /// Initializes a new instance of the <see cref="PathGradientBrushApplicator{TPixel}"/> class.
             /// </summary>
+            /// <param name="configuration">The configuration instance to use when performing operations.</param>
+            /// <param name="options">The graphics options.</param>
             /// <param name="source">The source image.</param>
             /// <param name="edges">Edges of the polygon.</param>
             /// <param name="centerColor">Color at the center of the gradient area to which the other colors converge.</param>
-            /// <param name="options">The options.</param>
             public PathGradientBrushApplicator(
+                Configuration configuration,
+                GraphicsOptions options,
                 ImageFrame<TPixel> source,
                 IList<Edge> edges,
-                Color centerColor,
-                GraphicsOptions options)
-                : base(source, options)
+                Color centerColor)
+                : base(configuration, options, source)
             {
                 this.edges = edges;
 
                 PointF[] points = edges.Select(s => s.Start).ToArray();
 
                 this.center = points.Aggregate((p1, p2) => p1 + p2) / edges.Count;
-                this.centerColor = centerColor.ToVector4();
+                this.centerColor = (Vector4)centerColor;
 
                 this.maxDistance = points.Select(p => (Vector2)(p - this.center)).Select(d => d.Length()).Max();
             }
@@ -232,7 +235,7 @@ namespace SixLabors.ImageSharp.Processing
                         return new Color(this.centerColor).ToPixel<TPixel>();
                     }
 
-                    Vector2 direction = Vector2.Normalize(point - this.center);
+                    var direction = Vector2.Normalize(point - this.center);
 
                     PointF end = point + (PointF)(direction * this.maxDistance);
 
@@ -250,7 +253,7 @@ namespace SixLabors.ImageSharp.Processing
                     float length = DistanceBetween(intersection, this.center);
                     float ratio = length > 0 ? DistanceBetween(intersection, point) / length : 0;
 
-                    Vector4 color = Vector4.Lerp(edgeColor, this.centerColor, ratio);
+                    var color = Vector4.Lerp(edgeColor, this.centerColor, ratio);
 
                     return new Color(color).ToPixel<TPixel>();
                 }
@@ -276,11 +279,6 @@ namespace SixLabors.ImageSharp.Processing
                 }
 
                 return closest;
-            }
-
-            /// <inheritdoc />
-            public override void Dispose()
-            {
             }
         }
     }

@@ -41,11 +41,6 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <summary>
-        /// Gets the default <see cref="TextGraphicsOptions"/> instance.
-        /// </summary>
-        public static TextGraphicsOptions Default { get; } = new TextGraphicsOptions();
-
-        /// <summary>
         /// Gets or sets a value indicating whether antialiasing should be applied.
         /// Defaults to true.
         /// </summary>

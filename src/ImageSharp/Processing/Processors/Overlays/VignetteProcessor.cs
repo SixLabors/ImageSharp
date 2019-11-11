@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         /// </summary>
         /// <param name="color">The color of the vignette.</param>
         public VignetteProcessor(Color color)
-            : this(color, GraphicsOptions.Default)
+            : this(color, new GraphicsOptions())
         {
         }
 

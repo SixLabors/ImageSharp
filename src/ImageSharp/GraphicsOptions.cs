@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
@@ -9,10 +8,26 @@ namespace SixLabors.ImageSharp
     /// <summary>
     /// Options for influencing the drawing functions.
     /// </summary>
-    public class GraphicsOptions
+    public class GraphicsOptions : IDeepCloneable<GraphicsOptions>
     {
         private int antialiasSubpixelDepth = 16;
         private float blendPercentage = 1F;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GraphicsOptions"/> class.
+        /// </summary>
+        public GraphicsOptions()
+        {
+        }
+
+        private GraphicsOptions(GraphicsOptions source)
+        {
+            this.AlphaCompositionMode = source.AlphaCompositionMode;
+            this.Antialias = source.Antialias;
+            this.AntialiasSubpixelDepth = source.AntialiasSubpixelDepth;
+            this.BlendPercentage = source.BlendPercentage;
+            this.ColorBlendingMode = source.ColorBlendingMode;
+        }
 
         /// <summary>
         /// Gets the default <see cref="GraphicsOptions"/> instance.
@@ -73,20 +88,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         public PixelAlphaCompositionMode AlphaCompositionMode { get; set; } = PixelAlphaCompositionMode.SrcOver;
 
-        /// <summary>
-        /// Creates a shallow copy of the <see cref="GraphicsOptions"/>.
-        /// </summary>
-        /// <returns>A new options instance.</returns>
-        public GraphicsOptions Clone()
-        {
-            return new GraphicsOptions
-            {
-                AlphaCompositionMode = this.AlphaCompositionMode,
-                Antialias = this.Antialias,
-                AntialiasSubpixelDepth = this.AntialiasSubpixelDepth,
-                BlendPercentage = this.BlendPercentage,
-                ColorBlendingMode = this.ColorBlendingMode
-            };
-        }
+        /// <inheritdoc/>
+        public GraphicsOptions DeepClone() => new GraphicsOptions(this);
     }
 }

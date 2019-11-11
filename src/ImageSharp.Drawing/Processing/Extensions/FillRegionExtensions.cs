@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="brush">The details how to fill the region of interest.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext Fill(this IImageProcessingContext source, IBrush brush) =>
-            source.Fill(GraphicsOptions.Default, brush);
+            source.Fill(new GraphicsOptions(), brush);
 
         /// <summary>
         /// Flood fills the image with the specified color.
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="region">The region.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext Fill(this IImageProcessingContext source, IBrush brush, Region region) =>
-            source.Fill(GraphicsOptions.Default, brush, region);
+            source.Fill(new GraphicsOptions(), brush, region);
 
         /// <summary>
         /// Flood fills the image with in the region with the specified color.

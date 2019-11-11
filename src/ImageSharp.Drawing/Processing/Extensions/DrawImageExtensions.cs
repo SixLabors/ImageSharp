@@ -22,14 +22,17 @@ namespace SixLabors.ImageSharp.Processing
         public static IImageProcessingContext DrawImage(
             this IImageProcessingContext source,
             Image image,
-            float opacity) =>
-            source.ApplyProcessor(
+            float opacity)
+        {
+            var options = new GraphicsOptions();
+            return source.ApplyProcessor(
                 new DrawImageProcessor(
-                    image,
-                    Point.Empty,
-                    new GraphicsOptions().ColorBlendingMode,
-                    new GraphicsOptions().AlphaCompositionMode,
-                    opacity));
+                image,
+                Point.Empty,
+                options.ColorBlendingMode,
+                options.AlphaCompositionMode,
+                opacity));
+        }
 
         /// <summary>
         /// Draws the given image together with the current one by blending their pixels.
@@ -100,14 +103,17 @@ namespace SixLabors.ImageSharp.Processing
             this IImageProcessingContext source,
             Image image,
             Point location,
-            float opacity) =>
-            source.ApplyProcessor(
+            float opacity)
+        {
+            var options = new GraphicsOptions();
+            return source.ApplyProcessor(
                 new DrawImageProcessor(
-                    image,
-                    location,
-                    new GraphicsOptions().ColorBlendingMode,
-                    new GraphicsOptions().AlphaCompositionMode,
-                    opacity));
+                image,
+                location,
+                options.ColorBlendingMode,
+                options.AlphaCompositionMode,
+                opacity));
+        }
 
         /// <summary>
         /// Draws the given image together with the current one by blending their pixels.

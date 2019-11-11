@@ -1,11 +1,12 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
+
+using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.Primitives;
@@ -24,7 +25,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </summary>
         /// <param name="kernelXY">The 2d gradient operator.</param>
         /// <param name="preserveAlpha">Whether the convolution filter is applied to alpha as well as the color channels.</param>
-        public ConvolutionProcessor(in DenseMatrix<float> kernelXY, bool preserveAlpha)
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public ConvolutionProcessor(
+            in DenseMatrix<float> kernelXY,
+            bool preserveAlpha,
+            Image<TPixel> source,
+            Rectangle sourceRectangle)
+            : base(source, sourceRectangle)
         {
             this.KernelXY = kernelXY;
             this.PreserveAlpha = preserveAlpha;
@@ -41,12 +49,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         public bool PreserveAlpha { get; }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             DenseMatrix<float> matrix = this.KernelXY;
             bool preserveAlpha = this.PreserveAlpha;
 
-            var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
             int startY = interest.Y;
             int endY = interest.Bottom;
             int startX = interest.X;
@@ -54,7 +62,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             int maxY = endY - 1;
             int maxX = endX - 1;
 
-            using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
+            using (Buffer2D<TPixel> targetPixels = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
             {
                 source.CopyTo(targetPixels);
 
@@ -63,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                 ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
                     workingRectangle,
-                    configuration,
+                    this.Configuration,
                     (rows, vectorBuffer) =>
                         {
                             Span<Vector4> vectorSpan = vectorBuffer.Span;
@@ -73,7 +81,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                             for (int y = rows.Min; y < rows.Max; y++)
                             {
                                 Span<TPixel> targetRowSpan = targetPixels.GetRowSpan(y).Slice(startX);
-                                PixelOperations<TPixel>.Instance.ToVector4(configuration, targetRowSpan.Slice(0, length), vectorSpan);
+                                PixelOperations<TPixel>.Instance.ToVector4(this.Configuration, targetRowSpan.Slice(0, length), vectorSpan);
 
                                 if (preserveAlpha)
                                 {
@@ -108,7 +116,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                     }
                                 }
 
-                                PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan, targetRowSpan);
+                                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.Configuration, vectorSpan, targetRowSpan);
                             }
                         });
 

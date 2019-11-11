@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -21,7 +21,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
         /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection.</param>
-        internal EdgeDetector2DProcessor(in DenseMatrix<float> kernelX, in DenseMatrix<float> kernelY, bool grayscale)
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        internal EdgeDetector2DProcessor(
+            in DenseMatrix<float> kernelX,
+            in DenseMatrix<float> kernelY,
+            bool grayscale,
+            Image<TPixel> source,
+            Rectangle sourceRectangle)
+            : base(source, sourceRectangle)
         {
             Guard.IsTrue(kernelX.Size.Equals(kernelY.Size), $"{nameof(kernelX)} {nameof(kernelY)}", "Kernel sizes must be the same.");
             this.KernelX = kernelX;
@@ -41,16 +49,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
         public bool Grayscale { get; }
 
-        /// <inheritdoc />
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
-            => new Convolution2DProcessor<TPixel>(this.KernelX, this.KernelY, true).Apply(source, sourceRectangle, configuration);
-
         /// <inheritdoc/>
-        protected override void BeforeFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void BeforeImageApply()
         {
             if (this.Grayscale)
             {
-                new GrayscaleBt709Processor(1F).Apply(source, sourceRectangle, configuration);
+                new GrayscaleBt709Processor(1F).Execute(this.Source, this.SourceRectangle);
+            }
+
+            base.BeforeImageApply();
+        }
+
+        /// <inheritdoc />
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
+        {
+            using (var processor = new Convolution2DProcessor<TPixel>(this.KernelX, this.KernelY, true, this.Source, this.SourceRectangle))
+            {
+                processor.Apply(source);
             }
         }
     }

@@ -23,14 +23,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
     {
         private readonly FillRegionProcessor definition;
 
-        public FillRegionProcessor(FillRegionProcessor definition)
+        public FillRegionProcessor(FillRegionProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(source, sourceRectangle)
         {
             this.definition = definition;
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
+            Configuration configuration = this.Configuration;
             GraphicsOptions options = this.definition.Options;
             IBrush brush = this.definition.Brush;
             Region region = this.definition.Region;

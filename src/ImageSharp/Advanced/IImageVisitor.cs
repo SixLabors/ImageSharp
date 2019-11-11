@@ -3,13 +3,13 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.Advanced
 {
     /// <summary>
-    /// A visitor to implement double-dispatch pattern in order to apply pixel-specific operations
-    /// on non-generic <see cref="Image"/> instances. The operation is dispatched by <see cref="Image.AcceptVisitor"/>.
+    /// A visitor to implement a double-dispatch pattern in order to apply pixel-specific operations
+    /// on non-generic <see cref="Image"/> instances.
     /// </summary>
-    internal interface IImageVisitor
+    public interface IImageVisitor
     {
         /// <summary>
         /// Provides a pixel-specific implementation for a given operation.

@@ -1,5 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
+
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 {
@@ -19,9 +21,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         }
 
         /// <inheritdoc />
-        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
         {
-            return new EdgeDetector2DProcessor<TPixel>(PrewittKernels.PrewittX, PrewittKernels.PrewittY, this.Grayscale);
+            return new EdgeDetector2DProcessor<TPixel>(PrewittKernels.PrewittX, PrewittKernels.PrewittY, this.Grayscale, source, sourceRectangle);
         }
     }
 }

@@ -1,16 +1,17 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Threading.Tasks;
 
 using SixLabors.Memory;
 
-namespace SixLabors.ImageSharp.ParallelUtils
+namespace SixLabors.ImageSharp.Advanced.ParallelUtils
 {
     /// <summary>
     /// Defines execution settings for methods in <see cref="ParallelHelper"/>.
     /// </summary>
-    internal readonly struct ParallelExecutionSettings
+    public readonly struct ParallelExecutionSettings
     {
         /// <summary>
         /// Default value for <see cref="MinimumPixelsProcessedPerTask"/>.
@@ -20,11 +21,24 @@ namespace SixLabors.ImageSharp.ParallelUtils
         /// <summary>
         /// Initializes a new instance of the <see cref="ParallelExecutionSettings"/> struct.
         /// </summary>
+        /// <param name="maxDegreeOfParallelism">The value used for initializing <see cref="ParallelOptions.MaxDegreeOfParallelism"/> when using TPL.</param>
+        /// <param name="minimumPixelsProcessedPerTask">The value for <see cref="MinimumPixelsProcessedPerTask"/>.</param>
+        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/>.</param>
         public ParallelExecutionSettings(
             int maxDegreeOfParallelism,
             int minimumPixelsProcessedPerTask,
             MemoryAllocator memoryAllocator)
         {
+            // Shall be compatible with ParallelOptions.MaxDegreeOfParallelism:
+            // https://docs.microsoft.com/en-us/dotnet/api/system.threading.tasks.paralleloptions.maxdegreeofparallelism
+            if (maxDegreeOfParallelism == 0 || maxDegreeOfParallelism < -1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maxDegreeOfParallelism));
+            }
+
+            Guard.MustBeGreaterThan(minimumPixelsProcessedPerTask, 0, nameof(minimumPixelsProcessedPerTask));
+            Guard.NotNull(memoryAllocator, nameof(memoryAllocator));
+
             this.MaxDegreeOfParallelism = maxDegreeOfParallelism;
             this.MinimumPixelsProcessedPerTask = minimumPixelsProcessedPerTask;
             this.MemoryAllocator = memoryAllocator;
@@ -33,13 +47,15 @@ namespace SixLabors.ImageSharp.ParallelUtils
         /// <summary>
         /// Initializes a new instance of the <see cref="ParallelExecutionSettings"/> struct.
         /// </summary>
+        /// <param name="maxDegreeOfParallelism">The value used for initializing <see cref="ParallelOptions.MaxDegreeOfParallelism"/> when using TPL.</param>
+        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/>.</param>
         public ParallelExecutionSettings(int maxDegreeOfParallelism, MemoryAllocator memoryAllocator)
             : this(maxDegreeOfParallelism, DefaultMinimumPixelsProcessedPerTask, memoryAllocator)
         {
         }
 
         /// <summary>
-        /// Gets the MemoryAllocator
+        /// Gets the <see cref="MemoryAllocator"/>.
         /// </summary>
         public MemoryAllocator MemoryAllocator { get; }
 
@@ -60,12 +76,26 @@ namespace SixLabors.ImageSharp.ParallelUtils
         /// Creates a new instance of <see cref="ParallelExecutionSettings"/>
         /// having <see cref="MinimumPixelsProcessedPerTask"/> multiplied by <paramref name="multiplier"/>
         /// </summary>
+        /// <param name="multiplier">The value to multiply <see cref="MinimumPixelsProcessedPerTask"/> with.</param>
+        /// <returns>The modified <see cref="ParallelExecutionSettings"/>.</returns>
         public ParallelExecutionSettings MultiplyMinimumPixelsPerTask(int multiplier)
         {
+            Guard.MustBeGreaterThan(multiplier, 0, nameof(multiplier));
+
             return new ParallelExecutionSettings(
                 this.MaxDegreeOfParallelism,
                 this.MinimumPixelsProcessedPerTask * multiplier,
                 this.MemoryAllocator);
+        }
+
+        /// <summary>
+        /// Get the default <see cref="SixLabors.ImageSharp.Advanced.ParallelUtils.ParallelExecutionSettings"/> for a <see cref="SixLabors.ImageSharp.Configuration"/>
+        /// </summary>
+        /// <param name="configuration">The <see cref="Configuration"/>.</param>
+        /// <returns>The <see cref="ParallelExecutionSettings"/>.</returns>
+        public static ParallelExecutionSettings FromConfiguration(Configuration configuration)
+        {
+            return new ParallelExecutionSettings(configuration.MaxDegreeOfParallelism, configuration.MemoryAllocator);
         }
     }
 }

@@ -5,6 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -175,11 +176,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                     this.InitializeImage(metadata, out image);
                                 }
 
-                                using (var deframeStream = new ZlibInflateStream(this.currentStream, this.ReadNextDataChunk))
-                                {
-                                    deframeStream.AllocateNewBytes(chunk.Length);
-                                    this.ReadScanlines(deframeStream.CompressedStream, image.Frames.RootFrame, pngMetadata);
-                                }
+                                this.ReadScanlines(chunk, image.Frames.RootFrame, pngMetadata);
 
                                 break;
                             case PngChunkType.Palette:
@@ -465,19 +462,25 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Reads the scanlines within the image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="dataStream">The <see cref="MemoryStream"/> containing data.</param>
+        /// <param name="chunk">The png chunk containing the compressed scanline data.</param>
         /// <param name="image"> The pixel data.</param>
         /// <param name="pngMetadata">The png metadata</param>
-        private void ReadScanlines<TPixel>(Stream dataStream, ImageFrame<TPixel> image, PngMetadata pngMetadata)
+        private void ReadScanlines<TPixel>(PngChunk chunk, ImageFrame<TPixel> image, PngMetadata pngMetadata)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (this.header.InterlaceMethod == PngInterlaceMode.Adam7)
+            using (var deframeStream = new ZlibInflateStream(this.currentStream, this.ReadNextDataChunk))
             {
-                this.DecodeInterlacedPixelData(dataStream, image, pngMetadata);
-            }
-            else
-            {
-                this.DecodePixelData(dataStream, image, pngMetadata);
+                deframeStream.AllocateNewBytes(chunk.Length, true);
+                DeflateStream dataStream = deframeStream.CompressedStream;
+
+                if (this.header.InterlaceMethod == PngInterlaceMode.Adam7)
+                {
+                    this.DecodeInterlacedPixelData(dataStream, image, pngMetadata);
+                }
+                else
+                {
+                    this.DecodePixelData(dataStream, image, pngMetadata);
+                }
             }
         }
 
@@ -924,7 +927,11 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             ReadOnlySpan<byte> compressedData = data.Slice(zeroIndex + 2);
-            metadata.TextData.Add(new PngTextData(name, this.UncompressTextData(compressedData, PngConstants.Encoding), string.Empty, string.Empty));
+
+            if (this.TryUncompressTextData(compressedData, PngConstants.Encoding, out string uncompressed))
+            {
+                metadata.TextData.Add(new PngTextData(name, uncompressed, string.Empty, string.Empty));
+            }
         }
 
         /// <summary>
@@ -987,7 +994,11 @@ namespace SixLabors.ImageSharp.Formats.Png
             if (compressionFlag == 1)
             {
                 ReadOnlySpan<byte> compressedData = data.Slice(dataStartIdx);
-                metadata.TextData.Add(new PngTextData(keyword, this.UncompressTextData(compressedData, PngConstants.TranslatedEncoding), language, translatedKeyword));
+
+                if (this.TryUncompressTextData(compressedData, PngConstants.TranslatedEncoding, out string uncompressed))
+                {
+                    metadata.TextData.Add(new PngTextData(keyword, uncompressed, language, translatedKeyword));
+                }
             }
             else
             {
@@ -1001,13 +1012,19 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="compressedData">Compressed text data bytes.</param>
         /// <param name="encoding">The string encoding to use.</param>
-        /// <returns>A string.</returns>
-        private string UncompressTextData(ReadOnlySpan<byte> compressedData, Encoding encoding)
+        /// <param name="value">The uncompressed value.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        private bool TryUncompressTextData(ReadOnlySpan<byte> compressedData, Encoding encoding, out string value)
         {
             using (var memoryStream = new MemoryStream(compressedData.ToArray()))
-            using (var inflateStream = new ZlibInflateStream(memoryStream, () => 0))
+            using (var inflateStream = new ZlibInflateStream(memoryStream))
             {
-                inflateStream.AllocateNewBytes(compressedData.Length);
+                if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
+                {
+                    value = null;
+                    return false;
+                }
+
                 var uncompressedBytes = new List<byte>();
 
                 // Note: this uses the a buffer which is only 4 bytes long to read the stream, maybe allocating a larger buffer makes sense here.
@@ -1018,7 +1035,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                     bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
                 }
 
-                return encoding.GetString(uncompressedBytes.ToArray());
+                value = encoding.GetString(uncompressedBytes.ToArray());
+                return true;
             }
         }
 

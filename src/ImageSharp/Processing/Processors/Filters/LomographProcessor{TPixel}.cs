@@ -19,15 +19,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         /// Initializes a new instance of the <see cref="LomographProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="definition">The <see cref="LomographProcessor"/> defining the parameters.</param>
-        public LomographProcessor(LomographProcessor definition)
-            : base(definition)
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public LomographProcessor(LomographProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(definition, source, sourceRectangle)
         {
         }
 
         /// <inheritdoc/>
-        protected override void AfterFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void AfterImageApply()
         {
-            new VignetteProcessor(VeryDarkGreen).Apply(source, sourceRectangle, configuration);
+            new VignetteProcessor(VeryDarkGreen).Execute(this.Source, this.SourceRectangle);
+            base.AfterImageApply();
         }
     }
 }

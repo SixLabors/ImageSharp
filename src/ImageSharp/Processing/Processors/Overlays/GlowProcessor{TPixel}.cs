@@ -6,8 +6,8 @@ using System.Buffers;
 using System.Numerics;
 
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -24,31 +24,35 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 
         private readonly GlowProcessor definition;
 
-        public GlowProcessor(GlowProcessor definition)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GlowProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="definition">The <see cref="GlowProcessor"/> defining the processor parameters.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public GlowProcessor(GlowProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(source, sourceRectangle)
         {
             this.definition = definition;
             this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(definition.GraphicsOptions);
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(
-            ImageFrame<TPixel> source,
-            Rectangle sourceRectangle,
-            Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             // TODO: can we simplify the rectangle calculation?
-            int startY = sourceRectangle.Y;
-            int endY = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
+            int startY = this.SourceRectangle.Y;
+            int endY = this.SourceRectangle.Bottom;
+            int startX = this.SourceRectangle.X;
+            int endX = this.SourceRectangle.Right;
             TPixel glowColor = this.definition.GlowColor.ToPixel<TPixel>();
-            Vector2 center = Rectangle.Center(sourceRectangle);
+            Vector2 center = Rectangle.Center(this.SourceRectangle);
 
             float finalRadius = this.definition.Radius.Calculate(source.Size());
 
             float maxDistance = finalRadius > 0
-                                    ? MathF.Min(finalRadius, sourceRectangle.Width * .5F)
-                                    : sourceRectangle.Width * .5F;
+                                    ? MathF.Min(finalRadius, this.SourceRectangle.Width * .5F)
+                                    : this.SourceRectangle.Width * .5F;
 
             // Align start/end positions.
             int minX = Math.Max(0, startX);
@@ -80,7 +84,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 
                 ParallelHelper.IterateRowsWithTempBuffer<float>(
                     workingRect,
-                    configuration,
+                    this.Configuration,
                     (rows, amounts) =>
                         {
                             Span<float> amountsSpan = amounts.Span;

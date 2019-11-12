@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -98,9 +98,9 @@ namespace SixLabors.ImageSharp.Primitives
         }
 
         /// <summary>
-        /// Gets a Span wrapping the Data.
+        /// Gets a span wrapping the <see cref="Data"/>.
         /// </summary>
-        internal Span<T> Span => new Span<T>(this.Data);
+        public Span<T> Span => new Span<T>(this.Data);
 
         /// <summary>
         /// Gets or sets the item at the specified position.

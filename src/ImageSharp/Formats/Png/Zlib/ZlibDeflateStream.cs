@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Png.Zlib
 {
@@ -41,12 +42,15 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         // private DeflateStream deflateStream;
         private DeflaterOutputStream deflateStream;
 
+        private Deflater deflater;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ZlibDeflateStream"/> class.
         /// </summary>
+        /// <param name="memoryAllocator">The memory allocator to use for buffer allocations.</param>
         /// <param name="stream">The stream to compress.</param>
         /// <param name="compressionLevel">The compression level.</param>
-        public ZlibDeflateStream(Stream stream, int compressionLevel)
+        public ZlibDeflateStream(MemoryAllocator memoryAllocator, Stream stream, int compressionLevel)
         {
             this.rawStream = stream;
 
@@ -100,7 +104,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             // {
             //    level = CompressionLevel.NoCompression;
             // }
-            this.deflateStream = new DeflaterOutputStream(this.rawStream, new Deflater(compressionLevel, true)) { IsStreamOwner = false };
+            this.deflater = new Deflater(memoryAllocator, compressionLevel, true);
+            this.deflateStream = new DeflaterOutputStream(this.rawStream, this.deflater) { IsStreamOwner = false };
 
             // this.deflateStream = new DeflateStream(this.rawStream, level, true);
         }
@@ -170,6 +175,10 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 {
                     this.deflateStream.Dispose();
                     this.deflateStream = null;
+
+                    // TODO: Remove temporal coupling here.
+                    this.deflater.Dispose();
+                    this.deflater = null;
                 }
                 else
                 {

@@ -590,7 +590,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <summary>
         /// Pending buffer to use
         /// </summary>
-        public DeflaterPending pending;
+        public DeflaterPendingBuffer pending;
 
         private Tree literalTree;
         private Tree distTree;
@@ -651,7 +651,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// Construct instance with pending buffer
         /// </summary>
         /// <param name="pending">Pending buffer to use</param>
-        public DeflaterHuffman(DeflaterPending pending)
+        public DeflaterHuffman(DeflaterPendingBuffer pending)
         {
             this.pending = pending;
 

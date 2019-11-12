@@ -17,18 +17,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
     public class DeflaterOutputStream : Stream
     {
         #region Constructors
-
-        /// <summary>
-        /// Creates a new DeflaterOutputStream with a default Deflater and default buffer size.
-        /// </summary>
-        /// <param name="baseOutputStream">
-        /// the output stream where deflated output should be written.
-        /// </param>
-        public DeflaterOutputStream(Stream baseOutputStream)
-            : this(baseOutputStream, new Deflater(), 512)
-        {
-        }
-
         /// <summary>
         /// Creates a new DeflaterOutputStream with the given Deflater and
         /// default buffer size.

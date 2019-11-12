@@ -2,8 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Buffers;
+using System.Runtime.CompilerServices;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Png.Zlib
 {
@@ -48,29 +49,12 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
     /// Low level compression engine for deflate algorithm which uses a 32K sliding window
     /// with secondary compression from Huffman/Shannon-Fano codes.
     /// </summary>
-    public class DeflaterEngine
+    public sealed unsafe class DeflaterEngine : IDisposable
     {
         private const int TooFar = 4096;
 
         // Hash index of string to be inserted
         private int insertHashIndex;
-
-        /// <summary>
-        /// Hashtable, hashing three characters to an index for window, so
-        /// that window[index]..window[index+2] have this hash code.
-        /// Note that the array should really be unsigned short, so you need
-        /// to and the values with 0xFFFF.
-        /// </summary>
-        private short[] head;
-
-        /// <summary>
-        /// <code>prev[index &amp; WMASK]</code> points to the previous index that has the
-        /// same hash code as the string starting at index.  This way
-        /// entries with the same hash code are in a linked list.
-        /// Note that the array should really be unsigned short, so you need
-        /// to and the values with 0xFFFF.
-        /// </summary>
-        private short[] prev;
 
         private int matchStart;
 
@@ -96,16 +80,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         private int lookahead;
 
         /// <summary>
-        /// This array contains the part of the uncompressed stream that
-        /// is of relevance.  The current character is indexed by strstart.
-        /// </summary>
-        private byte[] window;
-        private int maxChain;
-        private int maxLazy;
-        private int niceLength;
-        private int goodLength;
-
-        /// <summary>
         /// The current compression function.
         /// </summary>
         private int compressionFunction;
@@ -114,11 +88,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// The input data for compression.
         /// </summary>
         private byte[] inputBuf;
-
-        /// <summary>
-        /// The total bytes of input read.
-        /// </summary>
-        private long totalIn;
 
         /// <summary>
         /// The offset into inputBuf, where input data starts.
@@ -130,31 +99,59 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// </summary>
         private int inputEnd;
 
+        private DeflateStrategy strategy;
         private DeflaterPendingBuffer pending;
         private DeflaterHuffman huffman;
+        private bool isDisposed;
 
         /// <summary>
-        /// The adler checksum
+        /// Hashtable, hashing three characters to an index for window, so
+        /// that window[index]..window[index+2] have this hash code.
+        /// Note that the array should really be unsigned short, so you need
+        /// to and the values with 0xFFFF.
         /// </summary>
-        private Adler32 adler;
+        private short[] head;
+
+        /// <summary>
+        /// <code>prev[index &amp; WMASK]</code> points to the previous index that has the
+        /// same hash code as the string starting at index.  This way
+        /// entries with the same hash code are in a linked list.
+        /// Note that the array should really be unsigned short, so you need
+        /// to and the values with 0xFFFF.
+        /// </summary>
+        private short[] prev;
+
+        /// <summary>
+        /// This array contains the part of the uncompressed stream that
+        /// is of relevance.  The current character is indexed by strstart.
+        /// </summary>
+        private readonly IManagedByteBuffer windowBuffer;
+        private MemoryHandle windowBufferHandle;
+        private byte[] window;
+        private readonly byte* pinnedWindowPointer;
+
+        private int maxChain;
+        private int maxLazy;
+        private int niceLength;
+        private int goodLength;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DeflaterEngine"/> class.
         /// </summary>
+        /// <param name="memoryAllocator">The memory allocator to use for buffer allocations.</param>
         /// <param name="pending">The pending buffer to use.</param>
-        /// <param name="noAdlerCalculation">
-        /// If no adler calculation should be performed
-        /// </param>
-        public DeflaterEngine(DeflaterPendingBuffer pending, bool noAdlerCalculation)
+        /// <param name="strategy">The deflate strategy to use.</param>
+        public DeflaterEngine(MemoryAllocator memoryAllocator, DeflaterPendingBuffer pending, DeflateStrategy strategy)
         {
             this.pending = pending;
             this.huffman = new DeflaterHuffman(pending);
-            if (!noAdlerCalculation)
-            {
-                this.adler = new Adler32();
-            }
+            this.strategy = strategy;
 
-            this.window = new byte[2 * DeflaterConstants.WSIZE];
+            this.windowBuffer = memoryAllocator.AllocateManagedByteBuffer(2 * DeflaterConstants.WSIZE);
+            this.window = this.windowBuffer.Array;
+            this.windowBufferHandle = this.windowBuffer.Memory.Pin();
+            this.pinnedWindowPointer = (byte*)this.windowBufferHandle.Pointer;
+
             this.head = new short[DeflaterConstants.HASH_SIZE];
             this.prev = new short[DeflaterConstants.WSIZE];
 
@@ -162,33 +159,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             // we cannot build a repeat pattern at index 0.
             this.blockStart = this.strstart = 1;
         }
-
-        /// <summary>
-        /// Gets the current value of Adler checksum
-        /// </summary>
-        public int Adler
-        {
-            get
-            {
-                return (this.adler != null) ? unchecked((int)this.adler.Value) : 0;
-            }
-        }
-
-        /// <summary>
-        /// Gets the total data processed
-        /// </summary>
-        public long TotalIn
-        {
-            get
-            {
-                return this.totalIn;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the <see cref="DeflateStrategy">deflate strategy</see>
-        /// </summary>
-        public DeflateStrategy Strategy { get; set; }
 
         /// <summary>
         /// Deflate drives actual compression of data
@@ -286,7 +256,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <param name="length">The length of the dictionary data.</param>
         public void SetDictionary(byte[] buffer, int offset, int length)
         {
-            this.adler?.Update(new ArraySegment<byte>(buffer, offset, length));
             if (length < DeflaterConstants.MIN_MATCH)
             {
                 return;
@@ -318,10 +287,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         public void Reset()
         {
             this.huffman.Reset();
-            this.adler?.Reset();
             this.blockStart = this.strstart = 1;
             this.lookahead = 0;
-            this.totalIn = 0;
             this.prevAvailable = false;
             this.matchLen = DeflaterConstants.MIN_MATCH - 1;
 
@@ -334,14 +301,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             {
                 this.prev[i] = 0;
             }
-        }
-
-        /// <summary>
-        /// Reset Adler checksum
-        /// </summary>
-        public void ResetAdler()
-        {
-            this.adler?.Reset();
         }
 
         /// <summary>
@@ -386,7 +345,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                     case DeflaterConstants.DEFLATE_SLOW:
                         if (this.prevAvailable)
                         {
-                            this.huffman.TallyLit(this.window[this.strstart - 1] & 0xff);
+                            this.huffman.TallyLit(this.pinnedWindowPointer[this.strstart - 1] & 0xFF);
                         }
 
                         if (this.strstart > this.blockStart)
@@ -427,10 +386,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 }
 
                 Array.Copy(this.inputBuf, this.inputOff, this.window, this.strstart + this.lookahead, more);
-                this.adler?.Update(new ArraySegment<byte>(this.inputBuf, this.inputOff, more));
 
                 this.inputOff += more;
-                this.totalIn += more;
                 this.lookahead += more;
             }
 
@@ -440,9 +397,19 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             }
         }
 
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
         private void UpdateHash()
         {
-            this.insertHashIndex = (this.window[this.strstart] << DeflaterConstants.HASH_SHIFT) ^ this.window[this.strstart + 1];
+            byte* pinned = this.pinnedWindowPointer;
+            this.insertHashIndex = (pinned[this.strstart] << DeflaterConstants.HASH_SHIFT) ^ pinned[this.strstart + 1];
         }
 
         /// <summary>
@@ -453,7 +420,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         private int InsertString()
         {
             short match;
-            int hash = ((this.insertHashIndex << DeflaterConstants.HASH_SHIFT) ^ this.window[this.strstart + (DeflaterConstants.MIN_MATCH - 1)]) & DeflaterConstants.HASH_MASK;
+            int hash = ((this.insertHashIndex << DeflaterConstants.HASH_SHIFT) ^ this.pinnedWindowPointer[this.strstart + (DeflaterConstants.MIN_MATCH - 1)]) & DeflaterConstants.HASH_MASK;
 
             this.prev[this.strstart & DeflaterConstants.WMASK] = match = this.head[hash];
             this.head[hash] = unchecked((short)this.strstart);
@@ -463,7 +430,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
         private void SlideWindow()
         {
-            Array.Copy(this.window, DeflaterConstants.WSIZE, this.window, 0, DeflaterConstants.WSIZE);
+            Unsafe.CopyBlockUnaligned(ref this.window[0], ref this.window[DeflaterConstants.WSIZE], DeflaterConstants.WSIZE);
             this.matchStart -= DeflaterConstants.WSIZE;
             this.strstart -= DeflaterConstants.WSIZE;
             this.blockStart -= DeflaterConstants.WSIZE;
@@ -518,8 +485,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 return false;
             }
 
-            byte scan_end1 = window[scan + this.matchLen - 1];
-            byte scan_end = window[scan + this.matchLen];
+            byte* pinnedWindow = this.pinnedWindowPointer;
+            byte scan_end1 = pinnedWindow[scan + this.matchLen - 1];
+            byte scan_end = pinnedWindow[scan + this.matchLen];
 
             // Do not waste too much time if we already have a good match:
             if (this.matchLen >= this.goodLength)
@@ -532,10 +500,10 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 match = curMatch;
                 scan = this.strstart;
 
-                if (window[match + this.matchLen] != scan_end
-                 || window[match + this.matchLen - 1] != scan_end1
-                 || window[match] != window[scan]
-                 || window[++match] != window[++scan])
+                if (pinnedWindow[match + this.matchLen] != scan_end
+                 || pinnedWindow[match + this.matchLen - 1] != scan_end1
+                 || pinnedWindow[match] != pinnedWindow[scan]
+                 || pinnedWindow[++match] != pinnedWindow[++scan])
                 {
                     continue;
                 }
@@ -547,7 +515,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 switch ((scanMax - scan) % 8)
                 {
                     case 1:
-                        if (window[++scan] == window[++match])
+                        if (pinnedWindow[++scan] == pinnedWindow[++match])
                         {
                             break;
                         }
@@ -555,8 +523,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                         break;
 
                     case 2:
-                        if (window[++scan] == window[++match]
-                            && window[++scan] == window[++match])
+                        if (pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match])
                         {
                             break;
                         }
@@ -564,9 +532,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                         break;
 
                     case 3:
-                        if (window[++scan] == window[++match]
-                            && window[++scan] == window[++match]
-                            && window[++scan] == window[++match])
+                        if (pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match])
                         {
                             break;
                         }
@@ -574,10 +542,10 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                         break;
 
                     case 4:
-                        if (window[++scan] == window[++match]
-                            && window[++scan] == window[++match]
-                            && window[++scan] == window[++match]
-                            && window[++scan] == window[++match])
+                        if (pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match])
                         {
                             break;
                         }
@@ -585,11 +553,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                         break;
 
                     case 5:
-                        if (window[++scan] == window[++match]
-                            && window[++scan] == window[++match]
-                            && window[++scan] == window[++match]
-                            && window[++scan] == window[++match]
-                            && window[++scan] == window[++match])
+                        if (pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match])
                         {
                             break;
                         }
@@ -597,12 +565,12 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                         break;
 
                     case 6:
-                        if (window[++scan] == window[++match]
-                            && window[++scan] == window[++match]
-                            && window[++scan] == window[++match]
-                            && window[++scan] == window[++match]
-                            && window[++scan] == window[++match]
-                            && window[++scan] == window[++match])
+                        if (pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match])
                         {
                             break;
                         }
@@ -610,13 +578,13 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                         break;
 
                     case 7:
-                        if (window[++scan] == window[++match]
-                            && window[++scan] == window[++match]
-                            && window[++scan] == window[++match]
-                            && window[++scan] == window[++match]
-                            && window[++scan] == window[++match]
-                            && window[++scan] == window[++match]
-                            && window[++scan] == window[++match])
+                        if (pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match])
                         {
                             break;
                         }
@@ -624,7 +592,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                         break;
                 }
 
-                if (window[scan] == window[match])
+                if (pinnedWindow[scan] == pinnedWindow[match])
                 {
                     // We check for insufficient lookahead only every 8th comparison;
                     // the 256th check will be made at strstart + 258 unless lookahead is
@@ -639,14 +607,14 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                             break;
                         }
                     }
-                    while (window[++scan] == window[++match]
-                           && window[++scan] == window[++match]
-                           && window[++scan] == window[++match]
-                           && window[++scan] == window[++match]
-                           && window[++scan] == window[++match]
-                           && window[++scan] == window[++match]
-                           && window[++scan] == window[++match]
-                           && window[++scan] == window[++match]);
+                    while (pinnedWindow[++scan] == pinnedWindow[++match]
+                           && pinnedWindow[++scan] == pinnedWindow[++match]
+                           && pinnedWindow[++scan] == pinnedWindow[++match]
+                           && pinnedWindow[++scan] == pinnedWindow[++match]
+                           && pinnedWindow[++scan] == pinnedWindow[++match]
+                           && pinnedWindow[++scan] == pinnedWindow[++match]
+                           && pinnedWindow[++scan] == pinnedWindow[++match]
+                           && pinnedWindow[++scan] == pinnedWindow[++match]);
                 }
 
                 if (scan - this.strstart > this.matchLen)
@@ -659,8 +627,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                         break;
                     }
 
-                    scan_end1 = window[scan - 1];
-                    scan_end = window[scan];
+                    scan_end1 = pinnedWindow[scan - 1];
+                    scan_end = pinnedWindow[scan];
                 }
             }
             while ((curMatch = prev[curMatch & DeflaterConstants.WMASK] & 0xFFFF) > limit && --chainLength != 0);
@@ -727,7 +695,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 int hashHead;
                 if (this.lookahead >= DeflaterConstants.MIN_MATCH &&
                     (hashHead = this.InsertString()) != 0 &&
-                    this.Strategy != DeflateStrategy.HuffmanOnly &&
+                    this.strategy != DeflateStrategy.HuffmanOnly &&
                     this.strstart - hashHead <= DeflaterConstants.MAX_DIST &&
                     this.FindLongestMatch(hashHead))
                 {
@@ -763,7 +731,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 else
                 {
                     // No match found
-                    this.huffman.TallyLit(this.window[this.strstart] & 0xff);
+                    this.huffman.TallyLit(this.pinnedWindowPointer[this.strstart] & 0xff);
                     ++this.strstart;
                     --this.lookahead;
                 }
@@ -793,7 +761,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 {
                     if (this.prevAvailable)
                     {
-                        this.huffman.TallyLit(this.window[this.strstart - 1] & 0xff);
+                        this.huffman.TallyLit(this.pinnedWindowPointer[this.strstart - 1] & 0xff);
                     }
 
                     this.prevAvailable = false;
@@ -818,14 +786,14 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 {
                     int hashHead = this.InsertString();
 
-                    if (this.Strategy != DeflateStrategy.HuffmanOnly &&
+                    if (this.strategy != DeflateStrategy.HuffmanOnly &&
                         hashHead != 0 &&
                         this.strstart - hashHead <= DeflaterConstants.MAX_DIST &&
                         this.FindLongestMatch(hashHead))
                     {
                         // longestMatch sets matchStart and matchLen
                         // Discard match if too small and too far away
-                        if (this.matchLen <= 5 && (this.Strategy == DeflateStrategy.Filtered || (this.matchLen == DeflaterConstants.MIN_MATCH && this.strstart - this.matchStart > TooFar)))
+                        if (this.matchLen <= 5 && (this.strategy == DeflateStrategy.Filtered || (this.matchLen == DeflaterConstants.MIN_MATCH && this.strstart - this.matchStart > TooFar)))
                         {
                             this.matchLen = DeflaterConstants.MIN_MATCH - 1;
                         }
@@ -835,15 +803,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 // previous match was better
                 if ((prevLen >= DeflaterConstants.MIN_MATCH) && (this.matchLen <= prevLen))
                 {
-#if DebugDeflation
-					if (DeflaterConstants.DEBUGGING)
-					{
-					   for (int i = 0 ; i < matchLen; i++) {
-						  if (window[strstart-1+i] != window[prevMatch + i])
-							 throw new ImageFormatException();
-						}
-					}
-#endif
                     this.huffman.TallyDist(this.strstart - 1 - prevMatch, prevLen);
                     prevLen -= 2;
                     do
@@ -866,7 +825,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 {
                     if (this.prevAvailable)
                     {
-                        this.huffman.TallyLit(this.window[this.strstart - 1] & 0xff);
+                        this.huffman.TallyLit(this.pinnedWindowPointer[this.strstart - 1] & 0xff);
                     }
 
                     this.prevAvailable = true;
@@ -890,6 +849,20 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             }
 
             return true;
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (!this.isDisposed)
+            {
+                if (disposing)
+                {
+                    this.windowBufferHandle.Dispose();
+                    this.windowBuffer.Dispose();
+                }
+
+                this.isDisposed = true;
+            }
         }
     }
 }

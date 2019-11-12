@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <param name="pending">
         /// Pending buffer to use
         /// </param>
-        public DeflaterEngine(DeflaterPending pending)
+        public DeflaterEngine(DeflaterPendingBuffer pending)
             : this(pending, false)
         {
         }
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <param name="noAdlerCalculation">
         /// If no adler calculation should be performed
         /// </param>
-        public DeflaterEngine(DeflaterPending pending, bool noAdlerCalculation)
+        public DeflaterEngine(DeflaterPendingBuffer pending, bool noAdlerCalculation)
         {
             this.pending = pending;
             huffman = new DeflaterHuffman(pending);
@@ -938,7 +938,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// </summary>
         private int inputEnd;
 
-        private DeflaterPending pending;
+        private DeflaterPendingBuffer pending;
         private DeflaterHuffman huffman;
 
         /// <summary>

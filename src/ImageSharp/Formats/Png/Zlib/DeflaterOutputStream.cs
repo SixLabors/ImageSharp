@@ -97,11 +97,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                     break;
                 }
 
-                //if (cryptoTransform_ != null)
-                //{
-                //    EncryptBlock(buffer_, 0, len);
-                //}
-
                 baseOutputStream_.Write(buffer_, 0, len);
             }
 
@@ -111,16 +106,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             }
 
             baseOutputStream_.Flush();
-
-            //if (cryptoTransform_ != null)
-            //{
-            //    if (cryptoTransform_ is ZipAESTransform)
-            //    {
-            //        AESAuthCode = ((ZipAESTransform)cryptoTransform_).GetAuthCode();
-            //    }
-            //    cryptoTransform_.Dispose();
-            //    cryptoTransform_ = null;
-            //}
         }
 
         /// <summary>
@@ -394,12 +379,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 try
                 {
                     Finish();
-                    //if (cryptoTransform_ != null)
-                    //{
-                    //    GetAuthCodeIfAES();
-                    //    cryptoTransform_.Dispose();
-                    //    cryptoTransform_ = null;
-                    //}
                 }
                 finally
                 {

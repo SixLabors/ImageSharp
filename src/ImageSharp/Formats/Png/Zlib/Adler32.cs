@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -133,8 +133,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 count -= n;
                 while (--n >= 0)
                 {
-                    s1 = s1 + (uint)(data[offset++] & 0xff);
-                    s2 = s2 + s1;
+                    s1 += (uint)(data[offset++] & 0xff);
+                    s2 += s1;
                 }
 
                 s1 %= Base;

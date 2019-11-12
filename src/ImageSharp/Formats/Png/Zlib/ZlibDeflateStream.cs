@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -38,7 +38,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <summary>
         /// The stream responsible for compressing the input stream.
         /// </summary>
-        private System.IO.Compression.DeflateStream deflateStream;
+        // private DeflateStream deflateStream;
+        private DeflaterOutputStream deflateStream;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ZlibDeflateStream"/> class.
@@ -89,18 +90,19 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             this.rawStream.WriteByte((byte)flg);
 
             // Initialize the deflate Stream.
-            CompressionLevel level = CompressionLevel.Optimal;
+            // CompressionLevel level = CompressionLevel.Optimal;
+            //
+            // if (compressionLevel >= 1 && compressionLevel <= 5)
+            // {
+            //    level = CompressionLevel.Fastest;
+            // }
+            // else if (compressionLevel == 0)
+            // {
+            //    level = CompressionLevel.NoCompression;
+            // }
+            this.deflateStream = new DeflaterOutputStream(this.rawStream, new Deflater(compressionLevel, true)) { IsStreamOwner = false };
 
-            if (compressionLevel >= 1 && compressionLevel <= 5)
-            {
-                level = CompressionLevel.Fastest;
-            }
-            else if (compressionLevel == 0)
-            {
-                level = CompressionLevel.NoCompression;
-            }
-
-            this.deflateStream = new System.IO.Compression.DeflateStream(this.rawStream, level, true);
+            // this.deflateStream = new DeflateStream(this.rawStream, level, true);
         }
 
         /// <inheritdoc/>

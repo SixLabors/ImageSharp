@@ -1,11 +1,10 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Buffers;
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -32,19 +31,20 @@ namespace SixLabors.ImageSharp.Processing
 
         /// <inheritdoc />
         public BrushApplicator<TPixel> CreateApplicator<TPixel>(
+            Configuration configuration,
+            GraphicsOptions options,
             ImageFrame<TPixel> source,
-            RectangleF region,
-            GraphicsOptions options)
+            RectangleF region)
             where TPixel : struct, IPixel<TPixel>
         {
             if (this.image is Image<TPixel> specificImage)
             {
-                return new ImageBrushApplicator<TPixel>(source, specificImage, region, options, false);
+                return new ImageBrushApplicator<TPixel>(configuration, options, source, specificImage, region, false);
             }
 
             specificImage = this.image.CloneAs<TPixel>();
 
-            return new ImageBrushApplicator<TPixel>(source, specificImage, region, options, true);
+            return new ImageBrushApplicator<TPixel>(configuration, options, source, specificImage, region, true);
         }
 
         /// <summary>
@@ -79,21 +79,25 @@ namespace SixLabors.ImageSharp.Processing
             /// </summary>
             private readonly int offsetX;
 
+            private bool isDisposed;
+
             /// <summary>
             /// Initializes a new instance of the <see cref="ImageBrushApplicator{TPixel}"/> class.
             /// </summary>
+            /// <param name="configuration">The configuration instance to use when performing operations.</param>
+            /// <param name="options">The graphics options.</param>
             /// <param name="target">The target image.</param>
             /// <param name="image">The image.</param>
             /// <param name="region">The region.</param>
-            /// <param name="options">The options</param>
             /// <param name="shouldDisposeImage">Whether to dispose the image on disposal of the applicator.</param>
             public ImageBrushApplicator(
+                Configuration configuration,
+                GraphicsOptions options,
                 ImageFrame<TPixel> target,
                 Image<TPixel> image,
                 RectangleF region,
-                GraphicsOptions options,
                 bool shouldDisposeImage)
-                : base(target, options)
+                : base(configuration, options, target)
             {
                 this.sourceImage = image;
                 this.sourceFrame = image.Frames.RootFrame;
@@ -104,14 +108,7 @@ namespace SixLabors.ImageSharp.Processing
                 this.offsetX = (int)MathF.Max(MathF.Floor(region.Left), 0);
             }
 
-            /// <summary>
-            /// Gets the color for a single pixel.
-            /// </summary>
-            /// <param name="x">The x.</param>
-            /// <param name="y">The y.</param>
-            /// <returns>
-            /// The color
-            /// </returns>
+            /// <inheritdoc/>
             internal override TPixel this[int x, int y]
             {
                 get
@@ -123,14 +120,21 @@ namespace SixLabors.ImageSharp.Processing
             }
 
             /// <inheritdoc />
-            public override void Dispose()
+            protected override void Dispose(bool disposing)
             {
-                if (this.shouldDisposeImage)
+                if (this.isDisposed)
+                {
+                    return;
+                }
+
+                if (disposing && this.shouldDisposeImage)
                 {
                     this.sourceImage?.Dispose();
-                    this.sourceImage = null;
-                    this.sourceFrame = null;
                 }
+
+                this.sourceImage = null;
+                this.sourceFrame = null;
+                this.isDisposed = true;
             }
 
             /// <inheritdoc />
@@ -140,8 +144,8 @@ namespace SixLabors.ImageSharp.Processing
                 using (IMemoryOwner<float> amountBuffer = this.Target.MemoryAllocator.Allocate<float>(scanline.Length))
                 using (IMemoryOwner<TPixel> overlay = this.Target.MemoryAllocator.Allocate<TPixel>(scanline.Length))
                 {
-                    Span<float> amountSpan = amountBuffer.GetSpan();
-                    Span<TPixel> overlaySpan = overlay.GetSpan();
+                    Span<float> amountSpan = amountBuffer.Memory.Span;
+                    Span<TPixel> overlaySpan = overlay.Memory.Span;
 
                     int sourceY = (y - this.offsetY) % this.yLength;
                     int offsetX = x - this.offsetX;
@@ -152,13 +156,12 @@ namespace SixLabors.ImageSharp.Processing
                         amountSpan[i] = scanline[i] * this.Options.BlendPercentage;
 
                         int sourceX = (i + offsetX) % this.xLength;
-                        TPixel pixel = sourceRow[sourceX];
-                        overlaySpan[i] = pixel;
+                        overlaySpan[i] = sourceRow[sourceX];
                     }
 
                     Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
                     this.Blender.Blend(
-                        this.sourceFrame.Configuration,
+                        this.Configuration,
                         destinationRow,
                         destinationRow,
                         overlaySpan,

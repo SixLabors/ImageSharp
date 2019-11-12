@@ -1,11 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Numerics;
-
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.PixelFormats.PixelBlenders;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing
@@ -38,9 +36,10 @@ namespace SixLabors.ImageSharp.Processing
 
         /// <inheritdoc />
         public abstract BrushApplicator<TPixel> CreateApplicator<TPixel>(
+            Configuration configuration,
+            GraphicsOptions options,
             ImageFrame<TPixel> source,
-            RectangleF region,
-            GraphicsOptions options)
+            RectangleF region)
             where TPixel : struct, IPixel<TPixel>;
 
         /// <summary>
@@ -58,27 +57,24 @@ namespace SixLabors.ImageSharp.Processing
             /// <summary>
             /// Initializes a new instance of the <see cref="GradientBrushApplicator{TPixel}"/> class.
             /// </summary>
-            /// <param name="target">The target.</param>
-            /// <param name="options">The options.</param>
+            /// <param name="configuration">The configuration instance to use when performing operations.</param>
+            /// <param name="options">The graphics options.</param>
+            /// <param name="target">The target image.</param>
             /// <param name="colorStops">An array of color stops sorted by their position.</param>
             /// <param name="repetitionMode">Defines if and how the gradient should be repeated.</param>
             protected GradientBrushApplicator(
-                ImageFrame<TPixel> target,
+                Configuration configuration,
                 GraphicsOptions options,
+                ImageFrame<TPixel> target,
                 ColorStop[] colorStops,
                 GradientRepetitionMode repetitionMode)
-                : base(target, options)
+                : base(configuration, options, target)
             {
                 this.colorStops = colorStops; // TODO: requires colorStops to be sorted by position - should that be checked?
                 this.repetitionMode = repetitionMode;
             }
 
-            /// <summary>
-            /// Base implementation of the indexer for gradients
-            /// (follows the facade pattern, using abstract methods)
-            /// </summary>
-            /// <param name="x">X coordinate of the Pixel.</param>
-            /// <param name="y">Y coordinate of the Pixel.</param>
+            /// <inheritdoc/>
             internal override TPixel this[int x, int y]
             {
                 get
@@ -92,10 +88,10 @@ namespace SixLabors.ImageSharp.Processing
                             // onLocalGradient = Math.Min(0, Math.Max(1, onLocalGradient));
                             break;
                         case GradientRepetitionMode.Repeat:
-                            positionOnCompleteGradient = positionOnCompleteGradient % 1;
+                            positionOnCompleteGradient %= 1;
                             break;
                         case GradientRepetitionMode.Reflect:
-                            positionOnCompleteGradient = positionOnCompleteGradient % 2;
+                            positionOnCompleteGradient %= 2;
                             if (positionOnCompleteGradient > 1)
                             {
                                 positionOnCompleteGradient = 2 - positionOnCompleteGradient;
@@ -121,19 +117,8 @@ namespace SixLabors.ImageSharp.Processing
                     }
                     else
                     {
-                        var fromAsVector = from.Color.ToVector4();
-                        var toAsVector = to.Color.ToVector4();
                         float onLocalGradient = (positionOnCompleteGradient - from.Ratio) / (to.Ratio - from.Ratio);
-
-                        // TODO: this should be changeble for different gradienting functions
-                        Vector4 result = PorterDuffFunctions.NormalSrcOver(
-                            fromAsVector,
-                            toAsVector,
-                            onLocalGradient);
-
-                        TPixel resultColor = default;
-                        resultColor.FromVector4(result);
-                        return resultColor;
+                        return new Color(Vector4.Lerp((Vector4)from.Color, (Vector4)to.Color, onLocalGradient)).ToPixel<TPixel>();
                     }
                 }
             }
@@ -142,8 +127,8 @@ namespace SixLabors.ImageSharp.Processing
             /// calculates the position on the gradient for a given point.
             /// This method is abstract as it's content depends on the shape of the gradient.
             /// </summary>
-            /// <param name="x">The x coordinate of the point</param>
-            /// <param name="y">The y coordinate of the point</param>
+            /// <param name="x">The x-coordinate of the point.</param>
+            /// <param name="y">The y-coordinate of the point.</param>
             /// <returns>
             /// The position the given point has on the gradient.
             /// The position is not bound to the [0..1] interval.

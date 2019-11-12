@@ -190,7 +190,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
                 void Test()
                 {
-                    background.Mutate(context => context.DrawImage(overlay, new Point(x, y), GraphicsOptions.Default));
+                    background.Mutate(context => context.DrawImage(overlay, new Point(x, y), new GraphicsOptions()));
                 }
             }
         }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -16,8 +16,6 @@ using SixLabors.Shapes;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
-
-
     public class FillRegionProcessorTests
     {
 
@@ -35,11 +33,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             var brush = new Mock<IBrush>();
             var region = new MockRegion2(bounds);
 
-            var options = new GraphicsOptions(antialias)
+            var options = new GraphicsOptions
             {
+                Antialias = antialias,
                 AntialiasSubpixelDepth = 1
             };
-            var processor = new FillRegionProcessor(brush.Object, region, options);
+            var processor = new FillRegionProcessor(options, brush.Object, region);
             var img = new Image<Rgba32>(1, 1);
             processor.Execute(img, bounds);
 
@@ -51,8 +50,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             var bounds = new Rectangle(-100, -10, 10, 10);
             var brush = new Mock<IBrush>();
-            var options = new GraphicsOptions(true);
-            var processor = new FillRegionProcessor(brush.Object, new MockRegion1(), options);
+            var options = new GraphicsOptions { Antialias = true };
+            var processor = new FillRegionProcessor(options, brush.Object, new MockRegion1());
             var img = new Image<Rgba32>(10, 10);
             processor.Execute(img, bounds);
         }
@@ -73,11 +72,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void DoesNotThrowForIssue928()
         {
             var rectText = new RectangleF(0, 0, 2000, 2000);
-            using (Image<Rgba32> img = new Image<Rgba32>((int)rectText.Width, (int)rectText.Height))
+            using (var img = new Image<Rgba32>((int)rectText.Width, (int)rectText.Height))
             {
                 img.Mutate(x => x.Fill(Rgba32.Transparent));
 
-                img.Mutate(ctx => {
+                img.Mutate(ctx =>
+                {
                     ctx.DrawLines(
                         Rgba32.Red,
                         0.984252f,
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         new PointF(104.782608f, 1075.13245f),
                         new PointF(104.782608f, 1075.13245f)
                         );
-                    }
+                }
                 );
             }
         }
@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void DoesNotThrowFillingTriangle()
         {
-            using(var image = new Image<Rgba32>(28, 28))
+            using (var image = new Image<Rgba32>(28, 28))
             {
                 var path = new Polygon(
                     new LinearLineSegment(new PointF(17.11f, 13.99659f), new PointF(14.01433f, 27.06201f)),

@@ -16,10 +16,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
         /// <summary>
         /// Initializes a new instance of the <see cref="FillRegionProcessor" /> class.
         /// </summary>
+        /// <param name="options">The graphics options.</param>
         /// <param name="brush">The details how to fill the region of interest.</param>
         /// <param name="region">The region of interest to be filled.</param>
-        /// <param name="options">The configuration options.</param>
-        public FillRegionProcessor(IBrush brush, Region region, GraphicsOptions options)
+        public FillRegionProcessor(GraphicsOptions options, IBrush brush, Region region)
         {
             this.Region = region;
             this.Brush = brush;

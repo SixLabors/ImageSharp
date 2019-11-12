@@ -156,10 +156,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             {
                 TPixel bgColor = image[0, 0];
 
-                var options = new GraphicsOptions(false)
-                                  {
-                                      ColorBlendingMode = blenderMode, BlendPercentage = blendPercentage
-                                  };
+                var options = new GraphicsOptions
+                {
+                    Antialias = false,
+                    ColorBlendingMode = blenderMode,
+                    BlendPercentage = blendPercentage
+                };
 
                 if (triggerFillRegion)
                 {
@@ -173,13 +175,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 }
 
                 var testOutputDetails = new
-                                            {
-                                                triggerFillRegion = triggerFillRegion,
-                                                newColorName = newColorName,
-                                                alpha = alpha,
-                                                blenderMode = blenderMode,
-                                                blendPercentage = blendPercentage
-                                            };
+                {
+                    triggerFillRegion = triggerFillRegion,
+                    newColorName = newColorName,
+                    alpha = alpha,
+                    blenderMode = blenderMode,
+                    blendPercentage = blendPercentage
+                };
 
                 image.DebugSave(
                     provider,

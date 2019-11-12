@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -61,8 +61,8 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="pattern">The pattern.</param>
         internal PatternBrush(Color foreColor, Color backColor, in DenseMatrix<bool> pattern)
         {
-            var foreColorVector = foreColor.ToVector4();
-            var backColorVector = backColor.ToVector4();
+            var foreColorVector = (Vector4)foreColor;
+            var backColorVector = (Vector4)backColor;
             this.pattern = new DenseMatrix<Color>(pattern.Columns, pattern.Rows);
             this.patternVector = new DenseMatrix<Vector4>(pattern.Columns, pattern.Rows);
             for (int i = 0; i < pattern.Data.Length; i++)
@@ -92,14 +92,16 @@ namespace SixLabors.ImageSharp.Processing
 
         /// <inheritdoc />
         public BrushApplicator<TPixel> CreateApplicator<TPixel>(
+            Configuration configuration,
+            GraphicsOptions options,
             ImageFrame<TPixel> source,
-            RectangleF region,
-            GraphicsOptions options)
+            RectangleF region)
             where TPixel : struct, IPixel<TPixel> =>
             new PatternBrushApplicator<TPixel>(
+                configuration,
+                options,
                 source,
-                this.pattern.ToPixelMatrix<TPixel>(source.Configuration),
-                options);
+                this.pattern.ToPixelMatrix<TPixel>(configuration));
 
         /// <summary>
         /// The pattern brush applicator.
@@ -115,39 +117,31 @@ namespace SixLabors.ImageSharp.Processing
             /// <summary>
             /// Initializes a new instance of the <see cref="PatternBrushApplicator{TPixel}" /> class.
             /// </summary>
+            /// <param name="configuration">The configuration instance to use when performing operations.</param>
+            /// <param name="options">The graphics options.</param>
             /// <param name="source">The source image.</param>
             /// <param name="pattern">The pattern.</param>
-            /// <param name="options">The options</param>
-            public PatternBrushApplicator(ImageFrame<TPixel> source, in DenseMatrix<TPixel> pattern, GraphicsOptions options)
-                : base(source, options)
+            public PatternBrushApplicator(
+                Configuration configuration,
+                GraphicsOptions options,
+                ImageFrame<TPixel> source,
+                in DenseMatrix<TPixel> pattern)
+                : base(configuration, options, source)
             {
                 this.pattern = pattern;
             }
 
-            /// <summary>
-            /// Gets the color for a single pixel.
-            /// </summary>#
-            /// <param name="x">The x.</param>
-            /// <param name="y">The y.</param>
-            /// <returns>
-            /// The Color.
-            /// </returns>
+            /// <inheritdoc/>
             internal override TPixel this[int x, int y]
             {
                 get
                 {
-                    x = x % this.pattern.Columns;
-                    y = y % this.pattern.Rows;
+                    x %= this.pattern.Columns;
+                    y %= this.pattern.Rows;
 
                     // 2d array index at row/column
                     return this.pattern[y, x];
                 }
-            }
-
-            /// <inheritdoc />
-            public override void Dispose()
-            {
-                // noop
             }
 
             /// <inheritdoc />
@@ -159,12 +153,12 @@ namespace SixLabors.ImageSharp.Processing
                 using (IMemoryOwner<float> amountBuffer = memoryAllocator.Allocate<float>(scanline.Length))
                 using (IMemoryOwner<TPixel> overlay = memoryAllocator.Allocate<TPixel>(scanline.Length))
                 {
-                    Span<float> amountSpan = amountBuffer.GetSpan();
-                    Span<TPixel> overlaySpan = overlay.GetSpan();
+                    Span<float> amountSpan = amountBuffer.Memory.Span;
+                    Span<TPixel> overlaySpan = overlay.Memory.Span;
 
                     for (int i = 0; i < scanline.Length; i++)
                     {
-                        amountSpan[i] = (scanline[i] * this.Options.BlendPercentage).Clamp(0, 1);
+                        amountSpan[i] = NumberUtils.ClampFloat(scanline[i] * this.Options.BlendPercentage, 0, 1F);
 
                         int patternX = (x + i) % this.pattern.Columns;
                         overlaySpan[i] = this.pattern[patternY, patternX];
@@ -172,7 +166,7 @@ namespace SixLabors.ImageSharp.Processing
 
                     Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
                     this.Blender.Blend(
-                        this.Target.Configuration,
+                        this.Configuration,
                         destinationRow,
                         destinationRow,
                         overlaySpan,

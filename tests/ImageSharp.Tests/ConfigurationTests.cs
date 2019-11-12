@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -19,6 +19,8 @@ namespace SixLabors.ImageSharp.Tests
     {
         public Configuration ConfigurationEmpty { get; }
         public Configuration DefaultConfiguration { get; }
+
+        private readonly int expectedDefaultConfigurationCount = 5;
 
         public ConfigurationTests()
         {
@@ -108,14 +110,13 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ConfigurationCannotAddDuplicates()
         {
-            const int count = 4;
             Configuration config = this.DefaultConfiguration;
 
-            Assert.Equal(count, config.ImageFormats.Count());
+            Assert.Equal(expectedDefaultConfigurationCount, config.ImageFormats.Count());
 
             config.ImageFormatsManager.AddImageFormat(BmpFormat.Instance);
 
-            Assert.Equal(count, config.ImageFormats.Count());
+            Assert.Equal(expectedDefaultConfigurationCount, config.ImageFormats.Count());
         }
 
         [Fact]
@@ -123,7 +124,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             Configuration config = Configuration.CreateDefaultInstance();
 
-            Assert.Equal(4, config.ImageFormats.Count());
+            Assert.Equal(expectedDefaultConfigurationCount, config.ImageFormats.Count());
         }
 
         [Fact]

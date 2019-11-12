@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Magick.NET-Q16-AnyCPU" />
     <PackageReference Include="BenchmarkDotNet" />
     <PackageReference Include="Colourful" />
     <PackageReference Include="SixLabors.Shapes.Text" />

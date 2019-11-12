@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Png.Zlib
 {
-    internal static class DeflaterThrowHelper
+    internal static class DeflateThrowHelper
     {
         [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowAlreadyFinished() => throw new InvalidOperationException("Finish() already called.");

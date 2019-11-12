@@ -54,7 +54,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         private DeflaterEngine engine;
         private bool isDisposed;
 
-        private const int IsSetDict = 0x01;
         private const int IsFlushing = 0x04;
         private const int IsFinishing = 0x08;
         private const int BusyState = 0x10;
@@ -82,8 +81,10 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             }
 
             this.pending = new DeflaterPendingBuffer(memoryAllocator);
-            this.engine = new DeflaterEngine(this.pending, true);
-            this.engine.Strategy = DeflateStrategy.Default;
+
+            // TODO: Possibly provide DeflateStrategy as an option.
+            this.engine = new DeflaterEngine(memoryAllocator, this.pending, DeflateStrategy.Default);
+
             this.SetLevel(level);
             this.Reset();
         }
@@ -233,37 +234,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 DeflateThrowHelper.ThrowAlreadyClosed();
             }
 
-            if (this.state < BusyState)
-            {
-                // Output header
-                int header = (Deflated + ((DeflaterConstants.MAX_WBITS - 8) << 4)) << 8;
-                int levelFlags = (this.level - 1) >> 1;
-                if (levelFlags < 0 || levelFlags > 3)
-                {
-                    levelFlags = 3;
-                }
-
-                header |= levelFlags << 6;
-                if ((this.state & IsSetDict) != 0)
-                {
-                    // Dictionary was set
-                    header |= DeflaterConstants.PRESET_DICT;
-                }
-
-                header += 31 - (header % 31);
-
-                this.pending.WriteShortMSB(header);
-                if ((this.state & IsSetDict) != 0)
-                {
-                    int chksum = this.engine.Adler;
-                    this.engine.ResetAdler();
-                    this.pending.WriteShortMSB(chksum >> 16);
-                    this.pending.WriteShortMSB(chksum & 0xffff);
-                }
-
-                this.state = BusyState | (this.state & (IsFlushing | IsFinishing));
-            }
-
             while (true)
             {
                 int count = this.pending.Flush(output, offset, length);
@@ -326,9 +296,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 if (disposing)
                 {
                     this.pending.Dispose();
+                    this.engine.Dispose();
                 }
 
                 this.pending = null;
+                this.engine = null;
                 this.isDisposed = true;
             }
         }

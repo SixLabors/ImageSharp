@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 };
             Color color = TestUtils.GetColorByName(colorName).WithAlpha(alpha);
 
-            var options = new GraphicsOptions(antialias);
+            var options = new GraphicsOptions { Antialias = antialias };
 
             string aa = antialias ? "" : "_NoAntialias";
             FormattableString outputDetails = $"{colorName}_A{alpha}{aa}";

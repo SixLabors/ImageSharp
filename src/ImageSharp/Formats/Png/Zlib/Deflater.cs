@@ -295,8 +295,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             {
                 if (disposing)
                 {
-                    this.pending.Dispose();
                     this.engine.Dispose();
+                    this.pending.Dispose();
                 }
 
                 this.pending = null;

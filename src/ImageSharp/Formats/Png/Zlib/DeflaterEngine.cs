@@ -99,8 +99,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// </summary>
         private int inputEnd;
 
-        private DeflateStrategy strategy;
-        private DeflaterPendingBuffer pending;
+        private readonly DeflateStrategy strategy;
+        private readonly DeflaterPendingBuffer pending;
         private DeflaterHuffman huffman;
         private bool isDisposed;
 
@@ -110,7 +110,10 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// Note that the array should really be unsigned short, so you need
         /// to and the values with 0xFFFF.
         /// </summary>
-        private short[] head;
+        private readonly IMemoryOwner<short> headBuffer;
+        private MemoryHandle headBufferHandle;
+        private readonly Memory<short> head;
+        private readonly short* pinnedHeadPointer;
 
         /// <summary>
         /// <code>prev[index &amp; WMASK]</code> points to the previous index that has the
@@ -119,7 +122,10 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// Note that the array should really be unsigned short, so you need
         /// to and the values with 0xFFFF.
         /// </summary>
-        private short[] prev;
+        private readonly IMemoryOwner<short> prevBuffer;
+        private MemoryHandle prevBufferHandle;
+        private readonly Memory<short> prev;
+        private readonly short* pinnedPrevPointer;
 
         /// <summary>
         /// This array contains the part of the uncompressed stream that
@@ -127,7 +133,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// </summary>
         private readonly IManagedByteBuffer windowBuffer;
         private MemoryHandle windowBufferHandle;
-        private byte[] window;
+        private readonly byte[] window;
         private readonly byte* pinnedWindowPointer;
 
         private int maxChain;
@@ -147,13 +153,22 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             this.huffman = new DeflaterHuffman(pending);
             this.strategy = strategy;
 
-            this.windowBuffer = memoryAllocator.AllocateManagedByteBuffer(2 * DeflaterConstants.WSIZE);
+            // Create pinned pointers to the various buffers to allow indexing
+            // without bounds checks.
+            this.windowBuffer = memoryAllocator.AllocateManagedByteBuffer(2 * DeflaterConstants.WSIZE, AllocationOptions.Clean);
             this.window = this.windowBuffer.Array;
             this.windowBufferHandle = this.windowBuffer.Memory.Pin();
             this.pinnedWindowPointer = (byte*)this.windowBufferHandle.Pointer;
 
-            this.head = new short[DeflaterConstants.HASH_SIZE];
-            this.prev = new short[DeflaterConstants.WSIZE];
+            this.headBuffer = memoryAllocator.Allocate<short>(DeflaterConstants.HASH_SIZE, AllocationOptions.Clean);
+            this.head = this.headBuffer.Memory;
+            this.headBufferHandle = this.headBuffer.Memory.Pin();
+            this.pinnedHeadPointer = (short*)this.headBufferHandle.Pointer;
+
+            this.prevBuffer = memoryAllocator.Allocate<short>(DeflaterConstants.WSIZE, AllocationOptions.Clean);
+            this.prev = this.prevBuffer.Memory;
+            this.prevBufferHandle = this.prevBuffer.Memory.Pin();
+            this.pinnedPrevPointer = (short*)this.prevBufferHandle.Pointer;
 
             // We start at index 1, to avoid an implementation deficiency, that
             // we cannot build a repeat pattern at index 0.
@@ -168,7 +183,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <returns>Returns true if progress has been made.</returns>
         public bool Deflate(bool flush, bool finish)
         {
-            bool progress;
+            bool progress = false;
             do
             {
                 this.FillWindow();
@@ -189,7 +204,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                         break;
 
                     default:
-                        throw new InvalidOperationException("unknown compressionFunction");
+                        DeflateThrowHelper.ThrowUnknownCompression();
+                        break;
                 }
             }
             while (this.pending.IsFlushed && progress); // repeat while we have no pending output and progress was made
@@ -197,7 +213,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         }
 
         /// <summary>
-        /// Sets input data to be deflated.  Should only be called when <code>NeedsInput()</code>
+        /// Sets input data to be deflated.  Should only be called when <see cref="NeedsInput"/>
         /// returns true
         /// </summary>
         /// <param name="buffer">The buffer containing input data.</param>
@@ -205,33 +221,33 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <param name="count">The number of bytes of data to use as input.</param>
         public void SetInput(byte[] buffer, int offset, int count)
         {
-            if (buffer == null)
+            if (buffer is null)
             {
-                throw new ArgumentNullException(nameof(buffer));
+                DeflateThrowHelper.ThrowNull(nameof(buffer));
             }
 
             if (offset < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(offset));
+                DeflateThrowHelper.ThrowOutOfRange(nameof(offset));
             }
 
             if (count < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(count));
+                DeflateThrowHelper.ThrowOutOfRange(nameof(count));
             }
 
             if (this.inputOff < this.inputEnd)
             {
-                throw new InvalidOperationException("Old input was not completely processed.");
+                DeflateThrowHelper.ThrowNotProcessed();
             }
 
             int end = offset + count;
 
-            // We want to throw an ArrayIndexOutOfBoundsException early.
+            // We want to throw an ArgumentOutOfRangeException early.
             // The check is very tricky: it also handles integer wrap around.
             if ((offset > end) || (end > buffer.Length))
             {
-                throw new ArgumentOutOfRangeException(nameof(count));
+                DeflateThrowHelper.ThrowOutOfRange(nameof(count));
             }
 
             this.inputBuf = buffer;
@@ -243,47 +259,13 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// Determines if more <see cref="SetInput">input</see> is needed.
         /// </summary>
         /// <returns>Return true if input is needed via <see cref="SetInput">SetInput</see></returns>
-        public bool NeedsInput()
-        {
-            return this.inputEnd == this.inputOff;
-        }
-
-        /// <summary>
-        /// Set compression dictionary
-        /// </summary>
-        /// <param name="buffer">The buffer containing the dictionary data</param>
-        /// <param name="offset">The offset in the buffer for the first byte of data</param>
-        /// <param name="length">The length of the dictionary data.</param>
-        public void SetDictionary(byte[] buffer, int offset, int length)
-        {
-            if (length < DeflaterConstants.MIN_MATCH)
-            {
-                return;
-            }
-
-            if (length > DeflaterConstants.MAX_DIST)
-            {
-                offset += length - DeflaterConstants.MAX_DIST;
-                length = DeflaterConstants.MAX_DIST;
-            }
-
-            System.Array.Copy(buffer, offset, this.window, this.strstart, length);
-
-            this.UpdateHash();
-            --length;
-            while (--length > 0)
-            {
-                this.InsertString();
-                this.strstart++;
-            }
-
-            this.strstart += 2;
-            this.blockStart = this.strstart;
-        }
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public bool NeedsInput() => this.inputEnd == this.inputOff;
 
         /// <summary>
         /// Reset internal state
         /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void Reset()
         {
             this.huffman.Reset();
@@ -291,16 +273,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             this.lookahead = 0;
             this.prevAvailable = false;
             this.matchLen = DeflaterConstants.MIN_MATCH - 1;
-
-            for (int i = 0; i < DeflaterConstants.HASH_SIZE; i++)
-            {
-                this.head[i] = 0;
-            }
-
-            for (int i = 0; i < DeflaterConstants.WSIZE; i++)
-            {
-                this.prev[i] = 0;
-            }
+            this.head.Span.Slice(0, DeflaterConstants.HASH_SIZE).Clear();
+            this.prev.Span.Slice(0, DeflaterConstants.WSIZE).Clear();
         }
 
         /// <summary>
@@ -311,7 +285,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         {
             if ((level < 0) || (level > 9))
             {
-                throw new ArgumentOutOfRangeException(nameof(level));
+                DeflateThrowHelper.ThrowOutOfRange(nameof(level));
             }
 
             this.goodLength = DeflaterConstants.GOOD_LENGTH[level];
@@ -417,13 +391,15 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// value for this hash.
         /// </summary>
         /// <returns>The previous hash value</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         private int InsertString()
         {
             short match;
             int hash = ((this.insertHashIndex << DeflaterConstants.HASH_SHIFT) ^ this.pinnedWindowPointer[this.strstart + (DeflaterConstants.MIN_MATCH - 1)]) & DeflaterConstants.HASH_MASK;
 
-            this.prev[this.strstart & DeflaterConstants.WMASK] = match = this.head[hash];
-            this.head[hash] = unchecked((short)this.strstart);
+            short* pinnedHead = this.pinnedHeadPointer;
+            this.pinnedPrevPointer[this.strstart & DeflaterConstants.WMASK] = match = pinnedHead[hash];
+            pinnedHead[hash] = unchecked((short)this.strstart);
             this.insertHashIndex = hash;
             return match & 0xFFFF;
         }
@@ -437,17 +413,19 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
             // Slide the hash table (could be avoided with 32 bit values
             // at the expense of memory usage).
+            short* pinnedHead = this.pinnedHeadPointer;
             for (int i = 0; i < DeflaterConstants.HASH_SIZE; ++i)
             {
-                int m = this.head[i] & 0xFFFF;
-                this.head[i] = (short)(m >= DeflaterConstants.WSIZE ? (m - DeflaterConstants.WSIZE) : 0);
+                int m = pinnedHead[i] & 0xFFFF;
+                pinnedHead[i] = (short)(m >= DeflaterConstants.WSIZE ? (m - DeflaterConstants.WSIZE) : 0);
             }
 
             // Slide the prev table.
+            short* pinnedPrev = this.pinnedPrevPointer;
             for (int i = 0; i < DeflaterConstants.WSIZE; i++)
             {
-                int m = this.prev[i] & 0xFFFF;
-                this.prev[i] = (short)(m >= DeflaterConstants.WSIZE ? (m - DeflaterConstants.WSIZE) : 0);
+                int m = pinnedPrev[i] & 0xFFFF;
+                pinnedPrev[i] = (short)(m >= DeflaterConstants.WSIZE ? (m - DeflaterConstants.WSIZE) : 0);
             }
         }
 
@@ -473,8 +451,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             int scanMax = scan + Math.Min(DeflaterConstants.MAX_MATCH, this.lookahead) - 1;
             int limit = Math.Max(scan - DeflaterConstants.MAX_DIST, 0);
 
-            byte[] window = this.window;
-            short[] prev = this.prev;
             int chainLength = this.maxChain;
             int niceLength = Math.Min(this.niceLength, this.lookahead);
 
@@ -495,6 +471,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 chainLength >>= 2;
             }
 
+            short* pinnedPrev = this.pinnedPrevPointer;
             do
             {
                 match = curMatch;
@@ -631,7 +608,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                     scan_end = pinnedWindow[scan];
                 }
             }
-            while ((curMatch = prev[curMatch & DeflaterConstants.WMASK] & 0xFFFF) > limit && --chainLength != 0);
+            while ((curMatch = pinnedPrev[curMatch & DeflaterConstants.WMASK] & 0xFFFF) > limit && --chainLength != 0);
 
             return this.matchLen >= DeflaterConstants.MIN_MATCH;
         }
@@ -859,6 +836,12 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 {
                     this.windowBufferHandle.Dispose();
                     this.windowBuffer.Dispose();
+
+                    this.headBufferHandle.Dispose();
+                    this.headBuffer.Dispose();
+
+                    this.prevBufferHandle.Dispose();
+                    this.prevBuffer.Dispose();
                 }
 
                 this.isDisposed = true;

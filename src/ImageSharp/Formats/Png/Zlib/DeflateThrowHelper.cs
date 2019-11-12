@@ -13,5 +13,16 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
         [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowAlreadyClosed() => throw new InvalidOperationException("Deflator already closed.");
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowUnknownCompression() => throw new InvalidOperationException("Unknown compression function.");
+
+        public static void ThrowNotProcessed() => throw new InvalidOperationException("Old input was not completely processed.");
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowNull(string name) => throw new ArgumentNullException(name);
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowOutOfRange(string name) => throw new ArgumentOutOfRangeException(name);
     }
 }

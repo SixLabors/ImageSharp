@@ -181,7 +181,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         {
             if ((this.state & IsFinishing) != 0)
             {
-                DeflaterThrowHelper.ThrowAlreadyFinished();
+                DeflateThrowHelper.ThrowAlreadyFinished();
             }
 
             this.engine.SetInput(input, offset, count);
@@ -230,7 +230,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
             if (this.state == ClosedState)
             {
-                DeflaterThrowHelper.ThrowAlreadyClosed();
+                DeflateThrowHelper.ThrowAlreadyClosed();
             }
 
             if (this.state < BusyState)

@@ -3,7 +3,6 @@
 
 using System;
 using System.IO;
-using System.IO.Compression;
 using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Png.Zlib
@@ -65,7 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             // +---+---+
             // |CMF|FLG|
             // +---+---+
-            int cmf = 0x78;
+            const int Cmf = 0x78;
             int flg = 218;
 
             // http://stackoverflow.com/a/2331025/277304
@@ -83,14 +82,14 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             }
 
             // Just in case
-            flg -= ((cmf * 256) + flg) % 31;
+            flg -= ((Cmf * 256) + flg) % 31;
 
             if (flg < 0)
             {
                 flg += 31;
             }
 
-            this.rawStream.WriteByte((byte)cmf);
+            this.rawStream.WriteByte(Cmf);
             this.rawStream.WriteByte((byte)flg);
 
             // Initialize the deflate Stream.
@@ -104,7 +103,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             // {
             //    level = CompressionLevel.NoCompression;
             // }
-            this.deflater = new Deflater(memoryAllocator, compressionLevel, true);
+            this.deflater = new Deflater(memoryAllocator, compressionLevel);
             this.deflateStream = new DeflaterOutputStream(this.rawStream, this.deflater) { IsStreamOwner = false };
 
             // this.deflateStream = new DeflateStream(this.rawStream, level, true);

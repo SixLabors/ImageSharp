@@ -387,9 +387,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     if (rowHasUndefinedPixels)
                     {
                         // Slow path with undefined pixels.
+                        int rowStartIdx = y * width * 3;
                         for (int x = 0; x < width; x++)
                         {
-                            int idx = (y * width * 3) + (x * 3);
+                            int idx = rowStartIdx + (x * 3);
                             if (undefinedPixels[x, y])
                             {
                                 switch (this.options.RleSkippedPixelHandling)
@@ -418,9 +419,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     else
                     {
                         // Fast path without any undefined pixels.
+                        int rowStartIdx = y * width * 3;
                         for (int x = 0; x < width; x++)
                         {
-                            int idx = (y * width * 3) + (x * 3);
+                            int idx = rowStartIdx + (x * 3);
                             color.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));
                             pixelRow[x] = color;
                         }

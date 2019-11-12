@@ -349,7 +349,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         {
             for (int idx = 0; idx < length; idx++)
             {
-                int luminance = GetLuminance(ref Unsafe.Add(ref greyValuesBase, idx), luminanceLevels);
+                int luminance = ImageMaths.GetBT709Luminance(ref Unsafe.Add(ref greyValuesBase, idx), luminanceLevels);
                 Unsafe.Add(ref histogramBase, luminance)++;
             }
         }
@@ -366,7 +366,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         {
             for (int idx = 0; idx < length; idx++)
             {
-                int luminance = GetLuminance(ref Unsafe.Add(ref greyValuesBase, idx), luminanceLevels);
+                int luminance = ImageMaths.GetBT709Luminance(ref Unsafe.Add(ref greyValuesBase, idx), luminanceLevels);
                 Unsafe.Add(ref histogramBase, luminance)--;
             }
         }

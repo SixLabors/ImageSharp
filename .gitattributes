@@ -93,6 +93,7 @@
 *.gif               binary
 *.jpg               binary
 *.png               binary
+*.tga               binary
 *.ttf               binary
 *.snk               binary
 

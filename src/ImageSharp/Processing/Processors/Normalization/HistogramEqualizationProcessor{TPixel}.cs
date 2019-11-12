@@ -143,16 +143,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         public static int GetLuminance(TPixel sourcePixel, int luminanceLevels)
         {
             var vector = sourcePixel.ToVector4();
-            return GetLuminance(ref vector, luminanceLevels);
+            return ImageMaths.GetBT709Luminance(ref vector, luminanceLevels);
         }
-
-        /// <summary>
-        /// Convert the pixel values to grayscale using ITU-R Recommendation BT.709.
-        /// </summary>
-        /// <param name="vector">The vector to get the luminance from</param>
-        /// <param name="luminanceLevels">The number of luminance levels (256 for 8 bit, 65536 for 16 bit grayscale images)</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static int GetLuminance(ref Vector4 vector, int luminanceLevels)
-            => (int)MathF.Round(((.2126F * vector.X) + (.7152F * vector.Y) + (.0722F * vector.Y)) * (luminanceLevels - 1));
     }
 }

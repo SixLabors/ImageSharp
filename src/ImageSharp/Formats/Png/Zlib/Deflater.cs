@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Png.Zlib
 {
@@ -18,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
     ///
     /// author of the original java version : Jochen Hoenicke
     /// </summary>
-    public class Deflater
+    public sealed class Deflater : IDisposable
     {
         #region Deflater Documentation
 
@@ -150,27 +151,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         #region Constructors
 
         /// <summary>
-        /// Creates a new deflater with default compression level.
-        /// </summary>
-        public Deflater() : this(DEFAULT_COMPRESSION, false)
-        {
-        }
-
-        /// <summary>
         /// Creates a new deflater with given compression level.
         /// </summary>
-        /// <param name="level">
-        /// the compression level, a value between NO_COMPRESSION
-        /// and BEST_COMPRESSION, or DEFAULT_COMPRESSION.
-        /// </param>
-        /// <exception cref="System.ArgumentOutOfRangeException">if lvl is out of range.</exception>
-        public Deflater(int level) : this(level, false)
-        {
-        }
-
-        /// <summary>
-        /// Creates a new deflater with given compression level.
-        /// </summary>
+        /// <param name="memoryAllocator">The memory allocator to use for buffer allocations.</param>
         /// <param name="level">
         /// the compression level, a value between NO_COMPRESSION
         /// and BEST_COMPRESSION.
@@ -181,7 +164,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// useful for the GZIP/PKZIP formats.
         /// </param>
         /// <exception cref="System.ArgumentOutOfRangeException">if lvl is out of range.</exception>
-        public Deflater(int level, bool noZlibHeaderOrFooter)
+        public Deflater(MemoryAllocator memoryAllocator, int level, bool noZlibHeaderOrFooter)
         {
             if (level == DEFAULT_COMPRESSION)
             {
@@ -192,7 +175,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 throw new ArgumentOutOfRangeException(nameof(level));
             }
 
-            pending = new DeflaterPending();
+            pending = new DeflaterPendingBuffer(memoryAllocator);
             engine = new DeflaterEngine(pending, noZlibHeaderOrFooter);
             this.noZlibHeaderOrFooter = noZlibHeaderOrFooter;
             SetStrategy(DeflateStrategy.Default);
@@ -598,12 +581,40 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <summary>
         /// The pending output.
         /// </summary>
-        private DeflaterPending pending;
+        private DeflaterPendingBuffer pending;
 
         /// <summary>
         /// The deflater engine.
         /// </summary>
         private DeflaterEngine engine;
+
+        #region IDisposable Support
+        private bool disposedValue = false; // To detect redundant calls
+
+        void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    this.pending.Dispose();
+                    // TODO: dispose managed state (managed objects).
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
+                // TODO: set large fields to null.
+                this.pending = null;
+                disposedValue = true;
+            }
+        }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+        #endregion
 
         #endregion Instance Fields
     }

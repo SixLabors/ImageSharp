@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Primitives
 
             using (IMemoryOwner<PointF> tempBuffer = configuration.MemoryAllocator.Allocate<PointF>(buffer.Length))
             {
-                Span<PointF> innerBuffer = tempBuffer.GetSpan();
+                Span<PointF> innerBuffer = tempBuffer.Memory.Span;
                 int count = this.Shape.FindIntersections(start, end, innerBuffer);
 
                 for (int i = 0; i < count; i++)

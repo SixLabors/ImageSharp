@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Drawing;
 using SixLabors.ImageSharp.Tests.Processing;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.Shapes;
 using Xunit;
 
@@ -14,7 +15,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
 {
     public class DrawPathCollection : BaseImageOperationsExtensionTest
     {
-        GraphicsOptions noneDefault = new GraphicsOptions();
+        private static readonly GraphicsOptionsComparer graphicsOptionsComparer = new GraphicsOptionsComparer();
+
+        GraphicsOptions nonDefault = new GraphicsOptions { Antialias = false };
         Color color = Color.HotPink;
         Pen pen = Pens.Solid(Rgba32.HotPink, 1);
         IPath path1 = new Path(new LinearLineSegment(new SixLabors.Primitives.PointF[] {
@@ -46,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
             {
                 FillRegionProcessor processor = this.Verify<FillRegionProcessor>(i);
 
-                Assert.Equal(GraphicsOptions.Default, processor.Options);
+                Assert.Equal(new GraphicsOptions(), processor.Options, graphicsOptionsComparer);
 
                 ShapePath region = Assert.IsType<ShapePath>(processor.Region);
 
@@ -60,13 +63,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsBrushPathOptions()
         {
-            this.operations.Draw(this.noneDefault, this.pen, this.pathCollection);
+            this.operations.Draw(this.nonDefault, this.pen, this.pathCollection);
 
             for (int i = 0; i < 2; i++)
             {
                 FillRegionProcessor processor = this.Verify<FillRegionProcessor>(i);
 
-                Assert.Equal(this.noneDefault, processor.Options);
+                Assert.Equal(this.nonDefault, processor.Options, graphicsOptionsComparer);
 
                 ShapePath region = Assert.IsType<ShapePath>(processor.Region);
                 Assert.IsType<ComplexPolygon>(region.Shape);
@@ -84,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
             {
                 FillRegionProcessor processor = this.Verify<FillRegionProcessor>(i);
 
-                Assert.Equal(GraphicsOptions.Default, processor.Options);
+                Assert.Equal(new GraphicsOptions(), processor.Options, graphicsOptionsComparer);
 
                 ShapePath region = Assert.IsType<ShapePath>(processor.Region);
                 Assert.IsType<ComplexPolygon>(region.Shape);
@@ -97,13 +100,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsColorPathAndOptions()
         {
-            this.operations.Draw(this.noneDefault, this.color, 1, this.pathCollection);
+            this.operations.Draw(this.nonDefault, this.color, 1, this.pathCollection);
 
             for (int i = 0; i < 2; i++)
             {
                 FillRegionProcessor processor = this.Verify<FillRegionProcessor>(i);
 
-                Assert.Equal(this.noneDefault, processor.Options);
+                Assert.Equal(this.nonDefault, processor.Options, graphicsOptionsComparer);
 
                 ShapePath region = Assert.IsType<ShapePath>(processor.Region);
                 Assert.IsType<ComplexPolygon>(region.Shape);

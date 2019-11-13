@@ -50,7 +50,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// </summary>
         private int state;
 
-        private DeflaterPendingBuffer pending;
         private DeflaterEngine engine;
         private bool isDisposed;
 
@@ -80,10 +79,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 throw new ArgumentOutOfRangeException(nameof(level));
             }
 
-            this.pending = new DeflaterPendingBuffer(memoryAllocator);
-
             // TODO: Possibly provide DeflateStrategy as an option.
-            this.engine = new DeflaterEngine(memoryAllocator, this.pending, DeflateStrategy.Default);
+            this.engine = new DeflaterEngine(memoryAllocator, DeflateStrategy.Default);
 
             this.SetLevel(level);
             this.Reset();
@@ -126,7 +123,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// Gets a value indicating whetherthe stream was finished and no more output bytes
         /// are available.
         /// </summary>
-        public bool IsFinished => (this.state == FinishedState) && this.pending.IsFlushed;
+        public bool IsFinished => (this.state == FinishedState) && this.engine.Pending.IsFlushed;
 
         /// <summary>
         /// Gets a value indicating whether the input buffer is empty.
@@ -145,7 +142,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         public void Reset()
         {
             this.state = BusyState;
-            this.pending.Reset();
+            this.engine.Pending.Reset();
             this.engine.Reset();
         }
 
@@ -236,7 +233,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
             while (true)
             {
-                int count = this.pending.Flush(output, offset, length);
+                int count = this.engine.Pending.Flush(output, offset, length);
                 offset += count;
                 length -= count;
 
@@ -259,11 +256,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                                 // We have to supply some lookahead.  8 bit lookahead
                                 // is needed by the zlib inflater, and we must fill
                                 // the next byte, so that all bits are flushed.
-                                int neededbits = 8 + ((-this.pending.BitCount) & 7);
+                                int neededbits = 8 + ((-this.engine.Pending.BitCount) & 7);
                                 while (neededbits > 0)
                                 {
                                     // Write a static tree block consisting solely of an EOF:
-                                    this.pending.WriteBits(2, 10);
+                                    this.engine.Pending.WriteBits(2, 10);
                                     neededbits -= 10;
                                 }
                             }
@@ -272,7 +269,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                             break;
 
                         case FinishingState:
-                            this.pending.AlignToByte();
+                            this.engine.Pending.AlignToByte();
                             this.state = FinishedState;
                             break;
                     }
@@ -296,10 +293,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 if (disposing)
                 {
                     this.engine.Dispose();
-                    this.pending.Dispose();
                 }
 
-                this.pending = null;
                 this.engine = null;
                 this.isDisposed = true;
             }

@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Buffers;
+using System.Runtime.CompilerServices;
 using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Png.Zlib
@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
     ///
     /// author of the original java version : Jochen Hoenicke
     /// </summary>
-    public sealed class DeflaterHuffman : IDisposable
+    public sealed unsafe class DeflaterHuffman : IDisposable
     {
         private const int BufferSize = 1 << (DeflaterConstants.DEFAULT_MEM_LEVEL + 6);
 
@@ -29,13 +29,13 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         // Number of codes used to transfer bit lengths
         private const int BitLengthNumber = 19;
 
-        // repeat previous bit length 3-6 times (2 bits of repeat count)
+        // Repeat previous bit length 3-6 times (2 bits of repeat count)
         private const int Repeat3To6 = 16;
 
-        // repeat a zero length 3-10 times  (3 bits of repeat count)
+        // Repeat a zero length 3-10 times  (3 bits of repeat count)
         private const int Repeat3To10 = 17;
 
-        // repeat a zero length 11-138 times  (7 bits of repeat count)
+        // Repeat a zero length 11-138 times  (7 bits of repeat count)
         private const int Repeat11To138 = 18;
 
         private const int EofSymbol = 256;
@@ -46,19 +46,24 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
         private static readonly byte[] Bit4Reverse = { 0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15 };
 
-        private static short[] staticLCodes;
-        private static byte[] staticLLength;
-        private static short[] staticDCodes;
-        private static byte[] staticDLength;
+        private static readonly short[] StaticLCodes;
+        private static readonly byte[] StaticLLength;
+        private static readonly short[] StaticDCodes;
+        private static readonly byte[] StaticDLength;
 
         private Tree literalTree;
         private Tree distTree;
         private Tree blTree;
 
         // Buffer for distances
-        private short[] distanceBuffer;
+        private readonly IMemoryOwner<short> distanceManagedBuffer;
+        private readonly short* pinnedDistanceBuffer;
+        private MemoryHandle distanceBufferHandle;
 
-        private byte[] literalBuffer;
+        private readonly IMemoryOwner<short> literalManagedBuffer;
+        private readonly short* pinnedLiteralBuffer;
+        private MemoryHandle literalBufferHandle;
+
         private int lastLiteral;
         private int extraBits;
         private bool isDisposed;
@@ -67,41 +72,41 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         {
             // See RFC 1951 3.2.6
             // Literal codes
-            staticLCodes = new short[LiteralNumber];
-            staticLLength = new byte[LiteralNumber];
+            StaticLCodes = new short[LiteralNumber];
+            StaticLLength = new byte[LiteralNumber];
 
             int i = 0;
             while (i < 144)
             {
-                staticLCodes[i] = BitReverse((0x030 + i) << 8);
-                staticLLength[i++] = 8;
+                StaticLCodes[i] = BitReverse((0x030 + i) << 8);
+                StaticLLength[i++] = 8;
             }
 
             while (i < 256)
             {
-                staticLCodes[i] = BitReverse((0x190 - 144 + i) << 7);
-                staticLLength[i++] = 9;
+                StaticLCodes[i] = BitReverse((0x190 - 144 + i) << 7);
+                StaticLLength[i++] = 9;
             }
 
             while (i < 280)
             {
-                staticLCodes[i] = BitReverse((0x000 - 256 + i) << 9);
-                staticLLength[i++] = 7;
+                StaticLCodes[i] = BitReverse((0x000 - 256 + i) << 9);
+                StaticLLength[i++] = 7;
             }
 
             while (i < LiteralNumber)
             {
-                staticLCodes[i] = BitReverse((0x0c0 - 280 + i) << 8);
-                staticLLength[i++] = 8;
+                StaticLCodes[i] = BitReverse((0x0c0 - 280 + i) << 8);
+                StaticLLength[i++] = 8;
             }
 
             // Distance codes
-            staticDCodes = new short[DistanceNumber];
-            staticDLength = new byte[DistanceNumber];
+            StaticDCodes = new short[DistanceNumber];
+            StaticDLength = new byte[DistanceNumber];
             for (i = 0; i < DistanceNumber; i++)
             {
-                staticDCodes[i] = BitReverse(i << 11);
-                staticDLength[i] = 5;
+                StaticDCodes[i] = BitReverse(i << 11);
+                StaticDLength[i] = 5;
             }
         }
 
@@ -113,12 +118,17 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         {
             this.Pending = new DeflaterPendingBuffer(memoryAllocator);
 
-            this.literalTree = new Tree(this, LiteralNumber, 257, 15);
-            this.distTree = new Tree(this, DistanceNumber, 1, 15);
-            this.blTree = new Tree(this, BitLengthNumber, 4, 7);
+            this.literalTree = new Tree(LiteralNumber, 257, 15);
+            this.distTree = new Tree(DistanceNumber, 1, 15);
+            this.blTree = new Tree(BitLengthNumber, 4, 7);
 
-            this.distanceBuffer = new short[BufferSize];
-            this.literalBuffer = new byte[BufferSize];
+            this.distanceManagedBuffer = memoryAllocator.Allocate<short>(BufferSize);
+            this.distanceBufferHandle = this.distanceManagedBuffer.Memory.Pin();
+            this.pinnedDistanceBuffer = (short*)this.distanceBufferHandle.Pointer;
+
+            this.literalManagedBuffer = memoryAllocator.Allocate<short>(BufferSize);
+            this.literalBufferHandle = this.literalManagedBuffer.Memory.Pin();
+            this.pinnedLiteralBuffer = (short*)this.literalBufferHandle.Pointer;
         }
 
         /// <summary>
@@ -155,8 +165,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 this.Pending.WriteBits(this.blTree.Length[BitLengthOrder[rank]], 3);
             }
 
-            this.literalTree.WriteTree(this.blTree);
-            this.distTree.WriteTree(this.blTree);
+            this.literalTree.WriteTree(this.Pending, this.blTree);
+            this.distTree.WriteTree(this.Pending, this.blTree);
         }
 
         /// <summary>
@@ -164,14 +174,18 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// </summary>
         public void CompressBlock()
         {
+            DeflaterPendingBuffer pendingBuffer = this.Pending;
+            short* pinnedDistance = this.pinnedDistanceBuffer;
+            short* pinnedLiteral = this.pinnedLiteralBuffer;
+
             for (int i = 0; i < this.lastLiteral; i++)
             {
-                int litlen = this.literalBuffer[i] & 0xff;
-                int dist = this.distanceBuffer[i];
+                int litlen = pinnedLiteral[i] & 0xFF;
+                int dist = pinnedDistance[i];
                 if (dist-- != 0)
                 {
                     int lc = Lcode(litlen);
-                    this.literalTree.WriteSymbol(lc);
+                    this.literalTree.WriteSymbol(pendingBuffer, lc);
 
                     int bits = (lc - 261) / 4;
                     if (bits > 0 && bits <= 5)
@@ -180,7 +194,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                     }
 
                     int dc = Dcode(dist);
-                    this.distTree.WriteSymbol(dc);
+                    this.distTree.WriteSymbol(pendingBuffer, dc);
 
                     bits = (dc / 2) - 1;
                     if (bits > 0)
@@ -190,11 +204,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 }
                 else
                 {
-                    this.literalTree.WriteSymbol(litlen);
+                    this.literalTree.WriteSymbol(pendingBuffer, litlen);
                 }
             }
 
-            this.literalTree.WriteSymbol(EofSymbol);
+            this.literalTree.WriteSymbol(pendingBuffer, EofSymbol);
         }
 
         /// <summary>
@@ -245,19 +259,19 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 }
             }
 
-            int opt_len = 14 + (blTreeCodes * 3) + this.blTree.GetEncodedLength() +
-                this.literalTree.GetEncodedLength() + this.distTree.GetEncodedLength() +
-                this.extraBits;
+            int opt_len = 14 + (blTreeCodes * 3) + this.blTree.GetEncodedLength()
+                + this.literalTree.GetEncodedLength() + this.distTree.GetEncodedLength()
+                + this.extraBits;
 
             int static_len = this.extraBits;
             for (int i = 0; i < LiteralNumber; i++)
             {
-                static_len += this.literalTree.Freqs[i] * staticLLength[i];
+                static_len += this.literalTree.Freqs[i] * StaticLLength[i];
             }
 
             for (int i = 0; i < DistanceNumber; i++)
             {
-                static_len += this.distTree.Freqs[i] * staticDLength[i];
+                static_len += this.distTree.Freqs[i] * StaticDLength[i];
             }
 
             if (opt_len >= static_len)
@@ -275,8 +289,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             {
                 // Encode with static tree
                 this.Pending.WriteBits((DeflaterConstants.STATIC_TREES << 1) + (lastBlock ? 1 : 0), 3);
-                this.literalTree.SetStaticCodes(staticLCodes, staticLLength);
-                this.distTree.SetStaticCodes(staticDCodes, staticDLength);
+                this.literalTree.SetStaticCodes(StaticLCodes, StaticLLength);
+                this.distTree.SetStaticCodes(StaticDCodes, StaticDLength);
                 this.CompressBlock();
                 this.Reset();
             }
@@ -294,20 +308,19 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// Get value indicating if internal buffer is full
         /// </summary>
         /// <returns>true if buffer is full</returns>
-        public bool IsFull()
-        {
-            return this.lastLiteral >= BufferSize;
-        }
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public bool IsFull() => this.lastLiteral >= BufferSize;
 
         /// <summary>
         /// Add literal to buffer
         /// </summary>
         /// <param name="literal">Literal value to add to buffer.</param>
         /// <returns>Value indicating internal buffer is full</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool TallyLit(int literal)
         {
-            this.distanceBuffer[this.lastLiteral] = 0;
-            this.literalBuffer[this.lastLiteral++] = (byte)literal;
+            this.pinnedDistanceBuffer[this.lastLiteral] = 0;
+            this.pinnedLiteralBuffer[this.lastLiteral++] = (byte)literal;
             this.literalTree.Freqs[literal]++;
             return this.IsFull();
         }
@@ -318,10 +331,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <param name="distance">Distance code</param>
         /// <param name="length">Length</param>
         /// <returns>Value indicating if internal buffer is full</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool TallyDist(int distance, int length)
         {
-            this.distanceBuffer[this.lastLiteral] = (short)distance;
-            this.literalBuffer[this.lastLiteral++] = (byte)(length - 3);
+            this.pinnedDistanceBuffer[this.lastLiteral] = (short)distance;
+            this.pinnedLiteralBuffer[this.lastLiteral++] = (byte)(length - 3);
 
             int lc = Lcode(length - 3);
             this.literalTree.Freqs[lc]++;
@@ -345,12 +359,13 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// </summary>
         /// <param name="toReverse">Value to reverse bits</param>
         /// <returns>Value with bits reversed</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static short BitReverse(int toReverse)
         {
-            return (short)(Bit4Reverse[toReverse & 0xF] << 12 |
-                            Bit4Reverse[(toReverse >> 4) & 0xF] << 8 |
-                            Bit4Reverse[(toReverse >> 8) & 0xF] << 4 |
-                            Bit4Reverse[toReverse >> 12]);
+            return (short)(Bit4Reverse[toReverse & 0xF] << 12
+                           | Bit4Reverse[(toReverse >> 4) & 0xF] << 8
+                           | Bit4Reverse[(toReverse >> 8) & 0xF] << 4
+                           | Bit4Reverse[toReverse >> 12]);
         }
 
         /// <inheritdoc/>
@@ -360,6 +375,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             GC.SuppressFinalize(this);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int Lcode(int length)
         {
             if (length == 255)
@@ -377,6 +393,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             return code + length;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int Dcode(int distance)
         {
             int code = 0;
@@ -396,6 +413,10 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 if (disposing)
                 {
                     this.Pending.Dispose();
+                    this.distanceBufferHandle.Dispose();
+                    this.distanceManagedBuffer.Dispose();
+                    this.literalBufferHandle.Dispose();
+                    this.literalManagedBuffer.Dispose();
                 }
 
                 this.Pending = null;
@@ -403,20 +424,18 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             }
         }
 
-        private class Tree
+        private sealed class Tree
         {
             private readonly int minNumCodes;
             private short[] codes;
             private readonly int[] bitLengthCounts;
             private readonly int maxLength;
-            private readonly DeflaterHuffman dh;
 
-            public Tree(DeflaterHuffman dh, int elems, int minCodes, int maxLength)
+            public Tree(int elements, int minCodes, int maxLength)
             {
-                this.dh = dh;
                 this.minNumCodes = minCodes;
                 this.maxLength = maxLength;
-                this.Freqs = new short[elems];
+                this.Freqs = new short[elements];
                 this.bitLengthCounts = new int[maxLength];
             }
 
@@ -429,6 +448,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             /// <summary>
             /// Resets the internal state of the tree
             /// </summary>
+            [MethodImpl(InliningOptions.ShortMethod)]
             public void Reset()
             {
                 for (int i = 0; i < this.Freqs.Length; i++)
@@ -440,17 +460,17 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 this.Length = null;
             }
 
-            public void WriteSymbol(int code)
-            {
-                this.dh.Pending.WriteBits(this.codes[code] & 0xffff, this.Length[code]);
-            }
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void WriteSymbol(DeflaterPendingBuffer pendingBuffer, int code)
+                => pendingBuffer.WriteBits(this.codes[code] & 0xFFFF, this.Length[code]);
 
             /// <summary>
             /// Check that all frequencies are zero
             /// </summary>
-            /// <exception cref="ImageFormatException">
+            /// <exception cref="InvalidOperationException">
             /// At least one frequency is non-zero
             /// </exception>
+            [MethodImpl(InliningOptions.ShortMethod)]
             public void CheckEmpty()
             {
                 bool empty = true;
@@ -461,7 +481,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
                 if (!empty)
                 {
-                    throw new ImageFormatException("!Empty");
+                    DeflateThrowHelper.ThrowFrequencyNotEmpty();
                 }
             }
 
@@ -481,7 +501,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             /// </summary>
             public void BuildCodes()
             {
-                int numSymbols = this.Freqs.Length;
                 int[] nextCode = new int[this.maxLength];
                 int code = 0;
 
@@ -544,8 +563,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 // this case, both literals get a 1 bit code.
                 while (heapLen < 2)
                 {
-                    int node = maxCode < 2 ? ++maxCode : 0;
-                    heap[heapLen++] = node;
+                    heap[heapLen++] = maxCode < 2 ? ++maxCode : 0;
                 }
 
                 this.NumCodes = Math.Max(maxCode + 1, this.minNumCodes);
@@ -602,7 +620,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                     last = numNodes++;
                     childs[2 * last] = first;
                     childs[(2 * last) + 1] = second;
-                    int mindepth = Math.Min(values[first] & 0xff, values[second] & 0xff);
+                    int mindepth = Math.Min(values[first] & 0xFF, values[second] & 0xFF);
                     values[last] = lastVal = values[first] + values[second] - mindepth + 1;
 
                     // Again, propagate the hole to the leafs
@@ -633,7 +651,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
                 if (heap[0] != (childs.Length / 2) - 1)
                 {
-                    throw new ImageFormatException("Heap invariant violated");
+                    DeflateThrowHelper.ThrowHeapViolated();
                 }
 
                 this.BuildLength(childs);
@@ -718,10 +736,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             }
 
             /// <summary>
-            /// Write tree values
+            /// Write the tree values.
             /// </summary>
-            /// <param name="blTree">Tree to write</param>
-            public void WriteTree(Tree blTree)
+            /// <param name="pendingBuffer">The pending buffer.</param>
+            /// <param name="bitLengthTree">The tree to write.</param>
+            public void WriteTree(DeflaterPendingBuffer pendingBuffer, Tree bitLengthTree)
             {
                 int max_count;               // max repeat count
                 int min_count;               // min repeat count
@@ -744,7 +763,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                         min_count = 3;
                         if (curlen != nextlen)
                         {
-                            blTree.WriteSymbol(nextlen);
+                            bitLengthTree.WriteSymbol(pendingBuffer, nextlen);
                             count = 0;
                         }
                     }
@@ -765,31 +784,31 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                     {
                         while (count-- > 0)
                         {
-                            blTree.WriteSymbol(curlen);
+                            bitLengthTree.WriteSymbol(pendingBuffer, curlen);
                         }
                     }
                     else if (curlen != 0)
                     {
-                        blTree.WriteSymbol(Repeat3To6);
-                        this.dh.Pending.WriteBits(count - 3, 2);
+                        bitLengthTree.WriteSymbol(pendingBuffer, Repeat3To6);
+                        pendingBuffer.WriteBits(count - 3, 2);
                     }
                     else if (count <= 10)
                     {
-                        blTree.WriteSymbol(Repeat3To10);
-                        this.dh.Pending.WriteBits(count - 3, 3);
+                        bitLengthTree.WriteSymbol(pendingBuffer, Repeat3To10);
+                        pendingBuffer.WriteBits(count - 3, 3);
                     }
                     else
                     {
-                        blTree.WriteSymbol(Repeat11To138);
-                        this.dh.Pending.WriteBits(count - 11, 7);
+                        bitLengthTree.WriteSymbol(pendingBuffer, Repeat11To138);
+                        pendingBuffer.WriteBits(count - 11, 7);
                     }
                 }
             }
 
-            private void BuildLength(int[] childs)
+            private void BuildLength(int[] children)
             {
                 this.Length = new byte[this.Freqs.Length];
-                int numNodes = childs.Length / 2;
+                int numNodes = children.Length / 2;
                 int numLeafs = (numNodes + 1) / 2;
                 int overflow = 0;
 
@@ -804,7 +823,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
                 for (int i = numNodes - 1; i >= 0; i--)
                 {
-                    if (childs[(2 * i) + 1] != -1)
+                    if (children[(2 * i) + 1] != -1)
                     {
                         int bitLength = lengths[i] + 1;
                         if (bitLength > this.maxLength)
@@ -813,14 +832,14 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                             overflow++;
                         }
 
-                        lengths[childs[2 * i]] = lengths[childs[(2 * i) + 1]] = bitLength;
+                        lengths[children[2 * i]] = lengths[children[(2 * i) + 1]] = bitLength;
                     }
                     else
                     {
                         // A leaf node
                         int bitLength = lengths[i];
                         this.bitLengthCounts[bitLength - 1]++;
-                        this.Length[childs[2 * i]] = (byte)lengths[i];
+                        this.Length[children[2 * i]] = (byte)lengths[i];
                     }
                 }
 
@@ -867,11 +886,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                     int n = this.bitLengthCounts[bits - 1];
                     while (n > 0)
                     {
-                        int childPtr = 2 * childs[nodePtr++];
-                        if (childs[childPtr + 1] == -1)
+                        int childPtr = 2 * children[nodePtr++];
+                        if (children[childPtr + 1] == -1)
                         {
                             // We found another leaf
-                            this.Length[childs[childPtr]] = (byte)bits;
+                            this.Length[children[childPtr]] = (byte)bits;
                             n--;
                         }
                     }

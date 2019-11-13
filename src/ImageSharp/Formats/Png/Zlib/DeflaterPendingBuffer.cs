@@ -29,7 +29,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <param name="memoryAllocator">The memory allocator to use for buffer allocations.</param>
         public DeflaterPendingBuffer(MemoryAllocator memoryAllocator)
         {
-            this.buffer = new byte[DeflaterConstants.PENDING_BUF_SIZE];
             this.managedBuffer = memoryAllocator.AllocateManagedByteBuffer(DeflaterConstants.PENDING_BUF_SIZE);
             this.buffer = this.managedBuffer.Array;
             this.handle = this.managedBuffer.Memory.Pin();

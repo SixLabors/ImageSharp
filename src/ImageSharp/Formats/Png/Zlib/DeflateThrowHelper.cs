@@ -17,6 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowUnknownCompression() => throw new InvalidOperationException("Unknown compression function.");
 
+        [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowNotProcessed() => throw new InvalidOperationException("Old input was not completely processed.");
 
         [MethodImpl(InliningOptions.ColdPath)]
@@ -24,5 +25,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
         [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowOutOfRange(string name) => throw new ArgumentOutOfRangeException(name);
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowFrequencyNotEmpty() => throw new InvalidOperationException("Huffman frequency entry non empty.");
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowHeapViolated() => throw new InvalidOperationException("Huffman heap invariant violated.");
     }
 }

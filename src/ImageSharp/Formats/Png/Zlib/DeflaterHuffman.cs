@@ -4,17 +4,13 @@
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Png.Zlib
 {
     /// <summary>
-    /// This is the DeflaterHuffman class.
-    ///
-    /// This class is <i>not</i> thread safe.  This is inherent in the API, due
-    /// to the split of Deflate and SetInput.
-    ///
-    /// author of the original java version : Jochen Hoenicke
+    /// Performs Deflate Huffman encoding.
     /// </summary>
     public sealed unsafe class DeflaterHuffman : IDisposable
     {
@@ -264,14 +260,16 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 + this.extraBits;
 
             int static_len = this.extraBits;
+            ref byte staticLLengthRef = ref MemoryMarshal.GetReference<byte>(StaticLLength);
             for (int i = 0; i < LiteralNumber; i++)
             {
-                static_len += this.literalTree.Freqs[i] * StaticLLength[i];
+                static_len += this.literalTree.Freqs[i] * Unsafe.Add(ref staticLLengthRef, i);
             }
 
+            ref byte staticDLengthRef = ref MemoryMarshal.GetReference<byte>(StaticDLength);
             for (int i = 0; i < DistanceNumber; i++)
             {
-                static_len += this.distTree.Freqs[i] * StaticDLength[i];
+                static_len += this.distTree.Freqs[i] * Unsafe.Add(ref staticDLengthRef, i);
             }
 
             if (opt_len >= static_len)

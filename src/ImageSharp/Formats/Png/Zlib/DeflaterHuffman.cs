@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Png.Zlib
 {
@@ -15,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
     ///
     /// author of the original java version : Jochen Hoenicke
     /// </summary>
-    public class DeflaterHuffman
+    public sealed class DeflaterHuffman : IDisposable
     {
         private const int BufferSize = 1 << (DeflaterConstants.DEFAULT_MEM_LEVEL + 6);
 
@@ -60,6 +61,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         private byte[] literalBuffer;
         private int lastLiteral;
         private int extraBits;
+        private bool isDisposed;
 
         static DeflaterHuffman()
         {
@@ -106,10 +108,10 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <summary>
         /// Initializes a new instance of the <see cref="DeflaterHuffman"/> class.
         /// </summary>
-        /// <param name="pending">Pending buffer to use</param>
-        public DeflaterHuffman(DeflaterPendingBuffer pending)
+        /// <param name="memoryAllocator">The memory allocator to use for buffer allocations.</param>
+        public DeflaterHuffman(MemoryAllocator memoryAllocator)
         {
-            this.Pending = pending;
+            this.Pending = new DeflaterPendingBuffer(memoryAllocator);
 
             this.literalTree = new Tree(this, LiteralNumber, 257, 15);
             this.distTree = new Tree(this, DistanceNumber, 1, 15);
@@ -122,7 +124,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <summary>
         /// Gets the pending buffer to use.
         /// </summary>
-        public DeflaterPendingBuffer Pending { get; }
+        public DeflaterPendingBuffer Pending { get; private set; }
 
         /// <summary>
         /// Reset internal state
@@ -351,6 +353,13 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                             Bit4Reverse[toReverse >> 12]);
         }
 
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
         private static int Lcode(int length)
         {
             if (length == 255)
@@ -378,6 +387,20 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             }
 
             return code + distance;
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (!this.isDisposed)
+            {
+                if (disposing)
+                {
+                    this.Pending.Dispose();
+                }
+
+                this.Pending = null;
+                this.isDisposed = true;
+            }
         }
 
         private class Tree

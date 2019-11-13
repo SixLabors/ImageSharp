@@ -100,7 +100,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         private int inputEnd;
 
         private readonly DeflateStrategy strategy;
-        private readonly DeflaterPendingBuffer pending;
         private DeflaterHuffman huffman;
         private bool isDisposed;
 
@@ -145,12 +144,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// Initializes a new instance of the <see cref="DeflaterEngine"/> class.
         /// </summary>
         /// <param name="memoryAllocator">The memory allocator to use for buffer allocations.</param>
-        /// <param name="pending">The pending buffer to use.</param>
         /// <param name="strategy">The deflate strategy to use.</param>
-        public DeflaterEngine(MemoryAllocator memoryAllocator, DeflaterPendingBuffer pending, DeflateStrategy strategy)
+        public DeflaterEngine(MemoryAllocator memoryAllocator, DeflateStrategy strategy)
         {
-            this.pending = pending;
-            this.huffman = new DeflaterHuffman(pending);
+            this.huffman = new DeflaterHuffman(memoryAllocator);
+            this.Pending = this.huffman.Pending;
             this.strategy = strategy;
 
             // Create pinned pointers to the various buffers to allow indexing
@@ -174,6 +172,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             // we cannot build a repeat pattern at index 0.
             this.blockStart = this.strstart = 1;
         }
+
+        /// <summary>
+        /// Gets the pending buffer to use.
+        /// </summary>
+        public DeflaterPendingBuffer Pending { get; }
 
         /// <summary>
         /// Deflate drives actual compression of data
@@ -208,7 +211,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                         break;
                 }
             }
-            while (this.pending.IsFlushed && progress); // repeat while we have no pending output and progress was made
+            while (this.Pending.IsFlushed && progress); // repeat while we have no pending output and progress was made
             return progress;
         }
 
@@ -834,6 +837,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             {
                 if (disposing)
                 {
+                    this.huffman.Dispose();
+
                     this.windowBufferHandle.Dispose();
                     this.windowBuffer.Dispose();
 
@@ -843,6 +848,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                     this.prevBufferHandle.Dispose();
                     this.prevBuffer.Dispose();
                 }
+
+                this.huffman = null;
 
                 this.isDisposed = true;
             }

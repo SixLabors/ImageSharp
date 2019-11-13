@@ -155,17 +155,17 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
             // Create pinned pointers to the various buffers to allow indexing
             // without bounds checks.
-            this.windowBuffer = memoryAllocator.AllocateManagedByteBuffer(2 * DeflaterConstants.WSIZE, AllocationOptions.Clean);
+            this.windowBuffer = memoryAllocator.AllocateManagedByteBuffer(2 * DeflaterConstants.WSIZE);
             this.window = this.windowBuffer.Array;
             this.windowBufferHandle = this.windowBuffer.Memory.Pin();
             this.pinnedWindowPointer = (byte*)this.windowBufferHandle.Pointer;
 
-            this.headBuffer = memoryAllocator.Allocate<short>(DeflaterConstants.HASH_SIZE, AllocationOptions.Clean);
+            this.headBuffer = memoryAllocator.Allocate<short>(DeflaterConstants.HASH_SIZE);
             this.head = this.headBuffer.Memory;
             this.headBufferHandle = this.headBuffer.Memory.Pin();
             this.pinnedHeadPointer = (short*)this.headBufferHandle.Pointer;
 
-            this.prevBuffer = memoryAllocator.Allocate<short>(DeflaterConstants.WSIZE, AllocationOptions.Clean);
+            this.prevBuffer = memoryAllocator.Allocate<short>(DeflaterConstants.WSIZE);
             this.prev = this.prevBuffer.Memory;
             this.prevBufferHandle = this.prevBuffer.Memory.Pin();
             this.pinnedPrevPointer = (short*)this.prevBufferHandle.Pointer;

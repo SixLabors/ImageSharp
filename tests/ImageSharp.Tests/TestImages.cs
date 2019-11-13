@@ -365,5 +365,24 @@ namespace SixLabors.ImageSharp.Tests
 
             public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin, Leo, Ratio4x1, Ratio1x4 };
         }
+
+        public static class Tga
+        {
+            public const string Bit15 = "Tga/rgb15.tga";
+            public const string Bit15Rle = "Tga/rgb15rle.tga";
+            public const string Bit16 = "Tga/targa_16bit.tga";
+            public const string Bit16PalRle = "Tga/ccm8.tga";
+            public const string Bit24 = "Tga/targa_24bit.tga";
+            public const string Bit24TopLeft = "Tga/targa_24bit_pal_origin_topleft.tga";
+            public const string Bit24RleTopLeft = "Tga/targa_24bit_rle_origin_topleft.tga";
+            public const string Bit32 = "Tga/targa_32bit.tga";
+            public const string Grey = "Tga/targa_8bit.tga";
+            public const string GreyRle = "Tga/targa_8bit_rle.tga";
+            public const string Bit16Rle = "Tga/targa_16bit_rle.tga";
+            public const string Bit24Rle = "Tga/targa_24bit_rle.tga";
+            public const string Bit32Rle = "Tga/targa_32bit_rle.tga";
+            public const string Bit16Pal = "Tga/targa_16bit_pal.tga";
+            public const string Bit24Pal = "Tga/targa_24bit_pal.tga";
+        }
     }
 }

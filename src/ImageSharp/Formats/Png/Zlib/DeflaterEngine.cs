@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
     /// Low level compression engine for deflate algorithm which uses a 32K sliding window
     /// with secondary compression from Huffman/Shannon-Fano codes.
     /// </summary>
-    public sealed unsafe class DeflaterEngine : IDisposable
+    internal sealed unsafe class DeflaterEngine : IDisposable
     {
         private const int TooFar = 4096;
 
@@ -109,8 +109,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// Note that the array should really be unsigned short, so you need
         /// to and the values with 0xFFFF.
         /// </summary>
-        private readonly IMemoryOwner<short> headBuffer;
-        private MemoryHandle headBufferHandle;
+        private IMemoryOwner<short> headMemoryOwner;
+        private MemoryHandle headMemoryHandle;
         private readonly Memory<short> head;
         private readonly short* pinnedHeadPointer;
 
@@ -121,17 +121,17 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// Note that the array should really be unsigned short, so you need
         /// to and the values with 0xFFFF.
         /// </summary>
-        private readonly IMemoryOwner<short> prevBuffer;
-        private MemoryHandle prevBufferHandle;
+        private IMemoryOwner<short> prevMemoryOwner;
+        private MemoryHandle prevMemoryHandle;
         private readonly Memory<short> prev;
         private readonly short* pinnedPrevPointer;
 
         /// <summary>
         /// This array contains the part of the uncompressed stream that
-        /// is of relevance.  The current character is indexed by strstart.
+        /// is of relevance. The current character is indexed by strstart.
         /// </summary>
-        private readonly IManagedByteBuffer windowBuffer;
-        private MemoryHandle windowBufferHandle;
+        private IManagedByteBuffer windowMemoryOwner;
+        private MemoryHandle windowMemoryHandle;
         private readonly byte[] window;
         private readonly byte* pinnedWindowPointer;
 
@@ -153,20 +153,20 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
             // Create pinned pointers to the various buffers to allow indexing
             // without bounds checks.
-            this.windowBuffer = memoryAllocator.AllocateManagedByteBuffer(2 * DeflaterConstants.WSIZE);
-            this.window = this.windowBuffer.Array;
-            this.windowBufferHandle = this.windowBuffer.Memory.Pin();
-            this.pinnedWindowPointer = (byte*)this.windowBufferHandle.Pointer;
+            this.windowMemoryOwner = memoryAllocator.AllocateManagedByteBuffer(2 * DeflaterConstants.WSIZE);
+            this.window = this.windowMemoryOwner.Array;
+            this.windowMemoryHandle = this.windowMemoryOwner.Memory.Pin();
+            this.pinnedWindowPointer = (byte*)this.windowMemoryHandle.Pointer;
 
-            this.headBuffer = memoryAllocator.Allocate<short>(DeflaterConstants.HASH_SIZE);
-            this.head = this.headBuffer.Memory;
-            this.headBufferHandle = this.headBuffer.Memory.Pin();
-            this.pinnedHeadPointer = (short*)this.headBufferHandle.Pointer;
+            this.headMemoryOwner = memoryAllocator.Allocate<short>(DeflaterConstants.HASH_SIZE);
+            this.head = this.headMemoryOwner.Memory;
+            this.headMemoryHandle = this.headMemoryOwner.Memory.Pin();
+            this.pinnedHeadPointer = (short*)this.headMemoryHandle.Pointer;
 
-            this.prevBuffer = memoryAllocator.Allocate<short>(DeflaterConstants.WSIZE);
-            this.prev = this.prevBuffer.Memory;
-            this.prevBufferHandle = this.prevBuffer.Memory.Pin();
-            this.pinnedPrevPointer = (short*)this.prevBufferHandle.Pointer;
+            this.prevMemoryOwner = memoryAllocator.Allocate<short>(DeflaterConstants.WSIZE);
+            this.prev = this.prevMemoryOwner.Memory;
+            this.prevMemoryHandle = this.prevMemoryOwner.Memory.Pin();
+            this.pinnedPrevPointer = (short*)this.prevMemoryHandle.Pointer;
 
             // We start at index 1, to avoid an implementation deficiency, that
             // we cannot build a repeat pattern at index 0.
@@ -377,8 +377,27 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <inheritdoc/>
         public void Dispose()
         {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            this.Dispose(true);
+            if (!this.isDisposed)
+            {
+                this.huffman.Dispose();
+
+                this.windowMemoryHandle.Dispose();
+                this.windowMemoryOwner.Dispose();
+
+                this.headMemoryHandle.Dispose();
+                this.headMemoryOwner.Dispose();
+
+                this.prevMemoryHandle.Dispose();
+                this.prevMemoryOwner.Dispose();
+
+                this.windowMemoryOwner = null;
+                this.headMemoryOwner = null;
+                this.prevMemoryOwner = null;
+                this.huffman = null;
+
+                this.isDisposed = true;
+            }
+
             GC.SuppressFinalize(this);
         }
 
@@ -829,30 +848,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             }
 
             return true;
-        }
-
-        private void Dispose(bool disposing)
-        {
-            if (!this.isDisposed)
-            {
-                if (disposing)
-                {
-                    this.huffman.Dispose();
-
-                    this.windowBufferHandle.Dispose();
-                    this.windowBuffer.Dispose();
-
-                    this.headBufferHandle.Dispose();
-                    this.headBuffer.Dispose();
-
-                    this.prevBufferHandle.Dispose();
-                    this.prevBuffer.Dispose();
-                }
-
-                this.huffman = null;
-
-                this.isDisposed = true;
-            }
         }
     }
 }

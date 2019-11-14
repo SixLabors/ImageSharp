@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
     /// <summary>
     /// Stores pending data for writing data to the Deflater.
     /// </summary>
-    public sealed unsafe class DeflaterPendingBuffer : IDisposable
+    internal sealed unsafe class DeflaterPendingBuffer : IDisposable
     {
         private readonly byte[] buffer;
         private readonly byte* pinnedBuffer;
@@ -165,24 +165,15 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <inheritdoc/>
         public void Dispose()
         {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        private void Dispose(bool disposing)
-        {
             if (!this.isDisposed)
             {
-                if (disposing)
-                {
-                    this.bufferMemoryHandle.Dispose();
-                    this.bufferMemoryOwner.Dispose();
-                }
-
+                this.bufferMemoryHandle.Dispose();
+                this.bufferMemoryOwner.Dispose();
                 this.bufferMemoryOwner = null;
-
                 this.isDisposed = true;
             }
+
+            GC.SuppressFinalize(this);
         }
     }
 }

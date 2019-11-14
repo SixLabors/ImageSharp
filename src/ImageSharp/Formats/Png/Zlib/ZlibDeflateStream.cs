@@ -41,8 +41,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         // private DeflateStream deflateStream;
         private DeflaterOutputStream deflateStream;
 
-        private Deflater deflater;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="ZlibDeflateStream"/> class.
         /// </summary>
@@ -92,21 +90,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             this.rawStream.WriteByte(Cmf);
             this.rawStream.WriteByte((byte)flg);
 
-            // Initialize the deflate Stream.
-            // CompressionLevel level = CompressionLevel.Optimal;
-            //
-            // if (compressionLevel >= 1 && compressionLevel <= 5)
-            // {
-            //    level = CompressionLevel.Fastest;
-            // }
-            // else if (compressionLevel == 0)
-            // {
-            //    level = CompressionLevel.NoCompression;
-            // }
-            this.deflater = new Deflater(memoryAllocator, compressionLevel);
-            this.deflateStream = new DeflaterOutputStream(this.rawStream, this.deflater) { IsStreamOwner = false };
-
-            // this.deflateStream = new DeflateStream(this.rawStream, level, true);
+            this.deflateStream = new DeflaterOutputStream(memoryAllocator, this.rawStream, compressionLevel);
         }
 
         /// <inheritdoc/>
@@ -116,16 +100,23 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         public override bool CanSeek => false;
 
         /// <inheritdoc/>
-        public override bool CanWrite => true;
+        public override bool CanWrite => this.rawStream.CanWrite;
 
         /// <inheritdoc/>
-        public override long Length => throw new NotSupportedException();
+        public override long Length => this.rawStream.Length;
 
         /// <inheritdoc/>
         public override long Position
         {
-            get => throw new NotSupportedException();
-            set => throw new NotSupportedException();
+            get
+            {
+                return this.rawStream.Position;
+            }
+
+            set
+            {
+                throw new NotSupportedException();
+            }
         }
 
         /// <inheritdoc/>
@@ -174,10 +165,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 {
                     this.deflateStream.Dispose();
                     this.deflateStream = null;
-
-                    // TODO: Remove temporal coupling here.
-                    this.deflater.Dispose();
-                    this.deflater = null;
                 }
                 else
                 {
@@ -195,10 +182,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             }
 
             base.Dispose(disposing);
-
-            // Call the appropriate methods to clean up
-            // unmanaged resources here.
-            // Note disposing is done.
             this.isDisposed = true;
         }
     }

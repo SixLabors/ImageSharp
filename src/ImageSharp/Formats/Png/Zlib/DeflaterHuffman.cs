@@ -64,6 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         private int extraBits;
         private bool isDisposed;
 
+        // TODO: These should be pre-generated array/readonlyspans.
         static DeflaterHuffman()
         {
             // See RFC 1951 3.2.6
@@ -114,9 +115,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         {
             this.Pending = new DeflaterPendingBuffer(memoryAllocator);
 
-            this.literalTree = new Tree(LiteralNumber, 257, 15);
-            this.distTree = new Tree(DistanceNumber, 1, 15);
-            this.blTree = new Tree(BitLengthNumber, 4, 7);
+            this.literalTree = new Tree(memoryAllocator, LiteralNumber, 257, 15);
+            this.distTree = new Tree(memoryAllocator, DistanceNumber, 1, 15);
+            this.blTree = new Tree(memoryAllocator, BitLengthNumber, 4, 7);
 
             this.distanceManagedBuffer = memoryAllocator.Allocate<short>(BufferSize);
             this.distanceBufferHandle = this.distanceManagedBuffer.Memory.Pin();
@@ -135,6 +136,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <summary>
         /// Reset internal state
         /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void Reset()
         {
             this.lastLiteral = 0;
@@ -214,6 +216,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <param name="storedOffset">Index of first byte to write</param>
         /// <param name="storedLength">Count of bytes to write</param>
         /// <param name="lastBlock">True if this is the last block</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void FlushStoredBlock(byte[] stored, int storedOffset, int storedLength, bool lastBlock)
         {
             this.Pending.WriteBits((DeflaterConstants.STORED_BLOCK << 1) + (lastBlock ? 1 : 0), 3);
@@ -233,7 +236,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <param name="lastBlock">True if this is the last block</param>
         public void FlushBlock(byte[] stored, int storedOffset, int storedLength, bool lastBlock)
         {
-            this.literalTree.Freqs[EofSymbol]++;
+            this.literalTree.Frequencies[EofSymbol]++;
 
             // Build trees
             this.literalTree.BuildTree();
@@ -263,13 +266,13 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             ref byte staticLLengthRef = ref MemoryMarshal.GetReference<byte>(StaticLLength);
             for (int i = 0; i < LiteralNumber; i++)
             {
-                static_len += this.literalTree.Freqs[i] * Unsafe.Add(ref staticLLengthRef, i);
+                static_len += this.literalTree.Frequencies[i] * Unsafe.Add(ref staticLLengthRef, i);
             }
 
             ref byte staticDLengthRef = ref MemoryMarshal.GetReference<byte>(StaticDLength);
             for (int i = 0; i < DistanceNumber; i++)
             {
-                static_len += this.distTree.Freqs[i] * Unsafe.Add(ref staticDLengthRef, i);
+                static_len += this.distTree.Frequencies[i] * Unsafe.Add(ref staticDLengthRef, i);
             }
 
             if (opt_len >= static_len)
@@ -319,7 +322,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         {
             this.pinnedDistanceBuffer[this.lastLiteral] = 0;
             this.pinnedLiteralBuffer[this.lastLiteral++] = (byte)literal;
-            this.literalTree.Freqs[literal]++;
+            this.literalTree.Frequencies[literal]++;
             return this.IsFull();
         }
 
@@ -336,14 +339,14 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             this.pinnedLiteralBuffer[this.lastLiteral++] = (byte)(length - 3);
 
             int lc = Lcode(length - 3);
-            this.literalTree.Freqs[lc]++;
+            this.literalTree.Frequencies[lc]++;
             if (lc >= 265 && lc < 285)
             {
                 this.extraBits += (lc - 261) / 4;
             }
 
             int dc = Dcode(distance - 1);
-            this.distTree.Freqs[dc]++;
+            this.distTree.Frequencies[dc]++;
             if (dc >= 4)
             {
                 this.extraBits += (dc / 2) - 1;
@@ -415,33 +418,69 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                     this.distanceManagedBuffer.Dispose();
                     this.literalBufferHandle.Dispose();
                     this.literalManagedBuffer.Dispose();
+
+                    this.literalTree.Dispose();
+                    this.blTree.Dispose();
+                    this.distTree.Dispose();
                 }
 
                 this.Pending = null;
+
+                this.literalTree = null;
+                this.blTree = null;
+                this.distTree = null;
+
                 this.isDisposed = true;
             }
         }
 
-        private sealed class Tree
+        private sealed class Tree : IDisposable
         {
             private readonly int minNumCodes;
-            private short[] codes;
             private readonly int[] bitLengthCounts;
             private readonly int maxLength;
+            private bool isDisposed;
 
-            public Tree(int elements, int minCodes, int maxLength)
+            private readonly int elementCount;
+
+            private IMemoryOwner<short> codesMemoryOwner;
+            private MemoryHandle codesMemoryHandle;
+            private short* codes;
+
+            private IMemoryOwner<short> frequenciesMemoryOwner;
+            private MemoryHandle frequenciesMemoryHandle;
+
+            private IManagedByteBuffer lengthsMemoryOwner;
+            private MemoryHandle lengthsMemoryHandle;
+
+            public Tree(MemoryAllocator memoryAllocator, int elements, int minCodes, int maxLength)
             {
+                this.elementCount = elements;
+
                 this.minNumCodes = minCodes;
                 this.maxLength = maxLength;
-                this.Freqs = new short[elements];
+
+                this.frequenciesMemoryOwner = memoryAllocator.Allocate<short>(elements);
+                this.frequenciesMemoryHandle = this.frequenciesMemoryOwner.Memory.Pin();
+                this.Frequencies = (short*)this.frequenciesMemoryHandle.Pointer;
+
+                this.lengthsMemoryOwner = memoryAllocator.AllocateManagedByteBuffer(elements);
+                this.lengthsMemoryHandle = this.lengthsMemoryOwner.Memory.Pin();
+                this.Length = (byte*)this.lengthsMemoryHandle.Pointer;
+
+                this.codesMemoryOwner = memoryAllocator.Allocate<short>(elements);
+                this.codesMemoryHandle = this.codesMemoryOwner.Memory.Pin();
+                this.codes = (short*)this.codesMemoryHandle.Pointer;
+
+                // Maxes out at 15.
                 this.bitLengthCounts = new int[maxLength];
             }
 
             public int NumCodes { get; private set; }
 
-            public short[] Freqs { get; }
+            public short* Frequencies { get; }
 
-            public byte[] Length { get; set; }
+            public byte* Length { get; }
 
             /// <summary>
             /// Resets the internal state of the tree
@@ -449,13 +488,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Reset()
             {
-                for (int i = 0; i < this.Freqs.Length; i++)
-                {
-                    this.Freqs[i] = 0;
-                }
-
-                this.codes = null;
-                this.Length = null;
+                this.frequenciesMemoryOwner.Memory.Span.Clear();
+                this.lengthsMemoryOwner.Memory.Span.Clear();
+                this.codesMemoryOwner.Memory.Span.Clear();
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
@@ -472,9 +507,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             public void CheckEmpty()
             {
                 bool empty = true;
-                for (int i = 0; i < this.Freqs.Length; i++)
+                for (int i = 0; i < this.elementCount; i++)
                 {
-                    empty &= this.Freqs[i] == 0;
+                    empty &= this.Frequencies[i] == 0;
                 }
 
                 if (!empty)
@@ -488,10 +523,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             /// </summary>
             /// <param name="staticCodes">new codes</param>
             /// <param name="staticLengths">length for new codes</param>
-            public void SetStaticCodes(short[] staticCodes, byte[] staticLengths)
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void SetStaticCodes(ReadOnlySpan<short> staticCodes, ReadOnlySpan<byte> staticLengths)
             {
-                this.codes = staticCodes;
-                this.Length = staticLengths;
+                staticCodes.CopyTo(this.codesMemoryOwner.Memory.Span);
+                staticLengths.CopyTo(this.lengthsMemoryOwner.Memory.Span);
             }
 
             /// <summary>
@@ -499,15 +535,16 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             /// </summary>
             public void BuildCodes()
             {
-                int[] nextCode = new int[this.maxLength];
+                // Maxes out at 15 * 4
+                Span<int> nextCode = stackalloc int[this.maxLength];
+                ref int nextCodeRef = ref MemoryMarshal.GetReference(nextCode);
+                ref int bitLengthCountsRef = ref MemoryMarshal.GetReference<int>(this.bitLengthCounts);
+
                 int code = 0;
-
-                this.codes = new short[this.Freqs.Length];
-
                 for (int bits = 0; bits < this.maxLength; bits++)
                 {
-                    nextCode[bits] = code;
-                    code += this.bitLengthCounts[bits] << (15 - bits);
+                    Unsafe.Add(ref nextCodeRef, bits) = code;
+                    code += Unsafe.Add(ref bitLengthCountsRef, bits) << (15 - bits);
                 }
 
                 for (int i = 0; i < this.NumCodes; i++)
@@ -515,15 +552,15 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                     int bits = this.Length[i];
                     if (bits > 0)
                     {
-                        this.codes[i] = BitReverse(nextCode[bits - 1]);
-                        nextCode[bits - 1] += 1 << (16 - bits);
+                        this.codes[i] = BitReverse(Unsafe.Add(ref nextCodeRef, bits - 1));
+                        Unsafe.Add(ref nextCodeRef, bits - 1) += 1 << (16 - bits);
                     }
                 }
             }
 
             public void BuildTree()
             {
-                int numSymbols = this.Freqs.Length;
+                int numSymbols = this.elementCount;
 
                 // heap is a priority queue, sorted by frequency, least frequent
                 // nodes first.  The heap is a binary tree, with the property, that
@@ -532,20 +569,23 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 //
                 // The binary tree is encoded in an array:  0 is root node and
                 // the nodes 2*n+1, 2*n+2 are the child nodes of node n.
-                int[] heap = new int[numSymbols];
+                // Maxes out at 286 * 4
+                Span<int> heap = stackalloc int[numSymbols];
+                ref int heapRef = ref MemoryMarshal.GetReference(heap);
+
                 int heapLen = 0;
                 int maxCode = 0;
                 for (int n = 0; n < numSymbols; n++)
                 {
-                    int freq = this.Freqs[n];
+                    int freq = this.Frequencies[n];
                     if (freq != 0)
                     {
                         // Insert n into heap
                         int pos = heapLen++;
                         int ppos;
-                        while (pos > 0 && this.Freqs[heap[ppos = (pos - 1) / 2]] > freq)
+                        while (pos > 0 && this.Frequencies[Unsafe.Add(ref heapRef, ppos = (pos - 1) / 2)] > freq)
                         {
-                            heap[pos] = heap[ppos];
+                            Unsafe.Add(ref heapRef, pos) = Unsafe.Add(ref heapRef, ppos);
                             pos = ppos;
                         }
 
@@ -561,7 +601,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 // this case, both literals get a 1 bit code.
                 while (heapLen < 2)
                 {
-                    heap[heapLen++] = maxCode < 2 ? ++maxCode : 0;
+                    Unsafe.Add(ref heapRef, heapLen++) = maxCode < 2 ? ++maxCode : 0;
                 }
 
                 this.NumCodes = Math.Max(maxCode + 1, this.minNumCodes);
@@ -572,10 +612,10 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 int numNodes = numLeafs;
                 for (int i = 0; i < heapLen; i++)
                 {
-                    int node = heap[i];
+                    int node = Unsafe.Add(ref heapRef, i);
                     childs[2 * i] = node;
                     childs[(2 * i) + 1] = -1;
-                    values[i] = this.Freqs[node] << 8;
+                    values[i] = this.Frequencies[node] << 8;
                     heap[i] = i;
                 }
 
@@ -584,7 +624,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 do
                 {
                     int first = heap[0];
-                    int last = heap[--heapLen];
+                    int last = Unsafe.Add(ref heapRef, --heapLen);
 
                     // Propagate the hole to the leafs of the heap
                     int ppos = 0;
@@ -592,12 +632,12 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
                     while (path < heapLen)
                     {
-                        if (path + 1 < heapLen && values[heap[path]] > values[heap[path + 1]])
+                        if (path + 1 < heapLen && values[Unsafe.Add(ref heapRef, path)] > values[Unsafe.Add(ref heapRef, path + 1)])
                         {
                             path++;
                         }
 
-                        heap[ppos] = heap[path];
+                        Unsafe.Add(ref heapRef, ppos) = Unsafe.Add(ref heapRef, path);
                         ppos = path;
                         path = (path * 2) + 1;
                     }
@@ -605,14 +645,14 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                     // Now propagate the last element down along path.  Normally
                     // it shouldn't go too deep.
                     int lastVal = values[last];
-                    while ((path = ppos) > 0 && values[heap[ppos = (path - 1) / 2]] > lastVal)
+                    while ((path = ppos) > 0 && values[Unsafe.Add(ref heapRef, ppos = (path - 1) / 2)] > lastVal)
                     {
-                        heap[path] = heap[ppos];
+                        Unsafe.Add(ref heapRef, path) = Unsafe.Add(ref heapRef, ppos);
                     }
 
-                    heap[path] = last;
+                    Unsafe.Add(ref heapRef, path) = last;
 
-                    int second = heap[0];
+                    int second = Unsafe.Add(ref heapRef, 0);
 
                     // Create a new node father of first and second
                     last = numNodes++;
@@ -627,27 +667,27 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
                     while (path < heapLen)
                     {
-                        if (path + 1 < heapLen && values[heap[path]] > values[heap[path + 1]])
+                        if (path + 1 < heapLen && values[Unsafe.Add(ref heapRef, path)] > values[Unsafe.Add(ref heapRef, path + 1)])
                         {
                             path++;
                         }
 
-                        heap[ppos] = heap[path];
+                        Unsafe.Add(ref heapRef, ppos) = Unsafe.Add(ref heapRef, path);
                         ppos = path;
                         path = (ppos * 2) + 1;
                     }
 
                     // Now propagate the new element down along path
-                    while ((path = ppos) > 0 && values[heap[ppos = (path - 1) / 2]] > lastVal)
+                    while ((path = ppos) > 0 && values[Unsafe.Add(ref heapRef, ppos = (path - 1) / 2)] > lastVal)
                     {
-                        heap[path] = heap[ppos];
+                        Unsafe.Add(ref heapRef, path) = Unsafe.Add(ref heapRef, ppos);
                     }
 
-                    heap[path] = last;
+                    Unsafe.Add(ref heapRef, path) = last;
                 }
                 while (heapLen > 1);
 
-                if (heap[0] != (childs.Length / 2) - 1)
+                if (Unsafe.Add(ref heapRef, 0) != (childs.Length / 2) - 1)
                 {
                     DeflateThrowHelper.ThrowHeapViolated();
                 }
@@ -659,12 +699,13 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             /// Get encoded length
             /// </summary>
             /// <returns>Encoded length, the sum of frequencies * lengths</returns>
+            [MethodImpl(InliningOptions.ShortMethod)]
             public int GetEncodedLength()
             {
                 int len = 0;
-                for (int i = 0; i < this.Freqs.Length; i++)
+                for (int i = 0; i < this.elementCount; i++)
                 {
-                    len += this.Freqs[i] * this.Length[i];
+                    len += this.Frequencies[i] * this.Length[i];
                 }
 
                 return len;
@@ -697,7 +738,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                         min_count = 3;
                         if (curlen != nextlen)
                         {
-                            blTree.Freqs[nextlen]++;
+                            blTree.Frequencies[nextlen]++;
                             count = 0;
                         }
                     }
@@ -716,19 +757,19 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
                     if (count < min_count)
                     {
-                        blTree.Freqs[curlen] += (short)count;
+                        blTree.Frequencies[curlen] += (short)count;
                     }
                     else if (curlen != 0)
                     {
-                        blTree.Freqs[Repeat3To6]++;
+                        blTree.Frequencies[Repeat3To6]++;
                     }
                     else if (count <= 10)
                     {
-                        blTree.Freqs[Repeat3To10]++;
+                        blTree.Frequencies[Repeat3To10]++;
                     }
                     else
                     {
-                        blTree.Freqs[Repeat11To138]++;
+                        blTree.Frequencies[Repeat11To138]++;
                     }
                 }
             }
@@ -805,7 +846,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
             private void BuildLength(int[] children)
             {
-                this.Length = new byte[this.Freqs.Length];
                 int numNodes = children.Length / 2;
                 int numLeafs = (numNodes + 1) / 2;
                 int overflow = 0;
@@ -892,6 +932,36 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                             n--;
                         }
                     }
+                }
+            }
+
+            public void Dispose()
+            {
+                this.Dispose(true);
+                GC.SuppressFinalize(this);
+            }
+
+            private void Dispose(bool disposing)
+            {
+                if (!this.isDisposed)
+                {
+                    if (disposing)
+                    {
+                        this.frequenciesMemoryHandle.Dispose();
+                        this.frequenciesMemoryOwner.Dispose();
+
+                        this.lengthsMemoryHandle.Dispose();
+                        this.lengthsMemoryOwner.Dispose();
+
+                        this.codesMemoryHandle.Dispose();
+                        this.codesMemoryOwner.Dispose();
+                    }
+
+                    this.frequenciesMemoryOwner = null;
+                    this.lengthsMemoryOwner = null;
+                    this.codesMemoryOwner = null;
+
+                    this.isDisposed = true;
                 }
             }
         }

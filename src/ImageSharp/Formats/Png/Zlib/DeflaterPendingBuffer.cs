@@ -15,8 +15,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
     {
         private readonly byte[] buffer;
         private readonly byte* pinnedBuffer;
-        private readonly IManagedByteBuffer managedBuffer;
-        private MemoryHandle handle;
+        private IManagedByteBuffer bufferMemoryOwner;
+        private MemoryHandle bufferMemoryHandle;
 
         private int start;
         private int end;
@@ -29,10 +29,10 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <param name="memoryAllocator">The memory allocator to use for buffer allocations.</param>
         public DeflaterPendingBuffer(MemoryAllocator memoryAllocator)
         {
-            this.managedBuffer = memoryAllocator.AllocateManagedByteBuffer(DeflaterConstants.PENDING_BUF_SIZE);
-            this.buffer = this.managedBuffer.Array;
-            this.handle = this.managedBuffer.Memory.Pin();
-            this.pinnedBuffer = (byte*)this.handle.Pointer;
+            this.bufferMemoryOwner = memoryAllocator.AllocateManagedByteBuffer(DeflaterConstants.PENDING_BUF_SIZE);
+            this.buffer = this.bufferMemoryOwner.Array;
+            this.bufferMemoryHandle = this.bufferMemoryOwner.Memory.Pin();
+            this.pinnedBuffer = (byte*)this.bufferMemoryHandle.Pointer;
         }
 
         /// <summary>
@@ -175,9 +175,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             {
                 if (disposing)
                 {
-                    this.handle.Dispose();
-                    this.managedBuffer.Dispose();
+                    this.bufferMemoryHandle.Dispose();
+                    this.bufferMemoryOwner.Dispose();
                 }
+
+                this.bufferMemoryOwner = null;
 
                 this.isDisposed = true;
             }

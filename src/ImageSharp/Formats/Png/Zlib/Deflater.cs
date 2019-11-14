@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
     /// This class compresses input with the deflate algorithm described in RFC 1951.
     /// It has several compression levels and three different strategies described below.
     /// </summary>
-    public sealed class Deflater : IDisposable
+    internal sealed class Deflater : IDisposable
     {
         /// <summary>
         /// The best and slowest compression level.  This tries to find very

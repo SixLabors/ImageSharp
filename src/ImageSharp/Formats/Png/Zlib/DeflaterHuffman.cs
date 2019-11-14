@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
     /// <summary>
     /// Performs Deflate Huffman encoding.
     /// </summary>
-    public sealed unsafe class DeflaterHuffman : IDisposable
+    internal sealed unsafe class DeflaterHuffman : IDisposable
     {
         private const int BufferSize = 1 << (DeflaterConstants.DEFAULT_MEM_LEVEL + 6);
 
@@ -194,7 +194,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                     int dc = Dcode(dist);
                     this.distTree.WriteSymbol(pendingBuffer, dc);
 
-                    bits = (dc / 2) - 1;
+                    bits = (dc >> 1) - 1;
                     if (bits > 0)
                     {
                         this.Pending.WriteBits(dist & ((1 << bits) - 1), bits);
@@ -349,7 +349,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             this.distTree.Frequencies[dc]++;
             if (dc >= 4)
             {
-                this.extraBits += (dc / 2) - 1;
+                this.extraBits += (dc >> 1) - 1;
             }
 
             return this.IsFull();
@@ -443,9 +443,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
             private readonly int elementCount;
 
+            private readonly MemoryAllocator memoryAllocator;
+
             private IMemoryOwner<short> codesMemoryOwner;
             private MemoryHandle codesMemoryHandle;
-            private short* codes;
+            private readonly short* codes;
 
             private IMemoryOwner<short> frequenciesMemoryOwner;
             private MemoryHandle frequenciesMemoryHandle;
@@ -455,8 +457,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
             public Tree(MemoryAllocator memoryAllocator, int elements, int minCodes, int maxLength)
             {
+                this.memoryAllocator = memoryAllocator;
                 this.elementCount = elements;
-
                 this.minNumCodes = minCodes;
                 this.maxLength = maxLength;
 
@@ -496,27 +498,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             [MethodImpl(InliningOptions.ShortMethod)]
             public void WriteSymbol(DeflaterPendingBuffer pendingBuffer, int code)
                 => pendingBuffer.WriteBits(this.codes[code] & 0xFFFF, this.Length[code]);
-
-            /// <summary>
-            /// Check that all frequencies are zero
-            /// </summary>
-            /// <exception cref="InvalidOperationException">
-            /// At least one frequency is non-zero
-            /// </exception>
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public void CheckEmpty()
-            {
-                bool empty = true;
-                for (int i = 0; i < this.elementCount; i++)
-                {
-                    empty &= this.Frequencies[i] == 0;
-                }
-
-                if (!empty)
-                {
-                    DeflateThrowHelper.ThrowFrequencyNotEmpty();
-                }
-            }
 
             /// <summary>
             /// Set static codes and length
@@ -569,130 +550,141 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 //
                 // The binary tree is encoded in an array:  0 is root node and
                 // the nodes 2*n+1, 2*n+2 are the child nodes of node n.
-                // Maxes out at 286 * 4
-                Span<int> heap = stackalloc int[numSymbols];
-                ref int heapRef = ref MemoryMarshal.GetReference(heap);
-
-                int heapLen = 0;
-                int maxCode = 0;
-                for (int n = 0; n < numSymbols; n++)
+                // Maxes out at 286 * 4 so too large for the stack.
+                using (IMemoryOwner<int> heapMemoryOwner = this.memoryAllocator.Allocate<int>(numSymbols))
                 {
-                    int freq = this.Frequencies[n];
-                    if (freq != 0)
+                    ref int heapRef = ref MemoryMarshal.GetReference(heapMemoryOwner.Memory.Span);
+
+                    int heapLen = 0;
+                    int maxCode = 0;
+                    for (int n = 0; n < numSymbols; n++)
                     {
-                        // Insert n into heap
-                        int pos = heapLen++;
-                        int ppos;
-                        while (pos > 0 && this.Frequencies[Unsafe.Add(ref heapRef, ppos = (pos - 1) / 2)] > freq)
+                        int freq = this.Frequencies[n];
+                        if (freq != 0)
                         {
-                            Unsafe.Add(ref heapRef, pos) = Unsafe.Add(ref heapRef, ppos);
-                            pos = ppos;
+                            // Insert n into heap
+                            int pos = heapLen++;
+                            int ppos;
+                            while (pos > 0 && this.Frequencies[Unsafe.Add(ref heapRef, ppos = (pos - 1) >> 1)] > freq)
+                            {
+                                Unsafe.Add(ref heapRef, pos) = Unsafe.Add(ref heapRef, ppos);
+                                pos = ppos;
+                            }
+
+                            Unsafe.Add(ref heapRef, pos) = n;
+
+                            maxCode = n;
+                        }
+                    }
+
+                    // We could encode a single literal with 0 bits but then we
+                    // don't see the literals.  Therefore we force at least two
+                    // literals to avoid this case.  We don't care about order in
+                    // this case, both literals get a 1 bit code.
+                    while (heapLen < 2)
+                    {
+                        Unsafe.Add(ref heapRef, heapLen++) = maxCode < 2 ? ++maxCode : 0;
+                    }
+
+                    this.NumCodes = Math.Max(maxCode + 1, this.minNumCodes);
+
+                    int numLeafs = heapLen;
+                    int childrenLength = (4 * heapLen) - 2;
+                    using (IMemoryOwner<int> childrenMemoryOwner = this.memoryAllocator.Allocate<int>(childrenLength))
+                    using (IMemoryOwner<int> valuesMemoryOwner = this.memoryAllocator.Allocate<int>((2 * heapLen) - 1))
+                    {
+                        ref int childrenRef = ref MemoryMarshal.GetReference(childrenMemoryOwner.Memory.Span);
+                        ref int valuesRef = ref MemoryMarshal.GetReference(valuesMemoryOwner.Memory.Span);
+                        int numNodes = numLeafs;
+
+                        for (int i = 0; i < heapLen; i++)
+                        {
+                            int node = Unsafe.Add(ref heapRef, i);
+                            int i2 = 2 * i;
+                            Unsafe.Add(ref childrenRef, i2) = node;
+                            Unsafe.Add(ref childrenRef, i2 + 1) = -1;
+                            Unsafe.Add(ref valuesRef, i) = this.Frequencies[node] << 8;
+                            Unsafe.Add(ref heapRef, i) = i;
                         }
 
-                        heap[pos] = n;
-
-                        maxCode = n;
-                    }
-                }
-
-                // We could encode a single literal with 0 bits but then we
-                // don't see the literals.  Therefore we force at least two
-                // literals to avoid this case.  We don't care about order in
-                // this case, both literals get a 1 bit code.
-                while (heapLen < 2)
-                {
-                    Unsafe.Add(ref heapRef, heapLen++) = maxCode < 2 ? ++maxCode : 0;
-                }
-
-                this.NumCodes = Math.Max(maxCode + 1, this.minNumCodes);
-
-                int numLeafs = heapLen;
-                int[] childs = new int[(4 * heapLen) - 2];
-                int[] values = new int[(2 * heapLen) - 1];
-                int numNodes = numLeafs;
-                for (int i = 0; i < heapLen; i++)
-                {
-                    int node = Unsafe.Add(ref heapRef, i);
-                    childs[2 * i] = node;
-                    childs[(2 * i) + 1] = -1;
-                    values[i] = this.Frequencies[node] << 8;
-                    heap[i] = i;
-                }
-
-                // Construct the Huffman tree by repeatedly combining the least two
-                // frequent nodes.
-                do
-                {
-                    int first = heap[0];
-                    int last = Unsafe.Add(ref heapRef, --heapLen);
-
-                    // Propagate the hole to the leafs of the heap
-                    int ppos = 0;
-                    int path = 1;
-
-                    while (path < heapLen)
-                    {
-                        if (path + 1 < heapLen && values[Unsafe.Add(ref heapRef, path)] > values[Unsafe.Add(ref heapRef, path + 1)])
+                        // Construct the Huffman tree by repeatedly combining the least two
+                        // frequent nodes.
+                        do
                         {
-                            path++;
+                            int first = Unsafe.Add(ref heapRef, 0);
+                            int last = Unsafe.Add(ref heapRef, --heapLen);
+
+                            // Propagate the hole to the leafs of the heap
+                            int ppos = 0;
+                            int path = 1;
+
+                            while (path < heapLen)
+                            {
+                                if (path + 1 < heapLen && Unsafe.Add(ref valuesRef, Unsafe.Add(ref heapRef, path)) > Unsafe.Add(ref valuesRef, Unsafe.Add(ref heapRef, path + 1)))
+                                {
+                                    path++;
+                                }
+
+                                Unsafe.Add(ref heapRef, ppos) = Unsafe.Add(ref heapRef, path);
+                                ppos = path;
+                                path = (path * 2) + 1;
+                            }
+
+                            // Now propagate the last element down along path.  Normally
+                            // it shouldn't go too deep.
+                            int lastVal = Unsafe.Add(ref valuesRef, last);
+                            while ((path = ppos) > 0
+                                    && Unsafe.Add(ref valuesRef, Unsafe.Add(ref heapRef, ppos = (path - 1) >> 1)) > lastVal)
+                            {
+                                Unsafe.Add(ref heapRef, path) = Unsafe.Add(ref heapRef, ppos);
+                            }
+
+                            Unsafe.Add(ref heapRef, path) = last;
+
+                            int second = Unsafe.Add(ref heapRef, 0);
+
+                            // Create a new node father of first and second
+                            last = numNodes++;
+                            Unsafe.Add(ref childrenRef, 2 * last) = first;
+                            Unsafe.Add(ref childrenRef, (2 * last) + 1) = second;
+                            int mindepth = Math.Min(Unsafe.Add(ref valuesRef, first) & 0xFF, Unsafe.Add(ref valuesRef, second) & 0xFF);
+                            Unsafe.Add(ref valuesRef, last) = lastVal = Unsafe.Add(ref valuesRef, first) + Unsafe.Add(ref valuesRef, second) - mindepth + 1;
+
+                            // Again, propagate the hole to the leafs
+                            ppos = 0;
+                            path = 1;
+
+                            while (path < heapLen)
+                            {
+                                if (path + 1 < heapLen
+                                    && Unsafe.Add(ref valuesRef, Unsafe.Add(ref heapRef, path)) > Unsafe.Add(ref valuesRef, Unsafe.Add(ref heapRef, path + 1)))
+                                {
+                                    path++;
+                                }
+
+                                Unsafe.Add(ref heapRef, ppos) = Unsafe.Add(ref heapRef, path);
+                                ppos = path;
+                                path = (ppos * 2) + 1;
+                            }
+
+                            // Now propagate the new element down along path
+                            while ((path = ppos) > 0 && Unsafe.Add(ref valuesRef, Unsafe.Add(ref heapRef, ppos = (path - 1) >> 1)) > lastVal)
+                            {
+                                Unsafe.Add(ref heapRef, path) = Unsafe.Add(ref heapRef, ppos);
+                            }
+
+                            Unsafe.Add(ref heapRef, path) = last;
+                        }
+                        while (heapLen > 1);
+
+                        if (Unsafe.Add(ref heapRef, 0) != (childrenLength >> 1) - 1)
+                        {
+                            DeflateThrowHelper.ThrowHeapViolated();
                         }
 
-                        Unsafe.Add(ref heapRef, ppos) = Unsafe.Add(ref heapRef, path);
-                        ppos = path;
-                        path = (path * 2) + 1;
+                        this.BuildLength(childrenMemoryOwner.Memory.Span);
                     }
-
-                    // Now propagate the last element down along path.  Normally
-                    // it shouldn't go too deep.
-                    int lastVal = values[last];
-                    while ((path = ppos) > 0 && values[Unsafe.Add(ref heapRef, ppos = (path - 1) / 2)] > lastVal)
-                    {
-                        Unsafe.Add(ref heapRef, path) = Unsafe.Add(ref heapRef, ppos);
-                    }
-
-                    Unsafe.Add(ref heapRef, path) = last;
-
-                    int second = Unsafe.Add(ref heapRef, 0);
-
-                    // Create a new node father of first and second
-                    last = numNodes++;
-                    childs[2 * last] = first;
-                    childs[(2 * last) + 1] = second;
-                    int mindepth = Math.Min(values[first] & 0xFF, values[second] & 0xFF);
-                    values[last] = lastVal = values[first] + values[second] - mindepth + 1;
-
-                    // Again, propagate the hole to the leafs
-                    ppos = 0;
-                    path = 1;
-
-                    while (path < heapLen)
-                    {
-                        if (path + 1 < heapLen && values[Unsafe.Add(ref heapRef, path)] > values[Unsafe.Add(ref heapRef, path + 1)])
-                        {
-                            path++;
-                        }
-
-                        Unsafe.Add(ref heapRef, ppos) = Unsafe.Add(ref heapRef, path);
-                        ppos = path;
-                        path = (ppos * 2) + 1;
-                    }
-
-                    // Now propagate the new element down along path
-                    while ((path = ppos) > 0 && values[Unsafe.Add(ref heapRef, ppos = (path - 1) / 2)] > lastVal)
-                    {
-                        Unsafe.Add(ref heapRef, path) = Unsafe.Add(ref heapRef, ppos);
-                    }
-
-                    Unsafe.Add(ref heapRef, path) = last;
                 }
-                while (heapLen > 1);
-
-                if (Unsafe.Add(ref heapRef, 0) != (childs.Length / 2) - 1)
-                {
-                    DeflateThrowHelper.ThrowHeapViolated();
-                }
-
-                this.BuildLength(childs);
             }
 
             /// <summary>
@@ -717,10 +709,10 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             /// </summary>
             public void CalcBLFreq(Tree blTree)
             {
-                int max_count;               /* max repeat count */
-                int min_count;               /* min repeat count */
-                int count;                   /* repeat count of the current code */
-                int curlen = -1;             /* length of current code */
+                int maxCount;                // max repeat count
+                int minCount;                // min repeat count
+                int count;                   // repeat count of the current code
+                int curLen = -1;             // length of current code
 
                 int i = 0;
                 while (i < this.NumCodes)
@@ -729,37 +721,37 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                     int nextlen = this.Length[i];
                     if (nextlen == 0)
                     {
-                        max_count = 138;
-                        min_count = 3;
+                        maxCount = 138;
+                        minCount = 3;
                     }
                     else
                     {
-                        max_count = 6;
-                        min_count = 3;
-                        if (curlen != nextlen)
+                        maxCount = 6;
+                        minCount = 3;
+                        if (curLen != nextlen)
                         {
                             blTree.Frequencies[nextlen]++;
                             count = 0;
                         }
                     }
 
-                    curlen = nextlen;
+                    curLen = nextlen;
                     i++;
 
-                    while (i < this.NumCodes && curlen == this.Length[i])
+                    while (i < this.NumCodes && curLen == this.Length[i])
                     {
                         i++;
-                        if (++count >= max_count)
+                        if (++count >= maxCount)
                         {
                             break;
                         }
                     }
 
-                    if (count < min_count)
+                    if (count < minCount)
                     {
-                        blTree.Frequencies[curlen] += (short)count;
+                        blTree.Frequencies[curLen] += (short)count;
                     }
-                    else if (curlen != 0)
+                    else if (curLen != 0)
                     {
                         blTree.Frequencies[Repeat3To6]++;
                     }
@@ -781,10 +773,10 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             /// <param name="bitLengthTree">The tree to write.</param>
             public void WriteTree(DeflaterPendingBuffer pendingBuffer, Tree bitLengthTree)
             {
-                int max_count;               // max repeat count
-                int min_count;               // min repeat count
-                int count;                   // repeat count of the current code
-                int curlen = -1;             // length of current code
+                int maxCount;               // max repeat count
+                int minCount;               // min repeat count
+                int count;                  // repeat count of the current code
+                int curLen = -1;            // length of current code
 
                 int i = 0;
                 while (i < this.NumCodes)
@@ -793,40 +785,40 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                     int nextlen = this.Length[i];
                     if (nextlen == 0)
                     {
-                        max_count = 138;
-                        min_count = 3;
+                        maxCount = 138;
+                        minCount = 3;
                     }
                     else
                     {
-                        max_count = 6;
-                        min_count = 3;
-                        if (curlen != nextlen)
+                        maxCount = 6;
+                        minCount = 3;
+                        if (curLen != nextlen)
                         {
                             bitLengthTree.WriteSymbol(pendingBuffer, nextlen);
                             count = 0;
                         }
                     }
 
-                    curlen = nextlen;
+                    curLen = nextlen;
                     i++;
 
-                    while (i < this.NumCodes && curlen == this.Length[i])
+                    while (i < this.NumCodes && curLen == this.Length[i])
                     {
                         i++;
-                        if (++count >= max_count)
+                        if (++count >= maxCount)
                         {
                             break;
                         }
                     }
 
-                    if (count < min_count)
+                    if (count < minCount)
                     {
                         while (count-- > 0)
                         {
-                            bitLengthTree.WriteSymbol(pendingBuffer, curlen);
+                            bitLengthTree.WriteSymbol(pendingBuffer, curLen);
                         }
                     }
-                    else if (curlen != 0)
+                    else if (curLen != 0)
                     {
                         bitLengthTree.WriteSymbol(pendingBuffer, Repeat3To6);
                         pendingBuffer.WriteBits(count - 3, 2);
@@ -844,10 +836,10 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 }
             }
 
-            private void BuildLength(int[] children)
+            private void BuildLength(ReadOnlySpan<int> children)
             {
-                int numNodes = children.Length / 2;
-                int numLeafs = (numNodes + 1) / 2;
+                int numNodes = children.Length >> 1;
+                int numLeafs = (numNodes + 1) >> 1;
                 int overflow = 0;
 
                 for (int i = 0; i < this.maxLength; i++)
@@ -937,25 +929,16 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
             public void Dispose()
             {
-                this.Dispose(true);
-                GC.SuppressFinalize(this);
-            }
-
-            private void Dispose(bool disposing)
-            {
                 if (!this.isDisposed)
                 {
-                    if (disposing)
-                    {
-                        this.frequenciesMemoryHandle.Dispose();
-                        this.frequenciesMemoryOwner.Dispose();
+                    this.frequenciesMemoryHandle.Dispose();
+                    this.frequenciesMemoryOwner.Dispose();
 
-                        this.lengthsMemoryHandle.Dispose();
-                        this.lengthsMemoryOwner.Dispose();
+                    this.lengthsMemoryHandle.Dispose();
+                    this.lengthsMemoryOwner.Dispose();
 
-                        this.codesMemoryHandle.Dispose();
-                        this.codesMemoryOwner.Dispose();
-                    }
+                    this.codesMemoryHandle.Dispose();
+                    this.codesMemoryOwner.Dispose();
 
                     this.frequenciesMemoryOwner = null;
                     this.lengthsMemoryOwner = null;
@@ -963,6 +946,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
                     this.isDisposed = true;
                 }
+
+                GC.SuppressFinalize(this);
             }
         }
     }

@@ -27,9 +27,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         public static void ThrowOutOfRange(string name) => throw new ArgumentOutOfRangeException(name);
 
         [MethodImpl(InliningOptions.ColdPath)]
-        public static void ThrowFrequencyNotEmpty() => throw new InvalidOperationException("Huffman frequency entry non empty.");
+        public static void ThrowHeapViolated() => throw new InvalidOperationException("Huffman heap invariant violated.");
 
         [MethodImpl(InliningOptions.ColdPath)]
-        public static void ThrowHeapViolated() => throw new InvalidOperationException("Huffman heap invariant violated.");
+        public static void ThrowNoDeflate() => throw new ImageFormatException("Cannot deflate all input.");
     }
 }

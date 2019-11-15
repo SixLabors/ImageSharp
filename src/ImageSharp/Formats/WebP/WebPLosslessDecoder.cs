@@ -23,6 +23,24 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private readonly int imageDataSize;
 
+        private static int FIXED_TABLE_SIZE = 630 * 3 + 410;
+
+        private static int[] kTableSize =
+        {
+            FIXED_TABLE_SIZE + 654,
+            FIXED_TABLE_SIZE + 656,
+            FIXED_TABLE_SIZE + 658,
+            FIXED_TABLE_SIZE + 662,
+            FIXED_TABLE_SIZE + 670,
+            FIXED_TABLE_SIZE + 686,
+            FIXED_TABLE_SIZE + 718,
+            FIXED_TABLE_SIZE + 782,
+            FIXED_TABLE_SIZE + 912,
+            FIXED_TABLE_SIZE + 1168,
+            FIXED_TABLE_SIZE + 1680,
+            FIXED_TABLE_SIZE + 2704
+        };
+
         public WebPLosslessDecoder(Vp8LBitReader bitReader, int imageDataSize)
         {
             this.bitReader = bitReader;
@@ -37,18 +55,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             this.ReadTransformations();
             int xsize = 0, ysize = 0;
-            this.ReadHuffmanCodes(xsize, ysize);
-        }
-
-        private void ReadHuffmanCodes(int xsize, int ysize)
-        {
-            int maxAlphabetSize = 0;
-            int colorCacheBits = 0;
-            int numHtreeGroups = 1;
-            int numHtreeGroupsMax = 1;
 
             // Read color cache, if present.
             bool colorCachePresent = this.bitReader.ReadBit();
+            int colorCacheBits = 0;
             if (colorCachePresent)
             {
                 colorCacheBits = (int)this.bitReader.ReadBits(4);
@@ -58,6 +68,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     WebPThrowHelper.ThrowImageFormatException("Invalid color cache bits found");
                 }
             }
+
+            this.ReadHuffmanCodes(xsize, ysize, colorCacheBits);
+        }
+
+        private void ReadHuffmanCodes(int xsize, int ysize, int colorCacheBits, bool allowRecursion = true)
+        {
+            int maxAlphabetSize = 0;
+            int numHtreeGroups = 1;
+            int numHtreeGroupsMax = 1;
 
             // Read the Huffman codes.
             // If the next bit is zero, there is only one meta Huffman code used everywhere in the image. No more data is stored.
@@ -88,9 +107,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
             }
 
-            // TODO: not sure about the correct tabelSize here. Harcoded for now.
-            //int tableSize = kTableSize[colorCacheBits];
-            int tableSize = 2970;
+            int tableSize = kTableSize[colorCacheBits];
             var table = new HuffmanCode[numHtreeGroups * tableSize];
             for (int i = 0; i < numHtreeGroupsMax; i++)
             {
@@ -163,8 +180,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 this.ReadHuffmanCodeLengths(table, codeLengthCodeLengths, alphabetSize, codeLengths);
             }
 
-            int size = 0;
-            // TODO: VP8LBuildHuffmanTable
+            int size = HuffmanUtils.BuildHuffmanTable(table, HuffmanUtils.HuffmanTableBits, codeLengths, alphabetSize);
 
             return size;
         }
@@ -222,6 +238,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     int repeat = (int)(this.bitReader.ReadBits(extraBits) + repeatOffset);
                     if (symbol + repeat > numSymbols)
                     {
+                        // TODO: not sure, if this should be treated as an error here
                         return;
                     }
                     else

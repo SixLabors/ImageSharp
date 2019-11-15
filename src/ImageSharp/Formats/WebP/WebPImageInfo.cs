@@ -29,5 +29,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// The bytes of the image payload.
         /// </summary>
         public uint ImageDataSize { get; set; }
+
+        // TODO: not sure if the bitreader is in the right place here, but for the sake of simplicity it will stay here for now.
+        // Will be refactored later. 
+        public Vp8LBitReader Vp9LBitReader { get; set; }
     }
 }

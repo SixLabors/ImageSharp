@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             bool isShowFrame = bitReader.ReadBit();
 
-            uint firstPartitionSize = (bitReader.Read(16) << 3) | bitReader.Read(3);
+            uint firstPartitionSize = (bitReader.ReadBits(16) << 3) | bitReader.ReadBits(3);
         }
 
         private (ReconstructionFilter, LoopFilter) DecodeVersion(byte version)

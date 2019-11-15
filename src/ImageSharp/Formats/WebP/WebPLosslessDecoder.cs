@@ -23,9 +23,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private readonly int imageDataSize;
 
-        public WebPLosslessDecoder(Stream stream, int imageDataSize)
+        public WebPLosslessDecoder(Vp8LBitReader bitReader, int imageDataSize)
         {
-            this.bitReader = new Vp8LBitReader(stream);
+            this.bitReader = bitReader;
             this.imageDataSize = imageDataSize;
 
             // TODO: implement decoding. For simulating the decoding: skipping the chunk size bytes.
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             bool colorCachePresent = this.bitReader.ReadBit();
             if (colorCachePresent)
             {
-                colorCacheBits = (int)this.bitReader.Read(4);
+                colorCacheBits = (int)this.bitReader.ReadBits(4);
                 int colorCacheSize = 1 << colorCacheBits;
                 if (!(colorCacheBits >= 1 && colorCacheBits <= WebPConstants.MaxColorCacheBits))
                 {
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             bool isEntropyImage = this.bitReader.ReadBit();
             if (isEntropyImage)
             {
-                uint huffmanPrecision = this.bitReader.Read(3) + 2;
+                uint huffmanPrecision = this.bitReader.ReadBits(3) + 2;
                 int huffmanXSize = SubSampleSize(xsize, (int)huffmanPrecision);
                 int huffmanYSize = SubSampleSize(ysize, (int)huffmanPrecision);
 
@@ -129,17 +129,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 // and are in the range of[0, 255].All other Huffman code lengths are implicitly zeros.
 
                 // Read symbols, codes & code lengths directly.
-                uint numSymbols = this.bitReader.Read(1) + 1;
-                uint firstSymbolLenCode = this.bitReader.Read(1);
+                uint numSymbols = this.bitReader.ReadBits(1) + 1;
+                uint firstSymbolLenCode = this.bitReader.ReadBits(1);
 
                 // The first code is either 1 bit or 8 bit code.
-                uint symbol = this.bitReader.Read((firstSymbolLenCode == 0) ? 1 : 8);
+                uint symbol = this.bitReader.ReadBits((firstSymbolLenCode == 0) ? 1 : 8);
                 codeLengths[symbol] = 1;
 
                 // The second code (if present), is always 8 bit long.
                 if (numSymbols == 2)
                 {
-                    symbol = this.bitReader.Read(8);
+                    symbol = this.bitReader.ReadBits(8);
                     codeLengths[symbol] = 1;
                 }
             }
@@ -149,7 +149,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 // The code lengths of a Huffman code are read as follows: num_code_lengths specifies the number of code lengths;
                 // the rest of the code lengths (according to the order in kCodeLengthCodeOrder) are zeros.
                 var codeLengthCodeLengths = new int[WebPConstants.NumCodeLengthCodes];
-                uint numCodes = this.bitReader.Read(4) + 4;
+                uint numCodes = this.bitReader.ReadBits(4) + 4;
                 if (numCodes > WebPConstants.NumCodeLengthCodes)
                 {
                     WebPThrowHelper.ThrowImageFormatException("Bitstream error, numCodes has an invalid value");
@@ -157,7 +157,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                 for (int i = 0; i < numCodes; i++)
                 {
-                    codeLengthCodeLengths[WebPConstants.KCodeLengthCodeOrder[i]] = (int)this.bitReader.Read(3);
+                    codeLengthCodeLengths[WebPConstants.KCodeLengthCodeOrder[i]] = (int)this.bitReader.ReadBits(3);
                 }
 
                 this.ReadHuffmanCodeLengths(table, codeLengthCodeLengths, alphabetSize, codeLengths);
@@ -171,6 +171,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private void ReadHuffmanCodeLengths(HuffmanCode[] table, int[] codeLengthCodeLengths, int numSymbols, int[] codeLengths)
         {
+            Span<HuffmanCode> tableSpan = table.AsSpan();
             int maxSymbol;
             int symbol = 0;
             int prevCodeLen = WebPConstants.DefaultCodeLength;
@@ -182,8 +183,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             if (this.bitReader.ReadBit())
             {
-                int lengthNBits = 2 + (2 * (int)this.bitReader.Read(3));
-                maxSymbol = 2 + (int)this.bitReader.Read(lengthNBits);
+                int lengthNBits = 2 + (2 * (int)this.bitReader.ReadBits(3));
+                maxSymbol = 2 + (int)this.bitReader.ReadBits(lengthNBits);
             }
             else
             {
@@ -198,7 +199,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     break;
                 }
 
-                codeLen = int.MaxValue; // TODO: this is wrong
+                this.bitReader.FillBitWindow();
+                ulong prefetchBits = this.bitReader.PrefetchBits();
+                ulong idx = prefetchBits & 127;
+                HuffmanCode huffmanCode = table[idx];
+                this.bitReader.AdvanceBitPosition(huffmanCode.BitsUsed);
+                codeLen = huffmanCode.Value;
                 if (codeLen < WebPConstants.kCodeLengthLiterals)
                 {
                     codeLengths[symbol++] = codeLen;
@@ -213,7 +219,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     int slot = codeLen - WebPConstants.kCodeLengthLiterals;
                     int extraBits = WebPConstants.kCodeLengthExtraBits[slot];
                     int repeatOffset = WebPConstants.kCodeLengthRepeatOffsets[slot];
-                    int repeat = (int)(this.bitReader.Read(extraBits) + repeatOffset);
+                    int repeat = (int)(this.bitReader.ReadBits(extraBits) + repeatOffset);
                     if (symbol + repeat > numSymbols)
                     {
                         return;
@@ -238,7 +244,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             var transforms = new List<WebPTransformType>(WebPConstants.MaxNumberOfTransforms);
             while (transformPresent)
             {
-                var transformType = (WebPTransformType)this.bitReader.Read(2);
+                var transformType = (WebPTransformType)this.bitReader.ReadBits(2);
                 transforms.Add(transformType);
                 switch (transformType)
                 {
@@ -248,7 +254,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     case WebPTransformType.ColorIndexingTransform:
                         // The transform data contains color table size and the entries in the color table.
                         // 8 bit value for color table size.
-                        uint colorTableSize = this.bitReader.Read(8) + 1;
+                        uint colorTableSize = this.bitReader.ReadBits(8) + 1;
 
                         // TODO: color table should follow here?
                         break;
@@ -257,7 +263,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         {
                             // The first 3 bits of prediction data define the block width and height in number of bits.
                             // The number of block columns, block_xsize, is used in indexing two-dimensionally.
-                            uint sizeBits = this.bitReader.Read(3) + 2;
+                            uint sizeBits = this.bitReader.ReadBits(3) + 2;
                             int blockWidth = 1 << (int)sizeBits;
                             int blockHeight = 1 << (int)sizeBits;
 
@@ -268,7 +274,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         {
                             // The first 3 bits of the color transform data contain the width and height of the image block in number of bits,
                             // just like the predictor transform:
-                            uint sizeBits = this.bitReader.Read(3) + 2;
+                            uint sizeBits = this.bitReader.ReadBits(3) + 2;
                             int blockWidth = 1 << (int)sizeBits;
                             int blockHeight = 1 << (int)sizeBits;
                             break;

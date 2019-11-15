@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
             if (imageInfo.IsLossLess)
             {
-                var losslessDecoder = new WebPLosslessDecoder(this.currentStream, (int)imageInfo.ImageDataSize);
+                var losslessDecoder = new WebPLosslessDecoder(imageInfo.Vp9LBitReader, (int)imageInfo.ImageDataSize);
                 losslessDecoder.Decode(pixels, image.Width, image.Height);
             }
             else
@@ -298,16 +298,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
             uint dataSize = this.ReadChunkSize();
 
             // One byte signature, should be 0x2f.
-            byte signature = (byte)this.currentStream.ReadByte();
+            var bitReader = new Vp8LBitReader(this.currentStream);
+            uint signature = bitReader.ReadBits(8);
             if (signature != WebPConstants.Vp8LMagicByte)
             {
                 WebPThrowHelper.ThrowImageFormatException("Invalid VP8L signature");
             }
 
             // The first 28 bits of the bitstream specify the width and height of the image.
-            var bitReader = new Vp8LBitReader(this.currentStream);
-            uint width = bitReader.Read(WebPConstants.Vp8LImageSizeBits) + 1;
-            uint height = bitReader.Read(WebPConstants.Vp8LImageSizeBits) + 1;
+            uint width = bitReader.ReadBits(WebPConstants.Vp8LImageSizeBits) + 1;
+            uint height = bitReader.ReadBits(WebPConstants.Vp8LImageSizeBits) + 1;
 
             // The alpha_is_used flag should be set to 0 when all alpha values are 255 in the picture, and 1 otherwise.
             bool alphaIsUsed = bitReader.ReadBit();
@@ -315,7 +315,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // The next 3 bits are the version. The version_number is a 3 bit code that must be set to 0.
             // Any other value should be treated as an error.
             // TODO: should we throw here when version number is != 0?
-            uint version = bitReader.Read(WebPConstants.Vp8LVersionBits);
+            uint version = bitReader.ReadBits(WebPConstants.Vp8LVersionBits);
 
             return new WebPImageInfo()
                    {
@@ -323,20 +323,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
                        Height = (int)height,
                        IsLossLess = true,
                        ImageDataSize = dataSize,
-                       Features = features
+                       Features = features,
+                       Vp9LBitReader = bitReader
                    };
-        }
-
-        private void ReadSimpleLossy<TPixel>(Buffer2D<TPixel> pixels, int width, int height, int imageDataSize)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            
-        }
-
-        private void ReadExtended<TPixel>(Buffer2D<TPixel> pixels, int width, int height)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            // TODO: implement decoding
         }
 
         private void ParseOptionalChunks(WebPFeatures features)

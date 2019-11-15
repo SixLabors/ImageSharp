@@ -7,6 +7,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
 {
     internal static class HuffmanUtils
     {
+        public const int HuffmanTableBits = 8;
+
+        public const int HuffmanTableMask = (1 << HuffmanTableBits) - 1;
+
         public static int BuildHuffmanTable(HuffmanCode[] table, int rootBits, int[] codeLengths, int codeLengthsSize)
         {
             Guard.MustBeGreaterThan(rootBits, 0, nameof(rootBits));

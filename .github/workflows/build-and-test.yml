@@ -1,0 +1,116 @@
+name: Build
+
+on: 
+  push:
+    branches:
+      - master
+    tags: 
+      - 'v*'
+  pull_request:
+    branches:
+      - master
+    
+jobs:
+  Coverage:
+    runs-on:   windows-latest
+    needs: [Build]
+    steps:      
+    - uses: actions/checkout@v1
+    
+    - name: Enable long file paths
+      run: git config --global core.longpaths true
+      
+    - name: Update submodules
+      run: git submodule -q update --init
+ 
+    - name: Generate Test Coverage
+      shell: pwsh
+      run: ./tests/CodeCoverage/CodeCoverage.ps1
+      env:
+        CI : True
+
+    - name: Update codecov
+      uses: iansu/codecov-action-node@v1.0.0
+      with:
+        token: ${{secrets.CODECOV_TOKEN}}
+        file: "ImageSharp.Coverage.xml"
+        flags: unittests
+ 
+  Build:
+    strategy:
+        matrix:
+          options:
+            - os : ubuntu-latest
+              framework: netcoreapp2.1
+              is32Bit: False
+            - os : windows-latest
+              framework: netcoreapp2.1
+              is32Bit: False
+            - os : windows-latest
+              framework: net472
+              is32Bit: False
+            - os : windows-latest
+              framework: net472
+              is32Bit: True
+
+    runs-on:  ${{ matrix.options.os }}
+
+    steps:      
+    - uses: actions/checkout@v1
+    
+    - name: Enable long file paths
+      run: |
+        git config --global core.autocrlf false
+        git config --global core.longpaths true
+      
+    - name: Update submodules
+      run: git submodule -q update --init
+      
+    - name: Build
+      shell: pwsh
+      run: |
+        $DebugPreference = "Continue"
+        ./build.ps1 "${{matrix.options.framework}}"
+
+    - name: Test
+      shell: pwsh
+      run: ./run-tests.ps1 "${{matrix.options.framework}}" "${{matrix.options.is32Bit}}" true
+      env:
+        CI : True
+  
+  Publish:
+    runs-on: windows-latest
+    needs: [Build]
+    if : github.event_name == 'push'
+    steps:      
+    - uses: actions/checkout@v1
+    
+    - name: Enable long file paths
+      run: git config --global core.longpaths true
+      
+    - name: Update submodules
+      run: git submodule -q update --init
+      
+    - name: Build
+      shell: pwsh
+      run: |
+        $DebugPreference = "Continue"
+        ./build.ps1
+
+    - name : install nuget
+      if: success()
+      uses: warrenbuckley/Setup-Nuget@v1
+
+    - name: Configure feed
+      if: success()
+      run: nuget.exe source Add -Name "GitHub" -Source "https://nuget.pkg.github.com/sixlabors/index.json" -UserName ${{github.actor}} -Password ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Publish to nightly feed - github
+      if: success()
+      run: nuget.exe push  -Source "GitHub" .\artifacts\*.nupkg
+
+    - name: Publish to nightly feed -myget
+      if: success()
+      run: nuget.exe push .\artifacts\*.nupkg ${{secrets.MYGET_TOKEN}} -Source https://www.myget.org/F/sixlabors/api/v2/package
+    
+    # todo if github.ref starts with 'refs/tags' then it was tag push and we can optionally push out package to nuget.org

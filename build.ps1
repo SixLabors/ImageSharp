@@ -1,20 +1,79 @@
+param(
+    [string]$targetFramework = 'ALL'
+)
 
 # lets calulat the correct version here
 $fallbackVersion = "1.0.0";
 $version = ''
 
-$tagRegex = '^v?(\d+\.\d+\.\d+)(-([a-zA-Z]+)\.?(\d*))?$'
+$tagRegex = '^v?(\d+\.\d+\.\d+)(?:-([a-zA-Z]+)\.?(\d*))?$'
+
+$skipFullFramework = 'false'
+
+# if we are trying to build only netcoreapp versions for testings then skip building the full framework targets
+if("$targetFramework".StartsWith("netcoreapp")){
+    $skipFullFramework = 'true'
+}
+
+function ToBuildNumber {
+    param( $date )
+    if("$date" -eq ""){
+        $date = [System.DateTime]::Now
+    }
+
+    if($date.GetType().fullname -ne 'System.DateTime'){
+        $date = [System.DateTime]::Parse($date)
+    }
+
+    
+    return $date.ToString("yyyyMMddhhmmss")
+}
+
+# if($IsWindows){
+#     $skipFullFramework = 'true'
+#     Write-Info "Building full framework targets - Running windows"
+# }else{
+#     if (Get-Command "mono" -ErrorAction SilentlyContinue) 
+#     {
+#         Write-Info "Building full framework targets - mono installed"
+#         $skipFullFramework = 'true'
+#     }
+# }
 
 # we are running on the build server 
 $isVersionTag = $env:APPVEYOR_REPO_TAG_NAME -match $tagRegex
+
+if($isVersionTag -eq $false){
+    $isVersionTag = "$env:GITHUB_REF".replace("refs/tags/", "") -match $tagRegex
+    if($isVersionTag){
+        Write-Debug "Github tagged build"
+    }
+}else{
+    Write-Debug "Appveyor tagged build"
+}
+
+if($isVersionTag -eq $false){
+    if( "$(git diff --stat)" -eq '')
+    {
+        Write-Debug "Clean repo"
+        if("$(git tag --list)" -ne "") {
+            Write-Debug "Has tags"
+            $tagData = (git describe --tags HEAD)
+            $isVersionTag = $tagData -match $tagRegex
+            Write-Debug $tagData
+        }
+    }else{
+        Write-Debug "Dirty repo"
+    }
+}
 
  if($isVersionTag) {
      
     Write-Debug "Building commit tagged with a compatable version number"
     
     $version = $matches[1]
-     $postTag = $matches[3]
-     $count = $matches[4]
+     $postTag = $matches[2]
+     $count = $matches[3]
      Write-Debug "version number: ${version} post tag: ${postTag} count: ${count}"
      if("$postTag" -ne ""){
         $version = "${version}-${postTag}"
@@ -53,8 +112,23 @@ $isVersionTag = $env:APPVEYOR_REPO_TAG_NAME -match $tagRegex
 
     $buildNumber = $env:APPVEYOR_BUILD_NUMBER
 
-    # build number replacement is padded to 6 places
-    $buildNumber = "$buildNumber".Trim().Trim('0').PadLeft(6,"0");
+    if("$buildNumber" -eq ""){
+        # no counter availible in this environment
+        # let make one up based on time
+
+        if( "$env:GITHUB_SHA" -ne ''){
+            $buildNumber = ToBuildNumber (git show -s --format=%ci $env:GITHUB_SHA)
+        }elseif( "$(git diff --stat)" -eq ''){
+            $buildNumber = ToBuildNumber (git show -s --format=%ci HEAD)
+        }else{
+            $buildNumber = ToBuildNumber
+        }
+        $buildNumber = "$buildNumber".Trim().Trim('0').PadLeft(12,"0");        
+    }else{
+        # build number replacement is padded to 6 places
+        $buildNumber = "$buildNumber".Trim().Trim('0').PadLeft(6,"0");
+    }
+
     if("$env:APPVEYOR_PULL_REQUEST_NUMBER" -ne ""){
         Write-Debug "building a PR"
         
@@ -77,7 +151,7 @@ $isVersionTag = $env:APPVEYOR_REPO_TAG_NAME -match $tagRegex
 
         $branch = $branch.Replace("/","-").ToLower()
 
-        if($branch.ToLower() -eq "master"){
+        if($branch.ToLower() -eq "master" -or $branch.ToLower() -eq "head"){
             $branch = "dev"
         }
         
@@ -94,10 +168,16 @@ if("$env:APPVEYOR_API_URL" -ne ""){
 }
 
 Write-Host "Building version '${version}'"
-dotnet restore /p:packageversion=$version /p:DisableImplicitNuGetFallbackFolder=true
+dotnet restore /p:packageversion=$version /p:DisableImplicitNuGetFallbackFolder=true /p:skipFullFramework=$skipFullFramework
+
+$repositoryUrl = "https://github.com/SixLabors/ImageSharp/"
+
+if("$env:GITHUB_REPOSITORY" -ne ""){
+    $repositoryUrl = "https://github.com/$env:GITHUB_REPOSITORY"
+}
 
 Write-Host "Building projects"
-dotnet build -c Release /p:packageversion=$version
+dotnet build -c Release /p:packageversion=$version /p:skipFullFramework=$skipFullFramework /p:RepositoryUrl=$repositoryUrl
 
 if ($LASTEXITCODE ){ Exit $LASTEXITCODE }
 
@@ -115,8 +195,8 @@ if ($LASTEXITCODE ){ Exit $LASTEXITCODE }
 if ($LASTEXITCODE ){ Exit $LASTEXITCODE }
 
 Write-Host "Packaging projects"
-dotnet pack ./src/ImageSharp/ -c Release --output ../../artifacts --no-build  /p:packageversion=$version
+dotnet pack ./src/ImageSharp/ -c Release --output "$PSScriptRoot/artifacts" --no-build  /p:packageversion=$version /p:skipFullFramework=$skipFullFramework /p:RepositoryUrl=$repositoryUrl
 if ($LASTEXITCODE ){ Exit $LASTEXITCODE }
 
-dotnet pack ./src/ImageSharp.Drawing/ -c Release --output ../../artifacts --no-build  /p:packageversion=$version
+dotnet pack ./src/ImageSharp.Drawing/ -c Release --output "$PSScriptRoot/artifacts" --no-build  /p:packageversion=$version /p:skipFullFramework=$skipFullFramework /p:RepositoryUrl=$repositoryUrl
 if ($LASTEXITCODE ){ Exit $LASTEXITCODE }

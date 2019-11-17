@@ -1,6 +1,7 @@
 param(
     [string]$targetFramework,
-    [string]$is32Bit = "False"
+    [string]$is32Bit = "False",
+    [string]$skipCodeCov = $false
 )
 
 if (!$targetFramework){
@@ -41,9 +42,9 @@ function CheckSubmoduleStatus() {
 }
 
 
-if ( ($targetFramework -eq "netcoreapp2.1") -and ($env:CI -eq "True") -and ($is32Bit -ne "True")) {
+if ( ($targetFramework -eq "netcoreapp2.1") -and ($env:CI -eq "True") -and ($is32Bit -ne "True") -and $skipCodeCov -ne $true) {
     # We execute CodeCoverage.cmd only for one specific job on CI (netcoreapp2.1 + 64bit )
-    $testRunnerCmd = ".\tests\CodeCoverage\CodeCoverage.cmd"
+    $testRunnerCmd = "./tests/CodeCoverage/CodeCoverage.ps1"
 }
 elseif ($targetFramework -eq "mono") {
     $testDllPath = "$PSScriptRoot\tests\ImageSharp.Tests\bin\Release\net462\SixLabors.ImageSharp.Tests.dll"

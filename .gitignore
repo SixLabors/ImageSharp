@@ -221,3 +221,5 @@ artifacts/
 # Tests
 **/Images/ActualOutput
 **/Images/ReferenceOutput
+/tests/CodeCoverage/opencover.zip
+/tests/CodeCoverage/OpenCover.4.6.519

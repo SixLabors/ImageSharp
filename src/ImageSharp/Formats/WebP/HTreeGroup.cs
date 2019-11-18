@@ -16,10 +16,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// </summary>
     internal class HTreeGroup
     {
+        public HTreeGroup()
+        {
+            HTree = new List<HuffmanCode[]>(WebPConstants.HuffmanCodesPerMetaCode);
+        }
+
         /// <summary>
         /// This has a maximum of HuffmanCodesPerMetaCode (5) entrys.
         /// </summary>
-        public List<HuffmanCode> HTree { get; set; }
+        public List<HuffmanCode[]> HTree { get; private set; }
 
         /// <summary>
         /// True, if huffman trees for Red, Blue & Alpha Symbols are trivial (have a single code).
@@ -29,7 +34,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// If is_trivial_literal is true, this is the ARGB value of the pixel, with Green channel being set to zero.
         /// </summary>
-        public int LiteralArb { get; set; }
+        public uint LiteralArb { get; set; }
 
         /// <summary>
         /// True if is_trivial_literal with only one code.

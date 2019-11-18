@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -25,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private static int FIXED_TABLE_SIZE = 630 * 3 + 410;
 
-        private static int[] kTableSize =
+        private static readonly int[] kTableSize =
         {
             FIXED_TABLE_SIZE + 654,
             FIXED_TABLE_SIZE + 656,
@@ -39,6 +40,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
             FIXED_TABLE_SIZE + 1168,
             FIXED_TABLE_SIZE + 1680,
             FIXED_TABLE_SIZE + 2704
+        };
+
+        private static readonly byte[] kLiteralMap =
+        {
+            0, 1, 1, 1, 0
         };
 
         public WebPLosslessDecoder(Vp8LBitReader bitReader, int imageDataSize)
@@ -108,12 +114,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             int tableSize = kTableSize[colorCacheBits];
-            var table = new HuffmanCode[numHtreeGroups * tableSize];
+            var huffmanTables = new HuffmanCode[numHtreeGroups * tableSize];
+            var hTreeGroups = new HTreeGroup[numHtreeGroups];
+            Span<HuffmanCode> huffmanTable = huffmanTables.AsSpan();
             for (int i = 0; i < numHtreeGroupsMax; i++)
             {
+                hTreeGroups[i] = new HTreeGroup();
+                HTreeGroup hTreeGroup = hTreeGroups[i];
                 int size;
                 int totalSize = 0;
-                int isTrivialLiteral = 1;
+                bool isTrivialLiteral = true;
                 int maxBits = 0;
                 var codeLengths = new int[maxAlphabetSize];
                 for (int j = 0; j < WebPConstants.HuffmanCodesPerMetaCode; j++)
@@ -121,24 +131,72 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     int alphabetSize = WebPConstants.kAlphabetSize[j];
                     if (j == 0 && colorCacheBits > 0)
                     {
-                        if (j == 0 && colorCacheBits > 0)
+                        alphabetSize += 1 << colorCacheBits;
+                    }
+
+                    size = this.ReadHuffmanCode(alphabetSize, codeLengths, huffmanTable);
+                    if (size is 0)
+                    {
+                        WebPThrowHelper.ThrowImageFormatException("Huffman table size is zero");
+                    }
+                    hTreeGroup.HTree.Add(huffmanTable.ToArray());
+
+                    if (isTrivialLiteral && kLiteralMap[j] == 1)
+                    {
+                        isTrivialLiteral = huffmanTable[0].BitsUsed == 0;
+                    }
+
+                    totalSize += huffmanTable[0].BitsUsed;
+                    huffmanTable = huffmanTable.Slice(size);
+
+                    if (j <= (int)HuffIndex.Alpha)
+                    {
+                        int localMaxBits = codeLengths[0];
+                        int k;
+                        for (k = 1; k < alphabetSize; ++k)
                         {
-                            alphabetSize += 1 << colorCacheBits;
+                            if (codeLengths[k] > localMaxBits)
+                            {
+                                localMaxBits = codeLengths[k];
+                            }
                         }
 
-                        size = this.ReadHuffmanCode(alphabetSize, codeLengths, table);
-                        if (size is 0)
-                        {
-                            WebPThrowHelper.ThrowImageFormatException("Huffman table size is zero");
-                        }
+                        maxBits += localMaxBits;
                     }
+                }
+
+                hTreeGroup.IsTrivialLiteral = isTrivialLiteral;
+                hTreeGroup.IsTrivialCode = false;
+                if (isTrivialLiteral)
+                {
+                    int red = hTreeGroup.HTree[(int)HuffIndex.Red].First().Value;
+                    int blue = hTreeGroup.HTree[(int)HuffIndex.Blue].First().Value;
+                    int green = hTreeGroup.HTree[(int)HuffIndex.Green].First().Value;
+                    int alpha = hTreeGroup.HTree[(int)HuffIndex.Alpha].First().Value;
+                    hTreeGroup.LiteralArb = (uint)((alpha << 24) | (red << 16) | blue);
+                    if (totalSize == 0 && green < WebPConstants.NumLiteralCodes)
+                    {
+                        hTreeGroup.IsTrivialCode = true;
+                        hTreeGroup.LiteralArb |= (uint)green << 8;
+                    }
+                }
+
+                hTreeGroup.UsePackedTable = hTreeGroup.IsTrivialCode && maxBits < HuffmanUtils.HuffmanPackedBits;
+                if (hTreeGroup.UsePackedTable)
+                {
+                    throw new NotImplementedException("use packed table is not implemented yet");
                 }
             }
         }
 
-        private int ReadHuffmanCode(int alphabetSize, int[] codeLengths, HuffmanCode[] table)
+        private int ReadHuffmanCode(int alphabetSize, int[] codeLengths, Span<HuffmanCode> table)
         {
             bool simpleCode = this.bitReader.ReadBit();
+            for (int i = 0; i < alphabetSize; i++)
+            {
+                codeLengths[i] = 0;
+            }
+
             if (simpleCode)
             {
                 // (i) Simple Code Length Code.
@@ -177,7 +235,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     codeLengthCodeLengths[WebPConstants.KCodeLengthCodeOrder[i]] = (int)this.bitReader.ReadBits(3);
                 }
 
-                this.ReadHuffmanCodeLengths(table, codeLengthCodeLengths, alphabetSize, codeLengths);
+                this.ReadHuffmanCodeLengths(table.ToArray(), codeLengthCodeLengths, alphabetSize, codeLengths);
             }
 
             int size = HuffmanUtils.BuildHuffmanTable(table, HuffmanUtils.HuffmanTableBits, codeLengths, alphabetSize);

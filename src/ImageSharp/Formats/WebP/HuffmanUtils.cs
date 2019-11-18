@@ -9,9 +9,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
     {
         public const int HuffmanTableBits = 8;
 
+        public const int HuffmanPackedBits = 6;
+
         public const int HuffmanTableMask = (1 << HuffmanTableBits) - 1;
 
-        public static int BuildHuffmanTable(HuffmanCode[] table, int rootBits, int[] codeLengths, int codeLengthsSize)
+        public static int BuildHuffmanTable(Span<HuffmanCode> table, int rootBits, int[] codeLengths, int codeLengthsSize)
         {
             Guard.MustBeGreaterThan(rootBits, 0, nameof(rootBits));
             Guard.NotNull(codeLengths, nameof(codeLengths));
@@ -38,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     return 0;
                 }
 
-                ++count[codeLengths[symbol]];
+                count[codeLengths[symbol]]++;
             }
 
             // Generate offsets into sorted symbol table by code length.
@@ -102,7 +104,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         BitsUsed = len,
                         Value = sorted[symbol++]
                     };
-                    ReplicateValue(table.AsSpan(key), step, tableSize, huffmanCode);
+                    ReplicateValue(table.Slice(key), step, tableSize, huffmanCode);
                     key = GetNextKey(key, len);
                 }
             }
@@ -118,7 +120,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     return 0;
                 }
 
-                Span<HuffmanCode> tableSpan = table.AsSpan();
+                Span<HuffmanCode> tableSpan = table;
                 for (; count[len] > 0; --count[len])
                 {
                     if ((key & mask) != low)

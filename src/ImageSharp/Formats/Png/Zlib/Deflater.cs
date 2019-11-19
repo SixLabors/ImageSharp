@@ -282,22 +282,14 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <inheritdoc/>
         public void Dispose()
         {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        private void Dispose(bool disposing)
-        {
             if (!this.isDisposed)
             {
-                if (disposing)
-                {
-                    this.engine.Dispose();
-                }
-
+                this.engine.Dispose();
                 this.engine = null;
                 this.isDisposed = true;
             }
+
+            GC.SuppressFinalize(this);
         }
     }
 }

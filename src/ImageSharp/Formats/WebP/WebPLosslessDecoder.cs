@@ -65,17 +65,33 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // Read color cache, if present.
             bool colorCachePresent = this.bitReader.ReadBit();
             int colorCacheBits = 0;
+            int colorCacheSize = 0;
+            var colorCache = new ColorCache();
             if (colorCachePresent)
             {
                 colorCacheBits = (int)this.bitReader.ReadBits(4);
-                int colorCacheSize = 1 << colorCacheBits;
+                colorCacheSize = 1 << colorCacheBits;
                 if (!(colorCacheBits >= 1 && colorCacheBits <= WebPConstants.MaxColorCacheBits))
                 {
                     WebPThrowHelper.ThrowImageFormatException("Invalid color cache bits found");
                 }
+
+                int hashSize = 1 << colorCacheBits;
+                colorCache.Colors = new List<uint>(hashSize);
+                colorCache.HashBits = (uint)colorCacheBits;
+                colorCache.HashShift = (uint)(32 - colorCacheBits);
             }
 
             this.ReadHuffmanCodes(xsize, ysize, colorCacheBits);
+
+            int lastPixel = 0;
+            int row = lastPixel / width;
+            int col = lastPixel % width;
+            int lenCodeLimit = WebPConstants.NumLiteralCodes + WebPConstants.NumLengthCodes;
+            int colorCacheLimit = lenCodeLimit + colorCacheSize;
+            bool decIsIncremental = false; // TODO: determine correct value for decIsIncremental
+            int nextSyncRow = decIsIncremental ? row : 1 << 24;
+
         }
 
         private void ReadHuffmanCodes(int xsize, int ysize, int colorCacheBits, bool allowRecursion = true)

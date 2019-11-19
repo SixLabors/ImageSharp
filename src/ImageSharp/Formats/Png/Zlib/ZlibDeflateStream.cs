@@ -120,28 +120,16 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         }
 
         /// <inheritdoc/>
-        public override void Flush()
-        {
-            this.deflateStream?.Flush();
-        }
+        public override void Flush() => this.deflateStream.Flush();
 
         /// <inheritdoc/>
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            throw new NotSupportedException();
-        }
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            throw new NotSupportedException();
-        }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        public override void SetLength(long value)
-        {
-            throw new NotSupportedException();
-        }
+        public override void SetLength(long value) => throw new NotSupportedException();
 
         /// <inheritdoc/>
         public override void Write(byte[] buffer, int offset, int count)
@@ -161,17 +149,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             if (disposing)
             {
                 // dispose managed resources
-                if (this.deflateStream != null)
-                {
-                    this.deflateStream.Dispose();
-                    this.deflateStream = null;
-                }
-                else
-                {
-                    // Hack: empty input?
-                    this.rawStream.WriteByte(3);
-                    this.rawStream.WriteByte(0);
-                }
+                this.deflateStream.Dispose();
 
                 // Add the crc
                 uint crc = (uint)this.adler32.Value;
@@ -180,6 +158,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 this.rawStream.WriteByte((byte)((crc >> 8) & 0xFF));
                 this.rawStream.WriteByte((byte)(crc & 0xFF));
             }
+
+            this.deflateStream = null;
 
             base.Dispose(disposing);
             this.isDisposed = true;

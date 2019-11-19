@@ -372,7 +372,25 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <inheritdoc/>
         public void Dispose()
         {
-            this.Dispose(true);
+            if (!this.isDisposed)
+            {
+                this.Pending.Dispose();
+                this.distanceBufferHandle.Dispose();
+                this.distanceManagedBuffer.Dispose();
+                this.literalBufferHandle.Dispose();
+                this.literalManagedBuffer.Dispose();
+
+                this.literalTree.Dispose();
+                this.blTree.Dispose();
+                this.distTree.Dispose();
+
+                this.Pending = null;
+                this.literalTree = null;
+                this.blTree = null;
+                this.distTree = null;
+                this.isDisposed = true;
+            }
+
             GC.SuppressFinalize(this);
         }
 
@@ -405,33 +423,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             }
 
             return code + distance;
-        }
-
-        private void Dispose(bool disposing)
-        {
-            if (!this.isDisposed)
-            {
-                if (disposing)
-                {
-                    this.Pending.Dispose();
-                    this.distanceBufferHandle.Dispose();
-                    this.distanceManagedBuffer.Dispose();
-                    this.literalBufferHandle.Dispose();
-                    this.literalManagedBuffer.Dispose();
-
-                    this.literalTree.Dispose();
-                    this.blTree.Dispose();
-                    this.distTree.Dispose();
-                }
-
-                this.Pending = null;
-
-                this.literalTree = null;
-                this.blTree = null;
-                this.distTree = null;
-
-                this.isDisposed = true;
-            }
         }
 
         private sealed class Tree : IDisposable

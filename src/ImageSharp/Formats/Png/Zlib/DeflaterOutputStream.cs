@@ -134,22 +134,20 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
-            if (this.isDisposed)
+            if (!this.isDisposed)
             {
-                return;
-            }
+                if (disposing)
+                {
+                    this.Finish();
+                    this.deflater.Dispose();
+                    this.memoryOwner.Dispose();
+                }
 
-            if (disposing)
-            {
-                this.Finish();
-                this.deflater.Dispose();
-                this.memoryOwner.Dispose();
+                this.deflater = null;
+                this.memoryOwner = null;
+                this.isDisposed = true;
+                base.Dispose(disposing);
             }
-
-            this.deflater = null;
-            this.memoryOwner = null;
-            this.isDisposed = true;
-            base.Dispose(disposing);
         }
     }
 }

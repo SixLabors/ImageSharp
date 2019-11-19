@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Png.Zlib
 {
@@ -112,7 +113,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(ReadOnlySpan<byte> data)
         {
-            // (By Per Bothner)
+            ref byte dataRef = ref MemoryMarshal.GetReference(data);
             uint s1 = this.checksum & 0xFFFF;
             uint s2 = this.checksum >> 16;
 
@@ -133,7 +134,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 count -= n;
                 while (--n >= 0)
                 {
-                    s1 += (uint)(data[offset++] & 0xff);
+                    s1 += Unsafe.Add(ref dataRef, offset++);
                     s2 += s1;
                 }
 

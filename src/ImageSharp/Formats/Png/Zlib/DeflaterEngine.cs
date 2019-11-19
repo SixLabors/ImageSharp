@@ -476,19 +476,22 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             int chainLength = this.maxChain;
             int niceLength = Math.Min(this.niceLength, this.lookahead);
 
+            int matchStrt = this.matchStart;
             this.matchLen = Math.Max(this.matchLen, DeflaterConstants.MIN_MATCH - 1);
+            int matchLength = this.matchLen;
 
-            if (scan + this.matchLen > scanMax)
+            if (scan + matchLength > scanMax)
             {
                 return false;
             }
 
             byte* pinnedWindow = this.pinnedWindowPointer;
-            byte scan_end1 = pinnedWindow[scan + this.matchLen - 1];
-            byte scan_end = pinnedWindow[scan + this.matchLen];
+            int scanStart = this.strstart;
+            byte scanEnd1 = pinnedWindow[scan + matchLength - 1];
+            byte scanEnd = pinnedWindow[scan + matchLength];
 
             // Do not waste too much time if we already have a good match:
-            if (this.matchLen >= this.goodLength)
+            if (matchLength >= this.goodLength)
             {
                 chainLength >>= 2;
             }
@@ -497,10 +500,10 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             do
             {
                 match = curMatch;
-                scan = this.strstart;
+                scan = scanStart;
 
-                if (pinnedWindow[match + this.matchLen] != scan_end
-                 || pinnedWindow[match + this.matchLen - 1] != scan_end1
+                if (pinnedWindow[match + matchLength] != scanEnd
+                 || pinnedWindow[match + matchLength - 1] != scanEnd1
                  || pinnedWindow[match] != pinnedWindow[scan]
                  || pinnedWindow[++match] != pinnedWindow[++scan])
                 {
@@ -511,7 +514,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 // scanMax - scan is the maximum number of bytes we can compare.
                 // below we compare 8 bytes at a time, so first we compare
                 // (scanMax - scan) % 8 bytes, so the remainder is a multiple of 8
-                switch ((scanMax - scan) % 8)
+                // n & (8 - 1) == n % 8.
+                switch ((scanMax - scan) & 7)
                 {
                     case 1:
                         if (pinnedWindow[++scan] == pinnedWindow[++match])
@@ -616,23 +620,25 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                            && pinnedWindow[++scan] == pinnedWindow[++match]);
                 }
 
-                if (scan - this.strstart > this.matchLen)
+                if (scan - scanStart > matchLength)
                 {
-                    this.matchStart = curMatch;
-                    this.matchLen = scan - this.strstart;
+                    matchStrt = curMatch;
+                    matchLength = scan - scanStart;
 
-                    if (this.matchLen >= niceLength)
+                    if (matchLength >= niceLength)
                     {
                         break;
                     }
 
-                    scan_end1 = pinnedWindow[scan - 1];
-                    scan_end = pinnedWindow[scan];
+                    scanEnd1 = pinnedWindow[scan - 1];
+                    scanEnd = pinnedWindow[scan];
                 }
             }
             while ((curMatch = pinnedPrev[curMatch & DeflaterConstants.WMASK] & 0xFFFF) > limit && --chainLength != 0);
 
-            return this.matchLen >= DeflaterConstants.MIN_MATCH;
+            this.matchStart = matchStrt;
+            this.matchLen = matchLength;
+            return matchLength >= DeflaterConstants.MIN_MATCH;
         }
 
         private bool DeflateStored(bool flush, bool finish)

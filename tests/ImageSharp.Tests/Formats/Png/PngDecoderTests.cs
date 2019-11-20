@@ -4,11 +4,11 @@
 // ReSharper disable InconsistentNaming
 
 using System.IO;
-
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Png
@@ -42,6 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             TestImages.Png.Bad.ZlibOverflow,
             TestImages.Png.Bad.ZlibOverflow2,
             TestImages.Png.Bad.ZlibZtxtBadHeader,
+            TestImages.Png.Bad.Issue1047_BadEndChunk
         };
 
         public static readonly string[] TestImages48Bpp =
@@ -90,7 +91,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
             {
                 image.DebugSave(provider);
-                image.CompareToOriginal(provider, ImageComparer.Exact);
+
+                if (provider.Utility.SourceFileOrDescription == TestImages.Png.Bad.Issue1047_BadEndChunk)
+                {
+                    image.CompareToOriginal(provider, ImageComparer.Exact, (IImageDecoder)SystemDrawingReferenceDecoder.Instance);
+                }
+                else
+                {
+                    image.CompareToOriginal(provider, ImageComparer.Exact);
+                }
             }
         }
 

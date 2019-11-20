@@ -1159,6 +1159,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Reads the cycle redundancy chunk from the data.
         /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
         private uint ReadChunkCrc()
         {
             uint crc = 0;
@@ -1174,6 +1175,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Skips the chunk data and the cycle redundancy chunk read from the data.
         /// </summary>
         /// <param name="chunk">The image format chunk.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
         private void SkipChunkDataAndCrc(in PngChunk chunk)
         {
             this.currentStream.Skip(chunk.Length);
@@ -1184,6 +1186,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Reads the chunk data from the stream.
         /// </summary>
         /// <param name="length">The length of the chunk data to read.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
         private IManagedByteBuffer ReadChunkData(int length)
         {
             // We rent the buffer here to return it afterwards in Decode()
@@ -1200,6 +1203,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <exception cref="ImageFormatException">
         /// Thrown if the input stream is not valid.
         /// </exception>
+        [MethodImpl(InliningOptions.ShortMethod)]
         private PngChunkType ReadChunkType()
         {
             if (this.currentStream.Read(this.buffer, 0, 4) == 4)
@@ -1221,6 +1225,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <returns>
         /// Whether the length was read.
         /// </returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         private bool TryReadChunkLength(out int result)
         {
             if (this.currentStream.Read(this.buffer, 0, 4) == 4)

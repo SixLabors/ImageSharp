@@ -92,9 +92,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             {
                 image.DebugSave(provider);
 
+                // We don't have another x-plat reference decoder that can be compared for this image.
                 if (provider.Utility.SourceFileOrDescription == TestImages.Png.Bad.Issue1047_BadEndChunk)
                 {
-                    image.CompareToOriginal(provider, ImageComparer.Exact, (IImageDecoder)SystemDrawingReferenceDecoder.Instance);
+                    if (TestEnvironment.IsWindows)
+                    {
+                        image.CompareToOriginal(provider, ImageComparer.Exact, (IImageDecoder)SystemDrawingReferenceDecoder.Instance);
+                    }
                 }
                 else
                 {

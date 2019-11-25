@@ -829,38 +829,42 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
             private void BuildLength(ReadOnlySpan<int> children)
             {
+                byte* lengthPtr = this.Length;
+                ref int childrenRef = ref MemoryMarshal.GetReference(children);
+                ref int bitLengthCountsRef = ref MemoryMarshal.GetReference<int>(this.bitLengthCounts);
+
+                int maxLen = this.maxLength;
                 int numNodes = children.Length >> 1;
                 int numLeafs = (numNodes + 1) >> 1;
                 int overflow = 0;
 
-                for (int i = 0; i < this.maxLength; i++)
-                {
-                    this.bitLengthCounts[i] = 0;
-                }
+                Array.Clear(this.bitLengthCounts, 0, maxLen);
 
                 // First calculate optimal bit lengths
-                int[] lengths = new int[numNodes];
-                lengths[numNodes - 1] = 0;
-
-                for (int i = numNodes - 1; i >= 0; i--)
+                using (IMemoryOwner<int> lengthsMemoryOwner = this.memoryAllocator.Allocate<int>(numNodes, AllocationOptions.Clean))
                 {
-                    if (children[(2 * i) + 1] != -1)
-                    {
-                        int bitLength = lengths[i] + 1;
-                        if (bitLength > this.maxLength)
-                        {
-                            bitLength = this.maxLength;
-                            overflow++;
-                        }
+                    ref int lengthsRef = ref MemoryMarshal.GetReference(lengthsMemoryOwner.Memory.Span);
 
-                        lengths[children[2 * i]] = lengths[children[(2 * i) + 1]] = bitLength;
-                    }
-                    else
+                    for (int i = numNodes - 1; i >= 0; i--)
                     {
-                        // A leaf node
-                        int bitLength = lengths[i];
-                        this.bitLengthCounts[bitLength - 1]++;
-                        this.Length[children[2 * i]] = (byte)lengths[i];
+                        if (children[(2 * i) + 1] != -1)
+                        {
+                            int bitLength = Unsafe.Add(ref lengthsRef, i) + 1;
+                            if (bitLength > maxLen)
+                            {
+                                bitLength = maxLen;
+                                overflow++;
+                            }
+
+                            Unsafe.Add(ref lengthsRef, Unsafe.Add(ref childrenRef, 2 * i)) = Unsafe.Add(ref lengthsRef, Unsafe.Add(ref childrenRef, (2 * i) + 1)) = bitLength;
+                        }
+                        else
+                        {
+                            // A leaf node
+                            int bitLength = Unsafe.Add(ref lengthsRef, i);
+                            Unsafe.Add(ref bitLengthCountsRef, bitLength - 1)++;
+                            lengthPtr[Unsafe.Add(ref childrenRef, 2 * i)] = (byte)Unsafe.Add(ref lengthsRef, i);
+                        }
                     }
                 }
 
@@ -869,11 +873,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                     return;
                 }
 
-                int incrBitLen = this.maxLength - 1;
+                int incrBitLen = maxLen - 1;
                 do
                 {
                     // Find the first bit length which could increase:
-                    while (this.bitLengthCounts[--incrBitLen] == 0)
+                    while (Unsafe.Add(ref bitLengthCountsRef, --incrBitLen) == 0)
                     {
                     }
 
@@ -881,18 +885,18 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                     // number of overflow nodes.
                     do
                     {
-                        this.bitLengthCounts[incrBitLen]--;
-                        this.bitLengthCounts[++incrBitLen]++;
-                        overflow -= 1 << (this.maxLength - 1 - incrBitLen);
+                        Unsafe.Add(ref bitLengthCountsRef, incrBitLen)--;
+                        Unsafe.Add(ref bitLengthCountsRef, ++incrBitLen)++;
+                        overflow -= 1 << (maxLen - 1 - incrBitLen);
                     }
-                    while (overflow > 0 && incrBitLen < this.maxLength - 1);
+                    while (overflow > 0 && incrBitLen < maxLen - 1);
                 }
                 while (overflow > 0);
 
                 // We may have overshot above.  Move some nodes from maxLength to
                 // maxLength-1 in that case.
-                this.bitLengthCounts[this.maxLength - 1] += overflow;
-                this.bitLengthCounts[this.maxLength - 2] -= overflow;
+                Unsafe.Add(ref bitLengthCountsRef, maxLen - 1) += overflow;
+                Unsafe.Add(ref bitLengthCountsRef, maxLen - 2) -= overflow;
 
                 // Now recompute all bit lengths, scanning in increasing
                 // frequency.  It is simpler to reconstruct all lengths instead of
@@ -901,17 +905,17 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 //
                 // The nodes were inserted with decreasing frequency into the childs
                 // array.
-                int nodePtr = 2 * numLeafs;
-                for (int bits = this.maxLength; bits != 0; bits--)
+                int nodeIndex = 2 * numLeafs;
+                for (int bits = maxLen; bits != 0; bits--)
                 {
-                    int n = this.bitLengthCounts[bits - 1];
+                    int n = Unsafe.Add(ref bitLengthCountsRef, bits - 1);
                     while (n > 0)
                     {
-                        int childPtr = 2 * children[nodePtr++];
-                        if (children[childPtr + 1] == -1)
+                        int childIndex = 2 * Unsafe.Add(ref childrenRef, nodeIndex++);
+                        if (Unsafe.Add(ref childrenRef, childIndex + 1) == -1)
                         {
                             // We found another leaf
-                            this.Length[children[childPtr]] = (byte)bits;
+                            lengthPtr[Unsafe.Add(ref childrenRef, childIndex)] = (byte)bits;
                             n--;
                         }
                     }

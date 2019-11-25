@@ -13,6 +13,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public const int HuffmanTableMask = (1 << HuffmanTableBits) - 1;
 
+        public const uint HuffmanPackedTableSize = 1u << HuffmanPackedBits;
+
         public static int BuildHuffmanTable(Span<HuffmanCode> table, int rootBits, int[] codeLengths, int codeLengthsSize)
         {
             Guard.MustBeGreaterThan(rootBits, 0, nameof(rootBits));
@@ -71,7 +73,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 var huffmanCode = new HuffmanCode()
                 {
                     BitsUsed = 0,
-                    Value = sorted[0]
+                    Value = (uint)sorted[0]
                 };
                 ReplicateValue(table, 1, totalSize, huffmanCode);
                 return totalSize;
@@ -102,7 +104,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     var huffmanCode = new HuffmanCode()
                     {
                         BitsUsed = len,
-                        Value = sorted[symbol++]
+                        Value = (uint)sorted[symbol++]
                     };
                     ReplicateValue(table.Slice(key), step, tableSize, huffmanCode);
                     key = GetNextKey(key, len);
@@ -138,7 +140,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     var huffmanCode = new HuffmanCode
                     {
                         BitsUsed = len - rootBits,
-                        Value = sorted[symbol++]
+                        Value = (uint)sorted[symbol++]
                     };
                     ReplicateValue(tableSpan.Slice(key >> rootBits), step, tableSize, huffmanCode);
                     key = GetNextKey(key, len);

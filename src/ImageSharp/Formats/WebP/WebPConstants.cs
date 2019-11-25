@@ -86,19 +86,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public static int NumDistanceCodes = 40;
 
-        public static int NumCodeLengthCodes = 19;
-
         public static int LengthTableBits = 7;
 
-        public static int kCodeLengthLiterals = 16;
+        public static uint kCodeLengthLiterals = 16;
 
         public static int kCodeLengthRepeatCode = 16;
 
         public static int[] kCodeLengthExtraBits = { 2, 3, 7 };
 
         public static int[] kCodeLengthRepeatOffsets = { 3, 3, 11 };
-
-        public static byte[] KCodeLengthCodeOrder = { 17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
 
         public static int[] kAlphabetSize = {
                                                 NumLiteralCodes + NumLengthCodes,

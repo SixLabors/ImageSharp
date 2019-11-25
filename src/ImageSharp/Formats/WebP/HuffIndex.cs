@@ -6,31 +6,31 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// <summary>
     /// Five Huffman codes are used at each meta code.
     /// </summary>
-    public enum HuffIndex : int
+    public static class HuffIndex
     {
         /// <summary>
         /// Green + length prefix codes + color cache codes.
         /// </summary>
-        Green = 0,
+        public const int Green = 0;
 
         /// <summary>
         /// Red.
         /// </summary>
-        Red = 1,
+        public const int Red = 1;
 
         /// <summary>
         /// Blue.
         /// </summary>
-        Blue = 2,
+        public const int Blue = 2;
 
         /// <summary>
         /// Alpha.
         /// </summary>
-        Alpha = 3,
+        public const int Alpha = 3;
 
         /// <summary>
         /// Distance prefix codes.
         /// </summary>
-        Dist = 4
+        public const int Dist = 4;
     }
 }

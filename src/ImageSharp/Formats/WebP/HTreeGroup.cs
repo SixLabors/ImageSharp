@@ -16,15 +16,20 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// </summary>
     internal class HTreeGroup
     {
-        public HTreeGroup()
+        public HTreeGroup(uint packedTableSize)
         {
-            HTree = new List<HuffmanCode[]>(WebPConstants.HuffmanCodesPerMetaCode);
+            this.HTrees = new List<HuffmanCode[]>(WebPConstants.HuffmanCodesPerMetaCode);
+            this.PackedTable = new HuffmanCode[packedTableSize];
+            for (int i = 0; i < packedTableSize; i++)
+            {
+                this.PackedTable[i] = new HuffmanCode();
+            }
         }
 
         /// <summary>
-        /// This has a maximum of HuffmanCodesPerMetaCode (5) entrys.
+        /// This has a maximum of HuffmanCodesPerMetaCode (5) entry's.
         /// </summary>
-        public List<HuffmanCode[]> HTree { get; private set; }
+        public List<HuffmanCode[]> HTrees { get; private set; }
 
         /// <summary>
         /// True, if huffman trees for Red, Blue & Alpha Symbols are trivial (have a single code).
@@ -49,6 +54,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Table mapping input bits to a packed values, or escape case to literal code.
         /// </summary>
-        public HuffmanCode PackedTable { get; set; }
+        public HuffmanCode[] PackedTable { get; set; }
     }
 }

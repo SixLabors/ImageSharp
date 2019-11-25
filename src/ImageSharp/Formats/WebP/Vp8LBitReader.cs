@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.IO;
 
 namespace SixLabors.ImageSharp.Formats.WebP
@@ -151,6 +150,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.ShiftBytes();
         }
 
+        public bool IsEndOfStream()
+        {
+            return this.eos || ((this.pos == this.len) && (this.bitPos > VP8L_LBITS));
+        }
+
         private void ShiftBytes()
         {
             while (this.bitPos >= 8 && this.pos < this.len)
@@ -165,11 +169,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             {
                 this.SetEndOfStream();
             }
-        }
-
-        private bool IsEndOfStream()
-        {
-            return this.eos || ((this.pos == this.len) && (this.bitPos > VP8L_LBITS));
         }
 
         private void SetEndOfStream()

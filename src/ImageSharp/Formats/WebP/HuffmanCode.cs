@@ -16,6 +16,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Gets or sets the symbol value or table offset.
         /// </summary>
-        public int Value { get; set; }
+        public uint Value { get; set; }
     }
 }

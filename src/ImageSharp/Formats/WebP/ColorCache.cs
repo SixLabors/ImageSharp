@@ -18,5 +18,21 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public uint HashShift { get; set; }
 
         public uint HashBits { get; set; }
+
+        public void Init(int colorCacheBits)
+        {
+
+        }
+
+        public void Insert()
+        {
+            // TODO: implement VP8LColorCacheInsert
+        }
+
+        public int ColorCacheLookup()
+        {
+            // TODO: implement VP8LColorCacheLookup
+            return 0;
+        }
     }
 }

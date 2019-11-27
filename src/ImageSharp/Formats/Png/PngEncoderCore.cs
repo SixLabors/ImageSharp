@@ -699,7 +699,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             using (var memoryStream = new MemoryStream())
             {
-                using (var deflateStream = new ZlibDeflateStream(memoryStream, this.options.CompressionLevel))
+                using (var deflateStream = new ZlibDeflateStream(this.memoryAllocator, memoryStream, this.options.CompressionLevel))
                 {
                     deflateStream.Write(textBytes);
                 }
@@ -790,7 +790,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             using (var memoryStream = new MemoryStream())
             {
-                using (var deflateStream = new ZlibDeflateStream(memoryStream, this.options.CompressionLevel))
+                using (var deflateStream = new ZlibDeflateStream(this.memoryAllocator, memoryStream, this.options.CompressionLevel))
                 {
                     if (this.options.InterlaceMethod == PngInterlaceMode.Adam7)
                     {

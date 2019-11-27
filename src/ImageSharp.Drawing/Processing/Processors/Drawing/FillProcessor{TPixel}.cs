@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 
             int width = maxX - minX;
 
-            Rectangle workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
+            var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
 
             IBrush brush = this.definition.Brush;
             GraphicsOptions options = this.definition.Options;
@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                 ParallelExecutionSettings parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration)
                     .MultiplyMinimumPixelsPerTask(4);
 
-                var colorPixel = solidBrush.Color.ToPixel<TPixel>();
+                TPixel colorPixel = solidBrush.Color.ToPixel<TPixel>();
 
                 ParallelHelper.IterateRows(
                     workingRect,
@@ -84,11 +84,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 
                 using (IMemoryOwner<float> amount = source.MemoryAllocator.Allocate<float>(width))
                 using (BrushApplicator<TPixel> applicator = brush.CreateApplicator(
+                    configuration,
+                    options,
                     source,
-                    sourceRectangle,
-                    options))
+                    sourceRectangle))
                 {
-                    amount.GetSpan().Fill(1f);
+                    amount.Memory.Span.Fill(1f);
 
                     ParallelHelper.IterateRows(
                         workingRect,
@@ -100,7 +101,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                                     int offsetY = y - startY;
                                     int offsetX = minX - startX;
 
-                                    applicator.Apply(amount.GetSpan(), offsetX, offsetY);
+                                    applicator.Apply(amount.Memory.Span, offsetX, offsetY);
                                 }
                             });
                 }

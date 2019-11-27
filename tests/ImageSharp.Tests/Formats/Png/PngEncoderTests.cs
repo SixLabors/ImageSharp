@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         /// </summary>
         public static readonly TheoryData<int> CompressionLevels = new TheoryData<int>
         {
-            1, 2, 3, 4, 5, 6, 7, 8, 9
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9
         };
 
         public static readonly TheoryData<int> PaletteSizes = new TheoryData<int>

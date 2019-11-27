@@ -70,23 +70,6 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <summary>
-        /// Creates a new <see cref="Buffer2D{T}"/> instance that maps to a target rows interval from the current instance.
-        /// </summary>
-        /// <param name="y">The target vertical offset for the rows interval to retrieve.</param>
-        /// <param name="h">The desired number of rows to extract.</param>
-        /// <returns>The new <see cref="Buffer2D{T}"/> instance with the requested rows interval.</returns>
-        public Buffer2D<T> Slice(int y, int h)
-        {
-            DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
-            DebugGuard.MustBeGreaterThan(h, 0, nameof(h));
-            DebugGuard.MustBeLessThanOrEqualTo(y + h, this.Height, nameof(h));
-
-            Memory<T> slice = this.GetMemory().Slice(y * this.Width, h * this.Width);
-            var memory = new MemorySource<T>(slice);
-            return new Buffer2D<T>(memory, this.Width, h);
-        }
-
-        /// <summary>
         /// Disposes the <see cref="Buffer2D{T}"/> instance
         /// </summary>
         public void Dispose()

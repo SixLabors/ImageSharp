@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -62,7 +63,7 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Computes the sum of vectors in <paramref name="targetRow"/> weighted by the kernel weight values.
+        /// Computes the sum of vectors in <paramref name="targetRow"/> weighted by the kernel weight values and accumulates the partial results.
         /// </summary>
         /// <param name="kernel">The 1D convolution kernel.</param>
         /// <param name="sourceValues">The source frame.</param>
@@ -73,16 +74,20 @@ namespace SixLabors.ImageSharp
         /// <param name="maxRow">The maximum working area row.</param>
         /// <param name="minColumn">The minimum working area column.</param>
         /// <param name="maxColumn">The maximum working area column.</param>
-        public static void Convolve4(
+        /// <param name="z">The weight factor for the real component of the complex pixel values.</param>
+        /// <param name="w">The weight factor for the imaginary component of the complex pixel values.</param>
+        public static void Convolve4AndAccumulatePartials(
             Span<Complex64> kernel,
             Buffer2D<ComplexVector4> sourceValues,
-            Span<ComplexVector4> targetRow,
+            Span<Vector4> targetRow,
             int row,
             int column,
             int minRow,
             int maxRow,
             int minColumn,
-            int maxColumn)
+            int maxColumn,
+            float z,
+            float w)
         {
             ComplexVector4 vector = default;
             int kernelLength = kernel.Length;
@@ -99,7 +104,7 @@ namespace SixLabors.ImageSharp
                 vector.Sum(Unsafe.Add(ref baseRef, x) * Unsafe.Add(ref sourceRef, offsetX));
             }
 
-            targetRow[column] = vector;
+            targetRow[column] += vector.WeightedSum(z, w);
         }
     }
 }

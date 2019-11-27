@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Processing
             this IImageProcessingContext source,
             IBrush brush,
             Action<PathBuilder> path) =>
-            source.Fill(GraphicsOptions.Default, brush, path);
+            source.Fill(new GraphicsOptions(), brush, path);
 
         /// <summary>
         /// Flood fills the image in the shape of the provided polygon with the specified brush.

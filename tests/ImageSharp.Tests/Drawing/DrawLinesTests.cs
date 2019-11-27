@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -24,10 +24,10 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             Color color = TestUtils.GetColorByName(colorName).WithAlpha(alpha);
             Pen pen = new Pen(color, thickness);
-            
+
             DrawLinesImpl(provider, colorName, alpha, thickness, antialias, pen);
         }
-        
+
         [Theory]
         [WithBasicTestPatternImages(250, 350, PixelTypes.Rgba32, "White", 1f, 5, false)]
         public void DrawLines_Dash<TPixel>(TestImageProvider<TPixel> provider, string colorName, float alpha, float thickness, bool antialias)
@@ -35,10 +35,10 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             Color color = TestUtils.GetColorByName(colorName).WithAlpha(alpha);
             Pen pen = Pens.Dash(color, thickness);
-            
+
             DrawLinesImpl(provider, colorName, alpha, thickness, antialias, pen);
         }
-        
+
         [Theory]
         [WithBasicTestPatternImages(250, 350, PixelTypes.Rgba32, "LightGreen", 1f, 5, false)]
         public void DrawLines_Dot<TPixel>(TestImageProvider<TPixel> provider, string colorName, float alpha, float thickness, bool antialias)
@@ -46,10 +46,10 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             Color color = TestUtils.GetColorByName(colorName).WithAlpha(alpha);
             Pen pen = Pens.Dot(color, thickness);
-            
+
             DrawLinesImpl(provider, colorName, alpha, thickness, antialias, pen);
         }
-        
+
         [Theory]
         [WithBasicTestPatternImages(250, 350, PixelTypes.Rgba32, "Yellow", 1f, 5, false)]
         public void DrawLines_DashDot<TPixel>(TestImageProvider<TPixel> provider, string colorName, float alpha, float thickness, bool antialias)
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             Color color = TestUtils.GetColorByName(colorName).WithAlpha(alpha);
             Pen pen = Pens.DashDot(color, thickness);
-            
+
             DrawLinesImpl(provider, colorName, alpha, thickness, antialias, pen);
         }
 
@@ -68,11 +68,11 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             Color color = TestUtils.GetColorByName(colorName).WithAlpha(alpha);
             Pen pen = Pens.DashDotDot(color, thickness);
-            
+
             DrawLinesImpl(provider, colorName, alpha, thickness, antialias, pen);
         }
 
-        
+
         private static void DrawLinesImpl<TPixel>(
             TestImageProvider<TPixel> provider,
             string colorName,
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             SixLabors.Primitives.PointF[] simplePath = { new Vector2(10, 10), new Vector2(200, 150), new Vector2(50, 300) };
 
-            GraphicsOptions options = new GraphicsOptions(antialias);
+            GraphicsOptions options = new GraphicsOptions { Antialias = antialias };
 
             string aa = antialias ? "" : "_NoAntialias";
             FormattableString outputDetails = $"{colorName}_A({alpha})_T({thickness}){aa}";

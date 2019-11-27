@@ -221,7 +221,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 if (image is null)
                 {
-                    throw new ImageFormatException("PNG Image does not contain a data chunk");
+                    PngThrowHelper.ThrowNoData();
                 }
 
                 return image;
@@ -285,7 +285,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             if (this.header.Width == 0 && this.header.Height == 0)
             {
-                throw new ImageFormatException("PNG Image does not contain a header chunk");
+                PngThrowHelper.ThrowNoHeader();
             }
 
             return new ImageInfo(new PixelTypeInfo(this.CalculateBitsPerPixel()), this.header.Width, this.header.Height, metadata);
@@ -407,7 +407,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                 case PngColorType.RgbWithAlpha:
                     return this.header.BitDepth * 4;
                 default:
-                    throw new NotSupportedException("Unsupported PNG color type");
+                    PngThrowHelper.ThrowNotSupportedColor();
+                    return -1;
             }
         }
 
@@ -528,7 +529,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                         break;
 
                     default:
-                        throw new ImageFormatException("Unknown filter type.");
+                        PngThrowHelper.ThrowUnknownFilter();
+                        break;
                 }
 
                 this.ProcessDefilteredScanline(scanlineSpan, image, pngMetadata);
@@ -601,7 +603,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                             break;
 
                         default:
-                            throw new ImageFormatException("Unknown filter type.");
+                            PngThrowHelper.ThrowUnknownFilter();
+                            break;
                     }
 
                     Span<TPixel> rowSpan = image.GetPixelRowSpan(this.currentRow);
@@ -1119,13 +1122,9 @@ namespace SixLabors.ImageSharp.Formats.Png
             chunk = new PngChunk(
                 length: length,
                 type: type,
-                data: this.ReadChunkData(length),
-                crc: this.ReadChunkCrc());
+                data: this.ReadChunkData(length));
 
-            if (chunk.IsCritical)
-            {
-                this.ValidateChunk(chunk);
-            }
+            this.ValidateChunk(chunk);
 
             return true;
         }
@@ -1136,6 +1135,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="chunk">The <see cref="PngChunk"/>.</param>
         private void ValidateChunk(in PngChunk chunk)
         {
+            if (!chunk.IsCritical)
+            {
+                return;
+            }
+
             Span<byte> chunkType = stackalloc byte[4];
 
             BinaryPrimitives.WriteUInt32BigEndian(chunkType, (uint)chunk.Type);
@@ -1144,31 +1148,34 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.crc.Update(chunkType);
             this.crc.Update(chunk.Data.GetSpan());
 
-            if (this.crc.Value != chunk.Crc)
+            uint crc = this.ReadChunkCrc();
+            if (this.crc.Value != crc)
             {
                 string chunkTypeName = Encoding.ASCII.GetString(chunkType);
-
-                throw new ImageFormatException($"CRC Error. PNG {chunkTypeName} chunk is corrupt!");
+                PngThrowHelper.ThrowInvalidChunkCrc(chunkTypeName);
             }
         }
 
         /// <summary>
         /// Reads the cycle redundancy chunk from the data.
         /// </summary>
-        /// <exception cref="ImageFormatException">
-        /// Thrown if the input stream is not valid or corrupt.
-        /// </exception>
+        [MethodImpl(InliningOptions.ShortMethod)]
         private uint ReadChunkCrc()
         {
-            return this.currentStream.Read(this.buffer, 0, 4) == 4
-                ? BinaryPrimitives.ReadUInt32BigEndian(this.buffer)
-                : throw new ImageFormatException("Image stream is not valid!");
+            uint crc = 0;
+            if (this.currentStream.Read(this.buffer, 0, 4) == 4)
+            {
+                crc = BinaryPrimitives.ReadUInt32BigEndian(this.buffer);
+            }
+
+            return crc;
         }
 
         /// <summary>
         /// Skips the chunk data and the cycle redundancy chunk read from the data.
         /// </summary>
         /// <param name="chunk">The image format chunk.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
         private void SkipChunkDataAndCrc(in PngChunk chunk)
         {
             this.currentStream.Skip(chunk.Length);
@@ -1179,6 +1186,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Reads the chunk data from the stream.
         /// </summary>
         /// <param name="length">The length of the chunk data to read.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
         private IManagedByteBuffer ReadChunkData(int length)
         {
             // We rent the buffer here to return it afterwards in Decode()
@@ -1195,11 +1203,20 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <exception cref="ImageFormatException">
         /// Thrown if the input stream is not valid.
         /// </exception>
+        [MethodImpl(InliningOptions.ShortMethod)]
         private PngChunkType ReadChunkType()
         {
-            return this.currentStream.Read(this.buffer, 0, 4) == 4
-                ? (PngChunkType)BinaryPrimitives.ReadUInt32BigEndian(this.buffer)
-                : throw new ImageFormatException("Invalid PNG data.");
+            if (this.currentStream.Read(this.buffer, 0, 4) == 4)
+            {
+                return (PngChunkType)BinaryPrimitives.ReadUInt32BigEndian(this.buffer);
+            }
+            else
+            {
+                PngThrowHelper.ThrowInvalidChunkType();
+
+                // The IDE cannot detect the throw here.
+                return default;
+            }
         }
 
         /// <summary>
@@ -1208,6 +1225,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <returns>
         /// Whether the length was read.
         /// </returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         private bool TryReadChunkLength(out int result)
         {
             if (this.currentStream.Read(this.buffer, 0, 4) == 4)

@@ -274,14 +274,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             this.ApplyGammaExposure(source.PixelBuffer, this.SourceRectangle, this.Configuration);
 
             // Create a 0-filled buffer to use to store the result of the component convolutions
-            using (Buffer2D<Vector4> processing = this.Configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size(), AllocationOptions.Clean))
-            using (Buffer2D<ComplexVector4> firstPassValues = this.Configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
+            using (Buffer2D<Vector4> processingBuffer = this.Configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size(), AllocationOptions.Clean))
+            using (Buffer2D<ComplexVector4> firstPassBuffer = this.Configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
             {
                 // Perform the 1D convolutions on all the kernel components and accumulate the results
-                this.OnFrameApplyCore(source, this.SourceRectangle, this.Configuration, processing, firstPassValues);
+                this.OnFrameApplyCore(source, this.SourceRectangle, this.Configuration, processingBuffer, firstPassBuffer);
 
                 // Apply the inverse gamma exposure pass, and write the final pixel data
-                this.ApplyInverseGammaExposure(source.PixelBuffer, processing, this.SourceRectangle, this.Configuration);
+                this.ApplyInverseGammaExposure(source.PixelBuffer, processingBuffer, this.SourceRectangle, this.Configuration);
             }
         }
 
@@ -302,12 +302,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         {
             // Perform two 1D convolutions for each component in the current instance
             ref Complex64[] baseRef = ref MemoryMarshal.GetReference(this.kernels.AsSpan());
+            ref Vector4 paramsRef = ref MemoryMarshal.GetReference(this.kernelParameters.AsSpan());
             for (int i = 0; i < this.kernels.Length; i++)
             {
                 // Compute the resulting complex buffer for the current component
                 var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
                 Complex64[] kernel = Unsafe.Add(ref baseRef, i);
-                Vector4 parameters = this.kernelParameters[i];
+                Vector4 parameters = Unsafe.Add(ref paramsRef, i);
 
                 // Compute the two 1D convolutions and accumulate the partial results on the target buffer
                 this.ApplyConvolution(firstPassBuffer, source.PixelBuffer, interest, kernel, configuration);

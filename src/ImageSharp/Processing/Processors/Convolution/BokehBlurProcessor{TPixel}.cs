@@ -37,11 +37,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         private readonly float gamma;
 
         /// <summary>
-        /// The execution mode to use when applying the effect
-        /// </summary>
-        private readonly BokehBlurExecutionMode executionMode;
-
-        /// <summary>
         /// The maximum size of the kernel in either direction
         /// </summary>
         private readonly int kernelSize;
@@ -84,7 +79,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             this.kernelSize = (this.radius * 2) + 1;
             this.componentsCount = definition.Components;
             this.gamma = definition.Gamma;
-            this.executionMode = definition.ExecutionMode;
 
             // Reuse the initialized values from the cache, if possible
             var parameters = new BokehBlurParameters(this.radius, this.componentsCount);
@@ -280,30 +274,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             this.ApplyGammaExposure(source.PixelBuffer, this.SourceRectangle, this.Configuration);
 
             // Create a 0-filled buffer to use to store the result of the component convolutions
-            using (Buffer2D<Vector4> processing = this.Configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size(), AllocationOptions.Clean))
+            using (Buffer2D<Vector4> processingBuffer = this.Configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size(), AllocationOptions.Clean))
             {
-                if (this.executionMode == BokehBlurExecutionMode.PreferLowMemoryUsage)
-                {
-                    // Memory usage priority: allocate a shared buffer and execute the second convolution in sequential mode
-                    using (Buffer2D<ComplexVector4> buffer = this.Configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Width, source.Height + this.radius))
-                    using (Buffer2D<ComplexVector4> firstPassBuffer = buffer.Slice(this.radius, source.Height))
-                    using (Buffer2D<ComplexVector4> secondPassBuffer = buffer.Slice(0, source.Height))
-                    {
-                        this.OnFrameApplyCore(source, this.SourceRectangle, this.Configuration, processing, firstPassBuffer, secondPassBuffer);
-                    }
-                }
-                else
-                {
-                    // Performance priority: allocate two independent buffers and execute both convolutions in parallel mode
-                    using (Buffer2D<ComplexVector4> firstPassValues = this.Configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
-                    using (Buffer2D<ComplexVector4> secondPassBuffer = this.Configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
-                    {
-                        this.OnFrameApplyCore(source, this.SourceRectangle, this.Configuration, processing, firstPassValues, secondPassBuffer);
-                    }
-                }
+                // Perform the 1D convolutions on all the kernel components and accumulate the results
+                this.OnFrameApplyCore(source, this.SourceRectangle, this.Configuration, processingBuffer);
 
                 // Apply the inverse gamma exposure pass, and write the final pixel data
-                this.ApplyInverseGammaExposure(source.PixelBuffer, processing, this.SourceRectangle, this.Configuration);
+                this.ApplyInverseGammaExposure(source.PixelBuffer, processingBuffer, this.SourceRectangle, this.Configuration);
             }
         }
 
@@ -314,29 +291,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
         /// <param name="configuration">The configuration.</param>
         /// <param name="processingBuffer">The buffer with the raw pixel data to use to aggregate the results of each convolution.</param>
-        /// <param name="firstPassBuffer">The complex buffer to use for the first 1D convolution pass for each kernel.</param>
-        /// <param name="secondPassBuffer">The complex buffer to use for the second 1D convolution pass for each kernel.</param>
         private void OnFrameApplyCore(
             ImageFrame<TPixel> source,
             Rectangle sourceRectangle,
             Configuration configuration,
-            Buffer2D<Vector4> processingBuffer,
-            Buffer2D<ComplexVector4> firstPassBuffer,
-            Buffer2D<ComplexVector4> secondPassBuffer)
+            Buffer2D<Vector4> processingBuffer)
         {
-            // Perform two 1D convolutions for each component in the current instance
-            ref Complex64[] baseRef = ref MemoryMarshal.GetReference(this.kernels.AsSpan());
-            for (int i = 0; i < this.kernels.Length; i++)
+            using (Buffer2D<ComplexVector4> firstPassBuffer = this.Configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
             {
-                // Compute the resulting complex buffer for the current component
-                var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
-                Complex64[] kernel = Unsafe.Add(ref baseRef, i);
-                this.ApplyConvolution(firstPassBuffer, source.PixelBuffer, interest, kernel, configuration);
-                this.ApplyConvolution(secondPassBuffer, firstPassBuffer, interest, kernel, configuration);
+                // Perform two 1D convolutions for each component in the current instance
+                ref Complex64[] baseRef = ref MemoryMarshal.GetReference(this.kernels.AsSpan());
+                ref Vector4 paramsRef = ref MemoryMarshal.GetReference(this.kernelParameters.AsSpan());
+                for (int i = 0; i < this.kernels.Length; i++)
+                {
+                    // Compute the resulting complex buffer for the current component
+                    var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+                    Complex64[] kernel = Unsafe.Add(ref baseRef, i);
+                    Vector4 parameters = Unsafe.Add(ref paramsRef, i);
 
-                // Add the results of the convolution with the current kernel
-                Vector4 parameters = this.kernelParameters[i];
-                this.SumProcessingPartials(processingBuffer, secondPassBuffer, sourceRectangle, configuration, parameters.Z, parameters.W);
+                    // Compute the two 1D convolutions and accumulate the partial results on the target buffer
+                    this.ApplyConvolution(firstPassBuffer, source.PixelBuffer, interest, kernel, configuration);
+                    this.ApplyConvolution(processingBuffer, firstPassBuffer, interest, kernel, configuration, parameters.Z, parameters.W);
+                }
             }
         }
 
@@ -389,19 +365,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// Applies the process to the specified portion of the specified <see cref="Buffer2D{T}"/> buffer at the specified location
         /// and with the specified size.
         /// </summary>
-        /// <param name="targetValues">The target <see cref="ComplexVector4"/> values to use to store the results.</param>
+        /// <param name="targetValues">The target <see cref="Vector4"/> values to use to store the results.</param>
         /// <param name="sourceValues">The source complex values. Cannot be null.</param>
-        /// <param name="sourceRectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
-        /// </param>
+        /// <param name="sourceRectangle">The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.</param>
         /// <param name="kernel">The 1D kernel.</param>
         /// <param name="configuration">The <see cref="Configuration"/></param>
+        /// <param name="z">The weight factor for the real component of the complex pixel values.</param>
+        /// <param name="w">The weight factor for the imaginary component of the complex pixel values.</param>
         private void ApplyConvolution(
-            Buffer2D<ComplexVector4> targetValues,
+            Buffer2D<Vector4> targetValues,
             Buffer2D<ComplexVector4> sourceValues,
             Rectangle sourceRectangle,
             Complex64[] kernel,
-            Configuration configuration)
+            Configuration configuration,
+            float z,
+            float w)
         {
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
@@ -413,12 +391,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
             int width = workingRectangle.Width;
 
-            if (this.executionMode == BokehBlurExecutionMode.PreferLowMemoryUsage)
-            {
-                configuration = configuration.Clone();
-                configuration.MaxDegreeOfParallelism = 1;
-            }
-
             ParallelHelper.IterateRows(
                 workingRectangle,
                 configuration,
@@ -426,11 +398,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 {
                     for (int y = rows.Min; y < rows.Max; y++)
                     {
-                        Span<ComplexVector4> targetRowSpan = targetValues.GetRowSpan(y).Slice(startX);
+                        Span<Vector4> targetRowSpan = targetValues.GetRowSpan(y).Slice(startX);
 
                         for (int x = 0; x < width; x++)
                         {
-                            Buffer2DUtils.Convolve4(kernel, sourceValues, targetRowSpan, y, x, startY, maxY, startX, maxX);
+                            Buffer2DUtils.Convolve4AndAccumulatePartials(kernel, sourceValues, targetRowSpan, y, x, startY, maxY, startX, maxX, z, w);
                         }
                     }
                 });
@@ -535,54 +507,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                             PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, sourceRowSpan.Slice(0, width), targetPixelSpan, PixelConversionModifiers.Premultiply);
                         }
                     });
-        }
-
-        /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageFrame{TPixel}"/> at the specified location
-        /// and with the specified size.
-        /// </summary>
-        /// <param name="targetValues">The target <see cref="Buffer2D{T}"/> instance to use to store the results.</param>
-        /// <param name="sourceValues">The source complex pixels. Cannot be null.</param>
-        /// <param name="sourceRectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
-        /// </param>
-        /// <param name="configuration">The <see cref="Configuration"/></param>
-        /// <param name="z">The weight factor for the real component of the complex pixel values.</param>
-        /// <param name="w">The weight factor for the imaginary component of the complex pixel values.</param>
-        private void SumProcessingPartials(
-            Buffer2D<Vector4> targetValues,
-            Buffer2D<ComplexVector4> sourceValues,
-            Rectangle sourceRectangle,
-            Configuration configuration,
-            float z,
-            float w)
-        {
-            int startY = sourceRectangle.Y;
-            int endY = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
-
-            var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
-            int width = workingRectangle.Width;
-
-            ParallelHelper.IterateRows(
-                workingRectangle,
-                configuration,
-                rows =>
-                {
-                    for (int y = rows.Min; y < rows.Max; y++)
-                    {
-                        Span<Vector4> targetRowSpan = targetValues.GetRowSpan(y).Slice(startX);
-                        Span<ComplexVector4> sourceRowSpan = sourceValues.GetRowSpan(y).Slice(startX);
-                        ref Vector4 baseTargetRef = ref MemoryMarshal.GetReference(targetRowSpan);
-                        ref ComplexVector4 baseSourceRef = ref MemoryMarshal.GetReference(sourceRowSpan);
-
-                        for (int x = 0; x < width; x++)
-                        {
-                            Unsafe.Add(ref baseTargetRef, x) += Unsafe.Add(ref baseSourceRef, x).WeightedSum(z, w);
-                        }
-                    }
-                });
         }
     }
 }

@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                 }
             }
 
-            using (BrushApplicator<TPixel> applicator = brush.CreateApplicator(source, rect, options))
+            using (BrushApplicator<TPixel> applicator = brush.CreateApplicator(configuration, options, source, rect))
             {
                 int scanlineWidth = maxX - minX;
                 using (IMemoryOwner<float> bBuffer = source.MemoryAllocator.Allocate<float>(maxIntersections))
@@ -81,8 +81,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                     float subpixelFraction = 1f / subpixelCount;
                     float subpixelFractionPoint = subpixelFraction / subpixelCount;
 
-                    Span<float> buffer = bBuffer.GetSpan();
-                    Span<float> scanline = bScanline.GetSpan();
+                    Span<float> buffer = bBuffer.Memory.Span;
+                    Span<float> scanline = bScanline.Memory.Span;
 
                     bool isSolidBrushWithoutBlending = this.IsSolidBrushWithoutBlending(out SolidBrush solidBrush);
                     TPixel solidBrushColor = isSolidBrushWithoutBlending ? solidBrush.Color.ToPixel<TPixel>() : default;

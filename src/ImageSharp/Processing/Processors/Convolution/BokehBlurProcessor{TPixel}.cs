@@ -275,10 +275,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             // Create a 0-filled buffer to use to store the result of the component convolutions
             using (Buffer2D<Vector4> processingBuffer = this.Configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size(), AllocationOptions.Clean))
-            using (Buffer2D<ComplexVector4> firstPassBuffer = this.Configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
             {
                 // Perform the 1D convolutions on all the kernel components and accumulate the results
-                this.OnFrameApplyCore(source, this.SourceRectangle, this.Configuration, processingBuffer, firstPassBuffer);
+                this.OnFrameApplyCore(source, this.SourceRectangle, this.Configuration, processingBuffer);
 
                 // Apply the inverse gamma exposure pass, and write the final pixel data
                 this.ApplyInverseGammaExposure(source.PixelBuffer, processingBuffer, this.SourceRectangle, this.Configuration);
@@ -292,27 +291,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
         /// <param name="configuration">The configuration.</param>
         /// <param name="processingBuffer">The buffer with the raw pixel data to use to aggregate the results of each convolution.</param>
-        /// <param name="firstPassBuffer">The complex buffer to use for the first 1D convolution pass for each kernel.</param>
         private void OnFrameApplyCore(
             ImageFrame<TPixel> source,
             Rectangle sourceRectangle,
             Configuration configuration,
-            Buffer2D<Vector4> processingBuffer,
-            Buffer2D<ComplexVector4> firstPassBuffer)
+            Buffer2D<Vector4> processingBuffer)
         {
-            // Perform two 1D convolutions for each component in the current instance
-            ref Complex64[] baseRef = ref MemoryMarshal.GetReference(this.kernels.AsSpan());
-            ref Vector4 paramsRef = ref MemoryMarshal.GetReference(this.kernelParameters.AsSpan());
-            for (int i = 0; i < this.kernels.Length; i++)
+            using (Buffer2D<ComplexVector4> firstPassBuffer = this.Configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
             {
-                // Compute the resulting complex buffer for the current component
-                var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
-                Complex64[] kernel = Unsafe.Add(ref baseRef, i);
-                Vector4 parameters = Unsafe.Add(ref paramsRef, i);
+                // Perform two 1D convolutions for each component in the current instance
+                ref Complex64[] baseRef = ref MemoryMarshal.GetReference(this.kernels.AsSpan());
+                ref Vector4 paramsRef = ref MemoryMarshal.GetReference(this.kernelParameters.AsSpan());
+                for (int i = 0; i < this.kernels.Length; i++)
+                {
+                    // Compute the resulting complex buffer for the current component
+                    var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+                    Complex64[] kernel = Unsafe.Add(ref baseRef, i);
+                    Vector4 parameters = Unsafe.Add(ref paramsRef, i);
 
-                // Compute the two 1D convolutions and accumulate the partial results on the target buffer
-                this.ApplyConvolution(firstPassBuffer, source.PixelBuffer, interest, kernel, configuration);
-                this.ApplyConvolution(processingBuffer, firstPassBuffer, interest, kernel, configuration, parameters.Z, parameters.W);
+                    // Compute the two 1D convolutions and accumulate the partial results on the target buffer
+                    this.ApplyConvolution(firstPassBuffer, source.PixelBuffer, interest, kernel, configuration);
+                    this.ApplyConvolution(processingBuffer, firstPassBuffer, interest, kernel, configuration, parameters.Z, parameters.W);
+                }
             }
         }
 

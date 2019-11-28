@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -98,10 +99,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     WebPThrowHelper.ThrowImageFormatException("Invalid color cache bits found");
                 }
 
-                int hashSize = 1 << colorCacheBits;
-                colorCache.Colors = new List<uint>(hashSize);
-                colorCache.HashBits = (uint)colorCacheBits;
-                colorCache.HashShift = (uint)(32 - colorCacheBits);
                 colorCache.Init(colorCacheBits);
             }
 
@@ -109,7 +106,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             var numBits = 0; // TODO: use huffmanSubsampleBits.
             metadata.HuffmanMask = (numBits == 0) ? ~0 : (1 << numBits) - 1;
             metadata.ColorCacheSize = colorCacheSize;
-            
+
             int lastPixel = 0;
             int row = lastPixel / width;
             int col = lastPixel % width;
@@ -119,10 +116,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int nextSyncRow = decIsIncremental ? row : 1 << 24;
             int mask = metadata.HuffmanMask;
             HTreeGroup[] hTreeGroup = this.GetHtreeGroupForPos(metadata, col, row);
-            var pixelData = new byte[width * height * 4];
+            var pixelData = new uint[width * height];
 
             int totalPixels = width * height;
             int decodedPixels = 0;
+            int lastCached = decodedPixels;
             while (decodedPixels < totalPixels)
             {
                 int code = 0;
@@ -131,10 +129,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     hTreeGroup = this.GetHtreeGroupForPos(metadata, col, row);
                 }
 
+                if (hTreeGroup[0].IsTrivialCode)
+                {
+                    pixelData[decodedPixels] = hTreeGroup[0].LiteralArb;
+                    this.AdvanceByOne(ref col, ref row, width, colorCache, ref decodedPixels, pixelData, ref lastCached);
+                    continue;
+                }
+
                 this.bitReader.FillBitWindow();
                 if (hTreeGroup[0].UsePackedTable)
                 {
-                    code = (int)this.ReadPackedSymbols(hTreeGroup);
+                    code = (int)this.ReadPackedSymbols(hTreeGroup, pixelData, decodedPixels);
                     if (this.bitReader.IsEndOfStream())
                     {
                         break;
@@ -142,7 +147,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                     if (code == PackedNonLiteralCode)
                     {
-                        this.AdvanceByOne(ref col, ref row, width, colorCache, ref decodedPixels);
+                        this.AdvanceByOne(ref col, ref row, width, colorCache, ref decodedPixels, pixelData, ref lastCached);
                         continue;
                     }
                 }
@@ -161,7 +166,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 {
                     if (hTreeGroup[0].IsTrivialLiteral)
                     {
-                        long pixel = hTreeGroup[0].LiteralArb | (code << 8);
+                        pixelData[decodedPixels] = (uint)(hTreeGroup[0].LiteralArb | (code << 8));
                     }
                     else
                     {
@@ -175,13 +180,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         }
 
                         int pixelIdx = decodedPixels * 4;
-                        pixelData[pixelIdx] = (byte)alpha;
-                        pixelData[pixelIdx + 1] = (byte)red;
-                        pixelData[pixelIdx + 2] = (byte)code;
-                        pixelData[pixelIdx + 3] = (byte)blue;
+                        pixelData[pixelIdx] =
+                            (uint)(((byte)alpha << 24) | ((byte)red << 16) | ((byte)code << 8) | (byte)blue);
                     }
 
-                    this.AdvanceByOne(ref col, ref row, width, colorCache, ref decodedPixels);
+                    this.AdvanceByOne(ref col, ref row, width, colorCache, ref decodedPixels, pixelData, ref lastCached);
                 }
                 else if (code < lenCodeLimit)
                 {
@@ -197,7 +200,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         break;
                     }
 
-                    this.CopyBlock32b(pixelData, dist, length);
+                    this.CopyBlock(pixelData, decodedPixels, dist, length);
                     decodedPixels += length;
                     col += length;
                     while (col >= width)
@@ -213,31 +216,51 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                     if (colorCache != null)
                     {
-                        //while (lastCached < src)
-                        //{
-                            // colorCache.Insert(lastCached);
-                        //}
+                        while (lastCached < decodedPixels)
+                        {
+                            colorCache.Insert(pixelData[lastCached]);
+                            lastCached++;
+                        }
                     }
                 }
                 else if (code < colorCacheLimit)
                 {
                     // Color cache should be used.
                     int key = code - lenCodeLimit;
-                    /*while (lastCached < src)
+                    while (lastCached < decodedPixels)
                     {
-                        colorCache.Insert(lastCached);
-                    }*/
-                    //pixelData = colorCache.Lookup(key);
-                    this.AdvanceByOne(ref col, ref row, width, colorCache, ref decodedPixels);
+                        colorCache.Insert(pixelData[lastCached]);
+                        lastCached++;
+                    }
+
+                    pixelData[decodedPixels] = colorCache.Lookup(key);
+                    this.AdvanceByOne(ref col, ref row, width, colorCache, ref decodedPixels, pixelData, ref lastCached);
                 }
                 else
                 {
                     // Error
                 }
             }
+
+            TPixel color = default;
+            for (int y = 0; y < height; y++)
+            {
+                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
+                for (int x = 0; x < width; x++)
+                {
+                    int idx = (y * width) + x;
+                    uint pixel = pixelData[idx];
+                    uint a = (pixel & 0xFF000000) >> 24;
+                    uint r = (pixel & 0xFF0000) >> 16;
+                    uint g = (pixel & 0xFF00) >> 8;
+                    uint b = pixel & 0xFF;
+                    color.FromRgba32(new Rgba32(r, g, b, a));
+                    pixelRow[x] = color;
+                }
+            }
         }
 
-        private void AdvanceByOne(ref int col, ref int row, int width, ColorCache colorCache, ref int decodedPixels)
+        private void AdvanceByOne(ref int col, ref int row, int width, ColorCache colorCache, ref int decodedPixels, uint[] pixelData, ref int lastCached)
         {
             ++col;
             decodedPixels++;
@@ -252,15 +275,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                 if (colorCache != null)
                 {
-                    /*while (lastCached < src)
+                    while (lastCached < decodedPixels)
                     {
-                        VP8LColorCacheInsert(color_cache, *last_cached++);
-                    }*/
+                        colorCache.Insert(pixelData[lastCached]);
+                        lastCached++;
+                    }
                 }
             }
         }
 
-        private Vp8LMetadata ReadHuffmanCodes(int xsize, int ysize, int colorCacheBits, bool allowRecursion = true)
+        private Vp8LMetadata ReadHuffmanCodes(int xSize, int ySize, int colorCacheBits, bool allowRecursion = true)
         {
             int maxAlphabetSize = 0;
             int numHtreeGroups = 1;
@@ -273,8 +297,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             if (isEntropyImage)
             {
                 uint huffmanPrecision = this.bitReader.ReadBits(3) + 2;
-                int huffmanXSize = SubSampleSize(xsize, (int)huffmanPrecision);
-                int huffmanYSize = SubSampleSize(ysize, (int)huffmanPrecision);
+                int huffmanXSize = SubSampleSize(xSize, (int)huffmanPrecision);
+                int huffmanYSize = SubSampleSize(ySize, (int)huffmanPrecision);
 
                 // TODO: decode entropy image
                 return new Vp8LMetadata();
@@ -591,14 +615,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return tableSpan[0].Value;
         }
 
-        private uint ReadPackedSymbols(HTreeGroup[] group)
+        private uint ReadPackedSymbols(HTreeGroup[] group, uint[] pixelData, int decodedPixels)
         {
             uint val = (uint)(this.bitReader.PrefetchBits() & (HuffmanUtils.HuffmanPackedTableSize - 1));
             HuffmanCode code = group[0].PackedTable[val];
             if (code.BitsUsed < BitsSpecialMarker)
             {
                 this.bitReader.AdvanceBitPosition(code.BitsUsed);
-                // dest = (uint)code.Value;
+                pixelData[decodedPixels] = code.Value;
                 return PackedNonLiteralCode;
             }
 
@@ -607,9 +631,25 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return code.Value;
         }
 
-        private void CopyBlock32b(byte[] dest, int dist, int length)
+        private void CopyBlock(uint[] pixelData, int decodedPixels, int dist, int length)
         {
-
+            if (dist > length)
+            {
+                Span<uint> src = pixelData.AsSpan(decodedPixels - dist, length);
+                Span<uint> dest = pixelData.AsSpan(decodedPixels);
+                src.CopyTo(dest);
+            }
+            else
+            {
+                int copiedPixels = 0;
+                while (copiedPixels < length)
+                {
+                    Span<uint> src = pixelData.AsSpan(decodedPixels - dist, dist);
+                    Span<uint> dest = pixelData.AsSpan(decodedPixels + copiedPixels);
+                    src.CopyTo(dest);
+                    copiedPixels += dist;
+                }
+            }
         }
 
         private int GetCopyDistance(int distanceSymbol)

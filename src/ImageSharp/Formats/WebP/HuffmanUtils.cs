@@ -23,16 +23,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             // sorted[code_lengths_size] is a pre-allocated array for sorting symbols by code length.
             var sorted = new int[codeLengthsSize];
-            // total size root table + 2nd level table
-            int totalSize = 1 << rootBits;
-            // current code length
-            int len;
-            // symbol index in original or sorted table
-            int symbol;
-            // number of codes of each length:
-            var count = new int[WebPConstants.MaxAllowedCodeLength + 1];
-            // offsets in sorted table for each length
-            var offset = new int[WebPConstants.MaxAllowedCodeLength + 1];
+            int totalSize = 1 << rootBits; // total size root table + 2nd level table
+            int len; // current code length
+            int symbol; // symbol index in original or sorted table
+            var count = new int[WebPConstants.MaxAllowedCodeLength + 1]; // number of codes of each length
+            var offset = new int[WebPConstants.MaxAllowedCodeLength + 1]; // offsets in sorted table for each length
 
             // Build histogram of code lengths.
             for (symbol = 0; symbol < codeLengthsSize; ++symbol)
@@ -43,6 +38,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
 
                 count[codeLengths[symbol]]++;
+            }
+
+            // Error, all code lengths are zeros.
+            if (count[0] == codeLengthsSize)
+            {
+                return 0;
             }
 
             // Generate offsets into sorted symbol table by code length.
@@ -88,6 +89,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int tableBits = rootBits;        // key length of current table
             int tableSize = 1 << tableBits;  // size of current table
             symbol = 0;
+
             // Fill in root table.
             for (len = 1, step = 2; len <= rootBits; ++len, step <<= 1)
             {
@@ -132,9 +134,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         tableSize = 1 << tableBits;
                         totalSize += tableSize;
                         low = key & mask;
+                        table[low].BitsUsed = tableBits + rootBits;
                         // TODO: fix this
-                        //rootTable[low].bits = (tableBits + rootBits);
-                        //rootTable[low].value = ((table - rootTable) - low);
+                        // table[low].Value = ((table - rootTable) - low);
                     }
 
                     var huffmanCode = new HuffmanCode

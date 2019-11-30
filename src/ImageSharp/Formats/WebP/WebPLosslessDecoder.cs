@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -48,8 +47,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             FixedTableSize + 2704
         };
 
-        public static int NumCodeLengthCodes = 19;
-        public static byte[] KCodeLengthCodeOrder = { 17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+        private static readonly int NumCodeLengthCodes = 19;
+        private static readonly byte[] KCodeLengthCodeOrder = { 17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
 
         private static readonly int CodeToPlaneCodes = 120;
         private static readonly int[] KCodeToPlane =
@@ -82,8 +81,34 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
+            uint[] pixelData = this.DecodeImageStream(width, height, true);
+            this.DecodePixelValues(width, height, pixelData, pixels);
+        }
+
+        private void DecodePixelValues<TPixel>(int width, int height, uint[] pixelData, Buffer2D<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel color = default;
+            for (int y = 0; y < height; y++)
+            {
+                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
+                for (int x = 0; x < width; x++)
+                {
+                    int idx = (y * width) + x;
+                    uint pixel = pixelData[idx];
+                    uint a = (pixel & 0xFF000000) >> 24;
+                    uint r = (pixel & 0xFF0000) >> 16;
+                    uint g = (pixel & 0xFF00) >> 8;
+                    uint b = pixel & 0xFF;
+                    color.FromRgba32(new Rgba32(r, g, b, a));
+                    pixelRow[x] = color;
+                }
+            }
+        }
+
+        private uint[] DecodeImageStream(int xSize, int ySize, bool isLevel0)
+        {
             this.ReadTransformations();
-            int xsize = 0, ysize = 0;
 
             // Read color cache, if present.
             bool colorCachePresent = this.bitReader.ReadBit();
@@ -102,11 +127,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 colorCache.Init(colorCacheBits);
             }
 
-            Vp8LMetadata metadata = this.ReadHuffmanCodes(xsize, ysize, colorCacheBits);
+            Vp8LMetadata metadata = this.ReadHuffmanCodes(xSize, ySize, colorCacheBits, isLevel0);
             var numBits = 0; // TODO: use huffmanSubsampleBits.
             metadata.HuffmanMask = (numBits == 0) ? ~0 : (1 << numBits) - 1;
             metadata.ColorCacheSize = colorCacheSize;
 
+            uint[] pixelData = this.DecodeImageData(xSize, ySize, colorCacheSize, metadata, colorCache);
+            return pixelData;
+        }
+
+        private uint[] DecodeImageData(int width, int height, int colorCacheSize, Vp8LMetadata metadata, ColorCache colorCache)
+        {
             int lastPixel = 0;
             int row = lastPixel / width;
             int col = lastPixel % width;
@@ -115,7 +146,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             bool decIsIncremental = false; // TODO: determine correct value for decIsIncremental
             int nextSyncRow = decIsIncremental ? row : 1 << 24;
             int mask = metadata.HuffmanMask;
-            HTreeGroup[] hTreeGroup = this.GetHtreeGroupForPos(metadata, col, row);
+            HTreeGroup[] hTreeGroup = this.GetHTreeGroupForPos(metadata, col, row);
             var pixelData = new uint[width * height];
 
             int totalPixels = width * height;
@@ -126,7 +157,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 int code = 0;
                 if ((col & mask) == 0)
                 {
-                    hTreeGroup = this.GetHtreeGroupForPos(metadata, col, row);
+                    hTreeGroup = this.GetHTreeGroupForPos(metadata, col, row);
                 }
 
                 if (hTreeGroup[0].IsTrivialCode)
@@ -180,8 +211,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         }
 
                         int pixelIdx = decodedPixels * 4;
-                        pixelData[pixelIdx] =
-                            (uint)(((byte)alpha << 24) | ((byte)red << 16) | ((byte)code << 8) | (byte)blue);
+                        pixelData[pixelIdx] = (uint)(((byte)alpha << 24) | ((byte)red << 16) | ((byte)code << 8) | (byte)blue);
                     }
 
                     this.AdvanceByOne(ref col, ref row, width, colorCache, ref decodedPixels, pixelData, ref lastCached);
@@ -211,7 +241,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                     if ((col & mask) != 0)
                     {
-                        hTreeGroup = this.GetHtreeGroupForPos(metadata, col, row);
+                        hTreeGroup = this.GetHTreeGroupForPos(metadata, col, row);
                     }
 
                     if (colorCache != null)
@@ -242,22 +272,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
             }
 
-            TPixel color = default;
-            for (int y = 0; y < height; y++)
-            {
-                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
-                for (int x = 0; x < width; x++)
-                {
-                    int idx = (y * width) + x;
-                    uint pixel = pixelData[idx];
-                    uint a = (pixel & 0xFF000000) >> 24;
-                    uint r = (pixel & 0xFF0000) >> 16;
-                    uint g = (pixel & 0xFF00) >> 8;
-                    uint b = pixel & 0xFF;
-                    color.FromRgba32(new Rgba32(r, g, b, a));
-                    pixelRow[x] = color;
-                }
-            }
+            return pixelData;
         }
 
         private void AdvanceByOne(ref int col, ref int row, int width, ColorCache colorCache, ref int decodedPixels, uint[] pixelData, ref int lastCached)
@@ -284,27 +299,27 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private Vp8LMetadata ReadHuffmanCodes(int xSize, int ySize, int colorCacheBits, bool allowRecursion = true)
+        private Vp8LMetadata ReadHuffmanCodes(int xSize, int ySize, int colorCacheBits, bool allowRecursion)
         {
             int maxAlphabetSize = 0;
-            int numHtreeGroups = 1;
-            int numHtreeGroupsMax = 1;
+            int numHTreeGroups = 1;
+            int numHTreeGroupsMax = 1;
 
-            // Read the Huffman codes.
             // If the next bit is zero, there is only one meta Huffman code used everywhere in the image. No more data is stored.
             // If this bit is one, the image uses multiple meta Huffman codes. These meta Huffman codes are stored as an entropy image.
             bool isEntropyImage = this.bitReader.ReadBit();
-            if (isEntropyImage)
+            if (allowRecursion && isEntropyImage)
             {
+                // Use meta Huffman codes.
                 uint huffmanPrecision = this.bitReader.ReadBits(3) + 2;
-                int huffmanXSize = SubSampleSize(xSize, (int)huffmanPrecision);
-                int huffmanYSize = SubSampleSize(ySize, (int)huffmanPrecision);
-
+                int huffmanXSize = this.SubSampleSize(xSize, (int)huffmanPrecision);
+                int huffmanYSize = this.SubSampleSize(ySize, (int)huffmanPrecision);
+                int huffmanPixs = huffmanXSize * huffmanYSize;
                 // TODO: decode entropy image
                 return new Vp8LMetadata();
             }
 
-            // Find maximum alphabet size for the htree group.
+            // Find maximum alphabet size for the hTree group.
             for (int j = 0; j < WebPConstants.HuffmanCodesPerMetaCode; j++)
             {
                 int alphabetSize = WebPConstants.kAlphabetSize[j];
@@ -320,14 +335,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             int tableSize = KTableSize[colorCacheBits];
-            var huffmanTables = new HuffmanCode[numHtreeGroups * tableSize];
-            var hTreeGroups = new HTreeGroup[numHtreeGroups];
+            var huffmanTables = new HuffmanCode[numHTreeGroups * tableSize];
+            var hTreeGroups = new HTreeGroup[numHTreeGroups];
             Span<HuffmanCode> huffmanTable = huffmanTables.AsSpan();
-            for (int i = 0; i < numHtreeGroupsMax; i++)
+            for (int i = 0; i < numHTreeGroupsMax; i++)
             {
                 hTreeGroups[i] = new HTreeGroup(HuffmanUtils.HuffmanPackedTableSize);
                 HTreeGroup hTreeGroup = hTreeGroups[i];
-                int size;
                 int totalSize = 0;
                 bool isTrivialLiteral = true;
                 int maxBits = 0;
@@ -340,7 +354,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         alphabetSize += 1 << colorCacheBits;
                     }
 
-                    size = this.ReadHuffmanCode(alphabetSize, codeLengths, huffmanTable);
+                    int size = this.ReadHuffmanCode(alphabetSize, codeLengths, huffmanTable);
                     if (size is 0)
                     {
                         WebPThrowHelper.ThrowImageFormatException("Huffman table size is zero");
@@ -356,7 +370,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     totalSize += huffmanTable[0].BitsUsed;
                     huffmanTable = huffmanTable.Slice(size);
 
-                    if (j <= (int)HuffIndex.Alpha)
+                    if (j <= HuffIndex.Alpha)
                     {
                         int localMaxBits = codeLengths[0];
                         int k;
@@ -398,7 +412,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             var metadata = new Vp8LMetadata()
                            {
                                 // TODO: initialize huffman_image_
-                                NumHTreeGroups = numHtreeGroups,
+                                NumHTreeGroups = numHTreeGroups,
                                 HTreeGroups = hTreeGroups,
                                 HuffmanTables = huffmanTables,
                            };
@@ -437,7 +451,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
             else
             {
-                // (ii)Normal Code Length Code:
+                // (ii) Normal Code Length Code:
                 // The code lengths of a Huffman code are read as follows: num_code_lengths specifies the number of code lengths;
                 // the rest of the code lengths (according to the order in kCodeLengthCodeOrder) are zeros.
                 var codeLengthCodeLengths = new int[NumCodeLengthCodes];
@@ -683,7 +697,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int xOffset = 8 - (distCode & 0xf);
             int dist = (yOffset * xSize) + xOffset;
 
-            return (dist >= 1) ? dist : 1;  // dist<1 can happen if xsize is very small
+            // dist < 1 can happen if xsize is very small.
+            return (dist >= 1) ? dist : 1;
         }
 
         private void BuildPackedTable(HTreeGroup hTreeGroup)
@@ -727,7 +742,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return image[(xSize * (y >> bits)) + (x >> bits)];
         }
 
-        private HTreeGroup[] GetHtreeGroupForPos(Vp8LMetadata metadata, int x, int y)
+        private HTreeGroup[] GetHTreeGroupForPos(Vp8LMetadata metadata, int x, int y)
         {
             int metaIndex = this.GetMetaIndex(metadata.HuffmanImage, metadata.HuffmanXSize, metadata.HuffmanSubSampleBits, x, y);
             return metadata.HTreeGroups.AsSpan(metaIndex).ToArray();

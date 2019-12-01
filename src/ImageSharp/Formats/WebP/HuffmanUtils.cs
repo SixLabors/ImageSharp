@@ -125,18 +125,22 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
 
                 Span<HuffmanCode> tableSpan = table;
+                int tablePos = 0;
                 for (; count[len] > 0; --count[len])
                 {
                     if ((key & mask) != low)
                     {
                         tableSpan = tableSpan.Slice(tableSize);
+                        tablePos += tableSize;
                         tableBits = NextTableBitSize(count, len, rootBits);
                         tableSize = 1 << tableBits;
                         totalSize += tableSize;
                         low = key & mask;
-                        table[low].BitsUsed = tableBits + rootBits;
-                        // TODO: fix this
-                        // table[low].Value = ((table - rootTable) - low);
+                        table[low] = new HuffmanCode
+                        {
+                            BitsUsed = tableBits + rootBits,
+                            Value = (uint)(tablePos - low)
+                        };
                     }
 
                     var huffmanCode = new HuffmanCode

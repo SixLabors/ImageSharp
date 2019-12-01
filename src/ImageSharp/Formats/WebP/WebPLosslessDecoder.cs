@@ -108,15 +108,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private uint[] DecodeImageStream(int xSize, int ySize, bool isLevel0)
         {
-            this.ReadTransformations();
+            if (isLevel0)
+            {
+                this.ReadTransformations();
+            }
 
             // Read color cache, if present.
             bool colorCachePresent = this.bitReader.ReadBit();
             int colorCacheBits = 0;
             int colorCacheSize = 0;
-            var colorCache = new ColorCache();
+            ColorCache colorCache = null;
             if (colorCachePresent)
             {
+                colorCache = new ColorCache();
                 colorCacheBits = (int)this.bitReader.ReadBits(4);
                 colorCacheSize = 1 << colorCacheBits;
                 if (!(colorCacheBits >= 1 && colorCacheBits <= WebPConstants.MaxColorCacheBits))
@@ -184,7 +188,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
                 else
                 {
-                    this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Green]);
+                    code = (int)this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Green]);
                 }
 
                 if (this.bitReader.IsEndOfStream())
@@ -301,22 +305,35 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private Vp8LMetadata ReadHuffmanCodes(int xSize, int ySize, int colorCacheBits, bool allowRecursion)
         {
+            var metadata = new Vp8LMetadata();
             int maxAlphabetSize = 0;
             int numHTreeGroups = 1;
             int numHTreeGroupsMax = 1;
 
             // If the next bit is zero, there is only one meta Huffman code used everywhere in the image. No more data is stored.
             // If this bit is one, the image uses multiple meta Huffman codes. These meta Huffman codes are stored as an entropy image.
-            bool isEntropyImage = this.bitReader.ReadBit();
-            if (allowRecursion && isEntropyImage)
+            if (allowRecursion && this.bitReader.ReadBit())
             {
                 // Use meta Huffman codes.
                 uint huffmanPrecision = this.bitReader.ReadBits(3) + 2;
                 int huffmanXSize = this.SubSampleSize(xSize, (int)huffmanPrecision);
                 int huffmanYSize = this.SubSampleSize(ySize, (int)huffmanPrecision);
                 int huffmanPixs = huffmanXSize * huffmanYSize;
-                // TODO: decode entropy image
-                return new Vp8LMetadata();
+                uint[] huffmanImage = this.DecodeImageStream(huffmanXSize, huffmanYSize, false);
+                metadata.HuffmanSubSampleBits = (int)huffmanPrecision;
+                for (int i = 0; i < huffmanPixs; ++i)
+                {
+                    // The huffman data is stored in red and green bytes.
+                    uint group = (huffmanImage[i] >> 8) & 0xffff;
+                    huffmanImage[i] = group;
+                    if (group >= numHTreeGroupsMax)
+                    {
+                        numHTreeGroupsMax = (int)group + 1;
+                    }
+                }
+
+                numHTreeGroups = numHTreeGroupsMax;
+                metadata.HuffmanImage = huffmanImage;
             }
 
             // Find maximum alphabet size for the hTree group.
@@ -409,13 +426,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
             }
 
-            var metadata = new Vp8LMetadata()
-                           {
-                                // TODO: initialize huffman_image_
-                                NumHTreeGroups = numHTreeGroups,
-                                HTreeGroups = hTreeGroups,
-                                HuffmanTables = huffmanTables,
-                           };
+            metadata.NumHTreeGroups = numHTreeGroups;
+            metadata.HTreeGroups = hTreeGroups;
+            metadata.HuffmanTables = huffmanTables;
 
             return metadata;
         }
@@ -476,7 +489,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private void ReadHuffmanCodeLengths(HuffmanCode[] table, int[] codeLengthCodeLengths, int numSymbols, int[] codeLengths)
         {
-            Span<HuffmanCode> tableSpan = table.AsSpan();
             int maxSymbol;
             int symbol = 0;
             int prevCodeLen = WebPConstants.DefaultCodeLength;
@@ -498,7 +510,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             while (symbol < numSymbols)
             {
-                if (maxSymbol-- == 0)
+                if (maxSymbol-- is 0)
                 {
                     break;
                 }
@@ -732,9 +744,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return hCode.BitsUsed;
         }
 
-        private int GetMetaIndex(int[] image, int xSize, int bits, int x, int y)
+        private uint GetMetaIndex(uint[] image, int xSize, int bits, int x, int y)
         {
-            if (bits == 0)
+            if (bits is 0)
             {
                 return 0;
             }
@@ -744,8 +756,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private HTreeGroup[] GetHTreeGroupForPos(Vp8LMetadata metadata, int x, int y)
         {
-            int metaIndex = this.GetMetaIndex(metadata.HuffmanImage, metadata.HuffmanXSize, metadata.HuffmanSubSampleBits, x, y);
-            return metadata.HTreeGroups.AsSpan(metaIndex).ToArray();
+            uint metaIndex = this.GetMetaIndex(metadata.HuffmanImage, metadata.HuffmanXSize, metadata.HuffmanSubSampleBits, x, y);
+            return metadata.HTreeGroups.AsSpan((int)metaIndex).ToArray();
         }
     }
 }

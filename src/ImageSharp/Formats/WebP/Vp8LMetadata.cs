@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public int HuffmanXSize { get; set; }
 
-        public int[] HuffmanImage { get; set; }
+        public uint[] HuffmanImage { get; set; }
 
         public int NumHTreeGroups { get; set; }
 

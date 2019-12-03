@@ -1,8 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Png.Zlib
 {
@@ -112,7 +113,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(ReadOnlySpan<byte> data)
         {
-            // (By Per Bothner)
+            ref byte dataRef = ref MemoryMarshal.GetReference(data);
             uint s1 = this.checksum & 0xFFFF;
             uint s2 = this.checksum >> 16;
 
@@ -133,8 +134,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 count -= n;
                 while (--n >= 0)
                 {
-                    s1 = s1 + (uint)(data[offset++] & 0xff);
-                    s2 = s2 + s1;
+                    s1 += Unsafe.Add(ref dataRef, offset++);
+                    s2 += s1;
                 }
 
                 s1 %= Base;

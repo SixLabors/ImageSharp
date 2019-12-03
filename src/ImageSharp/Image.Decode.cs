@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
@@ -123,10 +123,14 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
         /// </returns>
-        private static IImageInfo InternalIdentity(Stream stream, Configuration config)
+        private static (IImageInfo info, IImageFormat format) InternalIdentity(Stream stream, Configuration config)
         {
-            var detector = DiscoverDecoder(stream, config, out IImageFormat _) as IImageInfoDetector;
-            return detector?.Identify(config, stream);
+            if (!(DiscoverDecoder(stream, config, out IImageFormat format) is IImageInfoDetector detector))
+            {
+                return (null, null);
+            }
+
+            return (detector?.Identify(config, stream), format);
         }
     }
 }

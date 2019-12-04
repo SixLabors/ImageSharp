@@ -16,20 +16,20 @@ namespace SixLabors.ImageSharp
     public abstract partial class Image
     {
         /// <summary>
-        /// By reading the header on the provided stream this calculates the images mime type.
+        /// By reading the header on the provided stream this calculates the images format type.
         /// </summary>
         /// <param name="stream">The image stream to read the header from.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
-        /// <returns>The mime type or null if none found.</returns>
+        /// <returns>The format type or null if none found.</returns>
         public static IImageFormat DetectFormat(Stream stream) => DetectFormat(Configuration.Default, stream);
 
         /// <summary>
-        /// By reading the header on the provided stream this calculates the images mime type.
+        /// By reading the header on the provided stream this calculates the images format type.
         /// </summary>
         /// <param name="config">The configuration.</param>
         /// <param name="stream">The image stream to read the header from.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
-        /// <returns>The mime type or null if none found.</returns>
+        /// <returns>The format type or null if none found.</returns>
         public static IImageFormat DetectFormat(Configuration config, Stream stream)
             => WithSeekableStream(config, stream, s => InternalDetectFormat(s, config));
 
@@ -41,26 +41,43 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
         /// </returns>
-        public static IImageInfo Identify(Stream stream) => Identify(Configuration.Default, stream);
+        public static IImageInfo Identify(Stream stream) => Identify(stream, out IImageFormat _);
+
+        /// <summary>
+        /// By reading the header on the provided stream this reads the raw image information.
+        /// </summary>
+        /// <param name="stream">The image stream to read the header from.</param>
+        /// <param name="format">The format type of the decoded image.</param>
+        /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+        /// </returns>
+        public static IImageInfo Identify(Stream stream, out IImageFormat format) => Identify(Configuration.Default, stream, out format);
 
         /// <summary>
         /// Reads the raw image information from the specified stream without fully decoding it.
         /// </summary>
         /// <param name="config">The configuration.</param>
         /// <param name="stream">The image stream to read the information from.</param>
+        /// <param name="format">The format type of the decoded image.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
         /// <returns>
         /// The <see cref="IImageInfo"/> or null if suitable info detector is not found.
         /// </returns>
-        public static IImageInfo Identify(Configuration config, Stream stream)
-            => WithSeekableStream(config, stream, s => InternalIdentity(s, config ?? Configuration.Default));
+        public static IImageInfo Identify(Configuration config, Stream stream, out IImageFormat format)
+        {
+            (IImageInfo info, IImageFormat format) data = WithSeekableStream(config, stream, s => InternalIdentity(s, config ?? Configuration.Default));
+
+            format = data.format;
+            return data.info;
+        }
 
         /// <summary>
         /// Decode a new instance of the <see cref="Image"/> class from the given stream.
         /// The pixel format is selected by the decoder.
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
-        /// <param name="format">the mime type of the decoded image.</param>
+        /// <param name="format">The format type of the decoded image.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
         /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
         /// <returns>A new <see cref="Image"/>.</returns>>
@@ -126,7 +143,7 @@ namespace SixLabors.ImageSharp
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
-        /// <param name="format">the mime type of the decoded image.</param>
+        /// <param name="format">The format type of the decoded image.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
         /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -180,7 +197,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="config">The configuration options.</param>
         /// <param name="stream">The stream containing image information.</param>
-        /// <param name="format">the mime type of the decoded image.</param>
+        /// <param name="format">The format type of the decoded image.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
         /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -215,7 +232,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="config">The configuration options.</param>
         /// <param name="stream">The stream containing image information.</param>
-        /// <param name="format">the mime type of the decoded image.</param>
+        /// <param name="format">The format type of the decoded image.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
         /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>

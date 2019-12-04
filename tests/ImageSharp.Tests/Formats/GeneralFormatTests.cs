@@ -191,6 +191,20 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
+        [Fact]
+        public void IdentifyReturnsNullWithInvalidStream()
+        {
+            byte[] invalid = new byte[10];
+
+            using (var memoryStream = new MemoryStream(invalid))
+            {
+                IImageInfo imageInfo = Image.Identify(memoryStream, out IImageFormat format);
+
+                Assert.Null(imageInfo);
+                Assert.Null(format);
+            }
+        }
+
         private static IImageFormat GetFormat(string format)
         {
             return Configuration.Default.ImageFormats.FirstOrDefault(x => x.FileExtensions.Contains(format));

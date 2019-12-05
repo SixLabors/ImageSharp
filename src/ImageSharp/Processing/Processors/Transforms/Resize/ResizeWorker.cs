@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 // Ensure offsets are normalized for cropping and padding.
                 ResizeKernel kernel = this.verticalKernelMap.GetKernel(y - this.targetOrigin.Y);
 
-                if (kernel.StartIndex + kernel.Length > this.currentWindow.Max)
+                while (kernel.StartIndex + kernel.Length > this.currentWindow.Max)
                 {
                     this.Slide();
                 }

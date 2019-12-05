@@ -382,6 +382,8 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Lossless2 = "WebP/lossless2.webp";
                 public const string Lossless3 = "WebP/lossless3.webp";
                 public const string Lossless4 = "WebP/lossless4.webp";
+                public const string LosslessNoTransform1 = "WebP/lossless_vec_1_0.webp";
+                public const string LosslessNoTransform2 = "WebP/lossless_vec_2_0.webp";
             }
 
             public static class Lossy

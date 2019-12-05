@@ -334,6 +334,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                 numHTreeGroups = numHTreeGroupsMax;
                 metadata.HuffmanImage = huffmanImage;
+                metadata.HuffmanXSize = this.SubSampleSize(huffmanXSize, metadata.HuffmanSubSampleBits);
+                metadata.HuffmanMask = (metadata.HuffmanSubSampleBits == 0) ? ~0 : (1 << metadata.HuffmanSubSampleBits) - 1;
             }
 
             // Find maximum alphabet size for the hTree group.
@@ -625,13 +627,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </summary>
         private uint ReadSymbol(Span<HuffmanCode> table)
         {
-            ulong val = this.bitReader.PrefetchBits();
+            uint val = (uint)this.bitReader.PrefetchBits();
             Span<HuffmanCode> tableSpan = table.Slice((int)(val & HuffmanUtils.HuffmanTableMask));
             int nBits = tableSpan[0].BitsUsed - HuffmanUtils.HuffmanTableBits;
             if (nBits > 0)
             {
                 this.bitReader.AdvanceBitPosition(HuffmanUtils.HuffmanTableBits);
-                val = this.bitReader.PrefetchBits();
+                val = (uint)this.bitReader.PrefetchBits();
                 tableSpan = tableSpan.Slice((int)tableSpan[0].Value);
                 tableSpan = tableSpan.Slice((int)val & ((1 << nBits) - 1));
             }
@@ -659,7 +661,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private void CopyBlock(uint[] pixelData, int decodedPixels, int dist, int length)
         {
-            if (dist > length)
+            if (dist >= length)
             {
                 Span<uint> src = pixelData.AsSpan(decodedPixels - dist, length);
                 Span<uint> dest = pixelData.AsSpan(decodedPixels);

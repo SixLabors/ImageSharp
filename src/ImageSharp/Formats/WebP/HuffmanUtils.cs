@@ -114,6 +114,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             // Fill in 2nd level tables and add pointers to root table.
+            Span<HuffmanCode> tableSpan = table;
+            int tablePos = 0;
             for (len = rootBits + 1, step = 2; len <= WebPConstants.MaxAllowedCodeLength; ++len, step <<= 1)
             {
                 numOpen <<= 1;
@@ -124,8 +126,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     return 0;
                 }
 
-                Span<HuffmanCode> tableSpan = table;
-                int tablePos = 0;
                 for (; count[len] > 0; --count[len])
                 {
                     if ((key & mask) != low)
@@ -136,6 +136,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         tableSize = 1 << tableBits;
                         totalSize += tableSize;
                         low = key & mask;
+                        uint v = (uint)(tablePos - low);
                         table[low] = new HuffmanCode
                         {
                             BitsUsed = tableBits + rootBits,

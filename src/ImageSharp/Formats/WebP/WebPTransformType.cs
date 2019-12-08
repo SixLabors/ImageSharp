@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// The goal of the color transform is to decorrelate the R, G and B values of each pixel.
         /// Color transform keeps the green (G) value as it is, transforms red (R) based on green and transforms blue (B) based on green and then based on red.
         /// </summary>
-        ColorTransform = 1,
+        CrossColorTransform = 1,
 
         /// <summary>
         /// The subtract green transform subtracts green values from red and blue values of each pixel.

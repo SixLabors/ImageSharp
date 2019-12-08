@@ -5,6 +5,9 @@ using System;
 
 namespace SixLabors.ImageSharp.Formats.WebP
 {
+    /// <summary>
+    /// Utility functions related to creating the huffman tables.
+    /// </summary>
     internal static class HuffmanUtils
     {
         public const int HuffmanTableBits = 8;
@@ -23,11 +26,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             // sorted[code_lengths_size] is a pre-allocated array for sorting symbols by code length.
             var sorted = new int[codeLengthsSize];
-            int totalSize = 1 << rootBits; // total size root table + 2nd level table
-            int len; // current code length
-            int symbol; // symbol index in original or sorted table
-            var count = new int[WebPConstants.MaxAllowedCodeLength + 1]; // number of codes of each length
-            var offset = new int[WebPConstants.MaxAllowedCodeLength + 1]; // offsets in sorted table for each length
+            int totalSize = 1 << rootBits; // total size root table + 2nd level table.
+            int len; // current code length.
+            int symbol; // symbol index in original or sorted table.
+            var count = new int[WebPConstants.MaxAllowedCodeLength + 1]; // number of codes of each length.
+            var offset = new int[WebPConstants.MaxAllowedCodeLength + 1]; // offsets in sorted table for each length.
 
             // Build histogram of code lengths.
             for (symbol = 0; symbol < codeLengthsSize; ++symbol)

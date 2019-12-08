@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// that can reduce the remaining symbolic entropy by modeling spatial and color correlations.
     /// Transformations can make the final compression more dense.
     /// </summary>
-    public enum WebPTransformType : uint
+    public enum Vp8LTransformType : uint
     {
         /// <summary>
         /// The predictor transform can be used to reduce entropy by exploiting the fact that neighboring pixels are often correlated.

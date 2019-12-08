@@ -11,7 +11,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.WebP
 {
     /// <summary>
-    /// Decoder for lossless webp images.
+    /// Decoder for lossless webp images. This code is a port of libwebp, which can be found here: https://chromium.googlesource.com/webm/libwebp
     /// </summary>
     /// <remarks>
     /// The lossless specification can be found here:
@@ -83,35 +83,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             var decoder = new Vp8LDecoder(width, height);
             uint[] pixelData = this.DecodeImageStream(decoder, width, height, true);
-            this.DecodePixelValues(width, height, pixelData, pixels);
-        }
-
-        private void DecodePixelValues<TPixel>(int width, int height, uint[] pixelData, Buffer2D<TPixel> pixels)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            TPixel color = default;
-            for (int y = 0; y < height; y++)
-            {
-                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
-                for (int x = 0; x < width; x++)
-                {
-                    int idx = (y * width) + x;
-                    uint pixel = pixelData[idx];
-                    byte a = (byte)((pixel & 0xFF000000) >> 24);
-                    byte r = (byte)((pixel & 0xFF0000) >> 16);
-                    byte g = (byte)((pixel & 0xFF00) >> 8);
-                    byte b = (byte)(pixel & 0xFF);
-                    color.FromRgba32(new Rgba32(r, g, b, a));
-                    pixelRow[x] = color;
-                }
-            }
+            this.DecodePixelValues(decoder, pixelData, pixels);
         }
 
         private uint[] DecodeImageStream(Vp8LDecoder decoder, int xSize, int ySize, bool isLevel0)
         {
             if (isLevel0)
             {
-                this.ReadTransformations();
+                this.ReadTransformations(decoder);
             }
 
             // Color cache.
@@ -149,7 +128,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             this.UpdateDecoder(decoder, xSize, ySize);
 
-            uint[] pixelData = this.DecodeImageData(decoder, xSize, ySize, colorCacheSize, colorCache);
+            uint[] pixelData = this.DecodeImageData(decoder, colorCacheSize, colorCache);
             if (!isLevel0)
             {
                 decoder.Metadata = new Vp8LMetadata();
@@ -158,9 +137,35 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return pixelData;
         }
 
-        private uint[] DecodeImageData(Vp8LDecoder decoder, int width, int height, int colorCacheSize, ColorCache colorCache)
+        private void DecodePixelValues<TPixel>(Vp8LDecoder decoder, uint[] pixelData, Buffer2D<TPixel> pixels)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            // Apply reverse transformations, if any are present.
+            this.ApplyInverseTransforms(decoder, pixelData);
+
+            TPixel color = default;
+            for (int y = 0; y < decoder.Height; y++)
+            {
+                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
+                for (int x = 0; x < decoder.Width; x++)
+                {
+                    int idx = (y * decoder.Width) + x;
+                    uint pixel = pixelData[idx];
+                    byte a = (byte)((pixel & 0xFF000000) >> 24);
+                    byte r = (byte)((pixel & 0xFF0000) >> 16);
+                    byte g = (byte)((pixel & 0xFF00) >> 8);
+                    byte b = (byte)(pixel & 0xFF);
+                    color.FromRgba32(new Rgba32(r, g, b, a));
+                    pixelRow[x] = color;
+                }
+            }
+        }
+
+        private uint[] DecodeImageData(Vp8LDecoder decoder, int colorCacheSize, ColorCache colorCache)
         {
             int lastPixel = 0;
+            int width = decoder.Width;
+            int height = decoder.Height;
             int row = lastPixel / width;
             int col = lastPixel % width;
             int lenCodeLimit = WebPConstants.NumLiteralCodes + WebPConstants.NumLengthCodes;
@@ -327,8 +332,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             {
                 // Use meta Huffman codes.
                 uint huffmanPrecision = this.bitReader.ReadBits(3) + 2;
-                int huffmanXSize = this.SubSampleSize(xSize, (int)huffmanPrecision);
-                int huffmanYSize = this.SubSampleSize(ySize, (int)huffmanPrecision);
+                int huffmanXSize = LosslessUtils.SubSampleSize(xSize, (int)huffmanPrecision);
+                int huffmanYSize = LosslessUtils.SubSampleSize(ySize, (int)huffmanPrecision);
                 int huffmanPixs = huffmanXSize * huffmanYSize;
                 uint[] huffmanImage = this.DecodeImageStream(decoder, huffmanXSize, huffmanYSize, false);
                 decoder.Metadata.HuffmanSubSampleBits = (int)huffmanPrecision;
@@ -562,22 +567,26 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private void ReadTransformations()
+        /// <summary>
+        /// Reads the transformations, if any are present.
+        /// </summary>
+        /// <param name="decoder">Vp8LDecoder where the transformations will be stored.</param>
+        private void ReadTransformations(Vp8LDecoder decoder)
         {
             // Next bit indicates, if a transformation is present.
             bool transformPresent = this.bitReader.ReadBit();
             int numberOfTransformsPresent = 0;
-            var transforms = new List<WebPTransformType>(WebPConstants.MaxNumberOfTransforms);
+            decoder.Transforms = new List<Vp8LTransform>(WebPConstants.MaxNumberOfTransforms);
             while (transformPresent)
             {
-                var transformType = (WebPTransformType)this.bitReader.ReadBits(2);
-                transforms.Add(transformType);
+                var transformType = (Vp8LTransformType)this.bitReader.ReadBits(2);
+                var transform = new Vp8LTransform(transformType);
                 switch (transformType)
                 {
-                    case WebPTransformType.SubtractGreen:
+                    case Vp8LTransformType.SubtractGreen:
                         // There is no data associated with this transform.
                         break;
-                    case WebPTransformType.ColorIndexingTransform:
+                    case Vp8LTransformType.ColorIndexingTransform:
                         // The transform data contains color table size and the entries in the color table.
                         // 8 bit value for color table size.
                         uint colorTableSize = this.bitReader.ReadBits(8) + 1;
@@ -585,7 +594,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         // TODO: color table should follow here?
                         break;
 
-                    case WebPTransformType.PredictorTransform:
+                    case Vp8LTransformType.PredictorTransform:
                         {
                             // The first 3 bits of prediction data define the block width and height in number of bits.
                             // The number of block columns, block_xsize, is used in indexing two-dimensionally.
@@ -596,7 +605,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                             break;
                         }
 
-                    case WebPTransformType.ColorTransform:
+                    case Vp8LTransformType.CrossColorTransform:
                         {
                             // The first 3 bits of the color transform data contain the width and height of the image block in number of bits,
                             // just like the predictor transform:
@@ -607,16 +616,35 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         }
                 }
 
+                decoder.Transforms.Add(transform);
                 numberOfTransformsPresent++;
 
                 transformPresent = this.bitReader.ReadBit();
                 if (numberOfTransformsPresent == WebPConstants.MaxNumberOfTransforms && transformPresent)
                 {
-                    WebPThrowHelper.ThrowImageFormatException("The maximum number of transforms was exceeded");
+                    WebPThrowHelper.ThrowImageFormatException($"The maximum number of transforms of {WebPConstants.MaxNumberOfTransforms} was exceeded");
                 }
             }
+        }
 
-            // TODO: return transformation in an appropriate form.
+        /// <summary>
+        /// Reverses the transformations, if any are present.
+        /// </summary>
+        /// <param name="decoder">The decoder holding the transformation infos.</param>
+        /// <param name="pixelData">The pixel data to apply the transformation.</param>
+        private void ApplyInverseTransforms(Vp8LDecoder decoder, uint[] pixelData)
+        {
+            List<Vp8LTransform> transforms = decoder.Transforms;
+            for (int i = transforms.Count; i > 0; i--)
+            {
+                Vp8LTransformType transform = transforms[0].TransformType;
+                switch (transform)
+                {
+                    case Vp8LTransformType.SubtractGreen:
+                        LosslessUtils.AddGreenToBlueAndRed(pixelData);
+                        break;
+                }
+            }
         }
 
         private void UpdateDecoder(Vp8LDecoder decoder, int width, int height)
@@ -624,16 +652,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int numBits = decoder.Metadata.HuffmanSubSampleBits;
             decoder.Width = width;
             decoder.Height = height;
-            decoder.Metadata.HuffmanXSize = this.SubSampleSize(width, numBits);
+            decoder.Metadata.HuffmanXSize = LosslessUtils.SubSampleSize(width, numBits);
             decoder.Metadata.HuffmanMask = (numBits is 0) ? ~0 : (1 << numBits) - 1;
-        }
-
-        /// <summary>
-        /// Computes sampled size of 'size' when sampling using 'sampling bits'.
-        /// </summary>
-        private int SubSampleSize(int size, int samplingBits)
-        {
-            return (size + (1 << samplingBits) - 1) >> samplingBits;
         }
 
         /// <summary>

@@ -3,7 +3,6 @@
 
 using System.IO;
 
-using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.WebP;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
@@ -51,9 +50,84 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         }
 
         [Theory]
-        [WithFile(Lossless.LosslessNoTransform1, PixelTypes.Rgba32)]
-        [WithFile(Lossless.LosslessNoTransform2, PixelTypes.Rgba32)]
+        [WithFile(Lossless.NoTransform1, PixelTypes.Rgba32)]
+        [WithFile(Lossless.NoTransform2, PixelTypes.Rgba32)]
         public void WebpDecoder_CanDecode_Lossless_WithoutTransforms<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new WebPDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, new MagickReferenceDecoder());
+            }
+        }
+
+        [Theory]
+        [WithFile(Lossless.GreenTransform1, PixelTypes.Rgba32)]
+        [WithFile(Lossless.GreenTransform2, PixelTypes.Rgba32)]
+        [WithFile(Lossless.GreenTransform3, PixelTypes.Rgba32)]
+        [WithFile(Lossless.GreenTransform4, PixelTypes.Rgba32)]
+        [WithFile(Lossless.GreenTransform5, PixelTypes.Rgba32)]
+        [WithFile(Lossless.GreenTransform6, PixelTypes.Rgba32)]
+        public void WebpDecoder_CanDecode_Lossless_WithSubstractGreenTransform<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new WebPDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, new MagickReferenceDecoder());
+            }
+        }
+
+        [Theory]
+        [WithFile(Lossless.ColorIndexTransform1, PixelTypes.Rgba32)]
+        [WithFile(Lossless.ColorIndexTransform2, PixelTypes.Rgba32)]
+        [WithFile(Lossless.ColorIndexTransform3, PixelTypes.Rgba32)]
+        [WithFile(Lossless.ColorIndexTransform4, PixelTypes.Rgba32)]
+        [WithFile(Lossless.ColorIndexTransform5, PixelTypes.Rgba32)]
+        [WithFile(Lossless.ColorIndexTransform6, PixelTypes.Rgba32)]
+        [WithFile(Lossless.ColorIndexTransform7, PixelTypes.Rgba32)]
+        [WithFile(Lossless.ColorIndexTransform8, PixelTypes.Rgba32)]
+        [WithFile(Lossless.ColorIndexTransform9, PixelTypes.Rgba32)]
+        [WithFile(Lossless.ColorIndexTransform10, PixelTypes.Rgba32)]
+        [WithFile(Lossless.ColorIndexTransform11, PixelTypes.Rgba32)]
+        [WithFile(Lossless.ColorIndexTransform12, PixelTypes.Rgba32)]
+        [WithFile(Lossless.ColorIndexTransform13, PixelTypes.Rgba32)]
+        [WithFile(Lossless.ColorIndexTransform14, PixelTypes.Rgba32)]
+        [WithFile(Lossless.ColorIndexTransform15, PixelTypes.Rgba32)]
+        [WithFile(Lossless.ColorIndexTransform16, PixelTypes.Rgba32)]
+        [WithFile(Lossless.ColorIndexTransform17, PixelTypes.Rgba32)]
+        public void WebpDecoder_CanDecode_Lossless_WithColorIndexTransform<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new WebPDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, new MagickReferenceDecoder());
+            }
+        }
+
+        [Theory]
+        [WithFile(Lossless.PredictorTransform1, PixelTypes.Rgba32)]
+        [WithFile(Lossless.PredictorTransform2, PixelTypes.Rgba32)]
+        [WithFile(Lossless.PredictorTransform3, PixelTypes.Rgba32)]
+        [WithFile(Lossless.PredictorTransform4, PixelTypes.Rgba32)]
+        [WithFile(Lossless.PredictorTransform5, PixelTypes.Rgba32)]
+        [WithFile(Lossless.PredictorTransform6, PixelTypes.Rgba32)]
+        public void WebpDecoder_CanDecode_Lossless_WithPredictorTransform<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new WebPDecoder()))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, new MagickReferenceDecoder());
+            }
+        }
+
+        [Theory]
+        [WithFile(Lossless.CrossColorTransform1, PixelTypes.Rgba32)]
+        [WithFile(Lossless.CrossColorTransform2, PixelTypes.Rgba32)]
+        public void WebpDecoder_CanDecode_Lossless_WithCrossColorTransform<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new WebPDecoder()))

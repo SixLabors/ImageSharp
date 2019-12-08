@@ -8,12 +8,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// </summary>
     internal class Vp8LTransform
     {
-        public Vp8LTransform(Vp8LTransformType transformType) => this.TransformType = transformType;
+        public Vp8LTransform(Vp8LTransformType transformType, int xSize, int ySize)
+        {
+            this.TransformType = transformType;
+            this.XSize = xSize;
+            this.YSize = ySize;
+        }
 
         /// <summary>
-        /// Gets or sets the transform type.
+        /// Gets the transform type.
         /// </summary>
-        public Vp8LTransformType TransformType { get; private set; }
+        public Vp8LTransformType TransformType { get; }
 
         /// <summary>
         /// Subsampling bits defining transform window.
@@ -21,18 +26,18 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public int Bits { get; set; }
 
         /// <summary>
-        /// Transform window X index.
+        /// Gets or sets the transform window X index.
         /// </summary>
         public int XSize { get; set; }
 
         /// <summary>
-        /// Transform window Y index.
+        /// Gets the transform window Y index.
         /// </summary>
-        public int YSize { get; set; }
+        public int YSize { get; }
 
         /// <summary>
-        /// Transform data.
+        /// Gets or sets the transform data.
         /// </summary>
-        public int[] Data { get; set; }
+        public uint[] Data { get; set; }
     }
 }

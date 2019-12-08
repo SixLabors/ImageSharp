@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -9,7 +7,7 @@ using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.WebP
 {
-    class WebPLossyDecoder
+    internal sealed class WebPLossyDecoder
     {
         private readonly Configuration configuration;
 

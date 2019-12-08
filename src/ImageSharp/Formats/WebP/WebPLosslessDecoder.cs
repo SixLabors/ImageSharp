@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             if (isLevel0)
             {
-                this.ReadTransformations(decoder);
+                this.ReadTransformations(xSize, ySize, decoder);
             }
 
             // Color cache.
@@ -571,7 +571,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// Reads the transformations, if any are present.
         /// </summary>
         /// <param name="decoder">Vp8LDecoder where the transformations will be stored.</param>
-        private void ReadTransformations(Vp8LDecoder decoder)
+        private void ReadTransformations(int xSize, int ySize, Vp8LDecoder decoder)
         {
             // Next bit indicates, if a transformation is present.
             bool transformPresent = this.bitReader.ReadBit();
@@ -580,7 +580,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             while (transformPresent)
             {
                 var transformType = (Vp8LTransformType)this.bitReader.ReadBits(2);
-                var transform = new Vp8LTransform(transformType);
+                var transform = new Vp8LTransform(transformType, xSize, ySize);
                 switch (transformType)
                 {
                     case Vp8LTransformType.SubtractGreen:
@@ -589,29 +589,23 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     case Vp8LTransformType.ColorIndexingTransform:
                         // The transform data contains color table size and the entries in the color table.
                         // 8 bit value for color table size.
-                        uint colorTableSize = this.bitReader.ReadBits(8) + 1;
-
-                        // TODO: color table should follow here?
+                        uint numColors = this.bitReader.ReadBits(8) + 1;
+                        int bits = (numColors > 16) ? 0
+                                         : (numColors > 4) ? 1
+                                         : (numColors > 2) ? 2
+                                         : 3;
+                        transform.XSize = LosslessUtils.SubSampleSize(transform.XSize, bits);
                         break;
 
                     case Vp8LTransformType.PredictorTransform:
-                        {
-                            // The first 3 bits of prediction data define the block width and height in number of bits.
-                            // The number of block columns, block_xsize, is used in indexing two-dimensionally.
-                            uint sizeBits = this.bitReader.ReadBits(3) + 2;
-                            int blockWidth = 1 << (int)sizeBits;
-                            int blockHeight = 1 << (int)sizeBits;
-
-                            break;
-                        }
-
                     case Vp8LTransformType.CrossColorTransform:
                         {
-                            // The first 3 bits of the color transform data contain the width and height of the image block in number of bits,
-                            // just like the predictor transform:
-                            uint sizeBits = this.bitReader.ReadBits(3) + 2;
-                            int blockWidth = 1 << (int)sizeBits;
-                            int blockHeight = 1 << (int)sizeBits;
+                            transform.Bits = (int)this.bitReader.ReadBits(3) + 2;
+                            transform.Data = this.DecodeImageStream(
+                                decoder,
+                                LosslessUtils.SubSampleSize(transform.XSize, transform.Bits),
+                                LosslessUtils.SubSampleSize(transform.YSize, transform.Bits),
+                                false);
                             break;
                         }
                 }

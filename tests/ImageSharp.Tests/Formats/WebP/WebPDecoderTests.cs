@@ -67,9 +67,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         [WithFile(Lossless.GreenTransform2, PixelTypes.Rgba32)]
         [WithFile(Lossless.GreenTransform3, PixelTypes.Rgba32)]
         [WithFile(Lossless.GreenTransform4, PixelTypes.Rgba32)]
-        // TODO: Figure out whats wrong with those two images
+        // TODO: Reference decoder throws here MagickCorruptImageErrorException
         //[WithFile(Lossless.GreenTransform5, PixelTypes.Rgba32)]
-        //[WithFile(Lossless.GreenTransform6, PixelTypes.Rgba32)]
         public void WebpDecoder_CanDecode_Lossless_WithSubstractGreenTransform<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -86,18 +85,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         [WithFile(Lossless.ColorIndexTransform3, PixelTypes.Rgba32)]
         [WithFile(Lossless.ColorIndexTransform4, PixelTypes.Rgba32)]
         [WithFile(Lossless.ColorIndexTransform5, PixelTypes.Rgba32)]
-        [WithFile(Lossless.ColorIndexTransform6, PixelTypes.Rgba32)]
-        [WithFile(Lossless.ColorIndexTransform7, PixelTypes.Rgba32)]
-        [WithFile(Lossless.ColorIndexTransform8, PixelTypes.Rgba32)]
-        [WithFile(Lossless.ColorIndexTransform9, PixelTypes.Rgba32)]
-        [WithFile(Lossless.ColorIndexTransform10, PixelTypes.Rgba32)]
-        [WithFile(Lossless.ColorIndexTransform11, PixelTypes.Rgba32)]
-        [WithFile(Lossless.ColorIndexTransform12, PixelTypes.Rgba32)]
-        [WithFile(Lossless.ColorIndexTransform13, PixelTypes.Rgba32)]
-        [WithFile(Lossless.ColorIndexTransform14, PixelTypes.Rgba32)]
-        [WithFile(Lossless.ColorIndexTransform15, PixelTypes.Rgba32)]
-        [WithFile(Lossless.ColorIndexTransform16, PixelTypes.Rgba32)]
-        [WithFile(Lossless.ColorIndexTransform17, PixelTypes.Rgba32)]
         public void WebpDecoder_CanDecode_Lossless_WithColorIndexTransform<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -111,10 +98,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         [Theory]
         [WithFile(Lossless.PredictorTransform1, PixelTypes.Rgba32)]
         [WithFile(Lossless.PredictorTransform2, PixelTypes.Rgba32)]
-        [WithFile(Lossless.PredictorTransform3, PixelTypes.Rgba32)]
-        [WithFile(Lossless.PredictorTransform4, PixelTypes.Rgba32)]
-        [WithFile(Lossless.PredictorTransform5, PixelTypes.Rgba32)]
-        [WithFile(Lossless.PredictorTransform6, PixelTypes.Rgba32)]
         public void WebpDecoder_CanDecode_Lossless_WithPredictorTransform<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

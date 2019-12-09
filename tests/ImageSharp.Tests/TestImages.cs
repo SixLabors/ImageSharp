@@ -386,33 +386,16 @@ namespace SixLabors.ImageSharp.Tests
                 public const string GreenTransform2 = "WebP/lossless2.webp";
                 public const string GreenTransform3 = "WebP/lossless3.webp";
                 public const string GreenTransform4 = "WebP/lossless_vec_1_4.webp";
-                public const string GreenTransform5 = "WebP/lossless_vec_1_7.webp";
-                public const string GreenTransform6 = "WebP/lossless_vec_2_4.webp";
+                public const string GreenTransform5 = "WebP/lossless_vec_2_4.webp";
                 public const string CrossColorTransform1 = "WebP/lossless_vec_1_8.webp";
                 public const string CrossColorTransform2 = "WebP/lossless_vec_2_8.webp";
-                public const string PredictorTransform1 = "WebP/lossless_vec_1_10.webp";
-                public const string PredictorTransform2 = "WebP/lossless_vec_1_10.webp";
-                public const string PredictorTransform3 = "WebP/lossless_vec_1_2.webp";
-                public const string PredictorTransform4 = "WebP/lossless_vec_2_10.webp";
-                public const string PredictorTransform5 = "WebP/lossless_vec_2_2.webp";
-                public const string PredictorTransform6 = "WebP/near_lossless_75.webp";
+                public const string PredictorTransform1 = "WebP/lossless_vec_1_2.webp";
+                public const string PredictorTransform2 = "WebP/lossless_vec_2_2.webp";
                 public const string ColorIndexTransform1 = "WebP/lossless4.webp";
                 public const string ColorIndexTransform2 = "WebP/lossless_vec_1_1.webp";
-                public const string ColorIndexTransform3 = "WebP/lossless_vec_1_11.webp";
-                public const string ColorIndexTransform4 = "WebP/lossless_vec_1_13.webp";
-                public const string ColorIndexTransform5 = "WebP/lossless_vec_1_15.webp";
-                public const string ColorIndexTransform6 = "WebP/lossless_vec_1_3.webp";
-                public const string ColorIndexTransform7 = "WebP/lossless_vec_1_5.webp";
-                public const string ColorIndexTransform8 = "WebP/lossless_vec_1_7.webp";
-                public const string ColorIndexTransform9 = "WebP/lossless_vec_1_9.webp";
-                public const string ColorIndexTransform10 = "WebP/lossless_vec_2_1.webp";
-                public const string ColorIndexTransform11 = "WebP/lossless_vec_2_11.webp";
-                public const string ColorIndexTransform12 = "WebP/lossless_vec_2_13.webp";
-                public const string ColorIndexTransform13 = "WebP/lossless_vec_2_15.webp";
-                public const string ColorIndexTransform14 = "WebP/lossless_vec_2_3.webp";
-                public const string ColorIndexTransform15 = "WebP/lossless_vec_2_5.webp";
-                public const string ColorIndexTransform16 = "WebP/lossless_vec_2_7.webp";
-                public const string ColorIndexTransform17 = "WebP/lossless_vec_2_9.webp";
+                public const string ColorIndexTransform3 = "WebP/lossless_vec_1_5.webp";
+                public const string ColorIndexTransform4 = "WebP/lossless_vec_2_1.webp";
+                public const string ColorIndexTransform5 = "WebP/lossless_vec_2_5.webp";
             }
 
             public static class Lossy

@@ -88,9 +88,22 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private uint[] DecodeImageStream(Vp8LDecoder decoder, int xSize, int ySize, bool isLevel0)
         {
+            int numberOfTransformsPresent = 0;
             if (isLevel0)
             {
-                this.ReadTransformations(xSize, ySize, decoder);
+                decoder.Transforms = new List<Vp8LTransform>(WebPConstants.MaxNumberOfTransforms);
+
+                // Next bit indicates, if a transformation is present.
+                while (this.bitReader.ReadBit())
+                {
+                    if (numberOfTransformsPresent > WebPConstants.MaxNumberOfTransforms)
+                    {
+                        WebPThrowHelper.ThrowImageFormatException($"The maximum number of transforms of {WebPConstants.MaxNumberOfTransforms} was exceeded");
+                    }
+
+                    this.ReadTransformation(xSize, ySize, decoder);
+                    numberOfTransformsPresent++;
+                }
             }
 
             // Color cache.
@@ -571,54 +584,42 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// Reads the transformations, if any are present.
         /// </summary>
         /// <param name="decoder">Vp8LDecoder where the transformations will be stored.</param>
-        private void ReadTransformations(int xSize, int ySize, Vp8LDecoder decoder)
+        private void ReadTransformation(int xSize, int ySize, Vp8LDecoder decoder)
         {
-            // Next bit indicates, if a transformation is present.
-            bool transformPresent = this.bitReader.ReadBit();
-            int numberOfTransformsPresent = 0;
-            decoder.Transforms = new List<Vp8LTransform>(WebPConstants.MaxNumberOfTransforms);
-            while (transformPresent)
+            var transformType = (Vp8LTransformType)this.bitReader.ReadBits(2);
+            var transform = new Vp8LTransform(transformType, xSize, ySize);
+            switch (transformType)
             {
-                var transformType = (Vp8LTransformType)this.bitReader.ReadBits(2);
-                var transform = new Vp8LTransform(transformType, xSize, ySize);
-                switch (transformType)
-                {
-                    case Vp8LTransformType.SubtractGreen:
-                        // There is no data associated with this transform.
+                case Vp8LTransformType.SubtractGreen:
+                    // There is no data associated with this transform.
+                    break;
+                case Vp8LTransformType.ColorIndexingTransform:
+                    // The transform data contains color table size and the entries in the color table.
+                    // 8 bit value for color table size.
+                    uint numColors = this.bitReader.ReadBits(8) + 1;
+                    int bits = (numColors > 16) ? 0
+                                     : (numColors > 4) ? 1
+                                     : (numColors > 2) ? 2
+                                     : 3;
+                    transform.XSize = LosslessUtils.SubSampleSize(transform.XSize, bits);
+                    transform.Bits = bits;
+                    transform.Data = this.DecodeImageStream(decoder, (int)numColors, 1, false);
+                    break;
+
+                case Vp8LTransformType.PredictorTransform:
+                case Vp8LTransformType.CrossColorTransform:
+                    {
+                        transform.Bits = (int)this.bitReader.ReadBits(3) + 2;
+                        transform.Data = this.DecodeImageStream(
+                            decoder,
+                            LosslessUtils.SubSampleSize(transform.XSize, transform.Bits),
+                            LosslessUtils.SubSampleSize(transform.YSize, transform.Bits),
+                            false);
                         break;
-                    case Vp8LTransformType.ColorIndexingTransform:
-                        // The transform data contains color table size and the entries in the color table.
-                        // 8 bit value for color table size.
-                        uint numColors = this.bitReader.ReadBits(8) + 1;
-                        int bits = (numColors > 16) ? 0
-                                         : (numColors > 4) ? 1
-                                         : (numColors > 2) ? 2
-                                         : 3;
-                        transform.XSize = LosslessUtils.SubSampleSize(transform.XSize, bits);
-                        break;
-
-                    case Vp8LTransformType.PredictorTransform:
-                    case Vp8LTransformType.CrossColorTransform:
-                        {
-                            transform.Bits = (int)this.bitReader.ReadBits(3) + 2;
-                            transform.Data = this.DecodeImageStream(
-                                decoder,
-                                LosslessUtils.SubSampleSize(transform.XSize, transform.Bits),
-                                LosslessUtils.SubSampleSize(transform.YSize, transform.Bits),
-                                false);
-                            break;
-                        }
-                }
-
-                decoder.Transforms.Add(transform);
-                numberOfTransformsPresent++;
-
-                transformPresent = this.bitReader.ReadBit();
-                if (numberOfTransformsPresent == WebPConstants.MaxNumberOfTransforms && transformPresent)
-                {
-                    WebPThrowHelper.ThrowImageFormatException($"The maximum number of transforms of {WebPConstants.MaxNumberOfTransforms} was exceeded");
-                }
+                    }
             }
+
+            decoder.Transforms.Add(transform);
         }
 
         /// <summary>

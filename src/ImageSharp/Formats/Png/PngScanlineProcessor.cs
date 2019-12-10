@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             Span<TPixel> rowSpan,
             bool hasTrans,
             Gray16 luminance16Trans,
-            Gray8 luminanceTrans)
+            L8 luminanceTrans)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel pixel = default;
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     for (int x = 0; x < header.Width; x++)
                     {
                         byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, x) * scaleFactor);
-                        pixel.FromGray8(new Gray8(luminance));
+                        pixel.FromL8(new L8(luminance));
                         Unsafe.Add(ref rowSpanRef, x) = pixel;
                     }
                 }
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             int increment,
             bool hasTrans,
             Gray16 luminance16Trans,
-            Gray8 luminanceTrans)
+            L8 luminanceTrans)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel pixel = default;
@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     for (int x = pixelOffset, o = 0; x < header.Width; x += increment, o++)
                     {
                         byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, o) * scaleFactor);
-                        pixel.FromGray8(new Gray8(luminance));
+                        pixel.FromL8(new L8(luminance));
                         Unsafe.Add(ref rowSpanRef, x) = pixel;
                     }
                 }

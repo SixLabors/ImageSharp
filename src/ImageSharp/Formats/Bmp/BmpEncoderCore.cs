@@ -315,11 +315,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void Write8Bit<TPixel>(Stream stream, ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            bool isGray8 = typeof(TPixel) == typeof(Gray8);
+            bool isL8 = typeof(TPixel) == typeof(L8);
             using (IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.AllocateManagedByteBuffer(ColorPaletteSize8Bit, AllocationOptions.Clean))
             {
                 Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
-                if (isGray8)
+                if (isL8)
                 {
                     this.Write8BitGray(stream, image, colorPalette);
                 }

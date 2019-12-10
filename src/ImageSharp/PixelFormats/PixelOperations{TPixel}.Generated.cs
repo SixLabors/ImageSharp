@@ -227,75 +227,75 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Converts all pixels in 'source` span of <see cref="Gray8"/> into a span of <typeparamref name="TPixel"/>-s.
+        /// Converts all pixels in 'source` span of <see cref="L8"/> into a span of <typeparamref name="TPixel"/>-s.
         /// </summary>
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Gray8"/> data.</param>
+        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="L8"/> data.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        internal virtual void FromGray8(Configuration configuration, ReadOnlySpan<Gray8> source, Span<TPixel> destPixels)
+        internal virtual void FromL8(Configuration configuration, ReadOnlySpan<L8> source, Span<TPixel> destPixels)
         {
             Guard.DestinationShouldNotBeTooShort(source, destPixels, nameof(destPixels));
             
-            ref Gray8 sourceBaseRef = ref MemoryMarshal.GetReference(source);
+            ref L8 sourceBaseRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
             for (int i = 0; i < source.Length; i++)
             {
-                ref Gray8 sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref L8 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.FromGray8(sp);
+                dp.FromL8(sp);
             }
         }
 
         /// <summary>
-        /// A helper for <see cref="FromGray8(Configuration, ReadOnlySpan{Gray8}, Span{TPixel})"/> that expects a byte span.
-        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Gray8"/> layout.
+        /// A helper for <see cref="FromL8(Configuration, ReadOnlySpan{L8}, Span{TPixel})"/> that expects a byte span.
+        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="L8"/> layout.
         /// </summary>
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
         /// <param name="count">The number of pixels to convert.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void FromGray8Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
+        internal void FromL8Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
         {
-            this.FromGray8(configuration, MemoryMarshal.Cast<byte, Gray8>(sourceBytes).Slice(0, count), destPixels);
+            this.FromL8(configuration, MemoryMarshal.Cast<byte, L8>(sourceBytes).Slice(0, count), destPixels);
         }
 
         /// <summary>
-        /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Gray8"/>-s.
+        /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="L8"/>-s.
         /// </summary>
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourcePixels">The span of source pixels</param>
-        /// <param name="destPixels">The destination span of <see cref="Gray8"/> data.</param>
-        internal virtual void ToGray8(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<Gray8> destPixels)
+        /// <param name="destPixels">The destination span of <see cref="L8"/> data.</param>
+        internal virtual void ToL8(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<L8> destPixels)
         {
             Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
             ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-            ref Gray8 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
+            ref L8 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
             for (int i = 0; i < sourcePixels.Length; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-                ref Gray8 dp = ref Unsafe.Add(ref destBaseRef, i);
+                ref L8 dp = ref Unsafe.Add(ref destBaseRef, i);
 
                 dp.FromScaledVector4(sp.ToScaledVector4());
             }
         }
 
         /// <summary>
-        /// A helper for <see cref="ToGray8(Configuration, ReadOnlySpan{TPixel}, Span{Gray8})"/> that expects a byte span as destination.
-        /// The layout of the data in 'destBytes' must be compatible with <see cref="Gray8"/> layout.
+        /// A helper for <see cref="ToL8(Configuration, ReadOnlySpan{TPixel}, Span{L8})"/> that expects a byte span as destination.
+        /// The layout of the data in 'destBytes' must be compatible with <see cref="L8"/> layout.
         /// </summary>
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
         /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void ToGray8Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+        internal void ToL8Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToGray8(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Gray8>(destBytes));
+            this.ToL8(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, L8>(destBytes));
         }
 
         /// <summary>

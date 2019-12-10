@@ -15,7 +15,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 <#+
-    static readonly string[] CommonPixelTypes = { "Argb32", "Bgr24", "Bgra32", "Gray8", "Gray16", "Rgb24", "Rgba32", "Rgb48", "Rgba64" };
+    static readonly string[] CommonPixelTypes = { "Argb32", "Bgr24", "Bgra32", "L8", "Gray16", "Rgb24", "Rgba32", "Rgb48", "Rgba64" };
 
     static readonly string[] Optimized32BitTypes = { "Rgba32", "Argb32", "Bgra32" };
 

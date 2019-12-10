@@ -396,6 +396,30 @@ namespace SixLabors.ImageSharp.Tests
                 public const string ColorIndexTransform3 = "WebP/lossless_vec_1_5.webp";
                 public const string ColorIndexTransform4 = "WebP/lossless_vec_2_1.webp";
                 public const string ColorIndexTransform5 = "WebP/lossless_vec_2_5.webp";
+                public const string TwoTransforms1 = "Webp/lossless_color_transform.webp"; // cross_color, predictor
+                public const string TwoTransforms2 = "Webp/lossless_vec_1_10.webp"; // cross_color, predictor
+                public const string TwoTransforms3 = "Webp/lossless_vec_1_12.webp"; // cross_color, substract_green
+                public const string TwoTransforms4 = "Webp/lossless_vec_1_13.webp"; // color_indexing, cross_color
+                public const string TwoTransforms5 = "Webp/lossless_vec_1_3.webp"; // color_indexing, predictor
+                public const string TwoTransforms6 = "Webp/lossless_vec_1_6.webp"; // substract_green, predictor
+                public const string TwoTransforms7 = "Webp/lossless_vec_1_7.webp"; // color_indexing, predictor
+                public const string TwoTransforms8 = "Webp/lossless_vec_1_9.webp"; // color_indexing, cross_color
+                public const string TwoTransforms9 = "Webp/lossless_vec_2_10.webp"; // predictor, cross_color
+                public const string TwoTransforms10 = "Webp/lossless_vec_2_12.webp"; // substract_green, cross_color
+                public const string TwoTransforms11 = "Webp/lossless_vec_2_13.webp"; // color_indexing, cross_color
+                public const string TwoTransforms12 = "Webp/lossless_vec_2_3.webp"; // color_indexing, predictor
+                public const string TwoTransforms13 = "Webp/lossless_vec_2_6.webp"; // substract_green, predictor
+                public const string TwoTransforms14 = "Webp/lossless_vec_2_7.webp"; // color_indexing, predictor
+                public const string TwoTransforms15 = "Webp/lossless_vec_2_9.webp"; // color_indexing, predictor
+                public const string TwoTransforms16 = "Webp/near_lossless_75.webp"; // predictor, cross_color
+                public const string ThreeTransforms1 = "Webp/color_cache_bits_11.webp"; // substract_green, predictor, cross_color
+                public const string ThreeTransforms2 = "Webp/lossless_big_random_alpha.webp"; // substract_green, predictor, cross_color
+                public const string ThreeTransforms3 = "Webp/lossless_vec_1_11.webp"; // color_indexing, predictor, cross_color
+                public const string ThreeTransforms4 = "Webp/lossless_vec_1_14.webp"; // substract_green, predictor, cross_color
+                public const string ThreeTransforms5 = "Webp/lossless_vec_1_15.webp"; // color_indexing, predictor, cross_color
+                public const string ThreeTransforms6 = "Webp/lossless_vec_2_11.webp"; // color_indexing, predictor, cross_color
+                public const string ThreeTransforms7 = "Webp/lossless_vec_2_14.webp"; // substract_green, predictor, cross_color
+                public const string ThreeTransforms8 = "Webp/lossless_vec_2_15.webp"; // color_indexing, predictor, cross_color
             }
 
             public static class Lossy

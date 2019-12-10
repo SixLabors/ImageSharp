@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Tests
 
         Bgra5551 = 1 << 22,
 
-        Gray8 = 1 << 23,
+        L8 = 1 << 23,
 
         // TODO: Add multi-flag entries by rules defined in PackedPixelConverterHelper
 

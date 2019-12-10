@@ -7,49 +7,49 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <summary>
-    /// Packed pixel type containing a single 8 bit normalized gray values.
+    /// Packed pixel type containing a single 8 bit normalized luminance value.
     /// <para>
     /// Ranges from [0, 0, 0, 1] to [1, 1, 1, 1] in vector form.
     /// </para>
     /// </summary>
-    public partial struct Gray8 : IPixel<Gray8>, IPackedVector<byte>
+    public partial struct L8 : IPixel<L8>, IPackedVector<byte>
     {
         private static readonly Vector4 MaxBytes = new Vector4(255F);
         private static readonly Vector4 Half = new Vector4(0.5F);
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Gray8"/> struct.
+        /// Initializes a new instance of the <see cref="L8"/> struct.
         /// </summary>
         /// <param name="luminance">The luminance component.</param>
-        public Gray8(byte luminance) => this.PackedValue = luminance;
+        public L8(byte luminance) => this.PackedValue = luminance;
 
         /// <inheritdoc />
         public byte PackedValue { get; set; }
 
         /// <summary>
-        /// Compares two <see cref="Gray8"/> objects for equality.
+        /// Compares two <see cref="L8"/> objects for equality.
         /// </summary>
-        /// <param name="left">The <see cref="Gray8"/> on the left side of the operand.</param>
-        /// <param name="right">The <see cref="Gray8"/> on the right side of the operand.</param>
+        /// <param name="left">The <see cref="L8"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="L8"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static bool operator ==(Gray8 left, Gray8 right) => left.Equals(right);
+        public static bool operator ==(L8 left, L8 right) => left.Equals(right);
 
         /// <summary>
-        /// Compares two <see cref="Gray8"/> objects for equality.
+        /// Compares two <see cref="L8"/> objects for equality.
         /// </summary>
-        /// <param name="left">The <see cref="Gray8"/> on the left side of the operand.</param>
-        /// <param name="right">The <see cref="Gray8"/> on the right side of the operand.</param>
+        /// <param name="left">The <see cref="L8"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="L8"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static bool operator !=(Gray8 left, Gray8 right) => !left.Equals(right);
+        public static bool operator !=(L8 left, L8 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public PixelOperations<Gray8> CreatePixelOperations() => new PixelOperations();
+        public PixelOperations<L8> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray8(Gray8 source) => this.PackedValue = source.PackedValue;
+        public void FromL8(L8 source) => this.PackedValue = source.PackedValue;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -130,14 +130,14 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ImageMaths.DownScaleFrom16BitTo8Bit(source.B));
 
         /// <inheritdoc />
-        public override bool Equals(object obj) => obj is Gray8 other && this.Equals(other);
+        public override bool Equals(object obj) => obj is L8 other && this.Equals(other);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public bool Equals(Gray8 other) => this.PackedValue.Equals(other.PackedValue);
+        public bool Equals(L8 other) => this.PackedValue.Equals(other.PackedValue);
 
         /// <inheritdoc />
-        public override string ToString() => $"Gray8({this.PackedValue})";
+        public override string ToString() => $"L8({this.PackedValue})";
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]

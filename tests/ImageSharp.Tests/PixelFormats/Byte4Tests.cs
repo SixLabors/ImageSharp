@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             uint expectedPackedValue = uint.MaxValue;
 
             // act
-            byte4.FromGray8(new Gray8(byte.MaxValue));
+            byte4.FromL8(new L8(byte.MaxValue));
 
             // assert
             Assert.Equal(expectedPackedValue, byte4.PackedValue);

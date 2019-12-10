@@ -659,7 +659,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         rowSpan,
                         pngMetadata.HasTransparency,
                         pngMetadata.TransparentGray16.GetValueOrDefault(),
-                        pngMetadata.TransparentGray8.GetValueOrDefault());
+                        pngMetadata.TransparentL8.GetValueOrDefault());
 
                     break;
 
@@ -743,7 +743,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         increment,
                         pngMetadata.HasTransparency,
                         pngMetadata.TransparentGray16.GetValueOrDefault(),
-                        pngMetadata.TransparentGray8.GetValueOrDefault());
+                        pngMetadata.TransparentL8.GetValueOrDefault());
 
                     break;
 
@@ -841,7 +841,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     }
                     else
                     {
-                        pngMetadata.TransparentGray8 = new Gray8(ReadByteLittleEndian(alpha, 0));
+                        pngMetadata.TransparentL8 = new L8(ReadByteLittleEndian(alpha, 0));
                     }
 
                     pngMetadata.HasTransparency = true;

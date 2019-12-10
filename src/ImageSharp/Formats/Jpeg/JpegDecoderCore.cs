@@ -216,7 +216,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.InitIccProfile();
             this.InitDerivedMetadataProperties();
             return this.ColorSpace == JpegColorSpace.Grayscale
-                ? (Image)this.PostProcessIntoImage<Gray8>()
+                ? (Image)this.PostProcessIntoImage<L8>()
                 : this.PostProcessIntoImage<Rgb24>();
         }
 

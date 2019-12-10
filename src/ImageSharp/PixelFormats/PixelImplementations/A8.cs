@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray8(Gray8 source) => this.PackedValue = byte.MaxValue;
+        public void FromL8(L8 source) => this.PackedValue = byte.MaxValue;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

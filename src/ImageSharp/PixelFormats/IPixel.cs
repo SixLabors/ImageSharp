@@ -80,10 +80,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         void FromBgra32(Bgra32 source);
 
         /// <summary>
-        /// Initializes the pixel instance from an <see cref="Gray8"/> value.
+        /// Initializes the pixel instance from an <see cref="L8"/> value.
         /// </summary>
-        /// <param name="source">The <see cref="Gray8"/> value.</param>
-        void FromGray8(Gray8 source);
+        /// <param name="source">The <see cref="L8"/> value.</param>
+        void FromL8(L8 source);
 
         /// <summary>
         /// Initializes the pixel instance from an <see cref="Gray16"/> value.

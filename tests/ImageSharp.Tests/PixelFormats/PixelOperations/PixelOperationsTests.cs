@@ -284,7 +284,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                                                         default(Rgba32),
                                                         default(Bgra32),
                                                         default(Rgb24),
-                                                        default(Gray8),
+                                                        default(L8),
                                                         default(Gray16),
                                                         default(Rgb48),
                                                         default(Rgba64)
@@ -763,31 +763,31 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 
             [Theory]
             [MemberData(nameof(ArraySizesData))]
-            public void FromGray8(int count)
+            public void FromL8(int count)
             {
                 byte[] sourceBytes = CreateByteTestData(count);
-                Gray8[] source = sourceBytes.Select(b => new Gray8(b)).ToArray();
+                L8[] source = sourceBytes.Select(b => new L8(b)).ToArray();
                 var expected = new TPixel[count];
 
 
                 for (int i = 0; i < count; i++)
                 {
-                    expected[i].FromGray8(source[i]);
+                    expected[i].FromL8(source[i]);
                 }
 
                 TestOperation(
                     source,
                     expected,
-                    (s, d) => Operations.FromGray8(this.Configuration, s, d.GetSpan())
+                    (s, d) => Operations.FromL8(this.Configuration, s, d.GetSpan())
                 );
             }
 
             [Theory]
             [MemberData(nameof(ArraySizesData))]
-            public void ToGray8(int count)
+            public void ToL8(int count)
             {
                 TPixel[] source = CreatePixelTestData(count);
-                var expected = new Gray8[count];
+                var expected = new L8[count];
 
                 for (int i = 0; i < count; i++)
                 {
@@ -797,7 +797,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 TestOperation(
                     source,
                     expected,
-                    (s, d) => Operations.ToGray8(this.Configuration, s, d.GetSpan())
+                    (s, d) => Operations.ToL8(this.Configuration, s, d.GetSpan())
                 );
             }
 

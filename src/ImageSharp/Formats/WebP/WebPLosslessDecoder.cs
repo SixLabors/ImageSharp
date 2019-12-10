@@ -630,13 +630,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private void ApplyInverseTransforms(Vp8LDecoder decoder, uint[] pixelData)
         {
             List<Vp8LTransform> transforms = decoder.Transforms;
-            for (int i = transforms.Count; i > 0; i--)
+            for (int i = transforms.Count - 1; i >= 0; i--)
             {
-                Vp8LTransformType transform = transforms[0].TransformType;
-                switch (transform)
+                Vp8LTransformType transformType = transforms[i].TransformType;
+                switch (transformType)
                 {
                     case Vp8LTransformType.SubtractGreen:
                         LosslessUtils.AddGreenToBlueAndRed(pixelData);
+                        break;
+                    case Vp8LTransformType.CrossColorTransform:
+                        LosslessUtils.ColorSpaceInverseTransform(transforms[i], pixelData);
                         break;
                 }
             }

@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests
     {
         Undefined = 0,
 
-        Alpha8 = 1 << 0,
+        A8 = 1 << 0,
 
         Argb32 = 1 << 1,
 

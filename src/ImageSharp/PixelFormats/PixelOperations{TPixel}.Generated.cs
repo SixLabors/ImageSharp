@@ -299,75 +299,75 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Converts all pixels in 'source` span of <see cref="Gray16"/> into a span of <typeparamref name="TPixel"/>-s.
+        /// Converts all pixels in 'source` span of <see cref="L16"/> into a span of <typeparamref name="TPixel"/>-s.
         /// </summary>
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Gray16"/> data.</param>
+        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="L16"/> data.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        internal virtual void FromGray16(Configuration configuration, ReadOnlySpan<Gray16> source, Span<TPixel> destPixels)
+        internal virtual void FromL16(Configuration configuration, ReadOnlySpan<L16> source, Span<TPixel> destPixels)
         {
             Guard.DestinationShouldNotBeTooShort(source, destPixels, nameof(destPixels));
             
-            ref Gray16 sourceBaseRef = ref MemoryMarshal.GetReference(source);
+            ref L16 sourceBaseRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
             for (int i = 0; i < source.Length; i++)
             {
-                ref Gray16 sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref L16 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.FromGray16(sp);
+                dp.FromL16(sp);
             }
         }
 
         /// <summary>
-        /// A helper for <see cref="FromGray16(Configuration, ReadOnlySpan{Gray16}, Span{TPixel})"/> that expects a byte span.
-        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Gray16"/> layout.
+        /// A helper for <see cref="FromL16(Configuration, ReadOnlySpan{L16}, Span{TPixel})"/> that expects a byte span.
+        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="L16"/> layout.
         /// </summary>
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
         /// <param name="count">The number of pixels to convert.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void FromGray16Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
+        internal void FromL16Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
         {
-            this.FromGray16(configuration, MemoryMarshal.Cast<byte, Gray16>(sourceBytes).Slice(0, count), destPixels);
+            this.FromL16(configuration, MemoryMarshal.Cast<byte, L16>(sourceBytes).Slice(0, count), destPixels);
         }
 
         /// <summary>
-        /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Gray16"/>-s.
+        /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="L16"/>-s.
         /// </summary>
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourcePixels">The span of source pixels</param>
-        /// <param name="destPixels">The destination span of <see cref="Gray16"/> data.</param>
-        internal virtual void ToGray16(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<Gray16> destPixels)
+        /// <param name="destPixels">The destination span of <see cref="L16"/> data.</param>
+        internal virtual void ToL16(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<L16> destPixels)
         {
             Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
             ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-            ref Gray16 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
+            ref L16 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
             for (int i = 0; i < sourcePixels.Length; i++)
             {
                 ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-                ref Gray16 dp = ref Unsafe.Add(ref destBaseRef, i);
+                ref L16 dp = ref Unsafe.Add(ref destBaseRef, i);
 
                 dp.FromScaledVector4(sp.ToScaledVector4());
             }
         }
 
         /// <summary>
-        /// A helper for <see cref="ToGray16(Configuration, ReadOnlySpan{TPixel}, Span{Gray16})"/> that expects a byte span as destination.
-        /// The layout of the data in 'destBytes' must be compatible with <see cref="Gray16"/> layout.
+        /// A helper for <see cref="ToL16(Configuration, ReadOnlySpan{TPixel}, Span{L16})"/> that expects a byte span as destination.
+        /// The layout of the data in 'destBytes' must be compatible with <see cref="L16"/> layout.
         /// </summary>
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
         /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void ToGray16Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+        internal void ToL16Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.ToGray16(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Gray16>(destBytes));
+            this.ToL16(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, L16>(destBytes));
         }
 
         /// <summary>

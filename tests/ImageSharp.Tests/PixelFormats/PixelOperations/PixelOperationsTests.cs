@@ -285,7 +285,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                                                         default(Bgra32),
                                                         default(Rgb24),
                                                         default(L8),
-                                                        default(Gray16),
+                                                        default(L16),
                                                         default(Rgb48),
                                                         default(Rgba64)
                                                     };
@@ -803,11 +803,11 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 
             [Theory]
             [MemberData(nameof(ArraySizesData))]
-            public void FromGray16(int count)
+            public void FromL16(int count)
             {
-                Gray16[] source = CreateVector4TestData(count).Select(v =>
+                L16[] source = CreateVector4TestData(count).Select(v =>
                 {
-                    Gray16 g = default;
+                    L16 g = default;
                     g.FromVector4(v);
                     return g;
                 }).ToArray();
@@ -816,22 +816,22 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 
                 for (int i = 0; i < count; i++)
                 {
-                    expected[i].FromGray16(source[i]);
+                    expected[i].FromL16(source[i]);
                 }
 
                 TestOperation(
                     source,
                     expected,
-                    (s, d) => Operations.FromGray16(this.Configuration, s, d.GetSpan())
+                    (s, d) => Operations.FromL16(this.Configuration, s, d.GetSpan())
                 );
             }
 
             [Theory]
             [MemberData(nameof(ArraySizesData))]
-            public void ToGray16(int count)
+            public void ToL16(int count)
             {
                 TPixel[] source = CreatePixelTestData(count);
-                var expected = new Gray16[count];
+                var expected = new L16[count];
 
                 for (int i = 0; i < count; i++)
                 {
@@ -841,7 +841,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 TestOperation(
                     source,
                     expected,
-                    (s, d) => Operations.ToGray16(this.Configuration, s, d.GetSpan())
+                    (s, d) => Operations.ToL16(this.Configuration, s, d.GetSpan())
                 );
             }
 
@@ -1016,11 +1016,11 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                         // ReSharper restore PossibleNullReferenceException
                     }
                 }
-                else if (typeof(TDest) == typeof(Gray16))
+                else if (typeof(TDest) == typeof(L16))
                 {
                     // Minor difference is tolerated for 16 bit pixel values
-                    Span<Gray16> expected = MemoryMarshal.Cast<TDest, Gray16>(this.ExpectedDestBuffer.AsSpan());
-                    Span<Gray16> actual = MemoryMarshal.Cast<TDest, Gray16>(this.ActualDestBuffer.GetSpan());
+                    Span<L16> expected = MemoryMarshal.Cast<TDest, L16>(this.ExpectedDestBuffer.AsSpan());
+                    Span<L16> actual = MemoryMarshal.Cast<TDest, L16>(this.ActualDestBuffer.GetSpan());
 
                     for (int i = 0; i < count; i++)
                     {

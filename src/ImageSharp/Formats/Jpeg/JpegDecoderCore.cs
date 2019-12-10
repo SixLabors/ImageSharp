@@ -207,6 +207,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Decodes the image from the specified <see cref="Stream"/>  and sets the data to image.
         /// </summary>
+        /// <param name="stream">The stream, where the image should be.</param>
+        /// <returns>The decoded image.</returns>
+        public Image Decode(Stream stream)
+        {
+            this.ParseStream(stream);
+            this.InitExifProfile();
+            this.InitIccProfile();
+            this.InitDerivedMetadataProperties();
+            return this.ColorSpace == JpegColorSpace.Grayscale
+                ? (Image)this.PostProcessIntoImage<Gray8>()
+                : this.PostProcessIntoImage<Rgb24>();
+        }
+
+        /// <summary>
+        /// Decodes the image from the specified <see cref="Stream"/>  and sets the data to image.
+        /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The stream, where the image should be.</param>
         /// <returns>The decoded image.</returns>
@@ -649,48 +665,51 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 switch (quantizationTableSpec >> 4)
                 {
                     case 0:
+                    {
+                        // 8 bit values
+                        if (remaining < 64)
                         {
-                            // 8 bit values
-                            if (remaining < 64)
-                            {
-                                done = true;
-                                break;
-                            }
-
-                            this.InputStream.Read(this.temp, 0, 64);
-                            remaining -= 64;
-
-                            ref Block8x8F table = ref this.QuantizationTables[tableIndex];
-                            for (int j = 0; j < 64; j++)
-                            {
-                                table[j] = this.temp[j];
-                            }
+                            done = true;
+                            break;
                         }
 
-                        break;
+                        this.InputStream.Read(this.temp, 0, 64);
+                        remaining -= 64;
+
+                        ref Block8x8F table = ref this.QuantizationTables[tableIndex];
+                        for (int j = 0; j < 64; j++)
+                        {
+                            table[j] = this.temp[j];
+                        }
+                    }
+
+                    break;
                     case 1:
+                    {
+                        // 16 bit values
+                        if (remaining < 128)
                         {
-                            // 16 bit values
-                            if (remaining < 128)
-                            {
-                                done = true;
-                                break;
-                            }
-
-                            this.InputStream.Read(this.temp, 0, 128);
-                            remaining -= 128;
-
-                            ref Block8x8F table = ref this.QuantizationTables[tableIndex];
-                            for (int j = 0; j < 64; j++)
-                            {
-                                table[j] = (this.temp[2 * j] << 8) | this.temp[(2 * j) + 1];
-                            }
+                            done = true;
+                            break;
                         }
 
-                        break;
+                        this.InputStream.Read(this.temp, 0, 128);
+                        remaining -= 128;
+
+                        ref Block8x8F table = ref this.QuantizationTables[tableIndex];
+                        for (int j = 0; j < 64; j++)
+                        {
+                            table[j] = (this.temp[2 * j] << 8) | this.temp[(2 * j) + 1];
+                        }
+                    }
+
+                    break;
+
                     default:
+                    {
                         JpegThrowHelper.ThrowBadQuantizationTable();
                         break;
+                    }
                 }
 
                 if (done)

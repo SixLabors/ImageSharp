@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             TestImages.Png.VimImage2,
 
             TestImages.Png.Rgb24BppTrans,
-            TestImages.Png.GrayAlpha8Bit,
+            TestImages.Png.GrayA8Bit,
             TestImages.Png.Gray1BitTrans,
             TestImages.Png.Bad.ZlibOverflow,
             TestImages.Png.Bad.ZlibOverflow2,
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 TestImages.Png.GrayAlpha1BitInterlaced,
                 TestImages.Png.GrayAlpha2BitInterlaced,
                 TestImages.Png.Gray4BitInterlaced,
-                TestImages.Png.GrayAlpha8BitInterlaced
+                TestImages.Png.GrayA8BitInterlaced
             };
 
         public static readonly string[] TestImagesIssue1014 =
@@ -180,7 +180,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
-        [WithFile(TestImages.Png.GrayAlpha8BitInterlaced, PixelTypes)]
+        [WithFile(TestImages.Png.GrayA8BitInterlaced, PixelTypes)]
         public void Decoder_CanDecodeGrey8bitWithAlpha<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

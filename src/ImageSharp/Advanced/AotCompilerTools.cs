@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Advanced
             Seed<Bgra4444>();
             Seed<Bgra5551>();
             Seed<Byte4>();
-            Seed<Gray16>();
+            Seed<L16>();
             Seed<L8>();
             Seed<HalfSingle>();
             Seed<HalfVector2>();

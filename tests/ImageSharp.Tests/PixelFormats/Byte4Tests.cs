@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             uint expectedPackedValue = uint.MaxValue;
 
             // act
-            byte4.FromGray16(new Gray16(ushort.MaxValue));
+            byte4.FromL16(new L16(ushort.MaxValue));
 
             // assert
             Assert.Equal(expectedPackedValue, byte4.PackedValue);

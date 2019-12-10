@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Palette8Bpp = "Png/palette-8bpp.png";
             public const string Bpp1 = "Png/bpp1.png";
             public const string Gray4Bpp = "Png/gray_4bpp.png";
-            public const string Gray16Bit = "Png/gray-16.png";
+            public const string L16Bit = "Png/gray-16.png";
             public const string GrayA8Bit = "Png/gray-alpha-8.png";
             public const string GrayA8BitInterlaced = "Png/rollsroyce.png";
             public const string GrayAlpha1BitInterlaced = "Png/iftbbn0g01.png";

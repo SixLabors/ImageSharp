@@ -81,10 +81,10 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>L8.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\Generated\Gray16.PixelOperations.Generated.cs">
+    <Compile Update="PixelFormats\PixelImplementations\Generated\L16.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>Gray16.PixelOperations.Generated.tt</DependentUpon>
+      <DependentUpon>L16.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
     <Compile Update="PixelFormats\PixelImplementations\Generated\Rgb24.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
@@ -155,9 +155,9 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>L8.PixelOperations.Generated.cs</LastGenOutput>
     </None>
-    <None Update="PixelFormats\PixelImplementations\Generated\Gray16.PixelOperations.Generated.tt">
+    <None Update="PixelFormats\PixelImplementations\Generated\L16.PixelOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>Gray16.PixelOperations.Generated.cs</LastGenOutput>
+      <LastGenOutput>L16.PixelOperations.Generated.cs</LastGenOutput>
     </None>
     <None Update="PixelFormats\PixelImplementations\Generated\Rgb24.PixelOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>

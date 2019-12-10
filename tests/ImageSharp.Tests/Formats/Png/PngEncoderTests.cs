@@ -314,8 +314,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                             case PngColorType.Grayscale:
                                 if (pngBitDepth.Equals(PngBitDepth.Bit16))
                                 {
-                                    Assert.True(outMeta.TransparentGray16.HasValue);
-                                    Assert.Equal(inMeta.TransparentGray16, outMeta.TransparentGray16);
+                                    Assert.True(outMeta.TransparentL16.HasValue);
+                                    Assert.Equal(inMeta.TransparentL16, outMeta.TransparentL16);
                                 }
                                 else
                                 {

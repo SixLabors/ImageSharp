@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             ReadOnlySpan<byte> scanlineSpan,
             Span<TPixel> rowSpan,
             bool hasTrans,
-            Gray16 luminance16Trans,
+            L16 luminance16Trans,
             L8 luminanceTrans)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     for (int x = 0, o = 0; x < header.Width; x++, o += 2)
                     {
                         ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                        pixel.FromGray16(new Gray16(luminance));
+                        pixel.FromL16(new L16(luminance));
                         Unsafe.Add(ref rowSpanRef, x) = pixel;
                     }
                 }
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             int pixelOffset,
             int increment,
             bool hasTrans,
-            Gray16 luminance16Trans,
+            L16 luminance16Trans,
             L8 luminanceTrans)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     for (int x = pixelOffset, o = 0; x < header.Width; x += increment, o += 2)
                     {
                         ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                        pixel.FromGray16(new Gray16(luminance));
+                        pixel.FromL16(new L16(luminance));
                         Unsafe.Add(ref rowSpanRef, x) = pixel;
                     }
                 }

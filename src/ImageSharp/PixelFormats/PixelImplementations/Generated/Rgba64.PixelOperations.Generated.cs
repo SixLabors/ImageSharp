@@ -115,18 +115,18 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void ToGray16(Configuration configuration, ReadOnlySpan<Rgba64> sourcePixels, Span<Gray16> destPixels)
+            internal override void ToL16(Configuration configuration, ReadOnlySpan<Rgba64> sourcePixels, Span<L16> destPixels)
             {
                 Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
                 ref Rgba64 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
-                ref Gray16 destRef = ref MemoryMarshal.GetReference(destPixels);
+                ref L16 destRef = ref MemoryMarshal.GetReference(destPixels);
 
                 for (int i = 0; i < sourcePixels.Length; i++)
                 {
                     ref Rgba64 sp = ref Unsafe.Add(ref sourceRef, i);
-                    ref Gray16 dp = ref Unsafe.Add(ref destRef, i);
+                    ref L16 dp = ref Unsafe.Add(ref destRef, i);
 
                     dp.FromRgba64(sp);
                 }

@@ -57,9 +57,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             TestImages.Png.Rgb48BppTrans
         };
 
-        public static readonly string[] TestImagesGray16Bit =
+        public static readonly string[] TestImagesL16Bit =
         {
-            TestImages.Png.Gray16Bit,
+            TestImages.Png.L16Bit,
         };
 
         public static readonly string[] TestImagesGrayAlpha16Bit =
@@ -156,8 +156,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
-        [WithFileCollection(nameof(TestImagesGray16Bit), PixelTypes.Rgb48)]
-        public void Decode_Gray16Bit<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(TestImagesL16Bit), PixelTypes.Rgb48)]
+        public void Decode_L16Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))

@@ -22,46 +22,65 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void ColorSpaceInverseTransform(Vp8LTransform transform, uint[] pixelData, int yEnd)
+        public static void ColorSpaceInverseTransform(Vp8LTransform transform, uint[] pixelData)
         {
             int width = transform.XSize;
+            int yEnd = transform.YSize;
             int tileWidth = 1 << transform.Bits;
             int mask = tileWidth - 1;
             int safeWidth = width & ~mask;
             int remainingWidth = width - safeWidth;
             int tilesPerRow = SubSampleSize(width, transform.Bits);
             int y = 0;
+            uint predRow = transform.Data[(y >> transform.Bits) * tilesPerRow];
 
-            /*uint[] predRow = transform.Data + (y >> transform.Bits) * tilesPerRow;
-
+            int pixelPos = 0;
             while (y < yEnd)
             {
-                uint[] pred = predRow;
-                VP8LMultipliers m = { 0, 0, 0 };
-                const uint32_t* const src_safe_end = src + safeWidth;
-                const uint32_t* const src_end = src + width;
-                while (src<src_safe_end)
+                uint pred = predRow;
+                Vp8LMultipliers m = default(Vp8LMultipliers);
+                int srcSafeEnd = pixelPos + safeWidth;
+                int srcEnd = pixelPos + width;
+                while (pixelPos < srcSafeEnd)
                 {
-                    ColorCodeToMultipliers(*pred++, &m);
-                    VP8LTransformColorInverse(&m, src, tileWidth, dst);
-                    src += tileWidth;
-                    dst += tileWidth;
+                    ColorCodeToMultipliers(pred++, ref m);
+                    TransformColorInverse(m, pixelData, pixelPos, tileWidth);
+                    pixelPos += tileWidth;
                 }
 
-                if (src < src_end)
+                if (pixelPos < srcEnd)
                 {
-                    ColorCodeToMultipliers(*pred++, &m);
-                    VP8LTransformColorInverse(&m, src, remainingWidth, dst);
-                    src += remaining_width;
-                    dst += remaining_width;
+                    ColorCodeToMultipliers(pred++, ref m);
+                    TransformColorInverse(m, pixelData, pixelPos, remainingWidth);
+                    pixelPos += remainingWidth;
                 }
 
                 ++y;
                 if ((y & mask) == 0)
                 {
-                    predRow += tilesPerRow;
+                    predRow += (uint)tilesPerRow;
                 }
-            }*/
+            }
+        }
+
+        public static void TransformColorInverse(Vp8LMultipliers m, uint[] pixelData, int start, int numPixels)
+        {
+            int end = start + numPixels;
+            for (int i = start; i < end; i++)
+            {
+                uint argb = pixelData[i];
+                sbyte green = (sbyte)(argb >> 8);
+                uint red = argb >> 16;
+                int newRed = (int)(red & 0xff);
+                int newBlue = (int)argb & 0xff;
+                newRed += ColorTransformDelta(m.GreenToRed, (sbyte)green);
+                newRed &= 0xff;
+                newBlue += ColorTransformDelta(m.GreenToBlue, (sbyte)green);
+                newBlue += ColorTransformDelta(m.RedToBlue, (sbyte)newRed);
+                newBlue &= 0xff;
+                var pixelValue = (uint)((argb & 0xff00ff00u) | (newRed << 16) | newBlue);
+                pixelData[i] = (uint)((argb & 0xff00ff00u) | (newRed << 16) | newBlue);
+            }
         }
 
         /// <summary>
@@ -70,6 +89,27 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public static int SubSampleSize(int size, int samplingBits)
         {
             return (size + (1 << samplingBits) - 1) >> samplingBits;
+        }
+
+        private static int ColorTransformDelta(sbyte colorPred, sbyte color)
+        {
+            return ((int)colorPred * color) >> 5;
+        }
+
+        private static void ColorCodeToMultipliers(uint colorCode, ref Vp8LMultipliers m)
+        {
+            m.GreenToRed = (sbyte)(colorCode & 0xff);
+            m.GreenToBlue = (sbyte)((colorCode >> 8) & 0xff);
+            m.RedToBlue = (sbyte)((colorCode >> 16) & 0xff);
+        }
+
+        internal struct Vp8LMultipliers
+        {
+            public sbyte GreenToRed;
+
+            public sbyte GreenToBlue;
+
+            public sbyte RedToBlue;
         }
     }
 }

@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             TestImages.Png.GrayTrns16BitInterlaced
         };
 
-        public static readonly string[] TestImagesGray8BitInterlaced =
+        public static readonly string[] TestImagesL8BitInterlaced =
             {
                 TestImages.Png.GrayAlpha1BitInterlaced,
                 TestImages.Png.GrayAlpha2BitInterlaced,
@@ -144,8 +144,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
-        [WithFileCollection(nameof(TestImagesGray8BitInterlaced), PixelTypes.Rgba32)]
-        public void Decoder_Gray8bitInterlaced<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(TestImagesL8BitInterlaced), PixelTypes.Rgba32)]
+        public void Decoder_L8bitInterlaced<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))

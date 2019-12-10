@@ -218,7 +218,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     if (this.bitDepth == 8)
                     {
                         // 8 bit grayscale
-                        PixelOperations<TPixel>.Instance.ToGray8Bytes(
+                        PixelOperations<TPixel>.Instance.ToL8Bytes(
                             this.configuration,
                             rowSpan,
                             rawScanlineSpan,
@@ -235,7 +235,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                             Span<byte> tempSpan = temp.GetSpan();
 
                             // We need to first create an array of luminance bytes then scale them down to the correct bit depth.
-                            PixelOperations<TPixel>.Instance.ToGray8Bytes(
+                            PixelOperations<TPixel>.Instance.ToL8Bytes(
                                 this.configuration,
                                 rowSpan,
                                 tempSpan,
@@ -766,10 +766,10 @@ namespace SixLabors.ImageSharp.Formats.Png
                     BinaryPrimitives.WriteUInt16LittleEndian(alpha, pngMetadata.TransparentGray16.Value.PackedValue);
                     this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 2);
                 }
-                else if (pngMetadata.TransparentGray8.HasValue)
+                else if (pngMetadata.TransparentL8.HasValue)
                 {
                     alpha.Clear();
-                    alpha[1] = pngMetadata.TransparentGray8.Value.PackedValue;
+                    alpha[1] = pngMetadata.TransparentL8.Value.PackedValue;
                     this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 2);
                 }
             }

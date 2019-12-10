@@ -127,7 +127,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Vector4 expected = Vector4.One;
 
             // act
-            byte4.FromGray8(new Gray8(byte.MaxValue));
+            byte4.FromL8(new L8(byte.MaxValue));
 
             // assert
             Assert.Equal(expected, byte4.ToScaledVector4());

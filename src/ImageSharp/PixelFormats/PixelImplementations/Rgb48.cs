@@ -132,7 +132,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray8(Gray8 source)
+        public void FromL8(L8 source)
         {
             ushort rgb = ImageMaths.UpscaleFrom8BitTo16Bit(source.PackedValue);
             this.R = rgb;

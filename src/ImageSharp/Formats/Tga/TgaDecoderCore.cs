@@ -301,7 +301,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                         switch (colorMapPixelSizeInBytes)
                         {
                             case 1:
-                                color.FromGray8(Unsafe.As<byte, Gray8>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
+                                color.FromL8(Unsafe.As<byte, L8>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
                                 break;
                             case 2:
                                 // Set alpha value to 1, to treat it as opaque for Bgra5551.
@@ -341,7 +341,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     this.currentStream.Read(row);
                     int newY = Invert(y, height, inverted);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                    PixelOperations<TPixel>.Instance.FromGray8Bytes(
+                    PixelOperations<TPixel>.Instance.FromL8Bytes(
                         this.configuration,
                         row.GetSpan(),
                         pixelSpan,
@@ -467,7 +467,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                         switch (bytesPerPixel)
                         {
                             case 1:
-                                color.FromGray8(Unsafe.As<byte, Gray8>(ref bufferSpan[idx]));
+                                color.FromL8(Unsafe.As<byte, L8>(ref bufferSpan[idx]));
                                 break;
                             case 2:
                                 // Set alpha value to 1, to treat it as opaque for Bgra5551.

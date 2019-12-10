@@ -204,7 +204,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             ushort expectedPackedValue = ushort.MaxValue;
 
             // act
-            bgra.FromGray8(new Gray8(byte.MaxValue));
+            bgra.FromL8(new L8(byte.MaxValue));
 
             // assert
             Assert.Equal(expectedPackedValue, bgra.PackedValue);

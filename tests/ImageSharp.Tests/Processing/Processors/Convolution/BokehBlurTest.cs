@@ -132,7 +132,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         }
 
         [Theory]
-        [WithTestPatternImages(200, 200, PixelTypes.Bgr24 | PixelTypes.Bgra32 | PixelTypes.Gray8)]
+        [WithTestPatternImages(200, 200, PixelTypes.Bgr24 | PixelTypes.Bgra32 | PixelTypes.L8)]
         public void BokehBlurFilterProcessor_WorksWithAllPixelTypes<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

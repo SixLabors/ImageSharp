@@ -251,7 +251,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToGray8Bytes(
+                    PixelOperations<TPixel>.Instance.ToL8Bytes(
                         this.configuration,
                         pixelSpan,
                         row.GetSpan(),

@@ -118,8 +118,8 @@ namespace SixLabors.ImageSharp.PixelFormats
     GenerateFromMethods("Bgra32");
     GenerateToDestFormatMethods("Bgra32");
 
-    GenerateFromMethods("Gray8");
-    GenerateToDestFormatMethods("Gray8");
+    GenerateFromMethods("L8");
+    GenerateToDestFormatMethods("L8");
 
     GenerateFromMethods("Gray16");
     GenerateToDestFormatMethods("Gray16");

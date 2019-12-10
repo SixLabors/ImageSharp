@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.Gamma = other.Gamma;
             this.InterlaceMethod = other.InterlaceMethod;
             this.HasTransparency = other.HasTransparency;
-            this.TransparentGray8 = other.TransparentGray8;
+            this.TransparentL8 = other.TransparentL8;
             this.TransparentGray16 = other.TransparentGray16;
             this.TransparentRgb24 = other.TransparentRgb24;
             this.TransparentRgb48 = other.TransparentRgb48;
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Gets or sets the 8 bit grayscale transparent color.
         /// This represents any color in an 8 bit grayscale encoded png that should be transparent.
         /// </summary>
-        public Gray8? TransparentGray8 { get; set; }
+        public L8? TransparentL8 { get; set; }
 
         /// <summary>
         /// Gets or sets the 16 bit grayscale transparent color.

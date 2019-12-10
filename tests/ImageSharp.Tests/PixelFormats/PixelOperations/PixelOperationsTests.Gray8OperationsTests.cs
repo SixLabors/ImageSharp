@@ -10,15 +10,15 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 {
     public partial class PixelOperationsTests
     {
-        public class Gray8OperationsTests : PixelOperationsTests<Gray8>
+        public class L8OperationsTests : PixelOperationsTests<L8>
         {
-            public Gray8OperationsTests(ITestOutputHelper output)
+            public L8OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
             }
 
             [Fact]
-            public void IsSpecialImplementation() => Assert.IsType<Gray8.PixelOperations>(PixelOperations<Gray8>.Instance);
+            public void IsSpecialImplementation() => Assert.IsType<L8.PixelOperations>(PixelOperations<L8>.Instance);
         }
     }
 }

@@ -275,6 +275,27 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.A = ushort.MaxValue;
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa16(La16 source)
+        {
+            ushort rgb = ImageMaths.UpscaleFrom8BitTo16Bit(source.L);
+            this.R = rgb;
+            this.G = rgb;
+            this.B = rgb;
+            this.A = ImageMaths.UpscaleFrom8BitTo16Bit(source.A);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa32(La32 source)
+        {
+            this.R = source.L;
+            this.G = source.L;
+            this.B = source.L;
+            this.A = source.A;
+        }
+
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromRgb24(Rgb24 source)

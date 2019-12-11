@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <summary>
-    /// Packed pixel type containing a single 8 bit normalized alpha value.
+    /// Packed pixel type containing a single 8-bit normalized alpha value.
     /// <para>
     /// Ranges from [0, 0, 0, 0] to [0, 0, 0, 1] in vector form.
     /// </para>
@@ -98,6 +98,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromL16(L16 source) => this.PackedValue = byte.MaxValue;
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa16(La16 source) => this.PackedValue = source.A;
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa32(La32 source) => this.PackedValue = ImageMaths.DownScaleFrom16BitTo8Bit(source.A);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

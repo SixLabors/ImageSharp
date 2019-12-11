@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// </para>
     /// </summary>
     [StructLayout(LayoutKind.Explicit)]
-    public struct La16 : IPixel<La16>, IPackedVector<ushort>
+    public partial struct La16 : IPixel<La16>, IPackedVector<ushort>
     {
         private static readonly Vector4 MaxBytes = new Vector4(255F);
         private static readonly Vector4 Half = new Vector4(0.5F);
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(La16 left, La16 right) => !left.Equals(right);
 
         /// <inheritdoc/>
-        public PixelOperations<La16> CreatePixelOperations() => new PixelOperations<La16>();
+        public PixelOperations<La16> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -131,6 +131,18 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             this.L = source.PackedValue;
             this.A = byte.MaxValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa16(La16 source) => this = source;
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa32(La32 source)
+        {
+            this.L = ImageMaths.DownScaleFrom16BitTo8Bit(source.L);
+            this.A = ImageMaths.DownScaleFrom16BitTo8Bit(source.A);
         }
 
         /// <inheritdoc/>

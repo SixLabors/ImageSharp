@@ -254,6 +254,8 @@ namespace SixLabors.ImageSharp.Tests
             public void FromBgra32(Bgra32 source) { }
             public void FromL8(L8 source) { }
             public void FromL16(L16 source) { }
+            public void FromLa16(La16 source) { }
+            public void FromLa32(La32 source) { }
             public void FromRgb24(Rgb24 source) { }
             public void FromRgba32(Rgba32 source) { }
             public void ToRgba32(ref Rgba32 dest) { }

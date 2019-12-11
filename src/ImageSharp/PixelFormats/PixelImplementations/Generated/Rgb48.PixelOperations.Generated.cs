@@ -185,6 +185,24 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromRgb48(sp);
                 }
             }
+
+            /// <inheritdoc />
+            internal override void ToBgra5551(Configuration configuration, ReadOnlySpan<Rgb48> sourcePixels, Span<Bgra5551> destPixels)
+            {
+                Guard.NotNull(configuration, nameof(configuration));
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
+
+                ref Rgb48 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+                ref Bgra5551 destRef = ref MemoryMarshal.GetReference(destPixels);
+
+                for (int i = 0; i < sourcePixels.Length; i++)
+                {
+                    ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Bgra5551 dp = ref Unsafe.Add(ref destRef, i);
+
+                    dp.FromRgb48(sp);
+                }
+            }
             /// <inheritdoc />
             internal override void From<TSourcePixel>(
                 Configuration configuration,

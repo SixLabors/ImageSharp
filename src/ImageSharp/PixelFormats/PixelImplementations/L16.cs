@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <summary>
-    /// Packed pixel type containing a single 16 bit normalized luminance value.
+    /// Packed pixel type containing a single 16-bit normalized luminance value.
     /// <para>
     /// Ranges from [0, 0, 0, 1] to [1, 1, 1, 1] in vector form.
     /// </para>

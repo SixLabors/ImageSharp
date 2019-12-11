@@ -57,13 +57,13 @@ after_test:
   - cmd: appveyor PushArtifact "artifacts\SixLabors.ImageSharp.%APPVEYOR_BUILD_VERSION%.nupkg"
   - cmd: appveyor PushArtifact "artifacts\SixLabors.ImageSharp.Drawing.%APPVEYOR_BUILD_VERSION%.nupkg"
 
-deploy:
-    # MyGet Deployment for builds & releases
-  - provider: NuGet
-    server: https://www.myget.org/F/sixlabors/api/v2/package
-    symbol_server: https://www.myget.org/F/sixlabors/symbols/api/v2/package
-    api_key:
-      secure: V/lEHP0UeMWIpWd0fiNlY2IgbCnJKQlGdRksECdJbOBdaE20Fl0RNL7WyqHe02o4
-    artifact: /.*\.nupkg/
-    on:
-      branch: master
+# deploy:
+#     # MyGet Deployment for builds & releases
+#   - provider: NuGet
+#     server: https://www.myget.org/F/sixlabors/api/v2/package
+#     symbol_server: https://www.myget.org/F/sixlabors/symbols/api/v2/package
+#     api_key:
+#       secure: V/lEHP0UeMWIpWd0fiNlY2IgbCnJKQlGdRksECdJbOBdaE20Fl0RNL7WyqHe02o4
+#     artifact: /.*\.nupkg/
+#     on:
+#       branch: master

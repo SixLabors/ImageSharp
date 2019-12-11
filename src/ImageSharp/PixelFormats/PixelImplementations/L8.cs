@@ -89,11 +89,19 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromL8(L8 source) => this.PackedValue = source.PackedValue;
+        public void FromL8(L8 source) => this = source;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromL16(L16 source) => this.PackedValue = ImageMaths.DownScaleFrom16BitTo8Bit(source.PackedValue);
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa16(La16 source) => this.PackedValue = source.L;
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa32(La32 source) => this.PackedValue = ImageMaths.DownScaleFrom16BitTo8Bit(source.L);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

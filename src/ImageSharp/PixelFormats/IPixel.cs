@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -90,6 +90,18 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <param name="source">The <see cref="L16"/> value.</param>
         void FromL16(L16 source);
+
+        /// <summary>
+        /// Initializes the pixel instance from an <see cref="La16"/> value.
+        /// </summary>
+        /// <param name="source">The <see cref="La16"/> value.</param>
+        void FromLa16(La16 source);
+
+        /// <summary>
+        /// Initializes the pixel instance from an <see cref="La32"/> value.
+        /// </summary>
+        /// <param name="source">The <see cref="La32"/> value.</param>
+        void FromLa32(La32 source);
 
         /// <summary>
         /// Initializes the pixel instance from an <see cref="Rgb24"/> value.

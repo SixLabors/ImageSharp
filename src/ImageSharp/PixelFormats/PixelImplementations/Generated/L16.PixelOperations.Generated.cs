@@ -115,6 +115,42 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
+            internal override void ToLa16(Configuration configuration, ReadOnlySpan<L16> sourcePixels, Span<La16> destPixels)
+            {
+                Guard.NotNull(configuration, nameof(configuration));
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
+
+                ref L16 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+                ref La16 destRef = ref MemoryMarshal.GetReference(destPixels);
+
+                for (int i = 0; i < sourcePixels.Length; i++)
+                {
+                    ref L16 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref La16 dp = ref Unsafe.Add(ref destRef, i);
+
+                    dp.FromL16(sp);
+                }
+            }
+
+            /// <inheritdoc />
+            internal override void ToLa32(Configuration configuration, ReadOnlySpan<L16> sourcePixels, Span<La32> destPixels)
+            {
+                Guard.NotNull(configuration, nameof(configuration));
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
+
+                ref L16 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+                ref La32 destRef = ref MemoryMarshal.GetReference(destPixels);
+
+                for (int i = 0; i < sourcePixels.Length; i++)
+                {
+                    ref L16 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref La32 dp = ref Unsafe.Add(ref destRef, i);
+
+                    dp.FromL16(sp);
+                }
+            }
+
+            /// <inheritdoc />
             internal override void ToRgb24(Configuration configuration, ReadOnlySpan<L16> sourcePixels, Span<Rgb24> destPixels)
             {
                 Guard.NotNull(configuration, nameof(configuration));

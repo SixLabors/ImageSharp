@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -246,6 +246,27 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.G = rgb;
             this.B = rgb;
             this.A = byte.MaxValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa16(La16 source)
+        {
+            this.R = source.L;
+            this.G = source.L;
+            this.B = source.L;
+            this.A = source.A;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa32(La32 source)
+        {
+            byte rgb = ImageMaths.DownScaleFrom16BitTo8Bit(source.L);
+            this.R = rgb;
+            this.G = rgb;
+            this.B = rgb;
+            this.A = ImageMaths.DownScaleFrom16BitTo8Bit(source.A);
         }
 
         /// <inheritdoc/>

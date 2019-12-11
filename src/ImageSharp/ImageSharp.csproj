@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
@@ -76,6 +76,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Bgra32.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
+    <Compile Update="PixelFormats\PixelImplementations\Generated\Bgra5551.PixelOperations.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Bgra5551.PixelOperations.Generated.tt</DependentUpon>
+    </Compile>
     <Compile Update="PixelFormats\PixelImplementations\Generated\L8.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -150,6 +155,10 @@
     <None Update="PixelFormats\PixelImplementations\Generated\Bgra32.PixelOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Bgra32.PixelOperations.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="PixelFormats\PixelImplementations\Generated\Bgra5551.PixelOperations.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Bgra5551.PixelOperations.Generated.cs</LastGenOutput>
     </None>
     <None Update="PixelFormats\PixelImplementations\Generated\L8.PixelOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>

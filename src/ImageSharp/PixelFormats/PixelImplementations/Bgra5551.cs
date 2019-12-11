@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Ranges from [0, 0, 0, 0] to [1, 1, 1, 1] in vector form.
     /// </para>
     /// </summary>
-    public struct Bgra5551 : IPixel<Bgra5551>, IPackedVector<ushort>
+    public partial struct Bgra5551 : IPixel<Bgra5551>, IPackedVector<ushort>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Bgra5551"/> struct.
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Bgra5551 left, Bgra5551 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public PixelOperations<Bgra5551> CreatePixelOperations() => new PixelOperations<Bgra5551>();
+        public PixelOperations<Bgra5551> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

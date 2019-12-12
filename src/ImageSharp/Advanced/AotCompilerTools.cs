@@ -50,6 +50,8 @@ namespace SixLabors.ImageSharp.Advanced
             Seed<Byte4>();
             Seed<L16>();
             Seed<L8>();
+            Seed<La16>();
+            Seed<La32>();
             Seed<HalfSingle>();
             Seed<HalfVector2>();
             Seed<HalfVector4>();

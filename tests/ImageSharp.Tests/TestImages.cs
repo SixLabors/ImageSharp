@@ -99,6 +99,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string ZlibOverflow = "Png/zlib-overflow.png";
                 public const string ZlibOverflow2 = "Png/zlib-overflow2.png";
                 public const string ZlibZtxtBadHeader = "Png/zlib-ztxt-bad-header.png";
+                public const string Issue1047_BadEndChunk = "Png/issues/Issue_1047.png";
             }
 
             public static readonly string[] All =
@@ -189,6 +190,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string ExifGetString750Load = "Jpg/issues/issue750-exif-load.jpg";
                 public const string IncorrectQuality845 = "Jpg/issues/Issue845-Incorrect-Quality99.jpg";
                 public const string IncorrectColorspace855 = "Jpg/issues/issue855-incorrect-colorspace.jpg";
+                public const string IncorrectResize1006 = "Jpg/issues/issue1006-incorrect-resize.jpg";
 
                 public static class Fuzz
                 {

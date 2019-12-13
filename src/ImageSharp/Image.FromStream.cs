@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp
         /// <param name="format">The format type of the decoded image.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
         /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
-        /// <returns>A new <see cref="Image"/>.</returns>>
+        /// <returns>The <see cref="Image"/> in <see cref="Rgba32"/> pixel format.</returns>
         public static Image Load(Stream stream, out IImageFormat format) => Load(Configuration.Default, stream, out format);
 
         /// <summary>
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream containing image information.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
         /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
-        /// <returns>A new <see cref="Image"/>.</returns>>
+        /// <returns>The <see cref="Image"/> in <see cref="Rgba32"/> pixel format.</returns>
         public static Image Load(Stream stream) => Load(Configuration.Default, stream);
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp
         /// <param name="decoder">The decoder.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
         /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
-        /// <returns>A new <see cref="Image"/>.</returns>>
+        /// <returns>The <see cref="Image"/> in <see cref="Rgba32"/> pixel format.</returns>
         public static Image Load(Stream stream, IImageDecoder decoder) => Load(Configuration.Default, stream, decoder);
 
         /// <summary>

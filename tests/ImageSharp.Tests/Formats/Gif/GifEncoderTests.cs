@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        GifMetadata metadata = output.Metadata.GetFormatMetadata(GifFormat.Instance);
+                        GifMetadata metadata = output.Metadata.GetGifMetadata();
                         Assert.Equal(1, metadata.Comments.Count);
                         Assert.Equal("ImageSharp", metadata.Comments[0]);
                     }
@@ -135,8 +135,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 inStream.Position = 0;
 
                 var image = Image.Load<Rgba32>(inStream);
-                GifMetadata metaData = image.Metadata.GetFormatMetadata(GifFormat.Instance);
-                GifFrameMetadata frameMetaData = image.Frames.RootFrame.Metadata.GetFormatMetadata(GifFormat.Instance);
+                GifMetadata metaData = image.Metadata.GetGifMetadata();
+                GifFrameMetadata frameMetaData = image.Frames.RootFrame.Metadata.GetGifMetadata();
                 GifColorTableMode colorMode = metaData.ColorTableMode;
                 var encoder = new GifEncoder
                 {
@@ -150,7 +150,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 outStream.Position = 0;
                 var clone = Image.Load<Rgba32>(outStream);
 
-                GifMetadata cloneMetaData = clone.Metadata.GetFormatMetadata(GifFormat.Instance);
+                GifMetadata cloneMetaData = clone.Metadata.GetGifMetadata();
                 Assert.Equal(metaData.ColorTableMode, cloneMetaData.ColorTableMode);
 
                 // Gifiddle and Cyotek GifInfo say this image has 64 colors.
@@ -158,8 +158,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
                 for (int i = 0; i < image.Frames.Count; i++)
                 {
-                    GifFrameMetadata ifm = image.Frames[i].Metadata.GetFormatMetadata(GifFormat.Instance);
-                    GifFrameMetadata cifm = clone.Frames[i].Metadata.GetFormatMetadata(GifFormat.Instance);
+                    GifFrameMetadata ifm = image.Frames[i].Metadata.GetGifMetadata();
+                    GifFrameMetadata cifm = clone.Frames[i].Metadata.GetGifMetadata();
 
                     Assert.Equal(ifm.ColorTableLength, cifm.ColorTableLength);
                     Assert.Equal(ifm.FrameDelay, cifm.FrameDelay);

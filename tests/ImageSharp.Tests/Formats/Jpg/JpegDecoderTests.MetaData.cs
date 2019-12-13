@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 var decoder = new JpegDecoder();
                 IImageInfo image = decoder.Identify(Configuration.Default, stream);
-                JpegMetadata meta = image.Metadata.GetFormatMetadata(JpegFormat.Instance);
+                JpegMetadata meta = image.Metadata.GetJpegMetadata();
                 Assert.Equal(quality, meta.Quality);
             }
         }
@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 var decoder = new JpegDecoder();
                 using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
                 {
-                    JpegMetadata meta = image.Metadata.GetFormatMetadata(JpegFormat.Instance);
+                    JpegMetadata meta = image.Metadata.GetJpegMetadata();
                     Assert.Equal(quality, meta.Quality);
                 }
             }

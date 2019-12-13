@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             {
                 IImageInfo imageInfo = Image.Identify(stream);
                 Assert.NotNull(imageInfo);
-                BmpMetadata bitmapMetaData = imageInfo.Metadata.GetFormatMetadata(BmpFormat.Instance);
+                BmpMetadata bitmapMetaData = imageInfo.Metadata.GetBmpMetadata();
                 Assert.NotNull(bitmapMetaData);
                 Assert.Equal(expectedInfoHeaderType, bitmapMetaData.InfoHeaderType);
             }

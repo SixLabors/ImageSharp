@@ -149,7 +149,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             where TPixel : struct, IPixel<TPixel>
         {
             var metadata = new ImageMetadata();
-            PngMetadata pngMetadata = metadata.GetFormatMetadata(PngFormat.Instance);
+            PngMetadata pngMetadata = metadata.GetPngMetadata();
             this.currentStream = stream;
             this.currentStream.Skip(8);
             Image<TPixel> image = null;
@@ -240,7 +240,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public IImageInfo Identify(Stream stream)
         {
             var metadata = new ImageMetadata();
-            PngMetadata pngMetadata = metadata.GetFormatMetadata(PngFormat.Instance);
+            PngMetadata pngMetadata = metadata.GetPngMetadata();
             this.currentStream = stream;
             this.currentStream.Skip(8);
             try

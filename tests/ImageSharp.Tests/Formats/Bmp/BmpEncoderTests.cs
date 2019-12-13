@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        BmpMetadata meta = output.Metadata.GetFormatMetadata(BmpFormat.Instance);
+                        BmpMetadata meta = output.Metadata.GetBmpMetadata();
 
                         Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
                     }

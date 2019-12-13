@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             this.configuration = image.GetConfiguration();
             ImageMetadata metadata = image.Metadata;
-            BmpMetadata bmpMetadata = metadata.GetFormatMetadata(BmpFormat.Instance);
+            BmpMetadata bmpMetadata = metadata.GetBmpMetadata();
             this.bitsPerPixel = this.bitsPerPixel ?? bmpMetadata.BitsPerPixel;
 
             short bpp = (short)this.bitsPerPixel;

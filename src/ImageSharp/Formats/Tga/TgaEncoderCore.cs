@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
 
             this.configuration = image.GetConfiguration();
             ImageMetadata metadata = image.Metadata;
-            TgaMetadata tgaMetadata = metadata.GetFormatMetadata(TgaFormat.Instance);
+            TgaMetadata tgaMetadata = metadata.GetTgaMetadata();
             this.bitsPerPixel = this.bitsPerPixel ?? tgaMetadata.BitsPerPixel;
 
             TgaImageType imageType = this.compression is TgaCompression.RunLength ? TgaImageType.RleTrueColor : TgaImageType.TrueColor;

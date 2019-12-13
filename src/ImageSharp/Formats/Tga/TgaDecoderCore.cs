@@ -573,7 +573,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             this.currentStream.Read(buffer, 0, TgaFileHeader.Size);
             this.fileHeader = TgaFileHeader.Parse(buffer);
             this.metadata = new ImageMetadata();
-            this.tgaMetadata = this.metadata.GetFormatMetadata(TgaFormat.Instance);
+            this.tgaMetadata = this.metadata.GetTgaMetadata();
             this.tgaMetadata.BitsPerPixel = (TgaBitsPerPixel)this.fileHeader.PixelDepth;
 
             // Bit at position 5 of the descriptor indicates, that the origin is top left instead of bottom right.

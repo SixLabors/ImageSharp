@@ -20,13 +20,13 @@ namespace SixLabors.ImageSharp.Tests
             const GifDisposalMethod disposalMethod = GifDisposalMethod.RestoreToBackground;
 
             var metaData = new ImageFrameMetadata();
-            GifFrameMetadata gifFrameMetaData = metaData.GetFormatMetadata(GifFormat.Instance);
+            GifFrameMetadata gifFrameMetaData = metaData.GetGifMetadata();
             gifFrameMetaData.FrameDelay = frameDelay;
             gifFrameMetaData.ColorTableLength = colorTableLength;
             gifFrameMetaData.DisposalMethod = disposalMethod;
 
             var clone = new ImageFrameMetadata(metaData);
-            GifFrameMetadata cloneGifFrameMetaData = clone.GetFormatMetadata(GifFormat.Instance);
+            GifFrameMetadata cloneGifFrameMetaData = clone.GetGifMetadata();
 
             Assert.Equal(frameDelay, cloneGifFrameMetaData.FrameDelay);
             Assert.Equal(colorTableLength, cloneGifFrameMetaData.ColorTableLength);
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             var metaData = new ImageFrameMetadata();
             ImageFrameMetadata clone = metaData.DeepClone();
-            Assert.False(metaData.GetFormatMetadata(GifFormat.Instance).Equals(clone.GetFormatMetadata(GifFormat.Instance)));
+            Assert.False(metaData.GetGifMetadata().Equals(clone.GetGifMetadata()));
         }
     }
 }

@@ -30,14 +30,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         /// <inheritdoc />
         public Image Decode(Configuration configuration, Stream stream)
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            using (var decoder = new JpegDecoderCore(configuration, this))
-            {
-                return decoder.Decode(stream);
-            }
-        }
+            => this.Decode<Rgba32>(configuration, stream);
 
         /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream)

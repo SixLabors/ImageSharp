@@ -207,22 +207,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Decodes the image from the specified <see cref="Stream"/>  and sets the data to image.
         /// </summary>
-        /// <param name="stream">The stream, where the image should be.</param>
-        /// <returns>The decoded image.</returns>
-        public Image Decode(Stream stream)
-        {
-            this.ParseStream(stream);
-            this.InitExifProfile();
-            this.InitIccProfile();
-            this.InitDerivedMetadataProperties();
-            return this.ColorSpace == JpegColorSpace.Grayscale
-                ? (Image)this.PostProcessIntoImage<L8>()
-                : this.PostProcessIntoImage<Rgb24>();
-        }
-
-        /// <summary>
-        /// Decodes the image from the specified <see cref="Stream"/>  and sets the data to image.
-        /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The stream, where the image should be.</param>
         /// <returns>The decoded image.</returns>

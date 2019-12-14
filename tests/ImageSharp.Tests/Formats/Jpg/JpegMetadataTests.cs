@@ -6,7 +6,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    public class JpegMetaDataTests
+    public class JpegMetadataTests
     {
         [Fact]
         public void CloneIsDeep()

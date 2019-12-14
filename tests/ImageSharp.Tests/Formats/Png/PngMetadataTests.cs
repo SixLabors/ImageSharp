@@ -11,7 +11,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
-    public class PngMetaDataTests
+    public class PngMetadataTests
     {
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
             new TheoryData<string, int, int, PixelResolutionUnit>
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
-        [WithFile(TestImages.Png.PngWithMetaData, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Png.PngWithMetadata, PixelTypes.Rgba32)]
         public void Decoder_CanReadTextData<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
-        [WithFile(TestImages.Png.PngWithMetaData, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Png.PngWithMetadata, PixelTypes.Rgba32)]
         public void Encoder_PreservesTextData<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
-        [WithFile(TestImages.Png.PngWithMetaData, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Png.PngWithMetadata, PixelTypes.Rgba32)]
         public void Encode_UseCompression_WhenTextIsGreaterThenThreshold_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

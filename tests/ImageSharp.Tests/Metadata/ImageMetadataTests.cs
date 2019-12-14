@@ -8,15 +8,15 @@ using SixLabors.ImageSharp.Primitives;
 
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.MetaData
+namespace SixLabors.ImageSharp.Tests.Metadata
 {
     /// <summary>
     /// Tests the <see cref="ImageMetadata"/> class.
     /// </summary>
-    public class ImageMetaDataTests
+    public class ImageMetadataTests
     {
         [Fact]
-        public void ConstructorImageMetaData()
+        public void ConstructorImageMetadata()
         {
             var metaData = new ImageMetadata();
 

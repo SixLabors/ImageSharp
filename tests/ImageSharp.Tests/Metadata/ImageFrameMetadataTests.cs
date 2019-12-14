@@ -8,29 +8,29 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests
 {
     /// <summary>
-    /// Tests the <see cref="ImageFrameMetaDataTests"/> class.
+    /// Tests the <see cref="ImageFrameMetadataTests"/> class.
     /// </summary>
-    public class ImageFrameMetaDataTests
+    public class ImageFrameMetadataTests
     {
         [Fact]
-        public void ConstructorImageFrameMetaData()
+        public void ConstructorImageFrameMetadata()
         {
             const int frameDelay = 42;
             const int colorTableLength = 128;
             const GifDisposalMethod disposalMethod = GifDisposalMethod.RestoreToBackground;
 
             var metaData = new ImageFrameMetadata();
-            GifFrameMetadata gifFrameMetaData = metaData.GetGifMetadata();
-            gifFrameMetaData.FrameDelay = frameDelay;
-            gifFrameMetaData.ColorTableLength = colorTableLength;
-            gifFrameMetaData.DisposalMethod = disposalMethod;
+            GifFrameMetadata gifFrameMetadata = metaData.GetGifMetadata();
+            gifFrameMetadata.FrameDelay = frameDelay;
+            gifFrameMetadata.ColorTableLength = colorTableLength;
+            gifFrameMetadata.DisposalMethod = disposalMethod;
 
             var clone = new ImageFrameMetadata(metaData);
-            GifFrameMetadata cloneGifFrameMetaData = clone.GetGifMetadata();
+            GifFrameMetadata cloneGifFrameMetadata = clone.GetGifMetadata();
 
-            Assert.Equal(frameDelay, cloneGifFrameMetaData.FrameDelay);
-            Assert.Equal(colorTableLength, cloneGifFrameMetaData.ColorTableLength);
-            Assert.Equal(disposalMethod, cloneGifFrameMetaData.DisposalMethod);
+            Assert.Equal(frameDelay, cloneGifFrameMetadata.FrameDelay);
+            Assert.Equal(colorTableLength, cloneGifFrameMetadata.ColorTableLength);
+            Assert.Equal(disposalMethod, cloneGifFrameMetadata.DisposalMethod);
         }
 
         [Fact]

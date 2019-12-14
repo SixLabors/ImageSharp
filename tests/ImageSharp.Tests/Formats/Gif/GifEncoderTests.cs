@@ -136,12 +136,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
                 var image = Image.Load<Rgba32>(inStream);
                 GifMetadata metaData = image.Metadata.GetGifMetadata();
-                GifFrameMetadata frameMetaData = image.Frames.RootFrame.Metadata.GetGifMetadata();
+                GifFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetGifMetadata();
                 GifColorTableMode colorMode = metaData.ColorTableMode;
                 var encoder = new GifEncoder
                 {
                     ColorTableMode = colorMode,
-                    Quantizer = new OctreeQuantizer(frameMetaData.ColorTableLength)
+                    Quantizer = new OctreeQuantizer(frameMetadata.ColorTableLength)
                 };
 
                 image.Save(outStream, encoder);
@@ -150,11 +150,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 outStream.Position = 0;
                 var clone = Image.Load<Rgba32>(outStream);
 
-                GifMetadata cloneMetaData = clone.Metadata.GetGifMetadata();
-                Assert.Equal(metaData.ColorTableMode, cloneMetaData.ColorTableMode);
+                GifMetadata cloneMetadata = clone.Metadata.GetGifMetadata();
+                Assert.Equal(metaData.ColorTableMode, cloneMetadata.ColorTableMode);
 
                 // Gifiddle and Cyotek GifInfo say this image has 64 colors.
-                Assert.Equal(64, frameMetaData.ColorTableLength);
+                Assert.Equal(64, frameMetadata.ColorTableLength);
 
                 for (int i = 0; i < image.Frames.Count; i++)
                 {

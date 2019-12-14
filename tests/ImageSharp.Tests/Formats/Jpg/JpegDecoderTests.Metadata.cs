@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     {
         // TODO: A JPEGsnoop & metadata expert should review if the Exif/Icc expectations are correct.
         // I'm seeing several entries with Exif-related names in images where we do not decode an exif profile. (- Anton)
-        public static readonly TheoryData<bool, string, int, bool, bool> MetaDataTestData =
+        public static readonly TheoryData<bool, string, int, bool, bool> MetadataTestData =
         new TheoryData<bool, string, int, bool, bool>
         {
             { false, TestImages.Jpeg.Progressive.Progress, 24, false, false },
@@ -58,15 +58,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         };
 
         [Theory]
-        [MemberData(nameof(MetaDataTestData))]
-        public void MetaDataIsParsedCorrectly(
+        [MemberData(nameof(MetadataTestData))]
+        public void MetadataIsParsedCorrectly(
             bool useIdentify,
             string imagePath,
             int expectedPixelSize,
             bool exifProfilePresent,
             bool iccProfilePresent)
         {
-            TestMetaDataImpl(
+            TestMetadataImpl(
                 useIdentify,
                 JpegDecoder,
                 imagePath,
@@ -152,7 +152,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
         }
 
-        private static void TestMetaDataImpl(
+        private static void TestMetadataImpl(
             bool useIdentify,
             IImageDecoder decoder,
             string imagePath,
@@ -209,16 +209,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void IgnoreMetaData_ControlsWhetherMetaDataIsParsed(bool ignoreMetaData)
+        public void IgnoreMetadata_ControlsWhetherMetadataIsParsed(bool ignoreMetadata)
         {
-            var decoder = new JpegDecoder { IgnoreMetadata = ignoreMetaData };
+            var decoder = new JpegDecoder { IgnoreMetadata = ignoreMetadata };
 
             // Snake.jpg has both Exif and ICC profiles defined:
             var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Snake);
 
             using (Image<Rgba32> image = testFile.CreateRgba32Image(decoder))
             {
-                if (ignoreMetaData)
+                if (ignoreMetadata)
                 {
                     Assert.Null(image.Metadata.ExifProfile);
                     Assert.Null(image.Metadata.IccProfile);

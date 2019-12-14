@@ -13,7 +13,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Gif
 {
-    public class GifMetaDataTests
+    public class GifMetadataTests
     {
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
             new TheoryData<string, int, int, PixelResolutionUnit>

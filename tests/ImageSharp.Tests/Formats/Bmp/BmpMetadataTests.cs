@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 {
     using static TestImages.Bmp;
 
-    public class BmpMetaDataTests
+    public class BmpMetadataTests
     {
         [Fact]
         public void CloneIsDeep()
@@ -41,9 +41,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             {
                 IImageInfo imageInfo = Image.Identify(stream);
                 Assert.NotNull(imageInfo);
-                BmpMetadata bitmapMetaData = imageInfo.Metadata.GetBmpMetadata();
-                Assert.NotNull(bitmapMetaData);
-                Assert.Equal(expectedInfoHeaderType, bitmapMetaData.InfoHeaderType);
+                BmpMetadata bitmapMetadata = imageInfo.Metadata.GetBmpMetadata();
+                Assert.NotNull(bitmapMetadata);
+                Assert.Equal(expectedInfoHeaderType, bitmapMetadata.InfoHeaderType);
             }
         }
     }

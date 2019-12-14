@@ -270,7 +270,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="data">The byte array containing image data.</param>
         /// <param name="format">The detected format.</param>
-        /// <returns>The <see cref="Image"/> in <see cref="Rgba32"/> pixel format.</returns>
+        /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(byte[] data, out IImageFormat format) =>
             Load(Configuration.Default, data, out format);
 
@@ -279,7 +279,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="data">The byte array containing encoded image data.</param>
         /// <param name="decoder">The decoder.</param>
-        /// <returns>The <see cref="Image"/> in <see cref="Rgba32"/> pixel format.</returns>
+        /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(byte[] data, IImageDecoder decoder) => Load(Configuration.Default, data, decoder);
 
         /// <summary>
@@ -287,7 +287,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="config">The config for the decoder.</param>
         /// <param name="data">The byte array containing encoded image data.</param>
-        /// <returns>The <see cref="Image"/> in <see cref="Rgba32"/> pixel format.</returns>
+        /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(Configuration config, byte[] data) => Load(config, data, out _);
 
         /// <summary>
@@ -296,7 +296,7 @@ namespace SixLabors.ImageSharp
         /// <param name="config">The config for the decoder.</param>
         /// <param name="data">The byte array containing image data.</param>
         /// <param name="decoder">The decoder.</param>
-        /// <returns>The <see cref="Image"/> in <see cref="Rgba32"/> pixel format.</returns>
+        /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(Configuration config, byte[] data, IImageDecoder decoder)
         {
             using (var stream = new MemoryStream(data))
@@ -311,7 +311,7 @@ namespace SixLabors.ImageSharp
         /// <param name="config">The config for the decoder.</param>
         /// <param name="data">The byte array containing image data.</param>
         /// <param name="format">The mime type of the decoded image.</param>
-        /// <returns>The <see cref="Image"/> in <see cref="Rgba32"/> pixel format.</returns>
+        /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(Configuration config, byte[] data, out IImageFormat format)
         {
             using (var stream = new MemoryStream(data))
@@ -324,7 +324,7 @@ namespace SixLabors.ImageSharp
         /// Load a new instance of <see cref="Image"/> from the given encoded byte span.
         /// </summary>
         /// <param name="data">The byte span containing image data.</param>
-        /// <returns>The <see cref="Image"/> in <see cref="Rgba32"/> pixel format.</returns>
+        /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(ReadOnlySpan<byte> data) => Load(Configuration.Default, data);
 
         /// <summary>
@@ -332,7 +332,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="data">The byte span containing image data.</param>
         /// <param name="decoder">The decoder.</param>
-        /// <returns>The <see cref="Image"/> in <see cref="Rgba32"/> pixel format.</returns>
+        /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(ReadOnlySpan<byte> data, IImageDecoder decoder) =>
             Load(Configuration.Default, data, decoder);
 
@@ -341,7 +341,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="data">The byte span containing image data.</param>
         /// <param name="format">The detected format.</param>
-        /// <returns>The <see cref="Image"/> in <see cref="Rgba32"/> pixel format.</returns>
+        /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(ReadOnlySpan<byte> data, out IImageFormat format) =>
             Load(Configuration.Default, data, out format);
 
@@ -350,7 +350,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="config">The configuration options.</param>
         /// <param name="data">The byte span containing image data.</param>
-        /// <returns>The <see cref="Image"/> in <see cref="Rgba32"/> pixel format.</returns>
+        /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(Configuration config, ReadOnlySpan<byte> data) => Load(config, data, out _);
 
         /// <summary>
@@ -359,7 +359,7 @@ namespace SixLabors.ImageSharp
         /// <param name="config">The Configuration.</param>
         /// <param name="data">The byte span containing image data.</param>
         /// <param name="decoder">The decoder.</param>
-        /// <returns>The <see cref="Image"/> in <see cref="Rgba32"/> pixel format.</returns>
+        /// <returns>The <see cref="Image"/>.</returns>
         public static unsafe Image Load(
             Configuration config,
             ReadOnlySpan<byte> data,
@@ -380,7 +380,7 @@ namespace SixLabors.ImageSharp
         /// <param name="config">The configuration options.</param>
         /// <param name="data">The byte span containing image data.</param>
         /// <param name="format">The <see cref="IImageFormat"/> of the decoded image.</param>>
-        /// <returns>The <see cref="Image"/> in <see cref="Rgba32"/> pixel format.</returns>
+        /// <returns>The <see cref="Image"/>.</returns>
         public static unsafe Image Load(
             Configuration config,
             ReadOnlySpan<byte> data,

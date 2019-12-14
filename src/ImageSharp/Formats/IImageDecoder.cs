@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats
         /// </summary>
         /// <param name="configuration">The configuration for the image.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <returns>The <see cref="Image"/> in <see cref="Rgba32"/> pixel format.</returns>
+        /// <returns>The <see cref="Image"/>.</returns>
         Image Decode(Configuration configuration, Stream stream);
     }
 }

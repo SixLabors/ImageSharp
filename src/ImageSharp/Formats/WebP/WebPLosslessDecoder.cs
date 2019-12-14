@@ -603,7 +603,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
                                      : 3;
                     transform.XSize = LosslessUtils.SubSampleSize(transform.XSize, bits);
                     transform.Bits = bits;
-                    transform.Data = this.DecodeImageStream(decoder, (int)numColors, 1, false);
+                    uint[] colorMap = this.DecodeImageStream(decoder, (int)numColors, 1, false);
+                    transform.Data = LosslessUtils.ExpandColorMap((int)numColors, transform, colorMap);
                     break;
 
                 case Vp8LTransformType.PredictorTransform:
@@ -635,11 +636,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 Vp8LTransformType transformType = transforms[i].TransformType;
                 switch (transformType)
                 {
+                    case Vp8LTransformType.PredictorTransform:
+                        // LosslessUtils.PredictorInverseTransform(transforms[i], pixelData);
+                        break;
                     case Vp8LTransformType.SubtractGreen:
                         LosslessUtils.AddGreenToBlueAndRed(pixelData);
                         break;
                     case Vp8LTransformType.CrossColorTransform:
                         LosslessUtils.ColorSpaceInverseTransform(transforms[i], pixelData);
+                        break;
+                    case Vp8LTransformType.ColorIndexingTransform:
+                        LosslessUtils.ColorIndexInverseTransform(transforms[i], pixelData);
                         break;
                 }
             }

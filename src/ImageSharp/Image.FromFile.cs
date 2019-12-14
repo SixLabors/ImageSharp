@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
-        /// <returns>The <see cref="Image"/> in <see cref="Rgba32"/> pixel format.</returns>
+        /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(string path) => Load(Configuration.Default, path);
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
-        /// <returns>The <see cref="Image"/> in <see cref="Rgba32"/> pixel format.</returns>
+        /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(Configuration config, string path) => Load(config, path, out _);
 
         /// <summary>
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
-        /// <returns>The <see cref="Image"/> in <see cref="Rgba32"/> pixel format.</returns>
+        /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(Configuration config, string path, IImageDecoder decoder)
         {
             using (Stream stream = config.FileSystem.OpenRead(path))
@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
-        /// <returns>The <see cref="Image"/> in <see cref="Rgba32"/> pixel format.</returns>
+        /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(string path, IImageDecoder decoder) => Load(Configuration.Default, path, decoder);
 
         /// <summary>

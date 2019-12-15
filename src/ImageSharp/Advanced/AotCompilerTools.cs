@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         private static void SeedEverything()
         {
-            Seed<Alpha8>();
+            Seed<A8>();
             Seed<Argb32>();
             Seed<Bgr24>();
             Seed<Bgr565>();
@@ -48,8 +48,10 @@ namespace SixLabors.ImageSharp.Advanced
             Seed<Bgra4444>();
             Seed<Bgra5551>();
             Seed<Byte4>();
-            Seed<Gray16>();
-            Seed<Gray8>();
+            Seed<L16>();
+            Seed<L8>();
+            Seed<La16>();
+            Seed<La32>();
             Seed<HalfSingle>();
             Seed<HalfVector2>();
             Seed<HalfVector4>();

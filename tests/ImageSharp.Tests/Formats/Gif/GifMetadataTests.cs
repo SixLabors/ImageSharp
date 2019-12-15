@@ -13,7 +13,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Gif
 {
-    public class GifMetaDataTests
+    public class GifMetadataTests
     {
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
             new TheoryData<string, int, int, PixelResolutionUnit>
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
-                GifMetadata metadata = image.Metadata.GetFormatMetadata(GifFormat.Instance);
+                GifMetadata metadata = image.Metadata.GetGifMetadata();
                 Assert.Equal(1, metadata.Comments.Count);
                 Assert.Equal("ImageSharp", metadata.Comments[0]);
             }
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
-                GifMetadata metadata = image.Metadata.GetFormatMetadata(GifFormat.Instance);
+                GifMetadata metadata = image.Metadata.GetGifMetadata();
                 Assert.Equal(0, metadata.Comments.Count);
             }
         }
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
             using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
-                GifMetadata metadata = image.Metadata.GetFormatMetadata(GifFormat.Instance);
+                GifMetadata metadata = image.Metadata.GetGifMetadata();
                 Assert.Equal(2, metadata.Comments.Count);
                 Assert.Equal(new string('c', 349), metadata.Comments[0]);
                 Assert.Equal("ImageSharp", metadata.Comments[1]);
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
                 using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, memoryStream))
                 {
-                    GifMetadata metadata = image.Metadata.GetFormatMetadata(GifFormat.Instance);
+                    GifMetadata metadata = image.Metadata.GetGifMetadata();
                     Assert.Equal(2, metadata.Comments.Count);
                     Assert.Equal(new string('c', 349), metadata.Comments[0]);
                     Assert.Equal("ImageSharp", metadata.Comments[1]);

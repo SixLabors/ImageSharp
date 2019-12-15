@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -10,15 +10,16 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 {
     public partial class PixelOperationsTests
     {
-        public class Gray8OperationsTests : PixelOperationsTests<Gray8>
+        public class La32OperationsTests : PixelOperationsTests<La32>
         {
-            public Gray8OperationsTests(ITestOutputHelper output)
+            public La32OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
             }
 
             [Fact]
-            public void IsSpecialImplementation() => Assert.IsType<Gray8.PixelOperations>(PixelOperations<Gray8>.Instance);
+            public void IsSpecialImplementation() => Assert.IsType<La32.PixelOperations>(PixelOperations<La32>.Instance);
+
         }
     }
 }

@@ -173,7 +173,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int width = transform.XSize;
 
             // PredictorAdd0(in, NULL, 1, out);
-            PredictorAdd1(pixelData, width - 1);
+            // PredictorAdd1(pixelData, width - 1);
             processedPixels += width;
             yStart++;
 
@@ -187,6 +187,158 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             return WebPConstants.ArgbBlack;
         }
+
+        private static uint Predictor1C(uint left, uint[] top)
+        {
+            return left;
+        }
+
+        private static uint Predictor2C(uint left, uint[] top)
+        {
+            return top[0];
+        }
+
+        private static uint Predictor3C(uint left, uint[] top)
+        {
+            return top[1];
+        }
+
+        private static uint Predictor4C(uint left, uint[] top)
+        {
+            return top[-1];
+        }
+
+        private static uint Predictor5C(uint left, uint[] top)
+        {
+            uint pred = Average3(left, top[0], top[1]);
+            return pred;
+        }
+
+        private static uint Predictor6C(uint left, uint[] top)
+        {
+            uint pred = Average2(left, top[-1]);
+            return pred;
+        }
+
+        private static uint Predictor7C(uint left, uint[] top)
+        {
+            uint pred = Average2(left, top[0]);
+            return pred;
+        }
+
+        private static uint Predictor8C(uint left, uint[] top)
+        {
+            uint pred = Average2(top[-1], top[0]);
+            return pred;
+        }
+
+        private static uint Predictor9C(uint left, uint[] top)
+        {
+            uint pred = Average2(top[0], top[1]);
+            return pred;
+        }
+
+        private static uint Predictor10C(uint left, uint[] top)
+        {
+            uint pred = Average4(left, top[-1], top[0], top[1]);
+            return pred;
+        }
+
+        private static uint Predictor11C(uint left, uint[] top)
+        {
+            uint pred = Select(top[0], left, top[-1]);
+            return pred;
+        }
+
+        private static uint Predictor12C(uint left, uint[] top)
+        {
+            uint pred = ClampedAddSubtractFull(left, top[0], top[-1]);
+            return pred;
+        }
+
+        private static uint Predictor13C(uint left, uint[] top)
+        {
+            uint pred = ClampedAddSubtractHalf(left, top[0], top[-1]);
+            return pred;
+        }
+
+        private static uint ClampedAddSubtractFull(uint c0, uint c1, uint c2)
+        {
+            int a = AddSubtractComponentFull(c0 >> 24, c1 >> 24, c2 >> 24);
+            int r = AddSubtractComponentFull((c0 >> 16) & 0xff,
+                (c1 >> 16) & 0xff,
+                (c2 >> 16) & 0xff);
+            int g = AddSubtractComponentFull((c0 >> 8) & 0xff,
+                (c1 >> 8) & 0xff,
+                (c2 >> 8) & 0xff);
+            int b = AddSubtractComponentFull(c0 & 0xff, c1 & 0xff, c2 & 0xff);
+            return (uint)(((uint)a << 24) | (r << 16) | (g << 8) | b);
+        }
+
+        private static uint ClampedAddSubtractHalf(uint c0, uint c1, uint c2)
+        {
+            uint ave = Average2(c0, c1);
+            int a = AddSubtractComponentHalf(ave >> 24, c2 >> 24);
+            int r = AddSubtractComponentHalf((ave >> 16) & 0xff, (c2 >> 16) & 0xff);
+            int g = AddSubtractComponentHalf((ave >> 8) & 0xff, (c2 >> 8) & 0xff);
+            int b = AddSubtractComponentHalf((ave >> 0) & 0xff, (c2 >> 0) & 0xff);
+            return (uint)(((uint)a << 24) | (r << 16) | (g << 8) | b);
+        }
+
+        private static int AddSubtractComponentHalf(uint a, uint b)
+        {
+            return (int)Clip255(a + ((a - b) / 2));
+        }
+
+        private static int AddSubtractComponentFull(uint a, uint b, uint c)
+        {
+            return (int)Clip255(a + b - c);
+        }
+
+        private static uint Clip255(uint a)
+        {
+            if (a < 256)
+            {
+                return a;
+            }
+
+            // return 0, when a is a negative integer.
+            // return 255, when a is positive.
+            return ~a >> 24;
+        }
+
+        private static uint Select(uint a, uint b, uint c)
+        {
+            int paMinusPb =
+                Sub3(a >> 24, b >> 24, c >> 24) +
+                Sub3((a >> 16) & 0xff, (b >> 16) & 0xff, (c >> 16) & 0xff) +
+                Sub3((a >> 8) & 0xff, (b >> 8) & 0xff, (c >> 8) & 0xff) +
+                Sub3( a & 0xff, b & 0xff, c & 0xff);
+            return (paMinusPb <= 0) ? a : b;
+        }
+
+        private static int Sub3(uint a, uint b, uint c)
+        {
+            uint pb = b - c;
+            uint pa = a - c;
+            return (int)(Math.Abs(pb) - Math.Abs(pa));
+        }
+
+        private static uint Average2(uint a0, uint a1)
+        {
+            return (((a0 ^ a1) & 0xfefefefeu) >> 1) + (a0 & a1);
+        }
+
+        private static uint Average3(uint a0, uint a1, uint a2)
+        {
+            return Average2(Average2(a0, a2), a1);
+        }
+
+        private static uint Average4(uint a0, uint a1, uint a2, uint a3)
+        {
+            return Average2(Average2(a0, a1), Average2(a2, a3));
+        }
+
 
         /// <summary>
         /// Computes sampled size of 'size' when sampling using 'sampling bits'.
@@ -214,14 +366,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             uint alphaAndGreen = 0x00ff00ffu + (a & 0xff00ff00u) - (b & 0xff00ff00u);
             uint redAndBlue = 0xff00ff00u + (a & 0x00ff00ffu) - (b & 0x00ff00ffu);
             return (alphaAndGreen & 0xff00ff00u) | (redAndBlue & 0x00ff00ffu);
-        }
-
-        private static void PredictorAdd1(uint[] pixelData, int numPixels)
-        {
-            /*for (int i = 0; i < num_pixels; ++i)
-            {
-                pixelData[i] = VP8LAddPixels(in[i], left);
-            }*/
         }
 
         private static uint GetARGBIndex(uint idx)

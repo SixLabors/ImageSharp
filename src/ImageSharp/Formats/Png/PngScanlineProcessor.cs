@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     for (int x = 0, o = 0; x < header.Width; x++, o += 2)
                     {
                         ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                        pixel.FromL16(new L16(luminance));
+                        pixel.FromL16(Unsafe.As<ushort, L16>(ref luminance));
                         Unsafe.Add(ref rowSpanRef, x) = pixel;
                     }
                 }
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     for (int x = 0; x < header.Width; x++)
                     {
                         byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, x) * scaleFactor);
-                        pixel.FromL8(new L8(luminance));
+                        pixel.FromL8(Unsafe.As<byte, L8>(ref luminance));
                         Unsafe.Add(ref rowSpanRef, x) = pixel;
                     }
                 }
@@ -55,24 +55,28 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             if (header.BitDepth == 16)
             {
+                La32 source = default;
                 for (int x = 0, o = 0; x < header.Width; x++, o += 2)
                 {
                     ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                    ushort alpha = luminance.Equals(luminance16Trans.PackedValue) ? ushort.MinValue : ushort.MaxValue;
+                    source.L = luminance;
+                    source.A = luminance.Equals(luminance16Trans.PackedValue) ? ushort.MinValue : ushort.MaxValue;
 
-                    pixel.FromLa32(new La32(luminance, alpha));
+                    pixel.FromLa32(source);
                     Unsafe.Add(ref rowSpanRef, x) = pixel;
                 }
             }
             else
             {
+                La16 source = default;
                 byte scaledLuminanceTrans = (byte)(luminanceTrans.PackedValue * scaleFactor);
                 for (int x = 0; x < header.Width; x++)
                 {
                     byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, x) * scaleFactor);
-                    byte alpha = luminance.Equals(scaledLuminanceTrans) ? byte.MinValue : byte.MaxValue;
+                    source.L = luminance;
+                    source.A = luminance.Equals(scaledLuminanceTrans) ? byte.MinValue : byte.MaxValue;
 
-                    pixel.FromLa16(new La16(luminance, alpha));
+                    pixel.FromLa16(source);
                     Unsafe.Add(ref rowSpanRef, x) = pixel;
                 }
             }
@@ -101,7 +105,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     for (int x = pixelOffset, o = 0; x < header.Width; x += increment, o += 2)
                     {
                         ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                        pixel.FromL16(new L16(luminance));
+                        pixel.FromL16(Unsafe.As<ushort, L16>(ref luminance));
                         Unsafe.Add(ref rowSpanRef, x) = pixel;
                     }
                 }
@@ -110,7 +114,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     for (int x = pixelOffset, o = 0; x < header.Width; x += increment, o++)
                     {
                         byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, o) * scaleFactor);
-                        pixel.FromL8(new L8(luminance));
+                        pixel.FromL8(Unsafe.As<byte, L8>(ref luminance));
                         Unsafe.Add(ref rowSpanRef, x) = pixel;
                     }
                 }
@@ -120,24 +124,28 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             if (header.BitDepth == 16)
             {
+                La32 source = default;
                 for (int x = pixelOffset, o = 0; x < header.Width; x += increment, o += 2)
                 {
                     ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                    ushort alpha = luminance.Equals(luminance16Trans.PackedValue) ? ushort.MinValue : ushort.MaxValue;
+                    source.L = luminance;
+                    source.A = luminance.Equals(luminance16Trans.PackedValue) ? ushort.MinValue : ushort.MaxValue;
 
-                    pixel.FromLa32(new La32(luminance, alpha));
+                    pixel.FromLa32(source);
                     Unsafe.Add(ref rowSpanRef, x) = pixel;
                 }
             }
             else
             {
+                La16 source = default;
                 byte scaledLuminanceTrans = (byte)(luminanceTrans.PackedValue * scaleFactor);
                 for (int x = pixelOffset, o = 0; x < header.Width; x += increment, o++)
                 {
                     byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, o) * scaleFactor);
-                    byte alpha = luminance.Equals(scaledLuminanceTrans) ? byte.MinValue : byte.MaxValue;
+                    source.L = luminance;
+                    source.A = luminance.Equals(scaledLuminanceTrans) ? byte.MinValue : byte.MaxValue;
 
-                    pixel.FromLa16(new La16(luminance, alpha));
+                    pixel.FromLa16(source);
                     Unsafe.Add(ref rowSpanRef, x) = pixel;
                 }
             }
@@ -157,24 +165,26 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             if (header.BitDepth == 16)
             {
+                La32 source = default;
                 for (int x = 0, o = 0; x < header.Width; x++, o += 4)
                 {
-                    ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                    ushort alpha = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
+                    source.L = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
+                    source.A = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
 
-                    pixel.FromLa32(new La32(luminance, alpha));
+                    pixel.FromLa32(source);
                     Unsafe.Add(ref rowSpanRef, x) = pixel;
                 }
             }
             else
             {
+                La16 source = default;
                 for (int x = 0; x < header.Width; x++)
                 {
                     int offset = x * bytesPerPixel;
-                    byte luminance = Unsafe.Add(ref scanlineSpanRef, offset);
-                    byte alpha = Unsafe.Add(ref scanlineSpanRef, offset + bytesPerSample);
+                    source.L = Unsafe.Add(ref scanlineSpanRef, offset);
+                    source.A = Unsafe.Add(ref scanlineSpanRef, offset + bytesPerSample);
 
-                    pixel.FromLa16(new La16(luminance, alpha));
+                    pixel.FromLa16(source);
                     Unsafe.Add(ref rowSpanRef, x) = pixel;
                 }
             }
@@ -196,24 +206,26 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             if (header.BitDepth == 16)
             {
+                La32 source = default;
                 for (int x = pixelOffset, o = 0; x < header.Width; x += increment, o += 4)
                 {
-                    ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                    ushort alpha = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
+                    source.L = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
+                    source.A = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
 
-                    pixel.FromLa32(new La32(luminance, alpha));
+                    pixel.FromLa32(source);
                     Unsafe.Add(ref rowSpanRef, x) = pixel;
                 }
             }
             else
             {
                 int offset = 0;
+                La16 source = default;
                 for (int x = pixelOffset; x < header.Width; x += increment)
                 {
-                    byte luminance = Unsafe.Add(ref scanlineSpanRef, offset);
-                    byte alpha = Unsafe.Add(ref scanlineSpanRef, offset + bytesPerSample);
+                    source.L = Unsafe.Add(ref scanlineSpanRef, offset);
+                    source.A = Unsafe.Add(ref scanlineSpanRef, offset + bytesPerSample);
 
-                    pixel.FromLa16(new La16(luminance, alpha));
+                    pixel.FromLa16(source);
                     Unsafe.Add(ref rowSpanRef, x) = pixel;
                     offset += bytesPerPixel;
                 }
@@ -366,12 +378,12 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else
             {
+                Rgba32 rgba32 = default;
                 ReadOnlySpan<Rgb24> rgb24Span = MemoryMarshal.Cast<byte, Rgb24>(scanlineSpan);
                 ref Rgb24 rgb24SpanRef = ref MemoryMarshal.GetReference(rgb24Span);
                 for (int x = 0; x < header.Width; x++)
                 {
                     ref readonly Rgb24 rgb24 = ref Unsafe.Add(ref rgb24SpanRef, x);
-                    Rgba32 rgba32 = default;
                     rgba32.Rgb = rgb24;
                     rgba32.A = rgb24.Equals(rgb24Trans) ? byte.MinValue : byte.MaxValue;
 

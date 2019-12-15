@@ -52,54 +52,57 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Signature byte which identifies a VP8L header.
         /// </summary>
-        public static byte Vp8LMagicByte = 0x2F;
+        public const byte Vp8LMagicByte = 0x2F;
 
         /// <summary>
         /// 3 bits reserved for version.
         /// </summary>
-        public static int Vp8LVersionBits = 3;
+        public const int Vp8LVersionBits = 3;
 
         /// <summary>
         /// Bits for width and height infos of a VPL8 image.
         /// </summary>
-        public static int Vp8LImageSizeBits = 14;
+        public const int Vp8LImageSizeBits = 14;
 
         /// <summary>
         /// Maximum number of color cache bits.
         /// </summary>
-        public static int MaxColorCacheBits = 11;
+        public const int MaxColorCacheBits = 11;
 
         /// <summary>
         /// The maximum number of allowed transforms in a bitstream.
         /// </summary>
-        public static int MaxNumberOfTransforms = 4;
+        public const int MaxNumberOfTransforms = 4;
 
-        public static int MaxAllowedCodeLength = 15;
+        public const int MaxAllowedCodeLength = 15;
 
-        public static int DefaultCodeLength = 8;
+        public const int DefaultCodeLength = 8;
 
-        public static int HuffmanCodesPerMetaCode = 5;
+        public const int HuffmanCodesPerMetaCode = 5;
 
-        public static int NumLiteralCodes = 256;
+        public const uint ArgbBlack = 0xff000000;
 
-        public static int NumLengthCodes = 24;
+        public const int NumLiteralCodes = 256;
 
-        public static int NumDistanceCodes = 40;
+        public const int NumLengthCodes = 24;
 
-        public static int LengthTableBits = 7;
+        public const int NumDistanceCodes = 40;
 
-        public static uint kCodeLengthLiterals = 16;
+        public const int LengthTableBits = 7;
 
-        public static int kCodeLengthRepeatCode = 16;
+        public const uint KCodeLengthLiterals = 16;
 
-        public static int[] kCodeLengthExtraBits = { 2, 3, 7 };
+        public const int KCodeLengthRepeatCode = 16;
 
-        public static int[] kCodeLengthRepeatOffsets = { 3, 3, 11 };
+        public static readonly int[] KCodeLengthExtraBits = { 2, 3, 7 };
 
-        public static int[] kAlphabetSize = {
-                                                NumLiteralCodes + NumLengthCodes,
-                                                NumLiteralCodes, NumLiteralCodes, NumLiteralCodes,
-                                                NumDistanceCodes
-                                            };
+        public static readonly int[] KCodeLengthRepeatOffsets = { 3, 3, 11 };
+
+        public static readonly int[] KAlphabetSize =
+        {
+                                                         NumLiteralCodes + NumLengthCodes,
+                                                         NumLiteralCodes, NumLiteralCodes, NumLiteralCodes,
+                                                         NumDistanceCodes
+        };
     }
 }

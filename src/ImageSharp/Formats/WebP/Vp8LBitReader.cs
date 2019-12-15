@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </summary>
         private const int VP8L_WBITS = 32;
 
-        private uint[] kBitMask =
+        private readonly uint[] kBitMask =
         {
             0,
             0x000001, 0x000003, 0x000007, 0x00000f,
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Buffer length.
         /// </summary>
-        private long len;
+        private readonly long len;
 
         /// <summary>
         /// Byte position in buffer.

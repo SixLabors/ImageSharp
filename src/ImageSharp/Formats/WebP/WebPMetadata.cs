@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Collections;
 using System.Collections.Generic;
 
 namespace SixLabors.ImageSharp.Formats.WebP
@@ -28,9 +27,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.Format = other.Format;
         }
 
-        /// <inheritdoc/>
-        public IDeepCloneable DeepClone() => new WebPMetadata(this);
-
         /// <summary>
         /// The webp format used. Either lossless or lossy.
         /// </summary>
@@ -42,8 +38,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public Queue<WebPChunkType> ChunkTypes { get; set; } = new Queue<WebPChunkType>();
 
         /// <summary>
-        /// Indicates, if the webp file contains a animation.
+        /// Gets or sets a value indicating whether the webp file contains a animation.
         /// </summary>
         public bool Animated { get; set; } = false;
+
+        /// <inheritdoc/>
+        public IDeepCloneable DeepClone() => new WebPMetadata(this);
     }
 }

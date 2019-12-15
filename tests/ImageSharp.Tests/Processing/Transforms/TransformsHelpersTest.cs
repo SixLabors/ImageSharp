@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         {
             int xy = 1;
 
-            using (var img = new Image<Alpha8>(xy, xy))
+            using (var img = new Image<A8>(xy, xy))
             {
                 var profile = new ExifProfile();
                 img.Metadata.ExifProfile = profile;

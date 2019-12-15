@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             TPixel upperColor = this.definition.UpperColor.ToPixel<TPixel>();
             TPixel lowerColor = this.definition.LowerColor.ToPixel<TPixel>();
 
-            bool isAlphaOnly = typeof(TPixel) == typeof(Alpha8);
+            bool isAlphaOnly = typeof(TPixel) == typeof(A8);
 
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
             int startY = interest.Y;

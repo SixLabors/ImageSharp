@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Runtime.InteropServices;
 
@@ -132,6 +135,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 newBlue += ColorTransformDelta(m.GreenToBlue, (sbyte)green);
                 newBlue += ColorTransformDelta(m.RedToBlue, (sbyte)newRed);
                 newBlue &= 0xff;
+
                 // uint pixelValue = (uint)((argb & 0xff00ff00u) | (newRed << 16) | newBlue);
                 pixelData[i] = (uint)((argb & 0xff00ff00u) | (newRed << 16) | newBlue);
             }
@@ -160,6 +164,28 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             return newColorMap;
+        }
+
+        public static void PredictorInverseTransform(Vp8LTransform transform, uint[] pixelData)
+        {
+            int processedPixels = 0;
+            int yStart = 0;
+            int width = transform.XSize;
+
+            // PredictorAdd0(in, NULL, 1, out);
+            PredictorAdd1(pixelData, width - 1);
+            processedPixels += width;
+            yStart++;
+
+            int y = yStart;
+            int tileWidth = 1 << transform.Bits;
+            int mask = tileWidth - 1;
+            int tilesPerRow = SubSampleSize(width, transform.Bits);
+        }
+
+        private static uint Predictor0C(uint left, uint[] top)
+        {
+            return WebPConstants.ArgbBlack;
         }
 
         /// <summary>

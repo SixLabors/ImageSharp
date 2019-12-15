@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             byte version = (byte)((bitReader.ReadBit() ? 2 : 0) | (bitReader.ReadBit() ? 1 : 0));
-            (ReconstructionFilter rec, LoopFilter loop) = DecodeVersion(version);
+            (ReconstructionFilter rec, LoopFilter loop) = this.DecodeVersion(version);
 
             bool isShowFrame = bitReader.ReadBit();
 

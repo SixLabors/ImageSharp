@@ -368,7 +368,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // Find maximum alphabet size for the hTree group.
             for (int j = 0; j < WebPConstants.HuffmanCodesPerMetaCode; j++)
             {
-                int alphabetSize = WebPConstants.kAlphabetSize[j];
+                int alphabetSize = WebPConstants.KAlphabetSize[j];
                 if (j == 0 && colorCacheBits > 0)
                 {
                     alphabetSize += 1 << colorCacheBits;
@@ -394,7 +394,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 var codeLengths = new int[maxAlphabetSize];
                 for (int j = 0; j < WebPConstants.HuffmanCodesPerMetaCode; j++)
                 {
-                    int alphabetSize = WebPConstants.kAlphabetSize[j];
+                    int alphabetSize = WebPConstants.KAlphabetSize[j];
                     if (j == 0 && colorCacheBits > 0)
                     {
                         alphabetSize += 1 << colorCacheBits;
@@ -548,7 +548,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 HuffmanCode huffmanCode = table[idx];
                 this.bitReader.AdvanceBitPosition(huffmanCode.BitsUsed);
                 uint codeLen = huffmanCode.Value;
-                if (codeLen < WebPConstants.kCodeLengthLiterals)
+                if (codeLen < WebPConstants.KCodeLengthLiterals)
                 {
                     codeLengths[symbol++] = (int)codeLen;
                     if (codeLen != 0)
@@ -558,10 +558,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
                 else
                 {
-                    bool usePrev = codeLen == WebPConstants.kCodeLengthRepeatCode;
-                    uint slot = codeLen - WebPConstants.kCodeLengthLiterals;
-                    int extraBits = WebPConstants.kCodeLengthExtraBits[slot];
-                    int repeatOffset = WebPConstants.kCodeLengthRepeatOffsets[slot];
+                    bool usePrev = codeLen == WebPConstants.KCodeLengthRepeatCode;
+                    uint slot = codeLen - WebPConstants.KCodeLengthLiterals;
+                    int extraBits = WebPConstants.KCodeLengthExtraBits[slot];
+                    int repeatOffset = WebPConstants.KCodeLengthRepeatOffsets[slot];
                     int repeat = (int)(this.bitReader.ReadBits(extraBits) + repeatOffset);
                     if (symbol + repeat > numSymbols)
                     {
@@ -637,7 +637,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 switch (transformType)
                 {
                     case Vp8LTransformType.PredictorTransform:
-                        // LosslessUtils.PredictorInverseTransform(transforms[i], pixelData);
+                        LosslessUtils.PredictorInverseTransform(transforms[i], pixelData);
                         break;
                     case Vp8LTransformType.SubtractGreen:
                         LosslessUtils.AddGreenToBlueAndRed(pixelData);

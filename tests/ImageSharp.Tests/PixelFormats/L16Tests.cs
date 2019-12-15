@@ -7,13 +7,13 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
-    public class Gray16Tests
+    public class L16Tests
     {
         [Fact]
         public void AreEqual()
         {
-            var color1 = new Gray16(3000);
-            var color2 = new Gray16(3000);
+            var color1 = new L16(3000);
+            var color2 = new L16(3000);
 
             Assert.Equal(color1, color2);
         }
@@ -21,8 +21,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [Fact]
         public void AreNotEqual()
         {
-            var color1 = new Gray16(12345);
-            var color2 = new Gray16(54321);
+            var color1 = new L16(12345);
+            var color2 = new L16(54321);
 
             Assert.NotEqual(color1, color2);
         }
@@ -32,16 +32,16 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [InlineData(65535)]
         [InlineData(32767)]
         [InlineData(42)]
-        public void Gray16_PackedValue_EqualsInput(ushort input)
-            => Assert.Equal(input, new Gray16(input).PackedValue);
+        public void L16_PackedValue_EqualsInput(ushort input)
+            => Assert.Equal(input, new L16(input).PackedValue);
 
         [Fact]
-        public void Gray16_FromScaledVector4()
+        public void L16_FromScaledVector4()
         {
             // Arrange
-            Gray16 gray = default;
+            L16 gray = default;
             const ushort expected = 32767;
-            Vector4 scaled = new Gray16(expected).ToScaledVector4();
+            Vector4 scaled = new L16(expected).ToScaledVector4();
 
             // Act
             gray.FromScaledVector4(scaled);
@@ -55,10 +55,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [InlineData(0)]
         [InlineData(65535)]
         [InlineData(32767)]
-        public void Gray16_ToScaledVector4(ushort input)
+        public void L16_ToScaledVector4(ushort input)
         {
             // Arrange
-            var gray = new Gray16(input);
+            var gray = new L16(input);
 
             // Act
             Vector4 actual = gray.ToScaledVector4();
@@ -72,12 +72,12 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Gray16_FromVector4()
+        public void L16_FromVector4()
         {
             // Arrange
-            Gray16 gray = default;
+            L16 gray = default;
             const ushort expected = 32767;
-            var vector = new Gray16(expected).ToVector4();
+            var vector = new L16(expected).ToVector4();
 
             // Act
             gray.FromVector4(vector);
@@ -91,10 +91,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [InlineData(0)]
         [InlineData(65535)]
         [InlineData(32767)]
-        public void Gray16_ToVector4(ushort input)
+        public void L16_ToVector4(ushort input)
         {
             // Arrange
-            var gray = new Gray16(input);
+            var gray = new L16(input);
 
             // Act
             var actual = gray.ToVector4();
@@ -108,10 +108,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Gray16_FromRgba32()
+        public void L16_FromRgba32()
         {
             // Arrange
-            Gray16 gray = default;
+            L16 gray = default;
             const byte rgb = 128;
             ushort scaledRgb = ImageMaths.UpscaleFrom8BitTo16Bit(rgb);
             ushort expected = ImageMaths.Get16BitBT709Luminance(scaledRgb, scaledRgb, scaledRgb);
@@ -128,11 +128,11 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [InlineData(0)]
         [InlineData(65535)]
         [InlineData(8100)]
-        public void Gray16_ToRgba32(ushort input)
+        public void L16_ToRgba32(ushort input)
         {
             // Arrange
             ushort expected = ImageMaths.DownScaleFrom16BitTo8Bit(input);
-            var gray = new Gray16(input);
+            var gray = new L16(input);
 
             // Act
             Rgba32 actual = default;
@@ -146,10 +146,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Gray16_FromBgra5551()
+        public void L16_FromBgra5551()
         {
             // arrange
-            var gray = default(Gray16);
+            var gray = default(L16);
             ushort expected = ushort.MaxValue;
 
             // act

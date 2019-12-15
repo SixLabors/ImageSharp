@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        JpegMetadata meta = output.Metadata.GetFormatMetadata(JpegFormat.Instance);
+                        JpegMetadata meta = output.Metadata.GetJpegMetadata();
                         Assert.Equal(quality, meta.Quality);
                     }
                 }

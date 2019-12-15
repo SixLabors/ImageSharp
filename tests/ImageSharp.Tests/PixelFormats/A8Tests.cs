@@ -7,42 +7,42 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
-    public class Alpha8Tests
+    public class A8Tests
     {
         [Fact]
-        public void Alpha8_Constructor()
+        public void A8_Constructor()
         {
             // Test the limits.
-            Assert.Equal(byte.MinValue, new Alpha8(0F).PackedValue);
-            Assert.Equal(byte.MaxValue, new Alpha8(1F).PackedValue);
+            Assert.Equal(byte.MinValue, new A8(0F).PackedValue);
+            Assert.Equal(byte.MaxValue, new A8(1F).PackedValue);
 
             // Test clamping.
-            Assert.Equal(byte.MinValue, new Alpha8(-1234F).PackedValue);
-            Assert.Equal(byte.MaxValue, new Alpha8(1234F).PackedValue);
+            Assert.Equal(byte.MinValue, new A8(-1234F).PackedValue);
+            Assert.Equal(byte.MaxValue, new A8(1234F).PackedValue);
 
             // Test ordering
-            Assert.Equal(124, new Alpha8(124F / byte.MaxValue).PackedValue);
-            Assert.Equal(26, new Alpha8(0.1F).PackedValue);
+            Assert.Equal(124, new A8(124F / byte.MaxValue).PackedValue);
+            Assert.Equal(26, new A8(0.1F).PackedValue);
         }
 
         [Fact]
-        public void Alpha8_Equality()
+        public void A8_Equality()
         {
-            var left = new Alpha8(16);
-            var right = new Alpha8(32);
+            var left = new A8(16);
+            var right = new A8(32);
 
-            Assert.True(left == new Alpha8(16));
+            Assert.True(left == new A8(16));
             Assert.True(left != right);
-            Assert.Equal(left, (object)new Alpha8(16));
+            Assert.Equal(left, (object)new A8(16));
         }
 
         [Fact]
-        public void Alpha8_FromScaledVector4()
+        public void A8_FromScaledVector4()
         {
             // Arrange
-            Alpha8 alpha = default;
+            A8 alpha = default;
             int expected = 128;
-            Vector4 scaled = new Alpha8(.5F).ToScaledVector4();
+            Vector4 scaled = new A8(.5F).ToScaledVector4();
 
             // Act
             alpha.FromScaledVector4(scaled);
@@ -53,10 +53,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Alpha8_ToScaledVector4()
+        public void A8_ToScaledVector4()
         {
             // Arrange
-            var alpha = new Alpha8(.5F);
+            var alpha = new A8(.5F);
 
             // Act
             Vector4 actual = alpha.ToScaledVector4();
@@ -69,10 +69,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Alpha8_ToVector4()
+        public void A8_ToVector4()
         {
             // Arrange
-            var alpha = new Alpha8(.5F);
+            var alpha = new A8(.5F);
 
             // Act
             var actual = alpha.ToVector4();
@@ -85,9 +85,9 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Alpha8_ToRgba32()
+        public void A8_ToRgba32()
         {
-            var input = new Alpha8(128);
+            var input = new A8(128);
             var expected = new Rgba32(0, 0, 0, 128);
 
             Rgba32 actual = default;
@@ -96,10 +96,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
-        public void Alpha8_FromBgra5551()
+        public void A8_FromBgra5551()
         {
             // arrange
-            var alpha = default(Alpha8);
+            var alpha = default(A8);
             byte expected = byte.MaxValue;
 
             // act

@@ -7,48 +7,48 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <summary>
-    /// Packed pixel type containing a single 16 bit normalized gray values.
+    /// Packed pixel type containing a single 16-bit normalized luminance value.
     /// <para>
     /// Ranges from [0, 0, 0, 1] to [1, 1, 1, 1] in vector form.
     /// </para>
     /// </summary>
-    public partial struct Gray16 : IPixel<Gray16>, IPackedVector<ushort>
+    public partial struct L16 : IPixel<L16>, IPackedVector<ushort>
     {
         private const float Max = ushort.MaxValue;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Gray16"/> struct.
+        /// Initializes a new instance of the <see cref="L16"/> struct.
         /// </summary>
         /// <param name="luminance">The luminance component</param>
-        public Gray16(ushort luminance) => this.PackedValue = luminance;
+        public L16(ushort luminance) => this.PackedValue = luminance;
 
         /// <inheritdoc />
         public ushort PackedValue { get; set; }
 
         /// <summary>
-        /// Compares two <see cref="Gray16"/> objects for equality.
+        /// Compares two <see cref="L16"/> objects for equality.
         /// </summary>
-        /// <param name="left">The <see cref="Gray16"/> on the left side of the operand.</param>
-        /// <param name="right">The <see cref="Gray16"/> on the right side of the operand.</param>
+        /// <param name="left">The <see cref="L16"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="L16"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static bool operator ==(Gray16 left, Gray16 right) => left.Equals(right);
+        public static bool operator ==(L16 left, L16 right) => left.Equals(right);
 
         /// <summary>
-        /// Compares two <see cref="Gray16"/> objects for equality.
+        /// Compares two <see cref="L16"/> objects for equality.
         /// </summary>
-        /// <param name="left">The <see cref="Gray16"/> on the left side of the operand.</param>
-        /// <param name="right">The <see cref="Gray16"/> on the right side of the operand.</param>
+        /// <param name="left">The <see cref="L16"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="L16"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static bool operator !=(Gray16 left, Gray16 right) => !left.Equals(right);
+        public static bool operator !=(L16 left, L16 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public PixelOperations<Gray16> CreatePixelOperations() => new PixelOperations();
+        public PixelOperations<L16> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -106,11 +106,19 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray8(Gray8 source) => this.PackedValue = ImageMaths.UpscaleFrom8BitTo16Bit(source.PackedValue);
+        public void FromL8(L8 source) => this.PackedValue = ImageMaths.UpscaleFrom8BitTo16Bit(source.PackedValue);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray16(Gray16 source) => this.PackedValue = source.PackedValue;
+        public void FromL16(L16 source) => this = source;
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa16(La16 source) => this.PackedValue = ImageMaths.UpscaleFrom8BitTo16Bit(source.L);
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa32(La32 source) => this.PackedValue = source.L;
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -152,14 +160,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void FromRgba64(Rgba64 source) => this.PackedValue = ImageMaths.Get16BitBT709Luminance(source.R, source.G, source.B);
 
         /// <inheritdoc />
-        public override bool Equals(object obj) => obj is Gray16 other && this.Equals(other);
+        public override bool Equals(object obj) => obj is L16 other && this.Equals(other);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public bool Equals(Gray16 other) => this.PackedValue.Equals(other.PackedValue);
+        public bool Equals(L16 other) => this.PackedValue.Equals(other.PackedValue);
 
         /// <inheritdoc />
-        public override string ToString() => $"Gray16({this.PackedValue})";
+        public override string ToString() => $"L16({this.PackedValue})";
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]

@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
 
             this.configuration = image.GetConfiguration();
             ImageMetadata metadata = image.Metadata;
-            TgaMetadata tgaMetadata = metadata.GetFormatMetadata(TgaFormat.Instance);
+            TgaMetadata tgaMetadata = metadata.GetTgaMetadata();
             this.bitsPerPixel = this.bitsPerPixel ?? tgaMetadata.BitsPerPixel;
 
             TgaImageType imageType = this.compression is TgaCompression.RunLength ? TgaImageType.RleTrueColor : TgaImageType.TrueColor;
@@ -251,7 +251,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToGray8Bytes(
+                    PixelOperations<TPixel>.Instance.ToL8Bytes(
                         this.configuration,
                         pixelSpan,
                         row.GetSpan(),

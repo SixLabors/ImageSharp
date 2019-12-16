@@ -280,15 +280,15 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 
 
         public static readonly TheoryData<IPixel> Generic_To_Data = new TheoryData<IPixel>
-                                                    {
-                                                        default(Rgba32),
-                                                        default(Bgra32),
-                                                        default(Rgb24),
-                                                        default(Gray8),
-                                                        default(Gray16),
-                                                        default(Rgb48),
-                                                        default(Rgba64)
-                                                    };
+        {
+            default(Rgba32),
+            default(Bgra32),
+            default(Rgb24),
+            default(L8),
+            default(L16),
+            default(Rgb48),
+            default(Rgba64)
+        };
 
         [Theory]
         [MemberData(nameof(Generic_To_Data))]
@@ -571,6 +571,236 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
+        public void FromBgra5551Bytes(int count)
+        {
+            int size = Unsafe.SizeOf<Bgra5551>();
+            byte[] source = CreateByteTestData(count * size);
+            var expected = new TPixel[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                int offset = i * size;
+
+                Bgra5551 bgra = MemoryMarshal.Cast<byte, Bgra5551>(source.AsSpan().Slice(offset, size))[0];
+                expected[i].FromBgra5551(bgra);
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.FromBgra5551Bytes(this.Configuration, s, d.GetSpan(), count)
+            );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void ToBgra5551Bytes(int count)
+        {
+            int size = Unsafe.SizeOf<Bgra5551>();
+            TPixel[] source = CreatePixelTestData(count);
+            var expected = new byte[count * size];
+            Bgra5551 bgra = default;
+
+            for (int i = 0; i < count; i++)
+            {
+                int offset = i * size;
+                bgra.FromScaledVector4(source[i].ToScaledVector4());
+                OctetBytes bytes = Unsafe.As<Bgra5551, OctetBytes>(ref bgra);
+                expected[offset] = bytes[0];
+                expected[offset + 1] = bytes[1];
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.ToBgra5551Bytes(this.Configuration, s, d.GetSpan(), count)
+            );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void FromL8(int count)
+        {
+            byte[] sourceBytes = CreateByteTestData(count);
+            L8[] source = sourceBytes.Select(b => new L8(b)).ToArray();
+            var expected = new TPixel[count];
+
+
+            for (int i = 0; i < count; i++)
+            {
+                expected[i].FromL8(source[i]);
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.FromL8(this.Configuration, s, d.GetSpan())
+            );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void ToL8(int count)
+        {
+            TPixel[] source = CreatePixelTestData(count);
+            var expected = new L8[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                expected[i].FromScaledVector4(source[i].ToScaledVector4());
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.ToL8(this.Configuration, s, d.GetSpan())
+            );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void FromL16(int count)
+        {
+            L16[] source = CreateVector4TestData(count).Select(v =>
+            {
+                L16 g = default;
+                g.FromVector4(v);
+                return g;
+            }).ToArray();
+
+            var expected = new TPixel[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                expected[i].FromL16(source[i]);
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.FromL16(this.Configuration, s, d.GetSpan())
+            );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void ToL16(int count)
+        {
+            TPixel[] source = CreatePixelTestData(count);
+            var expected = new L16[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                expected[i].FromScaledVector4(source[i].ToScaledVector4());
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.ToL16(this.Configuration, s, d.GetSpan())
+            );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void FromLa16Bytes(int count)
+        {
+            int size = Unsafe.SizeOf<La16>();
+            byte[] source = CreateByteTestData(count * size);
+            var expected = new TPixel[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                int offset = i * size;
+
+                La16 la = MemoryMarshal.Cast<byte, La16>(source.AsSpan().Slice(offset, size))[0];
+                expected[i].FromLa16(la);
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.FromLa16Bytes(this.Configuration, s, d.GetSpan(), count)
+            );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void ToLa16Bytes(int count)
+        {
+            int size = Unsafe.SizeOf<La16>();
+            TPixel[] source = CreatePixelTestData(count);
+            var expected = new byte[count * size];
+            La16 la = default;
+
+            for (int i = 0; i < count; i++)
+            {
+                int offset = i * size;
+                la.FromScaledVector4(source[i].ToScaledVector4());
+                OctetBytes bytes = Unsafe.As<La16, OctetBytes>(ref la);
+                expected[offset] = bytes[0];
+                expected[offset + 1] = bytes[1];
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.ToLa16Bytes(this.Configuration, s, d.GetSpan(), count)
+            );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void FromLa32Bytes(int count)
+        {
+            int size = Unsafe.SizeOf<La32>();
+            byte[] source = CreateByteTestData(count * size);
+            var expected = new TPixel[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                int offset = i * size;
+
+                La32 la = MemoryMarshal.Cast<byte, La32>(source.AsSpan().Slice(offset, size))[0];
+                expected[i].FromLa32(la);
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.FromLa32Bytes(this.Configuration, s, d.GetSpan(), count)
+            );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void ToLa32Bytes(int count)
+        {
+            var size = Unsafe.SizeOf<La32>();
+            TPixel[] source = CreatePixelTestData(count);
+            var expected = new byte[count * size];
+            La32 la = default;
+
+            for (int i = 0; i < count; i++)
+            {
+                int offset = i * size;
+                la.FromScaledVector4(source[i].ToScaledVector4());
+                OctetBytes bytes = Unsafe.As<La32, OctetBytes>(ref la);
+                expected[offset] = bytes[0];
+                expected[offset + 1] = bytes[1];
+                expected[offset + 2] = bytes[2];
+                expected[offset + 3] = bytes[3];
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.ToLa32Bytes(this.Configuration, s, d.GetSpan(), count)
+            );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
         public void FromRgb24Bytes(int count)
         {
             byte[] source = CreateByteTestData(count * 3);
@@ -760,91 +990,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             );
         }
 
-
-            [Theory]
-            [MemberData(nameof(ArraySizesData))]
-            public void FromGray8(int count)
-            {
-                byte[] sourceBytes = CreateByteTestData(count);
-                Gray8[] source = sourceBytes.Select(b => new Gray8(b)).ToArray();
-                var expected = new TPixel[count];
-
-
-                for (int i = 0; i < count; i++)
-                {
-                    expected[i].FromGray8(source[i]);
-                }
-
-                TestOperation(
-                    source,
-                    expected,
-                    (s, d) => Operations.FromGray8(this.Configuration, s, d.GetSpan())
-                );
-            }
-
-            [Theory]
-            [MemberData(nameof(ArraySizesData))]
-            public void ToGray8(int count)
-            {
-                TPixel[] source = CreatePixelTestData(count);
-                var expected = new Gray8[count];
-
-                for (int i = 0; i < count; i++)
-                {
-                    expected[i].FromScaledVector4(source[i].ToScaledVector4());
-                }
-
-                TestOperation(
-                    source,
-                    expected,
-                    (s, d) => Operations.ToGray8(this.Configuration, s, d.GetSpan())
-                );
-            }
-
-            [Theory]
-            [MemberData(nameof(ArraySizesData))]
-            public void FromGray16(int count)
-            {
-                Gray16[] source = CreateVector4TestData(count).Select(v =>
-                {
-                    Gray16 g = default;
-                    g.FromVector4(v);
-                    return g;
-                }).ToArray();
-
-                var expected = new TPixel[count];
-
-                for (int i = 0; i < count; i++)
-                {
-                    expected[i].FromGray16(source[i]);
-                }
-
-                TestOperation(
-                    source,
-                    expected,
-                    (s, d) => Operations.FromGray16(this.Configuration, s, d.GetSpan())
-                );
-            }
-
-            [Theory]
-            [MemberData(nameof(ArraySizesData))]
-            public void ToGray16(int count)
-            {
-                TPixel[] source = CreatePixelTestData(count);
-                var expected = new Gray16[count];
-
-                for (int i = 0; i < count; i++)
-                {
-                    expected[i].FromScaledVector4(source[i].ToScaledVector4());
-                }
-
-                TestOperation(
-                    source,
-                    expected,
-                    (s, d) => Operations.ToGray16(this.Configuration, s, d.GetSpan())
-                );
-            }
-
         public delegate void RefAction<T1>(ref T1 arg1);
 
         internal static Vector4[] CreateExpectedVector4Data(TPixel[] source, RefAction<Vector4> vectorModifier = null)
@@ -1014,18 +1159,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                         // ReSharper disable PossibleNullReferenceException
                         Assert.Equal(expected[i], actual[i], comparer);
                         // ReSharper restore PossibleNullReferenceException
-                    }
-                }
-                else if (typeof(TDest) == typeof(Gray16))
-                {
-                    // Minor difference is tolerated for 16 bit pixel values
-                    Span<Gray16> expected = MemoryMarshal.Cast<TDest, Gray16>(this.ExpectedDestBuffer.AsSpan());
-                    Span<Gray16> actual = MemoryMarshal.Cast<TDest, Gray16>(this.ActualDestBuffer.GetSpan());
-
-                    for (int i = 0; i < count; i++)
-                    {
-                        int difference = expected[i].PackedValue - actual[i].PackedValue;
-                        Assert.True(Math.Abs(difference) < 2);
                     }
                 }
                 else

@@ -149,7 +149,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             where TPixel : struct, IPixel<TPixel>
         {
             var metadata = new ImageMetadata();
-            PngMetadata pngMetadata = metadata.GetFormatMetadata(PngFormat.Instance);
+            PngMetadata pngMetadata = metadata.GetPngMetadata();
             this.currentStream = stream;
             this.currentStream.Skip(8);
             Image<TPixel> image = null;
@@ -240,7 +240,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public IImageInfo Identify(Stream stream)
         {
             var metadata = new ImageMetadata();
-            PngMetadata pngMetadata = metadata.GetFormatMetadata(PngFormat.Instance);
+            PngMetadata pngMetadata = metadata.GetPngMetadata();
             this.currentStream = stream;
             this.currentStream.Skip(8);
             try
@@ -658,8 +658,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                         scanlineSpan,
                         rowSpan,
                         pngMetadata.HasTransparency,
-                        pngMetadata.TransparentGray16.GetValueOrDefault(),
-                        pngMetadata.TransparentGray8.GetValueOrDefault());
+                        pngMetadata.TransparentL16.GetValueOrDefault(),
+                        pngMetadata.TransparentL8.GetValueOrDefault());
 
                     break;
 
@@ -742,8 +742,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                         pixelOffset,
                         increment,
                         pngMetadata.HasTransparency,
-                        pngMetadata.TransparentGray16.GetValueOrDefault(),
-                        pngMetadata.TransparentGray8.GetValueOrDefault());
+                        pngMetadata.TransparentL16.GetValueOrDefault(),
+                        pngMetadata.TransparentL8.GetValueOrDefault());
 
                     break;
 
@@ -837,11 +837,11 @@ namespace SixLabors.ImageSharp.Formats.Png
                 {
                     if (this.header.BitDepth == 16)
                     {
-                        pngMetadata.TransparentGray16 = new Gray16(BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(0, 2)));
+                        pngMetadata.TransparentL16 = new L16(BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(0, 2)));
                     }
                     else
                     {
-                        pngMetadata.TransparentGray8 = new Gray8(ReadByteLittleEndian(alpha, 0));
+                        pngMetadata.TransparentL8 = new L8(ReadByteLittleEndian(alpha, 0));
                     }
 
                     pngMetadata.HasTransparency = true;

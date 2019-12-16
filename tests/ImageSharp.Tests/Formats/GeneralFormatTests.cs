@@ -3,9 +3,6 @@
 
 using System.IO;
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Formats.Bmp;
-using SixLabors.ImageSharp.Formats.Gif;
-using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -13,6 +10,7 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests
 {
     using System;
+    using System.Linq;
     using System.Reflection;
     using SixLabors.ImageSharp.Processing;
     using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -167,38 +165,49 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData(100, 100, "jpg")]
         [InlineData(100, 10, "jpg")]
         [InlineData(10, 100, "jpg")]
-        public void CanIdentifyImageLoadedFromBytes(int width, int height, string format)
+        [InlineData(100, 100, "tga")]
+        [InlineData(100, 10, "tga")]
+        [InlineData(10, 100, "tga")]
+        public void CanIdentifyImageLoadedFromBytes(int width, int height, string extension)
         {
             using (var image = Image.LoadPixelData(new Rgba32[width * height], width, height))
             {
                 using (var memoryStream = new MemoryStream())
                 {
-                    image.Save(memoryStream, GetEncoder(format));
+                    IImageFormat format = GetFormat(extension);
+                    image.Save(memoryStream, format);
                     memoryStream.Position = 0;
 
                     IImageInfo imageInfo = Image.Identify(memoryStream);
 
                     Assert.Equal(imageInfo.Width, width);
                     Assert.Equal(imageInfo.Height, height);
+                    memoryStream.Position = 0;
+
+                    imageInfo = Image.Identify(memoryStream, out IImageFormat detectedFormat);
+
+                    Assert.Equal(format, detectedFormat);
                 }
             }
         }
 
-        private static IImageEncoder GetEncoder(string format)
+        [Fact]
+        public void IdentifyReturnsNullWithInvalidStream()
         {
-            switch (format)
+            byte[] invalid = new byte[10];
+
+            using (var memoryStream = new MemoryStream(invalid))
             {
-                case "png":
-                    return new PngEncoder();
-                case "gif":
-                    return new GifEncoder();
-                case "bmp":
-                    return new BmpEncoder();
-                case "jpg":
-                    return new JpegEncoder();
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(format), format, null);
+                IImageInfo imageInfo = Image.Identify(memoryStream, out IImageFormat format);
+
+                Assert.Null(imageInfo);
+                Assert.Null(format);
             }
+        }
+
+        private static IImageFormat GetFormat(string format)
+        {
+            return Configuration.Default.ImageFormats.FirstOrDefault(x => x.FileExtensions.Contains(format));
         }
     }
 }

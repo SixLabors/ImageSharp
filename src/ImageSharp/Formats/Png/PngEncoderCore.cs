@@ -199,16 +199,16 @@ namespace SixLabors.ImageSharp.Formats.Png
                 if (this.use16Bit)
                 {
                     // 16 bit grayscale
-                    using (IMemoryOwner<Gray16> luminanceBuffer = this.memoryAllocator.Allocate<Gray16>(rowSpan.Length))
+                    using (IMemoryOwner<L16> luminanceBuffer = this.memoryAllocator.Allocate<L16>(rowSpan.Length))
                     {
-                        Span<Gray16> luminanceSpan = luminanceBuffer.GetSpan();
-                        ref Gray16 luminanceRef = ref MemoryMarshal.GetReference(luminanceSpan);
-                        PixelOperations<TPixel>.Instance.ToGray16(this.configuration, rowSpan, luminanceSpan);
+                        Span<L16> luminanceSpan = luminanceBuffer.GetSpan();
+                        ref L16 luminanceRef = ref MemoryMarshal.GetReference(luminanceSpan);
+                        PixelOperations<TPixel>.Instance.ToL16(this.configuration, rowSpan, luminanceSpan);
 
                         // Can't map directly to byte array as it's big-endian.
                         for (int x = 0, o = 0; x < luminanceSpan.Length; x++, o += 2)
                         {
-                            Gray16 luminance = Unsafe.Add(ref luminanceRef, x);
+                            L16 luminance = Unsafe.Add(ref luminanceRef, x);
                             BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), luminance.PackedValue);
                         }
                     }
@@ -218,7 +218,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     if (this.bitDepth == 8)
                     {
                         // 8 bit grayscale
-                        PixelOperations<TPixel>.Instance.ToGray8Bytes(
+                        PixelOperations<TPixel>.Instance.ToL8Bytes(
                             this.configuration,
                             rowSpan,
                             rawScanlineSpan,
@@ -235,7 +235,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                             Span<byte> tempSpan = temp.GetSpan();
 
                             // We need to first create an array of luminance bytes then scale them down to the correct bit depth.
-                            PixelOperations<TPixel>.Instance.ToGray8Bytes(
+                            PixelOperations<TPixel>.Instance.ToL8Bytes(
                                 this.configuration,
                                 rowSpan,
                                 tempSpan,
@@ -761,15 +761,15 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else if (pngMetadata.ColorType == PngColorType.Grayscale)
             {
-                if (pngMetadata.TransparentGray16.HasValue && this.use16Bit)
+                if (pngMetadata.TransparentL16.HasValue && this.use16Bit)
                 {
-                    BinaryPrimitives.WriteUInt16LittleEndian(alpha, pngMetadata.TransparentGray16.Value.PackedValue);
+                    BinaryPrimitives.WriteUInt16LittleEndian(alpha, pngMetadata.TransparentL16.Value.PackedValue);
                     this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 2);
                 }
-                else if (pngMetadata.TransparentGray8.HasValue)
+                else if (pngMetadata.TransparentL8.HasValue)
                 {
                     alpha.Clear();
-                    alpha[1] = pngMetadata.TransparentGray8.Value.PackedValue;
+                    alpha[1] = pngMetadata.TransparentL8.Value.PackedValue;
                     this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 2);
                 }
             }

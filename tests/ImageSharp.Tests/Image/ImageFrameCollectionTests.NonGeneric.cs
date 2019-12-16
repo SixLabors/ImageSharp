@@ -312,8 +312,8 @@ namespace SixLabors.ImageSharp.Tests
             {
                 // TODO: all metadata classes should be equatable!
 
-                GifFrameMetadata aData = a.Metadata.GetFormatMetadata(GifFormat.Instance);
-                GifFrameMetadata bData = b.Metadata.GetFormatMetadata(GifFormat.Instance);
+                GifFrameMetadata aData = a.Metadata.GetGifMetadata();
+                GifFrameMetadata bData = b.Metadata.GetGifMetadata();
 
                 Assert.Equal(aData.DisposalMethod, bData.DisposalMethod);
                 Assert.Equal(aData.FrameDelay, bData.FrameDelay);

@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             int startX = interest.X;
             int endX = interest.Right;
 
-            bool isAlphaOnly = typeof(TPixel) == typeof(Alpha8);
+            bool isAlphaOnly = typeof(TPixel) == typeof(A8);
 
             var workingRect = Rectangle.FromLTRB(startX, startY, endX, endY);
 

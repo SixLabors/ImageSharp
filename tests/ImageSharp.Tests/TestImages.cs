@@ -27,9 +27,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string Palette8Bpp = "Png/palette-8bpp.png";
             public const string Bpp1 = "Png/bpp1.png";
             public const string Gray4Bpp = "Png/gray_4bpp.png";
-            public const string Gray16Bit = "Png/gray-16.png";
-            public const string GrayAlpha8Bit = "Png/gray-alpha-8.png";
-            public const string GrayAlpha8BitInterlaced = "Png/rollsroyce.png";
+            public const string L16Bit = "Png/gray-16.png";
+            public const string GrayA8Bit = "Png/gray-alpha-8.png";
+            public const string GrayA8BitInterlaced = "Png/rollsroyce.png";
             public const string GrayAlpha1BitInterlaced = "Png/iftbbn0g01.png";
             public const string GrayAlpha2BitInterlaced = "Png/iftbbn0g02.png";
             public const string Gray4BitInterlaced = "Png/iftbbn0g04.png";
@@ -52,9 +52,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string Gray1BitTrans = "Png/gray-1-trns.png";
             public const string Gray2BitTrans = "Png/gray-2-tRNS.png";
             public const string Gray4BitTrans = "Png/gray-4-tRNS.png";
-            public const string Gray8BitTrans = "Png/gray-8-tRNS.png";
+            public const string L8BitTrans = "Png/gray-8-tRNS.png";
             public const string LowColorVariance = "Png/low-variance.png";
-            public const string PngWithMetaData = "Png/PngWithMetaData.png";
+            public const string PngWithMetadata = "Png/PngWithMetaData.png";
             public const string InvalidTextData = "Png/InvalidTextData.png";
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
@@ -190,6 +190,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string ExifGetString750Load = "Jpg/issues/issue750-exif-load.jpg";
                 public const string IncorrectQuality845 = "Jpg/issues/Issue845-Incorrect-Quality99.jpg";
                 public const string IncorrectColorspace855 = "Jpg/issues/issue855-incorrect-colorspace.jpg";
+                public const string IncorrectResize1006 = "Jpg/issues/issue1006-incorrect-resize.jpg";
 
                 public static class Fuzz
                 {

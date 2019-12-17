@@ -56,8 +56,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination colors.</param>
-        public void FromVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<TPixel> destPixels) =>
-            this.FromVector4Destructive(configuration, sourceVectors, destPixels, PixelConversionModifiers.None);
+        public void FromVector4Destructive(
+            Configuration configuration,
+            Span<Vector4> sourceVectors,
+            Span<TPixel> destPixels)
+            => this.FromVector4Destructive(configuration, sourceVectors, destPixels, PixelConversionModifiers.None);
 
         /// <summary>
         /// Bulk version of <see cref="IPixel.ToVector4()"/> converting 'sourceColors.Length' pixels into 'destinationVectors'.
@@ -83,11 +86,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source colors.</param>
         /// <param name="destVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
-        public virtual void ToVector4(
+        public void ToVector4(
             Configuration configuration,
             ReadOnlySpan<TPixel> sourcePixels,
-            Span<Vector4> destVectors) =>
-            this.ToVector4(configuration, sourcePixels, destVectors, PixelConversionModifiers.None);
+            Span<Vector4> destVectors)
+            => this.ToVector4(configuration, sourcePixels, destVectors, PixelConversionModifiers.None);
 
         internal virtual void From<TSourcePixel>(
             Configuration configuration,

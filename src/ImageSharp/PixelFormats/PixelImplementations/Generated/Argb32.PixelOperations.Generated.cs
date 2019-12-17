@@ -11,6 +11,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 
+
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <content>
@@ -42,13 +43,13 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void FromVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Argb32> destPixels, PixelConversionModifiers modifiers)
+            public override void FromVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Argb32> destPixels, PixelConversionModifiers modifiers)
             {
                 Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destPixels, modifiers.Remove(PixelConversionModifiers.Scale));
             }
 
             /// <inheritdoc />
-            internal override void ToVector4(Configuration configuration, ReadOnlySpan<Argb32> sourcePixels, Span<Vector4> destVectors, PixelConversionModifiers modifiers)
+            public override void ToVector4(Configuration configuration, ReadOnlySpan<Argb32> sourcePixels, Span<Vector4> destVectors, PixelConversionModifiers modifiers)
             {
                 Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, modifiers.Remove(PixelConversionModifiers.Scale));
             }
@@ -284,6 +285,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             {
                 PixelOperations<TSourcePixel>.Instance.ToArgb32(configuration, sourcePixels, destinationPixels);
             }
+
         }
     }
 }

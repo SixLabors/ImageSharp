@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal class PixelOperations : PixelOperations<RgbaVector>
         {
             /// <inheritdoc />
-            internal override void FromVector4Destructive(
+            public override void FromVector4Destructive(
                 Configuration configuration,
                 Span<Vector4> sourceVectors,
                 Span<RgbaVector> destinationColors,
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void ToVector4(
+            public override void ToVector4(
                 Configuration configuration,
                 ReadOnlySpan<RgbaVector> sourcePixels,
                 Span<Vector4> destVectors,

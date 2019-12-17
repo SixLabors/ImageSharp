@@ -168,95 +168,237 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public static void PredictorInverseTransform(Vp8LTransform transform, uint[] pixelData)
         {
+            // TODO: use memory allocator instead
+            var output = new uint[pixelData.Length];
+
             int processedPixels = 0;
             int yStart = 0;
             int width = transform.XSize;
 
-            // PredictorAdd0(in, NULL, 1, out);
-            // PredictorAdd1(pixelData, width - 1);
-            processedPixels += width;
+            // First Row follows the L (mode=1) mode.
+            PredictorAdd0(pixelData, null, processedPixels++, 1, output);
+            PredictorAdd1(pixelData, null, processedPixels, width - 1, output);
+            processedPixels += width - 1;
             yStart++;
 
             int y = yStart;
+            int yEnd = transform.YSize;
             int tileWidth = 1 << transform.Bits;
             int mask = tileWidth - 1;
             int tilesPerRow = SubSampleSize(width, transform.Bits);
+
+            while (y < yEnd)
+            {
+                int x = 1;
+
+                // First pixel follows the T (mode=2) mode.
+                PredictorAdd2(pixelData, out-width, 1, output);
+
+                // .. the rest:
+            }
         }
 
-        private static uint Predictor0C(uint left, uint[] top)
+        // TODO: the pridictor add methods should be generated
+        private static void PredictorAdd0(uint[] input, uint[] upper, int startIdx, int numberOfPixels, uint[] output)
+        {
+            for (int x = startIdx; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor0();
+                output[x] = AddPixels(input[x], pred);
+            }
+        }
+
+        private static void PredictorAdd1(uint[] input, uint[] upper, int startIdx, int numberOfPixels, uint[] output)
+        {
+            uint left = output[startIdx - 1];
+            for (int i = 0; i < numberOfPixels; ++i)
+            {
+                output[i] = left = AddPixels(input[i], left);
+            }
+        }
+
+        private static void PredictorAdd2(uint[] input, uint[] upper, int startIdx, int numberOfPixels, uint[] output)
+        {
+            for (int x = startIdx; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor2(output[x - 1], upper.AsSpan(x));
+                output[x] = AddPixels(input[x], pred);
+            }
+        }
+
+        private static void PredictorAdd3(uint[] input, uint[] upper, int startIdx, int numberOfPixels, uint[] output)
+        {
+            for (int x = startIdx; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor3(output[x - 1], upper.AsSpan(x));
+                output[x] = AddPixels(input[x], pred);
+            }
+        }
+
+        private static void PredictorAdd4(uint[] input, uint[] upper, int startIdx, int numberOfPixels, uint[] output)
+        {
+            for (int x = startIdx; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor4(output[x - 1], upper.AsSpan(x));
+                output[x] = AddPixels(input[x], pred);
+            }
+        }
+
+        private static void PredictorAdd5(uint[] input, uint[] upper, int startIdx, int numberOfPixels, uint[] output)
+        {
+            for (int x = startIdx; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor5(output[x - 1], upper.AsSpan(x));
+                output[x] = AddPixels(input[x], pred);
+            }
+        }
+
+        private static void PredictorAdd6(uint[] input, uint[] upper, int startIdx, int numberOfPixels, uint[] output)
+        {
+            for (int x = startIdx; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor6(output[x - 1], upper.AsSpan(x));
+                output[x] = AddPixels(input[x], pred);
+            }
+        }
+
+        private static void PredictorAdd7(uint[] input, uint[] upper, int startIdx, int numberOfPixels, uint[] output)
+        {
+            for (int x = startIdx; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor7(output[x - 1], upper.AsSpan(x));
+                output[x] = AddPixels(input[x], pred);
+            }
+        }
+
+        private static void PredictorAdd8(uint[] input, uint[] upper, int startIdx, int numberOfPixels, uint[] output)
+        {
+            for (int x = startIdx; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor8(output[x - 1], upper.AsSpan(x));
+                output[x] = AddPixels(input[x], pred);
+            }
+        }
+
+        private static void PredictorAdd9(uint[] input, uint[] upper, int startIdx, int numberOfPixels, uint[] output)
+        {
+            for (int x = startIdx; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor9(output[x - 1], upper.AsSpan(x));
+                output[x] = AddPixels(input[x], pred);
+            }
+        }
+
+        private static void PredictorAdd10(uint[] input, uint[] upper, int startIdx, int numberOfPixels, uint[] output)
+        {
+            for (int x = startIdx; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor10(output[x - 1], upper.AsSpan(x));
+                output[x] = AddPixels(input[x], pred);
+            }
+        }
+
+        private static void PredictorAdd11(uint[] input, uint[] upper, int startIdx, int numberOfPixels, uint[] output)
+        {
+            for (int x = startIdx; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor11(output[x - 1], upper.AsSpan(x));
+                output[x] = AddPixels(input[x], pred);
+            }
+        }
+
+        private static void PredictorAdd12(uint[] input, uint[] upper, int startIdx, int numberOfPixels, uint[] output)
+        {
+            for (int x = startIdx; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor12(output[x - 1], upper.AsSpan(x));
+                output[x] = AddPixels(input[x], pred);
+            }
+        }
+
+        private static void PredictorAdd13(uint[] input, uint[] upper, int startIdx, int numberOfPixels, uint[] output)
+        {
+            for (int x = startIdx; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor13(output[x - 1], upper.AsSpan(x));
+                output[x] = AddPixels(input[x], pred);
+            }
+        }
+
+        private static uint Predictor0()
         {
             return WebPConstants.ArgbBlack;
         }
 
-        private static uint Predictor1C(uint left, uint[] top)
+        private static uint Predictor1(uint left, uint[] top)
         {
             return left;
         }
 
-        private static uint Predictor2C(uint left, uint[] top)
+        private static uint Predictor2(uint left, Span<uint> top)
         {
             return top[0];
         }
 
-        private static uint Predictor3C(uint left, uint[] top)
+        private static uint Predictor3(uint left, Span<uint> top)
         {
             return top[1];
         }
 
-        private static uint Predictor4C(uint left, uint[] top)
+        private static uint Predictor4(uint left, Span<uint> top)
         {
             return top[-1];
         }
 
-        private static uint Predictor5C(uint left, uint[] top)
+        private static uint Predictor5(uint left, Span<uint> top)
         {
             uint pred = Average3(left, top[0], top[1]);
             return pred;
         }
 
-        private static uint Predictor6C(uint left, uint[] top)
+        private static uint Predictor6(uint left, Span<uint> top)
         {
             uint pred = Average2(left, top[-1]);
             return pred;
         }
 
-        private static uint Predictor7C(uint left, uint[] top)
+        private static uint Predictor7(uint left, Span<uint> top)
         {
             uint pred = Average2(left, top[0]);
             return pred;
         }
 
-        private static uint Predictor8C(uint left, uint[] top)
+        private static uint Predictor8(uint left, Span<uint> top)
         {
             uint pred = Average2(top[-1], top[0]);
             return pred;
         }
 
-        private static uint Predictor9C(uint left, uint[] top)
+        private static uint Predictor9(uint left, Span<uint> top)
         {
             uint pred = Average2(top[0], top[1]);
             return pred;
         }
 
-        private static uint Predictor10C(uint left, uint[] top)
+        private static uint Predictor10(uint left, Span<uint> top)
         {
             uint pred = Average4(left, top[-1], top[0], top[1]);
             return pred;
         }
 
-        private static uint Predictor11C(uint left, uint[] top)
+        private static uint Predictor11(uint left, Span<uint> top)
         {
             uint pred = Select(top[0], left, top[-1]);
             return pred;
         }
 
-        private static uint Predictor12C(uint left, uint[] top)
+        private static uint Predictor12(uint left, Span<uint> top)
         {
             uint pred = ClampedAddSubtractFull(left, top[0], top[-1]);
             return pred;
         }
 
-        private static uint Predictor13C(uint left, uint[] top)
+        private static uint Predictor13(uint left, Span<uint> top)
         {
             uint pred = ClampedAddSubtractHalf(left, top[0], top[-1]);
             return pred;

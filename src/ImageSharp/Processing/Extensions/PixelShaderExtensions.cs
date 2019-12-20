@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Processing.Delegates;
-using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.ImageSharp.Processing.Processors.PixelShading;
 using SixLabors.Primitives;
 
@@ -20,7 +19,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="pixelShader">The user defined pixel shader to use to modify images.</param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext ApplyPixelShaderProcessor(this IImageProcessingContext source, PixelShader pixelShader)
-            => source.ApplyProcessor(new DelegatePixelShaderProcessor(pixelShader));
+            => source.ApplyProcessor(new PixelShaderProcessor(pixelShader));
 
         /// <summary>
         /// Applies a user defined pixel shader to the image.
@@ -32,6 +31,6 @@ namespace SixLabors.ImageSharp.Processing
         /// </param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext BlackWhite(this IImageProcessingContext source, PixelShader pixelShader, Rectangle rectangle)
-            => source.ApplyProcessor(new DelegatePixelShaderProcessor(pixelShader), rectangle);
+            => source.ApplyProcessor(new PixelShaderProcessor(pixelShader), rectangle);
     }
 }

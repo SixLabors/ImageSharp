@@ -10,15 +10,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.PixelShading
     /// <summary>
     /// Applies a user defined pixel shader effect through a given delegate.
     /// </summary>
-    public sealed class DelegatePixelShaderProcessor : IImageProcessor
+    public sealed class PixelShaderProcessor : IImageProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="DelegatePixelShaderProcessor"/> class.
+        /// Initializes a new instance of the <see cref="PixelShaderProcessor"/> class.
         /// </summary>
         /// <param name="pixelShader">
         /// The user defined pixel shader to use to modify images.
         /// </param>
-        public DelegatePixelShaderProcessor(PixelShader pixelShader)
+        public PixelShaderProcessor(PixelShader pixelShader)
         {
             this.PixelShader = pixelShader;
         }
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.PixelShading
         public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
         {
-            return new DelegatePixelShaderProcessor<TPixel>(this, source, sourceRectangle);
+            return new PixelShaderProcessor<TPixel>(this, source, sourceRectangle);
         }
     }
 }

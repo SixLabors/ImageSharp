@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.PixelShading
         public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
         {
-            return new PositionAwarePixelShader<TPixel>(this, source, sourceRectangle);
+            return new PositionAwarePixelShaderProcessor<TPixel>(this, source, sourceRectangle);
         }
     }
 }

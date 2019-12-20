@@ -22,9 +22,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
         {
-            short fileTypeMarker = BinaryPrimitives.ReadInt16LittleEndian(header);
-            return header.Length >= this.HeaderSize &&
-                   (fileTypeMarker == BmpConstants.TypeMarkers.Bitmap || fileTypeMarker == BmpConstants.TypeMarkers.BitmapArray);
+            if (header.Length >= this.HeaderSize)
+            {
+                short fileTypeMarker = BinaryPrimitives.ReadInt16LittleEndian(header);
+                return fileTypeMarker == BmpConstants.TypeMarkers.Bitmap || fileTypeMarker == BmpConstants.TypeMarkers.BitmapArray;
+            }
+
+            return false;
         }
     }
 }

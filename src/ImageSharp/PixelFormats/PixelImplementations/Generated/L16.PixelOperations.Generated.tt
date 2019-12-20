@@ -6,14 +6,14 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// <content>
     /// Provides optimized overrides for bulk operations.
     /// </content>
-    public partial struct Gray8
+    public partial struct L16
     {
         /// <summary>
         /// Provides optimized overrides for bulk operations.
         /// </summary>
-        internal class PixelOperations : PixelOperations<Gray8>
+        internal class PixelOperations : PixelOperations<L16>
         {
-            <# GenerateAllDefaultConversionMethods("Gray8"); #>
+            <# GenerateAllDefaultConversionMethods("L16"); #>
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -8,56 +8,56 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <summary>
-    /// Packed pixel type containing a single 8 bit normalized W values.
+    /// Packed pixel type containing a single 8-bit normalized alpha value.
     /// <para>
     /// Ranges from [0, 0, 0, 0] to [0, 0, 0, 1] in vector form.
     /// </para>
     /// </summary>
-    public struct Alpha8 : IPixel<Alpha8>, IPackedVector<byte>
+    public struct A8 : IPixel<A8>, IPackedVector<byte>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Alpha8"/> struct.
+        /// Initializes a new instance of the <see cref="A8"/> struct.
         /// </summary>
         /// <param name="alpha">The alpha component.</param>
-        public Alpha8(byte alpha) => this.PackedValue = alpha;
+        public A8(byte alpha) => this.PackedValue = alpha;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Alpha8"/> struct.
+        /// Initializes a new instance of the <see cref="A8"/> struct.
         /// </summary>
         /// <param name="alpha">The alpha component.</param>
-        public Alpha8(float alpha) => this.PackedValue = Pack(alpha);
+        public A8(float alpha) => this.PackedValue = Pack(alpha);
 
         /// <inheritdoc />
         public byte PackedValue { get; set; }
 
         /// <summary>
-        /// Compares two <see cref="Alpha8"/> objects for equality.
+        /// Compares two <see cref="A8"/> objects for equality.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="Alpha8"/> on the left side of the operand.
+        /// The <see cref="A8"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="Alpha8"/> on the right side of the operand.
+        /// The <see cref="A8"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static bool operator ==(Alpha8 left, Alpha8 right) => left.Equals(right);
+        public static bool operator ==(A8 left, A8 right) => left.Equals(right);
 
         /// <summary>
-        /// Compares two <see cref="Alpha8"/> objects for equality.
+        /// Compares two <see cref="A8"/> objects for equality.
         /// </summary>
-        /// <param name="left">The <see cref="Alpha8"/> on the left side of the operand.</param>
-        /// <param name="right">The <see cref="Alpha8"/> on the right side of the operand.</param>
+        /// <param name="left">The <see cref="A8"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="A8"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static bool operator !=(Alpha8 left, Alpha8 right) => !left.Equals(right);
+        public static bool operator !=(A8 left, A8 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public PixelOperations<Alpha8> CreatePixelOperations() => new PixelOperations<Alpha8>();
+        public PixelOperations<A8> CreatePixelOperations() => new PixelOperations<A8>();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -93,11 +93,19 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray8(Gray8 source) => this.PackedValue = byte.MaxValue;
+        public void FromL8(L8 source) => this.PackedValue = byte.MaxValue;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray16(Gray16 source) => this.PackedValue = byte.MaxValue;
+        public void FromL16(L16 source) => this.PackedValue = byte.MaxValue;
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa16(La16 source) => this.PackedValue = source.A;
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa32(La32 source) => this.PackedValue = ImageMaths.DownScaleFrom16BitTo8Bit(source.A);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -128,21 +136,21 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <param name="obj">The object to compare.</param>
         /// <returns>True if the object is equal to the packed vector.</returns>
-        public override bool Equals(object obj) => obj is Alpha8 other && this.Equals(other);
+        public override bool Equals(object obj) => obj is A8 other && this.Equals(other);
 
         /// <summary>
-        /// Compares another Alpha8 packed vector with the packed vector.
+        /// Compares another A8 packed vector with the packed vector.
         /// </summary>
-        /// <param name="other">The Alpha8 packed vector to compare.</param>
+        /// <param name="other">The A8 packed vector to compare.</param>
         /// <returns>True if the packed vectors are equal.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public bool Equals(Alpha8 other) => this.PackedValue.Equals(other.PackedValue);
+        public bool Equals(A8 other) => this.PackedValue.Equals(other.PackedValue);
 
         /// <summary>
         /// Gets a string representation of the packed vector.
         /// </summary>
         /// <returns>A string representation of the packed vector.</returns>
-        public override string ToString() => $"Alpha8({this.PackedValue})";
+        public override string ToString() => $"A8({this.PackedValue})";
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]

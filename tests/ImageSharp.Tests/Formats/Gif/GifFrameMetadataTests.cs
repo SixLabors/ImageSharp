@@ -6,7 +6,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Gif
 {
-    public class GifFrameMetaDataTests
+    public class GifFrameMetadataTests
     {
         [Fact]
         public void CloneIsDeep()

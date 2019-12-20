@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
                     memStream.Position = 0;
                     using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
                     {
-                        TgaMetadata meta = output.Metadata.GetFormatMetadata(TgaFormat.Instance);
+                        TgaMetadata meta = output.Metadata.GetTgaMetadata();
                         Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
                     }
                 }
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
                     memStream.Position = 0;
                     using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
                     {
-                        TgaMetadata meta = output.Metadata.GetFormatMetadata(TgaFormat.Instance);
+                        TgaMetadata meta = output.Metadata.GetTgaMetadata();
                         Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
                     }
                 }

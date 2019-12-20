@@ -25,7 +25,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.PixelShading.Abstract
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         protected PixelShaderProcessorBase(Image<TPixel> source, Rectangle sourceRectangle)
             : base(source, sourceRectangle)
-        { }
+        {
+        }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)

@@ -4,10 +4,9 @@
 using System;
 using System.Numerics;
 
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Delegates;
+using SixLabors.ImageSharp.Processing.Processors.PixelShading.Abstract;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.PixelShading
@@ -16,7 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.PixelShading
     /// Applies a user defined pixel shader effect through a given delegate.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class PositionAwarePixelShaderProcessor<TPixel> : ImageProcessor<TPixel>
+    internal class PositionAwarePixelShaderProcessor<TPixel> : PixelShaderProcessorBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -37,29 +36,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.PixelShading
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source)
-        {
-            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
-            int startX = interest.X;
-            PositionAwarePixelShader pixelShader = this.pixelShader;
-
-            ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
-                interest,
-                this.Configuration,
-                (rows, vectorBuffer) =>
-                {
-                    for (int y = rows.Min; y < rows.Max; y++)
-                    {
-                        Span<Vector4> vectorSpan = vectorBuffer.Span;
-                        int length = vectorSpan.Length;
-                        Span<TPixel> rowSpan = source.GetPixelRowSpan(y).Slice(startX, length);
-                        PixelOperations<TPixel>.Instance.ToVector4(this.Configuration, rowSpan, vectorSpan);
-
-                        pixelShader(vectorSpan, y, startX);
-
-                        PixelOperations<TPixel>.Instance.FromVector4Destructive(this.Configuration, vectorSpan, rowSpan);
-                    }
-                });
-        }
+        protected override void ApplyPixelShader(Span<Vector4> span, int offsetY, int offsetX) => this.pixelShader(span, offsetY, offsetX);
     }
 }

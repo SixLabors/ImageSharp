@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Processing.Delegates;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.ImageSharp.Processing.Processors.PixelShading;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing

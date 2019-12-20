@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             IErrorDiffuser diffuser = this.definition.Diffuser;
 
             byte threshold = (byte)MathF.Round(this.definition.Threshold * 255F);
-            bool isAlphaOnly = typeof(TPixel) == typeof(Alpha8);
+            bool isAlphaOnly = typeof(TPixel) == typeof(A8);
 
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
             int startY = interest.Y;

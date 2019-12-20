@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -80,16 +80,28 @@ namespace SixLabors.ImageSharp.PixelFormats
         void FromBgra32(Bgra32 source);
 
         /// <summary>
-        /// Initializes the pixel instance from an <see cref="Gray8"/> value.
+        /// Initializes the pixel instance from an <see cref="L8"/> value.
         /// </summary>
-        /// <param name="source">The <see cref="Gray8"/> value.</param>
-        void FromGray8(Gray8 source);
+        /// <param name="source">The <see cref="L8"/> value.</param>
+        void FromL8(L8 source);
 
         /// <summary>
-        /// Initializes the pixel instance from an <see cref="Gray16"/> value.
+        /// Initializes the pixel instance from an <see cref="L16"/> value.
         /// </summary>
-        /// <param name="source">The <see cref="Gray16"/> value.</param>
-        void FromGray16(Gray16 source);
+        /// <param name="source">The <see cref="L16"/> value.</param>
+        void FromL16(L16 source);
+
+        /// <summary>
+        /// Initializes the pixel instance from an <see cref="La16"/> value.
+        /// </summary>
+        /// <param name="source">The <see cref="La16"/> value.</param>
+        void FromLa16(La16 source);
+
+        /// <summary>
+        /// Initializes the pixel instance from an <see cref="La32"/> value.
+        /// </summary>
+        /// <param name="source">The <see cref="La32"/> value.</param>
+        void FromLa32(La32 source);
 
         /// <summary>
         /// Initializes the pixel instance from an <see cref="Rgb24"/> value.

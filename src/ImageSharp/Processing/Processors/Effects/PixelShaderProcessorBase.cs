@@ -19,13 +19,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
+        /// The <see cref="PixelConversionModifiers"/> to apply during the pixel conversions.
+        /// </summary>
+        private readonly PixelConversionModifiers modifiers;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="PixelShaderProcessorBase{TPixel}"/> class.
         /// </summary>
+        /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the pixel conversions.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        protected PixelShaderProcessorBase(Image<TPixel> source, Rectangle sourceRectangle)
+        protected PixelShaderProcessorBase(PixelConversionModifiers modifiers, Image<TPixel> source, Rectangle sourceRectangle)
             : base(source, sourceRectangle)
         {
+            this.modifiers = modifiers;
         }
 
         /// <inheritdoc/>
@@ -44,12 +51,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                         Span<Vector4> vectorSpan = vectorBuffer.Span;
                         int length = vectorSpan.Length;
                         Span<TPixel> rowSpan = source.GetPixelRowSpan(y).Slice(startX, length);
-                        PixelOperations<TPixel>.Instance.ToVector4(this.Configuration, rowSpan, vectorSpan);
+                        PixelOperations<TPixel>.Instance.ToVector4(this.Configuration, rowSpan, vectorSpan, this.modifiers);
 
                         // Run the user defined pixel shader on the current row of pixels
                         this.ApplyPixelShader(vectorSpan, y, startX);
 
-                        PixelOperations<TPixel>.Instance.FromVector4Destructive(this.Configuration, vectorSpan, rowSpan);
+                        PixelOperations<TPixel>.Instance.FromVector4Destructive(this.Configuration, vectorSpan, rowSpan, this.modifiers);
                     }
                 });
         }

@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing.Processors.PixelShading.Abstract
+namespace SixLabors.ImageSharp.Processing.Processors.Effects
 {
     /// <summary>
     /// Applies a user defined pixel shader effect through a given delegate.

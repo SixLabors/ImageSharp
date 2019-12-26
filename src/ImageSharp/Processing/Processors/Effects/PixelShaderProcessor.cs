@@ -4,20 +4,20 @@
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing.Processors.PixelShading
+namespace SixLabors.ImageSharp.Processing.Processors.Effects
 {
     /// <summary>
     /// Applies a user defined pixel shader effect through a given delegate.
     /// </summary>
-    public sealed class PositionAwarePixelShaderProcessor : IImageProcessor
+    public sealed class PixelShaderProcessor : IImageProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="PositionAwarePixelShaderProcessor"/> class.
+        /// Initializes a new instance of the <see cref="PixelShaderProcessor"/> class.
         /// </summary>
         /// <param name="pixelShader">
         /// The user defined pixel shader to use to modify images.
         /// </param>
-        public PositionAwarePixelShaderProcessor(PositionAwarePixelShader pixelShader)
+        public PixelShaderProcessor(PixelShader pixelShader)
         {
             this.PixelShader = pixelShader;
         }
@@ -25,13 +25,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.PixelShading
         /// <summary>
         /// Gets the user defined pixel shader.
         /// </summary>
-        public PositionAwarePixelShader PixelShader { get; }
+        public PixelShader PixelShader { get; }
 
         /// <inheritdoc />
         public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
         {
-            return new PositionAwarePixelShaderProcessor<TPixel>(this, source, sourceRectangle);
+            return new PixelShaderProcessor<TPixel>(this, source, sourceRectangle);
         }
     }
 }

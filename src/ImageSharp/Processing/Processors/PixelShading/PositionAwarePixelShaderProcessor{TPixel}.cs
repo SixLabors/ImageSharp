@@ -5,7 +5,6 @@ using System;
 using System.Numerics;
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Delegates;
 using SixLabors.ImageSharp.Processing.Processors.PixelShading.Abstract;
 using SixLabors.Primitives;
 

@@ -4,7 +4,7 @@
 using System;
 using System.Numerics;
 
-namespace SixLabors.ImageSharp.Processing.Delegates
+namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
     /// A <see langword="delegate"/> representing a user defined pixel shader.

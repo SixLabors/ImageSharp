@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public PositionAwarePixelShaderProcessor(PositionAwarePixelShaderProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
-            : base(source, sourceRectangle)
+            : base(definition.Modifiers, source, sourceRectangle)
         {
             this.pixelShader = definition.PixelShader;
         }

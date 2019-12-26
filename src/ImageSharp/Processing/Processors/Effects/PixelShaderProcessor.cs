@@ -12,6 +12,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
     public sealed class PixelShaderProcessor : IImageProcessor
     {
         /// <summary>
+        /// The default <see cref="PixelConversionModifiers"/> to apply during the pixel conversions.
+        /// </summary>
+        public const PixelConversionModifiers DefaultModifiers = PixelConversionModifiers.None;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="PixelShaderProcessor"/> class.
         /// </summary>
         /// <param name="pixelShader">
@@ -20,12 +25,31 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         public PixelShaderProcessor(PixelShader pixelShader)
         {
             this.PixelShader = pixelShader;
+            this.Modifiers = DefaultModifiers;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PixelShaderProcessor"/> class.
+        /// </summary>
+        /// <param name="pixelShader">
+        /// The user defined pixel shader to use to modify images.
+        /// </param>
+        /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the pixel conversions.</param>
+        public PixelShaderProcessor(PixelShader pixelShader, PixelConversionModifiers modifiers)
+        {
+            this.PixelShader = pixelShader;
+            this.Modifiers = modifiers;
         }
 
         /// <summary>
         /// Gets the user defined pixel shader.
         /// </summary>
         public PixelShader PixelShader { get; }
+
+        /// <summary>
+        /// Gets the <see cref="PixelConversionModifiers"/> to apply during the pixel conversions.
+        /// </summary>
+        public PixelConversionModifiers Modifiers { get; }
 
         /// <inheritdoc />
         public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)

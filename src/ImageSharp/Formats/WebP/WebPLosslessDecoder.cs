@@ -710,13 +710,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
             else
             {
-                int copiedPixels = 0;
-                while (copiedPixels < length)
+                Span<uint> src = pixelData.AsSpan(decodedPixels - dist);
+                Span<uint> dest = pixelData.AsSpan(decodedPixels);
+                for (int i = 0; i < length; ++i)
                 {
-                    Span<uint> src = pixelData.AsSpan(decodedPixels - dist, dist);
-                    Span<uint> dest = pixelData.AsSpan(decodedPixels + copiedPixels);
-                    src.CopyTo(dest);
-                    copiedPixels += dist;
+                    dest[i] = src[i];
                 }
             }
         }

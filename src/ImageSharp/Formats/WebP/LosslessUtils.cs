@@ -177,7 +177,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             // First Row follows the L (mode=1) mode.
             PredictorAdd0(pixelData, processedPixels, 1, output);
-            PredictorAdd1(pixelData, processedPixels + 1, width - 1, output);
+            PredictorAdd1(pixelData, 1, width - 1, output);
             processedPixels += width;
             yStart++;
 
@@ -195,7 +195,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 // First pixel follows the T (mode=2) mode.
                 PredictorAdd2(pixelData, processedPixels, 1, width, output);
 
-                // .. the rest:
                 while (x < width)
                 {
                     uint predictorMode = (transform.Data[predictorModeIdx++] >> 8) & 0xf;
@@ -271,7 +270,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
         // TODO: the predictor add methods should be generated
         private static void PredictorAdd0(uint[] input, int startIdx, int numberOfPixels, uint[] output)
         {
-            for (int x = startIdx; x < numberOfPixels; ++x)
+            int endIdx = startIdx + numberOfPixels;
+            for (int x = startIdx; x < endIdx; ++x)
             {
                 uint pred = Predictor0();
                 output[x] = AddPixels(input[x], pred);
@@ -280,8 +280,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private static void PredictorAdd1(uint[] input, int startIdx, int numberOfPixels, uint[] output)
         {
+            int endIdx = startIdx + numberOfPixels;
             uint left = output[startIdx - 1];
-            for (int x = 0; x < numberOfPixels; ++x)
+            for (int x = startIdx; x < endIdx; ++x)
             {
                 output[x] = left = AddPixels(input[x], left);
             }

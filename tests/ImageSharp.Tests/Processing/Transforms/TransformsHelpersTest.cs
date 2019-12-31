@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -19,8 +19,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             {
                 var profile = new ExifProfile();
                 img.Metadata.ExifProfile = profile;
-                profile.SetValue(ExifTag.PixelXDimension, (uint)xy);
-                profile.SetValue(ExifTag.PixelYDimension, (uint)xy);
+                profile.SetValue(ExifTag.PixelXDimension, (uint)xy + ushort.MaxValue);
+                profile.SetValue(ExifTag.PixelYDimension, (uint)xy + ushort.MaxValue);
 
                 Assert.Equal(ExifDataType.Long, profile.GetValue(ExifTag.PixelXDimension).DataType);
                 Assert.Equal(ExifDataType.Long, profile.GetValue(ExifTag.PixelYDimension).DataType);

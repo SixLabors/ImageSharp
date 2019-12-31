@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
@@ -20,6 +20,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         /// <summary>
         /// An 8-bit byte containing one 7-bit ASCII code. The final byte is terminated with NULL.
+        /// <remarks>
+        /// Although the standard defines ASCII this has commonly been ignored as
+        /// ASCII cannot properly encode text in many languages.
+        /// </remarks>
         /// </summary>
         Ascii = 2,
 
@@ -64,12 +68,12 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         SignedRational = 10,
 
         /// <summary>
-        /// A 32-bit floating point value.
+        /// A 32-bit single precision floating point value.
         /// </summary>
         SingleFloat = 11,
 
         /// <summary>
-        /// A 64-bit floating point value.
+        /// A 64-bit double precision floating point value.
         /// </summary>
         DoubleFloat = 12
     }

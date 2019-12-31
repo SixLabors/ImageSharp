@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -29,11 +29,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// <summary>
         /// GPSTags
         /// </summary>
-        GPSTags = 8,
+        GpsTags = 8,
 
         /// <summary>
         /// All
         /// </summary>
-        All = IfdTags | ExifTags | GPSTags
+        All = IfdTags | ExifTags | GpsTags
     }
 }

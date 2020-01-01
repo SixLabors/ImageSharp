@@ -19,8 +19,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             {
                 var profile = new ExifProfile();
                 img.Metadata.ExifProfile = profile;
-                profile.SetValue(ExifTag.PixelXDimension, (uint)xy + ushort.MaxValue);
-                profile.SetValue(ExifTag.PixelYDimension, (uint)xy + ushort.MaxValue);
+                profile.SetValue(ExifTag.PixelXDimension, xy + ushort.MaxValue);
+                profile.SetValue(ExifTag.PixelYDimension, xy + ushort.MaxValue);
 
                 Assert.Equal(ExifDataType.Long, profile.GetValue(ExifTag.PixelXDimension).DataType);
                 Assert.Equal(ExifDataType.Long, profile.GetValue(ExifTag.PixelYDimension).DataType);

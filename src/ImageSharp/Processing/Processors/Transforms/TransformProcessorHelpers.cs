@@ -29,12 +29,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // Only set the value if it already exists.
             if (profile.GetValue(ExifTag.PixelXDimension) != null)
             {
-                profile.SetValue(ExifTag.PixelXDimension, new Number((uint)image.Width));
+                profile.SetValue(ExifTag.PixelXDimension, image.Width);
             }
 
             if (profile.GetValue(ExifTag.PixelYDimension) != null)
             {
-                profile.SetValue(ExifTag.PixelYDimension, new Number((uint)image.Height));
+                profile.SetValue(ExifTag.PixelYDimension, image.Height);
             }
         }
     }

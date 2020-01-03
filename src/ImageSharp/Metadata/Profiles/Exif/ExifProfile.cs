@@ -143,15 +143,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// <typeparam name="TValueType">The data type of the tag.</typeparam>
         public IExifValue<TValueType> GetValue<TValueType>(ExifTag<TValueType> tag)
         {
-            foreach (IExifValue exifValue in this.Values)
-            {
-                if (exifValue.Tag == tag)
-                {
-                    return (IExifValue<TValueType>)exifValue;
-                }
-            }
-
-            return null;
+            IExifValue value = this.GetValueInternal(tag);
+            return value is null ? null : (IExifValue<TValueType>)value;
         }
 
         /// <summary>
@@ -184,25 +177,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// <param name="value">The value.</param>
         /// <typeparam name="TValueType">The data type of the tag.</typeparam>
         public void SetValue<TValueType>(ExifTag<TValueType> tag, TValueType value)
-        {
-            foreach (IExifValue exifValue in this.Values)
-            {
-                if (exifValue.Tag == tag)
-                {
-                    exifValue.TrySetValue(value);
-                    return;
-                }
-            }
-
-            ExifValue newExifValue = ExifValues.Create(tag);
-            if (newExifValue is null)
-            {
-                throw new NotSupportedException();
-            }
-
-            newExifValue.TrySetValue(value);
-            this.values.Add(newExifValue);
-        }
+            => this.SetValueInternal(tag, value);
 
         /// <summary>
         /// Converts this instance to a byte array.
@@ -226,6 +201,50 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         /// <inheritdoc/>
         public ExifProfile DeepClone() => new ExifProfile(this);
+
+        /// <summary>
+        /// Returns the value with the specified tag.
+        /// </summary>
+        /// <param name="tag">The tag of the exif value.</param>
+        /// <returns>The value with the specified tag.</returns>
+        internal IExifValue GetValueInternal(ExifTag tag)
+        {
+            foreach (IExifValue exifValue in this.Values)
+            {
+                if (exifValue.Tag == tag)
+                {
+                    return exifValue;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Sets the value of the specified tag.
+        /// </summary>
+        /// <param name="tag">The tag of the exif value.</param>
+        /// <param name="value">The value.</param>
+        internal void SetValueInternal(ExifTag tag, object value)
+        {
+            foreach (IExifValue exifValue in this.Values)
+            {
+                if (exifValue.Tag == tag)
+                {
+                    exifValue.TrySetValue(value);
+                    return;
+                }
+            }
+
+            ExifValue newExifValue = ExifValues.Create(tag);
+            if (newExifValue is null)
+            {
+                throw new NotSupportedException();
+            }
+
+            newExifValue.TrySetValue(value);
+            this.values.Add(newExifValue);
+        }
 
         /// <summary>
         /// Synchronizes the profiles with the specified metadata.

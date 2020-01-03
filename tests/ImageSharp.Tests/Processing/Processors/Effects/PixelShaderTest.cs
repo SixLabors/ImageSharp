@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Numerics;
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -46,6 +47,61 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
                             Vector4 v4 = span[i];
                             float avg = (v4.X + v4.Y + v4.Z) / 3f;
                             span[i] = new Vector4(avg);
+                        }
+                    }, rect));
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32)]
+        public void PositionAwareFullImage<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            provider.RunValidatingProcessorTest(
+                c => c.ApplyPixelShaderProcessor(
+                    (span, y, x) =>
+                    {
+                        for (int i = 0; i < span.Length; i++)
+                        {
+                            float
+                                sine = MathF.Sin(y),
+                                cosine = MathF.Cos(x + i),
+                                sum = sine + cosine,
+                                abs = MathF.Abs(sum),
+                                a = 0.5f + abs / 2; // Max value for sin(y) + cos(x) is 2
+                                
+                            Vector4 v4 = span[i];
+                            float avg = (v4.X + v4.Y + v4.Z) / 3f;
+                            var gray = new Vector4(avg, avg, avg, a);
+
+                            span[i] = Vector4.Clamp(gray, Vector4.Zero, Vector4.One);
+                        }
+                    }),
+                appendPixelTypeToFileName: false);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32)]
+        public void PositionAwareInBox<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            provider.RunRectangleConstrainedValidatingProcessorTest(
+                (c, rect) => c.ApplyPixelShaderProcessor(
+                    (span, y, x) =>
+                    {
+                        for (int i = 0; i < span.Length; i++)
+                        {
+                            float
+                                sine = MathF.Sin(y),
+                                cosine = MathF.Cos(x + i),
+                                sum = sine + cosine,
+                                abs = MathF.Abs(sum),
+                                a = 0.5f + abs / 2;
+
+                            Vector4 v4 = span[i];
+                            float avg = (v4.X + v4.Y + v4.Z) / 3f;
+                            var gray = new Vector4(avg, avg, avg, a);
+
+                            span[i] = Vector4.Clamp(gray, Vector4.Zero, Vector4.One);
                         }
                     }, rect));
         }

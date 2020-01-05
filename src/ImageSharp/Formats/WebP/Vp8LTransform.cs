@@ -1,11 +1,14 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Diagnostics;
+
 namespace SixLabors.ImageSharp.Formats.WebP
 {
     /// <summary>
     /// Data associated with a VP8L transformation to reduce the entropy.
     /// </summary>
+    [DebuggerDisplay("Transformtype: {TransformType}")]
     internal class Vp8LTransform
     {
         public Vp8LTransform(Vp8LTransformType transformType, int xSize, int ySize)

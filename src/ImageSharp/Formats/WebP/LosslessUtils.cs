@@ -89,25 +89,27 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int remainingWidth = width - safeWidth;
             int tilesPerRow = SubSampleSize(width, transform.Bits);
             int y = 0;
-            uint predRow = transform.Data[(y >> transform.Bits) * tilesPerRow];
+            int predRowIdxStart = (y >> transform.Bits) * tilesPerRow;
 
             int pixelPos = 0;
             while (y < yEnd)
             {
-                uint pred = predRow;
+                int predRowIdx = predRowIdxStart;
                 Vp8LMultipliers m = default(Vp8LMultipliers);
                 int srcSafeEnd = pixelPos + safeWidth;
                 int srcEnd = pixelPos + width;
                 while (pixelPos < srcSafeEnd)
                 {
-                    ColorCodeToMultipliers(pred++, ref m);
+                    uint colorCode = transform.Data[predRowIdx++];
+                    ColorCodeToMultipliers(colorCode, ref m);
                     TransformColorInverse(m, pixelData, pixelPos, tileWidth);
                     pixelPos += tileWidth;
                 }
 
                 if (pixelPos < srcEnd)
                 {
-                    ColorCodeToMultipliers(pred++, ref m);
+                    uint colorCode = transform.Data[predRowIdx];
+                    ColorCodeToMultipliers(colorCode, ref m);
                     TransformColorInverse(m, pixelData, pixelPos, remainingWidth);
                     pixelPos += remainingWidth;
                 }
@@ -115,7 +117,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 ++y;
                 if ((y & mask) == 0)
                 {
-                    predRow += (uint)tilesPerRow;
+                    predRowIdxStart += tilesPerRow;
                 }
             }
         }
@@ -130,13 +132,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 uint red = argb >> 16;
                 int newRed = (int)(red & 0xff);
                 int newBlue = (int)argb & 0xff;
-                newRed += ColorTransformDelta(m.GreenToRed, (sbyte)green);
+                newRed += ColorTransformDelta((sbyte)m.GreenToRed, (sbyte)green);
                 newRed &= 0xff;
-                newBlue += ColorTransformDelta(m.GreenToBlue, (sbyte)green);
-                newBlue += ColorTransformDelta(m.RedToBlue, (sbyte)newRed);
+                newBlue += ColorTransformDelta((sbyte)m.GreenToBlue, (sbyte)green);
+                newBlue += ColorTransformDelta((sbyte)m.RedToBlue, (sbyte)newRed);
                 newBlue &= 0xff;
 
-                // uint pixelValue = (uint)((argb & 0xff00ff00u) | (newRed << 16) | newBlue);
+                uint pixelValue = (uint)((argb & 0xff00ff00u) | (newRed << 16) | newBlue);
                 pixelData[i] = (uint)((argb & 0xff00ff00u) | (newRed << 16) | newBlue);
             }
         }
@@ -612,23 +614,24 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private static int ColorTransformDelta(sbyte colorPred, sbyte color)
         {
+            var delta = ((sbyte)colorPred * color) >> 5;
             return ((int)colorPred * color) >> 5;
         }
 
         private static void ColorCodeToMultipliers(uint colorCode, ref Vp8LMultipliers m)
         {
-            m.GreenToRed = (sbyte)(colorCode & 0xff);
-            m.GreenToBlue = (sbyte)((colorCode >> 8) & 0xff);
-            m.RedToBlue = (sbyte)((colorCode >> 16) & 0xff);
+            m.GreenToRed = (byte)(colorCode & 0xff);
+            m.GreenToBlue = (byte)((colorCode >> 8) & 0xff);
+            m.RedToBlue = (byte)((colorCode >> 16) & 0xff);
         }
 
         internal struct Vp8LMultipliers
         {
-            public sbyte GreenToRed;
+            public byte GreenToRed;
 
-            public sbyte GreenToBlue;
+            public byte GreenToBlue;
 
-            public sbyte RedToBlue;
+            public byte RedToBlue;
         }
     }
 }

@@ -306,7 +306,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
                 else
                 {
-                    // Error
+                    // TODO: throw appropriate error msg
                 }
             }
 
@@ -750,7 +750,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int xOffset = 8 - (distCode & 0xf);
             int dist = (yOffset * xSize) + xOffset;
 
-            // dist < 1 can happen if xsize is very small.
+            // dist < 1 can happen if xSize is very small.
             return (dist >= 1) ? dist : 1;
         }
 

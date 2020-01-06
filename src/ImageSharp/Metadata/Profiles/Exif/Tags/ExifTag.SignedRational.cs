@@ -9,32 +9,32 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
     public abstract partial class ExifTag
     {
         /// <summary>
-        /// Gets the ClipPath exif tag.
+        /// Gets the ShutterSpeedValue exif tag.
         /// </summary>
         public static ExifTag<SignedRational> ShutterSpeedValue { get; } = new ExifTag<SignedRational>(ExifTagValue.ShutterSpeedValue);
 
         /// <summary>
-        /// Gets the ClipPath exif tag.
+        /// Gets the BrightnessValue exif tag.
         /// </summary>
         public static ExifTag<SignedRational> BrightnessValue { get; } = new ExifTag<SignedRational>(ExifTagValue.BrightnessValue);
 
         /// <summary>
-        /// Gets the ClipPath exif tag.
+        /// Gets the ExposureBiasValue exif tag.
         /// </summary>
         public static ExifTag<SignedRational> ExposureBiasValue { get; } = new ExifTag<SignedRational>(ExifTagValue.ExposureBiasValue);
 
         /// <summary>
-        /// Gets the ClipPath exif tag.
+        /// Gets the AmbientTemperature exif tag.
         /// </summary>
         public static ExifTag<SignedRational> AmbientTemperature { get; } = new ExifTag<SignedRational>(ExifTagValue.AmbientTemperature);
 
         /// <summary>
-        /// Gets the ClipPath exif tag.
+        /// Gets the WaterDepth exif tag.
         /// </summary>
         public static ExifTag<SignedRational> WaterDepth { get; } = new ExifTag<SignedRational>(ExifTagValue.WaterDepth);
 
         /// <summary>
-        /// Gets the ClipPath exif tag.
+        /// Gets the CameraElevationAngle exif tag.
         /// </summary>
         public static ExifTag<SignedRational> CameraElevationAngle { get; } = new ExifTag<SignedRational>(ExifTagValue.CameraElevationAngle);
     }

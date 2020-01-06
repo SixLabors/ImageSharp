@@ -26,11 +26,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelShaderProcessorBase{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the pixel conversions.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        protected PixelShaderProcessorBase(PixelConversionModifiers modifiers, Image<TPixel> source, Rectangle sourceRectangle)
-            : base(source, sourceRectangle)
+        protected PixelShaderProcessorBase(Configuration configuration, PixelConversionModifiers modifiers, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             this.modifiers = modifiers;
         }

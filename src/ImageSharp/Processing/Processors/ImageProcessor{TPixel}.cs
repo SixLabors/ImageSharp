@@ -19,13 +19,14 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        protected ImageProcessor(Image<TPixel> source, Rectangle sourceRectangle)
+        protected ImageProcessor(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
         {
+            this.Configuration = configuration;
             this.Source = source;
             this.SourceRectangle = sourceRectangle;
-            this.Configuration = this.Source.GetConfiguration();
         }
 
         /// <summary>

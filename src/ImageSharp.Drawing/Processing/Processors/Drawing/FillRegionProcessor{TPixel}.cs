@@ -23,8 +23,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
     {
         private readonly FillRegionProcessor definition;
 
-        public FillRegionProcessor(FillRegionProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
-            : base(source, sourceRectangle)
+        public FillRegionProcessor(Configuration configuration, FillRegionProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             this.definition = definition;
         }

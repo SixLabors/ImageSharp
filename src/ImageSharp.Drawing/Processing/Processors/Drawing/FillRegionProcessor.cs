@@ -42,10 +42,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
         public GraphicsOptions Options { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return new FillRegionProcessor<TPixel>(this, source, sourceRectangle);
-        }
+            => new FillRegionProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

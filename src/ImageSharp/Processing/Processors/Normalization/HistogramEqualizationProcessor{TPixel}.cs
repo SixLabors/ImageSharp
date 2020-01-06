@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -23,6 +22,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <summary>
         /// Initializes a new instance of the <see cref="HistogramEqualizationProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="luminanceLevels">The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
         /// or 65536 for 16-bit grayscale images.</param>
         /// <param name="clipHistogram">Indicates, if histogram bins should be clipped.</param>
@@ -30,12 +30,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         protected HistogramEqualizationProcessor(
+            Configuration configuration,
             int luminanceLevels,
             bool clipHistogram,
             int clipLimit,
             Image<TPixel> source,
             Rectangle sourceRectangle)
-            : base(source, sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             Guard.MustBeGreaterThan(luminanceLevels, 0, nameof(luminanceLevels));
             Guard.MustBeGreaterThan(clipLimit, 1, nameof(clipLimit));

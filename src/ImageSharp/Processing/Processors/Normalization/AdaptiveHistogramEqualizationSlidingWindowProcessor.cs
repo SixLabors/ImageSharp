@@ -34,15 +34,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         public int NumberOfTiles { get; }
 
         /// <inheritdoc />
-        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
-        {
-            return new AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel>(
+        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+            => new AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel>(
+                configuration,
                 this.LuminanceLevels,
                 this.ClipHistogram,
                 this.ClipLimit,
                 this.NumberOfTiles,
                 source,
                 sourceRectangle);
-        }
     }
 }

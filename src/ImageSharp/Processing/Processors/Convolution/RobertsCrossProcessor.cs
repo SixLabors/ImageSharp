@@ -21,14 +21,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         }
 
         /// <inheritdoc />
-        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
-        {
-            return new EdgeDetector2DProcessor<TPixel>(
+        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+            => new EdgeDetector2DProcessor<TPixel>(
+                configuration,
                 RobertsCrossKernels.RobertsCrossX,
                 RobertsCrossKernels.RobertsCrossY,
                 this.Grayscale,
                 source,
                 sourceRectangle);
-        }
     }
 }

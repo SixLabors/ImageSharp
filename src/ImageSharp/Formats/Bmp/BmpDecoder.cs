@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
@@ -37,6 +37,21 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <inheritdoc />
         public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
+
+        /// <inheritdoc/>
+        public Texture<TPixel> DecodeTexture<TPixel>(Configuration configuration, Stream stream)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            var texture = new Texture<TPixel>
+            {
+                Images = new Image<TPixel>[1][]
+            };
+            texture.Images[0] = new[] { this.Decode<TPixel>(configuration, stream) };
+            return texture;
+        }
+
+        /// <inheritdoc />
+        public Texture DecodeTexture(Configuration configuration, Stream stream) => this.DecodeTexture<Rgba32>(configuration, stream);
 
         /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream)

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -155,6 +155,13 @@ namespace SixLabors.ImageSharp.Tests
                 return cachedImage.Clone(this.Configuration);
             }
 
+            public override Texture<TPixel> GetTexture(IImageDecoder decoder)
+            {
+                Guard.NotNull(decoder, nameof(decoder));
+
+                return this.LoadTexture(decoder);
+            }
+
             public override void Deserialize(IXunitSerializationInfo info)
             {
                 this.FilePath = info.GetValue<string>("path");
@@ -172,6 +179,12 @@ namespace SixLabors.ImageSharp.Tests
             {
                 var testFile = TestFile.Create(this.FilePath);
                 return Image.Load<TPixel>(this.Configuration, testFile.Bytes, decoder);
+            }
+
+            private Texture<TPixel> LoadTexture(IImageDecoder decoder)
+            {
+                var testFile = TestFile.Create(this.FilePath);
+                return Texture.Load<TPixel>(this.Configuration, testFile.Bytes, decoder);
             }
         }
 

@@ -101,6 +101,11 @@ namespace SixLabors.ImageSharp.Tests
             throw new NotSupportedException($"Decoder specific GetImage() is not supported with {this.GetType().Name}!");
         }
 
+        public virtual Texture<TPixel> GetTexture(IImageDecoder decoder)
+        {
+            throw new NotSupportedException($"Decoder specific GetTexture() is not supported with {this.GetType().Name}!");
+        }
+
         /// <summary>
         /// Returns an <see cref="Image{TPixel}"/> instance to the test case with the necessary traits.
         /// </summary>

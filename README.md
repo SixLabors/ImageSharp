@@ -155,6 +155,7 @@ Core Team
 - [Dirk Lemstra](https://github.com/dlemstra)
 - [Anton Firsov](https://github.com/antonfirsov)
 - [Scott Williams](https://github.com/tocsoft)
+- [Brian Popow](https://github.com/brianpopow)
 
 ### Backers
 

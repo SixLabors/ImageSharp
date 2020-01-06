@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Advanced.ParallelUtils;
@@ -63,15 +64,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                 source.CopyTo(targetPixels);
 
                 var workingRect = Rectangle.FromLTRB(startX, startY, endX, endY);
-                ParallelHelper.IterateRows(
+                ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
                     workingRect,
                     this.Configuration,
-                    rows =>
+                    (rows, vectorBuffer) =>
                         {
+                            Span<Vector4> vectorSpan = vectorBuffer.Span;
+                            int length = vectorSpan.Length;
+                            ref Vector4 vectorSpanRef = ref MemoryMarshal.GetReference(vectorSpan);
+
                             for (int y = rows.Min; y < rows.Max; y++)
                             {
                                 Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
-                                Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
+                                Span<TPixel> targetRowSpan = targetPixels.GetRowSpan(y).Slice(startX, length);
+                                PixelOperations<TPixel>.Instance.ToVector4(configuration, targetRowSpan, vectorSpan);
 
                                 for (int x = startX; x < endX; x++)
                                 {
@@ -124,12 +130,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                                             float red = MathF.Abs(Unsafe.Add(ref redBinRef, maxIndex) / maxIntensity);
                                             float blue = MathF.Abs(Unsafe.Add(ref blueBinRef, maxIndex) / maxIntensity);
                                             float green = MathF.Abs(Unsafe.Add(ref greenBinRef, maxIndex) / maxIntensity);
+                                            float alpha = sourceRow[x].ToVector4().W;
 
-                                            ref TPixel pixel = ref targetRow[x];
-                                            pixel.FromVector4(new Vector4(red, green, blue, sourceRow[x].ToVector4().W));
+                                            Unsafe.Add(ref vectorSpanRef, x) = new Vector4(red, green, blue, alpha);
                                         }
                                     }
                                 }
+
+                                PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan, targetRowSpan);
                             }
                         });
 

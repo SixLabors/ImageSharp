@@ -2,12 +2,15 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Effects
@@ -53,6 +56,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
             int radius = brushSize >> 1;
             int levels = this.definition.Levels;
 
+            Configuration configuration = this.Configuration;
+
             using (Buffer2D<TPixel> targetPixels = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
             {
                 source.CopyTo(targetPixels);
@@ -73,54 +78,56 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                                     int maxIntensity = 0;
                                     int maxIndex = 0;
 
-                                    var intensityBin = new int[levels];
-                                    var redBin = new float[levels];
-                                    var blueBin = new float[levels];
-                                    var greenBin = new float[levels];
-
-                                    for (int fy = 0; fy <= radius; fy++)
+                                    using (IMemoryOwner<float> bins = configuration.MemoryAllocator.Allocate<float>(levels * 4, AllocationOptions.Clean))
                                     {
-                                        int fyr = fy - radius;
-                                        int offsetY = y + fyr;
+                                        ref float binsRef = ref bins.GetReference();
+                                        ref int intensityBinRef = ref Unsafe.As<float, int>(ref binsRef);
+                                        ref float redBinRef = ref Unsafe.Add(ref binsRef, levels);
+                                        ref float blueBinRef = ref Unsafe.Add(ref redBinRef, levels);
+                                        ref float greenBinRef = ref Unsafe.Add(ref blueBinRef, levels);
 
-                                        offsetY = offsetY.Clamp(0, maxY);
-
-                                        Span<TPixel> sourceOffsetRow = source.GetPixelRowSpan(offsetY);
-
-                                        for (int fx = 0; fx <= radius; fx++)
+                                        for (int fy = 0; fy <= radius; fy++)
                                         {
-                                            int fxr = fx - radius;
-                                            int offsetX = x + fxr;
-                                            offsetX = offsetX.Clamp(0, maxX);
+                                            int fyr = fy - radius;
+                                            int offsetY = y + fyr;
 
-                                            var vector = sourceOffsetRow[offsetX].ToVector4();
+                                            offsetY = offsetY.Clamp(0, maxY);
 
-                                            float sourceRed = vector.X;
-                                            float sourceBlue = vector.Z;
-                                            float sourceGreen = vector.Y;
+                                            Span<TPixel> sourceOffsetRow = source.GetPixelRowSpan(offsetY);
 
-                                            int currentIntensity = (int)MathF.Round(
-                                                (sourceBlue + sourceGreen + sourceRed) / 3F * (levels - 1));
-
-                                            intensityBin[currentIntensity]++;
-                                            blueBin[currentIntensity] += sourceBlue;
-                                            greenBin[currentIntensity] += sourceGreen;
-                                            redBin[currentIntensity] += sourceRed;
-
-                                            if (intensityBin[currentIntensity] > maxIntensity)
+                                            for (int fx = 0; fx <= radius; fx++)
                                             {
-                                                maxIntensity = intensityBin[currentIntensity];
-                                                maxIndex = currentIntensity;
+                                                int fxr = fx - radius;
+                                                int offsetX = x + fxr;
+                                                offsetX = offsetX.Clamp(0, maxX);
+
+                                                var vector = sourceOffsetRow[offsetX].ToVector4();
+
+                                                float sourceRed = vector.X;
+                                                float sourceBlue = vector.Z;
+                                                float sourceGreen = vector.Y;
+
+                                                int currentIntensity = (int)MathF.Round((sourceBlue + sourceGreen + sourceRed) / 3F * (levels - 1));
+
+                                                Unsafe.Add(ref intensityBinRef, currentIntensity)++;
+                                                Unsafe.Add(ref redBinRef, currentIntensity) += sourceRed;
+                                                Unsafe.Add(ref blueBinRef, currentIntensity) += sourceBlue;
+                                                Unsafe.Add(ref greenBinRef, currentIntensity) += sourceGreen;
+
+                                                if (Unsafe.Add(ref intensityBinRef, currentIntensity) > maxIntensity)
+                                                {
+                                                    maxIntensity = Unsafe.Add(ref intensityBinRef, currentIntensity);
+                                                    maxIndex = currentIntensity;
+                                                }
                                             }
+
+                                            float red = MathF.Abs(Unsafe.Add(ref redBinRef, maxIndex) / maxIntensity);
+                                            float blue = MathF.Abs(Unsafe.Add(ref blueBinRef, maxIndex) / maxIntensity);
+                                            float green = MathF.Abs(Unsafe.Add(ref greenBinRef, maxIndex) / maxIntensity);
+
+                                            ref TPixel pixel = ref targetRow[x];
+                                            pixel.FromVector4(new Vector4(red, green, blue, sourceRow[x].ToVector4().W));
                                         }
-
-                                        float red = MathF.Abs(redBin[maxIndex] / maxIntensity);
-                                        float green = MathF.Abs(greenBin[maxIndex] / maxIntensity);
-                                        float blue = MathF.Abs(blueBin[maxIndex] / maxIntensity);
-
-                                        ref TPixel pixel = ref targetRow[x];
-                                        pixel.FromVector4(
-                                            new Vector4(red, green, blue, sourceRow[x].ToVector4().W));
                                     }
                                 }
                             }

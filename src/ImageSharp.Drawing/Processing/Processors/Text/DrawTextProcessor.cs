@@ -72,10 +72,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
         public PointF Location { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return new DrawTextProcessor<TPixel>(this, source, sourceRectangle);
-        }
+            => new DrawTextProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

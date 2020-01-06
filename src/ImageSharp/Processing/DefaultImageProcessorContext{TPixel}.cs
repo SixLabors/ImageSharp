@@ -1,10 +1,8 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
-using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing
@@ -23,10 +21,12 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Initializes a new instance of the <see cref="DefaultImageProcessorContext{TPixel}"/> class.
         /// </summary>
-        /// <param name="source">The image.</param>
-        /// <param name="mutate">The mutate.</param>
-        public DefaultImageProcessorContext(Image<TPixel> source, bool mutate)
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="source">The source image.</param>
+        /// <param name="mutate">Whether to mutate the image.</param>
+        public DefaultImageProcessorContext(Configuration configuration, Image<TPixel> source, bool mutate)
         {
+            this.Configuration = configuration;
             this.mutate = mutate;
             this.source = source;
 
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <inheritdoc/>
-        public MemoryAllocator MemoryAllocator => this.source.GetConfiguration().MemoryAllocator;
+        public Configuration Configuration { get; }
 
         /// <inheritdoc/>
         public Image<TPixel> GetResultImage()
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing
                 // interim clone if the first processor in the pipeline is a cloning processor.
                 if (processor is ICloningImageProcessor cloningImageProcessor)
                 {
-                    using (ICloningImageProcessor<TPixel> pixelProcessor = cloningImageProcessor.CreatePixelSpecificCloningProcessor(this.source, rectangle))
+                    using (ICloningImageProcessor<TPixel> pixelProcessor = cloningImageProcessor.CreatePixelSpecificCloningProcessor(this.Configuration, this.source, rectangle))
                     {
                         this.destination = pixelProcessor.CloneAndExecute();
                         return this;
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Processing
             }
 
             // Standard processing pipeline.
-            using (IImageProcessor<TPixel> specificProcessor = processor.CreatePixelSpecificProcessor(this.destination, rectangle))
+            using (IImageProcessor<TPixel> specificProcessor = processor.CreatePixelSpecificProcessor(this.Configuration, this.destination, rectangle))
             {
                 specificProcessor.Execute();
             }

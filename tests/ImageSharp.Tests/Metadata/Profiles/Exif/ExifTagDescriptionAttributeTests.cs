@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -11,10 +11,10 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void TestExifTag()
         {
-            ExifProfile exifProfile = new ExifProfile();
+            var exifProfile = new ExifProfile();
 
             exifProfile.SetValue(ExifTag.ResolutionUnit, (ushort)1);
-            ExifValue value = exifProfile.GetValue(ExifTag.ResolutionUnit);
+            IExifValue value = exifProfile.GetValue(ExifTag.ResolutionUnit);
             Assert.Equal("None", value.ToString());
 
             exifProfile.SetValue(ExifTag.ResolutionUnit, (ushort)2);
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests
             value = exifProfile.GetValue(ExifTag.ResolutionUnit);
             Assert.Equal("4", value.ToString());
 
-            exifProfile.SetValue(ExifTag.ImageWidth, 123);
+            exifProfile.SetValue(ExifTag.ImageWidth, 123U);
             value = exifProfile.GetValue(ExifTag.ImageWidth);
             Assert.Equal("123", value.ToString());
         }

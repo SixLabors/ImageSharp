@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return OrientationMode.Unknown;
             }
 
-            ExifValue value = source.Metadata.ExifProfile.GetValue(ExifTag.Orientation);
+            IExifValue<ushort> value = source.Metadata.ExifProfile.GetValue(ExifTag.Orientation);
             if (value is null)
             {
                 return OrientationMode.Unknown;

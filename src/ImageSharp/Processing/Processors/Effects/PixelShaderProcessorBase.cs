@@ -40,6 +40,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         {
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
             int startX = interest.X;
+            Configuration configuration = this.Configuration;
+            PixelConversionModifiers modifiers = this.modifiers;
 
             ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
                 interest,
@@ -51,12 +53,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                         Span<Vector4> vectorSpan = vectorBuffer.Span;
                         int length = vectorSpan.Length;
                         Span<TPixel> rowSpan = source.GetPixelRowSpan(y).Slice(startX, length);
-                        PixelOperations<TPixel>.Instance.ToVector4(this.Configuration, rowSpan, vectorSpan, this.modifiers);
+                        PixelOperations<TPixel>.Instance.ToVector4(configuration, rowSpan, vectorSpan, modifiers);
 
                         // Run the user defined pixel shader on the current row of pixels
                         this.ApplyPixelShader(vectorSpan, y, startX);
 
-                        PixelOperations<TPixel>.Instance.FromVector4Destructive(this.Configuration, vectorSpan, rowSpan, this.modifiers);
+                        PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan, rowSpan, modifiers);
                     }
                 });
         }

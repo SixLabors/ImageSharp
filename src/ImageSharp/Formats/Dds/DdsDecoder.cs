@@ -1,9 +1,11 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-//https://github.com/toji/texture-
-//https://docs.microsoft.com/en-us/windows/win32/direct3ddds/dx-graphics-dds-pguide
-//https://docs.microsoft.com/en-us/windows/uwp/gaming/complete-code-for-ddstextureloader
+/* Notes:
+https://github.com/toji/texture
+https://docs.microsoft.com/en-us/windows/win32/direct3ddds/dx-graphics-dds-pguide
+https://docs.microsoft.com/en-us/windows/uwp/gaming/complete-code-for-ddstextureloader
+*/
 
 using System;
 using System.IO;

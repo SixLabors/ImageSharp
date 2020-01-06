@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Formats.Dds.Emums;
-using SixLabors.ImageSharp.Formats.Dds.Internals;
 
 namespace SixLabors.ImageSharp.Formats.Dds.Extensions
 {

@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public Texture<TPixel> DecodeTexture<TPixel>(Configuration configuration, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            var texture = new Texture<TPixel>
+            var texture = new Texture<TPixel>(TextureType.FlatTexture)
             {
                 Images = new Image<TPixel>[1][]
             };
@@ -45,7 +45,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         /// <inheritdoc />
         public Texture DecodeTexture(Configuration configuration, Stream stream) => this.DecodeTexture<Rgba32>(configuration, stream);
-
 
         /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream)

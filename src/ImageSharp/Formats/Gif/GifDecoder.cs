@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public Texture<TPixel> DecodeTexture<TPixel>(Configuration configuration, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            var texture = new Texture<TPixel>
+            var texture = new Texture<TPixel>(TextureType.FlatTexture)
             {
                 Images = new Image<TPixel>[1][]
             };

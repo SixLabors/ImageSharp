@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 
@@ -22,12 +21,13 @@ namespace SixLabors.ImageSharp
         /// This is an optimized creation method intended to be used by decoders.
         /// The image might be filled with memory garbage.
         /// </summary>
+        /// <param name="textureType"><see cref="TextureType" /></param>
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <returns>The result <see cref="Texture{TPixel}"/></returns>
-        internal static Texture<TPixel> CreateUninitialized<TPixel>()
+        internal static Texture<TPixel> CreateUninitialized<TPixel>(TextureType textureType)
             where TPixel : struct, IPixel<TPixel>
         {
-            return new Texture<TPixel>();
+            return new Texture<TPixel>(textureType);
         }
 
         /// <summary>

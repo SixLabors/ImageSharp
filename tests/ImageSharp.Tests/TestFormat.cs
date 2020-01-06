@@ -193,18 +193,17 @@ namespace SixLabors.ImageSharp.Tests
                 this.testFormat = testFormat;
             }
 
-            public IEnumerable<string> MimeTypes => new[] { testFormat.MimeType };
+            public IEnumerable<string> MimeTypes => new[] { this.testFormat.MimeType };
 
-            public IEnumerable<string> FileExtensions => testFormat.SupportedExtensions;
+            public IEnumerable<string> FileExtensions => this.testFormat.SupportedExtensions;
 
-            public int HeaderSize => testFormat.HeaderSize;
+            public int HeaderSize => this.testFormat.HeaderSize;
 
             public Image<TPixel> Decode<TPixel>(Configuration config, Stream stream) where TPixel : struct, IPixel<TPixel>
-
             {
                 var ms = new MemoryStream();
                 stream.CopyTo(ms);
-                var marker = ms.ToArray().Skip(this.testFormat.header.Length).ToArray();
+                byte[] marker = ms.ToArray().Skip(this.testFormat.header.Length).ToArray();
                 this.testFormat.DecodeCalls.Add(new DecodeOperation
                 {
                     marker = marker,
@@ -216,9 +215,19 @@ namespace SixLabors.ImageSharp.Tests
                 return this.testFormat.Sample<TPixel>();
             }
 
-            public bool IsSupportedFileFormat(Span<byte> header) => testFormat.IsSupportedFileFormat(header);
+            public bool IsSupportedFileFormat(Span<byte> header) => this.testFormat.IsSupportedFileFormat(header);
 
             public Image Decode(Configuration configuration, Stream stream) => this.Decode<TestPixelForAgnosticDecode>(configuration, stream);
+
+            public Texture<TPixel> DecodeTexture<TPixel>(Configuration configuration, Stream stream) where TPixel : struct, IPixel<TPixel>
+            {
+                throw new NotImplementedException();
+            }
+
+            public Texture DecodeTexture(Configuration configuration, Stream stream)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public class TestEncoder : ImageSharp.Formats.IImageEncoder
@@ -230,9 +239,9 @@ namespace SixLabors.ImageSharp.Tests
                 this.testFormat = testFormat;
             }
 
-            public IEnumerable<string> MimeTypes => new[] { testFormat.MimeType };
+            public IEnumerable<string> MimeTypes => new[] { this.testFormat.MimeType };
 
-            public IEnumerable<string> FileExtensions => testFormat.SupportedExtensions;
+            public IEnumerable<string> FileExtensions => this.testFormat.SupportedExtensions;
 
             public void Encode<TPixel>(Image<TPixel> image, Stream stream) where TPixel : struct, IPixel<TPixel>
             {

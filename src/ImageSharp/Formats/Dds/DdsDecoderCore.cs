@@ -5,7 +5,6 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Dds.Extensions;
-using SixLabors.ImageSharp.Formats.Dds.Internals;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
@@ -80,7 +79,7 @@ namespace SixLabors.ImageSharp.Formats.Dds
                 var image = new Image<TPixel>(this.configuration, (int)this.ddsHeader.Width, (int)this.ddsHeader.Height, null);
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
-                var texture = new Texture<TPixel>
+                var texture = new Texture<TPixel>(TextureType.FlatTexture)
                 {
                     Images = new Image<TPixel>[1][]
                 };
@@ -96,33 +95,6 @@ namespace SixLabors.ImageSharp.Formats.Dds
         }
 
         /// <summary>
-        /// Reads a uncompressed TGA image where each pixels has 24 bit.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel type.</typeparam>
-        /// <param name="width">The width of the image.</param>
-        /// <param name="height">The height of the image.</param>
-        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
-        /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
-        //private void ReadBgr24<TPixel>(int width, int height, Buffer2D<TPixel> pixels, bool inverted)
-        //    where TPixel : struct, IPixel<TPixel>
-        //{
-        //    using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 3, 0))
-        //    {
-        //        for (int y = 0; y < height; y++)
-        //        {
-        //            this.currentStream.Read(row);
-        //            int newY = Invert(y, height, inverted);
-        //            Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-        //            PixelOperations<TPixel>.Instance.FromBgr24Bytes(
-        //                this.configuration,
-        //                row.GetSpan(),
-        //                pixelSpan,
-        //                width);
-        //        }
-        //    }
-        //}
-
-        /// <summary>
         /// Reads the raw image information from the specified stream.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
@@ -135,7 +107,6 @@ namespace SixLabors.ImageSharp.Formats.Dds
                 (int)this.ddsHeader.Height,
                 null);
         }
-
 
         /// <summary>
         /// Reads the dds file header from the stream.

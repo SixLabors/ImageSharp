@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -31,7 +31,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// </returns>
         public static string GetDescription(ExifTag tag, object value)
         {
-            FieldInfo field = tag.GetType().GetTypeInfo().GetDeclaredField(tag.ToString());
+            var tagValue = (ExifTagValue)(ushort)tag;
+            FieldInfo field = tagValue.GetType().GetTypeInfo().GetDeclaredField(tagValue.ToString());
 
             if (field is null)
             {
@@ -42,7 +43,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             {
                 object attributeValue = customAttribute.ConstructorArguments[0].Value;
 
-                if (object.Equals(attributeValue, value))
+                if (Equals(attributeValue, value))
                 {
                     return (string)customAttribute.ConstructorArguments[1].Value;
                 }

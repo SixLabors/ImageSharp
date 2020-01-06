@@ -622,11 +622,13 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="meta">The image metadata.</param>
         private void WriteExifChunk(Stream stream, ImageMetadata meta)
         {
-            if (meta.ExifProfile?.Values.Count > 0)
+            if (meta.ExifProfile is null || meta.ExifProfile.Values.Count == 0)
             {
-                meta.SyncProfiles();
-                this.WriteChunk(stream, PngChunkType.Exif, meta.ExifProfile.ToByteArray());
+                return;
             }
+
+            meta.SyncProfiles();
+            this.WriteChunk(stream, PngChunkType.Exif, meta.ExifProfile.ToByteArray());
         }
 
         /// <summary>

@@ -1,7 +1,6 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Linq;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -10,40 +9,45 @@ namespace SixLabors.ImageSharp.Tests
 {
     public class ExifValueTests
     {
-        private static ExifValue GetExifValue()
+        private ExifProfile profile;
+
+        public ExifValueTests()
         {
-            ExifProfile profile;
             using (Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image())
             {
-                profile = image.Metadata.ExifProfile;
+                this.profile = image.Metadata.ExifProfile;
             }
+        }
 
-            Assert.NotNull(profile);
+        private IExifValue<string> GetExifValue()
+        {
+            Assert.NotNull(this.profile);
 
-            return profile.Values.First();
+            return this.profile.GetValue(ExifTag.Software);
         }
 
         [Fact]
         public void IEquatable()
         {
-            ExifValue first = GetExifValue();
-            ExifValue second = GetExifValue();
+            IExifValue<string> first = this.GetExifValue();
+            IExifValue<string> second = this.GetExifValue();
 
             Assert.True(first == second);
             Assert.True(first.Equals(second));
-            Assert.True(first.Equals((object)second));
         }
 
         [Fact]
         public void Properties()
         {
-            ExifValue value = GetExifValue();
+            IExifValue<string> value = this.GetExifValue();
 
             Assert.Equal(ExifDataType.Ascii, value.DataType);
-            Assert.Equal(ExifTag.GPSDOP, value.Tag);
+            Assert.Equal(ExifTag.Software, value.Tag);
             Assert.False(value.IsArray);
-            Assert.Equal("Windows Photo Editor 10.0.10011.16384", value.ToString());
-            Assert.Equal("Windows Photo Editor 10.0.10011.16384", value.Value);
+
+            const string expected = "Windows Photo Editor 10.0.10011.16384";
+            Assert.Equal(expected, value.ToString());
+            Assert.Equal(expected, value.Value);
         }
     }
 }

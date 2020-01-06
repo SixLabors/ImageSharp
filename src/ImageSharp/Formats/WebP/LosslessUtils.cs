@@ -138,7 +138,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 newBlue += ColorTransformDelta((sbyte)m.RedToBlue, (sbyte)newRed);
                 newBlue &= 0xff;
 
-                uint pixelValue = (uint)((argb & 0xff00ff00u) | (newRed << 16) | newBlue);
                 pixelData[i] = (uint)((argb & 0xff00ff00u) | (newRed << 16) | newBlue);
             }
         }
@@ -269,7 +268,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             output.AsSpan().CopyTo(pixelData);
         }
 
-        // TODO: the predictor add methods should be generated
         private static void PredictorAdd0(uint[] input, int startIdx, int numberOfPixels, uint[] output)
         {
             int endIdx = startIdx + numberOfPixels;
@@ -614,7 +612,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private static int ColorTransformDelta(sbyte colorPred, sbyte color)
         {
-            var delta = ((sbyte)colorPred * color) >> 5;
+            int delta = ((sbyte)colorPred * color) >> 5;
             return ((int)colorPred * color) >> 5;
         }
 

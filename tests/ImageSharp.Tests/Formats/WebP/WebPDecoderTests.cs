@@ -23,7 +23,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         [InlineData(Lossy.Alpha.LossyAlpha1, 1000, 307, 24)]
         [InlineData(Lossy.Alpha.LossyAlpha2, 1000, 307, 24)]
         [InlineData(Animated.Animated1, 400, 400, 24)]
-        public void Identify_DetectsCorrectDimensions(string imagePath, int expectedWidth, int expectedHeight, int expectedBitsPerPixel)
+        public void Identify_DetectsCorrectDimensions(
+            string imagePath,
+            int expectedWidth,
+            int expectedHeight,
+            int expectedBitsPerPixel)
         {
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
@@ -38,7 +42,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
 
         [Theory]
         [InlineData(Lossy.Alpha.LossyAlpha1, 1000, 307, 24)]
-        public void DecodeLossyImage_Tmp(string imagePath, int expectedWidth, int expectedHeight, int expectedBitsPerPixel)
+        public void DecodeLossyImage_Tmp(
+            string imagePath,
+            int expectedWidth,
+            int expectedHeight,
+            int expectedBitsPerPixel)
         {
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
@@ -67,9 +75,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         [WithFile(Lossless.GreenTransform2, PixelTypes.Rgba32)]
         [WithFile(Lossless.GreenTransform3, PixelTypes.Rgba32)]
         [WithFile(Lossless.GreenTransform4, PixelTypes.Rgba32)]
-        // TODO: Reference decoder throws here MagickCorruptImageErrorException
-        //[WithFile(Lossless.GreenTransform5, PixelTypes.Rgba32)]
-        public void WebpDecoder_CanDecode_Lossless_WithSubstractGreenTransform<TPixel>(TestImageProvider<TPixel> provider)
+        // TODO: Reference decoder throws here MagickCorruptImageErrorException, webpinfo also indicates an error here, but decoding the image seems to work.
+        // [WithFile(Lossless.GreenTransform5, PixelTypes.Rgba32)]
+        public void WebpDecoder_CanDecode_Lossless_WithSubstractGreenTransform<TPixel>(
+            TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new WebPDecoder()))
@@ -135,9 +144,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         [WithFile(Lossless.TwoTransforms11, PixelTypes.Rgba32)]
         [WithFile(Lossless.TwoTransforms12, PixelTypes.Rgba32)]
         [WithFile(Lossless.TwoTransforms13, PixelTypes.Rgba32)]
-        [WithFile(Lossless.TwoTransforms14, PixelTypes.Rgba32)]
-        [WithFile(Lossless.TwoTransforms15, PixelTypes.Rgba32)]
-        [WithFile(Lossless.TwoTransforms16, PixelTypes.Rgba32)]
         public void WebpDecoder_CanDecode_Lossless_WithTwoTransforms<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -156,7 +162,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         [WithFile(Lossless.ThreeTransforms5, PixelTypes.Rgba32)]
         [WithFile(Lossless.ThreeTransforms6, PixelTypes.Rgba32)]
         [WithFile(Lossless.ThreeTransforms7, PixelTypes.Rgba32)]
-        [WithFile(Lossless.ThreeTransforms8, PixelTypes.Rgba32)]
         public void WebpDecoder_CanDecode_Lossless_WithThreeTransforms<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -165,6 +170,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider, new MagickReferenceDecoder());
             }
+        }
+
+        [Theory]
+        [WithFile(Lossless.LossLessCorruptImage1, PixelTypes.Rgba32)]
+        [WithFile(Lossless.LossLessCorruptImage2, PixelTypes.Rgba32)]
+        [WithFile(Lossless.LossLessCorruptImage3, PixelTypes.Rgba32)]
+        [WithFile(Lossless.LossLessCorruptImage4, PixelTypes.Rgba32)]
+        public void WebpDecoder_ThrowImageFormatException_OnInvalidImages<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Assert.Throws<ImageFormatException>(() => { using (provider.GetImage(new WebPDecoder())) { } });
         }
     }
 }

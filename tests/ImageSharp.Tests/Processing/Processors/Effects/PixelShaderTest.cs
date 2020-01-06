@@ -58,8 +58,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         {
             provider.RunValidatingProcessorTest(
                 c => c.ApplyPixelShaderProcessor(
-                    (span, y, x) =>
+                    (span, offset) =>
                     {
+                        int y = offset.Y;
+                        int x = offset.X;
                         for (int i = 0; i < span.Length; i++)
                         {
                             float
@@ -67,8 +69,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
                                 cosine = MathF.Cos(x + i),
                                 sum = sine + cosine,
                                 abs = MathF.Abs(sum),
-                                a = 0.5f + abs / 2; // Max value for sin(y) + cos(x) is 2
-                                
+                                a = 0.5f + (abs / 2); // Max value for sin(y) + cos(x) is 2
+
                             Vector4 v4 = span[i];
                             float avg = (v4.X + v4.Y + v4.Z) / 3f;
                             var gray = new Vector4(avg, avg, avg, a);
@@ -86,8 +88,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         {
             provider.RunRectangleConstrainedValidatingProcessorTest(
                 (c, rect) => c.ApplyPixelShaderProcessor(
-                    (span, y, x) =>
+                    (span, offset) =>
                     {
+                        int y = offset.Y;
+                        int x = offset.X;
                         for (int i = 0; i < span.Length; i++)
                         {
                             float
@@ -95,7 +99,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
                                 cosine = MathF.Cos(x + i),
                                 sum = sine + cosine,
                                 abs = MathF.Abs(sum),
-                                a = 0.5f + abs / 2;
+                                a = 0.5f + (abs / 2);
 
                             Vector4 v4 = span[i];
                             float avg = (v4.X + v4.Y + v4.Z) / 3f;

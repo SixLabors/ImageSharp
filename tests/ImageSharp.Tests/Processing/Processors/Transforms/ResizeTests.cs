@@ -58,9 +58,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             }
         }
 
-        [Theory(
-            Skip = "Debug only, enable manually"
-            )]
+        [Theory(Skip = "Debug only, enable manually")]
         [WithTestPatternImages(4000, 4000, PixelTypes.Rgba32, 300, 1024)]
         [WithTestPatternImages(3032, 3032, PixelTypes.Rgba32, 400, 1024)]
         [WithTestPatternImages(3032, 3032, PixelTypes.Rgba32, 400, 128)]
@@ -558,6 +556,26 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(ValidatorComparer, provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Issues.ExifDecodeOutOfRange694, DefaultPixelType)]
+        [WithFile(TestImages.Jpeg.Issues.ExifGetString750Transform, DefaultPixelType)]
+        [WithFile(TestImages.Jpeg.Issues.ExifResize1049, DefaultPixelType)]
+        public void CanResizeExifIssueImages<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            // Test images are large so skip on 32bit for now.
+            if (!TestEnvironment.Is64BitProcess)
+            {
+                return;
+            }
+
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                // Don't bother saving, we're testing the EXIF metadata updates.
+                image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
             }
         }
     }

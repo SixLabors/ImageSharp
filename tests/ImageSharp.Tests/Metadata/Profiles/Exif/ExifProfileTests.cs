@@ -150,7 +150,7 @@ namespace SixLabors.ImageSharp.Tests
 
             image = WriteAndRead(image, imageFormat);
             IExifValue<Rational> value2 = image.Metadata.ExifProfile.GetValue(ExifTag.FlashEnergy);
-            Assert.NotNull(value);
+            Assert.NotNull(value2);
             Assert.Equal(new Rational(double.PositiveInfinity), value2.Value);
         }
 

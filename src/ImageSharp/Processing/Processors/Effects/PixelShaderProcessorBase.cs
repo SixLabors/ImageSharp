@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                         PixelOperations<TPixel>.Instance.ToVector4(configuration, rowSpan, vectorSpan, modifiers);
 
                         // Run the user defined pixel shader on the current row of pixels
-                        this.ApplyPixelShader(vectorSpan, y, startX);
+                        this.ApplyPixelShader(vectorSpan, new Point(startX, y));
 
                         PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan, rowSpan, modifiers);
                     }
@@ -67,8 +67,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         /// Applies the current pixel shader effect on a target row of preprocessed pixels.
         /// </summary>
         /// <param name="span">The target row of <see cref="Vector4"/> pixels to process.</param>
-        /// <param name="offsetY">The initial vertical offset for the input pixels to process.</param>
-        /// <param name="offsetX">The initial horizontal offset for the input pixels to process.</param>
-        protected abstract void ApplyPixelShader(Span<Vector4> span, int offsetY, int offsetX);
+        /// <param name="offset">The initial horizontal and vertical offset for the input pixels to process.</param>
+        protected abstract void ApplyPixelShader(Span<Vector4> span, Point offset);
     }
 }

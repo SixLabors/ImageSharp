@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
     /// Applies a user defined pixel shader effect through a given delegate.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class PositionAwarePixelShaderProcessor<TPixel> : PixelShaderProcessorBase<TPixel>
+    internal sealed class PositionAwarePixelShaderProcessor<TPixel> : PixelShaderProcessorBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -34,6 +34,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         }
 
         /// <inheritdoc/>
-        protected override void ApplyPixelShader(Span<Vector4> span, int offsetY, int offsetX) => this.pixelShader(span, offsetY, offsetX);
+        protected override void ApplyPixelShader(Span<Vector4> span, Point offset) => this.pixelShader(span, offset);
     }
 }

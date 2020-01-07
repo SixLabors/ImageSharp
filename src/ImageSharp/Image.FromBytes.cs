@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp
         public static Image<TPixel> Load<TPixel>(Configuration config, byte[] data)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var stream = new MemoryStream(data))
+            using (var stream = new MemoryStream(data, 0, data.Length, false, true))
             {
                 return Load<TPixel>(config, stream);
             }
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp
         public static Image<TPixel> Load<TPixel>(Configuration config, byte[] data, out IImageFormat format)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var stream = new MemoryStream(data))
+            using (var stream = new MemoryStream(data, 0, data.Length, false, true))
             {
                 return Load<TPixel>(config, stream, out format);
             }
@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp
         public static Image<TPixel> Load<TPixel>(byte[] data, IImageDecoder decoder)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var stream = new MemoryStream(data))
+            using (var stream = new MemoryStream(data, 0, data.Length, false, true))
             {
                 return Load<TPixel>(stream, decoder);
             }
@@ -125,9 +125,9 @@ namespace SixLabors.ImageSharp
         public static Image<TPixel> Load<TPixel>(Configuration config, byte[] data, IImageDecoder decoder)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var memoryStream = new MemoryStream(data))
+            using (var stream = new MemoryStream(data, 0, data.Length, false, true))
             {
-                return Load<TPixel>(config, memoryStream, decoder);
+                return Load<TPixel>(config, stream, decoder);
             }
         }
 
@@ -299,7 +299,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(Configuration config, byte[] data, IImageDecoder decoder)
         {
-            using (var stream = new MemoryStream(data))
+            using (var stream = new MemoryStream(data, 0, data.Length, false, true))
             {
                 return Load(config, stream, decoder);
             }
@@ -314,7 +314,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image"/>.</returns>
         public static Image Load(Configuration config, byte[] data, out IImageFormat format)
         {
-            using (var stream = new MemoryStream(data))
+            using (var stream = new MemoryStream(data, 0, data.Length, false, true))
             {
                 return Load(config, stream, out format);
             }

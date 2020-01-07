@@ -52,10 +52,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         public PixelConversionModifiers Modifiers { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return new PositionAwarePixelShaderProcessor<TPixel>(this, source, sourceRectangle);
-        }
+            => new PositionAwarePixelShaderProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

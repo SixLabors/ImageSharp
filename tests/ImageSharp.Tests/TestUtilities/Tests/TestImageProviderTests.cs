@@ -380,6 +380,11 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
+
+            public Texture DecodeTexture(Configuration configuration, Stream stream)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         private class TestDecoderWithParameters : IImageDecoder
@@ -419,6 +424,11 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
+
+            public Texture DecodeTexture(Configuration configuration, Stream stream)
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 }

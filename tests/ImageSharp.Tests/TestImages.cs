@@ -395,6 +395,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Dxt1 = "Dds/shannon-dxt1.dds";
             public const string Dxt3 = "Dds/shannon-dxt3.dds";
             public const string Dxt5 = "Dds/shannon-dxt5.dds";
+            public const string Dxt1Cubemap = "Dds/stars-cubemap-dxt1.dds";
         }
     }
 }

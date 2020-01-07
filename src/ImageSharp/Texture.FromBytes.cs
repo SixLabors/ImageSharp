@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp
     /// <content>
     /// Adds static methods allowing the creation of new image from a byte array.
     /// </content>
-    public abstract partial class Texture
+    public partial class Texture
     {
         /// <summary>
         /// By reading the header on the provided byte array this calculates the images format.
@@ -37,99 +37,7 @@ namespace SixLabors.ImageSharp
             }
         }
 
-        /// <summary>
-        /// Load a new instance of <see cref="Texture{Rgba32}"/> from the given encoded byte array.
-        /// </summary>
-        /// <param name="data">The byte array containing image data.</param>
-        /// <returns>A new <see cref="Texture{Rgba32}"/>.</returns>
-        public static Texture<Rgba32> Load(byte[] data) => Load<Rgba32>(Configuration.Default, data);
 
-        /// <summary>
-        /// Load a new instance of <see cref="Texture{TPixel}"/> from the given encoded byte array.
-        /// </summary>
-        /// <param name="data">The byte array containing encoded image data.</param>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Texture{TPixel}"/>.</returns>
-        public static Texture<TPixel> Load<TPixel>(byte[] data)
-            where TPixel : struct, IPixel<TPixel>
-            => Load<TPixel>(Configuration.Default, data);
-
-        /// <summary>
-        /// Load a new instance of <see cref="Texture{TPixel}"/> from the given encoded byte array.
-        /// </summary>
-        /// <param name="data">The byte array containing image data.</param>
-        /// <param name="format">The mime type of the decoded image.</param>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Texture{TPixel}"/>.</returns>
-        public static Texture<TPixel> Load<TPixel>(byte[] data, out IImageFormat format)
-            where TPixel : struct, IPixel<TPixel>
-            => Load<TPixel>(Configuration.Default, data, out format);
-
-        /// <summary>
-        /// Load a new instance of <see cref="Texture{TPixel}"/> from the given encoded byte array.
-        /// </summary>
-        /// <param name="config">The configuration options.</param>
-        /// <param name="data">The byte array containing encoded image data.</param>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Texture{TPixel}"/>.</returns>
-        public static Texture<TPixel> Load<TPixel>(Configuration config, byte[] data)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (var stream = new MemoryStream(data))
-            {
-                return Load<TPixel>(config, stream);
-            }
-        }
-
-        /// <summary>
-        /// Load a new instance of <see cref="Texture{TPixel}"/> from the given encoded byte array.
-        /// </summary>
-        /// <param name="config">The configuration options.</param>
-        /// <param name="data">The byte array containing encoded image data.</param>
-        /// <param name="format">The <see cref="IImageFormat"/> of the decoded image.</param>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Texture{TPixel}"/>.</returns>
-        public static Texture<TPixel> Load<TPixel>(Configuration config, byte[] data, out IImageFormat format)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (var stream = new MemoryStream(data))
-            {
-                return Load<TPixel>(config, stream, out format);
-            }
-        }
-
-        /// <summary>
-        /// Load a new instance of <see cref="Texture{TPixel}"/> from the given encoded byte array.
-        /// </summary>
-        /// <param name="data">The byte array containing encoded image data.</param>
-        /// <param name="decoder">The decoder.</param>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Texture{TPixel}"/>.</returns>
-        public static Texture<TPixel> Load<TPixel>(byte[] data, IImageDecoder decoder)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (var stream = new MemoryStream(data))
-            {
-                return Load<TPixel>(stream, decoder);
-            }
-        }
-
-        /// <summary>
-        /// Load a new instance of <see cref="Texture{TPixel}"/> from the given encoded byte array.
-        /// </summary>
-        /// <param name="config">The Configuration.</param>
-        /// <param name="data">The byte array containing encoded image data.</param>
-        /// <param name="decoder">The decoder.</param>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Texture{TPixel}"/>.</returns>
-        public static Texture<TPixel> Load<TPixel>(Configuration config, byte[] data, IImageDecoder decoder)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (var memoryStream = new MemoryStream(data))
-            {
-                return Load<TPixel>(config, memoryStream, decoder);
-            }
-        }
 
         /// <summary>
         /// By reading the header on the provided byte array this calculates the images format.
@@ -166,103 +74,6 @@ namespace SixLabors.ImageSharp
             }
 
             return default;
-        }
-
-        /// <summary>
-        /// Load a new instance of <see cref="Texture{TPixel}"/> from the given encoded byte span.
-        /// </summary>
-        /// <param name="data">The byte span containing encoded image data.</param>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Texture{TPixel}"/>.</returns>
-        public static Texture<TPixel> Load<TPixel>(ReadOnlySpan<byte> data)
-            where TPixel : struct, IPixel<TPixel>
-            => Load<TPixel>(Configuration.Default, data);
-
-        /// <summary>
-        /// Load a new instance of <see cref="Texture{TPixel}"/> from the given encoded byte array.
-        /// </summary>
-        /// <param name="data">The byte span containing image data.</param>
-        /// <param name="format">The mime type of the decoded image.</param>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Texture{TPixel}"/>.</returns>
-        public static Texture<TPixel> Load<TPixel>(ReadOnlySpan<byte> data, out IImageFormat format)
-            where TPixel : struct, IPixel<TPixel>
-            => Load<TPixel>(Configuration.Default, data, out format);
-
-        /// <summary>
-        /// Load a new instance of <see cref="Texture{TPixel}"/> from the given encoded byte array.
-        /// </summary>
-        /// <param name="data">The byte span containing encoded image data.</param>
-        /// <param name="decoder">The decoder.</param>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Texture{TPixel}"/>.</returns>
-        public static Texture<TPixel> Load<TPixel>(ReadOnlySpan<byte> data, IImageDecoder decoder)
-            where TPixel : struct, IPixel<TPixel>
-            => Load<TPixel>(Configuration.Default, data, decoder);
-
-        /// <summary>
-        /// Load a new instance of <see cref="Texture{TPixel}"/> from the given encoded byte span.
-        /// </summary>
-        /// <param name="config">The configuration options.</param>
-        /// <param name="data">The byte span containing encoded image data.</param>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Texture{TPixel}"/>.</returns>
-        public static unsafe Texture<TPixel> Load<TPixel>(Configuration config, ReadOnlySpan<byte> data)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            fixed (byte* ptr = &data.GetPinnableReference())
-            {
-                using (var stream = new UnmanagedMemoryStream(ptr, data.Length))
-                {
-                    return Load<TPixel>(config, stream);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Load a new instance of <see cref="Texture{TPixel}"/> from the given encoded byte span.
-        /// </summary>
-        /// <param name="config">The Configuration.</param>
-        /// <param name="data">The byte span containing image data.</param>
-        /// <param name="decoder">The decoder.</param>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Texture{TPixel}"/>.</returns>
-        public static unsafe Texture<TPixel> Load<TPixel>(
-            Configuration config,
-            ReadOnlySpan<byte> data,
-            IImageDecoder decoder)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            fixed (byte* ptr = &data.GetPinnableReference())
-            {
-                using (var stream = new UnmanagedMemoryStream(ptr, data.Length))
-                {
-                    return Load<TPixel>(config, stream, decoder);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Load a new instance of <see cref="Texture{TPixel}"/> from the given encoded byte span.
-        /// </summary>
-        /// <param name="config">The configuration options.</param>
-        /// <param name="data">The byte span containing image data.</param>
-        /// <param name="format">The <see cref="IImageFormat"/> of the decoded image.</param>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Texture{TPixel}"/>.</returns>
-        public static unsafe Texture<TPixel> Load<TPixel>(
-            Configuration config,
-            ReadOnlySpan<byte> data,
-            out IImageFormat format)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            fixed (byte* ptr = &data.GetPinnableReference())
-            {
-                using (var stream = new UnmanagedMemoryStream(ptr, data.Length))
-                {
-                    return Load<TPixel>(config, stream, out format);
-                }
-            }
         }
 
         /// <summary>

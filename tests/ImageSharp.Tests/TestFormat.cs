@@ -219,11 +219,6 @@ namespace SixLabors.ImageSharp.Tests
 
             public Image Decode(Configuration configuration, Stream stream) => this.Decode<TestPixelForAgnosticDecode>(configuration, stream);
 
-            public Texture<TPixel> DecodeTexture<TPixel>(Configuration configuration, Stream stream) where TPixel : struct, IPixel<TPixel>
-            {
-                throw new NotImplementedException();
-            }
-
             public Texture DecodeTexture(Configuration configuration, Stream stream)
             {
                 throw new NotImplementedException();

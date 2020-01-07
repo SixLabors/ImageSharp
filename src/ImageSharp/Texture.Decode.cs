@@ -14,20 +14,15 @@ namespace SixLabors.ImageSharp
     /// <content>
     /// Adds static methods allowing the decoding of new images.
     /// </content>
-    public abstract partial class Texture
+    public partial class Texture
     {
         /// <summary>
-        /// Creates an <see cref="Texture{TPixel}"/> instance backed by an uninitialized memory buffer.
-        /// This is an optimized creation method intended to be used by decoders.
-        /// The image might be filled with memory garbage.
         /// </summary>
         /// <param name="textureType"><see cref="TextureType" /></param>
-        /// <typeparam name="TPixel">The pixel type</typeparam>
-        /// <returns>The result <see cref="Texture{TPixel}"/></returns>
-        internal static Texture<TPixel> CreateUninitialized<TPixel>(TextureType textureType)
-            where TPixel : struct, IPixel<TPixel>
+        /// <returns>The result <see cref="Texture"/></returns>
+        internal static Texture CreateUninitialized(TextureType textureType)
         {
-            return new Texture<TPixel>(textureType);
+            return new Texture(textureType);
         }
 
         /// <summary>
@@ -77,7 +72,6 @@ namespace SixLabors.ImageSharp
                 : null;
         }
 
-#pragma warning disable SA1008 // Opening parenthesis must be spaced correctly
         /// <summary>
         /// Decodes the image stream to the current image.
         /// </summary>
@@ -87,20 +81,6 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// A new <see cref="Texture{TPixel}"/>.
         /// </returns>
-        private static (Texture<TPixel> texture, IImageFormat format) DecodeTexture<TPixel>(Stream stream, Configuration config)
-#pragma warning restore SA1008 // Opening parenthesis must be spaced correctly
-            where TPixel : struct, IPixel<TPixel>
-        {
-            IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
-            if (decoder is null)
-            {
-                return (null, null);
-            }
-
-            Texture<TPixel> texture = decoder.DecodeTexture<TPixel>(config, stream);
-            return (texture, format);
-        }
-
         private static (Texture texture, IImageFormat format) DecodeTexture(Stream stream, Configuration config)
         {
             IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);

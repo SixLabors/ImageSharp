@@ -34,14 +34,13 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
 
         /// <inheritdoc/>
-        public Texture<TPixel> DecodeTexture<TPixel>(Configuration configuration, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+        public Texture DecodeTexture<TPixel>(Configuration configuration, Stream stream)
         {
-            var texture = new Texture<TPixel>(TextureType.FlatTexture)
+            var texture = new Texture(TextureType.FlatTexture)
             {
-                Images = new Image<TPixel>[1][]
+                Images = new Image[1][]
             };
-            texture.Images[0] = new[] { this.Decode<TPixel>(configuration, stream) };
+            texture.Images[0] = new[] { this.Decode(configuration, stream) };
             return texture;
         }
 

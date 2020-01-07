@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Dds.Emums
         R8_SInt = 64,
         A8_UNorm = 65,
         R1_UNorm = 66,
-        R9G9B9E5_SHAREDEXP = 67,
+        R9G9B9E5_SharedExp = 67,
         R8G8_B8G8_UNorm = 68,
         G8R8_G8B8_UNorm = 69,
         BC1_Typeless = 70,
@@ -126,6 +126,9 @@ namespace SixLabors.ImageSharp.Formats.Dds.Emums
         IA44 = 112,
         P8 = 113,
         A8P8 = 114,
-        B4G4R4A4_UNorm = 115
+        B4G4R4A4_UNorm = 115,
+        P208 = 130,
+        V208 = 131,
+        V408 = 132,
     }
 }

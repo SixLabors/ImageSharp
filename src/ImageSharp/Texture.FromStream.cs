@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp
     /// <content>
     /// Adds static methods allowing the creation of new image from a given stream.
     /// </content>
-    public abstract partial class Texture
+    public partial class Texture
     {
         /// <summary>
         /// By reading the header on the provided stream this calculates the images format type.
@@ -128,105 +128,6 @@ namespace SixLabors.ImageSharp
         public static Texture Load(Configuration config, Stream stream) => Load(config, stream, out _);
 
         /// <summary>
-        /// Create a new instance of the <see cref="Texture{TPixel}"/> class from the given stream.
-        /// </summary>
-        /// <param name="stream">The stream containing image information.</param>
-        /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
-        /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Texture{TPixel}"/>.</returns>>
-        public static Texture<TPixel> Load<TPixel>(Stream stream)
-            where TPixel : struct, IPixel<TPixel>
-            => Load<TPixel>(null, stream);
-
-        /// <summary>
-        /// Create a new instance of the <see cref="Texture{TPixel}"/> class from the given stream.
-        /// </summary>
-        /// <param name="stream">The stream containing image information.</param>
-        /// <param name="format">The format type of the decoded image.</param>
-        /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
-        /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Texture{TPixel}"/>.</returns>>
-        public static Texture<TPixel> Load<TPixel>(Stream stream, out IImageFormat format)
-            where TPixel : struct, IPixel<TPixel>
-            => Load<TPixel>(null, stream, out format);
-
-        /// <summary>
-        /// Create a new instance of the <see cref="Texture{TPixel}"/> class from the given stream.
-        /// </summary>
-        /// <param name="stream">The stream containing image information.</param>
-        /// <param name="decoder">The decoder.</param>
-        /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
-        /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Texture{TPixel}"/>.</returns>>
-        public static Texture<TPixel> Load<TPixel>(Stream stream, IImageDecoder decoder)
-            where TPixel : struct, IPixel<TPixel>
-            => WithSeekableStream(Configuration.Default, stream, s => decoder.DecodeTexture<TPixel>(Configuration.Default, s));
-
-        /// <summary>
-        /// Create a new instance of the <see cref="Texture{TPixel}"/> class from the given stream.
-        /// </summary>
-        /// <param name="config">The Configuration.</param>
-        /// <param name="stream">The stream containing image information.</param>
-        /// <param name="decoder">The decoder.</param>
-        /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
-        /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Texture{TPixel}"/>.</returns>>
-        public static Texture<TPixel> Load<TPixel>(Configuration config, Stream stream, IImageDecoder decoder)
-            where TPixel : struct, IPixel<TPixel>
-            => WithSeekableStream(config, stream, s => decoder.DecodeTexture<TPixel>(config, s));
-
-        /// <summary>
-        /// Create a new instance of the <see cref="Texture{TPixel}"/> class from the given stream.
-        /// </summary>
-        /// <param name="config">The configuration options.</param>
-        /// <param name="stream">The stream containing image information.</param>
-        /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
-        /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Texture{TPixel}"/>.</returns>>
-        public static Texture<TPixel> Load<TPixel>(Configuration config, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
-            => Load<TPixel>(config, stream, out IImageFormat _);
-
-        /// <summary>
-        /// Create a new instance of the <see cref="Texture{TPixel}"/> class from the given stream.
-        /// </summary>
-        /// <param name="config">The configuration options.</param>
-        /// <param name="stream">The stream containing image information.</param>
-        /// <param name="format">The format type of the decoded image.</param>
-        /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
-        /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Texture{TPixel}"/>.</returns>>
-        public static Texture<TPixel> Load<TPixel>(Configuration config, Stream stream, out IImageFormat format)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            config = config ?? Configuration.Default;
-            (Texture<TPixel> img, IImageFormat format) data = WithSeekableStream(config, stream, s => DecodeTexture<TPixel>(s, config));
-
-            format = data.format;
-
-            if (data.img != null)
-            {
-                return data.img;
-            }
-
-            var sb = new StringBuilder();
-            sb.AppendLine("Image cannot be loaded. Available decoders:");
-
-            foreach (KeyValuePair<IImageFormat, IImageDecoder> val in config.ImageFormatsManager.ImageDecoders)
-            {
-                sb.AppendLine($" - {val.Key.Name} : {val.Value.GetType().Name}");
-            }
-
-            throw new UnknownImageFormatException(sb.ToString());
-        }
-
-        /// <summary>
         /// Decode a new instance of the <see cref="Texture"/> class from the given stream.
         /// The pixel format is selected by the decoder.
         /// </summary>
@@ -235,7 +136,7 @@ namespace SixLabors.ImageSharp
         /// <param name="format">The format type of the decoded image.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
         /// <exception cref="UnknownImageFormatException">Image cannot be loaded.</exception>
-        /// <returns>A new <see cref="Texture{TPixel}"/>.</returns>
+        /// <returns>A new <see cref="Texture"/>.</returns>
         public static Texture Load(Configuration config, Stream stream, out IImageFormat format)
         {
             config = config ?? Configuration.Default;

@@ -30,16 +30,6 @@ namespace SixLabors.ImageSharp.Formats
         Image Decode(Configuration configuration, Stream stream);
 
         /// <summary>
-        /// Decodes the image from the specified stream to an <see cref="Texture{TPixel}"/> of a specific pixel type.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="configuration">The configuration for the image.</param>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <returns>The <see cref="Texture{TPixel}"/>.</returns>
-        Texture<TPixel> DecodeTexture<TPixel>(Configuration configuration, Stream stream)
-            where TPixel : struct, IPixel<TPixel>;
-
-        /// <summary>
         /// Decodes the image from the specified stream to an <see cref="Texture"/>.
         /// </summary>
         /// <param name="configuration">The configuration for the image.</param>

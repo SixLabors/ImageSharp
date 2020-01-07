@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Tests
             throw new NotSupportedException($"Decoder specific GetImage() is not supported with {this.GetType().Name}!");
         }
 
-        public virtual Texture<TPixel> GetTexture(IImageDecoder decoder)
+        public virtual Texture GetTexture(IImageDecoder decoder)
         {
             throw new NotSupportedException($"Decoder specific GetTexture() is not supported with {this.GetType().Name}!");
         }

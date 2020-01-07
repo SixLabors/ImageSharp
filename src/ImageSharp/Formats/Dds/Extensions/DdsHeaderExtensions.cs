@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.Formats.Dds.Emums;
 
 namespace SixLabors.ImageSharp.Formats.Dds.Extensions
@@ -63,6 +64,16 @@ namespace SixLabors.ImageSharp.Formats.Dds.Extensions
         }
 
         /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="ddsHeader"><see cref="DdsHeader" /></param>
+        /// <returns></returns>
+        public static int TextureCount(this DdsHeader ddsHeader)
+        {
+            return ddsHeader.HasMipmaps() ? (int)ddsHeader.MipMapCount : 1;
+        }
+
+        /// <summary>
         /// Checks if dds resource should have the <see cref="DdsHeaderDxt10" /> header.
         /// </summary>
         /// <returns>
@@ -71,7 +82,7 @@ namespace SixLabors.ImageSharp.Formats.Dds.Extensions
         /// </returns>
         public static bool ShouldHaveDxt10Header(this DdsHeader ddsHeader)
         {
-            return (ddsHeader.PixelFormat.Flags == DdsPixelFormatFlags.FourCC) && (ddsHeader.PixelFormat.FourCC == DdsFourCc.DX10);
+            return (ddsHeader.PixelFormat.Flags == DdsPixelFormatFlags.FourCC) && (ddsHeader.PixelFormat.FourCC == DdsFourCC.DX10);
         }
 
         /// <summary>

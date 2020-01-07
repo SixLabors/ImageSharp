@@ -32,18 +32,11 @@ namespace SixLabors.ImageSharp.Formats.Dds
         }
 
         /// <inheritdoc/>
-        public Texture<TPixel> DecodeTexture<TPixel>(Configuration configuration, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+        public Texture DecodeTexture(Configuration configuration, Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));
 
-            return new DdsDecoderCore(configuration, this).DecodeTexture<TPixel>(stream);
-        }
-
-        /// <inheritdoc />
-        public Texture DecodeTexture(Configuration configuration, Stream stream)
-        {
-            return this.DecodeTexture<Rgba32>(configuration, stream);
+            return new DdsDecoderCore(configuration, this).DecodeTexture(stream);
         }
 
         /// <inheritdoc/>

@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.Tests
                 return cachedImage.Clone(this.Configuration);
             }
 
-            public override Texture<TPixel> GetTexture(IImageDecoder decoder)
+            public override Texture GetTexture(IImageDecoder decoder)
             {
                 Guard.NotNull(decoder, nameof(decoder));
 
@@ -181,10 +181,10 @@ namespace SixLabors.ImageSharp.Tests
                 return Image.Load<TPixel>(this.Configuration, testFile.Bytes, decoder);
             }
 
-            private Texture<TPixel> LoadTexture(IImageDecoder decoder)
+            private Texture LoadTexture(IImageDecoder decoder)
             {
                 var testFile = TestFile.Create(this.FilePath);
-                return Texture.Load<TPixel>(this.Configuration, testFile.Bytes, decoder);
+                return Texture.Load(this.Configuration, testFile.Bytes, decoder);
             }
         }
 

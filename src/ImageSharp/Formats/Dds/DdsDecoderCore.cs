@@ -66,8 +66,7 @@ namespace SixLabors.ImageSharp.Formats.Dds
         ///    <para><paramref name="stream"/> is null.</para>
         /// </exception>
         /// <returns>The decoded image.</returns>
-        public Texture<TPixel> DecodeTexture<TPixel>(Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+        public Texture DecodeTexture(Stream stream)
         {
             try
             {
@@ -78,124 +77,52 @@ namespace SixLabors.ImageSharp.Formats.Dds
                     throw new UnknownImageFormatException("Width or height cannot be 0");
                 }
 
-                int resourceCount = this.ddsHeader.ShouldHaveDxt10Header() ? (this.ddsDxt10header.ArraySize > 0) ? (int)this.ddsDxt10header.ArraySize : 1 : 1;
-
-                D3dFormat d3dFormat = this.ddsHeader.PixelFormat.GetD3DFormat();
-                DxgiFormat dxgiFormat = this.ddsHeader.ShouldHaveDxt10Header() ? this.ddsDxt10header.DxgiFormat : DxgiFormat.Unknown;
-
-                long pitch = DdsTools.ComputePitch(this.ddsHeader.Width, d3dFormat, dxgiFormat, (int)this.ddsHeader.PitchOrLinearSize);
-                long linearSize = DdsTools.ComputeLinearSize(this.ddsHeader.Width, this.ddsHeader.Height, d3dFormat, dxgiFormat, (int)this.ddsHeader.PitchOrLinearSize);
-                int depth = this.ddsHeader.ComputeDepth();
-                int mipMapCount = this.ddsHeader.HasMipmaps() ? (int)this.ddsHeader.MipMapCount : 1;
-
                 if (this.ddsHeader.IsVolumeTexture())
                 {
-                    return this.ReadVolumeTexture<TPixel>(stream, d3dFormat, dxgiFormat, resourceCount, mipMapCount);
+                    var depths = ddsHeader.ComputeDepth();
+
+                    var texture = new Texture(TextureType.VolumeTexture)
+                    {
+                        Images = new Image[depths][]
+                    };
+
+                    for (int depth = 0; depth < depths; depth++)
+                    {
+                        texture.Images[depth] = Processing.Dds.DecodeDds(stream, this.ddsHeader, this.ddsDxt10header);
+                    }
+
+                    return texture;
                 }
                 else if (this.ddsHeader.IsCubemap())
                 {
-                    return this.ReadCubemap<TPixel>(stream, d3dFormat, dxgiFormat, resourceCount, mipMapCount);
+                    DdsSurfaceType[] faces = this.ddsHeader.GetExistingCubemapFaces();
+                    var texture = new Texture(TextureType.VolumeTexture)
+                    {
+                        Images = new Image[faces.Length][]
+                    };
+
+                    for (int face = 0; face < faces.Length; face++)
+                    {
+                        texture.Images[face] = Processing.Dds.DecodeDds(stream, this.ddsHeader, this.ddsDxt10header);
+                    }
+
+                    return texture;
                 }
                 else
                 {
-                    return this.ReadFlatTexture<TPixel>(stream, d3dFormat, dxgiFormat, resourceCount, mipMapCount);
+                    var texture = new Texture(TextureType.VolumeTexture)
+                    {
+                        Images = new Image[1][]
+                    };
+
+                    texture.Images[0] = Processing.Dds.DecodeDds(stream, this.ddsHeader, this.ddsDxt10header);
+
+                    return texture;
                 }
             }
             catch (IndexOutOfRangeException e)
             {
                 throw new ImageFormatException("Dds image does not have a valid format.", e);
-            }
-        }
-
-        private Texture<TPixel> ReadFlatTexture<TPixel>(Stream stream, D3dFormat d3dFormat, DxgiFormat dxgiFormat, int resourceCount, int mipMapCount)
-             where TPixel : struct, IPixel<TPixel>
-        {
-            var texture = new Texture<TPixel>(TextureType.FlatTexture)
-            {
-                Images = new Image<TPixel>[1][]
-            };
-
-            DdsSurfaceType textureType = (this.ddsHeader.Height > 1) ? DdsSurfaceType.Texture2D : DdsSurfaceType.Texture1D;
-            int surfaceCount = (mipMapCount == 0) ? 1 : mipMapCount;
-            for (int i = 0; i < resourceCount; i++)
-            {
-                // Flat textures contain only mip-map levels, so read them:
-                IEnumerable<Image> surfaces = this.ReadMipMapSurfaces(stream, d3dFormat, dxgiFormat, surfaceCount, textureType, this.ddsHeader.Width, this.ddsHeader.Height);
-            }
-
-            return texture;
-        }
-
-        private Texture<TPixel> ReadVolumeTexture<TPixel>(Stream stream, D3dFormat d3dFormat, DxgiFormat dxgiFormat, int resourceCount, int mipMapCount)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            var texture = new Texture<TPixel>(TextureType.VolumeTexture)
-            {
-                Images = new Image<TPixel>[1][]
-            };
-
-            int surfaceCount = (mipMapCount == 0) ? 1 : mipMapCount;
-            for (int i = 0; i < resourceCount; i++)
-            {
-                IEnumerable<Image> surfaces = this.ReadMipMapSurfaces(stream, d3dFormat, dxgiFormat, surfaceCount, DdsSurfaceType.Texture3D, this.ddsHeader.Width, this.ddsHeader.Height);
-            }
-
-            return texture;
-        }
-
-        private Texture<TPixel> ReadCubemap<TPixel>(Stream stream, D3dFormat d3dFormat, DxgiFormat dxgiFormat, int resourceCount, int mipMapCount)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            var texture = new Texture<TPixel>(TextureType.Cubemap)
-            {
-                Images = new Image<TPixel>[1][]
-            };
-
-            int surfaceCount = (mipMapCount == 0) ? 1 : mipMapCount;
-            DdsSurfaceType[] faces = this.ddsHeader.GetExistingCubemapFaces();
-            if (faces == null)
-            {
-                return null;
-            }
-
-            for (int i = 0; i < resourceCount; i++)
-            {
-                // Cube maps contain mip-map levels after every cube face.
-                // So for every face read all mip-map levels:
-                //var surfaces = new List<Surface>(Depth * MipMapCount);
-                //for (var face = 0; face < Depth; face++)
-                //{
-                //    // I'm sure we do not have to swap positive and negative Y faces for OpenGL...
-                //    var faceType = faces[face];
-                //    surfaces.AddRange(ReadMipMapSurfaces(reader, surfaceCount, faceType, Width, Height));
-                //}
-
-                //Textures.Add(new TextureResource(surfaces.ToArray()));
-            }
-
-            return texture;
-        }
-
-        private IEnumerable<Image> ReadMipMapSurfaces(Stream stream, D3dFormat d3dFormat, DxgiFormat dxgiFormat, int surfaceCount, DdsSurfaceType surfaceType, uint width, uint height, int depth = 1)
-        {
-            // Load every mip-map level:
-            for (int level = 0; level < surfaceCount && (width > 0 || height > 0); ++level)
-            {
-                int surfaceSize = (int)DdsTools.ComputeLinearSize(width, height, d3dFormat, dxgiFormat, (int)this.ddsHeader.PitchOrLinearSize) * depth;
-
-#if NETCOREAPP2_1
-                Span<byte> surfaceBuffer = stackalloc byte[surfaceSize];
-#else
-                var surfaceBuffer = new byte[surfaceSize];
-#endif
-
-                this.currentStream.Read(surfaceBuffer, 0, surfaceSize);
-
-                //yield return Surface.FromBytes(data, surfaceType, level, width, height, FormatD3D, FormatDxgi);
-                yield break;
-
-                width /= 2;
-                height /= 2;
             }
         }
 
@@ -233,7 +160,7 @@ namespace SixLabors.ImageSharp.Formats.Dds
 #endif
             this.currentStream.Read(magicBuffer, 0, 4);
             uint magicValue = BinaryPrimitives.ReadUInt32LittleEndian(magicBuffer);
-            if (magicValue != DdsFourCc.DdsMagicWord)
+            if (magicValue != DdsFourCC.DdsMagicWord)
             {
                 throw new NotSupportedException($"Invalid DDS magic value.");
             }

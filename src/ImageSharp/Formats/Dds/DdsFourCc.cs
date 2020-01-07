@@ -6,9 +6,11 @@ namespace SixLabors.ImageSharp.Formats.Dds
     /// <summary>
     /// Four character codes constants used in DDS files.
     /// </summary>
-    internal static class DdsFourCc
+    internal static class DdsFourCC
     {
         public const uint DdsMagicWord = 'D' | 'D' << 8 | 'S' << 16 | ' ' << 24;
+
+        public const uint None = 0;
 
         public const uint DX10 = 'D' | 'X' << 8 | '1' << 16 | '0' << 24;
 

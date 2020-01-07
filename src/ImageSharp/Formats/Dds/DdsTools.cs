@@ -150,7 +150,7 @@ namespace SixLabors.ImageSharp.Formats.Dds
                 case DxgiFormat.D24_UNorm_S8_UInt:
                 case DxgiFormat.R24_UNorm_X8_Typeless:
                 case DxgiFormat.X24_Typeless_G8_UInt:
-                case DxgiFormat.R9G9B9E5_SHAREDEXP:
+                case DxgiFormat.R9G9B9E5_SharedExp:
                 case DxgiFormat.R8G8_B8G8_UNorm:
                 case DxgiFormat.G8R8_G8B8_UNorm:
                 case DxgiFormat.B8G8R8A8_UNorm:

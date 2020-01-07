@@ -176,7 +176,7 @@ namespace SixLabors.ImageSharp.Tests.Processing
             }
 
             this.processorDefinition
-                .Setup(p => p.CreatePixelSpecificProcessor(It.IsAny<Image<Rgba32>>(), It.IsAny<Rectangle>()))
+                .Setup(p => p.CreatePixelSpecificProcessor(Configuration.Default, It.IsAny<Image<Rgba32>>(), It.IsAny<Rectangle>()))
                 .Returns(this.regularProcessorImpl.Object);
         }
 
@@ -189,11 +189,11 @@ namespace SixLabors.ImageSharp.Tests.Processing
             }
 
             this.cloningProcessorDefinition
-                .Setup(p => p.CreatePixelSpecificCloningProcessor(It.IsAny<Image<Rgba32>>(), It.IsAny<Rectangle>()))
+                .Setup(p => p.CreatePixelSpecificCloningProcessor(Configuration.Default, It.IsAny<Image<Rgba32>>(), It.IsAny<Rectangle>()))
                 .Returns(this.cloningProcessorImpl.Object);
 
             this.cloningProcessorDefinition
-                .Setup(p => p.CreatePixelSpecificProcessor(It.IsAny<Image<Rgba32>>(), It.IsAny<Rectangle>()))
+                .Setup(p => p.CreatePixelSpecificProcessor(Configuration.Default, It.IsAny<Image<Rgba32>>(), It.IsAny<Rectangle>()))
                 .Returns(this.cloningProcessorImpl.Object);
         }
     }

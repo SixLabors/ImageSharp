@@ -26,6 +26,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <summary>
         /// Initializes a new instance of the <see cref="GlobalHistogramEqualizationProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="luminanceLevels">
         /// The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
         /// or 65536 for 16-bit grayscale images.
@@ -35,12 +36,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public GlobalHistogramEqualizationProcessor(
+            Configuration configuration,
             int luminanceLevels,
             bool clipHistogram,
             int clipLimit,
             Image<TPixel> source,
             Rectangle sourceRectangle)
-            : base(luminanceLevels, clipHistogram, clipLimit, source, sourceRectangle)
+            : base(configuration, luminanceLevels, clipHistogram, clipLimit, source, sourceRectangle)
         {
         }
 

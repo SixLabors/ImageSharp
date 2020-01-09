@@ -16,12 +16,13 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// the processing algorithm on an <see cref="Image{TPixel}"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type.</typeparam>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
         /// <returns>The <see cref="ICloningImageProcessor{TPixel}"/></returns>
-        ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
+        ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>;
     }
 }

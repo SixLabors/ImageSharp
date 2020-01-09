@@ -22,11 +22,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// <summary>
         /// Initializes a new instance of the <see cref="BinaryThresholdProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="definition">The <see cref="BinaryThresholdProcessor"/> defining the processor parameters.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        public BinaryThresholdProcessor(BinaryThresholdProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
-            : base(source, sourceRectangle)
+        public BinaryThresholdProcessor(Configuration configuration, BinaryThresholdProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             this.definition = definition;
         }
@@ -47,7 +48,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             int startX = interest.X;
             int endX = interest.Right;
 
-            bool isAlphaOnly = typeof(TPixel) == typeof(Alpha8);
+            bool isAlphaOnly = typeof(TPixel) == typeof(A8);
 
             var workingRect = Rectangle.FromLTRB(startX, startY, endX, endY);
 

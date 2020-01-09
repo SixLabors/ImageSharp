@@ -416,6 +416,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string ThreeTransforms5 = "Webp/lossless_vec_2_11.webp"; // color_indexing, predictor, cross_color
                 public const string ThreeTransforms6 = "Webp/lossless_vec_2_14.webp"; // substract_green, predictor, cross_color
                 public const string ThreeTransforms7 = "Webp/lossless_vec_2_15.webp"; // color_indexing, predictor, cross_color
+                public const string ThreeTransforms8 = "Webp/bike_lossless.webp"; // substract_green, predictor, cross_color
 
                 // Invalid / corrupted images
                 // Below images have errors according to webpinfo. The error message webpinfo gives is "Truncated data detected when parsing RIFF payload."

@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         // decrementing a counter.
                         if ((x & countMask) is 0)
                         {
-                            packedPixels = GetARGBIndex(pixelData[pixelDataPos++]);
+                            packedPixels = GetArgbIndex(pixelData[pixelDataPos++]);
                         }
 
                         decodedPixelData[decodedPixels++] = colorMap[packedPixels & bitMask];
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             {
                 for (int x = 0; x < width; ++x)
                 {
-                    uint colorMapIndex = GetARGBIndex(pixelData[decodedPixels]);
+                    uint colorMapIndex = GetArgbIndex(pixelData[decodedPixels]);
                     pixelData[decodedPixels] = colorMap[colorMapIndex];
                     decodedPixels++;
                 }
@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
 
                 ++y;
-                if ((y & mask) == 0)
+                if ((y & mask) is 0)
                 {
                     predRowIdxStart += tilesPerRow;
                 }
@@ -501,35 +501,37 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private static uint ClampedAddSubtractFull(uint c0, uint c1, uint c2)
         {
-            int a = AddSubtractComponentFull(c0 >> 24, c1 >> 24, c2 >> 24);
-            int r = AddSubtractComponentFull((c0 >> 16) & 0xff,
-                (c1 >> 16) & 0xff,
-                (c2 >> 16) & 0xff);
-            int g = AddSubtractComponentFull((c0 >> 8) & 0xff,
-                (c1 >> 8) & 0xff,
-                (c2 >> 8) & 0xff);
-            int b = AddSubtractComponentFull(c0 & 0xff, c1 & 0xff, c2 & 0xff);
+            int a = AddSubtractComponentFull((int)(c0 >> 24), (int)(c1 >> 24), (int)(c2 >> 24));
+            int r = AddSubtractComponentFull(
+                (int)((c0 >> 16) & 0xff),
+                (int)((c1 >> 16) & 0xff),
+                (int)((c2 >> 16) & 0xff));
+            int g = AddSubtractComponentFull(
+                (int)((c0 >> 8) & 0xff),
+                (int)((c1 >> 8) & 0xff),
+                (int)((c2 >> 8) & 0xff));
+            int b = AddSubtractComponentFull((int)(c0 & 0xff), (int)(c1 & 0xff), (int)(c2 & 0xff));
             return (uint)(((uint)a << 24) | (r << 16) | (g << 8) | b);
         }
 
         private static uint ClampedAddSubtractHalf(uint c0, uint c1, uint c2)
         {
             uint ave = Average2(c0, c1);
-            int a = AddSubtractComponentHalf(ave >> 24, c2 >> 24);
-            int r = AddSubtractComponentHalf((ave >> 16) & 0xff, (c2 >> 16) & 0xff);
-            int g = AddSubtractComponentHalf((ave >> 8) & 0xff, (c2 >> 8) & 0xff);
-            int b = AddSubtractComponentHalf((ave >> 0) & 0xff, (c2 >> 0) & 0xff);
+            int a = AddSubtractComponentHalf((int)(ave >> 24), (int)(c2 >> 24));
+            int r = AddSubtractComponentHalf((int)((ave >> 16) & 0xff), (int)((c2 >> 16) & 0xff));
+            int g = AddSubtractComponentHalf((int)((ave >> 8) & 0xff), (int)((c2 >> 8) & 0xff));
+            int b = AddSubtractComponentHalf((int)(ave & 0xff), (int)(c2 & 0xff));
             return (uint)(((uint)a << 24) | (r << 16) | (g << 8) | b);
         }
 
-        private static int AddSubtractComponentHalf(uint a, uint b)
+        private static int AddSubtractComponentHalf(int a, int b)
         {
-            return (int)Clip255(a + ((a - b) / 2));
+            return (int)Clip255((uint)(a + ((a - b) / 2)));
         }
 
-        private static int AddSubtractComponentFull(uint a, uint b, uint c)
+        private static int AddSubtractComponentFull(int a, int b, int c)
         {
-            return (int)Clip255(a + b - c);
+            return (int)Clip255((uint)(a + b - c));
         }
 
         private static uint Clip255(uint a)
@@ -539,26 +541,24 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 return a;
             }
 
-            // return 0, when a is a negative integer.
-            // return 255, when a is positive.
             return ~a >> 24;
         }
 
         private static uint Select(uint a, uint b, uint c)
         {
             int paMinusPb =
-                Sub3(a >> 24, b >> 24, c >> 24) +
-                Sub3((a >> 16) & 0xff, (b >> 16) & 0xff, (c >> 16) & 0xff) +
-                Sub3((a >> 8) & 0xff, (b >> 8) & 0xff, (c >> 8) & 0xff) +
-                Sub3( a & 0xff, b & 0xff, c & 0xff);
+                Sub3((int)(a >> 24), (int)(b >> 24), (int)(c >> 24)) +
+                Sub3((int)((a >> 16) & 0xff), (int)((b >> 16) & 0xff), (int)((c >> 16) & 0xff)) +
+                Sub3((int)((a >> 8) & 0xff), (int)((b >> 8) & 0xff), (int)((c >> 8) & 0xff)) +
+                Sub3((int)(a & 0xff), (int)(b & 0xff), (int)(c & 0xff));
             return (paMinusPb <= 0) ? a : b;
         }
 
-        private static int Sub3(uint a, uint b, uint c)
+        private static int Sub3(int a, int b, int c)
         {
-            uint pb = b - c;
-            uint pa = a - c;
-            return (int)(Math.Abs(pb) - Math.Abs(pa));
+            int pb = b - c;
+            int pa = a - c;
+            return Math.Abs(pb) - Math.Abs(pa);
         }
 
         private static uint Average2(uint a0, uint a1)
@@ -605,7 +605,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return (alphaAndGreen & 0xff00ff00u) | (redAndBlue & 0x00ff00ffu);
         }
 
-        private static uint GetARGBIndex(uint idx)
+        private static uint GetArgbIndex(uint idx)
         {
             return (idx >> 8) & 0xff;
         }

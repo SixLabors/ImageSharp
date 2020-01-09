@@ -23,16 +23,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// Initializes a new instance of the <see cref="ConvolutionProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="kernelXY">The 2d gradient operator.</param>
         /// <param name="preserveAlpha">Whether the convolution filter is applied to alpha as well as the color channels.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public ConvolutionProcessor(
+            Configuration configuration,
             in DenseMatrix<float> kernelXY,
             bool preserveAlpha,
             Image<TPixel> source,
             Rectangle sourceRectangle)
-            : base(source, sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             this.KernelXY = kernelXY;
             this.PreserveAlpha = preserveAlpha;

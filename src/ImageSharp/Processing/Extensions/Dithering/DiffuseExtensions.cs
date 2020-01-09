@@ -6,7 +6,7 @@ using System;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing.Dithering
+namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
     /// Defines extension methods to apply diffusion to an <see cref="Image"/>

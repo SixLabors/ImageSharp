@@ -162,6 +162,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         [WithFile(Lossless.ThreeTransforms5, PixelTypes.Rgba32)]
         [WithFile(Lossless.ThreeTransforms6, PixelTypes.Rgba32)]
         [WithFile(Lossless.ThreeTransforms7, PixelTypes.Rgba32)]
+        [WithFile(Lossless.ThreeTransforms8, PixelTypes.Rgba32)]
         public void WebpDecoder_CanDecode_Lossless_WithThreeTransforms<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

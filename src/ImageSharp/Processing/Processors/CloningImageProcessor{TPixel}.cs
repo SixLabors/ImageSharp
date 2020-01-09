@@ -173,16 +173,19 @@ namespace SixLabors.ImageSharp.Processing.Processors
             Image<TPixel> source = this.Source;
             Size targetSize = this.GetTargetSize();
 
-            // We will always be creating the clone even for mutate because we may need to resize the canvas
-            IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select<ImageFrame<TPixel>, ImageFrame<TPixel>>(
-                x => new ImageFrame<TPixel>(
+            // We will always be creating the clone even for mutate because we may need to resize the canvas.
+            var targetFrames = new ImageFrame<TPixel>[source.Frames.Count];
+            for (int i = 0; i < targetFrames.Length; i++)
+            {
+                targetFrames[i] = new ImageFrame<TPixel>(
                     this.Configuration,
                     targetSize.Width,
                     targetSize.Height,
-                    x.Metadata.DeepClone()));
+                    source.Frames[i].Metadata.DeepClone());
+            }
 
-            // Use the overload to prevent an extra frame being added
-            return new Image<TPixel>(this.Configuration, source.Metadata.DeepClone(), frames);
+            // Use the overload to prevent an extra frame being added.
+            return new Image<TPixel>(this.Configuration, source.Metadata.DeepClone(), targetFrames);
         }
 
         private void CheckFrameCount(Image<TPixel> a, Image<TPixel> b)

@@ -27,8 +27,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
 
         private readonly DrawTextProcessor definition;
 
-        public DrawTextProcessor(DrawTextProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
-            : base(source, sourceRectangle)
+        public DrawTextProcessor(Configuration configuration, DrawTextProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             this.definition = definition;
         }

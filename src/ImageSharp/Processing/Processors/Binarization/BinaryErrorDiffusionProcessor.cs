@@ -70,8 +70,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         public Color LowerColor { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
-            => new BinaryErrorDiffusionProcessor<TPixel>(this, source, sourceRectangle);
+            => new BinaryErrorDiffusionProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

@@ -1,7 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Dithering;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Benchmarks.Samplers

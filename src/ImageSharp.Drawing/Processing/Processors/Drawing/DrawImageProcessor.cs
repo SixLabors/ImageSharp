@@ -60,10 +60,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
         public float Opacity { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixelBg> CreatePixelSpecificProcessor<TPixelBg>(Image<TPixelBg> source, Rectangle sourceRectangle)
+        public IImageProcessor<TPixelBg> CreatePixelSpecificProcessor<TPixelBg>(Configuration configuration, Image<TPixelBg> source, Rectangle sourceRectangle)
             where TPixelBg : struct, IPixel<TPixelBg>
         {
-            var visitor = new ProcessorFactoryVisitor<TPixelBg>(this, source, sourceRectangle);
+            var visitor = new ProcessorFactoryVisitor<TPixelBg>(configuration, this, source, sourceRectangle);
             this.Image.AcceptVisitor(visitor);
             return visitor.Result;
         }
@@ -71,12 +71,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
         private class ProcessorFactoryVisitor<TPixelBg> : IImageVisitor
             where TPixelBg : struct, IPixel<TPixelBg>
         {
+            private readonly Configuration configuration;
             private readonly DrawImageProcessor definition;
             private readonly Image<TPixelBg> source;
             private readonly Rectangle sourceRectangle;
 
-            public ProcessorFactoryVisitor(DrawImageProcessor definition, Image<TPixelBg> source, Rectangle sourceRectangle)
+            public ProcessorFactoryVisitor(Configuration configuration, DrawImageProcessor definition, Image<TPixelBg> source, Rectangle sourceRectangle)
             {
+                this.configuration = configuration;
                 this.definition = definition;
                 this.source = source;
                 this.sourceRectangle = sourceRectangle;
@@ -88,6 +90,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                 where TPixelFg : struct, IPixel<TPixelFg>
             {
                 this.Result = new DrawImageProcessor<TPixelBg, TPixelFg>(
+                    this.configuration,
                     image,
                     this.source,
                     this.sourceRectangle,

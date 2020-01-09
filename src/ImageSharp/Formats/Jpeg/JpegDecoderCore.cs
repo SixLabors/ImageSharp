@@ -465,24 +465,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
         }
 
-        private double GetExifResolutionValue(ExifTag tag)
+        private double GetExifResolutionValue(ExifTag<Rational> tag)
         {
-            if (!this.Metadata.ExifProfile.TryGetValue(tag, out ExifValue exifValue))
-            {
-                return 0;
-            }
+            IExifValue<Rational> resolution = this.Metadata.ExifProfile.GetValue(tag);
 
-            switch (exifValue.DataType)
-            {
-                case ExifDataType.Rational:
-                    return ((Rational)exifValue.Value).ToDouble();
-                case ExifDataType.Long:
-                    return (uint)exifValue.Value;
-                case ExifDataType.DoubleFloat:
-                    return (double)exifValue.Value;
-                default:
-                    return 0;
-            }
+            return resolution is null ? 0 : resolution.Value.ToDouble();
         }
 
         /// <summary>

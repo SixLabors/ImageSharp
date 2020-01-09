@@ -21,11 +21,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Initializes a new instance of the <see cref="QuantizeProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="quantizer">The quantizer used to reduce the color palette.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        public QuantizeProcessor(IQuantizer quantizer, Image<TPixel> source, Rectangle sourceRectangle)
-            : base(source, sourceRectangle)
+        public QuantizeProcessor(Configuration configuration, IQuantizer quantizer, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             Guard.NotNull(quantizer, nameof(quantizer));
             this.quantizer = quantizer;

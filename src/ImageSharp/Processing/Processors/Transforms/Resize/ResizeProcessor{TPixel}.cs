@@ -33,8 +33,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private ResizeKernelMap horizontalKernelMap;
         private ResizeKernelMap verticalKernelMap;
 
-        public ResizeProcessor(ResizeProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
-            : base(source, sourceRectangle)
+        public ResizeProcessor(Configuration configuration, ResizeProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             this.targetWidth = definition.TargetWidth;
             this.targetHeight = definition.TargetHeight;

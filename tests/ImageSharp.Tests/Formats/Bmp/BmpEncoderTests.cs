@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        BmpMetadata meta = output.Metadata.GetFormatMetadata(BmpFormat.Instance);
+                        BmpMetadata meta = output.Metadata.GetBmpMetadata();
 
                         Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
                     }
@@ -167,7 +167,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             where TPixel : struct, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
 
         [Theory]
-        [WithFile(Bit8Gs, PixelTypes.Gray8, BmpBitsPerPixel.Pixel8)]
+        [WithFile(Bit8Gs, PixelTypes.L8, BmpBitsPerPixel.Pixel8)]
         public void Encode_8BitGray_WithV3Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             where TPixel : struct, IPixel<TPixel> =>
             TestBmpEncoderCore(
@@ -176,7 +176,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 supportTransparency: false);
 
         [Theory]
-        [WithFile(Bit8Gs, PixelTypes.Gray8, BmpBitsPerPixel.Pixel8)]
+        [WithFile(Bit8Gs, PixelTypes.L8, BmpBitsPerPixel.Pixel8)]
         public void Encode_8BitGray_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             where TPixel : struct, IPixel<TPixel> =>
             TestBmpEncoderCore(

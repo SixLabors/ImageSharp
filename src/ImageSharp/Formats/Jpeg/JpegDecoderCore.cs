@@ -465,24 +465,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
         }
 
-        private double GetExifResolutionValue(ExifTag tag)
+        private double GetExifResolutionValue(ExifTag<Rational> tag)
         {
-            if (!this.Metadata.ExifProfile.TryGetValue(tag, out ExifValue exifValue))
-            {
-                return 0;
-            }
+            IExifValue<Rational> resolution = this.Metadata.ExifProfile.GetValue(tag);
 
-            switch (exifValue.DataType)
-            {
-                case ExifDataType.Rational:
-                    return ((Rational)exifValue.Value).ToDouble();
-                case ExifDataType.Long:
-                    return (uint)exifValue.Value;
-                case ExifDataType.DoubleFloat:
-                    return (double)exifValue.Value;
-                default:
-                    return 0;
-            }
+            return resolution is null ? 0 : resolution.Value.ToDouble();
         }
 
         /// <summary>
@@ -649,48 +636,51 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 switch (quantizationTableSpec >> 4)
                 {
                     case 0:
+                    {
+                        // 8 bit values
+                        if (remaining < 64)
                         {
-                            // 8 bit values
-                            if (remaining < 64)
-                            {
-                                done = true;
-                                break;
-                            }
-
-                            this.InputStream.Read(this.temp, 0, 64);
-                            remaining -= 64;
-
-                            ref Block8x8F table = ref this.QuantizationTables[tableIndex];
-                            for (int j = 0; j < 64; j++)
-                            {
-                                table[j] = this.temp[j];
-                            }
+                            done = true;
+                            break;
                         }
 
-                        break;
+                        this.InputStream.Read(this.temp, 0, 64);
+                        remaining -= 64;
+
+                        ref Block8x8F table = ref this.QuantizationTables[tableIndex];
+                        for (int j = 0; j < 64; j++)
+                        {
+                            table[j] = this.temp[j];
+                        }
+                    }
+
+                    break;
                     case 1:
+                    {
+                        // 16 bit values
+                        if (remaining < 128)
                         {
-                            // 16 bit values
-                            if (remaining < 128)
-                            {
-                                done = true;
-                                break;
-                            }
-
-                            this.InputStream.Read(this.temp, 0, 128);
-                            remaining -= 128;
-
-                            ref Block8x8F table = ref this.QuantizationTables[tableIndex];
-                            for (int j = 0; j < 64; j++)
-                            {
-                                table[j] = (this.temp[2 * j] << 8) | this.temp[(2 * j) + 1];
-                            }
+                            done = true;
+                            break;
                         }
 
-                        break;
+                        this.InputStream.Read(this.temp, 0, 128);
+                        remaining -= 128;
+
+                        ref Block8x8F table = ref this.QuantizationTables[tableIndex];
+                        for (int j = 0; j < 64; j++)
+                        {
+                            table[j] = (this.temp[2 * j] << 8) | this.temp[(2 * j) + 1];
+                        }
+                    }
+
+                    break;
+
                     default:
+                    {
                         JpegThrowHelper.ThrowBadQuantizationTable();
                         break;
+                    }
                 }
 
                 if (done)

@@ -4,7 +4,6 @@
 using System;
 
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Dithering;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 
 using Xunit;

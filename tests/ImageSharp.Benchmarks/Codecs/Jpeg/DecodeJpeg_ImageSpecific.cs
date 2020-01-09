@@ -6,6 +6,7 @@ using System.IO;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Diagnosers;
+using BenchmarkDotNet.Environments;
 using BenchmarkDotNet.Jobs;
 
 using SixLabors.ImageSharp.Formats.Jpeg;
@@ -35,8 +36,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
                 public ShortClr()
                 {
                     this.Add(
-                        // Job.Clr.WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3),
-                        Job.Core.WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3)
+                        // Job.Default.With(ClrRuntime.Net472).WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3),
+                        Job.Default.With(CoreRuntime.Core21).WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3)
                     );
                 }
             }

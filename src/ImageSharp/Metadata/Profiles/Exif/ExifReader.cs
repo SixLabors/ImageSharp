@@ -5,7 +5,6 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using SixLabors.ImageSharp.Primitives;
@@ -68,12 +67,12 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// <returns>
         /// The <see cref="Collection{ExifValue}"/>.
         /// </returns>
-        public List<ExifValue> ReadValues()
+        public List<IExifValue> ReadValues()
         {
-            var values = new List<ExifValue>();
+            var values = new List<IExifValue>();
 
             // II == 0x4949
-            this.isBigEndian = !(this.ReadUInt16() == 0x4949);
+            this.isBigEndian = this.ReadUInt16() != 0x4949;
 
             if (this.ReadUInt16() != 0x002A)
             {
@@ -101,7 +100,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private static TDataType[] ToArray<TDataType>(ExifDataType dataType, ReadOnlySpan<byte> data, ConverterMethod<TDataType> converter)
         {
-            int dataTypeSize = (int)ExifValue.GetSize(dataType);
+            int dataTypeSize = (int)ExifDataTypes.GetSize(dataType);
             int length = data.Length / dataTypeSize;
 
             var result = new TDataType[length];
@@ -135,7 +134,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// </summary>
         /// <param name="values">The values.</param>
         /// <param name="index">The index.</param>
-        private void AddValues(List<ExifValue> values, uint index)
+        private void AddValues(List<IExifValue> values, uint index)
         {
             if (index > (uint)this.exifData.Length)
             {
@@ -153,9 +152,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 }
 
                 bool duplicate = false;
-                foreach (ExifValue val in values)
+                foreach (IExifValue val in values)
                 {
-                    if (val.Tag == value.Tag)
+                    if (val == value)
                     {
                         duplicate = true;
                         break;
@@ -167,19 +166,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     continue;
                 }
 
-                if (value.Tag == ExifTag.SubIFDOffset)
+                if (value == ExifTag.SubIFDOffset)
                 {
-                    if (value.DataType == ExifDataType.Long)
-                    {
-                        this.exifOffset = (uint)value.Value;
-                    }
+                    this.exifOffset = ((ExifLong)value).Value;
                 }
-                else if (value.Tag == ExifTag.GPSIFDOffset)
+                else if (value == ExifTag.GPSIFDOffset)
                 {
-                    if (value.DataType == ExifDataType.Long)
-                    {
-                        this.gpsOffset = (uint)value.Value;
-                    }
+                    this.gpsOffset = ((ExifLong)value).Value;
                 }
                 else
                 {
@@ -285,29 +278,23 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private bool TryReadValue(out ExifValue exifValue)
         {
+            exifValue = default;
+
             // 2   | 2    | 4     | 4
             // tag | type | count | value offset
             if (this.RemainingLength < 12)
             {
-                exifValue = default;
-
                 return false;
             }
 
-            ExifTag tag = this.ToEnum(this.ReadUInt16(), ExifTag.Unknown);
-            uint type = this.ReadUInt16();
+            var tag = (ExifTagValue)this.ReadUInt16();
+            ExifDataType dataType = EnumUtils.Parse(this.ReadUInt16(), ExifDataType.Unknown);
 
             // Ensure that the data type is valid
-            if (type == 0 || type > 12)
+            if (dataType == ExifDataType.Unknown)
             {
-                exifValue = new ExifValue(tag, ExifDataType.Unknown, null, false);
-
-                return true;
+                return false;
             }
-
-            var dataType = (ExifDataType)type;
-
-            object value;
 
             uint numberOfComponents = this.ReadUInt32();
 
@@ -318,23 +305,20 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 numberOfComponents = 4;
             }
 
-            uint size = numberOfComponents * ExifValue.GetSize(dataType);
+            uint size = numberOfComponents * ExifDataTypes.GetSize(dataType);
 
             this.TryReadSpan(4, out ReadOnlySpan<byte> offsetBuffer);
 
+            object value;
             if (size > 4)
             {
                 int oldIndex = this.position;
-
                 uint newIndex = this.ConvertToUInt32(offsetBuffer);
 
                 // Ensure that the new index does not overrun the data
                 if (newIndex > int.MaxValue)
                 {
-                    this.AddInvalidTag(tag);
-
-                    exifValue = default;
-
+                    this.AddInvalidTag(new UnkownExifTag(tag));
                     return false;
                 }
 
@@ -342,12 +326,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
                 if (this.RemainingLength < size)
                 {
-                    this.AddInvalidTag(tag);
+                    this.AddInvalidTag(new UnkownExifTag(tag));
 
                     this.position = oldIndex;
-
-                    exifValue = default;
-
                     return false;
                 }
 
@@ -361,32 +342,24 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 value = this.ConvertValue(dataType, offsetBuffer, numberOfComponents);
             }
 
-            exifValue = new ExifValue(tag, dataType, value, isArray: value != null && numberOfComponents != 1);
+            exifValue = ExifValues.Create(tag) ?? ExifValues.Create(tag, dataType, numberOfComponents);
+
+            if (exifValue is null)
+            {
+                this.AddInvalidTag(new UnkownExifTag(tag));
+                return false;
+            }
+
+            if (!exifValue.TrySetValue(value))
+            {
+                return false;
+            }
 
             return true;
         }
 
         private void AddInvalidTag(ExifTag tag)
-        {
-            if (this.invalidTags is null)
-            {
-                this.invalidTags = new List<ExifTag>();
-            }
-
-            this.invalidTags.Add(tag);
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private TEnum ToEnum<TEnum>(int value, TEnum defaultValue)
-            where TEnum : struct, Enum
-        {
-            if (EnumHelper<TEnum>.IsDefined(value))
-            {
-                return Unsafe.As<int, TEnum>(ref value);
-            }
-
-            return defaultValue;
-        }
+            => (this.invalidTags ?? (this.invalidTags = new List<ExifTag>())).Add(tag);
 
         private bool TryReadSpan(int length, out ReadOnlySpan<byte> span)
         {
@@ -421,18 +394,18 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private void GetThumbnail(uint offset)
         {
-            var values = new List<ExifValue>();
+            var values = new List<IExifValue>();
             this.AddValues(values, offset);
 
             foreach (ExifValue value in values)
             {
-                if (value.Tag == ExifTag.JPEGInterchangeFormat && (value.DataType == ExifDataType.Long))
+                if (value == ExifTag.JPEGInterchangeFormat)
                 {
-                    this.ThumbnailOffset = (uint)value.Value;
+                    this.ThumbnailOffset = ((ExifLong)value).Value;
                 }
-                else if (value.Tag == ExifTag.JPEGInterchangeFormatLength && value.DataType == ExifDataType.Long)
+                else if (value == ExifTag.JPEGInterchangeFormatLength)
                 {
-                    this.ThumbnailLength = (uint)value.Value;
+                    this.ThumbnailLength = ((ExifLong)value).Value;
                 }
             }
         }
@@ -540,19 +513,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             return this.isBigEndian
                 ? BinaryPrimitives.ReadInt16BigEndian(buffer)
                 : BinaryPrimitives.ReadInt16LittleEndian(buffer);
-        }
-
-        private sealed class EnumHelper<TEnum>
-            where TEnum : struct, Enum
-        {
-            private static readonly int[] Values = Enum.GetValues(typeof(TEnum)).Cast<TEnum>()
-                .Select(e => Convert.ToInt32(e)).OrderBy(e => e).ToArray();
-
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public static bool IsDefined(int value)
-            {
-                return Array.BinarySearch(Values, value) >= 0;
-            }
         }
     }
 }

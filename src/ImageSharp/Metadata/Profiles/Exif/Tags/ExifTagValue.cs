@@ -1,13 +1,12 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
     /// <summary>
-    /// All exif tags from the Exif standard 2.2
-    /// Descriptions from: <see href="http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/EXIF.html"/>
+    /// All exif tags from the Exif standard 2.31.
     /// </summary>
-    public enum ExifTag
+    internal enum ExifTagValue
     {
         /// <summary>
         /// Unknown
@@ -1539,6 +1538,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// <summary>
         /// GPSDifferential
         /// </summary>
-        GPSDifferential = 0x001E
+        GPSDifferential = 0x001E,
     }
 }

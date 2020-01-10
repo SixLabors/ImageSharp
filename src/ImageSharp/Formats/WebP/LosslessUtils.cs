@@ -41,7 +41,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 int countMask = pixelsPerByte - 1;
                 int bitMask = (1 << bitsPerPixel) - 1;
 
-                // TODO: use memoryAllocator here
                 var decodedPixelData = new uint[width * height];
                 int pixelDataPos = 0;
                 for (int y = 0; y < height; ++y)
@@ -167,11 +166,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return newColorMap;
         }
 
-        public static void PredictorInverseTransform(Vp8LTransform transform, uint[] pixelData)
+        public static void PredictorInverseTransform(Vp8LTransform transform, uint[] pixelData, Span<uint> output)
         {
-            // TODO: use memory allocator instead
-            var output = new uint[pixelData.Length];
-
             int processedPixels = 0;
             int yStart = 0;
             int width = transform.XSize;
@@ -265,10 +261,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
             }
 
-            output.AsSpan().CopyTo(pixelData);
+            output.CopyTo(pixelData);
         }
 
-        private static void PredictorAdd0(uint[] input, int startIdx, int numberOfPixels, uint[] output)
+        private static void PredictorAdd0(Span<uint> input, int startIdx, int numberOfPixels, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
             for (int x = startIdx; x < endIdx; ++x)
@@ -278,7 +274,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private static void PredictorAdd1(uint[] input, int startIdx, int numberOfPixels, uint[] output)
+        private static void PredictorAdd1(Span<uint> input, int startIdx, int numberOfPixels, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
             uint left = output[startIdx - 1];
@@ -288,7 +284,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private static void PredictorAdd2(uint[] input, int startIdx, int numberOfPixels, int width, uint[] output)
+        private static void PredictorAdd2(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
             int offset = 0;
@@ -299,7 +295,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private static void PredictorAdd3(uint[] input, int startIdx, int numberOfPixels, int width, uint[] output)
+        private static void PredictorAdd3(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
             int offset = 0;
@@ -310,7 +306,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private static void PredictorAdd4(uint[] input, int startIdx, int numberOfPixels, int width, uint[] output)
+        private static void PredictorAdd4(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
             int offset = 0;
@@ -321,7 +317,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private static void PredictorAdd5(uint[] input, int startIdx, int numberOfPixels, int width, uint[] output)
+        private static void PredictorAdd5(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
             int offset = 0;
@@ -332,7 +328,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private static void PredictorAdd6(uint[] input, int startIdx, int numberOfPixels, int width, uint[] output)
+        private static void PredictorAdd6(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
             int offset = 0;
@@ -343,7 +339,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private static void PredictorAdd7(uint[] input, int startIdx, int numberOfPixels, int width, uint[] output)
+        private static void PredictorAdd7(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
             int offset = 0;
@@ -354,7 +350,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private static void PredictorAdd8(uint[] input, int startIdx, int numberOfPixels, int width, uint[] output)
+        private static void PredictorAdd8(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
             int offset = 0;
@@ -365,7 +361,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private static void PredictorAdd9(uint[] input, int startIdx, int numberOfPixels, int width, uint[] output)
+        private static void PredictorAdd9(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
             int offset = 0;
@@ -376,7 +372,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private static void PredictorAdd10(uint[] input, int startIdx, int numberOfPixels, int width, uint[] output)
+        private static void PredictorAdd10(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
             int offset = 0;
@@ -387,7 +383,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private static void PredictorAdd11(uint[] input, int startIdx, int numberOfPixels, int width, uint[] output)
+        private static void PredictorAdd11(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
             int offset = 0;
@@ -398,7 +394,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private static void PredictorAdd12(uint[] input, int startIdx, int numberOfPixels, int width, uint[] output)
+        private static void PredictorAdd12(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
             int offset = 0;
@@ -409,7 +405,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private static void PredictorAdd13(uint[] input, int startIdx, int numberOfPixels, int width, uint[] output)
+        private static void PredictorAdd13(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
             int offset = 0;
@@ -425,75 +421,75 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return WebPConstants.ArgbBlack;
         }
 
-        private static uint Predictor1(uint left, uint[] top)
+        private static uint Predictor1(uint left, Span<uint> top)
         {
             return left;
         }
 
-        private static uint Predictor2(uint left, uint[] top, int idx)
+        private static uint Predictor2(uint left, Span<uint> top, int idx)
         {
             return top[idx];
         }
 
-        private static uint Predictor3(uint left, uint[] top, int idx)
+        private static uint Predictor3(uint left, Span<uint> top, int idx)
         {
             return top[idx + 1];
         }
 
-        private static uint Predictor4(uint left, uint[] top, int idx)
+        private static uint Predictor4(uint left, Span<uint> top, int idx)
         {
             return top[idx - 1];
         }
 
-        private static uint Predictor5(uint left, uint[] top, int idx)
+        private static uint Predictor5(uint left, Span<uint> top, int idx)
         {
             uint pred = Average3(left, top[idx], top[idx + 1]);
             return pred;
         }
 
-        private static uint Predictor6(uint left, uint[] top, int idx)
+        private static uint Predictor6(uint left, Span<uint> top, int idx)
         {
             uint pred = Average2(left, top[idx - 1]);
             return pred;
         }
 
-        private static uint Predictor7(uint left, uint[] top, int idx)
+        private static uint Predictor7(uint left, Span<uint> top, int idx)
         {
             uint pred = Average2(left, top[idx]);
             return pred;
         }
 
-        private static uint Predictor8(uint left, uint[] top, int idx)
+        private static uint Predictor8(uint left, Span<uint> top, int idx)
         {
             uint pred = Average2(top[idx - 1], top[idx]);
             return pred;
         }
 
-        private static uint Predictor9(uint left, uint[] top, int idx)
+        private static uint Predictor9(uint left, Span<uint> top, int idx)
         {
             uint pred = Average2(top[idx], top[idx + 1]);
             return pred;
         }
 
-        private static uint Predictor10(uint left, uint[] top, int idx)
+        private static uint Predictor10(uint left, Span<uint> top, int idx)
         {
             uint pred = Average4(left, top[idx - 1], top[idx], top[idx + 1]);
             return pred;
         }
 
-        private static uint Predictor11(uint left, uint[] top, int idx)
+        private static uint Predictor11(uint left, Span<uint> top, int idx)
         {
             uint pred = Select(top[idx], left, top[idx - 1]);
             return pred;
         }
 
-        private static uint Predictor12(uint left, uint[] top, int idx)
+        private static uint Predictor12(uint left, Span<uint> top, int idx)
         {
             uint pred = ClampedAddSubtractFull(left, top[idx], top[idx - 1]);
             return pred;
         }
 
-        private static uint Predictor13(uint left, uint[] top, int idx)
+        private static uint Predictor13(uint left, Span<uint> top, int idx)
         {
             uint pred = ClampedAddSubtractHalf(left, top[idx], top[idx - 1]);
             return pred;

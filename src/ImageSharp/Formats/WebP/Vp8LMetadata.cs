@@ -9,8 +9,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public ColorCache ColorCache { get; set; }
 
-        public ColorCache SavedColorCache { get; set; }
-
         public int HuffmanMask { get; set; }
 
         public int HuffmanSubSampleBits { get; set; }

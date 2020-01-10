@@ -64,13 +64,20 @@
 #   treat as binary
 *.bmp               binary
 *.dll               binary
+*.eot               binary
 *.exe               binary
 *.gif               binary
 *.jpg               binary
+*.pdf               binary
 *.png               binary
-*.tga               binary
+*.ppt               binary
+*.pptx              binary
 *.ttf               binary
 *.snk               binary
+*.woff              binary
+*.woff2             binary
+*.xls               binary
+*.xlsx              binary
 #   diff as plain text
 *.doc               diff=astextplain
 *.docx              diff=astextplain
@@ -78,6 +85,7 @@
 *.pdf               diff=astextplain
 *.pptx              diff=astextplain
 *.rtf               diff=astextplain
+*.svg               diff=astextplain
 *.jpg filter=lfs diff=lfs merge=lfs -text
 *.jpeg filter=lfs diff=lfs merge=lfs -text
 *.bmp filter=lfs diff=lfs merge=lfs -text

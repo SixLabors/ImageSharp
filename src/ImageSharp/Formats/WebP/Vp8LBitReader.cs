@@ -13,17 +13,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Maximum number of bits (inclusive) the bit-reader can handle.
         /// </summary>
-        private const int VP8L_MAX_NUM_BIT_READ = 24;
+        private const int Vp8LMaxNumBitRead = 24;
 
         /// <summary>
         /// Number of bits prefetched (= bit-size of vp8l_val_t).
         /// </summary>
-        private const int VP8L_LBITS = 64;
+        private const int Vp8LLbits = 64;
 
         /// <summary>
         /// Minimum number of bytes ready after VP8LFillBitWindow.
         /// </summary>
-        private const int VP8L_WBITS = 32;
+        private const int Vp8LWbits = 32;
 
         private readonly uint[] kBitMask =
         {
@@ -37,6 +37,31 @@ namespace SixLabors.ImageSharp.Formats.WebP
         };
 
         private readonly byte[] data;
+
+        /// <summary>
+        /// Pre-fetched bits.
+        /// </summary>
+        private ulong value;
+
+        /// <summary>
+        /// Buffer length.
+        /// </summary>
+        private readonly long len;
+
+        /// <summary>
+        /// Byte position in buffer.
+        /// </summary>
+        private long pos;
+
+        /// <summary>
+        /// Current bit-reading position in value.
+        /// </summary>
+        private int bitPos;
+
+        /// <summary>
+        /// True if a bit was read past the end of buffer.
+        /// </summary>
+        private bool eos;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8LBitReader"/> class.
@@ -73,31 +98,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         /// <summary>
-        /// Pre-fetched bits.
-        /// </summary>
-        private ulong value;
-
-        /// <summary>
-        /// Buffer length.
-        /// </summary>
-        private readonly long len;
-
-        /// <summary>
-        /// Byte position in buffer.
-        /// </summary>
-        private long pos;
-
-        /// <summary>
-        /// Current bit-reading position in value.
-        /// </summary>
-        private int bitPos;
-
-        /// <summary>
-        /// True if a bit was read past the end of buffer.
-        /// </summary>
-        private bool eos;
-
-        /// <summary>
         /// Reads a unsigned short value from the inputStream. The bits of each byte are read in least-significant-bit-first order.
         /// </summary>
         /// <param name="nBits">The number of bits to read (should not exceed 16).</param>
@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             Guard.MustBeGreaterThan(nBits, 0, nameof(nBits));
 
-            if (!this.eos && nBits <= VP8L_MAX_NUM_BIT_READ)
+            if (!this.eos && nBits <= Vp8LMaxNumBitRead)
             {
                 ulong val = this.PrefetchBits() & this.kBitMask[nBits];
                 int newBits = this.bitPos + nBits;
@@ -134,12 +134,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public ulong PrefetchBits()
         {
-            return this.value >> (this.bitPos & (VP8L_LBITS - 1));
+            return this.value >> (this.bitPos & (Vp8LLbits - 1));
         }
 
         public void FillBitWindow()
         {
-            if (this.bitPos >= VP8L_WBITS)
+            if (this.bitPos >= Vp8LWbits)
             {
                 this.DoFillBitWindow();
             }
@@ -152,7 +152,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public bool IsEndOfStream()
         {
-            return this.eos || ((this.pos == this.len) && (this.bitPos > VP8L_LBITS));
+            return this.eos || ((this.pos == this.len) && (this.bitPos > Vp8LLbits));
         }
 
         private void ShiftBytes()
@@ -160,7 +160,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             while (this.bitPos >= 8 && this.pos < this.len)
             {
                 this.value >>= 8;
-                this.value |= (ulong)this.data[this.pos] << (VP8L_LBITS - 8);
+                this.value |= (ulong)this.data[this.pos] << (Vp8LLbits - 8);
                 ++this.pos;
                 this.bitPos -= 8;
             }

@@ -8,18 +8,10 @@
     <PackageId>SixLabors.ImageSharp.Drawing</PackageId>
     <PackageTags>Image Draw Shape Path Font</PackageTags>
     <RootNamespace>SixLabors.ImageSharp</RootNamespace>
-    <TargetFrameworks>netcoreapp2.1;netstandard1.3;netstandard2.0</TargetFrameworks>
+
+    <TargetFrameworks>netcoreapp2.1;netstandard2.0;netstandard1.3</TargetFrameworks>
   </PropertyGroup>
 
-  <!-- TODO: Include .NETSTANDARD2.1 when released-->
-  <PropertyGroup Condition=" $(TargetFramework.StartsWith('netcoreapp2')) ">
-    <DefineConstants>$(DefineConstants);SUPPORTS_MATHF</DefineConstants>
-  </PropertyGroup>
-
-  <PropertyGroup Condition=" $(TargetFramework.StartsWith('netcoreapp2.1')) ">
-    <DefineConstants>$(DefineConstants);SUPPORTS_HASHCODE</DefineConstants>
-  </PropertyGroup>
-  
   <ItemGroup>
     <PackageReference Include="SixLabors.Fonts" />
     <PackageReference Include="SixLabors.Shapes" />

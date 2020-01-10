@@ -28,12 +28,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         /// <summary>
-        /// The webp format used. Either lossless or lossy.
+        /// Gets or sets the webp format used. Either lossless or lossy.
         /// </summary>
         public WebPFormatType Format { get; set; }
 
         /// <summary>
-        /// All found chunk types ordered by appearance.
+        /// Gets or sets all found chunk types ordered by appearance.
         /// </summary>
         public Queue<WebPChunkType> ChunkTypes { get; set; } = new Queue<WebPChunkType>();
 

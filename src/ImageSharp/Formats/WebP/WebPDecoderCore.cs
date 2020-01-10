@@ -64,6 +64,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.options = options;
         }
 
+        /// <summary>
+        /// Decodes the image from the specified <see cref="Stream"/> and sets the data to the image.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="stream">The stream, where the image should be.</param>
+        /// <returns>The decoded image.</returns>
         public Image<TPixel> Decode<TPixel>(Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -80,7 +86,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
             if (imageInfo.IsLossLess)
             {
-                var losslessDecoder = new WebPLosslessDecoder(imageInfo.Vp9LBitReader, (int)imageInfo.ImageDataSize);
+                var losslessDecoder = new WebPLosslessDecoder(imageInfo.Vp9LBitReader);
                 losslessDecoder.Decode(pixels, image.Width, image.Height);
             }
             else
@@ -114,6 +120,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return new ImageInfo(new PixelTypeInfo(bitsPerPixel), imageInfo.Width, imageInfo.Height, this.metadata);
         }
 
+        /// <summary>
+        /// Reads and skips over the image header.
+        /// </summary>
+        /// <returns>The chunk size in bytes.</returns>
         private uint ReadImageHeader()
         {
             // Skip FourCC header, we already know its a RIFF file at this point.
@@ -133,7 +143,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private WebPImageInfo ReadVp8Info()
         {
             this.metadata = new ImageMetadata();
-            this.webpMetadata = metadata.GetFormatMetadata(WebPFormat.Instance);
+            this.webpMetadata = this.metadata.GetFormatMetadata(WebPFormat.Instance);
 
             WebPChunkType chunkType = this.ReadChunkType();
 
@@ -328,9 +338,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
                    };
         }
 
+        /// <summary>
+        /// Parses optional metadata chunks.
+        /// </summary>
+        /// <param name="features">The webp features.</param>
         private void ParseOptionalChunks(WebPFeatures features)
         {
-            if (features.ExifProfile == false && features.XmpMetaData == false)
+            if (features.ExifProfile is false && features.XmpMetaData is false)
             {
                 return;
             }
@@ -354,7 +368,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </exception>
         private WebPChunkType ReadChunkType()
         {
-            if (this.currentStream.Read(this.buffer, 0, 4) == 4)
+            if (this.currentStream.Read(this.buffer, 0, 4) is 4)
             {
                 var chunkType = (WebPChunkType)BinaryPrimitives.ReadUInt32BigEndian(this.buffer);
                 this.webpMetadata.ChunkTypes.Enqueue(chunkType);
@@ -371,10 +385,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <returns>The chunk size in bytes.</returns>
         private uint ReadChunkSize()
         {
-            if (this.currentStream.Read(this.buffer, 0, 4) == 4)
+            if (this.currentStream.Read(this.buffer, 0, 4) is 4)
             {
                 uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
-                return (chunkSize % 2 == 0) ? chunkSize : chunkSize + 1;
+                return (chunkSize % 2 is 0) ? chunkSize : chunkSize + 1;
             }
 
             throw new ImageFormatException("Invalid WebP data.");

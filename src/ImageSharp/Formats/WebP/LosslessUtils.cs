@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 newBlue += ColorTransformDelta((sbyte)m.RedToBlue, (sbyte)newRed);
                 newBlue &= 0xff;
 
-                pixelData[i] = (uint)((argb & 0xff00ff00u) | (newRed << 16) | newBlue);
+                pixelData[i] = (argb & 0xff00ff00u) | ((uint)newRed << 16) | (uint)newBlue;
             }
         }
 
@@ -511,7 +511,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 (int)((c1 >> 8) & 0xff),
                 (int)((c2 >> 8) & 0xff));
             int b = AddSubtractComponentFull((int)(c0 & 0xff), (int)(c1 & 0xff), (int)(c2 & 0xff));
-            return (uint)(((uint)a << 24) | (r << 16) | (g << 8) | b);
+            return ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | (uint)b;
         }
 
         private static uint ClampedAddSubtractHalf(uint c0, uint c1, uint c2)
@@ -521,7 +521,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int r = AddSubtractComponentHalf((int)((ave >> 16) & 0xff), (int)((c2 >> 16) & 0xff));
             int g = AddSubtractComponentHalf((int)((ave >> 8) & 0xff), (int)((c2 >> 8) & 0xff));
             int b = AddSubtractComponentHalf((int)(ave & 0xff), (int)(c2 & 0xff));
-            return (uint)(((uint)a << 24) | (r << 16) | (g << 8) | b);
+            return ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | (uint)b;
         }
 
         private static int AddSubtractComponentHalf(int a, int b)
@@ -575,7 +575,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             return Average2(Average2(a0, a1), Average2(a2, a3));
         }
-
 
         /// <summary>
         /// Computes sampled size of 'size' when sampling using 'sampling bits'.

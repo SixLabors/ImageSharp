@@ -5,19 +5,22 @@ namespace SixLabors.ImageSharp.Formats.WebP
 {
     internal class ColorCache
     {
+        private const uint KHashMul = 0x1e35a7bdu;
+
         /// <summary>
-        /// Color entries.
+        /// Gets the color entries.
         /// </summary>
         public uint[] Colors { get; private set; }
 
         /// <summary>
-        /// Hash shift: 32 - hashBits.
+        /// Gets the hash shift: 32 - hashBits.
         /// </summary>
         public int HashShift { get; private set; }
 
+        /// <summary>
+        /// Gets the hash bits.
+        /// </summary>
         public int HashBits { get; private set; }
-
-        private const uint KHashMul = 0x1e35a7bdu;
 
         public void Init(int hashBits)
         {

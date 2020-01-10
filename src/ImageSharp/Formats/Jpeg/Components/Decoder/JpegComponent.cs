@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -22,11 +22,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.Frame = frame;
             this.Id = id;
 
-            // Valid sampling factors are 1..2
-            if (horizontalFactor == 0
-                || verticalFactor == 0
-                || horizontalFactor > 2
-                || verticalFactor > 2)
+            // Validate sampling factors.
+            if (horizontalFactor == 0 || verticalFactor == 0)
             {
                 JpegThrowHelper.ThrowBadSampling();
             }

@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public Vp8LTransformType TransformType { get; }
 
         /// <summary>
-        /// Subsampling bits defining transform window.
+        /// Gets or sets the subsampling bits defining the transform window.
         /// </summary>
         public int Bits { get; set; }
 

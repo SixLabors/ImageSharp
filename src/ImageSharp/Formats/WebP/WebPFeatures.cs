@@ -9,27 +9,27 @@ namespace SixLabors.ImageSharp.Formats.WebP
     public class WebPFeatures
     {
         /// <summary>
-        /// Gets or sets whether this image has a ICC Profile.
+        /// Gets or sets a value indicating whether this image has a ICC Profile.
         /// </summary>
         public bool IccProfile { get; set; }
 
         /// <summary>
-        /// Gets or sets whether this image has a alpha channel.
+        /// Gets or sets a value indicating whether this image has a alpha channel.
         /// </summary>
         public bool Alpha { get; set; }
 
         /// <summary>
-        /// Gets or sets whether this image has a EXIF Profile.
+        /// Gets or sets a value indicating whether this image has a EXIF Profile.
         /// </summary>
         public bool ExifProfile { get; set; }
 
         /// <summary>
-        /// Gets or sets whether this image has XMP Metadata.
+        /// Gets or sets a value indicating whether this image has XMP Metadata.
         /// </summary>
         public bool XmpMetaData { get; set; }
 
         /// <summary>
-        /// Gets or sets whether this image is a animation.
+        /// Gets or sets a value indicating whether this image is a animation.
         /// </summary>
         public bool Animation { get; set; }
     }

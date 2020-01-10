@@ -21,8 +21,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
     {
         private readonly Vp8LBitReader bitReader;
 
-        private readonly int imageDataSize;
-
         private static readonly int BitsSpecialMarker = 0x100;
 
         private static readonly uint PackedNonLiteralCode = 0;
@@ -72,12 +70,22 @@ namespace SixLabors.ImageSharp.Formats.WebP
             0, 1, 1, 1, 0
         };
 
-        public WebPLosslessDecoder(Vp8LBitReader bitReader, int imageDataSize)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WebPLosslessDecoder"/> class.
+        /// </summary>
+        /// <param name="bitReader">Bitreader to read from the stream.</param>
+        public WebPLosslessDecoder(Vp8LBitReader bitReader)
         {
             this.bitReader = bitReader;
-            this.imageDataSize = imageDataSize;
         }
 
+        /// <summary>
+        /// Decodes the image from the stream using the bitreader.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="pixels">The pixel buffer to store the decoded data.</param>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
         public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -113,7 +121,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
             if (colorCachePresent)
             {
                 colorCacheBits = (int)this.bitReader.ReadBits(4);
-                // TODO: error check color cache bits
+                bool coloCacheBitsIsValid = colorCacheBits >= 1 && colorCacheBits <= WebPConstants.MaxColorCacheBits;
+                if (!coloCacheBitsIsValid)
+                {
+                    WebPThrowHelper.ThrowImageFormatException("Invalid color cache bits found");
+                }
             }
 
             // Read the Huffman codes (may recurse).
@@ -192,7 +204,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int lastCached = decodedPixels;
             while (decodedPixels < totalPixels)
             {
-                int code = 0;
+                int code;
                 if ((col & mask) == 0)
                 {
                     hTreeGroup = this.GetHTreeGroupForPos(decoder.Metadata, col, row);
@@ -235,7 +247,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 {
                     if (hTreeGroup[0].IsTrivialLiteral)
                     {
-                        pixelData[decodedPixels] = (uint)(hTreeGroup[0].LiteralArb | (code << 8));
+                        pixelData[decodedPixels] = hTreeGroup[0].LiteralArb | ((uint)code << 8);
                     }
                     else
                     {
@@ -306,7 +318,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
                 else
                 {
-                    // TODO: throw appropriate error msg
+                    WebPThrowHelper.ThrowImageFormatException("Webp parsing error");
                 }
             }
 
@@ -483,7 +495,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 codeLengths[symbol] = 1;
 
                 // The second code (if present), is always 8 bit long.
-                if (numSymbols == 2)
+                if (numSymbols is 2)
                 {
                     symbol = this.bitReader.ReadBits(8);
                     codeLengths[symbol] = 1;
@@ -583,6 +595,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Reads the transformations, if any are present.
         /// </summary>
+        /// <param name="xSize">The width of the image.</param>
+        /// <param name="ySize">The height of the image.</param>
         /// <param name="decoder">Vp8LDecoder where the transformations will be stored.</param>
         private void ReadTransformation(int xSize, int ySize, Vp8LDecoder decoder)
         {

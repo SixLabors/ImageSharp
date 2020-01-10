@@ -173,11 +173,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 reserved: 0,
                 offset: BmpFileHeader.Size + infoHeaderSize + colorPaletteSize);
 
-#if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[infoHeaderSize];
-#else
-            var buffer = new byte[infoHeaderSize];
-#endif
             fileHeader.WriteTo(buffer);
 
             stream.Write(buffer, 0, BmpFileHeader.Size);

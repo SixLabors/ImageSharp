@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
             if (imageInfo.IsLossLess)
             {
-                var losslessDecoder = new WebPLosslessDecoder(imageInfo.Vp9LBitReader);
+                var losslessDecoder = new WebPLosslessDecoder(imageInfo.Vp9LBitReader, this.memoryAllocator);
                 losslessDecoder.Decode(pixels, image.Width, image.Height);
             }
             else
@@ -256,6 +256,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return new WebPImageInfo();
         }
 
+        /// <summary>
+        /// Reads the header of a lossy webp image.
+        /// </summary>
+        /// <param name="features">Webp features.</param>
+        /// <returns>Information about this webp image.</returns>
         private WebPImageInfo ReadVp8Header(WebPFeatures features = null)
         {
             this.webpMetadata.Format = WebPFormatType.Lossy;
@@ -300,6 +305,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
                    };
         }
 
+        /// <summary>
+        /// Reads the header of lossless webp image.
+        /// </summary>
+        /// <param name="features">Webp image features.</param>
+        /// <returns>Information about this image.</returns>
         private WebPImageInfo ReadVp8LHeader(WebPFeatures features = null)
         {
             this.webpMetadata.Format = WebPFormatType.Lossless;
@@ -319,7 +329,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             uint width = bitReader.ReadBits(WebPConstants.Vp8LImageSizeBits) + 1;
             uint height = bitReader.ReadBits(WebPConstants.Vp8LImageSizeBits) + 1;
 
-            // The alpha_is_used flag should be set to 0 when all alpha values are 255 in the picture, and 1 otherwise.
+            // The alphaIsUsed flag should be set to 0 when all alpha values are 255 in the picture, and 1 otherwise.
             bool alphaIsUsed = bitReader.ReadBit();
 
             // The next 3 bits are the version. The version_number is a 3 bit code that must be set to 0.

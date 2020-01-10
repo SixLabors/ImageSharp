@@ -2,11 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.WebP
 {
@@ -71,12 +73,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
         };
 
         /// <summary>
+        /// Used for allocating memory during processing operations.
+        /// </summary>
+        private readonly MemoryAllocator memoryAllocator;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="WebPLosslessDecoder"/> class.
         /// </summary>
         /// <param name="bitReader">Bitreader to read from the stream.</param>
-        public WebPLosslessDecoder(Vp8LBitReader bitReader)
+        /// <param name="memoryAllocator">Used for allocating memory during processing operations.</param>
+        public WebPLosslessDecoder(Vp8LBitReader bitReader, MemoryAllocator memoryAllocator)
         {
             this.bitReader = bitReader;
+            this.memoryAllocator = memoryAllocator;
         }
 
         /// <summary>
@@ -197,6 +206,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int colorCacheLimit = lenCodeLimit + colorCacheSize;
             int mask = decoder.Metadata.HuffmanMask;
             HTreeGroup[] hTreeGroup = this.GetHTreeGroupForPos(decoder.Metadata, col, row);
+            // TODO: use memory allocator
             var pixelData = new uint[width * height];
 
             int totalPixels = width * height;
@@ -412,7 +422,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         alphabetSize += 1 << colorCacheBits;
                     }
 
-                    int size = this.ReadHuffmanCode(decoder, alphabetSize, codeLengths, huffmanTable);
+                    int size = this.ReadHuffmanCode(alphabetSize, codeLengths, huffmanTable);
                     if (size is 0)
                     {
                         WebPThrowHelper.ThrowImageFormatException("Huffman table size is zero");
@@ -472,7 +482,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             decoder.Metadata.HuffmanTables = huffmanTables;
         }
 
-        private int ReadHuffmanCode(Vp8LDecoder decoder, int alphabetSize, int[] codeLengths, Span<HuffmanCode> table)
+        private int ReadHuffmanCode(int alphabetSize, int[] codeLengths, Span<HuffmanCode> table)
         {
             bool simpleCode = this.bitReader.ReadBit();
             for (int i = 0; i < alphabetSize; i++)
@@ -491,7 +501,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 uint firstSymbolLenCode = this.bitReader.ReadBits(1);
 
                 // The first code is either 1 bit or 8 bit code.
-                uint symbol = this.bitReader.ReadBits((firstSymbolLenCode == 0) ? 1 : 8);
+                uint symbol = this.bitReader.ReadBits((firstSymbolLenCode is 0) ? 1 : 8);
                 codeLengths[symbol] = 1;
 
                 // The second code (if present), is always 8 bit long.
@@ -518,7 +528,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     codeLengthCodeLengths[KCodeLengthCodeOrder[i]] = (int)this.bitReader.ReadBits(3);
                 }
 
-                this.ReadHuffmanCodeLengths(decoder, table.ToArray(), codeLengthCodeLengths, alphabetSize, codeLengths);
+                this.ReadHuffmanCodeLengths(table.ToArray(), codeLengthCodeLengths, alphabetSize, codeLengths);
             }
 
             int size = HuffmanUtils.BuildHuffmanTable(table, HuffmanUtils.HuffmanTableBits, codeLengths, alphabetSize);
@@ -526,7 +536,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return size;
         }
 
-        private void ReadHuffmanCodeLengths(Vp8LDecoder decoder, HuffmanCode[] table, int[] codeLengthCodeLengths, int numSymbols, int[] codeLengths)
+        private void ReadHuffmanCodeLengths(HuffmanCode[] table, int[] codeLengthCodeLengths, int numSymbols, int[] codeLengths)
         {
             int maxSymbol;
             int symbol = 0;
@@ -580,13 +590,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         // TODO: not sure, if this should be treated as an error here
                         return;
                     }
-                    else
+
+                    int length = usePrev ? prevCodeLen : 0;
+                    while (repeat-- > 0)
                     {
-                        int length = usePrev ? prevCodeLen : 0;
-                        while (repeat-- > 0)
-                        {
-                            codeLengths[symbol++] = length;
-                        }
+                        codeLengths[symbol++] = length;
                     }
                 }
             }
@@ -651,7 +659,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 switch (transformType)
                 {
                     case Vp8LTransformType.PredictorTransform:
-                        LosslessUtils.PredictorInverseTransform(transforms[i], pixelData);
+                        using (IMemoryOwner<uint> output = this.memoryAllocator.Allocate<uint>(pixelData.Length, AllocationOptions.Clean))
+                        {
+                            LosslessUtils.PredictorInverseTransform(transforms[i], pixelData, output.GetSpan());
+                        }
+
                         break;
                     case Vp8LTransformType.SubtractGreen:
                         LosslessUtils.AddGreenToBlueAndRed(pixelData);

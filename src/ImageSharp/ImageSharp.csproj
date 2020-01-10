@@ -19,38 +19,6 @@
     <RootNamespace>SixLabors.ImageSharp</RootNamespace>
   </PropertyGroup>
 
-  <!--
-    https://apisof.net/
-    +===================+================+===================+==============================+======================+==========================+
-    | Target Framework  | SUPPORTS_MATHF | SUPPORTS_HASHCODE | SUPPORTS_EXTENDED_INTRINSICS | SUPPORTS_SPAN_STREAM | SUPPORTS_ENCODING_STRING |
-    +===================+================+===================+==============================+======================+==========================+
-    | netcoreapp3.1     |       Y        |         Y         |               Y              |          Y           |            Y             |
-    | netcoreapp2.1     |       Y        |         Y         |               Y              |          Y           |            Y             |
-    | netcoreapp2.0     |       Y        |         N         |               N              |          N           |            N             |
-    | netstandard2.1    |       Y        |         N         |               N              |          Y           |            Y             |
-    | netstandard2.0    |       N        |         N         |               N              |          N           |            N             |
-    | netstandard1.3    |       N        |         N         |               N              |          N           |            N             |
-    | net472            |       N        |         N         |               Y              |          N           |            N             |
-    +===================+================+===================+==============================+======================+==========================+
-    -->
-  
-  <!-- TODO: Include additional targets to TargetFrameworks -->
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp3.1'">
-    <DefineConstants>$(DefineConstants);SUPPORTS_MATHF;SUPPORTS_HASHCODE;SUPPORTS_EXTENDED_INTRINSICS;SUPPORTS_SPAN_STREAM;SUPPORTS_ENCODING_STRING</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1'">
-    <DefineConstants>$(DefineConstants);SUPPORTS_MATHF;SUPPORTS_HASHCODE;SUPPORTS_EXTENDED_INTRINSICS;SUPPORTS_SPAN_STREAM;SUPPORTS_ENCODING_STRING</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0'">
-    <DefineConstants>$(DefineConstants);SUPPORTS_MATHF;</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard2.1'">
-    <DefineConstants>$(DefineConstants);SUPPORTS_MATHF;SUPPORTS_SPAN_STREAM;SUPPORTS_ENCODING_STRING</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'net472'">
-    <DefineConstants>$(DefineConstants);SUPPORTS_EXTENDED_INTRINSICS</DefineConstants>
-  </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="..\..\shared-infrastructure\**\*.cs" />
   </ItemGroup>

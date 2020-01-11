@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                     source,
                     sourceRectangle))
                 {
-                    amount.Memory.Span.Fill(1f);
+                    amount.Memory.Span.Fill(1F);
 
                     ParallelHelper.IterateRows(
                         workingRect,

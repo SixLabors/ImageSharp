@@ -439,6 +439,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             where TPixel : struct, IPixel<TPixel>
         {
             provider.VerifyOperation(
+                TolerantComparer,
                 img =>
                 {
                     var brush = new PathGradientBrush(

@@ -99,11 +99,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
             where TPixel : struct, IPixel<TPixel>
         {
             var decoder = new Vp8LDecoder(width, height);
-            uint[] pixelData = this.DecodeImageStream(decoder, width, height, true);
-            this.DecodePixelValues(decoder, pixelData, pixels);
+            IMemoryOwner<uint> pixelData = this.DecodeImageStream(decoder, width, height, true);
+            this.DecodePixelValues(decoder, pixelData.GetSpan(), pixels);
+
+            // Free up allocated memory.
+            pixelData.Dispose();
+            foreach (Vp8LTransform transform in decoder.Transforms)
+            {
+                transform.Data?.Dispose();
+            }
+            decoder.Metadata?.HuffmanImage?.Dispose();
         }
 
-        private uint[] DecodeImageStream(Vp8LDecoder decoder, int xSize, int ySize, bool isLevel0)
+        private IMemoryOwner<uint> DecodeImageStream(Vp8LDecoder decoder, int xSize, int ySize, bool isLevel0)
         {
             int numberOfTransformsPresent = 0;
             if (isLevel0)
@@ -162,7 +170,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             this.UpdateDecoder(decoder, xSize, ySize);
 
-            uint[] pixelData = this.DecodeImageData(decoder, colorCacheSize, colorCache);
+            IMemoryOwner<uint> pixelData = this.memoryAllocator.Allocate<uint>(decoder.Width * decoder.Height, AllocationOptions.Clean);
+            this.DecodeImageData(decoder, pixelData.GetSpan(), colorCacheSize, colorCache);
             if (!isLevel0)
             {
                 decoder.Metadata = new Vp8LMetadata();
@@ -171,7 +180,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return pixelData;
         }
 
-        private void DecodePixelValues<TPixel>(Vp8LDecoder decoder, uint[] pixelData, Buffer2D<TPixel> pixels)
+        private void DecodePixelValues<TPixel>(Vp8LDecoder decoder, Span<uint> pixelData, Buffer2D<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
             // Apply reverse transformations, if any are present.
@@ -195,7 +204,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private uint[] DecodeImageData(Vp8LDecoder decoder, int colorCacheSize, ColorCache colorCache)
+        private void DecodeImageData(Vp8LDecoder decoder, Span<uint> pixelData, int colorCacheSize, ColorCache colorCache)
         {
             int lastPixel = 0;
             int width = decoder.Width;
@@ -206,8 +215,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int colorCacheLimit = lenCodeLimit + colorCacheSize;
             int mask = decoder.Metadata.HuffmanMask;
             HTreeGroup[] hTreeGroup = this.GetHTreeGroupForPos(decoder.Metadata, col, row);
-            // TODO: use memory allocator
-            var pixelData = new uint[width * height];
 
             int totalPixels = width * height;
             int decodedPixels = 0;
@@ -331,11 +338,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     WebPThrowHelper.ThrowImageFormatException("Webp parsing error");
                 }
             }
-
-            return pixelData;
         }
 
-        private void AdvanceByOne(ref int col, ref int row, int width, ColorCache colorCache, ref int decodedPixels, uint[] pixelData, ref int lastCached)
+        private void AdvanceByOne(ref int col, ref int row, int width, ColorCache colorCache, ref int decodedPixels, Span<uint> pixelData, ref int lastCached)
         {
             ++col;
             decodedPixels++;
@@ -369,14 +374,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 uint huffmanPrecision = this.bitReader.ReadBits(3) + 2;
                 int huffmanXSize = LosslessUtils.SubSampleSize(xSize, (int)huffmanPrecision);
                 int huffmanYSize = LosslessUtils.SubSampleSize(ySize, (int)huffmanPrecision);
-                int huffmanPixs = huffmanXSize * huffmanYSize;
-                uint[] huffmanImage = this.DecodeImageStream(decoder, huffmanXSize, huffmanYSize, false);
+                int huffmanPixels = huffmanXSize * huffmanYSize;
+                IMemoryOwner<uint> huffmanImage = this.DecodeImageStream(decoder, huffmanXSize, huffmanYSize, false);
+                Span<uint> huffmanImageSpan = huffmanImage.GetSpan();
                 decoder.Metadata.HuffmanSubSampleBits = (int)huffmanPrecision;
-                for (int i = 0; i < huffmanPixs; ++i)
+                for (int i = 0; i < huffmanPixels; ++i)
                 {
                     // The huffman data is stored in red and green bytes.
-                    uint group = (huffmanImage[i] >> 8) & 0xffff;
-                    huffmanImage[i] = group;
+                    uint group = (huffmanImageSpan[i] >> 8) & 0xffff;
+                    huffmanImageSpan[i] = group;
                     if (group >= numHTreeGroupsMax)
                     {
                         numHTreeGroupsMax = (int)group + 1;
@@ -625,19 +631,26 @@ namespace SixLabors.ImageSharp.Formats.WebP
                                      : 3;
                     transform.XSize = LosslessUtils.SubSampleSize(transform.XSize, bits);
                     transform.Bits = bits;
-                    uint[] colorMap = this.DecodeImageStream(decoder, (int)numColors, 1, false);
-                    transform.Data = LosslessUtils.ExpandColorMap((int)numColors, transform, colorMap);
+                    using (IMemoryOwner<uint> colorMap = this.DecodeImageStream(decoder, (int)numColors, 1, false))
+                    {
+                        int finalNumColors = 1 << (8 >> transform.Bits);
+                        IMemoryOwner<uint> newColorMap = this.memoryAllocator.Allocate<uint>(finalNumColors, AllocationOptions.Clean);
+                        LosslessUtils.ExpandColorMap((int)numColors, colorMap.GetSpan(), newColorMap.GetSpan());
+                        transform.Data = newColorMap;
+                    }
+
                     break;
 
                 case Vp8LTransformType.PredictorTransform:
                 case Vp8LTransformType.CrossColorTransform:
                     {
                         transform.Bits = (int)this.bitReader.ReadBits(3) + 2;
-                        transform.Data = this.DecodeImageStream(
+                        IMemoryOwner<uint> transformData = this.DecodeImageStream(
                             decoder,
                             LosslessUtils.SubSampleSize(transform.XSize, transform.Bits),
                             LosslessUtils.SubSampleSize(transform.YSize, transform.Bits),
                             false);
+                        transform.Data = transformData;
                         break;
                     }
             }
@@ -650,7 +663,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </summary>
         /// <param name="decoder">The decoder holding the transformation infos.</param>
         /// <param name="pixelData">The pixel data to apply the transformation.</param>
-        private void ApplyInverseTransforms(Vp8LDecoder decoder, uint[] pixelData)
+        private void ApplyInverseTransforms(Vp8LDecoder decoder, Span<uint> pixelData)
         {
             List<Vp8LTransform> transforms = decoder.Transforms;
             for (int i = transforms.Count - 1; i >= 0; i--)
@@ -710,7 +723,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return tableSpan[0].Value;
         }
 
-        private uint ReadPackedSymbols(HTreeGroup[] group, uint[] pixelData, int decodedPixels)
+        private uint ReadPackedSymbols(HTreeGroup[] group, Span<uint> pixelData, int decodedPixels)
         {
             uint val = (uint)(this.bitReader.PrefetchBits() & (HuffmanUtils.HuffmanPackedTableSize - 1));
             HuffmanCode code = group[0].PackedTable[val];
@@ -726,18 +739,18 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return code.Value;
         }
 
-        private void CopyBlock(uint[] pixelData, int decodedPixels, int dist, int length)
+        private void CopyBlock(Span<uint> pixelData, int decodedPixels, int dist, int length)
         {
             if (dist >= length)
             {
-                Span<uint> src = pixelData.AsSpan(decodedPixels - dist, length);
-                Span<uint> dest = pixelData.AsSpan(decodedPixels);
+                Span<uint> src = pixelData.Slice(decodedPixels - dist, length);
+                Span<uint> dest = pixelData.Slice(decodedPixels);
                 src.CopyTo(dest);
             }
             else
             {
-                Span<uint> src = pixelData.AsSpan(decodedPixels - dist);
-                Span<uint> dest = pixelData.AsSpan(decodedPixels);
+                Span<uint> src = pixelData.Slice(decodedPixels - dist);
+                Span<uint> dest = pixelData.Slice(decodedPixels);
                 for (int i = 0; i < length; ++i)
                 {
                     dest[i] = src[i];
@@ -811,14 +824,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return hCode.BitsUsed;
         }
 
-        private uint GetMetaIndex(uint[] image, int xSize, int bits, int x, int y)
+        private uint GetMetaIndex(IMemoryOwner<uint> huffmanImage, int xSize, int bits, int x, int y)
         {
             if (bits is 0)
             {
                 return 0;
             }
 
-            return image[(xSize * (y >> bits)) + (x >> bits)];
+            Span<uint> huffmanImageSpan = huffmanImage.GetSpan();
+            return huffmanImageSpan[(xSize * (y >> bits)) + (x >> bits)];
         }
 
         private HTreeGroup[] GetHTreeGroupForPos(Vp8LMetadata metadata, int x, int y)

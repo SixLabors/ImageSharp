@@ -4,6 +4,8 @@
 using System;
 using System.Runtime.InteropServices;
 
+using SixLabors.ImageSharp.Memory;
+
 namespace SixLabors.ImageSharp.Formats.WebP
 {
     /// <summary>
@@ -15,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// Add green to blue and red channels (i.e. perform the inverse transform of 'subtract green').
         /// </summary>
         /// <param name="pixelData">The pixel data to apply the transformation.</param>
-        public static void AddGreenToBlueAndRed(uint[] pixelData)
+        public static void AddGreenToBlueAndRed(Span<uint> pixelData)
         {
             for (int i = 0; i < pixelData.Length; i++)
             {
@@ -28,12 +30,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void ColorIndexInverseTransform(Vp8LTransform transform, uint[] pixelData)
+        public static void ColorIndexInverseTransform(Vp8LTransform transform, Span<uint> pixelData)
         {
             int bitsPerPixel = 8 >> transform.Bits;
             int width = transform.XSize;
             int height = transform.YSize;
-            uint[] colorMap = transform.Data;
+            Span<uint> colorMap = transform.Data.GetSpan();
             int decodedPixels = 0;
             if (bitsPerPixel < 8)
             {
@@ -57,7 +59,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                             packedPixels = GetArgbIndex(pixelData[pixelDataPos++]);
                         }
 
-                        decodedPixelData[decodedPixels++] = colorMap[packedPixels & bitMask];
+                        decodedPixelData[decodedPixels++] = colorMap[(int)(packedPixels & bitMask)];
                         packedPixels >>= bitsPerPixel;
                     }
                 }
@@ -72,13 +74,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 for (int x = 0; x < width; ++x)
                 {
                     uint colorMapIndex = GetArgbIndex(pixelData[decodedPixels]);
-                    pixelData[decodedPixels] = colorMap[colorMapIndex];
+                    pixelData[decodedPixels] = colorMap[(int)colorMapIndex];
                     decodedPixels++;
                 }
             }
         }
 
-        public static void ColorSpaceInverseTransform(Vp8LTransform transform, uint[] pixelData)
+        public static void ColorSpaceInverseTransform(Vp8LTransform transform, Span<uint> pixelData)
         {
             int width = transform.XSize;
             int yEnd = transform.YSize;
@@ -89,6 +91,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int tilesPerRow = SubSampleSize(width, transform.Bits);
             int y = 0;
             int predRowIdxStart = (y >> transform.Bits) * tilesPerRow;
+            Span<uint> transformData = transform.Data.GetSpan();
 
             int pixelPos = 0;
             while (y < yEnd)
@@ -99,7 +102,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 int srcEnd = pixelPos + width;
                 while (pixelPos < srcSafeEnd)
                 {
-                    uint colorCode = transform.Data[predRowIdx++];
+                    uint colorCode = transformData[predRowIdx++];
                     ColorCodeToMultipliers(colorCode, ref m);
                     TransformColorInverse(m, pixelData, pixelPos, tileWidth);
                     pixelPos += tileWidth;
@@ -107,7 +110,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                 if (pixelPos < srcEnd)
                 {
-                    uint colorCode = transform.Data[predRowIdx];
+                    uint colorCode = transformData[predRowIdx];
                     ColorCodeToMultipliers(colorCode, ref m);
                     TransformColorInverse(m, pixelData, pixelPos, remainingWidth);
                     pixelPos += remainingWidth;
@@ -121,7 +124,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void TransformColorInverse(Vp8LMultipliers m, uint[] pixelData, int start, int numPixels)
+        public static void TransformColorInverse(Vp8LMultipliers m, Span<uint> pixelData, int start, int numPixels)
         {
             int end = start + numPixels;
             for (int i = start; i < end; i++)
@@ -141,14 +144,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static uint[] ExpandColorMap(int numColors, Vp8LTransform transform, uint[] transformData)
+        public static void ExpandColorMap(int numColors, Span<uint> transformData, Span<uint> newColorMap)
         {
-            int finalNumColors = 1 << (8 >> transform.Bits);
-
-            // TODO: use memoryAllocator here
-            var newColorMap = new uint[finalNumColors];
             newColorMap[0] = transformData[0];
-
             Span<byte> data = MemoryMarshal.Cast<uint, byte>(transformData);
             Span<byte> newData = MemoryMarshal.Cast<uint, byte>(newColorMap);
             int i;
@@ -158,19 +156,18 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 newData[i] = (byte)((data[i] + newData[i - 4]) & 0xff);
             }
 
-            for (; i < 4 * finalNumColors; ++i)
+            for (; i < 4 * newColorMap.Length; ++i)
             {
                 newData[i] = 0;  // black tail.
             }
-
-            return newColorMap;
         }
 
-        public static void PredictorInverseTransform(Vp8LTransform transform, uint[] pixelData, Span<uint> output)
+        public static void PredictorInverseTransform(Vp8LTransform transform, Span<uint> pixelData, Span<uint> output)
         {
             int processedPixels = 0;
             int yStart = 0;
             int width = transform.XSize;
+            Span<uint> transformData = transform.Data.GetSpan();
 
             // First Row follows the L (mode=1) mode.
             PredictorAdd0(pixelData, processedPixels, 1, output);
@@ -194,7 +191,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                 while (x < width)
                 {
-                    uint predictorMode = (transform.Data[predictorModeIdx++] >> 8) & 0xf;
+                    uint predictorMode = (transformData[predictorModeIdx++] >> 8) & 0xf;
                     int xEnd = (x & ~mask) + tileWidth;
                     if (xEnd > width)
                     {

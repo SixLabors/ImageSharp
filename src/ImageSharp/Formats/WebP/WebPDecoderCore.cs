@@ -306,7 +306,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         /// <summary>
-        /// Reads the header of lossless webp image.
+        /// Reads the header of a lossless webp image.
         /// </summary>
         /// <param name="features">Webp image features.</param>
         /// <returns>Information about this image.</returns>

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Buffers;
 using System.Diagnostics;
 
 namespace SixLabors.ImageSharp.Formats.WebP
@@ -41,6 +42,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Gets or sets the transform data.
         /// </summary>
-        public uint[] Data { get; set; }
+        public IMemoryOwner<uint> Data { get; set; }
     }
 }

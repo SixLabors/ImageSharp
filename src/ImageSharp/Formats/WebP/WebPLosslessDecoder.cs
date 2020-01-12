@@ -108,6 +108,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             {
                 transform.Data?.Dispose();
             }
+
             decoder.Metadata?.HuffmanImage?.Dispose();
         }
 
@@ -644,12 +645,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 case Vp8LTransformType.PredictorTransform:
                 case Vp8LTransformType.CrossColorTransform:
                     {
+                        // The first 3 bits of prediction data define the block width and height in number of bits.
                         transform.Bits = (int)this.bitReader.ReadBits(3) + 2;
-                        IMemoryOwner<uint> transformData = this.DecodeImageStream(
-                            decoder,
-                            LosslessUtils.SubSampleSize(transform.XSize, transform.Bits),
-                            LosslessUtils.SubSampleSize(transform.YSize, transform.Bits),
-                            false);
+                        int blockWidth = LosslessUtils.SubSampleSize(transform.XSize, transform.Bits);
+                        int blockHeight = LosslessUtils.SubSampleSize(transform.YSize, transform.Bits);
+                        IMemoryOwner<uint> transformData = this.DecodeImageStream(decoder, blockWidth, blockHeight, false);
                         transform.Data = transformData;
                         break;
                     }
@@ -659,7 +659,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         /// <summary>
-        /// Reverses the transformations, if any are present.
+        /// A WebP lossless image can go through four different types of transformation before being entropy encoded.
+        /// This will reverses the transformations, if any are present.
         /// </summary>
         /// <param name="decoder">The decoder holding the transformation infos.</param>
         /// <param name="pixelData">The pixel data to apply the transformation.</param>

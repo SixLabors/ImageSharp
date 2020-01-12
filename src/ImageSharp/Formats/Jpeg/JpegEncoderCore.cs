@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -206,7 +206,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             ImageMetadata metadata = image.Metadata;
 
             // System.Drawing produces identical output for jpegs with a quality parameter of 0 and 1.
-            int qlty = (this.quality ?? metadata.GetFormatMetadata(JpegFormat.Instance).Quality).Clamp(1, 100);
+            int qlty = (this.quality ?? metadata.GetJpegMetadata().Quality).Clamp(1, 100);
             this.subsample = this.subsample ?? (qlty >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
 
             // Convert from a quality rating to a scaling factor.
@@ -647,7 +647,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </exception>
         private void WriteExifProfile(ExifProfile exifProfile)
         {
-            if (exifProfile is null)
+            if (exifProfile is null || exifProfile.Values.Count == 0)
             {
                 return;
             }
@@ -655,9 +655,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             const int MaxBytesApp1 = 65533; // 64k - 2 padding bytes
             const int MaxBytesWithExifId = 65527; // Max - 6 bytes for EXIF header.
 
-            byte[] data = exifProfile?.ToByteArray();
+            byte[] data = exifProfile.ToByteArray();
 
-            if (data is null || data.Length == 0)
+            if (data.Length == 0)
             {
                 return;
             }

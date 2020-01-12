@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// knowing the pixel type.
     /// </summary>
     [Flags]
-    internal enum PixelConversionModifiers
+    public enum PixelConversionModifiers
     {
         /// <summary>
         /// No special operation is selected

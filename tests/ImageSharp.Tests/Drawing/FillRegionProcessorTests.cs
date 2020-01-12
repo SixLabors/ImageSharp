@@ -13,6 +13,7 @@ using SixLabors.Primitives;
 using Xunit;
 using SixLabors.ImageSharp.Processing.Processors.Drawing;
 using SixLabors.Shapes;
+using SixLabors.ImageSharp.Advanced;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
@@ -40,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             };
             var processor = new FillRegionProcessor(options, brush.Object, region);
             var img = new Image<Rgba32>(1, 1);
-            processor.Execute(img, bounds);
+            processor.Execute(img.GetConfiguration(), img, bounds);
 
             Assert.Equal(4, region.ScanInvocationCounter);
         }
@@ -53,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             var options = new GraphicsOptions { Antialias = true };
             var processor = new FillRegionProcessor(options, brush.Object, new MockRegion1());
             var img = new Image<Rgba32>(10, 10);
-            processor.Execute(img, bounds);
+            processor.Execute(img.GetConfiguration(), img, bounds);
         }
 
         [Fact]

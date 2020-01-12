@@ -19,10 +19,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// Initializes a new instance of the <see cref="AutoOrientProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        public AutoOrientProcessor(Image<TPixel> source, Rectangle sourceRectangle)
-            : base(source, sourceRectangle)
+        public AutoOrientProcessor(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
         }
 
@@ -34,33 +35,33 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             switch (orientation)
             {
                 case OrientationMode.TopRight:
-                    new FlipProcessor(FlipMode.Horizontal).Execute(this.Source, this.SourceRectangle);
+                    new FlipProcessor(FlipMode.Horizontal).Execute(this.Configuration, this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.BottomRight:
-                    new RotateProcessor((int)RotateMode.Rotate180, size).Execute(this.Source, this.SourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate180, size).Execute(this.Configuration, this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.BottomLeft:
-                    new FlipProcessor(FlipMode.Vertical).Execute(this.Source, this.SourceRectangle);
+                    new FlipProcessor(FlipMode.Vertical).Execute(this.Configuration, this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.LeftTop:
-                    new RotateProcessor((int)RotateMode.Rotate90, size).Execute(this.Source, this.SourceRectangle);
-                    new FlipProcessor(FlipMode.Horizontal).Execute(this.Source, this.SourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate90, size).Execute(this.Configuration, this.Source, this.SourceRectangle);
+                    new FlipProcessor(FlipMode.Horizontal).Execute(this.Configuration, this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.RightTop:
-                    new RotateProcessor((int)RotateMode.Rotate90, size).Execute(this.Source, this.SourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate90, size).Execute(this.Configuration, this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.RightBottom:
-                    new FlipProcessor(FlipMode.Vertical).Execute(this.Source, this.SourceRectangle);
-                    new RotateProcessor((int)RotateMode.Rotate270, size).Execute(this.Source, this.SourceRectangle);
+                    new FlipProcessor(FlipMode.Vertical).Execute(this.Configuration, this.Source, this.SourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate270, size).Execute(this.Configuration, this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.LeftBottom:
-                    new RotateProcessor((int)RotateMode.Rotate270, size).Execute(this.Source, this.SourceRectangle);
+                    new RotateProcessor((int)RotateMode.Rotate270, size).Execute(this.Configuration, this.Source, this.SourceRectangle);
                     break;
 
                 case OrientationMode.Unknown:
@@ -90,7 +91,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return OrientationMode.Unknown;
             }
 
-            ExifValue value = source.Metadata.ExifProfile.GetValue(ExifTag.Orientation);
+            IExifValue<ushort> value = source.Metadata.ExifProfile.GetValue(ExifTag.Orientation);
             if (value is null)
             {
                 return OrientationMode.Unknown;

@@ -21,11 +21,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// Initializes a new instance of the <see cref="EntropyCropProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="definition">The <see cref="EntropyCropProcessor"/>.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        public EntropyCropProcessor(EntropyCropProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
-            : base(source, sourceRectangle)
+        public EntropyCropProcessor(Configuration configuration, EntropyCropProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             this.definition = definition;
         }
@@ -42,16 +43,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 Configuration configuration = this.Source.GetConfiguration();
 
                 // Detect the edges.
-                new SobelProcessor(false).Execute(temp, this.SourceRectangle);
+                new SobelProcessor(false).Execute(this.Configuration, temp, this.SourceRectangle);
 
                 // Apply threshold binarization filter.
-                new BinaryThresholdProcessor(this.definition.Threshold).Execute(temp, this.SourceRectangle);
+                new BinaryThresholdProcessor(this.definition.Threshold).Execute(this.Configuration, temp, this.SourceRectangle);
 
                 // Search for the first white pixels
                 rectangle = ImageMaths.GetFilteredBoundingRectangle(temp.Frames.RootFrame, 0);
             }
 
-            new CropProcessor(rectangle, this.Source.Size()).Execute(this.Source, this.SourceRectangle);
+            new CropProcessor(rectangle, this.Source.Size()).Execute(this.Configuration, this.Source, this.SourceRectangle);
 
             base.BeforeImageApply();
         }

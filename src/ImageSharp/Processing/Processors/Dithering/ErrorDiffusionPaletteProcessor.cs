@@ -58,9 +58,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         public float Threshold { get; }
 
         /// <inheritdoc />
-        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
+        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
         {
-            return new ErrorDiffusionPaletteProcessor<TPixel>(this, source, sourceRectangle);
+            return new ErrorDiffusionPaletteProcessor<TPixel>(configuration, this, source, sourceRectangle);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -33,28 +33,28 @@ namespace SixLabors.ImageSharp.Tests
             Assert.True(Directory.Exists(path));
         }
 
-        /// <summary>
-        /// We need this test to make sure that the netcoreapp2.1 test execution actually covers the netcoreapp2.1 build configuration of ImageSharp.
-        /// </summary>
-        [Fact]
-        public void ImageSharpAssemblyUnderTest_MatchesExpectedTargetFramework()
-        {
-            this.Output.WriteLine("NetCoreVersion: " + TestEnvironment.NetCoreVersion);
-            this.Output.WriteLine("ImageSharpBuiltAgainst: " + TestHelpers.ImageSharpBuiltAgainst);
+        ///// <summary>
+        ///// We need this test to make sure that the netcoreapp2.1 test execution actually covers the netcoreapp2.1 build configuration of ImageSharp.
+        ///// </summary>
+        //[Fact]
+        //public void ImageSharpAssemblyUnderTest_MatchesExpectedTargetFramework()
+        //{
+        //    this.Output.WriteLine("NetCoreVersion: " + TestEnvironment.NetCoreVersion);
+        //    this.Output.WriteLine("ImageSharpBuiltAgainst: " + TestHelpers.ImageSharpBuiltAgainst);
 
-            if (string.IsNullOrEmpty(TestEnvironment.NetCoreVersion))
-            {
-                this.Output.WriteLine("Not running under .NET Core!");
-            }
-            else if (TestEnvironment.NetCoreVersion.StartsWith("2.1"))
-            {
-                Assert.Equal("netcoreapp2.1", TestHelpers.ImageSharpBuiltAgainst);
-            }
-            else
-            {
-                Assert.Equal("netstandard2.0", TestHelpers.ImageSharpBuiltAgainst);
-            }
-        }
+        //    if (string.IsNullOrEmpty(TestEnvironment.NetCoreVersion))
+        //    {
+        //        this.Output.WriteLine("Not running under .NET Core!");
+        //    }
+        //    else if (TestEnvironment.NetCoreVersion.StartsWith("2.1"))
+        //    {
+        //        Assert.Equal("netcoreapp2.1", TestHelpers.ImageSharpBuiltAgainst);
+        //    }
+        //    else
+        //    {
+        //        Assert.Equal("netstandard2.0", TestHelpers.ImageSharpBuiltAgainst);
+        //    }
+        //}
 
         [Fact]
         public void SolutionDirectoryFullPath()

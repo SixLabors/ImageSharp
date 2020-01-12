@@ -162,13 +162,20 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return new WebPImageInfo();
         }
 
+        /// <summary>
+        /// Reads an the extended webp file header. An extended file header consists of:
+        /// - A 'VP8X' chunk with information about features used in the file.
+        /// - An optional 'ICCP' chunk with color profile.
+        /// - An optional 'ANIM' chunk with animation control data.
+        /// After the image header, image data will follow. After that optional image metadata chunks (EXIF and XMP) can follow.
+        /// </summary>
+        /// <returns>Information about this webp image.</returns>
         private WebPImageInfo ReadVp8XHeader()
         {
             uint chunkSize = this.ReadChunkSize();
 
-            // This byte contains information about the image features used.
-            // The first two bit should and the last bit should be 0.
-            // TODO: should an exception be thrown if its not the case, or just ignore it?
+            // The first byte contains information about the image features used.
+            // The first two bit of it are reserved and should be 0. TODO: should an exception be thrown if its not the case, or just ignore it?
             byte imageFeatures = (byte)this.currentStream.ReadByte();
 
             // If bit 3 is set, a ICC Profile Chunk should be present.
@@ -349,7 +356,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         /// <summary>
-        /// Parses optional metadata chunks.
+        /// Parses optional metadata chunks. There SHOULD be at most one chunk of each type ('EXIF' and 'XMP ').
+        /// If there are more such chunks, readers MAY ignore all except the first one.
+        /// Also, a file may possibly contain both 'EXIF' and 'XMP ' chunks.
         /// </summary>
         /// <param name="features">The webp features.</param>
         private void ParseOptionalChunks(WebPFeatures features)

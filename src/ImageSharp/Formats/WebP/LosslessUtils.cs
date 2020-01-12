@@ -30,6 +30,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
+        /// <summary>
+        /// If there are not many unique pixel values, it may be more efficient to create a color index array and replace the pixel values by the array's indices.
+        /// This will reverse the color index transform.
+        /// </summary>
+        /// <param name="transform">The transform data contains color table size and the entries in the color table.</param>
+        /// <param name="pixelData">The pixel data to apply the reverse transform on.</param>
         public static void ColorIndexInverseTransform(Vp8LTransform transform, Span<uint> pixelData)
         {
             int bitsPerPixel = 8 >> transform.Bits;
@@ -80,6 +86,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
+        /// <summary>
+        /// The goal of the color transform is to de-correlate the R, G and B values of each pixel.
+        /// Color transform keeps the green (G) value as it is, transforms red (R) based on green and transforms blue (B) based on green and then based on red.
+        /// </summary>
+        /// <param name="transform">The transform data.</param>
+        /// <param name="pixelData">The pixel data to apply the inverse transform on.</param>
         public static void ColorSpaceInverseTransform(Vp8LTransform transform, Span<uint> pixelData)
         {
             int width = transform.XSize;
@@ -124,6 +136,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
+        /// <summary>
+        /// Reverses the color space transform.
+        /// </summary>
+        /// <param name="m">The color transform element.</param>
+        /// <param name="pixelData">The pixel data to apply the inverse transform on.</param>
+        /// <param name="start">The start index of reverse transform.</param>
+        /// <param name="numPixels">The number of pixels to apply the transform.</param>
         public static void TransformColorInverse(Vp8LMultipliers m, Span<uint> pixelData, int start, int numPixels)
         {
             int end = start + numPixels;
@@ -144,24 +163,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void ExpandColorMap(int numColors, Span<uint> transformData, Span<uint> newColorMap)
-        {
-            newColorMap[0] = transformData[0];
-            Span<byte> data = MemoryMarshal.Cast<uint, byte>(transformData);
-            Span<byte> newData = MemoryMarshal.Cast<uint, byte>(newColorMap);
-            int i;
-            for (i = 4; i < 4 * numColors; ++i)
-            {
-                // Equivalent to AddPixelEq(), on a byte-basis.
-                newData[i] = (byte)((data[i] + newData[i - 4]) & 0xff);
-            }
-
-            for (; i < 4 * newColorMap.Length; ++i)
-            {
-                newData[i] = 0;  // black tail.
-            }
-        }
-
+        /// <summary>
+        /// The predictor transform can be used to reduce entropy by exploiting the fact that neighboring pixels are often correlated.
+        /// In the predictor transform, the current pixel value is predicted from the pixels already decoded (in scan-line order) and only the residual value (actual - predicted) is encoded.
+        /// The prediction mode determines the type of prediction to use. We divide the image into squares and all the pixels in a square use same prediction mode.
+        /// </summary>
+        /// <param name="transform">The transform data.</param>
+        /// <param name="pixelData">The pixel data to apply the inverse transform.</param>
+        /// <param name="output">The resulting pixel data with the reversed transformation data.</param>
         public static void PredictorInverseTransform(Vp8LTransform transform, Span<uint> pixelData, Span<uint> output)
         {
             int processedPixels = 0;
@@ -198,6 +207,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         xEnd = width;
                     }
 
+                    // There are 14 different prediction modes.
+                    // In each prediction mode, the current pixel value is predicted from one or more neighboring pixels whose values are already known.
                     int startIdx = processedPixels + x;
                     int numberOfPixels = xEnd - x;
                     switch (predictorMode)
@@ -602,9 +613,26 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return (idx >> 8) & 0xff;
         }
 
+        public static void ExpandColorMap(int numColors, Span<uint> transformData, Span<uint> newColorMap)
+        {
+            newColorMap[0] = transformData[0];
+            Span<byte> data = MemoryMarshal.Cast<uint, byte>(transformData);
+            Span<byte> newData = MemoryMarshal.Cast<uint, byte>(newColorMap);
+            int i;
+            for (i = 4; i < 4 * numColors; ++i)
+            {
+                // Equivalent to AddPixelEq(), on a byte-basis.
+                newData[i] = (byte)((data[i] + newData[i - 4]) & 0xff);
+            }
+
+            for (; i < 4 * newColorMap.Length; ++i)
+            {
+                newData[i] = 0;  // black tail.
+            }
+        }
+
         private static int ColorTransformDelta(sbyte colorPred, sbyte color)
         {
-            int delta = ((sbyte)colorPred * color) >> 5;
             return ((int)colorPred * color) >> 5;
         }
 

@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Guard.NotNull(codeLengths, nameof(codeLengths));
             Guard.MustBeGreaterThan(codeLengthsSize, 0, nameof(codeLengthsSize));
 
-            // sorted[code_lengths_size] is a pre-allocated array for sorting symbols by code length.
+            // sorted[codeLengthsSize] is a pre-allocated array for sorting symbols by code length.
             var sorted = new int[codeLengthsSize];
             int totalSize = 1 << rootBits; // total size root table + 2nd level table.
             int len; // current code length.

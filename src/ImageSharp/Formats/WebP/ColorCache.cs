@@ -3,6 +3,9 @@
 
 namespace SixLabors.ImageSharp.Formats.WebP
 {
+    /// <summary>
+    /// A small hash-addressed array to store recently used colors, to be able to recall them with shorter codes.
+    /// </summary>
     internal class ColorCache
     {
         private const uint KHashMul = 0x1e35a7bdu;
@@ -22,6 +25,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </summary>
         public int HashBits { get; private set; }
 
+        /// <summary>
+        /// Initializes a new color cache.
+        /// </summary>
+        /// <param name="hashBits">The hashBits determine the size of cache. It will be 1 left shifted by hashBits.</param>
         public void Init(int hashBits)
         {
             int hashSize = 1 << hashBits;
@@ -30,6 +37,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.HashShift = 32 - hashBits;
         }
 
+        /// <summary>
+        /// Inserts a new color into the cache.
+        /// </summary>
+        /// <param name="argb">The color to insert.</param>
         public void Insert(uint argb)
         {
             int key = this.HashPix(argb, this.HashShift);

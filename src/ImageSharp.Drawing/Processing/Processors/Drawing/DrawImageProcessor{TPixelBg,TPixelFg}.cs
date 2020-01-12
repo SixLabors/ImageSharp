@@ -22,6 +22,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
         /// <summary>
         /// Initializes a new instance of the <see cref="DrawImageProcessor{TPixelBg, TPixelFg}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="image">The foreground <see cref="Image{TPixelFg}"/> to blend with the currently processing image.</param>
         /// <param name="source">The source <see cref="Image{TPixelBg}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
@@ -30,6 +31,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
         /// <param name="alphaCompositionMode">The Alpha blending mode to use when drawing the image.</param>
         /// <param name="opacity">The opacity of the image to blend. Must be between 0 and 1.</param>
         public DrawImageProcessor(
+            Configuration configuration,
             Image<TPixelFg> image,
             Image<TPixelBg> source,
             Rectangle sourceRectangle,
@@ -37,7 +39,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             PixelColorBlendingMode colorBlendingMode,
             PixelAlphaCompositionMode alphaCompositionMode,
             float opacity)
-            : base(source, sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             Guard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
 

@@ -20,6 +20,7 @@
     <PackageReference Include="Magick.NET-Q16-AnyCPU" />
     <PackageReference Include="BenchmarkDotNet" />
     <PackageReference Include="Colourful" />
+    <PackageReference Include="Pfim" />
     <PackageReference Include="SixLabors.Shapes.Text" />
     <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>

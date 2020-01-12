@@ -6,7 +6,6 @@ using System.Buffers;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Advanced.ParallelUtils;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -21,8 +20,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
     {
         private readonly FillProcessor definition;
 
-        public FillProcessor(FillProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
-            : base(source, sourceRectangle)
+        public FillProcessor(Configuration configuration, FillProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             this.definition = definition;
         }
@@ -89,7 +88,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                     source,
                     sourceRectangle))
                 {
-                    amount.Memory.Span.Fill(1f);
+                    amount.Memory.Span.Fill(1F);
 
                     ParallelHelper.IterateRows(
                         workingRect,
@@ -112,7 +111,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
         {
             solidBrush = this.definition.Brush as SolidBrush;
 
-            if (solidBrush == null)
+            if (solidBrush is null)
             {
                 return false;
             }

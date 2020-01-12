@@ -90,19 +90,23 @@ namespace SixLabors.ImageSharp.Processing
             {
                 Span<float> amountSpan = amountBuffer.Memory.Span;
                 Span<TPixel> overlaySpan = overlay.Memory.Span;
+                float blendPercentage = this.Options.BlendPercentage;
 
-                for (int i = 0; i < scanline.Length; i++)
+                if (blendPercentage < 1)
                 {
-                    if (this.Options.BlendPercentage < 1)
+                    for (int i = 0; i < scanline.Length; i++)
                     {
-                        amountSpan[i] = scanline[i] * this.Options.BlendPercentage;
+                        amountSpan[i] = scanline[i] * blendPercentage;
+                        overlaySpan[i] = this[x + i, y];
                     }
-                    else
+                }
+                else
+                {
+                    for (int i = 0; i < scanline.Length; i++)
                     {
                         amountSpan[i] = scanline[i];
+                        overlaySpan[i] = this[x + i, y];
                     }
-
-                    overlaySpan[i] = this[x + i, y];
                 }
 
                 Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);

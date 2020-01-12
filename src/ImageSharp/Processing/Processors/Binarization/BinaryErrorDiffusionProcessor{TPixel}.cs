@@ -22,11 +22,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// <summary>
         /// Initializes a new instance of the <see cref="BinaryErrorDiffusionProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="definition">The <see cref="BinaryErrorDiffusionProcessor"/> defining the processor parameters.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        public BinaryErrorDiffusionProcessor(BinaryErrorDiffusionProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
-            : base(source, sourceRectangle)
+        public BinaryErrorDiffusionProcessor(Configuration configuration, BinaryErrorDiffusionProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             this.definition = definition;
         }
@@ -39,7 +40,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             IErrorDiffuser diffuser = this.definition.Diffuser;
 
             byte threshold = (byte)MathF.Round(this.definition.Threshold * 255F);
-            bool isAlphaOnly = typeof(TPixel) == typeof(Alpha8);
+            bool isAlphaOnly = typeof(TPixel) == typeof(A8);
 
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
             int startY = interest.Y;

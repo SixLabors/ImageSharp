@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="byte"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static byte Get8BitBT709Luminance(byte r, byte g, byte b) =>
-            (byte)((r * .2126F) + (g * .7152F) + (b * .0722F) + 0.5f);
+            (byte)((r * .2126F) + (g * .7152F) + (b * .0722F) + 0.5F);
 
         /// <summary>
         /// Gets the luminance from the rgb components using the formula as specified by ITU-R Recommendation BT.709.
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="ushort"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static ushort Get16BitBT709Luminance(ushort r, ushort g, ushort b) =>
-            (ushort)((r * .2126F) + (g * .7152F) + (b * .0722F));
+            (ushort)((r * .2126F) + (g * .7152F) + (b * .0722F) + 0.5F);
 
         /// <summary>
         /// Gets the luminance from the rgb components using the formula as specified by ITU-R Recommendation BT.709.
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="ushort"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static ushort Get16BitBT709Luminance(float r, float g, float b) =>
-            (ushort)((r * .2126F) + (g * .7152F) + (b * .0722F));
+            (ushort)((r * .2126F) + (g * .7152F) + (b * .0722F) + 0.5F);
 
         /// <summary>
         /// Scales a value from a 16 bit <see cref="ushort"/> to it's 8 bit <see cref="byte"/> equivalent.

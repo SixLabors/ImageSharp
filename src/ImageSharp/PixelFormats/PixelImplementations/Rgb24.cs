@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray8(Gray8 source)
+        public void FromL8(L8 source)
         {
             this.R = source.PackedValue;
             this.G = source.PackedValue;
@@ -164,9 +164,28 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray16(Gray16 source)
+        public void FromL16(L16 source)
         {
             byte rgb = ImageMaths.DownScaleFrom16BitTo8Bit(source.PackedValue);
+            this.R = rgb;
+            this.G = rgb;
+            this.B = rgb;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa16(La16 source)
+        {
+            this.R = source.L;
+            this.G = source.L;
+            this.B = source.L;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa32(La32 source)
+        {
+            byte rgb = ImageMaths.DownScaleFrom16BitTo8Bit(source.L);
             this.R = rgb;
             this.G = rgb;
             this.B = rgb;

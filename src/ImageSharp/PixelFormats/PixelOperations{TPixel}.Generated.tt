@@ -1,4 +1,4 @@
-﻿<#
+<#
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 #>
@@ -118,11 +118,17 @@ namespace SixLabors.ImageSharp.PixelFormats
     GenerateFromMethods("Bgra32");
     GenerateToDestFormatMethods("Bgra32");
 
-    GenerateFromMethods("Gray8");
-    GenerateToDestFormatMethods("Gray8");
+    GenerateFromMethods("L8");
+    GenerateToDestFormatMethods("L8");
 
-    GenerateFromMethods("Gray16");
-    GenerateToDestFormatMethods("Gray16");
+    GenerateFromMethods("L16");
+    GenerateToDestFormatMethods("L16");
+
+    GenerateFromMethods("La16");
+    GenerateToDestFormatMethods("La16");
+
+    GenerateFromMethods("La32");
+    GenerateToDestFormatMethods("La32");
 
     GenerateFromMethods("Rgb24");
     GenerateToDestFormatMethods("Rgb24");

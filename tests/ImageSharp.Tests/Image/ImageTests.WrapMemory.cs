@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -11,7 +11,6 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Shapes;
 using SixLabors.ImageSharp.Processing;
 using Xunit;
 
@@ -60,13 +59,13 @@ namespace SixLabors.ImageSharp.Tests
                     {
                         this.bitmap.UnlockBits(this.bmpData);
                     }
-                    
+
                     this.IsDisposed = true;
                 }
 
                 public override unsafe Span<Bgra32> GetSpan()
                 {
-                    void* ptr = (void*) this.bmpData.Scan0;
+                    void* ptr = (void*)this.bmpData.Scan0;
                     return new Span<Bgra32>(ptr, this.length);
                 }
 
@@ -119,7 +118,11 @@ namespace SixLabors.ImageSharp.Tests
                         using (var image = Image.WrapMemory(memory, bmp.Width, bmp.Height))
                         {
                             Assert.Equal(memory, image.GetPixelMemory());
-                            image.Mutate(c => c.Fill(bg).Fill(fg, new RectangularPolygon(10, 10, 10, 10)));
+                            image.GetPixelSpan().Fill(bg);
+                            for (var i = 10; i < 20; i++)
+                            {
+                                image.GetPixelRowSpan(i).Slice(10, 10).Fill(fg);
+                            }
                         }
 
                         Assert.False(memoryManager.IsDisposed);
@@ -150,7 +153,12 @@ namespace SixLabors.ImageSharp.Tests
                     using (var image = Image.WrapMemory(memoryManager, bmp.Width, bmp.Height))
                     {
                         Assert.Equal(memoryManager.Memory, image.GetPixelMemory());
-                        image.Mutate(c => c.Fill(bg).Fill(fg, new RectangularPolygon(10, 10, 10, 10)));
+
+                        image.GetPixelSpan().Fill(bg);
+                        for (var i = 10; i < 20; i++)
+                        {
+                            image.GetPixelRowSpan(i).Slice(10, 10).Fill(fg);
+                        }
                     }
 
                     Assert.True(memoryManager.IsDisposed);

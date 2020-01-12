@@ -71,10 +71,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         public int Radius { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return new GaussianBlurProcessor<TPixel>(this, source, sourceRectangle);
-        }
+            => new GaussianBlurProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

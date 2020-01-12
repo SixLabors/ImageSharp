@@ -2,11 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 using SixLabors.Shapes;
 
@@ -47,7 +49,7 @@ namespace SixLabors.ImageSharp.Processing
                 throw new ArgumentNullException(nameof(colors));
             }
 
-            if (!colors.Any())
+            if (colors.Length == 0)
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(colors),
@@ -99,7 +101,7 @@ namespace SixLabors.ImageSharp.Processing
                 throw new ArgumentNullException(nameof(colors));
             }
 
-            if (!colors.Any())
+            if (colors.Length == 0)
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(colors),
@@ -133,22 +135,19 @@ namespace SixLabors.ImageSharp.Processing
 
             private readonly float length;
 
-            private readonly PointF[] buffer;
-
             public Edge(Path path, Color startColor, Color endColor)
             {
                 this.path = path;
 
                 Vector2[] points = path.LineSegments.SelectMany(s => s.Flatten()).Select(p => (Vector2)p).ToArray();
 
-                this.Start = points.First();
+                this.Start = points[0];
                 this.StartColor = (Vector4)startColor;
 
                 this.End = points.Last();
                 this.EndColor = (Vector4)endColor;
 
                 this.length = DistanceBetween(this.End, this.Start);
-                this.buffer = new PointF[this.path.MaxIntersections];
             }
 
             public PointF Start { get; }
@@ -159,18 +158,38 @@ namespace SixLabors.ImageSharp.Processing
 
             public Vector4 EndColor { get; }
 
-            public Intersection? FindIntersection(PointF start, PointF end)
+            public Intersection? FindIntersection(PointF start, PointF end, MemoryAllocator allocator)
             {
-                int intersections = this.path.FindIntersections(start, end, this.buffer);
-
-                if (intersections == 0)
+                // TODO: The number of max intersections is upper bound to the number of nodes of the path.
+                // Normally these numbers would be small and could potentially be stackalloc rather than pooled.
+                // Investigate performance beifit of checking length and choosing approach.
+                using (IMemoryOwner<PointF> memory = allocator.Allocate<PointF>(this.path.MaxIntersections))
                 {
-                    return null;
-                }
+                    Span<PointF> buffer = memory.Memory.Span;
+                    int intersections = this.path.FindIntersections(start, end, buffer);
 
-                return this.buffer.Take(intersections)
-                    .Select(p => new Intersection(point: p, distance: ((Vector2)(p - start)).LengthSquared()))
-                    .Aggregate((min, current) => min.Distance > current.Distance ? current : min);
+                    if (intersections == 0)
+                    {
+                        return null;
+                    }
+
+                    buffer = buffer.Slice(0, intersections);
+
+                    PointF minPoint = buffer[0];
+                    var min = new Intersection(minPoint, ((Vector2)(minPoint - start)).LengthSquared());
+                    for (int i = 1; i < buffer.Length; i++)
+                    {
+                        PointF point = buffer[i];
+                        var current = new Intersection(point, ((Vector2)(point - start)).LengthSquared());
+
+                        if (min.Distance > current.Distance)
+                        {
+                            min = current;
+                        }
+                    }
+
+                    return min;
+                }
             }
 
             public Vector4 ColorAt(float distance)
@@ -197,6 +216,10 @@ namespace SixLabors.ImageSharp.Processing
 
             private readonly IList<Edge> edges;
 
+            private readonly TPixel centerPixel;
+
+            private readonly TPixel transparentPixel;
+
             /// <summary>
             /// Initializes a new instance of the <see cref="PathGradientBrushApplicator{TPixel}"/> class.
             /// </summary>
@@ -214,13 +237,15 @@ namespace SixLabors.ImageSharp.Processing
                 : base(configuration, options, source)
             {
                 this.edges = edges;
-
                 PointF[] points = edges.Select(s => s.Start).ToArray();
 
                 this.center = points.Aggregate((p1, p2) => p1 + p2) / edges.Count;
                 this.centerColor = (Vector4)centerColor;
+                this.centerPixel = centerColor.ToPixel<TPixel>();
 
-                this.maxDistance = points.Select(p => (Vector2)(p - this.center)).Select(d => d.Length()).Max();
+                this.maxDistance = points.Select(p => (Vector2)(p - this.center)).Max(d => d.Length());
+
+                this.transparentPixel = Color.Transparent.ToPixel<TPixel>();
             }
 
             /// <inheritdoc />
@@ -232,22 +257,20 @@ namespace SixLabors.ImageSharp.Processing
 
                     if (point == this.center)
                     {
-                        return new Color(this.centerColor).ToPixel<TPixel>();
+                        return this.centerPixel;
                     }
 
                     var direction = Vector2.Normalize(point - this.center);
-
                     PointF end = point + (PointF)(direction * this.maxDistance);
 
                     (Edge edge, Intersection? info) = this.FindIntersection(point, end);
 
                     if (!info.HasValue)
                     {
-                        return Color.Transparent.ToPixel<TPixel>();
+                        return this.transparentPixel;
                     }
 
                     PointF intersection = info.Value.Point;
-
                     Vector4 edgeColor = edge.ColorAt(intersection);
 
                     float length = DistanceBetween(intersection, this.center);
@@ -263,9 +286,10 @@ namespace SixLabors.ImageSharp.Processing
             {
                 (Edge edge, Intersection? info) closest = default;
 
+                MemoryAllocator allocator = this.Target.MemoryAllocator;
                 foreach (Edge edge in this.edges)
                 {
-                    Intersection? intersection = edge.FindIntersection(start, end);
+                    Intersection? intersection = edge.FindIntersection(start, end, allocator);
 
                     if (!intersection.HasValue)
                     {

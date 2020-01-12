@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     throw new UnknownImageFormatException("Width or height cannot be 0");
                 }
 
-                var image = new Image<TPixel>(this.configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
+                var image = Image.CreateUninitialized<TPixel>(this.configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
                 if (this.fileHeader.ColorMapType is 1)
@@ -301,7 +301,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                         switch (colorMapPixelSizeInBytes)
                         {
                             case 1:
-                                color.FromGray8(Unsafe.As<byte, Gray8>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
+                                color.FromL8(Unsafe.As<byte, L8>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
                                 break;
                             case 2:
                                 // Set alpha value to 1, to treat it as opaque for Bgra5551.
@@ -341,7 +341,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     this.currentStream.Read(row);
                     int newY = Invert(y, height, inverted);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                    PixelOperations<TPixel>.Instance.FromGray8Bytes(
+                    PixelOperations<TPixel>.Instance.FromL8Bytes(
                         this.configuration,
                         row.GetSpan(),
                         pixelSpan,
@@ -467,7 +467,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                         switch (bytesPerPixel)
                         {
                             case 1:
-                                color.FromGray8(Unsafe.As<byte, Gray8>(ref bufferSpan[idx]));
+                                color.FromL8(Unsafe.As<byte, L8>(ref bufferSpan[idx]));
                                 break;
                             case 2:
                                 // Set alpha value to 1, to treat it as opaque for Bgra5551.
@@ -565,15 +565,12 @@ namespace SixLabors.ImageSharp.Formats.Tga
         {
             this.currentStream = stream;
 
-#if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[TgaFileHeader.Size];
-#else
-            var buffer = new byte[TgaFileHeader.Size];
-#endif
+
             this.currentStream.Read(buffer, 0, TgaFileHeader.Size);
             this.fileHeader = TgaFileHeader.Parse(buffer);
             this.metadata = new ImageMetadata();
-            this.tgaMetadata = this.metadata.GetFormatMetadata(TgaFormat.Instance);
+            this.tgaMetadata = this.metadata.GetTgaMetadata();
             this.tgaMetadata.BitsPerPixel = (TgaBitsPerPixel)this.fileHeader.PixelDepth;
 
             // Bit at position 5 of the descriptor indicates, that the origin is top left instead of bottom right.

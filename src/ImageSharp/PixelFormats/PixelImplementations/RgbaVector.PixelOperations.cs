@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal class PixelOperations : PixelOperations<RgbaVector>
         {
             /// <inheritdoc />
-            internal override void FromVector4Destructive(
+            public override void FromVector4Destructive(
                 Configuration configuration,
                 Span<Vector4> sourceVectors,
                 Span<RgbaVector> destinationColors,
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void ToVector4(
+            public override void ToVector4(
                 Configuration configuration,
                 ReadOnlySpan<RgbaVector> sourcePixels,
                 Span<Vector4> destVectors,
@@ -46,33 +46,33 @@ namespace SixLabors.ImageSharp.PixelFormats
                 Vector4Converters.ApplyForwardConversionModifiers(destVectors, modifiers);
             }
 
-            internal override void ToGray8(Configuration configuration, ReadOnlySpan<RgbaVector> sourcePixels, Span<Gray8> destPixels)
+            internal override void ToL8(Configuration configuration, ReadOnlySpan<RgbaVector> sourcePixels, Span<L8> destPixels)
             {
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
                 ref Vector4 sourceBaseRef = ref Unsafe.As<RgbaVector, Vector4>(ref MemoryMarshal.GetReference(sourcePixels));
-                ref Gray8 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
+                ref L8 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
                 for (int i = 0; i < sourcePixels.Length; i++)
                 {
                     ref Vector4 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-                    ref Gray8 dp = ref Unsafe.Add(ref destBaseRef, i);
+                    ref L8 dp = ref Unsafe.Add(ref destBaseRef, i);
 
                     dp.ConvertFromRgbaScaledVector4(sp);
                 }
             }
 
-            internal override void ToGray16(Configuration configuration, ReadOnlySpan<RgbaVector> sourcePixels, Span<Gray16> destPixels)
+            internal override void ToL16(Configuration configuration, ReadOnlySpan<RgbaVector> sourcePixels, Span<L16> destPixels)
             {
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destPixels, nameof(destPixels));
 
                 ref Vector4 sourceBaseRef = ref Unsafe.As<RgbaVector, Vector4>(ref MemoryMarshal.GetReference(sourcePixels));
-                ref Gray16 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
+                ref L16 destBaseRef = ref MemoryMarshal.GetReference(destPixels);
 
                 for (int i = 0; i < sourcePixels.Length; i++)
                 {
                     ref Vector4 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-                    ref Gray16 dp = ref Unsafe.Add(ref destBaseRef, i);
+                    ref L16 dp = ref Unsafe.Add(ref destBaseRef, i);
 
                     dp.ConvertFromRgbaScaledVector4(sp);
                 }

@@ -26,10 +26,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public IQuantizer Quantizer { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return new QuantizeProcessor<TPixel>(this.Quantizer, source, sourceRectangle);
-        }
+            => new QuantizeProcessor<TPixel>(configuration, this.Quantizer, source, sourceRectangle);
     }
 }

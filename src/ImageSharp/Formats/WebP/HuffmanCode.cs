@@ -5,6 +5,9 @@ using System.Diagnostics;
 
 namespace SixLabors.ImageSharp.Formats.WebP
 {
+    /// <summary>
+    /// A classic way to do entropy coding where a smaller number of bits are used for more frequent codes.
+    /// </summary>
     [DebuggerDisplay("BitsUsed: {BitsUsed}, Value: {Value}")]
     internal class HuffmanCode
     {

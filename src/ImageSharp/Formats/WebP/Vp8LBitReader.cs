@@ -1,7 +1,11 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
+
+using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.WebP
 {
@@ -67,13 +71,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// Initializes a new instance of the <see cref="Vp8LBitReader"/> class.
         /// </summary>
         /// <param name="inputStream">The input stream to read from.</param>
-        public Vp8LBitReader(Stream inputStream)
+        /// <param name="imageDataSize">The image data size in bytes.</param>
+        /// <param name="memoryAllocator">Used for allocating memory during reading data from the stream.</param>
+        public Vp8LBitReader(Stream inputStream, uint imageDataSize, MemoryAllocator memoryAllocator)
         {
-            long length = inputStream.Length - inputStream.Position;
+            long length = imageDataSize;
 
             using (var ms = new MemoryStream())
             {
-                inputStream.CopyTo(ms);
+                CopyStream(inputStream, ms, (int)imageDataSize, memoryAllocator);
                 this.data = ms.ToArray();
             }
 
@@ -114,13 +120,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 this.ShiftBytes();
                 return (uint)val;
             }
-            else
-            {
-                this.SetEndOfStream();
-                return 0;
-            }
+
+            this.SetEndOfStream();
+            return 0;
         }
 
+        /// <summary>
+        /// Reads a single bit from the stream.
+        /// </summary>
+        /// <returns>True if the bit read was 1, false otherwise.</returns>
         public bool ReadBit()
         {
             uint bit = this.ReadBits(1);
@@ -155,6 +163,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return this.eos || ((this.pos == this.len) && (this.bitPos > Vp8LLbits));
         }
 
+        /// <summary>
+        /// If not at EOS, reload up to Vp8LLbits byte-by-byte.
+        /// </summary>
         private void ShiftBytes()
         {
             while (this.bitPos >= 8 && this.pos < this.len)
@@ -175,6 +186,25 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             this.eos = true;
             this.bitPos = 0; // To avoid undefined behaviour with shifts.
+        }
+
+        private static void CopyStream(Stream input, Stream output, int bytesToRead, MemoryAllocator memoryAllocator)
+        {
+            using (IManagedByteBuffer buffer = memoryAllocator.AllocateManagedByteBuffer(4096))
+            {
+                Span<byte> bufferSpan = buffer.GetSpan();
+                int read;
+                while (bytesToRead > 0 && (read = input.Read(buffer.Array, 0, Math.Min(bufferSpan.Length, bytesToRead))) > 0)
+                {
+                    output.Write(buffer.Array, 0, read);
+                    bytesToRead -= read;
+                }
+
+                if (bytesToRead > 0)
+                {
+                    WebPThrowHelper.ThrowImageFormatException("image file has insufficient data");
+                }
+            }
         }
     }
 }

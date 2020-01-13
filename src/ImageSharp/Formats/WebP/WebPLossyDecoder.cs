@@ -46,7 +46,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // TODO weiter bei  S.11
 
             // bit STREAM: See https://tools.ietf.org/html/rfc6386#page-29 ("Frame Header")
-            Vp8LBitReader bitReader = new Vp8LBitReader(this.currentStream);
+            // TODO: Vp8BitReader should be used here instead
+            /*Vp8LBitReader bitReader = new Vp8LBitReader(this.currentStream);
             bool isInterframe = bitReader.ReadBit();
             if (isInterframe)
             {
@@ -58,7 +59,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             bool isShowFrame = bitReader.ReadBit();
 
-            uint firstPartitionSize = (bitReader.ReadBits(16) << 3) | bitReader.ReadBits(3);
+            uint firstPartitionSize = (bitReader.ReadBits(16) << 3) | bitReader.ReadBits(3);*/
         }
 
         private (ReconstructionFilter, LoopFilter) DecodeVersion(byte version)

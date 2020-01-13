@@ -7,6 +7,7 @@ using System.IO;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 
@@ -33,19 +34,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
-        /// The bitmap decoder options.
-        /// </summary>
-        private readonly IWebPDecoderOptions options;
-
-        /// <summary>
         /// The stream to decode from.
         /// </summary>
         private Stream currentStream;
-
-        /// <summary>
-        /// The metadata.
-        /// </summary>
-        private ImageMetadata metadata;
 
         /// <summary>
         /// The webp specific metadata.
@@ -61,8 +52,18 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             this.configuration = configuration;
             this.memoryAllocator = configuration.MemoryAllocator;
-            this.options = options;
+            this.IgnoreMetadata = options.IgnoreMetadata;
         }
+
+        /// <summary>
+        /// Gets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// </summary>
+        public bool IgnoreMetadata { get; }
+
+        /// <summary>
+        /// Gets the <see cref="ImageMetadata"/> decoded by this decoder instance.
+        /// </summary>
+        public ImageMetadata Metadata { get; private set; }
 
         /// <summary>
         /// Decodes the image from the specified <see cref="Stream"/> and sets the data to the image.
@@ -73,6 +74,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public Image<TPixel> Decode<TPixel>(Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
+            this.Metadata = new ImageMetadata();
             this.currentStream = stream;
 
             uint fileSize = this.ReadImageHeader();
@@ -82,7 +84,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 WebPThrowHelper.ThrowNotSupportedException("Animations are not supported");
             }
 
-            var image = new Image<TPixel>(this.configuration, imageInfo.Width, imageInfo.Height, this.metadata);
+            var image = new Image<TPixel>(this.configuration, imageInfo.Width, imageInfo.Height, this.Metadata);
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
             if (imageInfo.IsLossLess)
             {
@@ -95,7 +97,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 lossyDecoder.Decode(pixels, image.Width, image.Height, (int)imageInfo.ImageDataSize);
             }
 
-            // There can be optional chunks after the image data, like EXIF, XMP etc.
+            // There can be optional chunks after the image data, like EXIF and XMP.
             if (imageInfo.Features != null)
             {
                 this.ParseOptionalChunks(imageInfo.Features);
@@ -117,7 +119,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             // TODO: not sure yet where to get this info. Assuming 24 bits for now.
             int bitsPerPixel = 24;
-            return new ImageInfo(new PixelTypeInfo(bitsPerPixel), imageInfo.Width, imageInfo.Height, this.metadata);
+            return new ImageInfo(new PixelTypeInfo(bitsPerPixel), imageInfo.Width, imageInfo.Height, this.Metadata);
         }
 
         /// <summary>
@@ -142,8 +144,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private WebPImageInfo ReadVp8Info()
         {
-            this.metadata = new ImageMetadata();
-            this.webpMetadata = this.metadata.GetFormatMetadata(WebPFormat.Instance);
+            this.Metadata = new ImageMetadata();
+            this.webpMetadata = this.Metadata.GetFormatMetadata(WebPFormat.Instance);
 
             WebPChunkType chunkType = this.ReadChunkType();
 
@@ -322,10 +324,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.webpMetadata.Format = WebPFormatType.Lossless;
 
             // VP8 data size.
-            uint dataSize = this.ReadChunkSize();
+            uint imageDataSize = this.ReadChunkSize();
+
+            var bitReader = new Vp8LBitReader(this.currentStream, imageDataSize, this.memoryAllocator);
 
             // One byte signature, should be 0x2f.
-            var bitReader = new Vp8LBitReader(this.currentStream);
             uint signature = bitReader.ReadBits(8);
             if (signature != WebPConstants.Vp8LMagicByte)
             {
@@ -349,7 +352,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                        Width = (int)width,
                        Height = (int)height,
                        IsLossLess = true,
-                       ImageDataSize = dataSize,
+                       ImageDataSize = imageDataSize,
                        Features = features,
                        Vp9LBitReader = bitReader
                    };
@@ -363,7 +366,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <param name="features">The webp features.</param>
         private void ParseOptionalChunks(WebPFeatures features)
         {
-            if (features.ExifProfile is false && features.XmpMetaData is false)
+            if (this.IgnoreMetadata || (features.ExifProfile is false && features.XmpMetaData is false))
             {
                 return;
             }
@@ -374,8 +377,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 WebPChunkType chunkType = this.ReadChunkType();
                 uint chunkLength = this.ReadChunkSize();
 
-                // Skip chunk data for now.
-                this.currentStream.Skip((int)chunkLength);
+                if (chunkType is WebPChunkType.Exif)
+                {
+                    var exifData = new byte[chunkLength];
+                    this.currentStream.Read(exifData, 0, (int)chunkLength);
+                    this.Metadata.ExifProfile = new ExifProfile(exifData);
+                }
+                else
+                {
+                    // Skip XMP chunk data for now.
+                    this.currentStream.Skip((int)chunkLength);
+                }
             }
         }
 

@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Throws <see cref="ObjectDisposedException"/> if the image is disposed.
         /// </summary>
-        public abstract void EnsureNotDisposed();
+        protected abstract void EnsureNotDisposed();
 
         /// <summary>
         /// Accepts a <see cref="IImageVisitor"/>.
@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp
         /// with the pixel type of the image.
         /// </summary>
         /// <param name="visitor">The visitor.</param>
-        public abstract void Accept(IImageVisitor visitor);
+        protected abstract void Accept(IImageVisitor visitor);
 
         private class EncodeVisitor : IImageVisitor
         {

@@ -211,7 +211,7 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc/>
-        protected override void EnsureNotDisposed()
+        protected internal override void EnsureNotDisposed()
         {
             if (this.isDisposed)
             {
@@ -223,7 +223,7 @@ namespace SixLabors.ImageSharp
         public override string ToString() => $"Image<{typeof(TPixel).Name}>: {this.Width}x{this.Height}";
 
         /// <inheritdoc />
-        protected override void Accept(IImageVisitor visitor)
+        protected internal override void Accept(IImageVisitor visitor)
         {
             this.EnsureNotDisposed();
 

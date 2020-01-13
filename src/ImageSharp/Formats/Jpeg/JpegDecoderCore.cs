@@ -465,24 +465,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
         }
 
-        private double GetExifResolutionValue(ExifTag tag)
+        private double GetExifResolutionValue(ExifTag<Rational> tag)
         {
-            if (!this.Metadata.ExifProfile.TryGetValue(tag, out ExifValue exifValue))
-            {
-                return 0;
-            }
+            IExifValue<Rational> resolution = this.Metadata.ExifProfile.GetValue(tag);
 
-            switch (exifValue.DataType)
-            {
-                case ExifDataType.Rational:
-                    return ((Rational)exifValue.Value).ToDouble();
-                case ExifDataType.Long:
-                    return (uint)exifValue.Value;
-                case ExifDataType.DoubleFloat:
-                    return (double)exifValue.Value;
-                default:
-                    return 0;
-            }
+            return resolution is null ? 0 : resolution.Value.ToDouble();
         }
 
         /// <summary>
@@ -777,7 +764,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 for (int i = 0; i < this.ComponentCount; i++)
                 {
                     byte hv = this.temp[index + 1];
-                    int h = hv >> 4;
+                    int h = (hv >> 4) & 15;
                     int v = hv & 15;
 
                     if (maxH < h)

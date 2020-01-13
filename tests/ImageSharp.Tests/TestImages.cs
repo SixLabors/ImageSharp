@@ -191,6 +191,8 @@ namespace SixLabors.ImageSharp.Tests
                 public const string IncorrectQuality845 = "Jpg/issues/Issue845-Incorrect-Quality99.jpg";
                 public const string IncorrectColorspace855 = "Jpg/issues/issue855-incorrect-colorspace.jpg";
                 public const string IncorrectResize1006 = "Jpg/issues/issue1006-incorrect-resize.jpg";
+                public const string ExifResize1049 = "Jpg/issues/issue1049-exif-resize.jpg";
+                public const string BadSubSampling1076 = "Jpg/issues/issue-1076-invalid-subsampling.jpg";
 
                 public static class Fuzz
                 {

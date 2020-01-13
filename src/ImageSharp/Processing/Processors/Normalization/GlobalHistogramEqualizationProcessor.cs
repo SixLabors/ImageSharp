@@ -22,14 +22,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         }
 
         /// <inheritdoc />
-        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
-        {
-            return new GlobalHistogramEqualizationProcessor<TPixel>(
+        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+            => new GlobalHistogramEqualizationProcessor<TPixel>(
+                configuration,
                 this.LuminanceLevels,
                 this.ClipHistogram,
                 this.ClipLimit,
                 source,
                 sourceRectangle);
-        }
     }
 }

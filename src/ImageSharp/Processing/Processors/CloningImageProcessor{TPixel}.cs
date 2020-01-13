@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -22,13 +21,14 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="CloningImageProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        protected CloningImageProcessor(Image<TPixel> source, Rectangle sourceRectangle)
+        protected CloningImageProcessor(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
         {
+            this.Configuration = configuration;
             this.Source = source;
             this.SourceRectangle = sourceRectangle;
-            this.Configuration = this.Source.GetConfiguration();
         }
 
         /// <summary>
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Image<TPixel> clone = this.CreateTarget();
                 this.CheckFrameCount(this.Source, clone);
 
-                Configuration configuration = this.Source.GetConfiguration();
+                Configuration configuration = this.Configuration;
                 this.BeforeImageApply(clone);
 
                 for (int i = 0; i < this.Source.Frames.Count; i++)
@@ -173,16 +173,19 @@ namespace SixLabors.ImageSharp.Processing.Processors
             Image<TPixel> source = this.Source;
             Size targetSize = this.GetTargetSize();
 
-            // We will always be creating the clone even for mutate because we may need to resize the canvas
-            IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select<ImageFrame<TPixel>, ImageFrame<TPixel>>(
-                x => new ImageFrame<TPixel>(
-                    source.GetConfiguration(),
+            // We will always be creating the clone even for mutate because we may need to resize the canvas.
+            var targetFrames = new ImageFrame<TPixel>[source.Frames.Count];
+            for (int i = 0; i < targetFrames.Length; i++)
+            {
+                targetFrames[i] = new ImageFrame<TPixel>(
+                    this.Configuration,
                     targetSize.Width,
                     targetSize.Height,
-                    x.Metadata.DeepClone()));
+                    source.Frames[i].Metadata.DeepClone());
+            }
 
-            // Use the overload to prevent an extra frame being added
-            return new Image<TPixel>(this.Configuration, source.Metadata.DeepClone(), frames);
+            // Use the overload to prevent an extra frame being added.
+            return new Image<TPixel>(this.Configuration, source.Metadata.DeepClone(), targetFrames);
         }
 
         private void CheckFrameCount(Image<TPixel> a, Image<TPixel> b)

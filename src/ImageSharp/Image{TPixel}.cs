@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp
         protected override ImageFrameCollection NonGenericFrameCollection => this.Frames;
 
         /// <summary>
-        /// Gets the frames.
+        /// Gets the collection of image frames.
         /// </summary>
         public new ImageFrameCollection<TPixel> Frames { get; }
 
@@ -166,8 +166,12 @@ namespace SixLabors.ImageSharp
         {
             this.EnsureNotDisposed();
 
-            IEnumerable<ImageFrame<TPixel>> clonedFrames =
-                this.Frames.Select<ImageFrame<TPixel>, ImageFrame<TPixel>>(x => x.Clone(configuration));
+            var clonedFrames = new ImageFrame<TPixel>[this.Frames.Count];
+            for (int i = 0; i < clonedFrames.Length; i++)
+            {
+                clonedFrames[i] = this.Frames[i].Clone(configuration);
+            }
+
             return new Image<TPixel>(configuration, this.Metadata.DeepClone(), clonedFrames);
         }
 
@@ -181,8 +185,12 @@ namespace SixLabors.ImageSharp
         {
             this.EnsureNotDisposed();
 
-            IEnumerable<ImageFrame<TPixel2>> clonedFrames =
-                this.Frames.Select<ImageFrame<TPixel>, ImageFrame<TPixel2>>(x => x.CloneAs<TPixel2>(configuration));
+            var clonedFrames = new ImageFrame<TPixel2>[this.Frames.Count];
+            for (int i = 0; i < clonedFrames.Length; i++)
+            {
+                clonedFrames[i] = this.Frames[i].CloneAs<TPixel2>(configuration);
+            }
+
             return new Image<TPixel2>(configuration, this.Metadata.DeepClone(), clonedFrames);
         }
 

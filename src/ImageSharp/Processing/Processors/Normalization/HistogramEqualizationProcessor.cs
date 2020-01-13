@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         public int ClipLimit { get; }
 
         /// <inheritdoc />
-        public abstract IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
+        public abstract IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>;
 
         /// <summary>

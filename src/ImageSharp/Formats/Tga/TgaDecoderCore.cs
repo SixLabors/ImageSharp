@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     throw new UnknownImageFormatException("Width or height cannot be 0");
                 }
 
-                var image = new Image<TPixel>(this.configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
+                var image = Image.CreateUninitialized<TPixel>(this.configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
                 if (this.fileHeader.ColorMapType is 1)
@@ -565,11 +565,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
         {
             this.currentStream = stream;
 
-#if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[TgaFileHeader.Size];
-#else
-            var buffer = new byte[TgaFileHeader.Size];
-#endif
+
             this.currentStream.Read(buffer, 0, TgaFileHeader.Size);
             this.fileHeader = TgaFileHeader.Parse(buffer);
             this.metadata = new ImageMetadata();

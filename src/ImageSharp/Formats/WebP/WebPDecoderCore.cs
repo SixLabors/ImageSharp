@@ -8,6 +8,7 @@ using System.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 
@@ -208,13 +209,22 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.buffer[3] = 0;
             int height = BinaryPrimitives.ReadInt32LittleEndian(this.buffer) + 1;
 
-            // Optional chunks ALPH, ICCP and ANIM can follow here. Ignoring them for now.
+            // Optional chunks ICCP, ALPH and ANIM can follow here.
             WebPChunkType chunkType;
             if (isIccPresent)
             {
                 chunkType = this.ReadChunkType();
-                uint iccpChunkSize = this.ReadChunkSize();
-                this.currentStream.Skip((int)iccpChunkSize);
+                if (chunkType is WebPChunkType.Iccp)
+                {
+                    uint iccpChunkSize = this.ReadChunkSize();
+                    var iccpData = new byte[iccpChunkSize];
+                    this.currentStream.Read(iccpData, 0, (int)iccpChunkSize);
+                    var profile = new IccProfile(iccpData);
+                    if (profile.CheckIsValid())
+                    {
+                        this.Metadata.IccProfile = profile;
+                    }
+                }
             }
 
             if (isAnimationPresent)
@@ -236,6 +246,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             {
                 chunkType = this.ReadChunkType();
                 uint alphaChunkSize = this.ReadChunkSize();
+
+                // ALPH chunks will be skipped for now.
                 this.currentStream.Skip((int)alphaChunkSize);
             }
 

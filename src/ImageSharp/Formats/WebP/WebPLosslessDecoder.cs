@@ -617,6 +617,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             var transformType = (Vp8LTransformType)this.bitReader.ReadBits(2);
             var transform = new Vp8LTransform(transformType, xSize, ySize);
+
+            // Each transform is allowed to be used only once.
+            if (decoder.Transforms.Any(t => t.TransformType == transform.TransformType))
+            {
+                WebPThrowHelper.ThrowImageFormatException("Each transform can only be present once");
+            }
+
             switch (transformType)
             {
                 case Vp8LTransformType.SubtractGreen:

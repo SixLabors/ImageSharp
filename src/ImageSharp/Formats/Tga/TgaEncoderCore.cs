@@ -97,11 +97,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 pixelDepth: (byte)this.bitsPerPixel.Value,
                 imageDescriptor: imageDescriptor);
 
-#if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[TgaFileHeader.Size];
-#else
-            byte[] buffer = new byte[TgaFileHeader.Size];
-#endif
             fileHeader.WriteTo(buffer);
 
             stream.Write(buffer, 0, TgaFileHeader.Size);

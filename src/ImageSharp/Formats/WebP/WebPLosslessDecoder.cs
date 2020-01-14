@@ -131,6 +131,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     numberOfTransformsPresent++;
                 }
             }
+            else
+            {
+                decoder.Metadata = new Vp8LMetadata();
+            }
 
             // Color cache.
             bool colorCachePresent = this.bitReader.ReadBit();
@@ -173,10 +177,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             IMemoryOwner<uint> pixelData = this.memoryAllocator.Allocate<uint>(decoder.Width * decoder.Height, AllocationOptions.Clean);
             this.DecodeImageData(decoder, pixelData.GetSpan(), colorCacheSize, colorCache);
-            if (!isLevel0)
-            {
-                decoder.Metadata = new Vp8LMetadata();
-            }
 
             return pixelData;
         }

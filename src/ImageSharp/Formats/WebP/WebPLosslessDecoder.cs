@@ -47,10 +47,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
             FixedTableSize + 2704
         };
 
-        private static readonly int NumCodeLengthCodes = 19;
         private static readonly byte[] KCodeLengthCodeOrder = { 17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+        private static readonly int NumCodeLengthCodes = KCodeLengthCodeOrder.Length;
 
-        private static readonly int CodeToPlaneCodes = 120;
         private static readonly int[] KCodeToPlane =
         {
             0x18, 0x07, 0x17, 0x19, 0x28, 0x06, 0x27, 0x29, 0x16, 0x1a,
@@ -66,6 +65,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             0x4f, 0x10, 0x20, 0x62, 0x6e, 0x30, 0x73, 0x7d, 0x51, 0x5f,
             0x40, 0x72, 0x7e, 0x61, 0x6f, 0x50, 0x71, 0x7f, 0x60, 0x70
         };
+
+        private static readonly int CodeToPlaneCodes = KCodeToPlane.Length;
 
         private static readonly byte[] KLiteralMap =
         {

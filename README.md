@@ -80,7 +80,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 // Image.Load(string path) is a shortcut for our default type. 
 // Other pixel formats use Image.Load<TPixel>(string path))
-using (Image<Rgba32> image = Image.Load("foo.jpg"))
+using (Image image = Image.Load("foo.jpg"))
 {
     image.Mutate(x => x
          .Resize(image.Width / 2, image.Height / 2)

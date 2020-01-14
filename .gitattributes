@@ -89,13 +89,22 @@
 ###############################################################################
 *.bmp               binary
 *.dll               binary
+*.eot               binary
 *.exe               binary
 *.gif               binary
 *.jpg               binary
+*.pdf               binary
 *.png               binary
-*.tga               binary
+*.ppt               binary
+*.pptx              binary
 *.ttf               binary
 *.snk               binary
+*.ttf               binary
+*.woff              binary
+*.woff2             binary
+*.xls               binary
+*.xlsx              binary
+
 
 ###############################################################################
 # Set explicit file behavior to:
@@ -107,3 +116,4 @@
 *.pdf               diff=astextplain
 *.pptx              diff=astextplain
 *.rtf               diff=astextplain
+*.svg               diff=astextplain

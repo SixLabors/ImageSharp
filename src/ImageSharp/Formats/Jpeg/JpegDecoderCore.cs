@@ -764,7 +764,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 for (int i = 0; i < this.ComponentCount; i++)
                 {
                     byte hv = this.temp[index + 1];
-                    int h = hv >> 4;
+                    int h = (hv >> 4) & 15;
                     int v = hv & 15;
 
                     if (maxH < h)

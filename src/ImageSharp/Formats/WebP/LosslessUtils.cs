@@ -164,9 +164,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         /// <summary>
+        /// This will reverse the predictor transform.
         /// The predictor transform can be used to reduce entropy by exploiting the fact that neighboring pixels are often correlated.
         /// In the predictor transform, the current pixel value is predicted from the pixels already decoded (in scan-line order) and only the residual value (actual - predicted) is encoded.
-        /// The prediction mode determines the type of prediction to use. We divide the image into squares and all the pixels in a square use same prediction mode.
+        /// The prediction mode determines the type of prediction to use. The image is divided into squares and all the pixels in a square use same prediction mode.
         /// </summary>
         /// <param name="transform">The transform data.</param>
         /// <param name="pixelData">The pixel data to apply the inverse transform.</param>

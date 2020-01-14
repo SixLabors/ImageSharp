@@ -287,8 +287,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.webpMetadata.Format = WebPFormatType.Lossy;
 
             // VP8 data size.
-            this.currentStream.Read(this.buffer, 0, 3);
-            this.buffer[3] = 0;
+            this.currentStream.Read(this.buffer, 0, 4);
             uint dataSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
 
             // https://tools.ietf.org/html/rfc6386#page-30
@@ -298,10 +297,30 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // - A 1-bit show_frame flag.
             // - A 19-bit field containing the size of the first data partition in bytes.
             this.currentStream.Read(this.buffer, 0, 3);
-            int tmp = (this.buffer[2] << 16) | (this.buffer[1] << 8) | this.buffer[0];
-            int isKeyFrame = tmp & 0x1;
-            int version = (tmp >> 1) & 0x7;
-            int showFrame = (tmp >> 4) & 0x1;
+            uint frameTag = (uint)(this.buffer[0] | (this.buffer[1] << 8) | (this.buffer[2] << 16));
+            bool isKeyFrame = (frameTag & 0x1) is 0;
+            if (!isKeyFrame)
+            {
+                WebPThrowHelper.ThrowImageFormatException("VP8 header indicates the image is not a key frame");
+            }
+
+            uint version = (frameTag >> 1) & 0x7;
+            if (version > 3)
+            {
+                WebPThrowHelper.ThrowImageFormatException($"VP8 header indicates unknown profile {version}");
+            }
+
+            bool showFrame = ((frameTag >> 4) & 0x1) is 1;
+            if (!showFrame)
+            {
+                WebPThrowHelper.ThrowImageFormatException("VP8 header indicates that the first frame is invisible");
+            }
+
+            uint partitionLength = frameTag >> 5;
+            if (partitionLength > dataSize)
+            {
+                WebPThrowHelper.ThrowImageFormatException("VP8 header contains inconsistent size information");
+            }
 
             // Check for VP8 magic bytes.
             this.currentStream.Read(this.buffer, 0, 4);
@@ -311,10 +330,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             this.currentStream.Read(this.buffer, 0, 4);
-
-            // TODO: Get horizontal and vertical scale
             int width = BinaryPrimitives.ReadInt16LittleEndian(this.buffer) & 0x3fff;
             int height = BinaryPrimitives.ReadInt16LittleEndian(this.buffer.AsSpan(2)) & 0x3fff;
+            if (width is 0 || height is 0)
+            {
+                WebPThrowHelper.ThrowImageFormatException("width or height can not be zero");
+            }
 
             return new WebPImageInfo()
                    {
@@ -350,6 +371,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // The first 28 bits of the bitstream specify the width and height of the image.
             uint width = bitReader.ReadBits(WebPConstants.Vp8LImageSizeBits) + 1;
             uint height = bitReader.ReadBits(WebPConstants.Vp8LImageSizeBits) + 1;
+            if (width is 0 || height is 0)
+            {
+                WebPThrowHelper.ThrowImageFormatException("width or height can not be zero");
+            }
 
             // The alphaIsUsed flag should be set to 0 when all alpha values are 255 in the picture, and 1 otherwise.
             bool alphaIsUsed = bitReader.ReadBit();

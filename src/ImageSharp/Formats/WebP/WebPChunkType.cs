@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
     public enum WebPChunkType : uint
     {
         /// <summary>
-        /// Header signaling the use of VP8 video format.
+        /// Header signaling the use of VP8 format.
         /// </summary>
         Vp8 = 0x56503820U,
 

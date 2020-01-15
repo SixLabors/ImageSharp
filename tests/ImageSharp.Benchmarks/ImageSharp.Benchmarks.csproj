@@ -7,7 +7,6 @@
     <RootNamespace>SixLabors.ImageSharp.Benchmarks</RootNamespace>
     <TargetFrameworks>netcoreapp2.1</TargetFrameworks>
     <TargetFrameworks Condition="$(skipFullFramework) != 'true'">$(TargetFrameworks);net472</TargetFrameworks>
-    <IsPackable>false</IsPackable>
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
 
@@ -23,10 +22,6 @@
     <PackageReference Include="Pfim" />
     <PackageReference Include="SixLabors.Shapes.Text" />
     <PackageReference Include="System.Drawing.Common" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\ImageSharp\ImageSharp.csproj" />
   </ItemGroup>
 
 </Project>

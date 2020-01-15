@@ -69,30 +69,24 @@ jobs:
                   token: ${{secrets.CODECOV_TOKEN}}
                   file: "coverage.xml"
                   flags: unittests
-
     # Publish:
-        runs-on: windows-latest
-        needs: [Build]
-        if: github.event_name == 'push'
-        steps:
-            - uses: actions/checkout@v1
-
-            - name: install nuget
-              uses: NuGet/setup-nuget@v1
-
-            - name: Enable long file paths
-              run: git config --global core.longpaths true
-
-            - name: Update submodules
-              run: git submodule -q update --init --recursive
-
-            - name: Build
-              shell: pwsh
-              run: |
-                  $DebugPreference = "Continue"
-                  ./build.ps1
-
-            - name: Publish to nightly feed -myget
-              if: success()
-              run: nuget.exe push .\artifacts\*.nupkg ${{secrets.MYGET_TOKEN}} -Source https://www.myget.org/F/sixlabors/api/v2/package
-        # TODO: if github.ref starts with 'refs/tags' then it was tag push and we can optionally push out package to nuget.org
+    # runs-on: windows-latest
+    # needs: [Build]
+    # if: github.event_name == 'push'
+    # steps:
+    #     - uses: actions/checkout@v1
+    #     - name: install nuget
+    #       uses: NuGet/setup-nuget@v1
+    #     - name: Enable long file paths
+    #       run: git config --global core.longpaths true
+    #     - name: Update submodules
+    #       run: git submodule -q update --init --recursive
+    #     - name: Build
+    #       shell: pwsh
+    #       run: |
+    #           $DebugPreference = "Continue"
+    #           ./build.ps1
+    #     - name: Publish to nightly feed -myget
+    #       if: success()
+    #       run: nuget.exe push .\artifacts\*.nupkg ${{secrets.MYGET_TOKEN}} -Source https://www.myget.org/F/sixlabors/api/v2/package
+    # TODO: if github.ref starts with 'refs/tags' then it was tag push and we can optionally push out package to nuget.org

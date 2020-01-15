@@ -16,6 +16,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public int Height { get; set; }
 
         /// <summary>
+        /// Gets or sets the bits per pixel.
+        /// </summary>
+        public WebPBitsPerPixel BitsPerPixel { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether this image uses a lossless compression.
         /// </summary>
         public bool IsLossLess { get; set; }

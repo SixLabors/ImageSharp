@@ -118,9 +118,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.ReadImageHeader();
             WebPImageInfo imageInfo = this.ReadVp8Info();
 
-            // TODO: not sure yet where to get this info. Assuming 24 bits for now.
-            int bitsPerPixel = 24;
-            return new ImageInfo(new PixelTypeInfo(bitsPerPixel), imageInfo.Width, imageInfo.Height, this.Metadata);
+            return new ImageInfo(new PixelTypeInfo((int)imageInfo.BitsPerPixel), imageInfo.Width, imageInfo.Height, this.Metadata);
         }
 
         /// <summary>
@@ -341,9 +339,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                    {
                        Width = width,
                        Height = height,
+                       BitsPerPixel = features?.Alpha is true ? WebPBitsPerPixel.Pixel32 : WebPBitsPerPixel.Pixel24,
                        IsLossLess = false,
                        ImageDataSize = dataSize,
-                       Features = features
+                       Features = features,
                    };
         }
 
@@ -388,6 +387,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                    {
                        Width = (int)width,
                        Height = (int)height,
+                       BitsPerPixel = WebPBitsPerPixel.Pixel32,
                        IsLossLess = true,
                        ImageDataSize = imageDataSize,
                        Features = features,

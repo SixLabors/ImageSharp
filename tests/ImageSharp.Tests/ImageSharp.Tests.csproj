@@ -18,7 +18,6 @@
     <PackageReference Include="Magick.NET-Q16-AnyCPU" />
     <PackageReference Include="Moq" />
     <PackageReference Include="System.Drawing.Common" />
-    <PackageReference Include="xunit.runner.console" />
   </ItemGroup>
 
   <ItemGroup>

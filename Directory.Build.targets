@@ -35,7 +35,7 @@
     <!--Test Dependencies-->
     <PackageReference Update="BenchmarkDotNet" Version="0.12.0" />
     <PackageReference Update="Colourful" Version="2.0.3" />
-    <PackageReference Include="coverlet.collector" Version="1.1.0" />
+    <PackageReference Update="coverlet.collector" Version="1.1.0" />
     <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="7.14.4" />
     <PackageReference Update="Microsoft.NET.Test.Sdk" Version="16.4.0" />
     <PackageReference Update="Moq" Version="4.10.0" />

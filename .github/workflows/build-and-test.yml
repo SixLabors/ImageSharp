@@ -15,10 +15,10 @@ jobs:
         strategy:
             matrix:
                 opts:
-                    - os: ubuntu-latest
-                      framework: netcoreapp2.1
-                      runtime: linux-x64
-                      cover: False
+                    # - os: ubuntu-latest
+                    #   framework: netcoreapp2.1
+                    #   runtime: linux-x64
+                    #   cover: False
                     - os: windows-latest
                       framework: netcoreapp2.1
                       runtime: win-x64

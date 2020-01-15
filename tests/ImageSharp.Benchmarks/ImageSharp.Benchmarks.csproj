@@ -5,9 +5,9 @@
     <AssemblyName>ImageSharp.Benchmarks</AssemblyName>
     <OutputType>Exe</OutputType>
     <RootNamespace>SixLabors.ImageSharp.Benchmarks</RootNamespace>
-    <TargetFrameworks>netcoreapp2.1</TargetFrameworks>
-    <TargetFrameworks Condition="$(skipFullFramework) != 'true'">$(TargetFrameworks);net472</TargetFrameworks>
+    <TargetFrameworks>netcoreapp2.1;net472</TargetFrameworks>
     <GenerateProgramFile>false</GenerateProgramFile>
+    <IsTestProject>false</IsTestProject>
   </PropertyGroup>
 
   <ItemGroup>

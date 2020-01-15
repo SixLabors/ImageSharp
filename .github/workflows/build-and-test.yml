@@ -14,25 +14,25 @@ jobs:
     Build:
         strategy:
             matrix:
-                opts:
+                options:
                     # - os: ubuntu-latest
                     #   framework: netcoreapp2.1
-                    #   runtime: x64
-                    #   cover: false
+                    #   runtime: -x64
+                    #   codecov: false
                     - os: windows-latest
                       framework: netcoreapp2.1
-                      runtime: x64 # Not currently used. See https://github.com/actions/setup-dotnet/issues/72
-                      cover: true
+                      runtime: -x64
+                      codecov: true
                     - os: windows-latest
                       framework: net472
-                      runtime: x64
-                      cover: false
+                      runtime: -x64
+                      codecov: false
                     - os: windows-latest
                       framework: net472
-                      runtime: x86
-                      cover: false
+                      runtime: -x86
+                      codecov: false
 
-        runs-on: ${{ matrix.opts.os }}
+        runs-on: ${{ matrix.options.os }}
 
         steps:
             - uses: actions/checkout@v1
@@ -52,22 +52,20 @@ jobs:
               shell: pwsh
               run: |
                   $DebugPreference = "Continue"
-                  ./build.ps1 "${{matrix.opts.framework}}"
+                  ./build.ps1 "${{matrix.options.framework}}"
 
-            - name: Test no Coverage
-              if: matrix.opts.cover == false
-              run: dotnet test -c Release -f "${{matrix.opts.framework}}" --no-build --filter Sandbox
-
-            - name: Test with Coverage
-              if: matrix.opts.cover == true
-              run: dotnet test -c Release -f "${{matrix.opts.framework}}" --no-build --filter Sandbox /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+            - name: Test
+              shell: pwsh
+              run: ./test.ps1 "${{ matrix.options.os }}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
+              env:
+                  XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
 
             - name: Update Codecov
               uses: iansu/codecov-action-node@v1.0.0
-              if: matrix.opts.cover == true
+              if: matrix.options.cover == true
               with:
                   token: ${{secrets.CODECOV_TOKEN}}
-                  file: "coverage.xml"
+                  file: "coverage.${{matrix.options.framework}}.xml"
                   flags: unittests
     # Publish:
     # runs-on: windows-latest

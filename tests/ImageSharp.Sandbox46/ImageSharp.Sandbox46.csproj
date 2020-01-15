@@ -8,9 +8,9 @@
     <Prefer32Bit>false</Prefer32Bit>
     <RootNamespace>SixLabors.ImageSharp.Sandbox46</RootNamespace>
     <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
-    <TargetFrameworks>netcoreapp2.1</TargetFrameworks>
-    <TargetFrameworks Condition="$(skipFullFramework) != 'true'">$(TargetFrameworks);net472</TargetFrameworks>
+    <TargetFrameworks>netcoreapp2.1;net472</TargetFrameworks>
     <StartupObject>SixLabors.ImageSharp.Sandbox46.Program</StartupObject>
+    <IsTestProject>false</IsTestProject>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,5 +22,5 @@
     <PackageReference Include="Moq" />
     <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
-  
+
 </Project>

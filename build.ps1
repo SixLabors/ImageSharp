@@ -130,7 +130,7 @@ if ($targetFramework -ne 'ALL') {
   $targetFramework = "-f $targetFramework"
 }
 
-dotnet restore $targetFramework /p:packageversion=$version /p:DisableImplicitNuGetFallbackFolder=true
+# dotnet restore $targetFramework /p:packageversion=$version /p:DisableImplicitNuGetFallbackFolder=true
 
 $repositoryUrl = ""
 

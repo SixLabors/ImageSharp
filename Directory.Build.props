@@ -61,15 +61,6 @@
     <DefineConstants>$(DefineConstants);SUPPORTS_EXTENDED_INTRINSICS</DefineConstants>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-  </PropertyGroup>
-
-  <!--TODO: Check what this is testing for and why does it fail?-->
-  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
-  </PropertyGroup>
-
   <!-- Default settings that explicitly differ from the Sdk.targets defaults-->
   <PropertyGroup>
     <Authors>Six Labors and contributors</Authors>

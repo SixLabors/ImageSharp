@@ -12,6 +12,7 @@ $skipFullFramework = 'false'
 
 # If we are trying to build only netcoreapp versions for testings then skip building the full framework targets
 if ("$targetFramework".StartsWith("netcoreapp")) {
+  Write-Debug "Skipping Full Framework"
   $skipFullFramework = 'true'
 }
 

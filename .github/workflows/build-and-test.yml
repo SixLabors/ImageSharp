@@ -62,7 +62,7 @@ jobs:
 
             - name: Update Codecov
               uses: iansu/codecov-action-node@v1.0.0
-              if: matrix.options.cover == true
+              if: matrix.options.codecov == true
               with:
                   token: ${{secrets.CODECOV_TOKEN}}
                   file: "coverage.${{matrix.options.framework}}.xml"

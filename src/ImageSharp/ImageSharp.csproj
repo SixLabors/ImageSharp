@@ -119,10 +119,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="SixLabors.ImageSharp.Drawing" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Update="Formats\Jpeg\Components\Block8x8F.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Block8x8F.Generated.cs</LastGenOutput>

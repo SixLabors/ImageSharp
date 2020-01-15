@@ -13,6 +13,7 @@
   <PropertyGroup>
     <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileDirectory)..\Directory.Build.props</MSBuildAllProjects>
     <ImageSharpProjectCategory>tests</ImageSharpProjectCategory>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -25,6 +26,11 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" IsImplicitlyDefined="true" />
     <PackageReference Include="xunit" IsImplicitlyDefined="true" />
     <PackageReference Include="xunit.runner.visualstudio" IsImplicitlyDefined="true" />
+    <PackageReference Include="coverlet.collector" IsImplicitlyDefined="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\src\ImageSharp\ImageSharp.csproj" />
   </ItemGroup>
 
 </Project>

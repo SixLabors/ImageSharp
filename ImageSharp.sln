@@ -36,25 +36,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ISSUE_TEMPLATE", "ISSUE_TEM
 		.github\ISSUE_TEMPLATE\feature-request.md = .github\ISSUE_TEMPLATE\feature-request.md
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".vscode", ".vscode", "{0274D4CF-9932-47CC-8E89-54DC05B8F06E}"
-	ProjectSection(SolutionItems) = preProject
-		.vscode\launch.json = .vscode\launch.json
-		.vscode\tasks.json = .vscode\tasks.json
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{E919DF0B-2607-4462-8FC0-5C98FE50F8C9}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "icons", "icons", "{2B02E303-7CC6-4E15-97EE-DBE86B287553}"
-	ProjectSection(SolutionItems) = preProject
-		build\icons\imagesharp-logo-128.png = build\icons\imagesharp-logo-128.png
-		build\icons\imagesharp-logo-256.png = build\icons\imagesharp-logo-256.png
-		build\icons\imagesharp-logo-32.png = build\icons\imagesharp-logo-32.png
-		build\icons\imagesharp-logo-512.png = build\icons\imagesharp-logo-512.png
-		build\icons\imagesharp-logo-64.png = build\icons\imagesharp-logo-64.png
-		build\icons\imagesharp-logo.png = build\icons\imagesharp-logo.png
-		build\icons\imagesharp-logo.svg = build\icons\imagesharp-logo.svg
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{815C0625-CD3D-440F-9F80-2D83856AB7AE}"
 	ProjectSection(SolutionItems) = preProject
 		src\Directory.Build.props = src\Directory.Build.props
@@ -354,6 +335,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Benchmarks", "te
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Sandbox46", "tests\ImageSharp.Sandbox46\ImageSharp.Sandbox46.csproj", "{561B880A-D9EE-44EF-90F5-817C54A9D9AB}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{C0D7754B-5277-438E-ABEB-2BA34401B5A7}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\build-and-test.yml = .github\workflows\build-and-test.yml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -418,7 +404,6 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{FBE8C1AD-5AEC-4514-9B64-091D8E145865} = {1799C43E-5C54-4A8F-8D64-B1475241DB0D}
-		{2B02E303-7CC6-4E15-97EE-DBE86B287553} = {E919DF0B-2607-4462-8FC0-5C98FE50F8C9}
 		{2AA31A1F-142C-43F4-8687-09ABCA4B3A26} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
 		{D4C5EC58-F8E6-4636-B9EE-C99D2578E5C6} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{FA55F5DE-11A6-487D-ABA4-BC93A02717DD} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
@@ -438,6 +423,7 @@ Global
 		{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{2BF743D8-2A06-412D-96D7-F448F00C5EA5} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{561B880A-D9EE-44EF-90F5-817C54A9D9AB} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
+		{C0D7754B-5277-438E-ABEB-2BA34401B5A7} = {1799C43E-5C54-4A8F-8D64-B1475241DB0D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5F8B9D1F-CD8B-4CC5-8216-D531E25BD795}

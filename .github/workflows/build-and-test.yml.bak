@@ -11,29 +11,9 @@ on:
             - master
 
 jobs:
-    Build:
-        strategy:
-            matrix:
-                opts:
-                    - os: ubuntu-latest
-                      framework: netcoreapp2.1
-                      runtime: linux-x64
-                      cover: False
-                    - os: windows-latest
-                      framework: netcoreapp2.1
-                      runtime: win-x64
-                      cover: True
-                    - os: windows-latest
-                      framework: net472
-                      runtime: win-x64
-                      cover: False
-                    - os: windows-latest
-                      framework: net472
-                      runtime: win-x86
-                      cover: False
-
-        runs-on: ${{ matrix.opts.os }}
-
+    Coverage:
+        runs-on: windows-latest
+        needs: [Build]
         steps:
             - uses: actions/checkout@v1
 
@@ -41,12 +21,60 @@ jobs:
               uses: NuGet/setup-nuget@v1
 
             - name: Enable long file paths
+              run: git config --global core.longpaths true
+
+            - name: Update submodules
+              run: git submodule -q update --init --recursive
+
+            - name: Generate Test Coverage
+              shell: pwsh
+              run: ./tests/CodeCoverage/CodeCoverage.ps1
+              env:
+                  CI: True
+
+            - name: Update codecov
+              uses: iansu/codecov-action-node@v1.0.0
+              with:
+                  token: ${{secrets.CODECOV_TOKEN}}
+                  file: "ImageSharp.Coverage.xml"
+                  flags: unittests
+
+    Build:
+        strategy:
+            matrix:
+                opts:
+                    - os: ubuntu-latest
+                      framework: netcoreapp2.1
+                      is32Bit: False
+                      doCoverage: False
+                    - os: windows-latest
+                      framework: netcoreapp2.1
+                      is32Bit: False
+                      doCoverage: True
+                    - os: windows-latest
+                      framework: net472
+                      is32Bit: False
+                      doCoverage: False
+                    - os: windows-latest
+                      framework: net472
+                      is32Bit: True
+                      doCoverage: False
+
+        runs-on: ${{ matrix.opts.os }}
+
+        steps:
+            - uses: actions/checkout@v1
+
+            - name: install nuget
+              uses: NuGet/setup-nuget@v1
+
+            - name: Enable long file paths
               run: |
                   git config --global core.autocrlf false
                   git config --global core.longpaths true
 
-            - name: Update Submodules
-              run: git submodule -q update --init --recursive
+            - name: Update submodules
+              run: git submodule -q update --init
 
             - name: Build
               shell: pwsh
@@ -54,23 +82,13 @@ jobs:
                   $DebugPreference = "Continue"
                   ./build.ps1 "${{matrix.opts.framework}}"
 
-            - name: Test no Coverage
-              if: matrix.opts.cover != 'True'
-              run: dotnet test **/*tests/*.csproj -c Release -f "${{matrix.opt.framework}}" -r "${{matrix.opt.runtime}}" --no-build --filter Sandbox
+            - name: Test
+              shell: pwsh
+              run: ./run-tests.ps1 "${{ matrix.opts.os }}" "${{matrix.opts.framework}}" "${{matrix.opts.is32Bit}}" "${{matrix.opts.doCoverage}}"
+              env:
+                  CI: True
 
-            - name: Test with Coverage
-              if: matrix.opts.cover == 'True'
-              run: dotnet test **/*tests/*.csproj -c Release -f "${{matrix.opt.framework}}" -r "${{matrix.opt.runtime}}" --no-build --filter Sandbox /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
-
-            - name: Update Codecov
-              uses: iansu/codecov-action-node@v1.0.0
-              if: matrix.opts.cover == 'True'
-              with:
-                  token: ${{secrets.CODECOV_TOKEN}}
-                  file: "coverage.xml"
-                  flags: unittests
-
-    # Publish:
+    Publish:
         runs-on: windows-latest
         needs: [Build]
         if: github.event_name == 'push'

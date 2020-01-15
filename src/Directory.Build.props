@@ -22,6 +22,10 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
   <ItemGroup>
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)..\shared-infrastructure\stylecop.json" />
   </ItemGroup>

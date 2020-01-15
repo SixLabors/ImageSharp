@@ -14,13 +14,6 @@
   <PropertyGroup>
     <DefineConstants>$(DefineConstants);$(OS)</DefineConstants>
   </PropertyGroup>
-
-  <!-- Tool versions for tool references across all projects -->
-  <ItemGroup>
-    <!--dotnet tools does not have an x86 runner. You have to use separate SDKs-->
-    <!--https://github.com/actions/setup-dotnet/issues/72-->
-    <DotNetCliToolReference Update="dotnet-xunit" Version="2.3.1" />
-  </ItemGroup>
   
   <!-- Package versions for package references across all projects -->
   <ItemGroup>

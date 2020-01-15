@@ -11,11 +11,11 @@ param(
 
 if ($codecov -eq 'true') {
 
-  # xunit doesn't understand the CollectCoverage params so use dotnet test
+  # xunit doesn't understand custom params so use dotnet test
   # Coverage tests are run in debug because the coverage tools are triggering a JIT error in filter processors
   # that causes the blue component of transformed values to be corrupted.
   dotnet clean -c Debug
-  dotnet test -c Debug -f $targetFramework /p:codecov=true /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput='../../../coverage.xml'
+  dotnet test -c Debug -f $targetFramework /p:codecov=true
 }
 else {
 

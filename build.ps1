@@ -2,7 +2,7 @@ param(
   [string]$targetFramework = 'ALL'
 )
 
-# lets calulat the correct version here
+# Lets calculate the correct version here
 $fallbackVersion = "1.0.0";
 $version = ''
 
@@ -10,13 +10,14 @@ $tagRegex = '^v?(\d+\.\d+\.\d+)(?:-([a-zA-Z]+)\.?(\d*))?$'
 
 $skipFullFramework = 'false'
 
-# if we are trying to build only netcoreapp versions for testings then skip building the full framework targets
+# If we are trying to build only netcoreapp versions for testings then skip building the full framework targets
 if ("$targetFramework".StartsWith("netcoreapp")) {
   $skipFullFramework = 'true'
 }
 
 function ToBuildNumber {
   param( $date )
+
   if ("$date" -eq "") {
     $date = [System.DateTime]::Now
   }
@@ -25,32 +26,14 @@ function ToBuildNumber {
     $date = [System.DateTime]::Parse($date)
   }
 
-
   return $date.ToString("yyyyMMddhhmmss")
 }
 
-# if($IsWindows){
-#     $skipFullFramework = 'true'
-#     Write-Info "Building full framework targets - Running windows"
-# }else{
-#     if (Get-Command "mono" -ErrorAction SilentlyContinue)
-#     {
-#         Write-Info "Building full framework targets - mono installed"
-#         $skipFullFramework = 'true'
-#     }
-# }
+# We are running on the build server
+$isVersionTag = "$env:GITHUB_REF".replace("refs/tags/", "") -match $tagRegex
 
-# we are running on the build server
-$isVersionTag = $env:APPVEYOR_REPO_TAG_NAME -match $tagRegex
-
-if ($isVersionTag -eq $false) {
-  $isVersionTag = "$env:GITHUB_REF".replace("refs/tags/", "") -match $tagRegex
-  if ($isVersionTag) {
-    Write-Debug "Github tagged build"
-  }
-}
-else {
-  Write-Debug "Appveyor tagged build"
+if ($isVersionTag) {
+  Write-Debug "Github tagged build"
 }
 
 if ($isVersionTag -eq $false) {
@@ -75,13 +58,16 @@ if ($isVersionTag) {
   $version = $matches[1]
   $postTag = $matches[2]
   $count = $matches[3]
-  Write-Debug "version number: ${version} post tag: ${postTag} count: ${count}"
+
+  Write-Debug "Version number: ${version} post tag: ${postTag} count: ${count}"
+
   if ("$postTag" -ne "") {
     $version = "${version}-${postTag}"
   }
+
   if ("$count" -ne "") {
-    # for consistancy with previous releases we pad the counter to only 4 places
-    $padded = $count.Trim().Trim('0').PadLeft(4, "0");
+    # For consistancy with previous releases we pad the counter to only 4 places
+    $padded = $count.Trim().PadLeft(4, "0");
     Write-Debug "count '$count', padded '${padded}'"
 
     $version = "${version}${padded}"
@@ -94,10 +80,10 @@ else {
   $list = $lastTag.Split("`n")
   foreach ($tag in $list) {
 
-    Write-Debug "testing ${tag}"
+    Write-Debug "Testing ${tag}"
     $tag = $tag.Trim();
     if ($tag -match $tagRegex) {
-      Write-Debug "matched ${tag}"
+      Write-Debug "Matched ${tag}"
       $version = $matches[1];
       break;
     }
@@ -112,71 +98,43 @@ else {
     Write-Debug  "Discovered base version from tags '${version}'"
   }
 
-  $buildNumber = $env:APPVEYOR_BUILD_NUMBER
+  # Create a build number based on the current time.
+  $buildNumber = ""
 
-  if ("$buildNumber" -eq "") {
-    # no counter availible in this environment
-    # let make one up based on time
-
-    if ( "$env:GITHUB_SHA" -ne '') {
-      $buildNumber = ToBuildNumber (git show -s --format=%ci $env:GITHUB_SHA)
-    }
-    elseif ( "$(git diff --stat)" -eq '') {
-      $buildNumber = ToBuildNumber (git show -s --format=%ci HEAD)
-    }
-    else {
-      $buildNumber = ToBuildNumber
-    }
-    $buildNumber = "$buildNumber".Trim().Trim('0').PadLeft(12, "0");
+  if ( "$env:GITHUB_SHA" -ne '') {
+    $buildNumber = ToBuildNumber (git show -s --format=%ci $env:GITHUB_SHA)
+  }
+  elseif ( "$(git diff --stat)" -eq '') {
+    $buildNumber = ToBuildNumber (git show -s --format=%ci HEAD)
   }
   else {
-    # build number replacement is padded to 6 places
-    $buildNumber = "$buildNumber".Trim().Trim('0').PadLeft(6, "0");
+    $buildNumber = ToBuildNumber
   }
 
-  if ("$env:APPVEYOR_PULL_REQUEST_NUMBER" -ne "") {
-    Write-Debug "building a PR"
+  $buildNumber = "$buildNumber".Trim().PadLeft(12, "0");
 
-    $prNumber = "$env:APPVEYOR_PULL_REQUEST_NUMBER".Trim().Trim('0').PadLeft(5, "0");
-    # this is a PR
-    $version = "${version}-PullRequest${prNumber}${buildNumber}";
+  Write-Debug "Building a branch commit"
+
+  # This is a general branch commit
+  $branch = ((git rev-parse --abbrev-ref HEAD) | Out-String).Trim()
+
+  if ("$branch" -eq "") {
+    $branch = "unknown"
   }
-  else {
-    Write-Debug "building a branch commit"
 
-    # this is a general branch commit
-    $branch = $env:APPVEYOR_REPO_BRANCH
+  $branch = $branch.Replace("/", "-").ToLower()
 
-    if ("$branch" -eq "") {
-      $branch = ((git rev-parse --abbrev-ref HEAD) | Out-String).Trim()
-
-      if ("$branch" -eq "") {
-        $branch = "unknown"
-      }
-    }
-
-    $branch = $branch.Replace("/", "-").ToLower()
-
-    if ($branch.ToLower() -eq "master" -or $branch.ToLower() -eq "head") {
-      $branch = "dev"
-    }
-
-    $version = "${version}-${branch}${buildNumber}";
+  if ($branch.ToLower() -eq "master" -or $branch.ToLower() -eq "head") {
+    $branch = "dev"
   }
-}
 
-if ("$env:APPVEYOR_API_URL" -ne "") {
-  # update appveyor build number for this build
-  Invoke-RestMethod -Method "PUT" `
-    -Uri "${env:APPVEYOR_API_URL}api/build" `
-    -Body "{version:'${version}'}" `
-    -ContentType "application/json"
+  $version = "${version}-${branch}${buildNumber}";
 }
 
 Write-Host "Building version '${version}'"
 dotnet restore /p:packageversion=$version /p:DisableImplicitNuGetFallbackFolder=true /p:skipFullFramework=$skipFullFramework
 
-$repositoryUrl = "https://github.com/SixLabors/ImageSharp/"
+$repositoryUrl = "https://github.com/SixLabors/"
 
 if ("$env:GITHUB_REPOSITORY" -ne "") {
   $repositoryUrl = "https://github.com/$env:GITHUB_REPOSITORY"
@@ -187,19 +145,7 @@ dotnet build -c Release /p:packageversion=$version /p:skipFullFramework=$skipFul
 
 if ($LASTEXITCODE ) { Exit $LASTEXITCODE }
 
-#
-# TODO: DO WE NEED TO RUN TESTS IMPLICITLY?
-#
-# if ( $env:CI -ne "True") {
-#     cd ./tests/ImageSharp.Tests/
-#     dotnet xunit -nobuild -c Release -f netcoreapp2.0 --fx-version 2.0.0
-#     ./RunExtendedTests.cmd
-#     cd ../..
-# }
-#
-
-if ($LASTEXITCODE ) { Exit $LASTEXITCODE }
-
 Write-Host "Packaging projects"
-dotnet pack ./src/ImageSharp/ -c Release --output "$PSScriptRoot/artifacts" --no-build  /p:packageversion=$version /p:skipFullFramework=$skipFullFramework /p:RepositoryUrl=$repositoryUrl
+
+dotnet pack -c Release --output "$PSScriptRoot/artifacts" --no-build  /p:packageversion=$version /p:skipFullFramework=$skipFullFramework /p:RepositoryUrl=$repositoryUrl
 if ($LASTEXITCODE ) { Exit $LASTEXITCODE }

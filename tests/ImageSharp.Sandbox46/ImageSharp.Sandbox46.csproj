@@ -22,9 +22,5 @@
     <PackageReference Include="Moq" />
     <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\ImageSharp\ImageSharp.csproj" />
-  </ItemGroup>
-
+  
 </Project>

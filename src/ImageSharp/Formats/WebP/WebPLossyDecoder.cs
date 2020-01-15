@@ -10,7 +10,7 @@ using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.WebP
 {
-    internal sealed class WebPLossyDecoder
+    internal sealed class WebPLossyDecoder : WebPDecoderBase
     {
         private readonly Configuration configuration;
 

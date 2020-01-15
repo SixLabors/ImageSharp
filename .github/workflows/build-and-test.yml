@@ -55,16 +55,16 @@ jobs:
                   ./build.ps1 "${{matrix.opts.framework}}"
 
             - name: Test no Coverage
-              if: matrix.opts.cover == 'false'
+              if: ${{matrix.opts.cover}} == 'false'
               run: dotnet test **/*tests/*.csproj -c Release -f "${{matrix.opts.framework}}" -r "${{matrix.opts.runtime}}" --no-build --filter Sandbox
 
             - name: Test with Coverage
-              if: matrix.opts.cover == 'true'
+              if: ${{matrix.opts.cover}} == 'true'
               run: dotnet test **/*tests/*.csproj -c Release -f "${{matrix.opts.framework}} -r "${{matrix.opts.runtime}}" --no-build --filter Sandbox /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
 
             - name: Update Codecov
               uses: iansu/codecov-action-node@v1.0.0
-              if: matrix.opts.cover == 'true'
+              if: ${{matrix.opts.cover}} == 'true'
               with:
                   token: ${{secrets.CODECOV_TOKEN}}
                   file: "coverage.xml"

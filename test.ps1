@@ -28,7 +28,7 @@ else {
   Set-Location $env:XUNIT_PATH
 
   dotnet clean -c Release
-  dotnet xunit -c Release -f $targetFramework $fxVersion $platform
+  dotnet xunit -c Release -f $targetFramework ${fxVersion} $platform
 
   Set-Location $PSScriptRoot
 }

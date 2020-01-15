@@ -14,7 +14,7 @@ jobs:
     Build:
         strategy:
             matrix:
-                options:
+                opts:
                     # - os: ubuntu-latest
                     #   framework: netcoreapp2.1
                     #   runtime: linux-x64
@@ -32,7 +32,7 @@ jobs:
                       runtime: win-x86
                       cover: False
 
-        runs-on: ${{ matrix.options.os }}
+        runs-on: ${{ matrix.opts.os }}
 
         steps:
             - uses: actions/checkout@v1
@@ -52,21 +52,19 @@ jobs:
               shell: pwsh
               run: |
                   $DebugPreference = "Continue"
-                  ./build.ps1 "${{matrix.options.framework}}"
+                  ./build.ps1 "${{matrix.opts.framework}}"
 
             - name: Test no Coverage
-              if: matrix.options.cover != 'True'
-              shell: pwsh
-              run: dotnet test **/*tests/*.csproj -c Release -f "${{matrix.opt.framework}}" -r "${{matrix.opt.runtime}}" --no-build --filter Sandbox
+              if: matrix.opts.cover != True
+              run: dotnet test **/*tests/*.csproj -c Release -f "${{matrix.opts.framework}}" -r "${{matrix.opts.runtime}}" --no-build --filter Sandbox
 
             - name: Test with Coverage
-              if: matrix.options.cover == 'True'
-              shell: pwsh
-              run: dotnet test **/*tests/*.csproj -c Release -f "${{matrix.opt.framework}}" -r "${{matrix.opt.runtime}}" --no-build --filter Sandbox /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+              if: matrix.opts.cover == True
+              run: dotnet test **/*tests/*.csproj -c Release -f "${{matrix.opts.framework}} -r "${{matrix.opts.runtime}}" --no-build --filter Sandbox /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
 
             - name: Update Codecov
               uses: iansu/codecov-action-node@v1.0.0
-              if: matrix.options.cover == 'True'
+              if: matrix.opts.cover == True
               with:
                   token: ${{secrets.CODECOV_TOKEN}}
                   file: "coverage.xml"

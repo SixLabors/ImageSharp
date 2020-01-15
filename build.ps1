@@ -8,14 +8,6 @@ $version = ''
 
 $tagRegex = '^v?(\d+\.\d+\.\d+)(?:-([a-zA-Z]+)\.?(\d*))?$'
 
-$skipFullFramework = 'false'
-
-# If we are trying to build only netcoreapp versions for testings then skip building the full framework targets
-if ("$targetFramework".StartsWith("netcoreapp")) {
-  Write-Debug "Skipping Full Framework"
-  $skipFullFramework = 'true'
-}
-
 function ToBuildNumber {
   param( $date )
 
@@ -99,7 +91,7 @@ else {
     Write-Debug  "Discovered base version from tags '${version}'"
   }
 
-  # Create a build number based on the current time.
+  # Create a build number based on the current datetime.
   $buildNumber = ""
 
   if ( "$env:GITHUB_SHA" -ne '') {
@@ -133,20 +125,26 @@ else {
 }
 
 Write-Host "Building version '${version}'"
-dotnet restore /p:packageversion=$version /p:DisableImplicitNuGetFallbackFolder=true /p:skipFullFramework=$skipFullFramework
 
-$repositoryUrl = "https://github.com/SixLabors/"
+if ($targetFramework -ne 'ALL') {
+  $targetFramework = "-f $targetFramework"
+}
+
+dotnet restore $targetFramework /p:packageversion=$version /p:DisableImplicitNuGetFallbackFolder=true
+
+$repositoryUrl = ""
 
 if ("$env:GITHUB_REPOSITORY" -ne "") {
   $repositoryUrl = "https://github.com/$env:GITHUB_REPOSITORY"
 }
 
 Write-Host "Building projects"
-dotnet build -c Release /p:packageversion=$version /p:skipFullFramework=$skipFullFramework /p:RepositoryUrl=$repositoryUrl
+
+dotnet build -c Release $targetFramework /p:packageversion=$version /p:RepositoryUrl=$repositoryUrl
 
 if ($LASTEXITCODE ) { Exit $LASTEXITCODE }
 
-Write-Host "Packaging projects"
+# Write-Host "Packaging projects"
 
-dotnet pack -c Release --output "$PSScriptRoot/artifacts" --no-build  /p:packageversion=$version /p:skipFullFramework=$skipFullFramework /p:RepositoryUrl=$repositoryUrl
-if ($LASTEXITCODE ) { Exit $LASTEXITCODE }
+# dotnet pack -c Release --output "$PSScriptRoot/artifacts" --no-build  /p:packageversion=$version /p:skipFullFramework=$skipFullFramework /p:RepositoryUrl=$repositoryUrl
+# if ($LASTEXITCODE ) { Exit $LASTEXITCODE }

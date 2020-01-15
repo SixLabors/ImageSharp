@@ -2,8 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp2.1</TargetFrameworks>
-    <TargetFrameworks Condition="$(skipFullFramework) != 'true'">$(TargetFrameworks);net462;net472</TargetFrameworks>
+    <TargetFrameworks>netcoreapp2.1;net462;net472</TargetFrameworks>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <DebugType Condition="$(codecov) != ''">full</DebugType>
@@ -12,12 +11,22 @@
     <AssemblyName>SixLabors.ImageSharp.Tests</AssemblyName>
     <Platforms>AnyCPU;x64;x86</Platforms>
     <RootNamespace>SixLabors.ImageSharp.Tests</RootNamespace>
+    <!--Used by coverlet dues to reference issueswith SixLabors.Core-->
+    <!--https://github.com/tonerdo/coverlet/blob/master/Documentation/KnowIssues.md#4-failed-to-resolve-assembly-during-instrumentation-->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
+  <ItemGroup>
+    <DotNetCliToolReference Include="dotnet-xunit" />
+  </ItemGroup>
+  
   <ItemGroup>
     <PackageReference Include="Magick.NET-Q16-AnyCPU" />
     <PackageReference Include="Moq" />
     <PackageReference Include="System.Drawing.Common" />
+
+    <PackageReference Include="coverlet.collector" Version="1.1.0"/>
+    <PackageReference Include="coverlet.msbuild" Version="2.8.0" />
   </ItemGroup>
 
   <ItemGroup>

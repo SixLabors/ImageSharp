@@ -14,11 +14,12 @@
   <PropertyGroup>
     <DefineConstants>$(DefineConstants);$(OS)</DefineConstants>
   </PropertyGroup>
-  
+
   <!-- Package versions for package references across all projects -->
   <ItemGroup>
     <!--Global Dependencies-->
     <PackageReference Update="Microsoft.Net.Compilers.Toolset" Version="3.3.1" />
+    <PackageReference Update="Microsoft.NETFramework.ReferenceAssemblies" PrivateAssets="All" Version="1.0.0" />
 
     <!--Src Dependencies-->
     <PackageReference Update="SixLabors.Core" Version="1.0.0-beta0008" />
@@ -31,7 +32,7 @@
     <PackageReference Update="System.Runtime.CompilerServices.Unsafe" Version="4.5.1" />
     <PackageReference Update="System.Threading.Tasks.Parallel" Version="4.3.0" />
     <PackageReference Update="System.ValueTuple" Version="4.5.0" />
-    
+
   </ItemGroup>
 
 </Project>

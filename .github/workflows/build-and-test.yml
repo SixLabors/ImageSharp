@@ -56,11 +56,11 @@ jobs:
 
             - name: Test no Coverage
               if: matrix.opts.cover == false
-              run: C:\Program Files\dotnet\sdk\ dotnet test **/*tests/*.csproj -c Release -f "${{matrix.opts.framework}}" --no-build --filter Sandbox
+              run: dotnet test -c Release -f "${{matrix.opts.framework}}" --no-build --filter Sandbox
 
             - name: Test with Coverage
               if: matrix.opts.cover == true
-              run: dotnet test **/*tests/*.csproj -c Release -f "${{matrix.opts.framework}}" --no-build --filter Sandbox /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+              run: dotnet test -c Release -f "${{matrix.opts.framework}}" --no-build --filter Sandbox /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
 
             - name: Update Codecov
               uses: iansu/codecov-action-node@v1.0.0

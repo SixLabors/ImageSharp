@@ -6,10 +6,10 @@ param(
   [Parameter(Mandatory, Position = 2)]
   [string]$platform,
   [Parameter(Mandatory, Position = 3)]
-  [bool]$codecov
+  [string]$codecov
 )
 
-if ($codecov -eq $TRUE) {
+if ($codecov -eq 'true') {
 
   # xunit doesn't understand the CollectCoverage params
   dotnet clean -c Debug

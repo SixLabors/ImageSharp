@@ -17,19 +17,19 @@ jobs:
                 opts:
                     # - os: ubuntu-latest
                     #   framework: netcoreapp2.1
-                    #   runtime: linux-x64
+                    #   runtime: x64
                     #   cover: false
                     - os: windows-latest
                       framework: netcoreapp2.1
-                      runtime: win-x64
+                      runtime: x64 # Not currently used. See https://github.com/actions/setup-dotnet/issues/72
                       cover: true
                     - os: windows-latest
                       framework: net472
-                      runtime: win-x64
+                      runtime: x64
                       cover: false
                     - os: windows-latest
                       framework: net472
-                      runtime: win-x86
+                      runtime: x86
                       cover: false
 
         runs-on: ${{ matrix.opts.os }}
@@ -56,11 +56,11 @@ jobs:
 
             - name: Test no Coverage
               if: matrix.opts.cover == false
-              run: dotnet test **/*tests/*.csproj -c Release -f "${{matrix.opts.framework}}" -r "${{matrix.opts.runtime}}" --no-build --filter Sandbox
+              run: C:\Program Files\dotnet\sdk\ dotnet test **/*tests/*.csproj -c Release -f "${{matrix.opts.framework}}" --no-build --filter Sandbox
 
             - name: Test with Coverage
               if: matrix.opts.cover == true
-              run: dotnet test **/*tests/*.csproj -c Release -f "${{matrix.opts.framework}}" -r "${{matrix.opts.runtime}}" --no-build --filter Sandbox /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+              run: dotnet test **/*tests/*.csproj -c Release -f "${{matrix.opts.framework}}" --no-build --filter Sandbox /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
 
             - name: Update Codecov
               uses: iansu/codecov-action-node@v1.0.0

@@ -56,10 +56,12 @@ jobs:
 
             - name: Test no Coverage
               if: matrix.options.cover != 'True'
+              shell: pwsh
               run: dotnet test **/*tests/*.csproj -c Release -f "${{matrix.opt.framework}}" -r "${{matrix.opt.runtime}}" --no-build --filter Sandbox
 
             - name: Test with Coverage
               if: matrix.options.cover == 'True'
+              shell: pwsh
               run: dotnet test **/*tests/*.csproj -c Release -f "${{matrix.opt.framework}}" -r "${{matrix.opt.runtime}}" --no-build --filter Sandbox /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
 
             - name: Update Codecov

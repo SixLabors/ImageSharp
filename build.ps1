@@ -140,7 +140,7 @@ if ("$env:GITHUB_REPOSITORY" -ne "") {
 
 Write-Host "Building projects"
 
-dotnet build -c Release $targetFramework /p:packageversion=$version /p:RepositoryUrl=$repositoryUrl
+dotnet build -c Release ${$targetFramework} /p:packageversion=$version /p:RepositoryUrl=$repositoryUrl
 
 if ($LASTEXITCODE ) { Exit $LASTEXITCODE }
 

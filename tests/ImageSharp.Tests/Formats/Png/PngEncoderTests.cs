@@ -200,6 +200,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void PaletteColorType_WuQuantizer<TPixel>(TestImageProvider<TPixel> provider, int paletteSize)
             where TPixel : struct, IPixel<TPixel>
         {
+            // TODO: Investigate WuQuantizer to see if we can reduce memory pressure.
+            if (!TestEnvironment.Is64BitProcess)
+            {
+                return;
+            }
+
             foreach (PngInterlaceMode interlaceMode in InterlaceMode)
             {
                 TestPngEncoderCore(

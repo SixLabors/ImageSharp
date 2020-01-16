@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp
         /// <param name="rowSkip">Pixels to skip for each row, defaults to 0.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> LoadPixelData<TPixel>(TPixel[] data, int width, int height, int rowSkip)
+        public static Image<TPixel> LoadPixelData<TPixel>(TPixel[] data, int width, int height, int rowSkip = 0)
             where TPixel : struct, IPixel<TPixel>
             => LoadPixelData(Configuration.Default, data, width, height, rowSkip);
 
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp
         /// <param name="rowSkip">Pixels to skip for each row, defaults to 0.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> LoadPixelData<TPixel>(ReadOnlySpan<TPixel> data, int width, int height, int rowSkip)
+        public static Image<TPixel> LoadPixelData<TPixel>(ReadOnlySpan<TPixel> data, int width, int height, int rowSkip = 0)
             where TPixel : struct, IPixel<TPixel>
             => LoadPixelData(Configuration.Default, data, width, height, rowSkip);
 
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp
         /// <param name="rowSkip">Pixels to skip for each row, defaults to 0.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> LoadPixelData<TPixel>(byte[] data, int width, int height, int rowSkip)
+        public static Image<TPixel> LoadPixelData<TPixel>(byte[] data, int width, int height, int rowSkip = 0)
             where TPixel : struct, IPixel<TPixel>
             => LoadPixelData<TPixel>(Configuration.Default, data, width, height, rowSkip);
 
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp
         /// <param name="rowSkip">Pixels to skip for each row, defaults to 0.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> LoadPixelData<TPixel>(ReadOnlySpan<byte> data, int width, int height, int rowSkip)
+        public static Image<TPixel> LoadPixelData<TPixel>(ReadOnlySpan<byte> data, int width, int height, int rowSkip = 0)
             where TPixel : struct, IPixel<TPixel>
             => LoadPixelData<TPixel>(Configuration.Default, data, width, height, rowSkip);
 
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp
         /// <param name="rowSkip">Pixels to skip for each row, defaults to 0.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> LoadPixelData<TPixel>(Configuration config, byte[] data, int width, int height, int rowSkip)
+        public static Image<TPixel> LoadPixelData<TPixel>(Configuration config, byte[] data, int width, int height, int rowSkip = 0)
             where TPixel : struct, IPixel<TPixel>
             => LoadPixelData(config, MemoryMarshal.Cast<byte, TPixel>(new ReadOnlySpan<byte>(data)), width, height, rowSkip);
 
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp
         /// <param name="rowSkip">Pixels to skip for each row, defaults to 0.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> LoadPixelData<TPixel>(Configuration config, ReadOnlySpan<byte> data, int width, int height, int rowSkip)
+        public static Image<TPixel> LoadPixelData<TPixel>(Configuration config, ReadOnlySpan<byte> data, int width, int height, int rowSkip = 0)
             where TPixel : struct, IPixel<TPixel>
             => LoadPixelData(config, MemoryMarshal.Cast<byte, TPixel>(data), width, height, rowSkip);
 
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp
         /// <param name="rowSkip">Pixels to skip for each row, defaults to 0.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> LoadPixelData<TPixel>(Configuration config, TPixel[] data, int width, int height, int rowSkip)
+        public static Image<TPixel> LoadPixelData<TPixel>(Configuration config, TPixel[] data, int width, int height, int rowSkip = 0)
             where TPixel : struct, IPixel<TPixel>
         {
             return LoadPixelData(config, new ReadOnlySpan<TPixel>(data), width, height, rowSkip);
@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp
         /// <param name="rowSkip">Pixels to skip for each row, defaults to 0.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> LoadPixelData<TPixel>(Configuration config, ReadOnlySpan<TPixel> data, int width, int height, int rowSkip)
+        public static Image<TPixel> LoadPixelData<TPixel>(Configuration config, ReadOnlySpan<TPixel> data, int width, int height, int rowSkip = 0)
             where TPixel : struct, IPixel<TPixel>
         {
             int rowCount = width + rowSkip;

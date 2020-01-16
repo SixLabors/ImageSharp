@@ -8,7 +8,7 @@
     <Prefer32Bit>false</Prefer32Bit>
     <RootNamespace>SixLabors.ImageSharp.Sandbox46</RootNamespace>
     <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
-    <TargetFrameworks>netcoreapp2.1;net472</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.1;netcoreapp2.1;net472</TargetFrameworks>
     <StartupObject>SixLabors.ImageSharp.Sandbox46.Program</StartupObject>
     <!--Used to hide test project from dotnet test-->
     <IsTestProject>false</IsTestProject>

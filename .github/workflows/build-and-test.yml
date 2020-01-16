@@ -82,8 +82,8 @@ jobs:
                   file: "coverage.${{matrix.options.framework}}.xml"
                   flags: unittests
 
-            - name: Pack
-              if: matrix.options.codecov == true # We can use this filter as we know it happens only once and takes the most ime to complete.
+            - name: Pack # We can use this filter as we know it happens only once and takes the most time to complete.
+              if: (github.event_name == 'push') && (matrix.options.codecov == true)
               shell: pwsh
               run: ./ci-build.ps1 "${{steps.gitversion.outputs.nuGetVersion}}"
 

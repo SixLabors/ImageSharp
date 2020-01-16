@@ -32,12 +32,12 @@ jobs:
                     #   runtime: -x86
                     #   codecov: false
 
-        runs-on: ${{ matrix.options.os }}
+        runs-on: ${{matrix.options.os}}
 
         steps:
             - uses: actions/checkout@v2
 
-            - name: Install nuget
+            - name: Install NuGet
               uses: NuGet/setup-nuget@v1
 
             - name: Setup Git
@@ -47,7 +47,7 @@ jobs:
                   git fetch --prune --unshallow
                   git submodule -q update --init --recursive
 
-            - name: Fetch tags for GitVersion
+            - name: Fetch Tags for GitVersion
               run: |
                   git fetch --tags
 
@@ -63,50 +63,14 @@ jobs:
             - name: Use GitVersion
               id: gitversion # step id used as reference for output values
               uses: gittools/actions/execute-gitversion@v0.3
-            - run: |
-                  echo "Major: ${{ steps.gitversion.outputs.major }}"
-                  echo "Minor: ${{ steps.gitversion.outputs.minor }}"
-                  echo "Patch: ${{ steps.gitversion.outputs.patch }}"
-                  echo "PreReleaseTag: ${{ steps.gitversion.outputs.preReleaseTag }}"
-                  echo "PreReleaseTagWithDash: ${{ steps.gitversion.outputs.preReleaseTagWithDash }}"
-                  echo "PreReleaseLabel: ${{ steps.gitversion.outputs.preReleaseLabel }}"
-                  echo "PreReleaseNumber: ${{ steps.gitversion.outputs.preReleaseNumber }}"
-                  echo "WeightedPreReleaseNumber: ${{ steps.gitversion.outputs.weightedPreReleaseNumber }}"
-                  echo "BuildMetaData: ${{ steps.gitversion.outputs.buildMetaData }}"
-                  echo "BuildMetaDataPadded: ${{ steps.gitversion.outputs.buildMetaDataPadded }}"
-                  echo "FullBuildMetaData: ${{ steps.gitversion.outputs.fullBuildMetaData }}"
-                  echo "MajorMinorPatch: ${{ steps.gitversion.outputs.majorMinorPatch }}"
-                  echo "SemVer: ${{ steps.gitversion.outputs.semVer }}"
-                  echo "LegacySemVer: ${{ steps.gitversion.outputs.legacySemVer }}"
-                  echo "LegacySemVerPadded: ${{ steps.gitversion.outputs.legacySemVerPadded }}"
-                  echo "AssemblySemVer: ${{ steps.gitversion.outputs.assemblySemVer }}"
-                  echo "AssemblySemFileVer: ${{ steps.gitversion.outputs.assemblySemFileVer }}"
-                  echo "FullSemVer: ${{ steps.gitversion.outputs.fullSemVer }}"
-                  echo "InformationalVersion: ${{ steps.gitversion.outputs.informationalVersion }}"
-                  echo "BranchName: ${{ steps.gitversion.outputs.branchName }}"
-                  echo "Sha: ${{ steps.gitversion.outputs.sha }}"
-                  echo "ShortSha: ${{ steps.gitversion.outputs.shortSha }}"
-                  echo "NuGetVersionV2: ${{ steps.gitversion.outputs.nuGetVersionV2 }}"
-                  echo "NuGetVersion: ${{ steps.gitversion.outputs.nuGetVersion }}"
-                  echo "NuGetPreReleaseTagV2: ${{ steps.gitversion.outputs.nuGetPreReleaseTagV2 }}"
-                  echo "NuGetPreReleaseTag: ${{ steps.gitversion.outputs.nuGetPreReleaseTag }}"
-                  echo "VersionSourceSha: ${{ steps.gitversion.outputs.versionSourceSha }}"
-                  echo "CommitsSinceVersionSource: ${{ steps.gitversion.outputs.commitsSinceVersionSource }}"
-                  echo "CommitsSinceVersionSourcePadded: ${{ steps.gitversion.outputs.commitsSinceVersionSourcePadded }}"
-                  echo "CommitDate: ${{ steps.gitversion.outputs.commitDate }}"
 
             - name: Build
-              run: dotnet build -c Release -f "${{matrix.options.framework}}" /p:packageversion="${{ steps.gitversion.outputs.nuGetVersion }}"
-
-            # - name: Build
-            #   shell: pwsh
-            #   run: |
-            #       $DebugPreference = "Continue"
-            #       ./build.ps1 "${{matrix.options.framework}}"
+              shell: pwsh
+              run: ./ci-build.ps1 "${{steps.gitversion.outputs.nuGetVersion}}" "${{matrix.options.framework}}"
 
             - name: Test
               shell: pwsh
-              run: ./test.ps1 "${{ matrix.options.os }}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
+              run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
               env:
                   XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
 
@@ -117,24 +81,14 @@ jobs:
                   token: ${{secrets.CODECOV_TOKEN}}
                   file: "coverage.${{matrix.options.framework}}.xml"
                   flags: unittests
-    # Publish:
-    # runs-on: windows-latest
-    # needs: [Build]
-    # if: github.event_name == 'push'
-    # steps:
-    #     - uses: actions/checkout@v1
-    #     - name: install nuget
-    #       uses: NuGet/setup-nuget@v1
-    #     - name: Enable long file paths
-    #       run: git config --global core.longpaths true
-    #     - name: Update submodules
-    #       run: git submodule -q update --init --recursive
-    #     - name: Build
-    #       shell: pwsh
-    #       run: |
-    #           $DebugPreference = "Continue"
-    #           ./build.ps1
-    #     - name: Publish to nightly feed -myget
-    #       if: success()
-    #       run: nuget.exe push .\artifacts\*.nupkg ${{secrets.MYGET_TOKEN}} -Source https://www.myget.org/F/sixlabors/api/v2/package
-    # TODO: if github.ref starts with 'refs/tags' then it was tag push and we can optionally push out package to nuget.org
+
+            - name: Pack
+              if: matrix.options.codecov == true # We can use this filter as we know it happens only once and takes the most ime to complete.
+              shell: pwsh
+              run: ./ci-build.ps1 "${{steps.gitversion.outputs.nuGetVersion}}"
+
+            - name: Publish to MyGet
+              if: (github.event_name == 'push') && (matrix.options.codecov == true)
+              shell: pwsh
+              run: nuget.exe push .\artifacts\*.nupkg ${{secrets.MYGET_TOKEN}} -Source https://www.myget.org/F/sixlabors/api/v2/package
+              # TODO: If github.ref starts with 'refs/tags' then it was tag push and we can optionally push out package to nuget.org

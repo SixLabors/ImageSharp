@@ -181,6 +181,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void WorksWithAllBitDepths<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType, PngBitDepth pngBitDepth)
             where TPixel : struct, IPixel<TPixel>
         {
+            // TODO: Investigate WuQuantizer to see if we can reduce memory pressure.
+            if (TestEnvironment.RunsOnCI && !TestEnvironment.Is64BitProcess)
+            {
+                return;
+            }
+
             foreach (PngInterlaceMode interlaceMode in InterlaceMode)
             {
                 TestPngEncoderCore(
@@ -201,7 +207,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             where TPixel : struct, IPixel<TPixel>
         {
             // TODO: Investigate WuQuantizer to see if we can reduce memory pressure.
-            if (!TestEnvironment.Is64BitProcess)
+            if (TestEnvironment.RunsOnCI && !TestEnvironment.Is64BitProcess)
             {
                 return;
             }

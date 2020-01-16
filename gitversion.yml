@@ -1,0 +1,6 @@
+continuous-delivery-fallback-tag: ci
+branches:
+    master:
+        tag: dev
+    pull-request:
+        tag: pr

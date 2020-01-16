@@ -19,18 +19,18 @@ jobs:
                       framework: netcoreapp2.1
                       runtime: -x64
                       codecov: false
-                    - os: windows-latest
-                      framework: netcoreapp2.1
-                      runtime: -x64
-                      codecov: true
-                    - os: windows-latest
-                      framework: net472
-                      runtime: -x64
-                      codecov: false
-                    - os: windows-latest
-                      framework: net472
-                      runtime: -x86
-                      codecov: false
+                    # - os: windows-latest
+                    #   framework: netcoreapp2.1
+                    #   runtime: -x64
+                    #   codecov: true
+                    # - os: windows-latest
+                    #   framework: net472
+                    #   runtime: -x64
+                    #   codecov: false
+                    # - os: windows-latest
+                    #   framework: net472
+                    #   runtime: -x86
+                    #   codecov: false
 
         runs-on: ${{ matrix.options.os }}
 
@@ -40,19 +40,69 @@ jobs:
             - name: Install nuget
               uses: NuGet/setup-nuget@v1
 
-            - name: Enable long file paths
+            - name: Setup Git
               run: |
                   git config --global core.autocrlf false
                   git config --global core.longpaths true
+                  git fetch --prune --unshallow
+                  git submodule -q update --init --recursive
 
-            - name: Update Submodules
-              run: git submodule -q update --init --recursive
+            - name: Fetch tags for GitVersion
+              run: |
+                  git fetch --tags
+
+            - name: Fetch master for GitVersion
+              if: github.ref != 'refs/heads/master'
+              run: git branch --create-reflog master origin/master
+
+            - name: Install GitVersion
+              uses: gittools/actions/setup-gitversion@v0.3
+              with:
+                  versionSpec: "5.1.x"
+
+            - name: Use GitVersion
+              id: gitversion # step id used as reference for output values
+              uses: gittools/actions/execute-gitversion@v0.3
+            - run: |
+                  echo "Major: ${{ steps.gitversion.outputs.major }}"
+                  echo "Minor: ${{ steps.gitversion.outputs.minor }}"
+                  echo "Patch: ${{ steps.gitversion.outputs.patch }}"
+                  echo "PreReleaseTag: ${{ steps.gitversion.outputs.preReleaseTag }}"
+                  echo "PreReleaseTagWithDash: ${{ steps.gitversion.outputs.preReleaseTagWithDash }}"
+                  echo "PreReleaseLabel: ${{ steps.gitversion.outputs.preReleaseLabel }}"
+                  echo "PreReleaseNumber: ${{ steps.gitversion.outputs.preReleaseNumber }}"
+                  echo "WeightedPreReleaseNumber: ${{ steps.gitversion.outputs.weightedPreReleaseNumber }}"
+                  echo "BuildMetaData: ${{ steps.gitversion.outputs.buildMetaData }}"
+                  echo "BuildMetaDataPadded: ${{ steps.gitversion.outputs.buildMetaDataPadded }}"
+                  echo "FullBuildMetaData: ${{ steps.gitversion.outputs.fullBuildMetaData }}"
+                  echo "MajorMinorPatch: ${{ steps.gitversion.outputs.majorMinorPatch }}"
+                  echo "SemVer: ${{ steps.gitversion.outputs.semVer }}"
+                  echo "LegacySemVer: ${{ steps.gitversion.outputs.legacySemVer }}"
+                  echo "LegacySemVerPadded: ${{ steps.gitversion.outputs.legacySemVerPadded }}"
+                  echo "AssemblySemVer: ${{ steps.gitversion.outputs.assemblySemVer }}"
+                  echo "AssemblySemFileVer: ${{ steps.gitversion.outputs.assemblySemFileVer }}"
+                  echo "FullSemVer: ${{ steps.gitversion.outputs.fullSemVer }}"
+                  echo "InformationalVersion: ${{ steps.gitversion.outputs.informationalVersion }}"
+                  echo "BranchName: ${{ steps.gitversion.outputs.branchName }}"
+                  echo "Sha: ${{ steps.gitversion.outputs.sha }}"
+                  echo "ShortSha: ${{ steps.gitversion.outputs.shortSha }}"
+                  echo "NuGetVersionV2: ${{ steps.gitversion.outputs.nuGetVersionV2 }}"
+                  echo "NuGetVersion: ${{ steps.gitversion.outputs.nuGetVersion }}"
+                  echo "NuGetPreReleaseTagV2: ${{ steps.gitversion.outputs.nuGetPreReleaseTagV2 }}"
+                  echo "NuGetPreReleaseTag: ${{ steps.gitversion.outputs.nuGetPreReleaseTag }}"
+                  echo "VersionSourceSha: ${{ steps.gitversion.outputs.versionSourceSha }}"
+                  echo "CommitsSinceVersionSource: ${{ steps.gitversion.outputs.commitsSinceVersionSource }}"
+                  echo "CommitsSinceVersionSourcePadded: ${{ steps.gitversion.outputs.commitsSinceVersionSourcePadded }}"
+                  echo "CommitDate: ${{ steps.gitversion.outputs.commitDate }}"
 
             - name: Build
-              shell: pwsh
-              run: |
-                  $DebugPreference = "Continue"
-                  ./build.ps1 "${{matrix.options.framework}}"
+              run: dotnet build -c Release -f "${{matrix.options.framework}}" /p:packageversion="${{ steps.gitversion.outputs.nuGetVersion }}"
+
+            # - name: Build
+            #   shell: pwsh
+            #   run: |
+            #       $DebugPreference = "Continue"
+            #       ./build.ps1 "${{matrix.options.framework}}"
 
             - name: Test
               shell: pwsh

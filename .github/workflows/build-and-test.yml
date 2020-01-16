@@ -15,10 +15,10 @@ jobs:
         strategy:
             matrix:
                 options:
-                    # - os: ubuntu-latest
-                    #   framework: netcoreapp3.1
-                    #   runtime: -x64
-                    #   codecov: false
+                    - os: ubuntu-latest
+                      framework: netcoreapp3.1
+                      runtime: -x64
+                      codecov: false
                     # - os: windows-latest
                     #   framework: netcoreapp3.1
                     #   runtime: -x64
@@ -40,6 +40,9 @@ jobs:
 
         steps:
             - uses: actions/checkout@v2
+
+            - name: Install NuGet
+              uses: NuGet/setup-nuget@v1
 
             - name: Setup Git
               run: |
@@ -64,9 +67,6 @@ jobs:
             - name: Use GitVersion
               id: gitversion # step id used as reference for output values
               uses: gittools/actions/execute-gitversion@v0.3
-
-            - name: Install NuGet
-              uses: NuGet/setup-nuget@v1
 
             - name: Setup DotNet SDK
               uses: actions/setup-dotnet@v1

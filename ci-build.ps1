@@ -1,6 +1,7 @@
 param(
   [Parameter(Mandatory, Position = 0)]
   [string]$version,
+  [Parameter(Mandatory = $false, Position = 1)]
   [string]$targetFramework = 'ALL'
 )
 

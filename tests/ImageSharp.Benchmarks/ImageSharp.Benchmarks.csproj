@@ -7,7 +7,7 @@
     <RootNamespace>SixLabors.ImageSharp.Benchmarks</RootNamespace>
     <TargetFrameworks>netcoreapp2.1;net472</TargetFrameworks>
     <GenerateProgramFile>false</GenerateProgramFile>
-    <IsTestProject>false</IsTestProject>
+    <!--Used to hide test project from dotnet test-->
   </PropertyGroup>
 
   <ItemGroup>

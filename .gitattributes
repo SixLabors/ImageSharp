@@ -87,18 +87,24 @@
 # Set explicit file behavior to:
 #   treat as binary
 ###############################################################################
+*.basis             binary
 *.bmp               binary
+*.dds               binary
 *.dll               binary
 *.eot               binary
 *.exe               binary
 *.gif               binary
 *.jpg               binary
+*.ktx               binary
+*.pbm               binary
 *.pdf               binary
 *.png               binary
 *.ppt               binary
 *.pptx              binary
+*.pvr               binary
 *.ttf               binary
 *.snk               binary
+*.tga               binary
 *.ttf               binary
 *.woff              binary
 *.woff2             binary

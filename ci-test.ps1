@@ -9,6 +9,8 @@ param(
   [string]$codecov
 )
 
+  $netFxRegex = '^net\d+'
+
 if ($codecov -eq 'true') {
 
   # xunit doesn't understand custom params so use dotnet test.
@@ -17,29 +19,19 @@ if ($codecov -eq 'true') {
   dotnet clean -c Debug
   dotnet test -c Debug -f $targetFramework /p:codecov=true
 }
-elseif ($os -ne 'windows-latest') {
-  # xunit doesn't run without mono on linux and macos.
-  dotnet test --no-build -c Release -f $targetFramework
-}
-else {
+elseif ($platform -eq '-x86' -and $targetFramework -match $netFxRegex) {
 
-  # xunit has issues matching the correct installed runtime if we do not specify it explicitly.
-  # https://github.com/xunit/xunit/issues/1476
-  # This fix assumes the base version is installed.
-  $coreTargetFrameworkRegex = '^netcoreapp(\d+\.\d+)$'
-  if ($targetFramework -match $coreTargetFrameworkRegex) {
-    $fxVersion = "--fx-version ${matches[1]}.0"
-  }
-
+  # xunit doesn't run on core with NET SDK 3.1+.
+  # xunit doesn't actually understand -x64 as an option.
+  #
   # xunit requires explicit path.
   Set-Location $env:XUNIT_PATH
-
-  # xunit doesn't actually understand -x64 as an option.
-  if ($platform -ne '-x86') {
-    $platform = ''
-  }
 
   dotnet xunit --no-build -c Release -f $targetFramework ${fxVersion} $platform
 
   Set-Location $PSScriptRoot
+}
+else  {
+
+  dotnet test --no-build -c Release -f $targetFramework
 }

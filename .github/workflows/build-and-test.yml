@@ -68,6 +68,11 @@ jobs:
               id: gitversion # step id used as reference for output values
               uses: gittools/actions/execute-gitversion@v0.3
 
+            - name: Install DotNet SDK
+            - uses: actions/setup-dotnet@v1
+              with:
+                  dotnet-version: "3.1.101" # SDK Version to use.
+
             - name: Build
               shell: pwsh
               run: ./ci-build.ps1 "${{steps.gitversion.outputs.nuGetVersion}}" "${{matrix.options.framework}}"

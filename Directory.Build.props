@@ -79,10 +79,10 @@
     <Copyright>Copyright © Six Labors and Contributors</Copyright>
     <Features>strict;IOperation</Features>
     <HighEntropyVA>true</HighEntropyVA>
-    <LangVersion>7.3</LangVersion>
+    <LangVersion>8.0</LangVersion>
     <NeutralLanguage>en</NeutralLanguage>
     <OverwriteReadOnlyFiles>true</OverwriteReadOnlyFiles>
-    <PackageIconUrl>https://raw.githubusercontent.com/SixLabors/Branding/master/icons/imagesharp/sixlabors.imagesharp.128.png</PackageIconUrl>
+    <PackageIcon>icon.png</PackageIcon>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
     <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
@@ -96,10 +96,14 @@
     <UseSharedCompilation>true</UseSharedCompilation>
   </PropertyGroup>
 
-  <!-- Package references which are consumed by all projects -->
+  <!-- Package references and additional files which are consumed by all projects -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Net.Compilers.Toolset" IsImplicitlyDefined="true" />
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" IsImplicitlyDefined="true"  />
+    <PackageReference Include="StyleCop.Analyzers" IsImplicitlyDefined="true"  />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)shared-infrastructure\stylecop.json" />
+    <!--NuGet package icon source-->
+    <None Include="$(MSBuildThisFileDirectory)shared-infrastructure\branding\icons\imagesharp\sixlabors.imagesharp.128.png" Pack="true" PackagePath="\icon.png" />
   </ItemGroup>
 
 </Project>

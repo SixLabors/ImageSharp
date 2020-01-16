@@ -35,7 +35,7 @@ jobs:
         runs-on: ${{ matrix.options.os }}
 
         steps:
-            - uses: actions/checkout@v1
+            - uses: actions/checkout@v2
 
             - name: Install nuget
               uses: NuGet/setup-nuget@v1

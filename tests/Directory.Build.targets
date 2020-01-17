@@ -29,7 +29,7 @@
     <CollectCoverage>true</CollectCoverage>
     <UseSourceLink>true</UseSourceLink>
     <CoverletOutputFormat>opencover</CoverletOutputFormat>
-    <!--Ouput injects target framework into name despite explicit config. See build yml-->
+    <!--Output injects target framework into name despite explicit config. See build yml-->
     <CoverletOutput>$(MSBuildThisFileDirectory)..\coverage.xml</CoverletOutput>
     <!--Used by coverlet dues to reference issues with SixLabors.Core-->
     <!--https://github.com/tonerdo/coverlet/blob/master/Documentation/KnowIssues.md#4-failed-to-resolve-assembly-during-instrumentation-->
@@ -40,8 +40,8 @@
     <!--Test Dependencies-->
     <PackageReference Update="BenchmarkDotNet" Version="0.12.0" />
     <PackageReference Update="Colourful" Version="2.0.3" />
-    <PackageReference Update="coverlet.collector" Version="1.1.0"/>
-    <PackageReference Update="coverlet.msbuild" Version="2.8.0" />
+    <PackageReference Update="coverlet.collector" Version="1.1.0" PrivateAssets="All"/>
+    <PackageReference Update="coverlet.msbuild" Version="2.8.0" PrivateAssets="All"/>
     <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="7.14.4" />
     <PackageReference Update="Microsoft.NET.Test.Sdk" Version="16.4.0" />
     <PackageReference Update="Moq" Version="4.10.0" />

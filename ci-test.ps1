@@ -6,18 +6,18 @@ param(
   [Parameter(Mandatory, Position = 2)]
   [string]$platform,
   [Parameter(Mandatory, Position = 3)]
-  [string]$codecov
+  [string]$codecov,
+  [Parameter(Position = 4)]
+  [string]$codecovProfile = 'Release'
 )
 
-  $netFxRegex = '^net\d+'
+$netFxRegex = '^net\d+'
 
 if ($codecov -eq 'true') {
 
-  # xunit doesn't understand custom params so use dotnet test.
-  # Coverage tests are run in debug because the coverage tools are triggering a JIT error in filter processors
-  # that causes the blue component of transformed values to be corrupted.
-  dotnet clean -c Debug
-  dotnet test -c Debug -f $targetFramework /p:codecov=true
+  # Allow toggling of profile to workaround any potential JIT errors caused by code injection.
+  dotnet clean -c $codecovProfile
+  dotnet test -c $codecovProfile -f $targetFramework /p:codecov=true
 }
 elseif ($platform -eq '-x86' -and $targetFramework -match $netFxRegex) {
 
@@ -31,7 +31,7 @@ elseif ($platform -eq '-x86' -and $targetFramework -match $netFxRegex) {
 
   Set-Location $PSScriptRoot
 }
-else  {
+else {
 
   dotnet test --no-build -c Release -f $targetFramework
 }

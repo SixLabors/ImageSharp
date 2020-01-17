@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int colorCacheSize = 0;
             if (colorCachePresent)
             {
-                colorCacheBits = (int)this.bitReader.ReadBits(4);
+                colorCacheBits = (int)this.bitReader.ReadValue(4);
                 bool coloCacheBitsIsValid = colorCacheBits >= 1 && colorCacheBits <= WebPConstants.MaxColorCacheBits;
                 if (!coloCacheBitsIsValid)
                 {
@@ -355,7 +355,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             if (allowRecursion && this.bitReader.ReadBit())
             {
                 // Use meta Huffman codes.
-                uint huffmanPrecision = this.bitReader.ReadBits(3) + 2;
+                uint huffmanPrecision = this.bitReader.ReadValue(3) + 2;
                 int huffmanXSize = LosslessUtils.SubSampleSize(xSize, (int)huffmanPrecision);
                 int huffmanYSize = LosslessUtils.SubSampleSize(ySize, (int)huffmanPrecision);
                 int huffmanPixels = huffmanXSize * huffmanYSize;
@@ -487,17 +487,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 // and are in the range of[0, 255].All other Huffman code lengths are implicitly zeros.
 
                 // Read symbols, codes & code lengths directly.
-                uint numSymbols = this.bitReader.ReadBits(1) + 1;
-                uint firstSymbolLenCode = this.bitReader.ReadBits(1);
+                uint numSymbols = this.bitReader.ReadValue(1) + 1;
+                uint firstSymbolLenCode = this.bitReader.ReadValue(1);
 
                 // The first code is either 1 bit or 8 bit code.
-                uint symbol = this.bitReader.ReadBits((firstSymbolLenCode is 0) ? 1 : 8);
+                uint symbol = this.bitReader.ReadValue((firstSymbolLenCode is 0) ? 1 : 8);
                 codeLengths[symbol] = 1;
 
                 // The second code (if present), is always 8 bit long.
                 if (numSymbols is 2)
                 {
-                    symbol = this.bitReader.ReadBits(8);
+                    symbol = this.bitReader.ReadValue(8);
                     codeLengths[symbol] = 1;
                 }
             }
@@ -507,7 +507,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 // The code lengths of a Huffman code are read as follows: num_code_lengths specifies the number of code lengths;
                 // the rest of the code lengths (according to the order in kCodeLengthCodeOrder) are zeros.
                 var codeLengthCodeLengths = new int[NumCodeLengthCodes];
-                uint numCodes = this.bitReader.ReadBits(4) + 4;
+                uint numCodes = this.bitReader.ReadValue(4) + 4;
                 if (numCodes > NumCodeLengthCodes)
                 {
                     WebPThrowHelper.ThrowImageFormatException("Bitstream error, numCodes has an invalid value");
@@ -515,7 +515,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                 for (int i = 0; i < numCodes; i++)
                 {
-                    codeLengthCodeLengths[KCodeLengthCodeOrder[i]] = (int)this.bitReader.ReadBits(3);
+                    codeLengthCodeLengths[KCodeLengthCodeOrder[i]] = (int)this.bitReader.ReadValue(3);
                 }
 
                 this.ReadHuffmanCodeLengths(table.ToArray(), codeLengthCodeLengths, alphabetSize, codeLengths);
@@ -539,8 +539,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             if (this.bitReader.ReadBit())
             {
-                int lengthNBits = 2 + (2 * (int)this.bitReader.ReadBits(3));
-                maxSymbol = 2 + (int)this.bitReader.ReadBits(lengthNBits);
+                int lengthNBits = 2 + (2 * (int)this.bitReader.ReadValue(3));
+                maxSymbol = 2 + (int)this.bitReader.ReadValue(lengthNBits);
             }
             else
             {
@@ -574,7 +574,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     uint slot = codeLen - WebPConstants.KCodeLengthLiterals;
                     int extraBits = WebPConstants.KCodeLengthExtraBits[slot];
                     int repeatOffset = WebPConstants.KCodeLengthRepeatOffsets[slot];
-                    int repeat = (int)(this.bitReader.ReadBits(extraBits) + repeatOffset);
+                    int repeat = (int)(this.bitReader.ReadValue(extraBits) + repeatOffset);
                     if (symbol + repeat > numSymbols)
                     {
                         // TODO: not sure, if this should be treated as an error here
@@ -598,7 +598,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <param name="decoder">Vp8LDecoder where the transformations will be stored.</param>
         private void ReadTransformation(int xSize, int ySize, Vp8LDecoder decoder)
         {
-            var transformType = (Vp8LTransformType)this.bitReader.ReadBits(2);
+            var transformType = (Vp8LTransformType)this.bitReader.ReadValue(2);
             var transform = new Vp8LTransform(transformType, xSize, ySize);
 
             // Each transform is allowed to be used only once.
@@ -615,7 +615,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 case Vp8LTransformType.ColorIndexingTransform:
                     // The transform data contains color table size and the entries in the color table.
                     // 8 bit value for color table size.
-                    uint numColors = this.bitReader.ReadBits(8) + 1;
+                    uint numColors = this.bitReader.ReadValue(8) + 1;
                     int bits = (numColors > 16) ? 0
                                      : (numColors > 4) ? 1
                                      : (numColors > 2) ? 2
@@ -636,7 +636,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 case Vp8LTransformType.CrossColorTransform:
                     {
                         // The first 3 bits of prediction data define the block width and height in number of bits.
-                        transform.Bits = (int)this.bitReader.ReadBits(3) + 2;
+                        transform.Bits = (int)this.bitReader.ReadValue(3) + 2;
                         int blockWidth = LosslessUtils.SubSampleSize(transform.XSize, transform.Bits);
                         int blockHeight = LosslessUtils.SubSampleSize(transform.YSize, transform.Bits);
                         IMemoryOwner<uint> transformData = this.DecodeImageStream(decoder, blockWidth, blockHeight, false);

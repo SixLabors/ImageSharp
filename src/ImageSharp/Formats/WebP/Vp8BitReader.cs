@@ -2,10 +2,16 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.IO;
+
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.WebP
 {
-    internal class Vp8BitReader
+    /// <summary>
+    /// A bit reader for VP8 streams.
+    /// </summary>
+    internal class Vp8BitReader : BitReaderBase
     {
         /// <summary>
         /// Current value.
@@ -43,14 +49,34 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private bool eof;
 
         /// <summary>
-        /// Reads the specified number of bits from read buffer.
-        /// Flags an error in case end_of_stream or n_bits is more than the allowed limit
-        /// of VP8L_MAX_NUM_BIT_READ (inclusive).
-        /// Flags eos_ if this read attempt is going to cross the read buffer.
+        /// Initializes a new instance of the <see cref="Vp8BitReader"/> class.
         /// </summary>
-        /// <param name="nBits">The number of bits to read.</param>
-        public int ReadBits(int nBits)
+        /// <param name="inputStream">The input stream to read from.</param>
+        /// <param name="imageDataSize">The raw image data size in bytes.</param>
+        /// <param name="memoryAllocator">Used for allocating memory during reading data from the stream.</param>
+        public Vp8BitReader(Stream inputStream, uint imageDataSize, MemoryAllocator memoryAllocator)
         {
+            this.ReadImageDataFromStream(inputStream, (int)imageDataSize, memoryAllocator);
+        }
+
+        /// <inheritdoc/>
+        public override bool ReadBit()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc/>
+        public override uint ReadValue(int nBits)
+        {
+            Guard.MustBeGreaterThan(nBits, 0, nameof(nBits));
+
+            throw new NotImplementedException();
+        }
+
+        public int ReadSignedValue(int nBits)
+        {
+            Guard.MustBeGreaterThan(nBits, 0, nameof(nBits));
+
             throw new NotImplementedException();
         }
     }

@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             else
             {
                 var lossyDecoder = new WebPLossyDecoder(this.configuration, this.currentStream);
-                lossyDecoder.Decode(pixels, image.Width, image.Height, (int)imageInfo.ImageDataSize);
+                lossyDecoder.Decode(pixels, image.Width, image.Height, imageInfo.ImageDataSize, imageInfo.Vp8Profile);
             }
 
             // There can be optional chunks after the image data, like EXIF and XMP.
@@ -261,7 +261,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // A VP8 or VP8L chunk should follow here.
             chunkType = this.ReadChunkType();
 
-            // TOOD: image width and height from VP8X should overrule VP8 or VP8L info, because its 3 bytes instead of just 14 bit.
+            // TOOD: check if VP8 or VP8L info about the dimensions match VP8X info
             switch (chunkType)
             {
                 case WebPChunkType.Vp8:
@@ -361,15 +361,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
             var bitReader = new Vp8LBitReader(this.currentStream, imageDataSize, this.memoryAllocator);
 
             // One byte signature, should be 0x2f.
-            uint signature = bitReader.ReadBits(8);
+            uint signature = bitReader.ReadValue(8);
             if (signature != WebPConstants.Vp8LMagicByte)
             {
                 WebPThrowHelper.ThrowImageFormatException("Invalid VP8L signature");
             }
 
             // The first 28 bits of the bitstream specify the width and height of the image.
-            uint width = bitReader.ReadBits(WebPConstants.Vp8LImageSizeBits) + 1;
-            uint height = bitReader.ReadBits(WebPConstants.Vp8LImageSizeBits) + 1;
+            uint width = bitReader.ReadValue(WebPConstants.Vp8LImageSizeBits) + 1;
+            uint height = bitReader.ReadValue(WebPConstants.Vp8LImageSizeBits) + 1;
             if (width is 0 || height is 0)
             {
                 WebPThrowHelper.ThrowImageFormatException("width or height can not be zero");
@@ -381,7 +381,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // The next 3 bits are the version. The version_number is a 3 bit code that must be set to 0.
             // Any other value should be treated as an error.
             // TODO: should we throw here when version number is != 0?
-            uint version = bitReader.ReadBits(WebPConstants.Vp8LVersionBits);
+            uint version = bitReader.ReadValue(WebPConstants.Vp8LVersionBits);
 
             return new WebPImageInfo()
                    {

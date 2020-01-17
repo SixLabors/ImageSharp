@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public WebPBitsPerPixel BitsPerPixel { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether this image uses a lossless compression.
+        /// Gets or sets a value indicating whether this image uses lossless compression.
         /// </summary>
         public bool IsLossLess { get; set; }
 
@@ -34,6 +34,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// Gets or sets the bytes of the image payload.
         /// </summary>
         public uint ImageDataSize { get; set; }
+
+        /// <summary>
+        /// Gets or sets the VP8 profile / version. Valid values are between 0 and 3.
+        /// </summary>
+        public byte Vp8Profile { get; set; }
 
         /// <summary>
         /// Gets or sets Vp8L bitreader. Will be null if its not lossless image.

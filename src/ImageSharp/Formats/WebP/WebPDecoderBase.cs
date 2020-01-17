@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int extraBits = (distanceSymbol - 2) >> 1;
             int offset = (2 + (distanceSymbol & 1)) << extraBits;
 
-            return (int)(offset + bitReader.ReadBits(extraBits) + 1);
+            return (int)(offset + bitReader.ReadValue(extraBits) + 1);
         }
 
         // TODO: copied from WebPLosslessDecoder

@@ -343,6 +343,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                        IsLossLess = false,
                        ImageDataSize = dataSize,
                        Features = features,
+                       Vp8Profile = (sbyte)version
                    };
         }
 

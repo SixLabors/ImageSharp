@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.IO;
 
 using SixLabors.ImageSharp.Memory;
@@ -16,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private readonly Stream currentStream;
 
-        private MemoryAllocator memoryAllocator;
+        private readonly MemoryAllocator memoryAllocator;
 
         public WebPLossyDecoder(Configuration configuration, Stream currentStream)
         {
@@ -25,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.memoryAllocator = configuration.MemoryAllocator;
         }
 
-        public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height, uint imageDataSize, byte vp8Version)
+        public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height, uint imageDataSize, int vp8Version)
             where TPixel : struct, IPixel<TPixel>
         {
             // we need buffers for Y U and V in size of the image
@@ -37,38 +36,28 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             // TODO residue signal from DCT: 4x4 blocks of DCT transforms, 16Y, 4U, 4V
             var bitReader = new Vp8BitReader(this.currentStream, imageDataSize, this.memoryAllocator);
-            (ReconstructionFilter rec, LoopFilter loop) = this.DecodeVersion(vp8Version);
+            Vp8Profile vp8Profile = this.DecodeProfile(vp8Version);
         }
 
-        private (ReconstructionFilter, LoopFilter) DecodeVersion(byte version)
+        private Vp8Profile DecodeProfile(int version)
         {
-            var rec = ReconstructionFilter.None;
-            var loop = LoopFilter.None;
-
             switch (version)
             {
                 case 0:
-                    return (ReconstructionFilter.Bicubic, LoopFilter.Normal);
+                    return new Vp8Profile { ReconstructionFilter = ReconstructionFilter.Bicubic, LoopFilter = LoopFilter.Normal };
                 case 1:
-                    return (ReconstructionFilter.Bilinear, LoopFilter.Simple);
+                    return new Vp8Profile { ReconstructionFilter = ReconstructionFilter.Bilinear, LoopFilter = LoopFilter.Simple };
                 case 2:
-                    return (ReconstructionFilter.Bilinear, LoopFilter.None);
+                    return new Vp8Profile { ReconstructionFilter = ReconstructionFilter.Bilinear, LoopFilter = LoopFilter.None };
                 case 3:
-                    return (ReconstructionFilter.None, LoopFilter.None);
+                    return new Vp8Profile { ReconstructionFilter = ReconstructionFilter.None, LoopFilter = LoopFilter.None };
                 default:
                     // Reserved for future use in Spec.
                     // https://tools.ietf.org/html/rfc6386#page-30
                     WebPThrowHelper.ThrowNotSupportedException($"unsupported VP8 version {version} found");
-                    return (rec, loop);
+                    return new Vp8Profile();
             }
         }
-    }
-
-    enum ReconstructionFilter
-    {
-        None,
-        Bicubic,
-        Bilinear
     }
 
     enum LoopFilter

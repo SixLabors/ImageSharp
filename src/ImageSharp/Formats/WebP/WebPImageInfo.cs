@@ -36,9 +36,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public uint ImageDataSize { get; set; }
 
         /// <summary>
-        /// Gets or sets the VP8 profile / version. Valid values are between 0 and 3.
+        /// Gets or sets the VP8 profile / version. Valid values are between 0 and 3. Default value will be the invalid value -1.
         /// </summary>
-        public byte Vp8Profile { get; set; }
+        public int Vp8Profile { get; set; } = -1;
 
         /// <summary>
         /// Gets or sets Vp8L bitreader. Will be null if its not lossless image.

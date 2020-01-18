@@ -1,6 +1,6 @@
 continuous-delivery-fallback-tag: ci
 branches:
     master:
-        tag: dev
+        tag: unstable
     pull-request:
         tag: pr

@@ -321,8 +321,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             // Check for VP8 magic bytes.
-            this.currentStream.Read(this.buffer, 0, 4);
-            if (!this.buffer.AsSpan(1).SequenceEqual(WebPConstants.Vp8MagicBytes))
+            this.currentStream.Read(this.buffer, 0, 3);
+            if (!this.buffer.AsSpan().Slice(0, 3).SequenceEqual(WebPConstants.Vp8MagicBytes))
             {
                 WebPThrowHelper.ThrowImageFormatException("VP8 magic bytes not found");
             }

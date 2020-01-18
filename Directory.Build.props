@@ -14,7 +14,7 @@
   <PropertyGroup>
     <BaseArtifactsPath>$(MSBuildThisFileDirectory)artifacts/</BaseArtifactsPath>
     <BaseArtifactsPathSuffix>$(ImageSharpProjectCategory)/$(MSBuildProjectName)</BaseArtifactsPathSuffix>
-    <RepositoryUrl>https://github.com/SixLabors/ImageSharp/</RepositoryUrl>
+    <RepositoryUrl Condition="'$(RepositoryUrl)' == ''">https://github.com/SixLabors/ImageSharp/</RepositoryUrl>
   </PropertyGroup>
 
   <!-- Default settings that explicitly differ from the Sdk.props defaults  -->
@@ -31,43 +31,36 @@
 
   <!--
     https://apisof.net/
-    +===================+================+===================+==============================+======================+==========================+
-    | Target Framework  | SUPPORTS_MATHF | SUPPORTS_HASHCODE | SUPPORTS_EXTENDED_INTRINSICS | SUPPORTS_SPAN_STREAM | SUPPORTS_ENCODING_STRING |
-    +===================+================+===================+==============================+======================+==========================+
-    | netcoreapp3.1     |       Y        |         Y         |               Y              |          Y           |            Y             |
-    | netcoreapp2.1     |       Y        |         Y         |               Y              |          Y           |            Y             |
-    | netcoreapp2.0     |       Y        |         N         |               N              |          N           |            N             |
-    | netstandard2.1    |       Y        |         N         |               N              |          Y           |            Y             |
-    | netstandard2.0    |       N        |         N         |               N              |          N           |            N             |
-    | netstandard1.3    |       N        |         N         |               N              |          N           |            N             |
-    | net472            |       N        |         N         |               Y              |          N           |            N             |
-    +===================+================+===================+==============================+======================+==========================+
+    +===================+=======+==========+=====================+=============+=================+====================+==============+
+    | SUPPORTS          | MATHF | HASHCODE | EXTENDED_INTRINSICS | SPAN_STREAM | ENCODING_STRING | RUNTIME_INTRINSICS | CODECOVERAGE |
+    +===================+=======+==========+=====================+=============+=================+====================+==============+
+    | netcoreapp3.1     |   Y   |    Y     |         Y           |      Y      |        Y        |        Y           |      Y       |
+    | netcoreapp2.1     |   Y   |    Y     |         Y           |      Y      |        Y        |        N           |      Y       |
+    | netcoreapp2.0     |   Y   |    N     |         N           |      N      |        N        |        N           |      Y       |
+    | netstandard2.1    |   Y   |    Y     |         N           |      Y      |        Y        |        N           |      Y       |
+    | netstandard2.0    |   N   |    N     |         N           |      N      |        N        |        N           |      Y       |
+    | netstandard1.3    |   N   |    N     |         N           |      N      |        N        |        N           |      N       |
+    | net472            |   N   |    N     |         Y           |      N      |        N        |        N           |      Y       |
+    +===================+=======+==========+=====================+=============+=================+====================+==============+
     -->
 
-  <!-- TODO: Include additional targets to TargetFrameworks -->
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp3.1'">
-    <DefineConstants>$(DefineConstants);SUPPORTS_MATHF;SUPPORTS_HASHCODE;SUPPORTS_EXTENDED_INTRINSICS;SUPPORTS_SPAN_STREAM;SUPPORTS_ENCODING_STRING</DefineConstants>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'netcoreapp3.1'">
+    <DefineConstants>$(DefineConstants);SUPPORTS_MATHF;SUPPORTS_HASHCODE;SUPPORTS_EXTENDED_INTRINSICS;SUPPORTS_SPAN_STREAM;SUPPORTS_ENCODING_STRING;SUPPORTS_RUNTIME_INTRINSICS;SUPPORTS_CODECOVERAGE</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1'">
-    <DefineConstants>$(DefineConstants);SUPPORTS_MATHF;SUPPORTS_HASHCODE;SUPPORTS_EXTENDED_INTRINSICS;SUPPORTS_SPAN_STREAM;SUPPORTS_ENCODING_STRING</DefineConstants>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'netcoreapp2.1'">
+    <DefineConstants>$(DefineConstants);SUPPORTS_MATHF;SUPPORTS_HASHCODE;SUPPORTS_EXTENDED_INTRINSICS;SUPPORTS_SPAN_STREAM;SUPPORTS_ENCODING_STRING;SUPPORTS_CODECOVERAGE</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0'">
-    <DefineConstants>$(DefineConstants);SUPPORTS_MATHF;</DefineConstants>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'netcoreapp2.0'">
+    <DefineConstants>$(DefineConstants);SUPPORTS_MATHF;SUPPORTS_CODECOVERAGE</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard2.1'">
-    <DefineConstants>$(DefineConstants);SUPPORTS_MATHF;SUPPORTS_SPAN_STREAM;SUPPORTS_ENCODING_STRING</DefineConstants>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+    <DefineConstants>$(DefineConstants);SUPPORTS_MATHF;SUPPORTS_HASHCODE;SUPPORTS_SPAN_STREAM;SUPPORTS_ENCODING_STRING;SUPPORTS_CODECOVERAGE</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'net472'">
-    <DefineConstants>$(DefineConstants);SUPPORTS_EXTENDED_INTRINSICS</DefineConstants>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <DefineConstants>$(DefineConstants);SUPPORTS_CODECOVERAGE</DefineConstants>
   </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-  </PropertyGroup>
-
-  <!--TODO: Check what this is testing for and why does it fail?-->
-  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net472'">
+    <DefineConstants>$(DefineConstants);SUPPORTS_EXTENDED_INTRINSICS;SUPPORTS_CODECOVERAGE</DefineConstants>
   </PropertyGroup>
 
   <!-- Default settings that explicitly differ from the Sdk.targets defaults-->
@@ -88,10 +81,10 @@
     <Copyright>Copyright © Six Labors and Contributors</Copyright>
     <Features>strict;IOperation</Features>
     <HighEntropyVA>true</HighEntropyVA>
-    <LangVersion>7.3</LangVersion>
+    <LangVersion>8.0</LangVersion>
     <NeutralLanguage>en</NeutralLanguage>
     <OverwriteReadOnlyFiles>true</OverwriteReadOnlyFiles>
-    <PackageIconUrl>https://raw.githubusercontent.com/SixLabors/Branding/master/icons/imagesharp/sixlabors.imagesharp.128.png</PackageIconUrl>
+    <PackageIcon>icon.png</PackageIcon>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
     <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
@@ -105,9 +98,15 @@
     <UseSharedCompilation>true</UseSharedCompilation>
   </PropertyGroup>
 
-  <!-- Package references which are consumed by all projects -->
+  <!-- Package references and additional files which are consumed by all projects -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Net.Compilers.Toolset" IsImplicitlyDefined="true" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" IsImplicitlyDefined="true"  />
+    <!--TODO: Enable this once tests Stylecop issues are fixed-->
+    <!--<PackageReference Include="StyleCop.Analyzers" IsImplicitlyDefined="true"  />-->
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)shared-infrastructure\stylecop.json" />
+    <!--NuGet package icon source-->
+    <None Include="$(MSBuildThisFileDirectory)shared-infrastructure\branding\icons\imagesharp\sixlabors.imagesharp.128.png" Pack="true" PackagePath="\icon.png" />
   </ItemGroup>
 
 </Project>

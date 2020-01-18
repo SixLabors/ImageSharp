@@ -341,7 +341,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                        Height = height,
                        BitsPerPixel = features?.Alpha is true ? WebPBitsPerPixel.Pixel32 : WebPBitsPerPixel.Pixel24,
                        IsLossLess = false,
-                       ImageDataSize = dataSize,
+                       ImageDataSize = dataSize - 10, // 10 bytes are read here in the header already.
                        Features = features,
                        Vp8Profile = (sbyte)version
                    };

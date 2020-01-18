@@ -60,13 +60,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
     }
 
-    enum LoopFilter
-    {
-        Normal,
-        Simple,
-        None
-    }
-
     struct YUVPixel
     {
         public byte Y { get; }

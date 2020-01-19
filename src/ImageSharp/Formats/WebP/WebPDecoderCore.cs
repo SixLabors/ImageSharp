@@ -89,13 +89,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
             if (imageInfo.IsLossLess)
             {
-                var losslessDecoder = new WebPLosslessDecoder(imageInfo.Vp9LBitReader, this.memoryAllocator);
+                var losslessDecoder = new WebPLosslessDecoder(imageInfo.Vp8LBitReader, this.memoryAllocator);
                 losslessDecoder.Decode(pixels, image.Width, image.Height);
             }
             else
             {
-                var lossyDecoder = new WebPLossyDecoder(this.configuration, this.currentStream);
-                lossyDecoder.Decode(pixels, image.Width, image.Height, imageInfo.ImageDataSize, imageInfo.Vp8Profile);
+                var lossyDecoder = new WebPLossyDecoder(imageInfo.Vp8BitReader, this.memoryAllocator);
+                lossyDecoder.Decode(pixels, image.Width, image.Height, imageInfo.Vp8Profile);
             }
 
             // There can be optional chunks after the image data, like EXIF and XMP.
@@ -335,15 +335,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 WebPThrowHelper.ThrowImageFormatException("width or height can not be zero");
             }
 
+            var bitReader = new Vp8BitReader(this.currentStream, dataSize - 10, this.memoryAllocator);
+
             return new WebPImageInfo()
                    {
                        Width = width,
                        Height = height,
                        BitsPerPixel = features?.Alpha is true ? WebPBitsPerPixel.Pixel32 : WebPBitsPerPixel.Pixel24,
                        IsLossLess = false,
-                       ImageDataSize = dataSize - 10, // 10 bytes are read here in the header already.
                        Features = features,
-                       Vp8Profile = (sbyte)version
+                       Vp8Profile = (sbyte)version,
+                       Vp8BitReader = bitReader
                    };
         }
 
@@ -377,12 +379,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             // The alphaIsUsed flag should be set to 0 when all alpha values are 255 in the picture, and 1 otherwise.
+            // TODO: this flag value is not used yet
             bool alphaIsUsed = bitReader.ReadBit();
 
-            // The next 3 bits are the version. The version_number is a 3 bit code that must be set to 0.
+            // The next 3 bits are the version. The version number is a 3 bit code that must be set to 0.
             // Any other value should be treated as an error.
-            // TODO: should we throw here when version number is != 0?
             uint version = bitReader.ReadValue(WebPConstants.Vp8LVersionBits);
+            if (version != 0)
+            {
+                WebPThrowHelper.ThrowNotSupportedException($"Unexpected version number {version} found in VP8L header");
+            }
 
             return new WebPImageInfo()
                    {
@@ -390,9 +396,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
                        Height = (int)height,
                        BitsPerPixel = WebPBitsPerPixel.Pixel32,
                        IsLossLess = true,
-                       ImageDataSize = imageDataSize,
                        Features = features,
-                       Vp9LBitReader = bitReader
+                       Vp8LBitReader = bitReader
                    };
         }
 

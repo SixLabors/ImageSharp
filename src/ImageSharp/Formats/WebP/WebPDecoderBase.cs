@@ -27,6 +27,30 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return huffmanImageSpan[(xSize * (y >> bits)) + (x >> bits)];
         }
 
+        /// <summary>
+        /// Decodes the next Huffman code from bit-stream.
+        /// FillBitWindow(br) needs to be called at minimum every second call
+        /// to ReadSymbol, in order to pre-fetch enough bits.
+        /// </summary>
+        protected uint ReadSymbol(Span<HuffmanCode> table, Vp8LBitReader bitReader)
+        {
+            // TODO: if the bitReader field is moved to this base class we could omit the parameter.
+            uint val = (uint)bitReader.PrefetchBits();
+            Span<HuffmanCode> tableSpan = table.Slice((int)(val & HuffmanUtils.HuffmanTableMask));
+            int nBits = tableSpan[0].BitsUsed - HuffmanUtils.HuffmanTableBits;
+            if (nBits > 0)
+            {
+                bitReader.AdvanceBitPosition(HuffmanUtils.HuffmanTableBits);
+                val = (uint)bitReader.PrefetchBits();
+                tableSpan = tableSpan.Slice((int)tableSpan[0].Value);
+                tableSpan = tableSpan.Slice((int)val & ((1 << nBits) - 1));
+            }
+
+            bitReader.AdvanceBitPosition(tableSpan[0].BitsUsed);
+
+            return tableSpan[0].Value;
+        }
+
         protected int GetCopyDistance(int distanceSymbol, Vp8LBitReader bitReader)
         {
             if (distanceSymbol < 4)

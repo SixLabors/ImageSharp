@@ -27,7 +27,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return huffmanImageSpan[(xSize * (y >> bits)) + (x >> bits)];
         }
 
-        // TODO: copied from WebPLosslessDecoder
         protected int GetCopyDistance(int distanceSymbol, Vp8LBitReader bitReader)
         {
             if (distanceSymbol < 4)
@@ -41,7 +40,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return (int)(offset + bitReader.ReadValue(extraBits) + 1);
         }
 
-        // TODO: copied from WebPLosslessDecoder
         protected int GetCopyLength(int lengthSymbol, Vp8LBitReader bitReader)
         {
             // Length and distance prefixes are encoded the same way.

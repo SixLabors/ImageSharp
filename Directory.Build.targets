@@ -25,7 +25,7 @@
     <!--Src Dependencies-->
     <PackageReference Update="System.IO.Compression" Version="4.3.0" />
     <PackageReference Update="System.IO.UnmanagedMemoryStream" Version="4.3.0" />
-    <PackageReference Update="System.Runtime.CompilerServices.Unsafe" Version="4.5.1" />
+    <PackageReference Update="System.Runtime.CompilerServices.Unsafe" Version="4.7" />
     <PackageReference Update="System.Threading.Tasks.Parallel" Version="4.3.0" />
     <PackageReference Update="System.ValueTuple" Version="4.5.0" />
 

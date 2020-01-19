@@ -31,18 +31,18 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public WebPFeatures Features { get; set; }
 
         /// <summary>
-        /// Gets or sets the bytes of the image payload.
-        /// </summary>
-        public uint ImageDataSize { get; set; }
-
-        /// <summary>
         /// Gets or sets the VP8 profile / version. Valid values are between 0 and 3. Default value will be the invalid value -1.
         /// </summary>
         public int Vp8Profile { get; set; } = -1;
 
         /// <summary>
-        /// Gets or sets Vp8L bitreader. Will be null if its not lossless image.
+        /// Gets or sets the Vp8L bitreader. Will be null, if its not lossless image.
         /// </summary>
-        public Vp8LBitReader Vp9LBitReader { get; set; } = null;
+        public Vp8LBitReader Vp8LBitReader { get; set; } = null;
+
+        /// <summary>
+        /// Gets or sets the VP8 bitreader. Will be null, if its not a lossy image.
+        /// </summary>
+        public Vp8BitReader Vp8BitReader { get; set; } = null;
     }
 }

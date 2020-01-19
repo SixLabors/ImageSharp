@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 WebPThrowHelper.ThrowNotSupportedException("Animations are not supported");
             }
 
-            var image = new Image<TPixel>(this.configuration, imageInfo.Width, imageInfo.Height, this.Metadata);
+            var image = new Image<TPixel>(this.configuration, (int)imageInfo.Width, (int)imageInfo.Height, this.Metadata);
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
             if (imageInfo.IsLossLess)
             {
@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.ReadImageHeader();
             WebPImageInfo imageInfo = this.ReadVp8Info();
 
-            return new ImageInfo(new PixelTypeInfo((int)imageInfo.BitsPerPixel), imageInfo.Width, imageInfo.Height, this.Metadata);
+            return new ImageInfo(new PixelTypeInfo((int)imageInfo.BitsPerPixel), (int)imageInfo.Width, (int)imageInfo.Height, this.Metadata);
         }
 
         /// <summary>
@@ -200,12 +200,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // 3 bytes for the width.
             this.currentStream.Read(this.buffer, 0, 3);
             this.buffer[3] = 0;
-            int width = BinaryPrimitives.ReadInt32LittleEndian(this.buffer) + 1;
+            uint width = (uint)BinaryPrimitives.ReadInt32LittleEndian(this.buffer) + 1;
 
             // 3 bytes for the height.
             this.currentStream.Read(this.buffer, 0, 3);
             this.buffer[3] = 0;
-            int height = BinaryPrimitives.ReadInt32LittleEndian(this.buffer) + 1;
+            uint height = (uint)BinaryPrimitives.ReadInt32LittleEndian(this.buffer) + 1;
 
             // Optional chunks ICCP, ALPH and ANIM can follow here.
             WebPChunkType chunkType;
@@ -288,7 +288,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.currentStream.Read(this.buffer, 0, 4);
             uint dataSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
 
-            // https://tools.ietf.org/html/rfc6386#page-30
+            // See paragraph 9.1 https://tools.ietf.org/html/rfc6386#page-30
             // Frame tag that contains four fields:
             // - A 1-bit frame type (0 for key frames, 1 for interframes).
             // - A 3-bit version number.
@@ -328,14 +328,102 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             this.currentStream.Read(this.buffer, 0, 4);
-            int width = BinaryPrimitives.ReadInt16LittleEndian(this.buffer) & 0x3fff;
-            int height = BinaryPrimitives.ReadInt16LittleEndian(this.buffer.AsSpan(2)) & 0x3fff;
+            uint tmp = (uint)BinaryPrimitives.ReadInt16LittleEndian(this.buffer);
+            uint width = tmp & 0x3fff;
+            sbyte xScale = (sbyte)(tmp >> 6);
+            tmp = (uint)BinaryPrimitives.ReadInt16LittleEndian(this.buffer.AsSpan(2));
+            uint height = tmp & 0x3fff;
+            sbyte yScale = (sbyte)(tmp >> 6);
             if (width is 0 || height is 0)
             {
                 WebPThrowHelper.ThrowImageFormatException("width or height can not be zero");
             }
 
+            var vp8FrameHeader = new Vp8FrameHeader()
+                                 {
+                                     KeyFrame = true,
+                                     Profile = (sbyte)version,
+                                     PartitionLength = partitionLength
+                                 };
+
             var bitReader = new Vp8BitReader(this.currentStream, dataSize - 10, this.memoryAllocator);
+
+            // Paragraph 9.2: color space and clamp type follow
+            sbyte colorSpace = (sbyte)bitReader.ReadValue(1);
+            sbyte clampType = (sbyte)bitReader.ReadValue(1);
+            var vp8PictureHeader = new Vp8PictureHeader()
+                                   {
+                                       Width = width,
+                                       Height = height,
+                                       XScale = xScale,
+                                       YScale = yScale,
+                                       ColorSpace = colorSpace,
+                                       ClampType = clampType
+                                   };
+
+            // Paragraph 9.3: Parse the segment header.
+            var vp8SegmentHeader = new Vp8SegmentHeader();
+            vp8SegmentHeader.UseSegment = bitReader.ReadBool();
+            if (vp8SegmentHeader.UseSegment)
+            {
+                vp8SegmentHeader.UpdateMap = bitReader.ReadBool();
+                bool updateData = bitReader.ReadBool();
+                if (updateData)
+                {
+                    vp8SegmentHeader.Delta = bitReader.ReadBool();
+                    for (int i = 0; i < vp8SegmentHeader.Quantizer.Length; i++)
+                    {
+                        bool hasValue = bitReader.ReadBool();
+                        uint quantizeValue = hasValue ? bitReader.ReadValue(7) : 0;
+                        vp8SegmentHeader.Quantizer[i] = (byte)quantizeValue;
+                    }
+
+                    for (int i = 0; i < vp8SegmentHeader.FilterStrength.Length; i++)
+                    {
+                        bool hasValue = bitReader.ReadBool();
+                        uint filterStrengthValue = hasValue ? bitReader.ReadValue(6) : 0;
+                        vp8SegmentHeader.FilterStrength[i] = (byte)filterStrengthValue;
+                    }
+
+                    if (vp8SegmentHeader.UpdateMap)
+                    {
+                        // TODO: Read VP8Proba
+                    }
+                }
+            }
+
+            // Paragraph 9.4: Parse the filter specs.
+            var vp8FilterHeader = new Vp8FilterHeader();
+            vp8FilterHeader.LoopFilter = bitReader.ReadBool() ? LoopFilter.Simple : LoopFilter.Normal;
+            vp8FilterHeader.Level = (int)bitReader.ReadValue(6);
+            vp8FilterHeader.Sharpness = (int)bitReader.ReadValue(3);
+            vp8FilterHeader.UseLfDelta = bitReader.ReadBool();
+            if (vp8FilterHeader.UseLfDelta)
+            {
+                // Update lf-delta?
+                if (bitReader.ReadBool())
+                {
+                    for (int i = 0; i < vp8FilterHeader.RefLfDelta.Length; i++)
+                    {
+                        bool hasValue = bitReader.ReadBool();
+                        if (hasValue)
+                        {
+                            vp8FilterHeader.RefLfDelta[i] = bitReader.ReadSignedValue(6);
+                        }
+                    }
+
+                    for (int i = 0; i < vp8FilterHeader.ModeLfDelta.Length; i++)
+                    {
+                        bool hasValue = bitReader.ReadBool();
+                        if (hasValue)
+                        {
+                            vp8FilterHeader.ModeLfDelta[i] = bitReader.ReadSignedValue(6);
+                        }
+                    }
+                }
+            }
+
+            // TODO: ParsePartitions
 
             return new WebPImageInfo()
                    {
@@ -345,6 +433,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                        IsLossLess = false,
                        Features = features,
                        Vp8Profile = (sbyte)version,
+                       Vp8FrameHeader = vp8FrameHeader,
+                       Vp8SegmentHeader = vp8SegmentHeader,
+                       Vp8FilterHeader = vp8FilterHeader,
+                       Vp8PictureHeader = vp8PictureHeader,
                        Vp8BitReader = bitReader
                    };
         }
@@ -392,8 +484,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             return new WebPImageInfo()
                    {
-                       Width = (int)width,
-                       Height = (int)height,
+                       Width = width,
+                       Height = height,
                        BitsPerPixel = WebPBitsPerPixel.Pixel32,
                        IsLossLess = true,
                        Features = features,

@@ -95,8 +95,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.pos = length;
         }
 
-        /// <inheritdoc/>
-        public override uint ReadValue(int nBits)
+        /// <summary>
+        /// Reads a unsigned short value from the buffer. The bits of each byte are read in least-significant-bit-first order.
+        /// </summary>
+        /// <param name="nBits">The number of bits to read (should not exceed 16).</param>
+        /// <returns>A ushort value.</returns>
+        public uint ReadValue(int nBits)
         {
             Guard.MustBeGreaterThan(nBits, 0, nameof(nBits));
 
@@ -113,23 +117,37 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return 0;
         }
 
-        /// <inheritdoc/>
-        public override bool ReadBit()
+        /// <summary>
+        /// Reads a single bit from the stream.
+        /// </summary>
+        /// <returns>True if the bit read was 1, false otherwise.</returns>
+        public bool ReadBit()
         {
             uint bit = this.ReadValue(1);
             return bit != 0;
         }
 
-        public void AdvanceBitPosition(int bitPosition)
+        /// <summary>
+        /// For jumping over a number of bits in the bit stream when accessed with PrefetchBits and FillBitWindow.
+        /// </summary>
+        /// <param name="numberOfBits">The number of bits to advance the position.</param>
+        public void AdvanceBitPosition(int numberOfBits)
         {
-            this.bitPos += bitPosition;
+            this.bitPos += numberOfBits;
         }
 
+        /// <summary>
+        /// Return the pre-fetched bits, so they can be looked up.
+        /// </summary>
+        /// <returns>Prefetched bits.</returns>
         public ulong PrefetchBits()
         {
             return this.value >> (this.bitPos & (Vp8LLbits - 1));
         }
 
+        /// <summary>
+        /// Advances the read buffer by 4 bytes to make room for reading next 32 bits.
+        /// </summary>
         public void FillBitWindow()
         {
             if (this.bitPos >= Vp8LWbits)
@@ -138,6 +156,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
+        /// <summary>
+        /// Returns true if there was an attempt at reading bit past the end of the buffer.
+        /// </summary>
+        /// <returns>True, if end of buffer was reached.</returns>
         public bool IsEndOfStream()
         {
             return this.eos || ((this.pos == this.len) && (this.bitPos > Vp8LLbits));

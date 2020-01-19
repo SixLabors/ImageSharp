@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
 using System.IO;
 
 using SixLabors.ImageSharp.Memory;
@@ -53,6 +55,28 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     WebPThrowHelper.ThrowNotSupportedException($"unsupported VP8 version {version} found");
                     return new Vp8Profile();
             }
+        }
+
+        static bool Is8bOptimizable(Vp8LMetadata hdr)
+        {
+            int i;
+            if (hdr.ColorCacheSize > 0)
+                return false;
+
+            // When the Huffman tree contains only one symbol, we can skip the
+            // call to ReadSymbol() for red/blue/alpha channels.
+            for (i = 0; i < hdr.NumHTreeGroups; ++i)
+            {
+                List<HuffmanCode[]> htrees = hdr.HTreeGroups[i].HTrees;
+                if (htrees[HuffIndex.Red][0].Value > 0)
+                    return false;
+                if (htrees[HuffIndex.Blue][0].Value > 0)
+                    return false;
+                if (htrees[HuffIndex.Alpha][0].Value > 0)
+                    return false;
+            }
+
+            return true;
         }
     }
 

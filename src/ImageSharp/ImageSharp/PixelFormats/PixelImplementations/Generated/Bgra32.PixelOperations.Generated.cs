@@ -11,7 +11,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 
-
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <content>
@@ -285,7 +284,6 @@ namespace SixLabors.ImageSharp.PixelFormats
             {
                 PixelOperations<TSourcePixel>.Instance.ToBgra32(configuration, sourcePixels, destinationPixels);
             }
-
         }
     }
 }

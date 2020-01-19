@@ -20,19 +20,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         protected byte[] Data { get; private set; }
 
         /// <summary>
-        /// Reads a single bit from the stream.
-        /// </summary>
-        /// <returns>True if the bit read was 1, false otherwise.</returns>
-        public abstract bool ReadBit();
-
-        /// <summary>
-        /// Reads a unsigned short value from the inputStream. The bits of each byte are read in least-significant-bit-first order.
-        /// </summary>
-        /// <param name="nBits">The number of bits to read (should not exceed 16).</param>
-        /// <returns>A ushort value.</returns>
-        public abstract uint ReadValue(int nBits);
-
-        /// <summary>
         /// Copies the raw encoded image data from the stream into a byte array.
         /// </summary>
         /// <param name="input">The input stream.</param>

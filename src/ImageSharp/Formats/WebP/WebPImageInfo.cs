@@ -8,12 +8,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Gets or sets the bitmap width in pixels (signed integer).
         /// </summary>
-        public int Width { get; set; }
+        public uint Width { get; set; }
 
         /// <summary>
         /// Gets or sets the bitmap height in pixels (signed integer).
         /// </summary>
-        public int Height { get; set; }
+        public uint Height { get; set; }
 
         /// <summary>
         /// Gets or sets the bits per pixel.
@@ -36,7 +36,27 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public int Vp8Profile { get; set; } = -1;
 
         /// <summary>
-        /// Gets or sets the Vp8L bitreader. Will be null, if its not lossless image.
+        /// Gets or sets the VP8 frame header.
+        /// </summary>
+        public Vp8FrameHeader Vp8FrameHeader { get; set; }
+
+        /// <summary>
+        /// Gets or sets the VP8 picture header.
+        /// </summary>
+        public Vp8PictureHeader Vp8PictureHeader { get; set; }
+
+        /// <summary>
+        /// Gets or sets the VP8 segment header.
+        /// </summary>
+        public Vp8SegmentHeader Vp8SegmentHeader { get; set; }
+
+        /// <summary>
+        /// Gets or sets the VP8 filter header.
+        /// </summary>
+        public Vp8FilterHeader Vp8FilterHeader { get; set; }
+
+        /// <summary>
+        /// Gets or sets the VP8L bitreader. Will be null, if its not lossless image.
         /// </summary>
         public Vp8LBitReader Vp8LBitReader { get; set; } = null;
 

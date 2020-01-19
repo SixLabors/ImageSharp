@@ -235,7 +235,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
                 else
                 {
-                    code = (int)this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Green]);
+                    code = (int)this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Green], this.bitReader);
                 }
 
                 if (this.bitReader.IsEndOfStream())
@@ -252,10 +252,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     }
                     else
                     {
-                        uint red = this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Red]);
+                        uint red = this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Red], this.bitReader);
                         this.bitReader.FillBitWindow();
-                        uint blue = this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Blue]);
-                        uint alpha = this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Alpha]);
+                        uint blue = this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Blue], this.bitReader);
+                        uint alpha = this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Alpha], this.bitReader);
                         if (this.bitReader.IsEndOfStream())
                         {
                             break;
@@ -272,7 +272,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     // Backward reference is used.
                     int lengthSym = code - WebPConstants.NumLiteralCodes;
                     int length = this.GetCopyLength(lengthSym, this.bitReader);
-                    uint distSymbol = this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Dist]);
+                    uint distSymbol = this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Dist], this.bitReader);
                     this.bitReader.FillBitWindow();
                     int distCode = this.GetCopyDistance((int)distSymbol, this.bitReader);
                     int dist = this.PlaneCodeToDistance(width, distCode);
@@ -689,29 +689,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             decoder.Height = height;
             decoder.Metadata.HuffmanXSize = LosslessUtils.SubSampleSize(width, numBits);
             decoder.Metadata.HuffmanMask = (numBits is 0) ? ~0 : (1 << numBits) - 1;
-        }
-
-        /// <summary>
-        /// Decodes the next Huffman code from bit-stream.
-        /// FillBitWindow(br) needs to be called at minimum every second call
-        /// to ReadSymbol, in order to pre-fetch enough bits.
-        /// </summary>
-        private uint ReadSymbol(Span<HuffmanCode> table)
-        {
-            uint val = (uint)this.bitReader.PrefetchBits();
-            Span<HuffmanCode> tableSpan = table.Slice((int)(val & HuffmanUtils.HuffmanTableMask));
-            int nBits = tableSpan[0].BitsUsed - HuffmanUtils.HuffmanTableBits;
-            if (nBits > 0)
-            {
-                this.bitReader.AdvanceBitPosition(HuffmanUtils.HuffmanTableBits);
-                val = (uint)this.bitReader.PrefetchBits();
-                tableSpan = tableSpan.Slice((int)tableSpan[0].Value);
-                tableSpan = tableSpan.Slice((int)val & ((1 << nBits) - 1));
-            }
-
-            this.bitReader.AdvanceBitPosition(tableSpan[0].BitsUsed);
-
-            return tableSpan[0].Value;
         }
 
         private uint ReadPackedSymbols(HTreeGroup[] group, Span<uint> pixelData, int decodedPixels)

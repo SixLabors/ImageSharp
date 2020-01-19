@@ -6,6 +6,7 @@ using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Tests;
 using SixLabors.Tests;
 using Xunit;
 

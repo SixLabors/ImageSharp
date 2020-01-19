@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.IO;
 
 using SixLabors.Memory;
@@ -13,15 +14,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// </summary>
     internal class Vp8BitReader : BitReaderBase
     {
+        private const int BitsCount = 56;
+
         /// <summary>
         /// Current value.
         /// </summary>
-        private long value;
+        private ulong value;
 
         /// <summary>
         /// Current range minus 1. In [127, 254] interval.
         /// </summary>
-        private int range;
+        private uint range;
 
         /// <summary>
         /// Number of valid bits left.
@@ -36,17 +39,22 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// End of read buffer.
         /// </summary>
-        private byte bufEnd;
+        // private byte bufEnd;
 
         /// <summary>
         /// Max packed-read position on buffer.
         /// </summary>
-        private byte bufMax;
+        // private byte bufMax;
 
         /// <summary>
         /// True if input is exhausted.
         /// </summary>
         private bool eof;
+
+        /// <summary>
+        /// Byte position in buffer.
+        /// </summary>
+        private long pos;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8BitReader"/> class.
@@ -57,27 +65,126 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public Vp8BitReader(Stream inputStream, uint imageDataSize, MemoryAllocator memoryAllocator)
         {
             this.ReadImageDataFromStream(inputStream, (int)imageDataSize, memoryAllocator);
+
+            this.range = 255 - 1;
+            this.value = 0;
+            this.bits = -8; // to load the very first 8bits;
+            this.eof = false;
+            this.pos = 0;
+
+            this.LoadNewBytes();
         }
 
-        /// <inheritdoc/>
-        public override bool ReadBit()
+        public int GetBit(int prob)
         {
-            throw new NotImplementedException();
+            Guard.MustBeGreaterThan(prob, 0, nameof(prob));
+
+            uint range = this.range;
+            if (this.bits < 0)
+            {
+                this.LoadNewBytes();
+            }
+
+            int pos = this.bits;
+            uint split = (uint)((range * prob) >> 8);
+            bool bit = this.value > split;
+            if (bit)
+            {
+                range -= split;
+                this.value -= (ulong)(split + 1) << pos;
+            }
+            else
+            {
+                range = split + 1;
+            }
+
+            int shift = 7 ^ this.BitsLog2Floor(range);
+            range <<= shift;
+            this.bits -= shift;
+
+            this.range = range - 1;
+
+            return bit ? 1 : 0;
         }
 
-        /// <inheritdoc/>
-        public override uint ReadValue(int nBits)
+        public bool ReadBool()
+        {
+            return this.ReadValue(1) is 1;
+        }
+
+        public uint ReadValue(int nBits)
         {
             Guard.MustBeGreaterThan(nBits, 0, nameof(nBits));
 
-            throw new NotImplementedException();
+            uint v = 0;
+            while (this.bits-- > 0)
+            {
+                v |= (uint)this.GetBit(0x80) << this.bits;
+            }
+
+            return v;
         }
 
         public int ReadSignedValue(int nBits)
         {
             Guard.MustBeGreaterThan(nBits, 0, nameof(nBits));
 
+            int value = (int)this.ReadValue(nBits);
+            return this.ReadValue(1) != 0 ? -value : value;
+        }
+
+        private void LoadNewBytes()
+        {
+            if (this.pos < this.Data.Length)
+            {
+                ulong bits;
+                ulong inBits = BinaryPrimitives.ReadUInt64LittleEndian(this.Data.AsSpan().Slice((int)this.pos, 8));
+                this.pos += BitsCount >> 3;
+                this.buf = this.Data[BitsCount >> 3];
+                bits = this.ByteSwap64(inBits);
+                bits >>= 64 - BitsCount;
+                this.value = bits | (this.value << BitsCount);
+                this.bits += BitsCount;
+            }
+            else
+            {
+                this.LoadFinalBytes();
+            }
+        }
+
+        private void LoadFinalBytes()
+        {
+            // Only read 8bits at a time.
+            if (this.pos < this.Data.Length)
+            {
+                this.bits += 8;
+                this.value = this.Data[this.pos++] | (this.value << 8);
+            }
+            else if (!this.eof)
+            {
+                this.value <<= 8;
+                this.bits += 8;
+                this.eof = true;
+            }
+            else
+            {
+                this.bits = 0;  // This is to avoid undefined behaviour with shifts.
+            }
+        }
+
+        private ulong ByteSwap64(ulong x)
+        {
+            x = ((x & 0xffffffff00000000ul) >> 32) | ((x & 0x00000000fffffffful) << 32);
+            x = ((x & 0xffff0000ffff0000ul) >> 16) | ((x & 0x0000ffff0000fffful) << 16);
+            x = ((x & 0xff00ff00ff00ff00ul) >> 8) | ((x & 0x00ff00ff00ff00fful) << 8);
+            return x;
+        }
+
+        private int BitsLog2Floor(uint n)
+        {
+            long firstSetBit;
             throw new NotImplementedException();
+            // BitScanReverse(firstSetBit, n);
         }
     }
 }

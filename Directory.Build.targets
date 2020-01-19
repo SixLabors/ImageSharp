@@ -23,7 +23,6 @@
     <PackageReference Update="StyleCop.Analyzers" PrivateAssets="All" Version="1.1.118" />
     
     <!--Src Dependencies-->
-    <PackageReference Update="SixLabors.Core" Version="1.0.0-beta0008" />
     <PackageReference Update="System.IO.Compression" Version="4.3.0" />
     <PackageReference Update="System.IO.UnmanagedMemoryStream" Version="4.3.0" />
     <PackageReference Update="System.Runtime.CompilerServices.Unsafe" Version="4.5.1" />

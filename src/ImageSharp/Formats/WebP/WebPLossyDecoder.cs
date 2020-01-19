@@ -11,20 +11,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
 {
     internal sealed class WebPLossyDecoder : WebPDecoderBase
     {
-        private readonly Configuration configuration;
-
-        private readonly Stream currentStream;
+        private readonly Vp8BitReader bitReader;
 
         private readonly MemoryAllocator memoryAllocator;
 
-        public WebPLossyDecoder(Configuration configuration, Stream currentStream)
+        public WebPLossyDecoder(Vp8BitReader bitReader, MemoryAllocator memoryAllocator)
         {
-            this.configuration = configuration;
-            this.currentStream = currentStream;
-            this.memoryAllocator = configuration.MemoryAllocator;
+            this.memoryAllocator = memoryAllocator;
+            this.bitReader = bitReader;
         }
 
-        public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height, uint imageDataSize, int vp8Version)
+        public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height, int vp8Version)
             where TPixel : struct, IPixel<TPixel>
         {
             // we need buffers for Y U and V in size of the image
@@ -35,7 +32,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             //  those prediction values are the base, the values from DCT processing are added to that
 
             // TODO residue signal from DCT: 4x4 blocks of DCT transforms, 16Y, 4U, 4V
-            var bitReader = new Vp8BitReader(this.currentStream, imageDataSize, this.memoryAllocator);
             Vp8Profile vp8Profile = this.DecodeProfile(vp8Version);
         }
 

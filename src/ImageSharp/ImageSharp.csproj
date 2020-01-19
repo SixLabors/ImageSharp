@@ -20,92 +20,92 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Update="Formats\Jpeg\Components\Block8x8F.Generated.cs">
+    <Compile Update="ImageSharp\Formats\Jpeg\Components\Block8x8F.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Block8x8F.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="Formats\Jpeg\Components\GenericBlock8x8.Generated.cs">
+    <Compile Update="ImageSharp\Formats\Jpeg\Components\GenericBlock8x8.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>GenericBlock8x8.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="Formats\Jpeg\Components\Block8x8F.Generated.cs">
+    <Compile Update="ImageSharp\Formats\Jpeg\Components\Block8x8F.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Block8x8F.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\PixelOperations{TPixel}.Generated.cs">
+    <Compile Update="ImageSharp\PixelFormats\PixelOperations{TPixel}.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>PixelOperations{TPixel}.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\Generated\Argb32.PixelOperations.Generated.cs">
+    <Compile Update="ImageSharp\PixelFormats\PixelImplementations\Generated\Argb32.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Argb32.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\Generated\Bgr24.PixelOperations.Generated.cs">
+    <Compile Update="ImageSharp\PixelFormats\PixelImplementations\Generated\Bgr24.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Bgr24.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\Generated\Bgra32.PixelOperations.Generated.cs">
+    <Compile Update="ImageSharp\PixelFormats\PixelImplementations\Generated\Bgra32.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Bgra32.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\Generated\Bgra5551.PixelOperations.Generated.cs">
+    <Compile Update="ImageSharp\PixelFormats\PixelImplementations\Generated\Bgra5551.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Bgra5551.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\Generated\L8.PixelOperations.Generated.cs">
+    <Compile Update="ImageSharp\PixelFormats\PixelImplementations\Generated\L8.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>L8.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\Generated\L16.PixelOperations.Generated.cs">
+    <Compile Update="ImageSharp\PixelFormats\PixelImplementations\Generated\L16.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>L16.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\Generated\La16.PixelOperations.Generated.cs">
+    <Compile Update="ImageSharp\PixelFormats\PixelImplementations\Generated\La16.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>La16.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\Generated\La32.PixelOperations.Generated.cs">
+    <Compile Update="ImageSharp\PixelFormats\PixelImplementations\Generated\La32.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>La32.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\Generated\Rgb24.PixelOperations.Generated.cs">
+    <Compile Update="ImageSharp\PixelFormats\PixelImplementations\Generated\Rgb24.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Rgb24.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\Generated\Rgba32.PixelOperations.Generated.cs">
+    <Compile Update="ImageSharp\PixelFormats\PixelImplementations\Generated\Rgba32.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Rgba32.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\Generated\Rgb48.PixelOperations.Generated.cs">
+    <Compile Update="ImageSharp\PixelFormats\PixelImplementations\Generated\Rgb48.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Rgb48.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\Generated\Rgba64.PixelOperations.Generated.cs">
+    <Compile Update="ImageSharp\PixelFormats\PixelImplementations\Generated\Rgba64.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Rgba64.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\PixelBlenders\DefaultPixelBlenders.Generated.cs">
+    <Compile Update="ImageSharp\PixelFormats\PixelBlenders\DefaultPixelBlenders.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>DefaultPixelBlenders.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\PixelBlenders\PorterDuffFunctions.Generated.cs">
+    <Compile Update="ImageSharp\PixelFormats\PixelBlenders\PorterDuffFunctions.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>PorterDuffFunctions.Generated.tt</DependentUpon>
@@ -113,75 +113,75 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Formats\Jpeg\Components\Block8x8F.Generated.tt">
+    <None Update="ImageSharp\Formats\Jpeg\Components\Block8x8F.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Block8x8F.Generated.cs</LastGenOutput>
     </None>
-    <None Update="Formats\Jpeg\Components\GenericBlock8x8.Generated.tt">
+    <None Update="ImageSharp\Formats\Jpeg\Components\GenericBlock8x8.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>GenericBlock8x8.Generated.cs</LastGenOutput>
     </None>
-    <None Update="Formats\Jpeg\Components\Block8x8F.Generated.tt">
+    <None Update="ImageSharp\Formats\Jpeg\Components\Block8x8F.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Block8x8F.Generated.cs</LastGenOutput>
     </None>
-    <None Update="PixelFormats\PixelOperations{TPixel}.Generated.tt">
+    <None Update="ImageSharp\PixelFormats\PixelOperations{TPixel}.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>PixelOperations{TPixel}.Generated.cs</LastGenOutput>
     </None>
-    <None Update="PixelFormats\PixelImplementations\Generated\Argb32.PixelOperations.Generated.tt">
+    <None Update="ImageSharp\PixelFormats\PixelImplementations\Generated\Argb32.PixelOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Argb32.PixelOperations.Generated.cs</LastGenOutput>
     </None>
-    <None Update="PixelFormats\PixelImplementations\Generated\Bgr24.PixelOperations.Generated.tt">
+    <None Update="ImageSharp\PixelFormats\PixelImplementations\Generated\Bgr24.PixelOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Bgr24.PixelOperations.Generated.cs</LastGenOutput>
     </None>
-    <None Update="PixelFormats\PixelImplementations\Generated\Bgra32.PixelOperations.Generated.tt">
+    <None Update="ImageSharp\PixelFormats\PixelImplementations\Generated\Bgra32.PixelOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Bgra32.PixelOperations.Generated.cs</LastGenOutput>
     </None>
-    <None Update="PixelFormats\PixelImplementations\Generated\Bgra5551.PixelOperations.Generated.tt">
+    <None Update="ImageSharp\PixelFormats\PixelImplementations\Generated\Bgra5551.PixelOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Bgra5551.PixelOperations.Generated.cs</LastGenOutput>
     </None>
-    <None Update="PixelFormats\PixelImplementations\Generated\L8.PixelOperations.Generated.tt">
+    <None Update="ImageSharp\PixelFormats\PixelImplementations\Generated\L8.PixelOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>L8.PixelOperations.Generated.cs</LastGenOutput>
     </None>
-    <None Update="PixelFormats\PixelImplementations\Generated\L16.PixelOperations.Generated.tt">
+    <None Update="ImageSharp\PixelFormats\PixelImplementations\Generated\L16.PixelOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>L16.PixelOperations.Generated.cs</LastGenOutput>
     </None>
-    <None Update="PixelFormats\PixelImplementations\Generated\La16.PixelOperations.Generated.tt">
+    <None Update="ImageSharp\PixelFormats\PixelImplementations\Generated\La16.PixelOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>La16.PixelOperations.Generated.cs</LastGenOutput>
     </None>
-    <None Update="PixelFormats\PixelImplementations\Generated\La32.PixelOperations.Generated.tt">
+    <None Update="ImageSharp\PixelFormats\PixelImplementations\Generated\La32.PixelOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>La32.PixelOperations.Generated.cs</LastGenOutput>
     </None>
-    <None Update="PixelFormats\PixelImplementations\Generated\Rgb24.PixelOperations.Generated.tt">
+    <None Update="ImageSharp\PixelFormats\PixelImplementations\Generated\Rgb24.PixelOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Rgb24.PixelOperations.Generated.cs</LastGenOutput>
     </None>
-    <None Update="PixelFormats\PixelImplementations\Generated\Rgba32.PixelOperations.Generated.tt">
+    <None Update="ImageSharp\PixelFormats\PixelImplementations\Generated\Rgba32.PixelOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Rgba32.PixelOperations.Generated.cs</LastGenOutput>
     </None>
-    <None Update="PixelFormats\PixelImplementations\Generated\Rgb48.PixelOperations.Generated.tt">
+    <None Update="ImageSharp\PixelFormats\PixelImplementations\Generated\Rgb48.PixelOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Rgb48.PixelOperations.Generated.cs</LastGenOutput>
     </None>
-    <None Update="PixelFormats\PixelImplementations\Generated\Rgba64.PixelOperations.Generated.tt">
+    <None Update="ImageSharp\PixelFormats\PixelImplementations\Generated\Rgba64.PixelOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Rgba64.PixelOperations.Generated.cs</LastGenOutput>
     </None>
-    <None Update="PixelFormats\PixelBlenders\PorterDuffFunctions.Generated.tt">
+    <None Update="ImageSharp\PixelFormats\PixelBlenders\PorterDuffFunctions.Generated.tt">
       <LastGenOutput>PorterDuffFunctions.Generated.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>
-    <None Update="PixelFormats\PixelBlenders\DefaultPixelBlenders.Generated.tt">
+    <None Update="ImageSharp\PixelFormats\PixelBlenders\DefaultPixelBlenders.Generated.tt">
       <LastGenOutput>DefaultPixelBlenders.Generated.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>

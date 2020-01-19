@@ -12,6 +12,8 @@ using Xunit;
 
 namespace SixLabors.Memory.Tests
 {
+    // TODO: Re-enable memory-intensive tests with arcade RemoteExecutor:
+    // https://github.com/dotnet/runtime/blob/master/docs/project/writing-tests.md#remoteexecutor
     public class ArrayPoolMemoryAllocatorTests
     {
         private const int MaxPooledBufferSizeInBytes = 2048;
@@ -80,7 +82,7 @@ namespace SixLabors.Memory.Tests
             Assert.True(this.CheckIsRentingPooledBuffer<byte>(size));
         }
 
-        [Theory]
+        [Theory(Skip = "Should be executed from a separate process.")]
         [InlineData(128 * 1024 * 1024)]
         [InlineData(MaxPooledBufferSizeInBytes + 1)]
         public void LargeBuffersAreNotPooled_OfByte(int size)
@@ -102,7 +104,7 @@ namespace SixLabors.Memory.Tests
             Assert.True(this.CheckIsRentingPooledBuffer<LargeStruct>(count));
         }
 
-        [Fact]
+        [Fact(Skip = "Should be executed from a separate process.")]
         public unsafe void LaregeBuffersAreNotPooled_OfBigValueType()
         {
             if (!TestEnvironment.Is64BitProcess)
@@ -161,7 +163,8 @@ namespace SixLabors.Memory.Tests
             buffer.Dispose();
         }
 
-        [Fact]
+
+        [Fact(Skip = "Should be executed from a separate process.")]
         public void AllocationOverLargeArrayThreshold_UsesDifferentPool()
         {
             if (!TestEnvironment.Is64BitProcess)
@@ -181,7 +184,7 @@ namespace SixLabors.Memory.Tests
             Assert.False(Unsafe.AreSame(ref ptr2Small, ref large.GetReference()));
         }
 
-        [Fact]
+        [Fact(Skip = "Should be executed from a separate process.")]
         public void CreateWithAggressivePooling()
         {
             if (!TestEnvironment.Is64BitProcess)
@@ -195,7 +198,7 @@ namespace SixLabors.Memory.Tests
             Assert.True(this.CheckIsRentingPooledBuffer<Rgba32>(4096 * 4096));
         }
 
-        [Fact]
+        [Fact(Skip = "Should be executed from a separate process.")]
         public void CreateDefault()
         {
             if (!TestEnvironment.Is64BitProcess)

@@ -26,7 +26,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         where TPixel : struct, IPixel<TPixel>
     {
 
-
             /// <summary>
             /// A pixel blender that implements the "NormalSrc" composition equation.
             /// </summary>
@@ -64,7 +63,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "MultiplySrc" composition equation.
@@ -104,7 +102,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "AddSrc" composition equation.
             /// </summary>
@@ -142,7 +139,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "SubtractSrc" composition equation.
@@ -182,7 +178,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "ScreenSrc" composition equation.
             /// </summary>
@@ -220,7 +215,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "DarkenSrc" composition equation.
@@ -260,7 +254,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "LightenSrc" composition equation.
             /// </summary>
@@ -298,7 +291,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "OverlaySrc" composition equation.
@@ -338,7 +330,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "HardLightSrc" composition equation.
             /// </summary>
@@ -376,7 +367,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "NormalSrcAtop" composition equation.
@@ -416,7 +406,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "MultiplySrcAtop" composition equation.
             /// </summary>
@@ -454,7 +443,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "AddSrcAtop" composition equation.
@@ -494,7 +482,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "SubtractSrcAtop" composition equation.
             /// </summary>
@@ -532,7 +519,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "ScreenSrcAtop" composition equation.
@@ -572,7 +558,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "DarkenSrcAtop" composition equation.
             /// </summary>
@@ -610,7 +595,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "LightenSrcAtop" composition equation.
@@ -650,7 +634,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "OverlaySrcAtop" composition equation.
             /// </summary>
@@ -688,7 +671,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "HardLightSrcAtop" composition equation.
@@ -728,7 +710,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "NormalSrcOver" composition equation.
             /// </summary>
@@ -766,7 +747,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "MultiplySrcOver" composition equation.
@@ -806,7 +786,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "AddSrcOver" composition equation.
             /// </summary>
@@ -844,7 +823,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "SubtractSrcOver" composition equation.
@@ -884,7 +862,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "ScreenSrcOver" composition equation.
             /// </summary>
@@ -922,7 +899,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "DarkenSrcOver" composition equation.
@@ -962,7 +938,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "LightenSrcOver" composition equation.
             /// </summary>
@@ -1000,7 +975,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "OverlaySrcOver" composition equation.
@@ -1040,7 +1014,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "HardLightSrcOver" composition equation.
             /// </summary>
@@ -1078,7 +1051,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "NormalSrcIn" composition equation.
@@ -1118,7 +1090,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "MultiplySrcIn" composition equation.
             /// </summary>
@@ -1156,7 +1127,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "AddSrcIn" composition equation.
@@ -1196,7 +1166,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "SubtractSrcIn" composition equation.
             /// </summary>
@@ -1234,7 +1203,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "ScreenSrcIn" composition equation.
@@ -1274,7 +1242,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "DarkenSrcIn" composition equation.
             /// </summary>
@@ -1312,7 +1279,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "LightenSrcIn" composition equation.
@@ -1352,7 +1318,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "OverlaySrcIn" composition equation.
             /// </summary>
@@ -1390,7 +1355,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "HardLightSrcIn" composition equation.
@@ -1430,7 +1394,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "NormalSrcOut" composition equation.
             /// </summary>
@@ -1468,7 +1431,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "MultiplySrcOut" composition equation.
@@ -1508,7 +1470,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "AddSrcOut" composition equation.
             /// </summary>
@@ -1546,7 +1507,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "SubtractSrcOut" composition equation.
@@ -1586,7 +1546,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "ScreenSrcOut" composition equation.
             /// </summary>
@@ -1624,7 +1583,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "DarkenSrcOut" composition equation.
@@ -1664,7 +1622,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "LightenSrcOut" composition equation.
             /// </summary>
@@ -1702,7 +1659,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "OverlaySrcOut" composition equation.
@@ -1742,7 +1698,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "HardLightSrcOut" composition equation.
             /// </summary>
@@ -1780,7 +1735,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "NormalDest" composition equation.
@@ -1820,7 +1774,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "MultiplyDest" composition equation.
             /// </summary>
@@ -1858,7 +1811,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "AddDest" composition equation.
@@ -1898,7 +1850,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "SubtractDest" composition equation.
             /// </summary>
@@ -1936,7 +1887,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "ScreenDest" composition equation.
@@ -1976,7 +1926,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "DarkenDest" composition equation.
             /// </summary>
@@ -2014,7 +1963,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "LightenDest" composition equation.
@@ -2054,7 +2002,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "OverlayDest" composition equation.
             /// </summary>
@@ -2092,7 +2039,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "HardLightDest" composition equation.
@@ -2132,7 +2078,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "NormalDestAtop" composition equation.
             /// </summary>
@@ -2170,7 +2115,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "MultiplyDestAtop" composition equation.
@@ -2210,7 +2154,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "AddDestAtop" composition equation.
             /// </summary>
@@ -2248,7 +2191,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "SubtractDestAtop" composition equation.
@@ -2288,7 +2230,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "ScreenDestAtop" composition equation.
             /// </summary>
@@ -2326,7 +2267,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "DarkenDestAtop" composition equation.
@@ -2366,7 +2306,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "LightenDestAtop" composition equation.
             /// </summary>
@@ -2404,7 +2343,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "OverlayDestAtop" composition equation.
@@ -2444,7 +2382,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "HardLightDestAtop" composition equation.
             /// </summary>
@@ -2482,7 +2419,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "NormalDestOver" composition equation.
@@ -2522,7 +2458,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "MultiplyDestOver" composition equation.
             /// </summary>
@@ -2560,7 +2495,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "AddDestOver" composition equation.
@@ -2600,7 +2534,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "SubtractDestOver" composition equation.
             /// </summary>
@@ -2638,7 +2571,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "ScreenDestOver" composition equation.
@@ -2678,7 +2610,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "DarkenDestOver" composition equation.
             /// </summary>
@@ -2716,7 +2647,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "LightenDestOver" composition equation.
@@ -2756,7 +2686,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "OverlayDestOver" composition equation.
             /// </summary>
@@ -2794,7 +2723,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "HardLightDestOver" composition equation.
@@ -2834,7 +2762,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "NormalDestIn" composition equation.
             /// </summary>
@@ -2872,7 +2799,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "MultiplyDestIn" composition equation.
@@ -2912,7 +2838,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "AddDestIn" composition equation.
             /// </summary>
@@ -2950,7 +2875,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "SubtractDestIn" composition equation.
@@ -2990,7 +2914,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "ScreenDestIn" composition equation.
             /// </summary>
@@ -3028,7 +2951,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "DarkenDestIn" composition equation.
@@ -3068,7 +2990,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "LightenDestIn" composition equation.
             /// </summary>
@@ -3106,7 +3027,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "OverlayDestIn" composition equation.
@@ -3146,7 +3066,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "HardLightDestIn" composition equation.
             /// </summary>
@@ -3184,7 +3103,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "NormalDestOut" composition equation.
@@ -3224,7 +3142,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "MultiplyDestOut" composition equation.
             /// </summary>
@@ -3262,7 +3179,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "AddDestOut" composition equation.
@@ -3302,7 +3218,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "SubtractDestOut" composition equation.
             /// </summary>
@@ -3340,7 +3255,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "ScreenDestOut" composition equation.
@@ -3380,7 +3294,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "DarkenDestOut" composition equation.
             /// </summary>
@@ -3418,7 +3331,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "LightenDestOut" composition equation.
@@ -3458,7 +3370,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "OverlayDestOut" composition equation.
             /// </summary>
@@ -3496,7 +3407,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "HardLightDestOut" composition equation.
@@ -3536,7 +3446,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "NormalClear" composition equation.
             /// </summary>
@@ -3574,7 +3483,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "MultiplyClear" composition equation.
@@ -3614,7 +3522,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "AddClear" composition equation.
             /// </summary>
@@ -3652,7 +3559,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "SubtractClear" composition equation.
@@ -3692,7 +3598,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "ScreenClear" composition equation.
             /// </summary>
@@ -3730,7 +3635,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "DarkenClear" composition equation.
@@ -3770,7 +3674,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "LightenClear" composition equation.
             /// </summary>
@@ -3808,7 +3711,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "OverlayClear" composition equation.
@@ -3848,7 +3750,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "HardLightClear" composition equation.
             /// </summary>
@@ -3886,7 +3787,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "NormalXor" composition equation.
@@ -3926,7 +3826,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "MultiplyXor" composition equation.
             /// </summary>
@@ -3964,7 +3863,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "AddXor" composition equation.
@@ -4004,7 +3902,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "SubtractXor" composition equation.
             /// </summary>
@@ -4042,7 +3939,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "ScreenXor" composition equation.
@@ -4082,7 +3978,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "DarkenXor" composition equation.
             /// </summary>
@@ -4120,7 +4015,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "LightenXor" composition equation.
@@ -4160,7 +4054,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-
             /// <summary>
             /// A pixel blender that implements the "OverlayXor" composition equation.
             /// </summary>
@@ -4198,7 +4091,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
-
 
             /// <summary>
             /// A pixel blender that implements the "HardLightXor" composition equation.

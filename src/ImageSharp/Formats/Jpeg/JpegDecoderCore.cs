@@ -15,9 +15,6 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Primitives;
-using SixLabors.Memory;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
 {

@@ -3,7 +3,6 @@
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 {

@@ -11,8 +11,6 @@ using System.Threading.Tasks;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 {

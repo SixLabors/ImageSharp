@@ -5,7 +5,7 @@ using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.Memory
+namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
     /// Implements <see cref="MemoryAllocator"/> by allocating memory from <see cref="ArrayPool{T}"/>.

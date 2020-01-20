@@ -1,9 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -13,7 +11,6 @@ namespace SixLabors.ImageSharp.Memory
     /// <remarks>
     /// Before RC1, this class might be target of API changes, use it on your own risk!
     /// </remarks>
-    // TODO: Consider moving this type to the SixLabors.Memory namespace (SixLabors.Core).
     public readonly struct RowInterval : IEquatable<RowInterval>
     {
         /// <summary>

@@ -3,10 +3,9 @@
 
 using System;
 using System.Globalization;
-using System.Reflection;
 using Xunit;
 
-namespace SixLabors.Primitives.Tests
+namespace SixLabors.ImageSharp.Tests
 {
     /// <summary>
     /// Tests the <see cref="RectangleF"/> struct.

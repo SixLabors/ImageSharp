@@ -1,5 +1,4 @@
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
-using SixLabors.ImageSharp.Primitives;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values

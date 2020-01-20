@@ -12,7 +12,6 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
 {

@@ -4,12 +4,10 @@
 using System;
 using System.Globalization;
 using System.Numerics;
-using System.Reflection;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Tests;
 using Xunit;
 
-namespace SixLabors.Primitives.Tests
+namespace SixLabors.ImageSharp.Tests
 {
     public class PointFTests
     {

@@ -3,7 +3,6 @@
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Metadata;
-using SixLabors.Primitives;
 
 using Xunit;
 

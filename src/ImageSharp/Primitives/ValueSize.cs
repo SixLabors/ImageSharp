@@ -2,9 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Primitives
+namespace SixLabors.ImageSharp
 {
     /// <summary>
     /// Represents a value in relation to a value on the image.

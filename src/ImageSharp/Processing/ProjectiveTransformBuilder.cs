@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing
 {

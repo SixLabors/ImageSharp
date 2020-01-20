@@ -3,7 +3,6 @@
 
 using SixLabors.ImageSharp.Processing.Processors.Binarization;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing
 {

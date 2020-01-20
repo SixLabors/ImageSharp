@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 using System.Text;
-using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {

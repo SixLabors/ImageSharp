@@ -6,7 +6,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
 {

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             int w = bmp.Width;
             int h = bmp.Height;
 
-            var fullRect = new Rectangle(0, 0, w, h);
+            var fullRect = new System.Drawing.Rectangle(0, 0, w, h);
 
             if (bmp.PixelFormat != PixelFormat.Format32bppArgb)
             {
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             int w = bmp.Width;
             int h = bmp.Height;
 
-            var fullRect = new Rectangle(0, 0, w, h);
+            var fullRect = new System.Drawing.Rectangle(0, 0, w, h);
 
             if (bmp.PixelFormat != PixelFormat.Format24bppRgb)
             {
@@ -139,7 +139,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             int h = image.Height;
 
             var resultBitmap = new Bitmap(w, h, PixelFormat.Format32bppArgb);
-            var fullRect = new Rectangle(0, 0, w, h);
+            var fullRect = new System.Drawing.Rectangle(0, 0, w, h);
             BitmapData data = resultBitmap.LockBits(fullRect, ImageLockMode.ReadWrite, resultBitmap.PixelFormat);
             try
             {

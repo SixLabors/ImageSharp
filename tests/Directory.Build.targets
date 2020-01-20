@@ -48,8 +48,8 @@
     <PackageReference Update="Pfim" Version="0.9.1" />
     <PackageReference Update="System.Drawing.Common" Version="4.7.0" />
     <!--TODO: Fix implicit conversion issues so we can move to 2.4.1-->
-    <PackageReference Update="xunit" Version="2.3.1" />
-    <PackageReference Update="xunit.runner.visualstudio" Version="2.3.1" />
+    <PackageReference Update="xunit" Version="2.4.1" />
+    <PackageReference Update="xunit.runner.visualstudio" Version="2.4.1" />
   </ItemGroup>
 
 </Project>

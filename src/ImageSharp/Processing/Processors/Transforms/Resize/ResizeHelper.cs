@@ -3,7 +3,6 @@
 
 using System;
 using System.Numerics;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {

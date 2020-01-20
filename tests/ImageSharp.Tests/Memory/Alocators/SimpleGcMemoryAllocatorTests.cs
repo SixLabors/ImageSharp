@@ -5,7 +5,7 @@ using System;
 using System.Runtime.InteropServices;
 using Xunit;
 
-namespace SixLabors.Memory.Tests
+namespace SixLabors.ImageSharp.Memory.Tests
 {
     public class SimpleGcMemoryAllocatorTests
     {

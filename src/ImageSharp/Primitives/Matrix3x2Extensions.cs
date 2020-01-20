@@ -1,9 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
 
-namespace SixLabors.Primitives
+namespace SixLabors.ImageSharp
 {
     /// <summary>
     /// Extension methods for the <see cref="Matrix3x2"/> struct.

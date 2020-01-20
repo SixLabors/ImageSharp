@@ -6,7 +6,7 @@ using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.Primitives
+namespace SixLabors.ImageSharp
 {
     /// <summary>
     /// Stores an ordered pair of single precision floating points, which specify a height and width.

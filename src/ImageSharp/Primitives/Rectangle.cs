@@ -6,7 +6,7 @@ using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.Primitives
+namespace SixLabors.ImageSharp
 {
     /// <summary>
     /// Stores a set of four integers that represent the location and size of a rectangle.

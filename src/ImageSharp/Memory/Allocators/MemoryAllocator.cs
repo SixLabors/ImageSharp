@@ -3,7 +3,7 @@
 
 using System.Buffers;
 
-namespace SixLabors.Memory
+namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
     /// Memory managers are used to allocate memory for image processing operations.

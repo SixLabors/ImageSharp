@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
-namespace SixLabors.Memory.Tests
+namespace SixLabors.ImageSharp.Memory.Tests
 {
     /// <summary>
     /// Inherit this class to test an <see cref="IMemoryOwner{T}"/> implementation (provided by <see cref="MemoryAllocator"/>).

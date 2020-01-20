@@ -3,7 +3,7 @@
 
 using System.Buffers;
 
-namespace SixLabors.Memory
+namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
     /// Represents a byte buffer backed by a managed array. Useful for interop with classic .NET API-s.

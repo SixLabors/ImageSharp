@@ -4,7 +4,7 @@
 using System.Buffers;
 using System.Runtime.InteropServices;
 
-namespace SixLabors.Memory.Internals
+namespace SixLabors.ImageSharp.Memory.Internals
 {
     /// <summary>
     /// Provides a base class for <see cref="IMemoryOwner{T}"/> implementations by implementing pinning logic for <see cref="MemoryManager{T}"/> adaption.

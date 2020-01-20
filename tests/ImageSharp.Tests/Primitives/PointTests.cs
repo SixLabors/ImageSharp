@@ -6,7 +6,7 @@ using System.Globalization;
 using System.Numerics;
 using Xunit;
 
-namespace SixLabors.Primitives.Tests
+namespace SixLabors.ImageSharp.Tests
 {
     public class PointTests
     {

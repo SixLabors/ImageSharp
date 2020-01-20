@@ -4,7 +4,7 @@
 using System;
 using System.IO;
 using SixLabors.ImageSharp.IO;
-using SixLabors.Memory;
+using SixLabors.ImageSharp.Memory;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.IO

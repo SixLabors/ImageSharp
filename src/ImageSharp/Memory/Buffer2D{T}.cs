@@ -4,8 +4,6 @@
 using System;
 using System.Runtime.CompilerServices;
 
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
@@ -16,7 +14,7 @@ namespace SixLabors.ImageSharp.Memory
     /// Before RC1, this class might be target of API changes, use it on your own risk!
     /// </remarks>
     /// <typeparam name="T">The value type.</typeparam>
-    // TODO: Consider moving this type to the SixLabors.Memory namespace (SixLabors.Core).
+    // TODO: Consider moving this type to the SixLabors.ImageSharp.Memory namespace (SixLabors.Core).
     public sealed class Buffer2D<T> : IDisposable
         where T : struct
     {

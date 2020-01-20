@@ -25,7 +25,7 @@
 
   <!--Code coverage specific settings-->
   <!--https://github.com/tonerdo/coverlet-->
-  <PropertyGroup Condition="'$(codecov)' == 'true'">
+  <PropertyGroup Condition="'$(codecov)' == 'true' AND '$(IsTestProject)' == 'true'">
     <CollectCoverage>true</CollectCoverage>
     <UseSourceLink>true</UseSourceLink>
     <CoverletOutputFormat>opencover</CoverletOutputFormat>

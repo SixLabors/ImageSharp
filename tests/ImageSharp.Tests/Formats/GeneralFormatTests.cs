@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests
     using System.Reflection;
     using SixLabors.ImageSharp.Processing;
     using SixLabors.ImageSharp.Processing.Processors.Quantization;
-    using SixLabors.Memory;
+    using SixLabors.ImageSharp.Memory;
 
     public class GeneralFormatTests : FileTestBase
     {

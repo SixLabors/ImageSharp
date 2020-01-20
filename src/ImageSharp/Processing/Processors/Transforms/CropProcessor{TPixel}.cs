@@ -5,7 +5,6 @@ using System;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {

@@ -6,12 +6,16 @@ using System.Globalization;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Tests;
 using Xunit;
 
 namespace SixLabors.Primitives.Tests
 {
     public class PointFTests
     {
+        private static readonly ApproximateFloatComparer ApproximateFloatComparer =
+            new ApproximateFloatComparer(1e-6f);
+
         [Fact]
         public void CanReinterpretCastFromVector2()
         {
@@ -120,7 +124,8 @@ namespace SixLabors.Primitives.Tests
 
             var pout = PointF.Transform(p, matrix);
 
-            Assert.Equal(new PointF(-2.82842732F, 21.2132034F), pout);
+            Assert.Equal(-2.82842732F, pout.X, ApproximateFloatComparer);
+            Assert.Equal(21.2132034F, pout.Y, ApproximateFloatComparer);
         }
 
         [Fact]

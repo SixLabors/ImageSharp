@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Processing.Processors.Overlays;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing
 {

@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Tests;
 using Xunit;
 
-namespace SixLabors.Memory.Tests
+namespace SixLabors.ImageSharp.Memory.Tests
 {
     // TODO: Re-enable memory-intensive tests with arcade RemoteExecutor:
     // https://github.com/dotnet/runtime/blob/master/docs/project/writing-tests.md#remoteexecutor

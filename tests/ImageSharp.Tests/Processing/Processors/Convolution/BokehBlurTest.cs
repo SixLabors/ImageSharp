@@ -8,10 +8,8 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Convolution;
-using SixLabors.Primitives;
 
 using Xunit;
 using Xunit.Abstractions;

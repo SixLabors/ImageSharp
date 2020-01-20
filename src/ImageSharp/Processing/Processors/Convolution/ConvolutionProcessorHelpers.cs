@@ -3,8 +3,6 @@
 
 using System;
 
-using SixLabors.ImageSharp.Primitives;
-
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 {
     internal static class ConvolutionProcessorHelpers

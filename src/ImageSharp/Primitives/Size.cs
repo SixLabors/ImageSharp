@@ -6,7 +6,7 @@ using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.Primitives
+namespace SixLabors.ImageSharp
 {
     /// <summary>
     /// Stores an ordered pair of integers, which specify a height and width.

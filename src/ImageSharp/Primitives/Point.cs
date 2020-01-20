@@ -6,7 +6,7 @@ using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.Primitives
+namespace SixLabors.ImageSharp
 {
     /// <summary>
     /// Represents an ordered pair of integer x- and y-coordinates that defines a point in

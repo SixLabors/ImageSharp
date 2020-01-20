@@ -5,7 +5,7 @@ using System;
 using System.Globalization;
 using Xunit;
 
-namespace SixLabors.Primitives.Tests
+namespace SixLabors.ImageSharp.Tests
 {
     /// <summary>
     /// Tests the <see cref="Size"/> struct.

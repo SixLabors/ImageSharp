@@ -2,9 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Runtime.CompilerServices;
 
-namespace SixLabors.Memory.Internals
+namespace SixLabors.ImageSharp.Memory.Internals
 {
     /// <summary>
     /// Wraps an array as an <see cref="IManagedByteBuffer"/> instance.

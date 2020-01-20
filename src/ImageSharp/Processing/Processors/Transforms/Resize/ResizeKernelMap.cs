@@ -7,7 +7,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Memory;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {

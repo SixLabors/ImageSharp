@@ -3,8 +3,6 @@
 
 using System;
 using System.IO;
-
-using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;

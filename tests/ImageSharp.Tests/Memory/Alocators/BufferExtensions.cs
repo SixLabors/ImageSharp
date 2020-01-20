@@ -6,7 +6,7 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace SixLabors.Memory.Tests
+namespace SixLabors.ImageSharp.Memory.Tests
 {
     internal static class BufferExtensions
     {

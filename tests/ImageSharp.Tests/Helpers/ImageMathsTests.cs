@@ -4,9 +4,6 @@
 using System;
 using System.Numerics;
 
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
-
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Helpers

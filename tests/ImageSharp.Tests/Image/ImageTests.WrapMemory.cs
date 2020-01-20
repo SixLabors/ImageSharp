@@ -11,7 +11,6 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
@@ -41,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests
                     }
 
                     this.bitmap = bitmap;
-                    var rectangle = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
+                    var rectangle = new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height);
                     this.bmpData = bitmap.LockBits(rectangle, ImageLockMode.ReadWrite, bitmap.PixelFormat);
                     this.length = bitmap.Width * bitmap.Height;
                 }

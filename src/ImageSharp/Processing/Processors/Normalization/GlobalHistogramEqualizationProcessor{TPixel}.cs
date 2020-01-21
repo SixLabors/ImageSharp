@@ -8,11 +8,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 {
@@ -26,23 +24,31 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <summary>
         /// Initializes a new instance of the <see cref="GlobalHistogramEqualizationProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="luminanceLevels">
         /// The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
         /// or 65536 for 16-bit grayscale images.
         /// </param>
         /// <param name="clipHistogram">Indicating whether to clip the histogram bins at a specific value.</param>
-        /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels. Histogram bins which exceed this limit, will be capped at this value.</param>
-        public GlobalHistogramEqualizationProcessor(int luminanceLevels, bool clipHistogram, float clipLimitPercentage)
-            : base(luminanceLevels, clipHistogram, clipLimitPercentage)
+        /// <param name="clipLimit">The histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public GlobalHistogramEqualizationProcessor(
+            Configuration configuration,
+            int luminanceLevels,
+            bool clipHistogram,
+            int clipLimit,
+            Image<TPixel> source,
+            Rectangle sourceRectangle)
+            : base(configuration, luminanceLevels, clipHistogram, clipLimit, source, sourceRectangle)
         {
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
+            MemoryAllocator memoryAllocator = this.Configuration.MemoryAllocator;
             int numberOfPixels = source.Width * source.Height;
-            Span<TPixel> pixels = source.GetPixelSpan();
             var workingRect = new Rectangle(0, 0, source.Width, source.Height);
 
             using (IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
@@ -51,7 +57,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 // Build the histogram of the grayscale levels.
                 ParallelHelper.IterateRows(
                     workingRect,
-                    configuration,
+                    this.Configuration,
                     rows =>
                         {
                             ref int histogramBase = ref MemoryMarshal.GetReference(histogramBuffer.GetSpan());
@@ -70,7 +76,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 Span<int> histogram = histogramBuffer.GetSpan();
                 if (this.ClipHistogramEnabled)
                 {
-                    this.ClipHistogram(histogram, this.ClipLimitPercentage, numberOfPixels);
+                    this.ClipHistogram(histogram, this.ClipLimit);
                 }
 
                 // Calculate the cumulative distribution function, which will map each input pixel to a new value.
@@ -84,7 +90,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 // Apply the cdf to each pixel of the image
                 ParallelHelper.IterateRows(
                     workingRect,
-                    configuration,
+                    this.Configuration,
                     rows =>
                         {
                             ref int cdfBase = ref MemoryMarshal.GetReference(cdfBuffer.GetSpan());

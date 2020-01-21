@@ -1,7 +1,6 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
@@ -11,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// </summary>
     public sealed class GaussianSharpenProcessor : IImageProcessor
     {
-         /// <summary>
+        /// <summary>
         /// The default value for <see cref="Sigma"/>.
         /// </summary>
         public const float DefaultSigma = 3f;
@@ -71,10 +70,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         public int Radius { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return new GaussianSharpenProcessor<TPixel>(this);
-        }
+            => new GaussianSharpenProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

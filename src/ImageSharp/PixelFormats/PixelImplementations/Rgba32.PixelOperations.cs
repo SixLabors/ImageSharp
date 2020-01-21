@@ -6,7 +6,6 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.PixelFormats.Utils;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.PixelFormats
 {
@@ -21,7 +20,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal partial class PixelOperations : PixelOperations<Rgba32>
         {
             /// <inheritdoc />
-            internal override void ToVector4(
+            public override void ToVector4(
                 Configuration configuration,
                 ReadOnlySpan<Rgba32> sourcePixels,
                 Span<Vector4> destVectors,
@@ -37,7 +36,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void FromVector4Destructive(
+            public override void FromVector4Destructive(
                 Configuration configuration,
                 Span<Vector4> sourceVectors,
                 Span<Rgba32> destPixels,

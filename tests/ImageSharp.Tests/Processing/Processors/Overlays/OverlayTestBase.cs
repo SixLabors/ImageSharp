@@ -1,12 +1,9 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Reflection;
-
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-using SixLabors.Primitives;
 
 using Xunit;
 
@@ -20,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Overlays
         public static string[] InputImages = { TestImages.Png.Ducky, TestImages.Png.Splash };
 
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.05f);
-        
+
         [Theory]
         [WithFileCollection(nameof(InputImages), nameof(ColorNames), PixelTypes.Rgba32)]
         public void FullImage_ApplyColor<TPixel>(TestImageProvider<TPixel> provider, string colorName)
@@ -54,13 +51,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Overlays
             where TPixel : struct, IPixel<TPixel>
         {
             provider.Utility.TestGroupName = this.GetType().Name;
-            provider.RunRectangleConstrainedValidatingProcessorTest((x, rect) => this.Apply(x, rect));
+            provider.RunRectangleConstrainedValidatingProcessorTest(this.Apply);
         }
 
         protected abstract void Apply(IImageProcessingContext ctx, Color color);
-        
+
         protected abstract void Apply(IImageProcessingContext ctx, float radiusX, float radiusY);
-        
+
         protected abstract void Apply(IImageProcessingContext ctx, Rectangle rect);
     }
 }

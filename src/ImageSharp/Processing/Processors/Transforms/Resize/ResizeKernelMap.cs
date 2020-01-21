@@ -7,7 +7,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Memory;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
@@ -56,7 +55,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.DestinationLength = destinationLength;
             this.MaxDiameter = (radius * 2) + 1;
             this.data = memoryAllocator.Allocate2D<float>(this.MaxDiameter, bufferHeight, AllocationOptions.Clean);
-            this.pinHandle = this.data.Memory.Pin();
+            this.pinHandle = this.data.GetMemory().Pin();
             this.kernels = new ResizeKernel[destinationLength];
             this.tempValues = new double[this.MaxDiameter];
         }

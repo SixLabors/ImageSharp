@@ -5,7 +5,6 @@ using System;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 {
@@ -16,19 +15,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     internal class OrderedDitherPaletteProcessor<TPixel> : PaletteDitherProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        public OrderedDitherPaletteProcessor(OrderedDitherPaletteProcessor definition)
-            : base(definition)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OrderedDitherPaletteProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="definition">The <see cref="OrderedDitherPaletteProcessor"/> defining the processor parameters.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public OrderedDitherPaletteProcessor(Configuration configuration, OrderedDitherPaletteProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, definition, source, sourceRectangle)
         {
         }
 
         private new OrderedDitherPaletteProcessor Definition => (OrderedDitherPaletteProcessor)base.Definition;
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            bool isAlphaOnly = typeof(TPixel) == typeof(Alpha8);
-
-            var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
             int startY = interest.Y;
             int endY = interest.Bottom;
             int startX = interest.X;
@@ -42,7 +46,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             sourcePixel.ToRgba32(ref rgba);
 
             // Convert to grayscale using ITU-R Recommendation BT.709 if required
-            byte luminance = isAlphaOnly ? rgba.A : ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
+            byte luminance = ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
 
             for (int y = startY; y < endY; y++)
             {
@@ -65,7 +69,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                         }
 
                         sourcePixel.ToRgba32(ref rgba);
-                        luminance = isAlphaOnly ? rgba.A : ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
+                        luminance = ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
 
                         // Setup the previous pointer
                         previousPixel = sourcePixel;

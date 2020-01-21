@@ -1,17 +1,14 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
-
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
     /// <summary>
     /// Defines a projective transformation applicable to an <see cref="Image"/>.
     /// </summary>
-    public sealed class ProjectiveTransformProcessor : IImageProcessor
+    public sealed class ProjectiveTransformProcessor : CloningImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ProjectiveTransformProcessor"/> class.
@@ -43,10 +40,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public Size TargetDimensions { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
-        {
-            return new ProjectiveTransformProcessor<TPixel>(this);
-        }
+        public override ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+            => new ProjectiveTransformProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

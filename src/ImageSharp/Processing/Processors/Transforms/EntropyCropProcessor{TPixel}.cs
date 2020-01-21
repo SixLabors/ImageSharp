@@ -5,7 +5,6 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Binarization;
 using SixLabors.ImageSharp.Processing.Processors.Convolution;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
@@ -21,37 +20,44 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// Initializes a new instance of the <see cref="EntropyCropProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="definition">The <see cref="EntropyCropProcessor"/>.</param>
-        public EntropyCropProcessor(EntropyCropProcessor definition)
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public EntropyCropProcessor(Configuration configuration, EntropyCropProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             this.definition = definition;
         }
 
         /// <inheritdoc/>
-        protected override void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeImageApply()
         {
             Rectangle rectangle;
 
+            // TODO: This is clunky. We should add behavior enum to ExtractFrame.
             // All frames have be the same size so we only need to calculate the correct dimensions for the first frame
-            using (ImageFrame<TPixel> temp = source.Frames.RootFrame.Clone())
+            using (var temp = new Image<TPixel>(this.Configuration, this.Source.Metadata.DeepClone(), new[] { this.Source.Frames.RootFrame.Clone() }))
             {
-                Configuration configuration = source.GetConfiguration();
+                Configuration configuration = this.Source.GetConfiguration();
 
                 // Detect the edges.
-                new SobelProcessor(false).Apply(temp, sourceRectangle, configuration);
+                new SobelProcessor(false).Execute(this.Configuration, temp, this.SourceRectangle);
 
                 // Apply threshold binarization filter.
-                new BinaryThresholdProcessor(this.definition.Threshold).Apply(temp, sourceRectangle, configuration);
+                new BinaryThresholdProcessor(this.definition.Threshold).Execute(this.Configuration, temp, this.SourceRectangle);
 
                 // Search for the first white pixels
-                rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);
+                rectangle = ImageMaths.GetFilteredBoundingRectangle(temp.Frames.RootFrame, 0);
             }
 
-            new CropProcessor(rectangle, source.Size()).Apply(source, sourceRectangle);
+            new CropProcessor(rectangle, this.Source.Size()).Execute(this.Configuration, this.Source, this.SourceRectangle);
+
+            base.BeforeImageApply();
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             // All processing happens at the image level within BeforeImageApply();
         }

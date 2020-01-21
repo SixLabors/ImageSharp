@@ -2,11 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using SixLabors.ImageSharp.Primitives;
+    using SixLabors.ImageSharp;
 
     internal static class IccTestDataMatrix
     {

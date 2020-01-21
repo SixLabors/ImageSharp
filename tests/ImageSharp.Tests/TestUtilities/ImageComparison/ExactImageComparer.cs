@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 {
     public class ExactImageComparer : ImageComparer
@@ -22,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 
             int width = actual.Width;
 
-            // TODO: Comparing through Rgba64 may not be robust enough because of the existance of super high precision pixel types.
+            // TODO: Comparing through Rgba64 may not be robust enough because of the existence of super high precision pixel types.
 
             var aBuffer = new Rgba64[width];
             var bBuffer = new Rgba64[width];

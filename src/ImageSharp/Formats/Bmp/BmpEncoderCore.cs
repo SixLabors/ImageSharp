@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -12,7 +12,6 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
@@ -105,7 +104,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             this.configuration = image.GetConfiguration();
             ImageMetadata metadata = image.Metadata;
-            BmpMetadata bmpMetadata = metadata.GetFormatMetadata(BmpFormat.Instance);
+            BmpMetadata bmpMetadata = metadata.GetBmpMetadata();
             this.bitsPerPixel = this.bitsPerPixel ?? bmpMetadata.BitsPerPixel;
 
             short bpp = (short)this.bitsPerPixel;
@@ -173,11 +172,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 reserved: 0,
                 offset: BmpFileHeader.Size + infoHeaderSize + colorPaletteSize);
 
-#if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[infoHeaderSize];
-#else
-            byte[] buffer = new byte[infoHeaderSize];
-#endif
             fileHeader.WriteTo(buffer);
 
             stream.Write(buffer, 0, BmpFileHeader.Size);
@@ -315,11 +310,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void Write8Bit<TPixel>(Stream stream, ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            bool isGray8 = typeof(TPixel) == typeof(Gray8);
+            bool isL8 = typeof(TPixel) == typeof(L8);
             using (IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.AllocateManagedByteBuffer(ColorPaletteSize8Bit, AllocationOptions.Clean))
             {
                 Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
-                if (isGray8)
+                if (isL8)
                 {
                     this.Write8BitGray(stream, image, colorPalette);
                 }

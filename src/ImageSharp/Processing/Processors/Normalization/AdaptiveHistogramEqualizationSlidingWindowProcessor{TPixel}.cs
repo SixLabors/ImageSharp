@@ -11,8 +11,6 @@ using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 {
@@ -26,13 +24,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <summary>
         /// Initializes a new instance of the <see cref="AdaptiveHistogramEqualizationSlidingWindowProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="luminanceLevels">The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
         /// or 65536 for 16-bit grayscale images.</param>
         /// <param name="clipHistogram">Indicating whether to clip the histogram bins at a specific value.</param>
-        /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels in the tile. Histogram bins which exceed this limit, will be capped at this value.</param>
+        /// <param name="clipLimit">The histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.</param>
         /// <param name="tiles">The number of tiles the image is split into (horizontal and vertically). Minimum value is 2. Maximum value is 100.</param>
-        public AdaptiveHistogramEqualizationSlidingWindowProcessor(int luminanceLevels, bool clipHistogram, float clipLimitPercentage, int tiles)
-            : base(luminanceLevels, clipHistogram, clipLimitPercentage)
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public AdaptiveHistogramEqualizationSlidingWindowProcessor(
+            Configuration configuration,
+            int luminanceLevels,
+            bool clipHistogram,
+            int clipLimit,
+            int tiles,
+            Image<TPixel> source,
+            Rectangle sourceRectangle)
+            : base(configuration, luminanceLevels, clipHistogram, clipLimit, source, sourceRectangle)
         {
             Guard.MustBeGreaterThanOrEqualTo(tiles, 2, nameof(tiles));
             Guard.MustBeLessThanOrEqualTo(tiles, 100, nameof(tiles));
@@ -46,21 +54,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         private int Tiles { get; }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
-            int numberOfPixels = source.Width * source.Height;
-            Span<TPixel> pixels = source.GetPixelSpan();
+            MemoryAllocator memoryAllocator = this.Configuration.MemoryAllocator;
 
-            var parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism };
+            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = this.Configuration.MaxDegreeOfParallelism };
             int tileWidth = source.Width / this.Tiles;
             int tileHeight = tileWidth;
-            int pixeInTile = tileWidth * tileHeight;
+            int pixelInTile = tileWidth * tileHeight;
             int halfTileHeight = tileHeight / 2;
             int halfTileWidth = halfTileHeight;
-            var slidingWindowInfos = new SlidingWindowInfos(tileWidth, tileHeight, halfTileWidth, halfTileHeight, pixeInTile);
+            var slidingWindowInfos = new SlidingWindowInfos(tileWidth, tileHeight, halfTileWidth, halfTileHeight, pixelInTile);
 
-            using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Width, source.Height))
+            using (Buffer2D<TPixel> targetPixels = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(source.Width, source.Height))
             {
                 // Process the inner tiles, which do not require to check the borders.
                 Parallel.For(
@@ -75,7 +81,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         yStart: halfTileHeight,
                         yEnd: source.Height - halfTileHeight,
                         useFastPath: true,
-                        configuration));
+                        this.Configuration));
 
                 // Process the left border of the image.
                 Parallel.For(
@@ -90,7 +96,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         yStart: 0,
                         yEnd: source.Height,
                         useFastPath: false,
-                        configuration));
+                        this.Configuration));
 
                 // Process the right border of the image.
                 Parallel.For(
@@ -105,7 +111,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         yStart: 0,
                         yEnd: source.Height,
                         useFastPath: false,
-                        configuration));
+                        this.Configuration));
 
                 // Process the top border of the image.
                 Parallel.For(
@@ -120,7 +126,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         yStart: 0,
                         yEnd: halfTileHeight,
                         useFastPath: false,
-                        configuration));
+                        this.Configuration));
 
                 // Process the bottom border of the image.
                 Parallel.For(
@@ -135,7 +141,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         yStart: source.Height - halfTileHeight,
                         yEnd: source.Height,
                         useFastPath: false,
-                        configuration));
+                        this.Configuration));
 
                 Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
             }
@@ -149,7 +155,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="source">The source image.</param>
         /// <param name="memoryAllocator">The memory allocator.</param>
         /// <param name="targetPixels">The target pixels.</param>
-        /// <param name="swInfos">Informations about the sliding window dimensions.</param>
+        /// <param name="swInfos"><see cref="SlidingWindowInfos"/> about the sliding window dimensions.</param>
         /// <param name="yStart">The y start position.</param>
         /// <param name="yEnd">The y end position.</param>
         /// <param name="useFastPath">if set to true the borders of the image will not be checked.</param>
@@ -204,7 +210,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                             {
                                 // Clipping the histogram, but doing it on a copy to keep the original un-clipped values for the next iteration.
                                 histogram.CopyTo(histogramCopy);
-                                this.ClipHistogram(histogramCopy, this.ClipLimitPercentage, swInfos.PixeInTile);
+                                this.ClipHistogram(histogramCopy, this.ClipLimit);
                             }
 
                             // Calculate the cumulative distribution function, which will map each input pixel in the current tile to a new value.
@@ -212,7 +218,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                                              ? this.CalculateCdf(ref cdfBase, ref histogramCopyBase, histogram.Length - 1)
                                              : this.CalculateCdf(ref cdfBase, ref histogramBase, histogram.Length - 1);
 
-                            float numberOfPixelsMinusCdfMin = swInfos.PixeInTile - cdfMin;
+                            float numberOfPixelsMinusCdfMin = swInfos.PixelInTile - cdfMin;
 
                             // Map the current pixel to the new equalized value.
                             int luminance = GetLuminance(source[x, y], this.LuminanceLevels);
@@ -343,7 +349,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         {
             for (int idx = 0; idx < length; idx++)
             {
-                int luminance = GetLuminance(ref Unsafe.Add(ref greyValuesBase, idx), luminanceLevels);
+                int luminance = ImageMaths.GetBT709Luminance(ref Unsafe.Add(ref greyValuesBase, idx), luminanceLevels);
                 Unsafe.Add(ref histogramBase, luminance)++;
             }
         }
@@ -360,27 +366,27 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         {
             for (int idx = 0; idx < length; idx++)
             {
-                int luminance = GetLuminance(ref Unsafe.Add(ref greyValuesBase, idx), luminanceLevels);
+                int luminance = ImageMaths.GetBT709Luminance(ref Unsafe.Add(ref greyValuesBase, idx), luminanceLevels);
                 Unsafe.Add(ref histogramBase, luminance)--;
             }
         }
 
         private class SlidingWindowInfos
         {
-            public SlidingWindowInfos(int tileWidth, int tileHeight, int halfTileWidth, int halfTileHeight, int pixeInTile)
+            public SlidingWindowInfos(int tileWidth, int tileHeight, int halfTileWidth, int halfTileHeight, int pixelInTile)
             {
                 this.TileWidth = tileWidth;
                 this.TileHeight = tileHeight;
                 this.HalfTileWidth = halfTileWidth;
                 this.HalfTileHeight = halfTileHeight;
-                this.PixeInTile = pixeInTile;
+                this.PixelInTile = pixelInTile;
             }
 
             public int TileWidth { get; private set; }
 
             public int TileHeight { get; private set; }
 
-            public int PixeInTile { get; private set; }
+            public int PixelInTile { get; private set; }
 
             public int HalfTileWidth { get; private set; }
 

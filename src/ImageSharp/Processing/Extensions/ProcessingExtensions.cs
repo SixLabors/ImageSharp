@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -20,9 +20,22 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image to mutate.</param>
         /// <param name="operation">The operation to perform on the source.</param>
         public static void Mutate(this Image source, Action<IImageProcessingContext> operation)
+            => Mutate(source, source.GetConfiguration(), operation);
+
+        /// <summary>
+        /// Mutates the source image by applying the image operation to it.
+        /// </summary>
+        /// <param name="source">The image to mutate.</param>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="operation">The operation to perform on the source.</param>
+        public static void Mutate(this Image source, Configuration configuration, Action<IImageProcessingContext> operation)
         {
-            ProcessingVisitor visitor = new ProcessingVisitor(operation, true);
-            source.AcceptVisitor(visitor);
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.NotNull(source, nameof(source));
+            Guard.NotNull(operation, nameof(operation));
+            source.EnsureNotDisposed();
+
+            source.AcceptVisitor(new ProcessingVisitor(configuration, operation, true));
         }
 
         /// <summary>
@@ -33,12 +46,26 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="operation">The operation to perform on the source.</param>
         public static void Mutate<TPixel>(this Image<TPixel> source, Action<IImageProcessingContext> operation)
             where TPixel : struct, IPixel<TPixel>
-        {
-            Guard.NotNull(operation, nameof(operation));
-            Guard.NotNull(source, nameof(source));
+            => Mutate(source, source.GetConfiguration(), operation);
 
-            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider
-                .CreateImageProcessingContext(source, true);
+        /// <summary>
+        /// Mutates the source image by applying the image operation to it.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image to mutate.</param>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="operation">The operation to perform on the source.</param>
+        public static void Mutate<TPixel>(this Image<TPixel> source, Configuration configuration, Action<IImageProcessingContext> operation)
+        where TPixel : struct, IPixel<TPixel>
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.NotNull(source, nameof(source));
+            Guard.NotNull(operation, nameof(operation));
+            source.EnsureNotDisposed();
+
+            IInternalImageProcessingContext<TPixel> operationsRunner
+                = configuration.ImageOperationsProvider.CreateImageProcessingContext(configuration, source, true);
+
             operation(operationsRunner);
         }
 
@@ -50,12 +77,25 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="operations">The operations to perform on the source.</param>
         public static void Mutate<TPixel>(this Image<TPixel> source, params IImageProcessor[] operations)
             where TPixel : struct, IPixel<TPixel>
-        {
-            Guard.NotNull(operations, nameof(operations));
-            Guard.NotNull(source, nameof(source));
+            => Mutate(source, source.GetConfiguration(), operations);
 
-            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider
-                .CreateImageProcessingContext(source, true);
+        /// <summary>
+        /// Mutates the source image by applying the operations to it.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image to mutate.</param>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="operations">The operations to perform on the source.</param>
+        public static void Mutate<TPixel>(this Image<TPixel> source, Configuration configuration, params IImageProcessor[] operations)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Guard.NotNull(source, nameof(source));
+            Guard.NotNull(operations, nameof(operations));
+            source.EnsureNotDisposed();
+
+            IInternalImageProcessingContext<TPixel> operationsRunner
+                = configuration.ImageOperationsProvider.CreateImageProcessingContext(configuration, source, true);
+
             operationsRunner.ApplyProcessors(operations);
         }
 
@@ -66,8 +106,23 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="operation">The operation to perform on the clone.</param>
         /// <returns>The new <see cref="SixLabors.ImageSharp.Image"/>.</returns>
         public static Image Clone(this Image source, Action<IImageProcessingContext> operation)
+            => Clone(source, source.GetConfiguration(), operation);
+
+        /// <summary>
+        /// Creates a deep clone of the current image. The clone is then mutated by the given operation.
+        /// </summary>
+        /// <param name="source">The image to clone.</param>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="operation">The operation to perform on the clone.</param>
+        /// <returns>The new <see cref="SixLabors.ImageSharp.Image"/>.</returns>
+        public static Image Clone(this Image source, Configuration configuration, Action<IImageProcessingContext> operation)
         {
-            ProcessingVisitor visitor = new ProcessingVisitor(operation, false);
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.NotNull(source, nameof(source));
+            Guard.NotNull(operation, nameof(operation));
+            source.EnsureNotDisposed();
+
+            var visitor = new ProcessingVisitor(configuration, operation, false);
             source.AcceptVisitor(visitor);
             return visitor.ResultImage;
         }
@@ -81,12 +136,27 @@ namespace SixLabors.ImageSharp.Processing
         /// <returns>The new <see cref="SixLabors.ImageSharp.Image{TPixel}"/></returns>
         public static Image<TPixel> Clone<TPixel>(this Image<TPixel> source, Action<IImageProcessingContext> operation)
             where TPixel : struct, IPixel<TPixel>
-        {
-            Guard.NotNull(operation, nameof(operation));
-            Guard.NotNull(source, nameof(source));
+            => Clone(source, source.GetConfiguration(), operation);
 
-            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider
-                .CreateImageProcessingContext(source, false);
+        /// <summary>
+        /// Creates a deep clone of the current image. The clone is then mutated by the given operation.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image to clone.</param>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="operation">The operation to perform on the clone.</param>
+        /// <returns>The new <see cref="SixLabors.ImageSharp.Image{TPixel}"/></returns>
+        public static Image<TPixel> Clone<TPixel>(this Image<TPixel> source, Configuration configuration, Action<IImageProcessingContext> operation)
+        where TPixel : struct, IPixel<TPixel>
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.NotNull(source, nameof(source));
+            Guard.NotNull(operation, nameof(operation));
+            source.EnsureNotDisposed();
+
+            IInternalImageProcessingContext<TPixel> operationsRunner
+                = configuration.ImageOperationsProvider.CreateImageProcessingContext(configuration, source, false);
+
             operation(operationsRunner);
             return operationsRunner.GetResultImage();
         }
@@ -100,12 +170,27 @@ namespace SixLabors.ImageSharp.Processing
         /// <returns>The new <see cref="SixLabors.ImageSharp.Image{TPixel}"/></returns>
         public static Image<TPixel> Clone<TPixel>(this Image<TPixel> source, params IImageProcessor[] operations)
             where TPixel : struct, IPixel<TPixel>
-        {
-            Guard.NotNull(operations, nameof(operations));
-            Guard.NotNull(source, nameof(source));
+            => Clone(source, source.GetConfiguration(), operations);
 
-            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider
-                .CreateImageProcessingContext(source, false);
+        /// <summary>
+        /// Creates a deep clone of the current image. The clone is then mutated by the given operations.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image to clone.</param>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="operations">The operations to perform on the clone.</param>
+        /// <returns>The new <see cref="SixLabors.ImageSharp.Image{TPixel}"/></returns>
+        public static Image<TPixel> Clone<TPixel>(this Image<TPixel> source, Configuration configuration, params IImageProcessor[] operations)
+        where TPixel : struct, IPixel<TPixel>
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.NotNull(source, nameof(source));
+            Guard.NotNull(operations, nameof(operations));
+            source.EnsureNotDisposed();
+
+            IInternalImageProcessingContext<TPixel> operationsRunner
+                = configuration.ImageOperationsProvider.CreateImageProcessingContext(configuration, source, false);
+
             operationsRunner.ApplyProcessors(operations);
             return operationsRunner.GetResultImage();
         }
@@ -130,12 +215,15 @@ namespace SixLabors.ImageSharp.Processing
 
         private class ProcessingVisitor : IImageVisitor
         {
+            private readonly Configuration configuration;
+
             private readonly Action<IImageProcessingContext> operation;
 
             private readonly bool mutate;
 
-            public ProcessingVisitor(Action<IImageProcessingContext> operation, bool mutate)
+            public ProcessingVisitor(Configuration configuration, Action<IImageProcessingContext> operation, bool mutate)
             {
+                this.configuration = configuration;
                 this.operation = operation;
                 this.mutate = mutate;
             }
@@ -145,8 +233,9 @@ namespace SixLabors.ImageSharp.Processing
             public void Visit<TPixel>(Image<TPixel> image)
                 where TPixel : struct, IPixel<TPixel>
             {
-                IInternalImageProcessingContext<TPixel> operationsRunner = image.GetConfiguration()
-                    .ImageOperationsProvider.CreateImageProcessingContext(image, this.mutate);
+                IInternalImageProcessingContext<TPixel> operationsRunner =
+                    this.configuration.ImageOperationsProvider.CreateImageProcessingContext(this.configuration, image, this.mutate);
+
                 this.operation(operationsRunner);
                 this.ResultImage = operationsRunner.GetResultImage();
             }

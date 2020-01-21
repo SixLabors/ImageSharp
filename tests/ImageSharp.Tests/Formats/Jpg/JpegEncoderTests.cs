@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        JpegMetadata meta = output.Metadata.GetFormatMetadata(JpegFormat.Instance);
+                        JpegMetadata meta = output.Metadata.GetJpegMetadata();
                         Assert.Equal(quality, meta.Quality);
                     }
                 }
@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 // There is no alpha in Jpeg!
                 image.Mutate(c => c.MakeOpaque());
 
-                var encoder = new JpegEncoder()
+                var encoder = new JpegEncoder
                 {
                     Subsample = subsample,
                     Quality = quality

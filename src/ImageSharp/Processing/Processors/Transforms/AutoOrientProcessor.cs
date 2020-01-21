@@ -1,8 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
@@ -12,10 +11,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     public sealed class AutoOrientProcessor : IImageProcessor
     {
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return new AutoOrientProcessor<TPixel>();
-        }
+            => new AutoOrientProcessor<TPixel>(configuration, source, sourceRectangle);
     }
 }

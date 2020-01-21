@@ -1,15 +1,12 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
-using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-using SixLabors.Primitives;
-using SixLabors.Shapes;
 
 using Xunit;
 
@@ -77,13 +74,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             using (Image<TPixel> image = provider.GetImage())
             using (var blend = Image.Load<TPixel>(TestFile.Create(brushImage).Bytes))
             {
-                Size size = new Size(image.Width * 3 / 4, image.Height * 3 / 4);
-                Point position = new Point(image.Width / 8, image.Height / 8);
+                var size = new Size(image.Width * 3 / 4, image.Height * 3 / 4);
+                var position = new Point(image.Width / 8, image.Height / 8);
                 blend.Mutate(x => x.Resize(size.Width, size.Height, KnownResamplers.Bicubic));
                 image.Mutate(x => x.DrawImage(blend, position, mode, opacity));
                 FormattableString testInfo = $"{System.IO.Path.GetFileNameWithoutExtension(brushImage)}-{mode}-{opacity}";
 
-                PngEncoder encoder = new PngEncoder();
+                var encoder = new PngEncoder();
 
                 if (provider.PixelType == PixelTypes.Rgba64)
                 {
@@ -129,7 +126,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             using (Image<Rgba32> background = provider.GetImage())
             using (var overlay = new Image<Rgba32>(50, 50))
             {
-                overlay.Mutate(c => c.Fill(Rgba32.Black));
+                overlay.GetPixelSpan().Fill(Rgba32.Black);
 
                 background.Mutate(c => c.DrawImage(overlay, new Point(x, y), PixelColorBlendingMode.Normal, 1F));
 
@@ -192,7 +189,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
                 void Test()
                 {
-                    background.Mutate(context => context.DrawImage(overlay, new Point(x, y), GraphicsOptions.Default));
+                    background.Mutate(context => context.DrawImage(overlay, new Point(x, y), new GraphicsOptions()));
                 }
             }
         }

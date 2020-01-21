@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -9,6 +9,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Normalization
 {
+    // ReSharper disable InconsistentNaming
     public class HistogramEqualizationTests
     {
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0456F);
@@ -19,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
         public void HistogramEqualizationTest(int luminanceLevels)
         {
             // Arrange
-            byte[] pixels = new byte[]
+            var pixels = new byte[]
             {
                 52,  55,  61,  59,  70,  61,  76,  61,
                 62,  59,  55, 104,  94,  85,  59,  71,
@@ -42,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                     }
                 }
 
-                byte[] expected = new byte[]
+                var expected = new byte[]
                 {
                 0,    12,   53,   32,  146,   53,  174,   53,
                 57,   32,   12,  227,  219,  202,   32,  154,
@@ -55,7 +56,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                 };
 
                 // Act
-                image.Mutate(x => x.HistogramEqualization(new HistogramEqualizationOptions()
+                image.Mutate(x => x.HistogramEqualization(new HistogramEqualizationOptions
                 {
                     LuminanceLevels = luminanceLevels
                 }));
@@ -81,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                var options = new HistogramEqualizationOptions()
+                var options = new HistogramEqualizationOptions
                 {
                     Method = HistogramEqualizationMethod.AdaptiveSlidingWindow,
                     LuminanceLevels = 256,
@@ -101,13 +102,40 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                var options = new HistogramEqualizationOptions()
+                var options = new HistogramEqualizationOptions
                 {
                     Method = HistogramEqualizationMethod.AdaptiveTileInterpolation,
                     LuminanceLevels = 256,
                     ClipHistogram = true,
                     NumberOfTiles = 10
                 };
+                image.Mutate(x => x.HistogramEqualization(options));
+                image.DebugSave(provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
+            }
+        }
+
+        /// <summary>
+        /// This is regression test for a bug with the calculation of the y-start positions,
+        /// where it could happen that one too much start position was calculated in some cases.
+        /// See: https://github.com/SixLabors/ImageSharp/pull/984
+        /// </summary>
+        [Theory]
+        [WithTestPatternImages(110, 110, PixelTypes.Rgb24)]
+        [WithTestPatternImages(170, 170, PixelTypes.Rgb24)]
+        public void Issue984<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var options = new HistogramEqualizationOptions()
+                              {
+                                  Method = HistogramEqualizationMethod.AdaptiveTileInterpolation,
+                                  LuminanceLevels = 256,
+                                  ClipHistogram = true,
+                                  ClipLimit = 5,
+                                  NumberOfTiles = 10
+                              };
                 image.Mutate(x => x.HistogramEqualization(options));
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(ValidatorComparer, provider);

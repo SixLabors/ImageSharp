@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -12,8 +12,6 @@ using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-using SixLabors.Memory;
-using SixLabors.Primitives;
 
 using Xunit;
 
@@ -34,8 +32,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
         public static readonly string[] SmokeTestResamplerNames =
             {
-                nameof(KnownResamplers.NearestNeighbor), 
-                nameof(KnownResamplers.Bicubic), 
+                nameof(KnownResamplers.NearestNeighbor),
+                nameof(KnownResamplers.Bicubic),
                 nameof(KnownResamplers.Box),
                 nameof(KnownResamplers.Lanczos5),
             };
@@ -47,21 +45,19 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void Resize_PixelAgnostic()
         {
             var filePath = TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora);
-            
+
             using (Image image = Image.Load(filePath))
             {
                 image.Mutate(x => x.Resize(image.Size() / 2));
                 string path = System.IO.Path.Combine(
                     TestEnvironment.CreateOutputDirectory(nameof(ResizeTests)),
                     nameof(this.Resize_PixelAgnostic) + ".png");
-                
+
                 image.Save(path);
             }
         }
-        
-        [Theory(
-            Skip = "Debug only, enable manually"
-            )]
+
+        [Theory(Skip = "Debug only, enable manually")]
         [WithTestPatternImages(4000, 4000, PixelTypes.Rgba32, 300, 1024)]
         [WithTestPatternImages(3032, 3032, PixelTypes.Rgba32, 400, 1024)]
         [WithTestPatternImages(3032, 3032, PixelTypes.Rgba32, 400, 128)]
@@ -81,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.DebugSave(provider, appendPixelTypeToFileName: false);
             }
         }
-        
+
         [Theory]
         [WithBasicTestPatternImages(15, 12, PixelTypes.Rgba32, 2, 3, 1, 2)]
         [WithBasicTestPatternImages(2, 256, PixelTypes.Rgba32, 1, 1, 1, 8)]
@@ -93,7 +89,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             // [WithBasicTestPatternImages(15, 12, PixelTypes.Rgba32, 2, 3, 1, 2)] means:
             // resizing: (15, 12) -> (10, 6)
             // kernel dimensions: (3, 4)
-            
+
 
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -123,9 +119,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             using (Image<TPixel> image0 = provider.GetImage())
             {
                 Size destSize = image0.Size() / 4;
-                
+
                 Configuration configuration = Configuration.CreateDefaultInstance();
-                
+
                 int workingBufferSizeHintInBytes = workingBufferLimitInRows * destSize.Width * SizeOfVector4;
                 TestMemoryAllocator allocator = new TestMemoryAllocator();
                 configuration.MemoryAllocator = allocator;
@@ -136,9 +132,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                     destSize.Height,
                     image0.Height,
                     Configuration.Default.MemoryAllocator);
-                int minimumWorkerAllocationInBytes =  verticalKernelMap.MaxDiameter * 2 * destSize.Width * SizeOfVector4;
+                int minimumWorkerAllocationInBytes = verticalKernelMap.MaxDiameter * 2 * destSize.Width * SizeOfVector4;
                 verticalKernelMap.Dispose();
-                
+
                 using (Image<TPixel> image = image0.Clone(configuration))
                 {
                     image.Mutate(x => x.Resize(destSize, KnownResamplers.Bicubic, false));
@@ -152,12 +148,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                         provider,
                         testOutputDetails: workingBufferLimitInRows,
                         appendPixelTypeToFileName: false);
-                    
+
                     Assert.NotEmpty(allocator.AllocationLog);
 
                     int maxAllocationSize = allocator.AllocationLog.Where(
                         e => e.ElementType == typeof(Vector4)).Max(e => e.LengthInBytes);
-                    
+
                     Assert.True(maxAllocationSize <= Math.Max(workingBufferSizeHintInBytes, minimumWorkerAllocationInBytes));
                 }
             }
@@ -285,7 +281,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         {
             IResampler sampler = TestUtils.GetResampler(samplerName);
 
-            // NeirestNeighbourResampler is producing slightly different results With classic .NET framework on 32bit
+            // NearestNeighbourResampler is producing slightly different results With classic .NET framework on 32bit
             // most likely because of differences in numeric behavior.
             // The difference is well visible when comparing output for
             // Resize_WorksWithAllResamplers_TestPattern301x1180_NearestNeighbor-300x480.png
@@ -298,7 +294,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
             // Let's make the working buffer size non-default:
             provider.Configuration.WorkingBufferSizeHintInBytes = 16 * 1024 * SizeOfVector4;
-            
+
             provider.RunValidatingProcessorTest(
                 ctx =>
                     {
@@ -420,9 +416,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 var options = new ResizeOptions
-                                  {
-                                      Size = new Size(image.Width + 200, image.Height + 200), Mode = ResizeMode.BoxPad
-                                  };
+                {
+                    Size = new Size(image.Width + 200, image.Height + 200),
+                    Mode = ResizeMode.BoxPad
+                };
 
                 image.Mutate(x => x.Resize(options));
 
@@ -464,6 +461,26 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
+        [WithFile(TestImages.Jpeg.Issues.IncorrectResize1006, DefaultPixelType)]
+        public void CanResizeLargeImageWithCropMode<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var options = new ResizeOptions
+                {
+                    Size = new Size(480, 600),
+                    Mode = ResizeMode.Crop
+                };
+
+                image.Mutate(x => x.Resize(options));
+
+                image.DebugSave(provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
+            }
+        }
+
+        [Theory]
         [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
         public void ResizeWithMaxMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
@@ -487,12 +504,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 var options = new ResizeOptions
-                                  {
-                                      Size = new Size(
+                {
+                    Size = new Size(
                                           (int)Math.Round(image.Width * .75F),
                                           (int)Math.Round(image.Height * .95F)),
-                                      Mode = ResizeMode.Min
-                                  };
+                    Mode = ResizeMode.Min
+                };
 
                 image.Mutate(x => x.Resize(options));
 
@@ -509,9 +526,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 var options = new ResizeOptions
-                                  {
-                                      Size = new Size(image.Width + 200, image.Height), Mode = ResizeMode.Pad
-                                  };
+                {
+                    Size = new Size(image.Width + 200, image.Height),
+                    Mode = ResizeMode.Pad
+                };
 
                 image.Mutate(x => x.Resize(options));
 
@@ -528,14 +546,35 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 var options = new ResizeOptions
-                                  {
-                                      Size = new Size(image.Width / 2, image.Height), Mode = ResizeMode.Stretch
-                                  };
+                {
+                    Size = new Size(image.Width / 2, image.Height),
+                    Mode = ResizeMode.Stretch
+                };
 
                 image.Mutate(x => x.Resize(options));
 
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(ValidatorComparer, provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Issues.ExifDecodeOutOfRange694, DefaultPixelType)]
+        [WithFile(TestImages.Jpeg.Issues.ExifGetString750Transform, DefaultPixelType)]
+        [WithFile(TestImages.Jpeg.Issues.ExifResize1049, DefaultPixelType)]
+        public void CanResizeExifIssueImages<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            // Test images are large so skip on 32bit for now.
+            if (!TestEnvironment.Is64BitProcess)
+            {
+                return;
+            }
+
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                // Don't bother saving, we're testing the EXIF metadata updates.
+                image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
             }
         }
     }

@@ -1,20 +1,12 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
@@ -28,105 +20,86 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        private bool isDisposed;
+        private readonly int targetWidth;
+        private readonly int targetHeight;
+        private readonly IResampler resampler;
+        private Rectangle targetRectangle;
+        private readonly bool compand;
+
         // The following fields are not immutable but are optionally created on demand.
         private ResizeKernelMap horizontalKernelMap;
         private ResizeKernelMap verticalKernelMap;
 
-        private readonly ResizeProcessor parameterSource;
-
-        public ResizeProcessor(ResizeProcessor parameterSource)
+        public ResizeProcessor(Configuration configuration, ResizeProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
-            this.parameterSource = parameterSource;
-        }
-
-        /// <summary>
-        /// Gets the sampler to perform the resize operation.
-        /// </summary>
-        public IResampler Sampler => this.parameterSource.Sampler;
-
-        /// <summary>
-        /// Gets the target width.
-        /// </summary>
-        public int Width => this.parameterSource.Width;
-
-        /// <summary>
-        /// Gets the target height.
-        /// </summary>
-        public int Height => this.parameterSource.Height;
-
-        /// <summary>
-        /// Gets the resize rectangle.
-        /// </summary>
-        public Rectangle TargetRectangle => this.parameterSource.TargetRectangle;
-
-        /// <summary>
-        /// Gets a value indicating whether to compress or expand individual pixel color values on processing.
-        /// </summary>
-        public bool Compand => this.parameterSource.Compand;
-
-        /// <inheritdoc/>
-        protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
-        {
-            // We will always be creating the clone even for mutate because we may need to resize the canvas
-            IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select<ImageFrame<TPixel>, ImageFrame<TPixel>>(
-                x => new ImageFrame<TPixel>(
-                    source.GetConfiguration(),
-                    this.Width,
-                    this.Height,
-                    x.Metadata.DeepClone()));
-
-            // Use the overload to prevent an extra frame being added
-            return new Image<TPixel>(source.GetConfiguration(), source.Metadata.DeepClone(), frames);
+            this.targetWidth = definition.TargetWidth;
+            this.targetHeight = definition.TargetHeight;
+            this.targetRectangle = definition.TargetRectangle;
+            this.resampler = definition.Sampler;
+            this.compand = definition.Compand;
         }
 
         /// <inheritdoc/>
-        protected override void BeforeImageApply(Image<TPixel> source, Image<TPixel> destination, Rectangle sourceRectangle)
+        protected override Size GetTargetSize() => new Size(this.targetWidth, this.targetHeight);
+
+        /// <inheritdoc/>
+        protected override void BeforeImageApply(Image<TPixel> destination)
         {
-            if (!(this.Sampler is NearestNeighborResampler))
+            if (!(this.resampler is NearestNeighborResampler))
             {
+                Image<TPixel> source = this.Source;
+                Rectangle sourceRectangle = this.SourceRectangle;
+
                 // Since all image frame dimensions have to be the same we can calculate this for all frames.
                 MemoryAllocator memoryAllocator = source.GetMemoryAllocator();
                 this.horizontalKernelMap = ResizeKernelMap.Calculate(
-                    this.Sampler,
-                    this.TargetRectangle.Width,
+                    this.resampler,
+                    this.targetRectangle.Width,
                     sourceRectangle.Width,
                     memoryAllocator);
 
                 this.verticalKernelMap = ResizeKernelMap.Calculate(
-                    this.Sampler,
-                    this.TargetRectangle.Height,
+                    this.resampler,
+                    this.targetRectangle.Height,
                     sourceRectangle.Height,
                     memoryAllocator);
             }
+
+            base.BeforeImageApply(destination);
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
         {
+            Rectangle sourceRectangle = this.SourceRectangle;
+            Configuration configuration = this.Configuration;
+
             // Handle resize dimensions identical to the original
-            if (source.Width == destination.Width && source.Height == destination.Height && sourceRectangle == this.TargetRectangle)
+            if (source.Width == destination.Width && source.Height == destination.Height && sourceRectangle == this.targetRectangle)
             {
                 // The cloned will be blank here copy all the pixel data over
                 source.GetPixelSpan().CopyTo(destination.GetPixelSpan());
                 return;
             }
 
-            int width = this.Width;
-            int height = this.Height;
+            int width = this.targetWidth;
+            int height = this.targetHeight;
             int sourceX = sourceRectangle.X;
             int sourceY = sourceRectangle.Y;
-            int startY = this.TargetRectangle.Y;
-            int startX = this.TargetRectangle.X;
+            int startY = this.targetRectangle.Y;
+            int startX = this.targetRectangle.X;
 
             var targetWorkingRect = Rectangle.Intersect(
-                this.TargetRectangle,
+                this.targetRectangle,
                 new Rectangle(0, 0, width, height));
 
-            if (this.Sampler is NearestNeighborResampler)
+            if (this.resampler is NearestNeighborResampler)
             {
                 // Scaling factors
-                float widthFactor = sourceRectangle.Width / (float)this.TargetRectangle.Width;
-                float heightFactor = sourceRectangle.Height / (float)this.TargetRectangle.Height;
+                float widthFactor = sourceRectangle.Width / (float)this.targetRectangle.Width;
+                float heightFactor = sourceRectangle.Height / (float)this.targetRectangle.Height;
 
                 ParallelHelper.IterateRows(
                     targetWorkingRect,
@@ -136,8 +109,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                         for (int y = rows.Min; y < rows.Max; y++)
                         {
                             // Y coordinates of source points
-                            Span<TPixel> sourceRow =
-                                source.GetPixelRowSpan((int)(((y - startY) * heightFactor) + sourceY));
+                            Span<TPixel> sourceRow = source.GetPixelRowSpan((int)(((y - startY) * heightFactor) + sourceY));
                             Span<TPixel> targetRow = destination.GetPixelRowSpan(y);
 
                             for (int x = targetWorkingRect.Left; x < targetWorkingRect.Right; x++)
@@ -151,10 +123,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return;
             }
 
-            int sourceHeight = source.Height;
-
             PixelConversionModifiers conversionModifiers =
-                PixelConversionModifiers.Premultiply.ApplyCompanding(this.Compand);
+                PixelConversionModifiers.Premultiply.ApplyCompanding(this.compand);
 
             BufferArea<TPixel> sourceArea = source.PixelBuffer.GetArea(sourceRectangle);
 
@@ -168,7 +138,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 this.verticalKernelMap,
                 width,
                 targetWorkingRect,
-                this.TargetRectangle.Location))
+                this.targetRectangle.Location))
             {
                 worker.Initialize();
 
@@ -177,15 +147,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
         }
 
-        protected override void AfterImageApply(Image<TPixel> source, Image<TPixel> destination, Rectangle sourceRectangle)
+        /// <inheritdoc/>
+        protected override void Dispose(bool disposing)
         {
-            base.AfterImageApply(source, destination, sourceRectangle);
+            if (this.isDisposed)
+            {
+                return;
+            }
 
-            // TODO: An exception in the processing chain can leave these buffers undisposed. We should consider making image processors IDisposable!
-            this.horizontalKernelMap?.Dispose();
-            this.horizontalKernelMap = null;
-            this.verticalKernelMap?.Dispose();
-            this.verticalKernelMap = null;
+            if (disposing)
+            {
+                this.horizontalKernelMap?.Dispose();
+                this.horizontalKernelMap = null;
+                this.verticalKernelMap?.Dispose();
+                this.verticalKernelMap = null;
+            }
+
+            this.isDisposed = true;
+            base.Dispose(disposing);
         }
     }
 }

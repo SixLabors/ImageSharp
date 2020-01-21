@@ -3,8 +3,6 @@
 using System;
 using System.Runtime.CompilerServices;
 
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
@@ -23,10 +21,10 @@ namespace SixLabors.ImageSharp.Memory
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public BufferArea(Buffer2D<T> destinationBuffer, Rectangle rectangle)
         {
-            ImageSharp.DebugGuard.MustBeGreaterThanOrEqualTo(rectangle.X, 0, nameof(rectangle));
-            ImageSharp.DebugGuard.MustBeGreaterThanOrEqualTo(rectangle.Y, 0, nameof(rectangle));
-            ImageSharp.DebugGuard.MustBeLessThanOrEqualTo(rectangle.Width, destinationBuffer.Width, nameof(rectangle));
-            ImageSharp.DebugGuard.MustBeLessThanOrEqualTo(rectangle.Height, destinationBuffer.Height, nameof(rectangle));
+            DebugGuard.MustBeGreaterThanOrEqualTo(rectangle.X, 0, nameof(rectangle));
+            DebugGuard.MustBeGreaterThanOrEqualTo(rectangle.Y, 0, nameof(rectangle));
+            DebugGuard.MustBeLessThanOrEqualTo(rectangle.Width, destinationBuffer.Width, nameof(rectangle));
+            DebugGuard.MustBeLessThanOrEqualTo(rectangle.Height, destinationBuffer.Height, nameof(rectangle));
 
             this.DestinationBuffer = destinationBuffer;
             this.Rectangle = rectangle;
@@ -122,8 +120,8 @@ namespace SixLabors.ImageSharp.Memory
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public BufferArea<T> GetSubArea(Rectangle rectangle)
         {
-            ImageSharp.DebugGuard.MustBeLessThanOrEqualTo(rectangle.Width, this.Rectangle.Width, nameof(rectangle));
-            ImageSharp.DebugGuard.MustBeLessThanOrEqualTo(rectangle.Height, this.Rectangle.Height, nameof(rectangle));
+            DebugGuard.MustBeLessThanOrEqualTo(rectangle.Width, this.Rectangle.Width, nameof(rectangle));
+            DebugGuard.MustBeLessThanOrEqualTo(rectangle.Height, this.Rectangle.Height, nameof(rectangle));
 
             int x = this.Rectangle.X + rectangle.X;
             int y = this.Rectangle.Y + rectangle.Y;

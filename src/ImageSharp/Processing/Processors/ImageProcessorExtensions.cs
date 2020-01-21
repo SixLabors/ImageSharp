@@ -1,42 +1,32 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors
 {
     internal static class ImageProcessorExtensions
     {
-        public static void Apply(this IImageProcessor processor, Image source, Rectangle sourceRectangle)
-        {
-            var visitor = new ApplyVisitor(processor, sourceRectangle);
-            source.AcceptVisitor(visitor);
-        }
-
         /// <summary>
-        /// Apply an <see cref="IImageProcessor"/> to a frame.
-        /// Only works from processors implemented by an <see cref="ImageProcessor{TPixel}"/> subclass.
+        /// Executes the processor against the given source image and rectangle bounds.
         /// </summary>
-        internal static void Apply<TPixel>(
-            this IImageProcessor processor,
-            ImageFrame<TPixel> frame,
-            Rectangle sourceRectangle,
-            Configuration configuration)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            var processorImpl = (ImageProcessor<TPixel>)processor.CreatePixelSpecificProcessor<TPixel>();
-            processorImpl.Apply(frame, sourceRectangle, configuration);
-        }
+        /// <param name="processor">The processor.</param>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="source">The source image.</param>
+        /// <param name="sourceRectangle">The source bounds.</param>
+        public static void Execute(this IImageProcessor processor, Configuration configuration, Image source, Rectangle sourceRectangle)
+            => source.AcceptVisitor(new ExecuteVisitor(configuration, processor, sourceRectangle));
 
-        private class ApplyVisitor : IImageVisitor
+        private class ExecuteVisitor : IImageVisitor
         {
+            private readonly Configuration configuration;
             private readonly IImageProcessor processor;
-
             private readonly Rectangle sourceRectangle;
 
-            public ApplyVisitor(IImageProcessor processor, Rectangle sourceRectangle)
+            public ExecuteVisitor(Configuration configuration, IImageProcessor processor, Rectangle sourceRectangle)
             {
+                this.configuration = configuration;
                 this.processor = processor;
                 this.sourceRectangle = sourceRectangle;
             }
@@ -44,8 +34,10 @@ namespace SixLabors.ImageSharp.Processing.Processors
             public void Visit<TPixel>(Image<TPixel> image)
                 where TPixel : struct, IPixel<TPixel>
             {
-                var processorImpl = this.processor.CreatePixelSpecificProcessor<TPixel>();
-                processorImpl.Apply(image, this.sourceRectangle);
+                using (IImageProcessor<TPixel> processorImpl = this.processor.CreatePixelSpecificProcessor(this.configuration, image, this.sourceRectangle))
+                {
+                    processorImpl.Execute();
+                }
             }
         }
     }

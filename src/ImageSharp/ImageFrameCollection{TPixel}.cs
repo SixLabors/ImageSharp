@@ -347,11 +347,11 @@ namespace SixLabors.ImageSharp
 
         private ImageFrame<TPixel> CopyNonCompatibleFrame(ImageFrame source)
         {
-            ImageFrame<TPixel> result = new ImageFrame<TPixel>(
+            var result = new ImageFrame<TPixel>(
                 this.parent.GetConfiguration(),
                 source.Size(),
                 source.Metadata.DeepClone());
-            source.CopyPixelsTo(result.PixelBuffer.Span);
+            source.CopyPixelsTo(result.PixelBuffer.GetSpan());
             return result;
         }
     }

@@ -1,9 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.IO;
-using System.Linq;
+
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
@@ -13,9 +13,6 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
-
     /// <summary>
     /// Tests the <see cref="Image"/> class.
     /// </summary>
@@ -39,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests
             this.encoderNotInFormat = new Mock<IImageEncoder>();
 
             this.fileSystem = new Mock<IFileSystem>();
-            var config = new Configuration()
+            var config = new Configuration
             {
                 FileSystem = this.fileSystem.Object
             };
@@ -51,23 +48,23 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void SavePath()
         {
-            Stream stream = new MemoryStream();
+            var stream = new MemoryStream();
             this.fileSystem.Setup(x => x.Create("path.png")).Returns(stream);
             this.Image.Save("path.png");
 
-            this.encoder.Verify(x => x.Encode<Rgba32>(this.Image, stream));
+            this.encoder.Verify(x => x.Encode(this.Image, stream));
         }
 
 
         [Fact]
         public void SavePathWithEncoder()
         {
-            Stream stream = new MemoryStream();
+            var stream = new MemoryStream();
             this.fileSystem.Setup(x => x.Create("path.jpg")).Returns(stream);
 
             this.Image.Save("path.jpg", this.encoderNotInFormat.Object);
 
-            this.encoderNotInFormat.Verify(x => x.Encode<Rgba32>(this.Image, stream));
+            this.encoderNotInFormat.Verify(x => x.Encode(this.Image, stream));
         }
 
         [Fact]
@@ -75,26 +72,26 @@ namespace SixLabors.ImageSharp.Tests
         {
             string str = this.Image.ToBase64String(this.localImageFormat.Object);
 
-            this.encoder.Verify(x => x.Encode<Rgba32>(this.Image, It.IsAny<Stream>()));
+            this.encoder.Verify(x => x.Encode(this.Image, It.IsAny<Stream>()));
         }
 
         [Fact]
         public void SaveStreamWithMime()
         {
-            Stream stream = new MemoryStream();
+            var stream = new MemoryStream();
             this.Image.Save(stream, this.localImageFormat.Object);
 
-            this.encoder.Verify(x => x.Encode<Rgba32>(this.Image, stream));
+            this.encoder.Verify(x => x.Encode(this.Image, stream));
         }
 
         [Fact]
         public void SaveStreamWithEncoder()
         {
-            Stream stream = new MemoryStream();
+            var stream = new MemoryStream();
 
             this.Image.Save(stream, this.encoderNotInFormat.Object);
 
-            this.encoderNotInFormat.Verify(x => x.Encode<Rgba32>(this.Image, stream));
+            this.encoderNotInFormat.Verify(x => x.Encode(this.Image, stream));
         }
 
         public void Dispose()

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 #pragma warning disable SA1117 // Parameters should be on same line or separate lines
@@ -6,7 +6,7 @@ using System;
 using System.Globalization;
 using System.Runtime.InteropServices;
 
-namespace SixLabors.ImageSharp.Primitives
+namespace SixLabors.ImageSharp
 {
     /// <summary>
     /// A structure encapsulating a 5x4 matrix used for transforming the color and alpha components of an image.
@@ -269,7 +269,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// </summary>
         /// <param name="value">The source matrix.</param>
         /// <returns>The negated matrix.</returns>
-        public static unsafe ColorMatrix operator -(ColorMatrix value)
+        public static ColorMatrix operator -(ColorMatrix value)
         {
             ColorMatrix m;
 

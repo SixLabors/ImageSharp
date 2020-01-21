@@ -11,7 +11,6 @@ using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
@@ -387,9 +386,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     if (rowHasUndefinedPixels)
                     {
                         // Slow path with undefined pixels.
+                        int rowStartIdx = y * width * 3;
                         for (int x = 0; x < width; x++)
                         {
-                            int idx = (y * width * 3) + (x * 3);
+                            int idx = rowStartIdx + (x * 3);
                             if (undefinedPixels[x, y])
                             {
                                 switch (this.options.RleSkippedPixelHandling)
@@ -418,9 +418,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     else
                     {
                         // Fast path without any undefined pixels.
+                        int rowStartIdx = y * width * 3;
                         for (int x = 0; x < width; x++)
                         {
-                            int idx = (y * width * 3) + (x * 3);
+                            int idx = rowStartIdx + (x * 3);
                             color.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));
                             pixelRow[x] = color;
                         }
@@ -443,11 +444,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="rowsWithUndefinedPixels">Keeps track of rows, which have undefined pixels.</param>
         private void UncompressRle4(int w, Span<byte> buffer, Span<bool> undefinedPixels, Span<bool> rowsWithUndefinedPixels)
         {
-#if NETCOREAPP2_1
             Span<byte> cmd = stackalloc byte[2];
-#else
-            byte[] cmd = new byte[2];
-#endif
             int count = 0;
 
             while (count < buffer.Length)
@@ -485,7 +482,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                             int max = cmd[1];
                             int bytesToRead = (max + 1) / 2;
 
-                            byte[] run = new byte[bytesToRead];
+                            var run = new byte[bytesToRead];
 
                             this.stream.Read(run, 0, run.Length);
 
@@ -554,11 +551,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="rowsWithUndefinedPixels">Keeps track of rows, which have undefined pixels.</param>
         private void UncompressRle8(int w, Span<byte> buffer, Span<bool> undefinedPixels, Span<bool> rowsWithUndefinedPixels)
         {
-#if NETCOREAPP2_1
             Span<byte> cmd = stackalloc byte[2];
-#else
-            byte[] cmd = new byte[2];
-#endif
             int count = 0;
 
             while (count < buffer.Length)
@@ -595,7 +588,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                             // Take this number of bytes from the stream as uncompressed data.
                             int length = cmd[1];
 
-                            byte[] run = new byte[length];
+                            var run = new byte[length];
 
                             this.stream.Read(run, 0, run.Length);
 
@@ -637,11 +630,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="rowsWithUndefinedPixels">Keeps track of rows, which have undefined pixels.</param>
         private void UncompressRle24(int w, Span<byte> buffer, Span<bool> undefinedPixels, Span<bool> rowsWithUndefinedPixels)
         {
-#if NETCOREAPP2_1
             Span<byte> cmd = stackalloc byte[2];
-#else
-            byte[] cmd = new byte[2];
-#endif
             int uncompressedPixels = 0;
 
             while (uncompressedPixels < buffer.Length)
@@ -678,7 +667,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                             // Take this number of bytes from the stream as uncompressed data.
                             int length = cmd[1];
 
-                            byte[] run = new byte[length * 3];
+                            var run = new byte[length * 3];
 
                             this.stream.Read(run, 0, run.Length);
 
@@ -1211,11 +1200,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private void ReadInfoHeader()
         {
-#if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[BmpInfoHeader.MaxHeaderSize];
-#else
-            byte[] buffer = new byte[BmpInfoHeader.MaxHeaderSize];
-#endif
 
             // Read the header size.
             this.stream.Read(buffer, 0, BmpInfoHeader.HeaderSizeSize);
@@ -1252,7 +1237,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 // color masks for each color channel follow the info header.
                 if (this.infoHeader.Compression == BmpCompression.BitFields)
                 {
-                    byte[] bitfieldsBuffer = new byte[12];
+                    var bitfieldsBuffer = new byte[12];
                     this.stream.Read(bitfieldsBuffer, 0, 12);
                     Span<byte> data = bitfieldsBuffer.AsSpan();
                     this.infoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4));
@@ -1261,7 +1246,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 }
                 else if (this.infoHeader.Compression == BmpCompression.BI_ALPHABITFIELDS)
                 {
-                    byte[] bitfieldsBuffer = new byte[16];
+                    var bitfieldsBuffer = new byte[16];
                     this.stream.Read(bitfieldsBuffer, 0, 16);
                     Span<byte> data = bitfieldsBuffer.AsSpan();
                     this.infoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4));
@@ -1319,7 +1304,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.metadata = meta;
 
             short bitsPerPixel = this.infoHeader.BitsPerPixel;
-            this.bmpMetadata = this.metadata.GetFormatMetadata(BmpFormat.Instance);
+            this.bmpMetadata = this.metadata.GetBmpMetadata();
             this.bmpMetadata.InfoHeaderType = infoHeaderType;
 
             // We can only encode at these bit rates so far (1 bit and 4 bit are still missing).
@@ -1337,11 +1322,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private void ReadFileHeader()
         {
-#if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[BmpFileHeader.Size];
-#else
-            byte[] buffer = new byte[BmpFileHeader.Size];
-#endif
             this.stream.Read(buffer, 0, BmpFileHeader.Size);
 
             short fileTypeMarker = BinaryPrimitives.ReadInt16LittleEndian(buffer);

@@ -1,4 +1,4 @@
-﻿using System.Buffers.Binary;
+using System.Buffers.Binary;
 using System.IO;
 using System.Text;
 
@@ -54,7 +54,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [InlineData((uint)PngChunkType.Header)] // IHDR
         [InlineData((uint)PngChunkType.Palette)] // PLTE
         // [InlineData(PngChunkTypes.Data)] //TODO: Figure out how to test this
-        [InlineData((uint)PngChunkType.End)] // IEND
         public void Decode_IncorrectCRCForCriticalChunk_ExceptionIsThrown(uint chunkType)
         {
             string chunkName = GetChunkTypeName(chunkType);
@@ -74,29 +73,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             }
         }
 
-        [Theory]
-        [InlineData((uint)PngChunkType.Gamma)] // gAMA
-        [InlineData((uint)PngChunkType.Transparency)] // tRNS
-        [InlineData((uint)PngChunkType.Physical)] // pHYs: It's ok to test physical as we don't throw for duplicate chunks.
-        //[InlineData(PngChunkTypes.Text)] //TODO: Figure out how to test this
-        public void Decode_IncorrectCRCForNonCriticalChunk_ExceptionIsThrown(uint chunkType)
-        {
-            string chunkName = GetChunkTypeName(chunkType);
-
-            using (var memStream = new MemoryStream())
-            {
-                WriteHeaderChunk(memStream);
-                WriteChunk(memStream, chunkName);
-                WriteDataChunk(memStream);
-
-                var decoder = new PngDecoder();
-                decoder.Decode<Rgb24>(null, memStream);
-            }
-        }
-
         private static string GetChunkTypeName(uint value)
         {
-            byte[] data = new byte[4];
+            var data = new byte[4];
 
             BinaryPrimitives.WriteUInt32BigEndian(data, value);
 

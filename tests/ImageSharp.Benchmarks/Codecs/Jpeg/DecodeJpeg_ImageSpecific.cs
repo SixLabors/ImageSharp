@@ -1,18 +1,18 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Drawing;
 using System.IO;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Diagnosers;
+using BenchmarkDotNet.Environments;
 using BenchmarkDotNet.Jobs;
 
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
-using CoreSize = SixLabors.Primitives.Size;
 using SDImage = System.Drawing.Image;
+using SDSize = System.Drawing.Size;
 // ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
@@ -35,8 +35,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
                 public ShortClr()
                 {
                     this.Add(
-                        // Job.Clr.WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3),
-                        Job.Core.WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3)
+                        // Job.Default.With(ClrRuntime.Net472).WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3),
+                        Job.Default.With(CoreRuntime.Core21).WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3)
                     );
                 }
             }
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         }
 
         [Benchmark(Baseline = true, Description = "Decode Jpeg - System.Drawing")]
-        public Size JpegSystemDrawing()
+        public SDSize JpegSystemDrawing()
         {
             using (var memoryStream = new MemoryStream(this.jpegBytes))
             {
@@ -83,13 +83,13 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         }
 
         [Benchmark(Description = "Decode Jpeg - ImageSharp")]
-        public CoreSize JpegImageSharp()
+        public Size JpegImageSharp()
         {
             using (var memoryStream = new MemoryStream(this.jpegBytes))
             {
-                using (var image = Image.Load<Rgba32>(memoryStream, new JpegDecoder() { IgnoreMetadata = true }))
+                using (var image = Image.Load<Rgba32>(memoryStream, new JpegDecoder { IgnoreMetadata = true }))
                 {
-                    return new CoreSize(image.Width, image.Height);
+                    return new Size(image.Width, image.Height);
                 }
             }
         }

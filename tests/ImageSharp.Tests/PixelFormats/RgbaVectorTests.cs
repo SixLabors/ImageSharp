@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         /// <summary>
-        /// Tests that the individual float elements are layed out in RGBA order.
+        /// Tests that the individual float elements are laid out in RGBA order.
         /// </summary>
         [Fact]
         public void FloatLayout()
@@ -169,7 +169,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Vector4 expected = Vector4.One;
 
             // act
-            rgba.FromGray16(new Gray16(ushort.MaxValue));
+            rgba.FromL16(new L16(ushort.MaxValue));
 
             // assert
             Assert.Equal(expected, rgba.ToScaledVector4());
@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Vector4 expected = Vector4.One;
 
             // act
-            rgba.FromGray8(new Gray8(byte.MaxValue));
+            rgba.FromL8(new L8(byte.MaxValue));
 
             // assert
             Assert.Equal(expected, rgba.ToScaledVector4());

@@ -6,7 +6,6 @@ using System;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Binarization
 {
@@ -19,21 +18,29 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
     {
         private readonly BinaryOrderedDitherProcessor definition;
 
-        public BinaryOrderedDitherProcessor(BinaryOrderedDitherProcessor definition)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BinaryOrderedDitherProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="definition">The <see cref="BinaryErrorDiffusionProcessor"/> defining the processor parameters.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public BinaryOrderedDitherProcessor(Configuration configuration, BinaryOrderedDitherProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             this.definition = definition;
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             IOrderedDither dither = this.definition.Dither;
             TPixel upperColor = this.definition.UpperColor.ToPixel<TPixel>();
             TPixel lowerColor = this.definition.LowerColor.ToPixel<TPixel>();
 
-            bool isAlphaOnly = typeof(TPixel) == typeof(Alpha8);
+            bool isAlphaOnly = typeof(TPixel) == typeof(A8);
 
-            var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
             int startY = interest.Y;
             int endY = interest.Bottom;
             int startX = interest.X;

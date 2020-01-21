@@ -15,9 +15,6 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Primitives;
-using SixLabors.Memory;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
 {
@@ -465,24 +462,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
         }
 
-        private double GetExifResolutionValue(ExifTag tag)
+        private double GetExifResolutionValue(ExifTag<Rational> tag)
         {
-            if (!this.Metadata.ExifProfile.TryGetValue(tag, out ExifValue exifValue))
-            {
-                return 0;
-            }
+            IExifValue<Rational> resolution = this.Metadata.ExifProfile.GetValue(tag);
 
-            switch (exifValue.DataType)
-            {
-                case ExifDataType.Rational:
-                    return ((Rational)exifValue.Value).ToDouble();
-                case ExifDataType.Long:
-                    return (uint)exifValue.Value;
-                case ExifDataType.DoubleFloat:
-                    return (double)exifValue.Value;
-                default:
-                    return 0;
-            }
+            return resolution is null ? 0 : resolution.Value.ToDouble();
         }
 
         /// <summary>
@@ -538,7 +522,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            byte[] profile = new byte[remaining];
+            var profile = new byte[remaining];
             this.InputStream.Read(profile, 0, remaining);
 
             if (ProfileResolver.IsProfile(profile, ProfileResolver.ExifMarker))
@@ -571,14 +555,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            byte[] identifier = new byte[Icclength];
+            var identifier = new byte[Icclength];
             this.InputStream.Read(identifier, 0, Icclength);
             remaining -= Icclength; // We have read it by this point
 
             if (ProfileResolver.IsProfile(identifier, ProfileResolver.IccMarker))
             {
                 this.isIcc = true;
-                byte[] profile = new byte[remaining];
+                var profile = new byte[remaining];
                 this.InputStream.Read(profile, 0, remaining);
 
                 if (this.iccData is null)
@@ -649,48 +633,51 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 switch (quantizationTableSpec >> 4)
                 {
                     case 0:
+                    {
+                        // 8 bit values
+                        if (remaining < 64)
                         {
-                            // 8 bit values
-                            if (remaining < 64)
-                            {
-                                done = true;
-                                break;
-                            }
-
-                            this.InputStream.Read(this.temp, 0, 64);
-                            remaining -= 64;
-
-                            ref Block8x8F table = ref this.QuantizationTables[tableIndex];
-                            for (int j = 0; j < 64; j++)
-                            {
-                                table[j] = this.temp[j];
-                            }
+                            done = true;
+                            break;
                         }
 
-                        break;
+                        this.InputStream.Read(this.temp, 0, 64);
+                        remaining -= 64;
+
+                        ref Block8x8F table = ref this.QuantizationTables[tableIndex];
+                        for (int j = 0; j < 64; j++)
+                        {
+                            table[j] = this.temp[j];
+                        }
+                    }
+
+                    break;
                     case 1:
+                    {
+                        // 16 bit values
+                        if (remaining < 128)
                         {
-                            // 16 bit values
-                            if (remaining < 128)
-                            {
-                                done = true;
-                                break;
-                            }
-
-                            this.InputStream.Read(this.temp, 0, 128);
-                            remaining -= 128;
-
-                            ref Block8x8F table = ref this.QuantizationTables[tableIndex];
-                            for (int j = 0; j < 64; j++)
-                            {
-                                table[j] = (this.temp[2 * j] << 8) | this.temp[(2 * j) + 1];
-                            }
+                            done = true;
+                            break;
                         }
 
-                        break;
+                        this.InputStream.Read(this.temp, 0, 128);
+                        remaining -= 128;
+
+                        ref Block8x8F table = ref this.QuantizationTables[tableIndex];
+                        for (int j = 0; j < 64; j++)
+                        {
+                            table[j] = (this.temp[2 * j] << 8) | this.temp[(2 * j) + 1];
+                        }
+                    }
+
+                    break;
+
                     default:
+                    {
                         JpegThrowHelper.ThrowBadQuantizationTable();
                         break;
+                    }
                 }
 
                 if (done)
@@ -774,7 +761,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 for (int i = 0; i < this.ComponentCount; i++)
                 {
                     byte hv = this.temp[index + 1];
-                    int h = hv >> 4;
+                    int h = (hv >> 4) & 15;
                     int v = hv & 15;
 
                     if (maxH < h)

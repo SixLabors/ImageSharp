@@ -3,25 +3,19 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.28902.138
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{C317F1B1-D75E-4C6D-83EB-80367343E0D7}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C317F1B1-D75E-4C6D-83EB-80367343E0D7}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 		.gitattributes = .gitattributes
 		.gitignore = .gitignore
 		.gitmodules = .gitmodules
-		.travis.yml = .travis.yml
-		appveyor.yml = appveyor.yml
-		build.cmd = build.cmd
-		build.ps1 = build.ps1
-		codecov.yml = codecov.yml
-		CodeCoverage.runsettings = CodeCoverage.runsettings
+		ci-build.ps1 = ci-build.ps1
+		ci-test.ps1 = ci-test.ps1
 		Directory.Build.props = Directory.Build.props
 		Directory.Build.targets = Directory.Build.targets
-		ImageSharp.sln.DotSettings = ImageSharp.sln.DotSettings
+		GitVersion.yml = GitVersion.yml
 		LICENSE = LICENSE
 		README.md = README.md
-		run-tests.ps1 = run-tests.ps1
-		stylecop.json = stylecop.json
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{1799C43E-5C54-4A8F-8D64-B1475241DB0D}"
@@ -37,25 +31,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ISSUE_TEMPLATE", "ISSUE_TEM
 		.github\ISSUE_TEMPLATE\feature-request.md = .github\ISSUE_TEMPLATE\feature-request.md
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".vscode", ".vscode", "{0274D4CF-9932-47CC-8E89-54DC05B8F06E}"
-	ProjectSection(SolutionItems) = preProject
-		.vscode\launch.json = .vscode\launch.json
-		.vscode\tasks.json = .vscode\tasks.json
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{E919DF0B-2607-4462-8FC0-5C98FE50F8C9}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "icons", "icons", "{2B02E303-7CC6-4E15-97EE-DBE86B287553}"
-	ProjectSection(SolutionItems) = preProject
-		build\icons\imagesharp-logo-128.png = build\icons\imagesharp-logo-128.png
-		build\icons\imagesharp-logo-256.png = build\icons\imagesharp-logo-256.png
-		build\icons\imagesharp-logo-32.png = build\icons\imagesharp-logo-32.png
-		build\icons\imagesharp-logo-512.png = build\icons\imagesharp-logo-512.png
-		build\icons\imagesharp-logo-64.png = build\icons\imagesharp-logo-64.png
-		build\icons\imagesharp-logo.png = build\icons\imagesharp-logo.png
-		build\icons\imagesharp-logo.svg = build\icons\imagesharp-logo.svg
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{815C0625-CD3D-440F-9F80-2D83856AB7AE}"
 	ProjectSection(SolutionItems) = preProject
 		src\Directory.Build.props = src\Directory.Build.props
@@ -65,18 +40,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{815C0625-CD3
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp", "src\ImageSharp\ImageSharp.csproj", "{2AA31A1F-142C-43F4-8687-09ABCA4B3A26}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Drawing", "src\ImageSharp.Drawing\ImageSharp.Drawing.csproj", "{2E33181E-6E28-4662-A801-E2E7DC206029}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{56801022-D71A-4FBE-BC5B-CBA08E2284EC}"
 	ProjectSection(SolutionItems) = preProject
 		tests\Directory.Build.props = tests\Directory.Build.props
 		tests\Directory.Build.targets = tests\Directory.Build.targets
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CodeCoverage", "CodeCoverage", "{D4C5EC58-F8E6-4636-B9EE-C99D2578E5C6}"
-	ProjectSection(SolutionItems) = preProject
-		tests\CodeCoverage\CodeCoverage.cmd = tests\CodeCoverage\CodeCoverage.cmd
-		tests\CodeCoverage\packages.config = tests\CodeCoverage\packages.config
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Images", "Images", "{FA55F5DE-11A6-487D-ABA4-BC93A02717DD}"
@@ -357,7 +324,17 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Benchmarks", "te
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Sandbox46", "tests\ImageSharp.Sandbox46\ImageSharp.Sandbox46.csproj", "{561B880A-D9EE-44EF-90F5-817C54A9D9AB}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{C0D7754B-5277-438E-ABEB-2BA34401B5A7}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\build-and-test.yml = .github\workflows\build-and-test.yml
+	EndProjectSection
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "SharedInfrastructure", "shared-infrastructure\src\SharedInfrastructure\SharedInfrastructure.shproj", "{68A8CC40-6AED-4E96-B524-31B1158FDEEA}"
+EndProject
 Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		shared-infrastructure\src\SharedInfrastructure\SharedInfrastructure.projitems*{68a8cc40-6aed-4e96-b524-31b1158fdeea}*SharedItemsImports = 13
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|x64 = Debug|x64
@@ -379,18 +356,6 @@ Global
 		{2AA31A1F-142C-43F4-8687-09ABCA4B3A26}.Release|x64.Build.0 = Release|Any CPU
 		{2AA31A1F-142C-43F4-8687-09ABCA4B3A26}.Release|x86.ActiveCfg = Release|Any CPU
 		{2AA31A1F-142C-43F4-8687-09ABCA4B3A26}.Release|x86.Build.0 = Release|Any CPU
-		{2E33181E-6E28-4662-A801-E2E7DC206029}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2E33181E-6E28-4662-A801-E2E7DC206029}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2E33181E-6E28-4662-A801-E2E7DC206029}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{2E33181E-6E28-4662-A801-E2E7DC206029}.Debug|x64.Build.0 = Debug|Any CPU
-		{2E33181E-6E28-4662-A801-E2E7DC206029}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{2E33181E-6E28-4662-A801-E2E7DC206029}.Debug|x86.Build.0 = Debug|Any CPU
-		{2E33181E-6E28-4662-A801-E2E7DC206029}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2E33181E-6E28-4662-A801-E2E7DC206029}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2E33181E-6E28-4662-A801-E2E7DC206029}.Release|x64.ActiveCfg = Release|Any CPU
-		{2E33181E-6E28-4662-A801-E2E7DC206029}.Release|x64.Build.0 = Release|Any CPU
-		{2E33181E-6E28-4662-A801-E2E7DC206029}.Release|x86.ActiveCfg = Release|Any CPU
-		{2E33181E-6E28-4662-A801-E2E7DC206029}.Release|x86.Build.0 = Release|Any CPU
 		{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -433,10 +398,7 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{FBE8C1AD-5AEC-4514-9B64-091D8E145865} = {1799C43E-5C54-4A8F-8D64-B1475241DB0D}
-		{2B02E303-7CC6-4E15-97EE-DBE86B287553} = {E919DF0B-2607-4462-8FC0-5C98FE50F8C9}
 		{2AA31A1F-142C-43F4-8687-09ABCA4B3A26} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
-		{2E33181E-6E28-4662-A801-E2E7DC206029} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
-		{D4C5EC58-F8E6-4636-B9EE-C99D2578E5C6} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{FA55F5DE-11A6-487D-ABA4-BC93A02717DD} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{9DA226A1-8656-49A8-A58A-A8B5C081AD66} = {FA55F5DE-11A6-487D-ABA4-BC93A02717DD}
 		{1A82C5F6-90E0-4E97-BE16-A825C046B493} = {9DA226A1-8656-49A8-A58A-A8B5C081AD66}
@@ -454,6 +416,8 @@ Global
 		{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{2BF743D8-2A06-412D-96D7-F448F00C5EA5} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{561B880A-D9EE-44EF-90F5-817C54A9D9AB} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
+		{C0D7754B-5277-438E-ABEB-2BA34401B5A7} = {1799C43E-5C54-4A8F-8D64-B1475241DB0D}
+		{68A8CC40-6AED-4E96-B524-31B1158FDEEA} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5F8B9D1F-CD8B-4CC5-8216-D531E25BD795}

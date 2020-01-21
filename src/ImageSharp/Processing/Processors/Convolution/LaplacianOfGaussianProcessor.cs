@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
@@ -19,9 +19,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         }
 
         /// <inheritdoc />
-        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
-        {
-            return new EdgeDetectorProcessor<TPixel>(LaplacianKernels.LaplacianOfGaussianXY, this.Grayscale);
-        }
+        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+            => new EdgeDetectorProcessor<TPixel>(configuration, LaplacianKernels.LaplacianOfGaussianXY, this.Grayscale, source, sourceRectangle);
     }
 }

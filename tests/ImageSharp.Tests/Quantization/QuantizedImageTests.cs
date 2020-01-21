@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -18,17 +18,17 @@ namespace SixLabors.ImageSharp.Tests
         public void QuantizersDitherByDefault()
         {
             var werner = new WernerPaletteQuantizer();
-            var websafe = new WebSafePaletteQuantizer();
+            var webSafe = new WebSafePaletteQuantizer();
             var octree = new OctreeQuantizer();
             var wu = new WuQuantizer();
 
             Assert.NotNull(werner.Diffuser);
-            Assert.NotNull(websafe.Diffuser);
+            Assert.NotNull(webSafe.Diffuser);
             Assert.NotNull(octree.Diffuser);
             Assert.NotNull(wu.Diffuser);
 
             Assert.True(werner.CreateFrameQuantizer<Rgba32>(this.Configuration).Dither);
-            Assert.True(websafe.CreateFrameQuantizer<Rgba32>(this.Configuration).Dither);
+            Assert.True(webSafe.CreateFrameQuantizer<Rgba32>(this.Configuration).Dither);
             Assert.True(octree.CreateFrameQuantizer<Rgba32>(this.Configuration).Dither);
             Assert.True(wu.CreateFrameQuantizer<Rgba32>(this.Configuration).Dither);
         }

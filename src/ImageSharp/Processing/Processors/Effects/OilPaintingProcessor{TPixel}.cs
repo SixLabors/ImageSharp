@@ -5,10 +5,9 @@ using System;
 using System.Numerics;
 
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Effects
 {
@@ -22,16 +21,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
     {
         private readonly OilPaintingProcessor definition;
 
-        public OilPaintingProcessor(OilPaintingProcessor definition)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OilPaintingProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="definition">The <see cref="OilPaintingProcessor"/> defining the processor parameters.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public OilPaintingProcessor(Configuration configuration, OilPaintingProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             this.definition = definition;
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(
-            ImageFrame<TPixel> source,
-            Rectangle sourceRectangle,
-            Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             int brushSize = this.definition.BrushSize;
             if (brushSize <= 0 || brushSize > source.Height || brushSize > source.Width)
@@ -39,24 +43,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                 throw new ArgumentOutOfRangeException(nameof(brushSize));
             }
 
-            int startY = sourceRectangle.Y;
-            int endY = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
+            int startY = this.SourceRectangle.Y;
+            int endY = this.SourceRectangle.Bottom;
+            int startX = this.SourceRectangle.X;
+            int endX = this.SourceRectangle.Right;
             int maxY = endY - 1;
             int maxX = endX - 1;
 
             int radius = brushSize >> 1;
             int levels = this.definition.Levels;
 
-            using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
+            using (Buffer2D<TPixel> targetPixels = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
             {
                 source.CopyTo(targetPixels);
 
                 var workingRect = Rectangle.FromLTRB(startX, startY, endX, endY);
                 ParallelHelper.IterateRows(
                     workingRect,
-                    configuration,
+                    this.Configuration,
                     rows =>
                         {
                             for (int y = rows.Min; y < rows.Max; y++)
@@ -69,10 +73,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                                     int maxIntensity = 0;
                                     int maxIndex = 0;
 
-                                    int[] intensityBin = new int[levels];
-                                    float[] redBin = new float[levels];
-                                    float[] blueBin = new float[levels];
-                                    float[] greenBin = new float[levels];
+                                    var intensityBin = new int[levels];
+                                    var redBin = new float[levels];
+                                    var blueBin = new float[levels];
+                                    var greenBin = new float[levels];
 
                                     for (int fy = 0; fy <= radius; fy++)
                                     {

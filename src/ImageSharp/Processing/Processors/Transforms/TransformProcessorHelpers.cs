@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -25,33 +25,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return;
             }
 
-            // Removing the previously stored value allows us to set a value with our own data tag if required.
+            // Only set the value if it already exists.
             if (profile.GetValue(ExifTag.PixelXDimension) != null)
             {
-                profile.RemoveValue(ExifTag.PixelXDimension);
-
-                if (image.Width <= ushort.MaxValue)
-                {
-                    profile.SetValue(ExifTag.PixelXDimension, (ushort)image.Width);
-                }
-                else
-                {
-                    profile.SetValue(ExifTag.PixelXDimension, (uint)image.Width);
-                }
+                profile.SetValue(ExifTag.PixelXDimension, image.Width);
             }
 
             if (profile.GetValue(ExifTag.PixelYDimension) != null)
             {
-                profile.RemoveValue(ExifTag.PixelYDimension);
-
-                if (image.Height <= ushort.MaxValue)
-                {
-                    profile.SetValue(ExifTag.PixelYDimension, (ushort)image.Height);
-                }
-                else
-                {
-                    profile.SetValue(ExifTag.PixelYDimension, (uint)image.Height);
-                }
+                profile.SetValue(ExifTag.PixelYDimension, image.Height);
             }
         }
     }

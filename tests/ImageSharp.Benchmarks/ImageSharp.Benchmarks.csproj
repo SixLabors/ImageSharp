@@ -1,13 +1,14 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <AssemblyName>ImageSharp.Benchmarks</AssemblyName>
     <OutputType>Exe</OutputType>
     <RootNamespace>SixLabors.ImageSharp.Benchmarks</RootNamespace>
-    <TargetFrameworks>netcoreapp2.1;net472</TargetFrameworks>
-    <IsPackable>false</IsPackable>
+    <TargetFrameworks>netcoreapp3.1;netcoreapp2.1;net472</TargetFrameworks>
     <GenerateProgramFile>false</GenerateProgramFile>
+    <!--Used to hide test project from dotnet test-->
+    <IsTestProject>false</IsTestProject>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,15 +17,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Magick.NET-Q16-AnyCPU" />
     <PackageReference Include="BenchmarkDotNet" />
     <PackageReference Include="Colourful" />
-    <PackageReference Include="SixLabors.Shapes.Text" />
+    <PackageReference Include="Pfim" />
     <PackageReference Include="System.Drawing.Common" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\ImageSharp\ImageSharp.csproj" />
-    <ProjectReference Include="..\..\src\ImageSharp.Drawing\ImageSharp.Drawing.csproj" />
   </ItemGroup>
 
 </Project>

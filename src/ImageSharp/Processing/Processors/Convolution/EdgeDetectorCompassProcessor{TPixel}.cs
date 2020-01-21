@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -6,12 +6,10 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
+using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing.Processors.Filters;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 {
@@ -25,9 +23,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// Initializes a new instance of the <see cref="EdgeDetectorCompassProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="kernels">Gets the kernels to use.</param>
         /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection.</param>
-        internal EdgeDetectorCompassProcessor(CompassKernels kernels, bool grayscale)
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        internal EdgeDetectorCompassProcessor(Configuration configuration, CompassKernels kernels, bool grayscale, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             this.Grayscale = grayscale;
             this.Kernels = kernels;
@@ -38,23 +40,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         private bool Grayscale { get; }
 
         /// <inheritdoc/>
-        protected override void BeforeFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void BeforeImageApply()
         {
             if (this.Grayscale)
             {
-                new GrayscaleBt709Processor(1F).Apply(source, sourceRectangle, configuration);
+                new GrayscaleBt709Processor(1F).Execute(this.Configuration, this.Source, this.SourceRectangle);
             }
+
+            base.BeforeImageApply();
         }
 
         /// <inheritdoc />
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             DenseMatrix<float>[] kernels = this.Kernels.Flatten();
 
-            int startY = sourceRectangle.Y;
-            int endY = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
+            int startY = this.SourceRectangle.Y;
+            int endY = this.SourceRectangle.Bottom;
+            int startX = this.SourceRectangle.X;
+            int endX = this.SourceRectangle.Right;
 
             // Align start/end positions.
             int minX = Math.Max(0, startX);
@@ -65,7 +69,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             // we need a clean copy for each pass to start from
             using (ImageFrame<TPixel> cleanCopy = source.Clone())
             {
-                new ConvolutionProcessor<TPixel>(kernels[0], true).Apply(source, sourceRectangle, configuration);
+                using (var processor = new ConvolutionProcessor<TPixel>(this.Configuration, kernels[0], true, this.Source, this.SourceRectangle))
+                {
+                    processor.Apply(source);
+                }
 
                 if (kernels.Length == 1)
                 {
@@ -94,14 +101,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 {
                     using (ImageFrame<TPixel> pass = cleanCopy.Clone())
                     {
-                        new ConvolutionProcessor<TPixel>(kernels[i], true).Apply(pass, sourceRectangle, configuration);
+                        using (var processor = new ConvolutionProcessor<TPixel>(this.Configuration, kernels[i], true, this.Source, this.SourceRectangle))
+                        {
+                            processor.Apply(pass);
+                        }
 
                         Buffer2D<TPixel> passPixels = pass.PixelBuffer;
                         Buffer2D<TPixel> targetPixels = source.PixelBuffer;
 
                         ParallelHelper.IterateRows(
                             workingRect,
-                            configuration,
+                            this.Configuration,
                             rows =>
                                 {
                                     for (int y = rows.Min; y < rows.Max; y++)

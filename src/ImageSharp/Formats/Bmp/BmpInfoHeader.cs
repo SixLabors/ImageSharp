@@ -447,7 +447,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Writes a complete Bitmap V4 header to a buffer.
         /// </summary>
         /// <param name="buffer">The buffer to write to.</param>
-        public unsafe void WriteV4Header(Span<byte> buffer)
+        public void WriteV4Header(Span<byte> buffer)
         {
             ref BmpInfoHeader dest = ref Unsafe.As<byte, BmpInfoHeader>(ref MemoryMarshal.GetReference(buffer));
 

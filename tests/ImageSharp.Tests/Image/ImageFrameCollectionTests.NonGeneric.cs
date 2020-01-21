@@ -2,7 +2,6 @@
 // // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Drawing.Imaging;
 using System.Linq;
 
 using SixLabors.ImageSharp.Advanced;
@@ -25,11 +24,11 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void AddFrame_OfDifferentPixelType()
             {
-                using (Image<Bgra32> sourceImage = new Image<Bgra32>(
+                using (var sourceImage = new Image<Bgra32>(
                     this.Image.GetConfiguration(),
                     this.Image.Width,
                     this.Image.Height,
-                    (Bgra32)Color.Blue))
+                    Color.Blue))
                 {
                     this.Collection.AddFrame(sourceImage.Frames.RootFrame);
                 }
@@ -38,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests
                     Enumerable.Repeat(Rgba32.Blue, this.Image.Width * this.Image.Height).ToArray();
 
                 Assert.Equal(2, this.Collection.Count);
-                ImageFrame<Rgba32> actualFrame = (ImageFrame<Rgba32>)this.Collection[1];
+                var actualFrame = (ImageFrame<Rgba32>)this.Collection[1];
 
                 actualFrame.ComparePixelBufferTo(expectedAllBlue);
             }
@@ -46,11 +45,11 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void InsertFrame_OfDifferentPixelType()
             {
-                using (Image<Bgra32> sourceImage = new Image<Bgra32>(
+                using (var sourceImage = new Image<Bgra32>(
                     this.Image.GetConfiguration(),
                     this.Image.Width,
                     this.Image.Height,
-                    (Bgra32)Color.Blue))
+                    Color.Blue))
                 {
                     this.Collection.InsertFrame(0, sourceImage.Frames.RootFrame);
                 }
@@ -59,7 +58,7 @@ namespace SixLabors.ImageSharp.Tests
                     Enumerable.Repeat(Rgba32.Blue, this.Image.Width * this.Image.Height).ToArray();
 
                 Assert.Equal(2, this.Collection.Count);
-                ImageFrame<Rgba32> actualFrame = (ImageFrame<Rgba32>)this.Collection[0];
+                var actualFrame = (ImageFrame<Rgba32>)this.Collection[0];
 
                 actualFrame.ComparePixelBufferTo(expectedAllBlue);
 
@@ -89,7 +88,7 @@ namespace SixLabors.ImageSharp.Tests
                 ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                     () =>
                     {
-                        this.Collection.AddFrame((ImageFrame<Rgba32>)null);
+                        this.Collection.AddFrame(null);
                     });
 
                 Assert.StartsWith("Value cannot be null.", ex.Message);
@@ -161,7 +160,7 @@ namespace SixLabors.ImageSharp.Tests
                     {
                         Assert.Equal(2, img.Frames.Count);
 
-                        Image<TPixel> expectedClone = (Image<TPixel>)cloned;
+                        var expectedClone = (Image<TPixel>)cloned;
 
                         expectedClone.ComparePixelBufferTo(img.GetPixelSpan());
                     }
@@ -184,7 +183,7 @@ namespace SixLabors.ImageSharp.Tests
                     {
                         Assert.Equal(1, img.Frames.Count);
 
-                        Image<TPixel> expectedClone = (Image<TPixel>)cloned;
+                        var expectedClone = (Image<TPixel>)cloned;
                         expectedClone.ComparePixelBufferTo(sourcePixelData);
                     }
                 }
@@ -197,7 +196,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 Assert.Equal(2, this.Image.Frames.Count);
 
-                ImageFrame<Rgba32> frame = (ImageFrame<Rgba32>)this.Image.Frames[1];
+                var frame = (ImageFrame<Rgba32>)this.Image.Frames[1];
 
                 frame.ComparePixelBufferTo(default(Rgba32));
             }
@@ -209,13 +208,13 @@ namespace SixLabors.ImageSharp.Tests
 
                 Assert.Equal(2, this.Image.Frames.Count);
 
-                ImageFrame<Rgba32> frame = (ImageFrame<Rgba32>)this.Image.Frames[1];
+                var frame = (ImageFrame<Rgba32>)this.Image.Frames[1];
 
                 frame.ComparePixelBufferTo(Rgba32.HotPink);
             }
 
             [Fact]
-            public void MoveFrame_LeavesFrmaeInCorrectLocation()
+            public void MoveFrame_LeavesFrameInCorrectLocation()
             {
                 for (var i = 0; i < 9; i++)
                 {
@@ -274,7 +273,7 @@ namespace SixLabors.ImageSharp.Tests
                 where TPixel : struct, IPixel<TPixel>
             {
                 using (Image source = provider.GetImage())
-                using (Image<TPixel> dest = new Image<TPixel>(source.GetConfiguration(), source.Width, source.Height))
+                using (var dest = new Image<TPixel>(source.GetConfiguration(), source.Width, source.Height))
                 {
                     // Giphy.gif has 5 frames
 
@@ -313,8 +312,8 @@ namespace SixLabors.ImageSharp.Tests
             {
                 // TODO: all metadata classes should be equatable!
 
-                GifFrameMetadata aData = a.Metadata.GetFormatMetadata(GifFormat.Instance);
-                GifFrameMetadata bData = b.Metadata.GetFormatMetadata(GifFormat.Instance);
+                GifFrameMetadata aData = a.Metadata.GetGifMetadata();
+                GifFrameMetadata bData = b.Metadata.GetGifMetadata();
 
                 Assert.Equal(aData.DisposalMethod, bData.DisposalMethod);
                 Assert.Equal(aData.FrameDelay, bData.FrameDelay);

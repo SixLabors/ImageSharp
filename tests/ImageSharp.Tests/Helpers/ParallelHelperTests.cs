@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -7,11 +7,9 @@ using System.Linq;
 using System.Numerics;
 using System.Threading;
 
+using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
-using SixLabors.Primitives;
 
 using Xunit;
 using Xunit.Abstractions;
@@ -21,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
     public class ParallelHelperTests
     {
         private readonly ITestOutputHelper Output;
-        
+
         public ParallelHelperTests(ITestOutputHelper output)
         {
             this.Output = output;
@@ -31,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         /// maxDegreeOfParallelism, minY, maxY, expectedStepLength, expectedLastStepLength
         /// </summary>
         public static TheoryData<int, int, int, int, int> IterateRows_OverMinimumPixelsLimit_Data =
-            new TheoryData<int, int, int, int, int>()
+            new TheoryData<int, int, int, int, int>
                 {
                     { 1, 0, 100, -1, 100 },
                     { 2, 0, 9, 5, 4 },
@@ -60,7 +58,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             var rectangle = new Rectangle(0, minY, 10, maxY - minY);
 
             int actualNumberOfSteps = 0;
-            
+
             ParallelHelper.IterateRows(
                 rectangle,
                 parallelSettings,
@@ -97,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 
 
             int[] expectedData = Enumerable.Repeat(0, minY).Concat(Enumerable.Range(minY, maxY - minY)).ToArray();
-            int[] actualData = new int[maxY];
+            var actualData = new int[maxY];
 
             ParallelHelper.IterateRows(
                 rectangle,
@@ -109,7 +107,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
                             actualData[y] = y;
                         }
                     });
-            
+
             Assert.Equal(expectedData, actualData);
         }
 
@@ -144,7 +142,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 
                         int step = rows.Max - rows.Min;
                         int expected = rows.Max < maxY ? expectedStepLength : expectedLastStepLength;
-                        
+
                         Interlocked.Increment(ref actualNumberOfSteps);
                         Assert.Equal(expected, step);
                     });
@@ -172,7 +170,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             var rectangle = new Rectangle(0, minY, 10, maxY - minY);
 
             int[] expectedData = Enumerable.Repeat(0, minY).Concat(Enumerable.Range(minY, maxY - minY)).ToArray();
-            int[] actualData = new int[maxY];
+            var actualData = new int[maxY];
 
             ParallelHelper.IterateRowsWithTempBuffer(
                 rectangle,
@@ -190,7 +188,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         }
 
         public static TheoryData<int, int, int, int, int, int, int> IterateRows_WithEffectiveMinimumPixelsLimit_Data =
-            new TheoryData<int, int, int, int, int, int, int>()
+            new TheoryData<int, int, int, int, int, int, int>
                 {
                     { 2, 200, 50, 2, 1, -1, 2 },
                     { 2, 200, 200, 1, 1, -1, 1 },
@@ -256,7 +254,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
                 Configuration.Default.MemoryAllocator);
 
             var rectangle = new Rectangle(0, 0, width, height);
-            
+
             int actualNumberOfSteps = 0;
             ParallelHelper.IterateRowsWithTempBuffer(
                 rectangle,
@@ -277,7 +275,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         }
 
         public static readonly TheoryData<int, int, int, int, int, int, int> IterateRectangularBuffer_Data =
-            new TheoryData<int, int, int, int, int, int, int>()
+            new TheoryData<int, int, int, int, int, int, int>
                 {
                     { 8, 582, 453, 10, 10, 291, 226 }, // boundary data from DetectEdgesTest.DetectEdges_InBox
                     { 2, 582, 453, 10, 10, 291, 226 },
@@ -303,7 +301,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             using (Buffer2D<Point> actual = memoryAllocator.Allocate2D<Point>(bufferWidth, bufferHeight, AllocationOptions.Clean))
             {
                 var rect = new Rectangle(rectX, rectY, rectWidth, rectHeight);
-                
+
                 void FillRow(int y, Buffer2D<Point> buffer)
                 {
                     for (int x = rect.Left; x < rect.Right; x++)
@@ -332,7 +330,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
                         });
 
                 // Assert:
-                TestImageExtensions.CompareBuffers(expected.Span, actual.Span);
+                TestImageExtensions.CompareBuffers(expected.GetSpan(), actual.GetSpan());
             }
         }
 
@@ -348,7 +346,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             var rect = new Rectangle(0, 0, width, height);
 
             ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
-                () => ParallelHelper.IterateRows(rect, parallelSettings, (rows) => { }));
+                () => ParallelHelper.IterateRows(rect, parallelSettings, rows => { }));
 
             Assert.Contains(width <= 0 ? "Width" : "Height", ex.Message);
         }

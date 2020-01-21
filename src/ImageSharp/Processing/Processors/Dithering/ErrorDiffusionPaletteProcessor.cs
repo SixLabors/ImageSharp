@@ -1,9 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
-using SixLabors.ImageSharp.Processing.Processors.Binarization;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 {
@@ -59,9 +57,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         public float Threshold { get; }
 
         /// <inheritdoc />
-        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
         {
-            return new ErrorDiffusionPaletteProcessor<TPixel>(this);
+            return new ErrorDiffusionPaletteProcessor<TPixel>(configuration, this, source, sourceRectangle);
         }
     }
 }

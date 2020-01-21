@@ -1,10 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Primitives;
 
-// Many of these matrices are tranlated from Chromium project where
+// Many of these matrices are translated from Chromium project where
 // SkScalar[] is memory-mapped to a row-major matrix.
 // The following translates to our column-major form:
 //
@@ -141,7 +140,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets an approximated black and white filter
         /// </summary>
-        public static ColorMatrix BlackWhiteFilter { get; } = new ColorMatrix()
+        public static ColorMatrix BlackWhiteFilter { get; } = new ColorMatrix
         {
             M11 = 1.5F,
             M12 = 1.5F,
@@ -430,6 +429,32 @@ namespace SixLabors.ImageSharp.Processing
             m.M44 = 1F;
 
             return m;
+        }
+
+        /// <summary>
+        /// Create a lightness filter matrix using the given amount.
+        /// </summary>
+        /// <remarks>
+        /// A value of 0 will create an image that is completely black. A value of 1 leaves the input unchanged.
+        /// Other values are linear multipliers on the effect. Values of an amount over 1 are allowed, providing lighter results.
+        /// </remarks>
+        /// <param name="amount">The proportion of the conversion. Must be greater than or equal to 0.</param>
+        /// <returns>The <see cref="ColorMatrix"/></returns>
+        public static ColorMatrix CreateLightnessFilter(float amount)
+        {
+            Guard.MustBeGreaterThanOrEqualTo(amount, 0, nameof(amount));
+            amount--;
+
+            return new ColorMatrix
+            {
+                M11 = 1F,
+                M22 = 1F,
+                M33 = 1F,
+                M44 = 1F,
+                M51 = amount,
+                M52 = amount,
+                M53 = amount
+            };
         }
 
         /// <summary>

@@ -3,15 +3,12 @@
 
 // ReSharper disable InconsistentNaming
 
-using System.Buffers.Binary;
 using System.IO;
-using System.Text;
-
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Png
@@ -40,10 +37,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             TestImages.Png.VimImage2,
 
             TestImages.Png.Rgb24BppTrans,
-            TestImages.Png.GrayAlpha8Bit,
+            TestImages.Png.GrayA8Bit,
             TestImages.Png.Gray1BitTrans,
             TestImages.Png.Bad.ZlibOverflow,
-            TestImages.Png.Bad.ZlibOverflow2
+            TestImages.Png.Bad.ZlibOverflow2,
+            TestImages.Png.Bad.ZlibZtxtBadHeader,
+            TestImages.Png.Bad.Issue1047_BadEndChunk
         };
 
         public static readonly string[] TestImages48Bpp =
@@ -58,9 +57,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             TestImages.Png.Rgb48BppTrans
         };
 
-        public static readonly string[] TestImagesGray16Bit =
+        public static readonly string[] TestImagesL16Bit =
         {
-            TestImages.Png.Gray16Bit,
+            TestImages.Png.L16Bit,
         };
 
         public static readonly string[] TestImagesGrayAlpha16Bit =
@@ -69,20 +68,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             TestImages.Png.GrayTrns16BitInterlaced
         };
 
-        public static readonly string[] TestImagesGray8BitInterlaced =
+        public static readonly string[] TestImagesL8BitInterlaced =
             {
                 TestImages.Png.GrayAlpha1BitInterlaced,
                 TestImages.Png.GrayAlpha2BitInterlaced,
                 TestImages.Png.Gray4BitInterlaced,
-                TestImages.Png.GrayAlpha8BitInterlaced
+                TestImages.Png.GrayA8BitInterlaced
             };
 
-        public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
-        new TheoryData<string, int, int, PixelResolutionUnit>
+        public static readonly string[] TestImagesIssue1014 =
         {
-            { TestImages.Png.Splash, 11810, 11810 , PixelResolutionUnit.PixelsPerMeter},
-            { TestImages.Png.Ratio1x4, 1, 4 , PixelResolutionUnit.AspectRatio},
-            { TestImages.Png.Ratio4x1, 4, 1, PixelResolutionUnit.AspectRatio }
+            TestImages.Png.Issue1014_1, TestImages.Png.Issue1014_2,
+            TestImages.Png.Issue1014_3, TestImages.Png.Issue1014_4,
+            TestImages.Png.Issue1014_5, TestImages.Png.Issue1014_6
         };
 
         [Theory]
@@ -93,7 +91,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
             {
                 image.DebugSave(provider);
-                image.CompareToOriginal(provider, ImageComparer.Exact);
+
+                // We don't have another x-plat reference decoder that can be compared for this image.
+                if (provider.Utility.SourceFileOrDescription == TestImages.Png.Bad.Issue1047_BadEndChunk)
+                {
+                    if (TestEnvironment.IsWindows)
+                    {
+                        image.CompareToOriginal(provider, ImageComparer.Exact, (IImageDecoder)SystemDrawingReferenceDecoder.Instance);
+                    }
+                }
+                else
+                {
+                    image.CompareToOriginal(provider, ImageComparer.Exact);
+                }
             }
         }
 
@@ -134,8 +144,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
-        [WithFileCollection(nameof(TestImagesGray8BitInterlaced), PixelTypes.Rgba32)]
-        public void Decoder_Gray8bitInterlaced<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(TestImagesL8BitInterlaced), PixelTypes.Rgba32)]
+        public void Decoder_L8bitInterlaced<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
@@ -146,8 +156,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
-        [WithFileCollection(nameof(TestImagesGray16Bit), PixelTypes.Rgb48)]
-        public void Decode_Gray16Bit<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(TestImagesL16Bit), PixelTypes.Rgb48)]
+        public void Decode_L16Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
@@ -170,7 +180,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
-        [WithFile(TestImages.Png.GrayAlpha8BitInterlaced, PixelTypes)]
+        [WithFile(TestImages.Png.GrayA8BitInterlaced, PixelTypes)]
         public void Decoder_CanDecodeGrey8bitWithAlpha<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -193,57 +203,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             }
         }
 
-        [Fact]
-        public void Decode_IgnoreMetadataIsFalse_TextChunckIsRead()
-        {
-            var options = new PngDecoder()
-            {
-                IgnoreMetadata = false
-            };
-
-            var testFile = TestFile.Create(TestImages.Png.Blur);
-
-            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
-            {
-                Assert.Equal(1, image.Metadata.Properties.Count);
-                Assert.Equal("Software", image.Metadata.Properties[0].Name);
-                Assert.Equal("paint.net 4.0.6", image.Metadata.Properties[0].Value);
-            }
-        }
-
-        [Fact]
-        public void Decode_IgnoreMetadataIsTrue_TextChunksAreIgnored()
-        {
-            var options = new PngDecoder()
-            {
-                IgnoreMetadata = true
-            };
-
-            var testFile = TestFile.Create(TestImages.Png.Blur);
-
-            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
-            {
-                Assert.Equal(0, image.Metadata.Properties.Count);
-            }
-        }
-
-        [Fact]
-        public void Decode_TextEncodingSetToUnicode_TextIsReadWithCorrectEncoding()
-        {
-            var options = new PngDecoder()
-            {
-                TextEncoding = Encoding.Unicode
-            };
-
-            var testFile = TestFile.Create(TestImages.Png.Blur);
-
-            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
-            {
-                Assert.Equal(1, image.Metadata.Properties.Count);
-                Assert.Equal("潓瑦慷敲", image.Metadata.Properties[0].Name);
-            }
-        }
-
         [Theory]
         [InlineData(TestImages.Png.Bpp1, 1)]
         [InlineData(TestImages.Png.Gray4Bpp, 4)]
@@ -262,37 +221,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
-        [MemberData(nameof(RatioFiles))]
-        public void Decode_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
+        [WithFileCollection(nameof(TestImagesIssue1014), PixelTypes.Rgba32)]
+        public void Issue1014<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
         {
-            var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                var decoder = new PngDecoder();
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
+            System.Exception ex = Record.Exception(
+                () =>
                 {
-                    ImageMetadata meta = image.Metadata;
-                    Assert.Equal(xResolution, meta.HorizontalResolution);
-                    Assert.Equal(yResolution, meta.VerticalResolution);
-                    Assert.Equal(resolutionUnit, meta.ResolutionUnits);
-                }
-            }
-        }
-
-        [Theory]
-        [MemberData(nameof(RatioFiles))]
-        public void Identify_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
-        {
-            var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                var decoder = new PngDecoder();
-                IImageInfo image = decoder.Identify(Configuration.Default, stream);
-                ImageMetadata meta = image.Metadata;
-                Assert.Equal(xResolution, meta.HorizontalResolution);
-                Assert.Equal(yResolution, meta.VerticalResolution);
-                Assert.Equal(resolutionUnit, meta.ResolutionUnits);
-            }
+                    using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+                    {
+                        image.DebugSave(provider);
+                        image.CompareToOriginal(provider, ImageComparer.Exact);
+                    }
+                });
+            Assert.Null(ex);
         }
     }
 }

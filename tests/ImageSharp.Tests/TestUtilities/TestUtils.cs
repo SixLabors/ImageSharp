@@ -12,7 +12,6 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Tests
 {
@@ -39,8 +38,8 @@ namespace SixLabors.ImageSharp.Tests
             ClrTypes2PixelTypes[defaultPixelFormatType] = PixelTypes.Rgba32;
 
             // Add PixelFormat types
-            string nameSpace = typeof(Alpha8).FullName;
-            nameSpace = nameSpace.Substring(0, nameSpace.Length - typeof(Alpha8).Name.Length - 1);
+            string nameSpace = typeof(A8).FullName;
+            nameSpace = nameSpace.Substring(0, nameSpace.Length - typeof(A8).Name.Length - 1);
             foreach (PixelTypes pt in AllConcretePixelTypes.Where(pt => pt != PixelTypes.Rgba32))
             {
                 string typeName = $"{nameSpace}.{pt}";

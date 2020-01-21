@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Processing.Processors;
-using SixLabors.Memory;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing
 {
@@ -13,10 +11,9 @@ namespace SixLabors.ImageSharp.Processing
     public interface IImageProcessingContext
     {
         /// <summary>
-        /// Gets a reference to the <see cref="MemoryAllocator" /> used to allocate buffers
-        /// for this context.
+        /// Gets the configuration which allows altering default behaviour or extending the library.
         /// </summary>
-        MemoryAllocator MemoryAllocator { get; }
+        Configuration Configuration { get; }
 
         /// <summary>
         /// Gets the image dimensions at the current point in the processing pipeline.

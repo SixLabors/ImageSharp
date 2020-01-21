@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers.Binary;
-using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -107,7 +105,7 @@ namespace SixLabors.ImageSharp
         [MethodImpl(InliningOptions.ShortMethod)]
         public static Color FromHex(string hex)
         {
-            Rgba32 rgba = Rgba32.FromHex(hex);
+            var rgba = Rgba32.FromHex(hex);
 
             return new Color(rgba);
         }
@@ -135,8 +133,7 @@ namespace SixLabors.ImageSharp
         public override string ToString() => this.ToHex();
 
         /// <summary>
-        /// Converts the color instance to an <see cref="IPixel{TSelf}"/>
-        /// implementation defined by <typeparamref name="TPixel"/>.
+        /// Converts the color instance to a specified <see cref="IPixel{TSelf}"/> type.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type to convert to.</typeparam>
         /// <returns>The pixel value.</returns>
@@ -147,6 +144,24 @@ namespace SixLabors.ImageSharp
             TPixel pixel = default;
             pixel.FromRgba64(this.data);
             return pixel;
+        }
+
+        /// <summary>
+        /// Bulk converts a span of <see cref="Color"/> to a span of a specified <see cref="IPixel{TSelf}"/> type.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type to convert to.</typeparam>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="source">The source color span.</param>
+        /// <param name="destination">The destination pixel span.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void ToPixel<TPixel>(
+            Configuration configuration,
+            ReadOnlySpan<Color> source,
+            Span<TPixel> destination)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            ReadOnlySpan<Rgba64> rgba64Span = MemoryMarshal.Cast<Color, Rgba64>(source);
+            PixelOperations<TPixel>.Instance.FromRgba64(configuration, rgba64Span, destination);
         }
 
         /// <inheritdoc />
@@ -167,20 +182,6 @@ namespace SixLabors.ImageSharp
         public override int GetHashCode()
         {
             return this.data.PackedValue.GetHashCode();
-        }
-
-        /// <summary>
-        /// Bulk convert a span of <see cref="Color"/> to a span of a specified pixel type.
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        internal static void ToPixel<TPixel>(
-            Configuration configuration,
-            ReadOnlySpan<Color> source,
-            Span<TPixel> destination)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            ReadOnlySpan<Rgba64> rgba64Span = MemoryMarshal.Cast<Color, Rgba64>(source);
-            PixelOperations<TPixel>.Instance.FromRgba64(Configuration.Default, rgba64Span, destination);
         }
     }
 }

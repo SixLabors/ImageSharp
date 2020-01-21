@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -135,9 +136,11 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         /// <summary>
-        /// Need to create Microsoft.DotNet.RemoteExecutor.exe.config on .NET 4.7.2 (-_-)
+        /// Creates Microsoft.DotNet.RemoteExecutor.exe.config for .NET framework,
+        /// When running in 32 bits, enforces 32 bit execution of Microsoft.DotNet.RemoteExecutor.exe
+        /// with the help of corflags.exe found in Windows SDK.
         /// </summary>
-        internal static void InitRemoteExecutorAssemblyRedirects()
+        internal static void PrepareRemoteExecutor()
         {
             if (!IsFramework)
             {
@@ -156,6 +159,64 @@ namespace SixLabors.ImageSharp.Tests
             string testProjectConfigPath = assemblyFile.FullName + ".config";
 
             File.Copy(testProjectConfigPath, remoteExecutorConfigPath);
+
+            if (Is64BitProcess)
+            {
+                return;
+            }
+
+            string windowsSdksDir = Path.Combine(Environment.GetEnvironmentVariable("PROGRAMFILES(x86)"),
+                "Microsoft SDKs", "Windows");
+
+            FileInfo corFlagsFile = Find(new DirectoryInfo(windowsSdksDir), "corflags.exe");
+
+            string remoteExecutorPath = Path.Combine(assemblyFile.DirectoryName, "Microsoft.DotNet.RemoteExecutor.exe");
+
+            string args = $"{remoteExecutorPath} /32Bit+ /Force";
+
+            var si = new ProcessStartInfo()
+            {
+                FileName = corFlagsFile.FullName,
+                Arguments = args,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            try
+            {
+                using var proc = Process.Start(si);
+                proc.WaitForExit();
+                string standardOutput = proc.StandardOutput.ReadToEnd();
+                string standardError = proc.StandardError.ReadToEnd();
+                Debug.Print(standardOutput);
+                Debug.Print(standardError);
+            }
+            catch (Exception ex)
+            {
+                // Avoid fatal exceptions here
+                Debug.Print(ex.Message);
+            }
+
+            static FileInfo Find(DirectoryInfo root, string name)
+            {
+                FileInfo fi = root.EnumerateFiles().FirstOrDefault(f => f.Name.ToLower() == name);
+                if (fi != null)
+                {
+                    return fi;
+                }
+
+                foreach (DirectoryInfo dir in root.EnumerateDirectories())
+                {
+                    fi = Find(dir, name);
+                    if (fi != null)
+                    {
+                        return fi;
+                    }
+                }
+
+                return null;
+            }
         }
 
         /// <summary>

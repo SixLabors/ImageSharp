@@ -16,10 +16,11 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
 
         public const char Separator = ':';
 
-        private string DumpToString()
+        private string DumpToString(Type type)
         {
             using var ms = new MemoryStream();
             using var writer = new StreamWriter(ms);
+            writer.WriteLine(type.FullName);
             foreach (KeyValuePair<string, string> kv in this.map)
             {
                 writer.WriteLine($"{kv.Key}{Separator}{kv.Value}");
@@ -29,31 +30,35 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
             return System.Convert.ToBase64String(data);
         }
 
-        private void LoadDump(string dump)
+        private Type LoadDump(string dump)
         {
             byte[] data = System.Convert.FromBase64String(dump);
 
             using var ms = new MemoryStream(data);
             using var reader = new StreamReader(ms);
+            var type = Type.GetType(reader.ReadLine());
             for (string s = reader.ReadLine(); s != null ; s = reader.ReadLine())
             {
                 string[] kv = s.Split(Separator);
                 this.map[kv[0]] = kv[1];
             }
+
+            return type;
         }
 
         public static string Serialize(IXunitSerializable serializable)
         {
             var serializer = new BasicSerializer();
             serializable.Serialize(serializer);
-            return serializer.DumpToString();
+            return serializer.DumpToString(serializable.GetType());
         }
 
         public static T Deserialize<T>(string dump) where T : IXunitSerializable
         {
-            T result = Activator.CreateInstance<T>();
             var serializer = new BasicSerializer();
-            serializer.LoadDump(dump);
+            Type type = serializer.LoadDump(dump);
+
+            var result = (T) Activator.CreateInstance(type);
             result.Deserialize(serializer);
             return result;
         }

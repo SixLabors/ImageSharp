@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         private const float BaselineTolerance = 0.001F / 100;
         private const float ProgressiveTolerance = 0.2F / 100;
 
-        private ImageComparer GetImageComparer<TPixel>(TestImageProvider<TPixel> provider)
+        private static ImageComparer GetImageComparer<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             string file = provider.SourceFileOrDescription;

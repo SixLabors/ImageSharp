@@ -165,26 +165,27 @@ namespace SixLabors.ImageSharp.Tests
                 return;
             }
 
-            string windowsSdksDir = Path.Combine(Environment.GetEnvironmentVariable("PROGRAMFILES(x86)"),
-                "Microsoft SDKs", "Windows");
-
-            FileInfo corFlagsFile = Find(new DirectoryInfo(windowsSdksDir), "corflags.exe");
-
-            string remoteExecutorPath = Path.Combine(assemblyFile.DirectoryName, "Microsoft.DotNet.RemoteExecutor.exe");
-
-            string args = $"{remoteExecutorPath} /32Bit+ /Force";
-
-            var si = new ProcessStartInfo()
-            {
-                FileName = corFlagsFile.FullName,
-                Arguments = args,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
-
+            // Locate and run CorFlags.exe:
             try
             {
+                string windowsSdksDir = Path.Combine(Environment.GetEnvironmentVariable("PROGRAMFILES(x86)"),
+                    "Microsoft SDKs", "Windows");
+
+                FileInfo corFlagsFile = Find(new DirectoryInfo(windowsSdksDir), "corflags.exe");
+
+                string remoteExecutorPath = Path.Combine(assemblyFile.DirectoryName, "Microsoft.DotNet.RemoteExecutor.exe");
+
+                string args = $"{remoteExecutorPath} /32Bit+ /Force";
+
+                var si = new ProcessStartInfo()
+                {
+                    FileName = corFlagsFile.FullName,
+                    Arguments = args,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
+
                 using var proc = Process.Start(si);
                 proc.WaitForExit();
                 string standardOutput = proc.StandardOutput.ReadToEnd();

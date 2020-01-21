@@ -25,7 +25,6 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// TODO: Consider adding this private processor to the library
         /// </summary>
-        /// <param name="ctx"></param>
         public static void MakeOpaque(this IImageProcessingContext ctx) =>
             ctx.ApplyProcessor(new MakeOpaqueProcessor());
 
@@ -50,13 +49,14 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Saves the image only when not running in the CI server.
         /// </summary>
-        /// <param name="image">The image</param>
-        /// <param name="provider">The image provider</param>
+        /// <param name="image">The image.</param>
+        /// <param name="provider">The image provider.</param>
         /// <param name="testOutputDetails">Details to be concatenated to the test output file, describing the parameters of the test.</param>
-        /// <param name="extension">The extension</param>
+        /// <param name="extension">The extension.</param>
         /// <param name="appendPixelTypeToFileName">A boolean indicating whether to append the pixel type to the  output file name.</param>
         /// <param name="appendSourceFileOrDescription">A boolean indicating whether to append <see cref="ITestImageProvider.SourceFileOrDescription"/> to the test output file name.</param>
         /// <param name="encoder">Custom encoder to use.</param>
+        /// <returns>The input image.</returns>
         public static Image DebugSave(
             this Image image,
             ITestImageProvider provider,
@@ -165,15 +165,15 @@ namespace SixLabors.ImageSharp.Tests
         /// Compares the image against the expected Reference output, throws an exception if the images are not similar enough.
         /// The output file should be named identically to the output produced by <see cref="DebugSave{TPixel}(Image{TPixel}, ITestImageProvider, object, string, bool)"/>.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format</typeparam>
-        /// <param name="image">The image</param>
-        /// <param name="provider">The image provider</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="image">The image which should be compared to the reference image.</param>
+        /// <param name="provider">The image provider.</param>
         /// <param name="testOutputDetails">Details to be concatenated to the test output file, describing the parameters of the test.</param>
         /// <param name="extension">The extension</param>
         /// <param name="grayscale">A boolean indicating whether we should debug save + compare against a grayscale image, smaller in size.</param>
         /// <param name="appendPixelTypeToFileName">A boolean indicating whether to append the pixel type to the  output file name.</param>
         /// <param name="appendSourceFileOrDescription">A boolean indicating whether to append <see cref="ITestImageProvider.SourceFileOrDescription"/> to the test output file name.</param>
-        /// <returns></returns>
+        /// <returns>The image.</returns>
         public static Image<TPixel> CompareToReferenceOutput<TPixel>(
             this Image<TPixel> image,
             ITestImageProvider provider,
@@ -218,17 +218,17 @@ namespace SixLabors.ImageSharp.Tests
         /// Compares the image against the expected Reference output, throws an exception if the images are not similar enough.
         /// The output file should be named identically to the output produced by <see cref="DebugSave{TPixel}(Image{TPixel}, ITestImageProvider, object, string, bool)"/>.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format</typeparam>
-        /// <param name="image">The image</param>
-        /// <param name="comparer">The <see cref="ImageComparer"/> to use</param>
-        /// <param name="provider">The image provider</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="image">The image which should be compared to the reference output.</param>
+        /// <param name="comparer">The <see cref="ImageComparer"/> to use.</param>
+        /// <param name="provider">The image provider.</param>
         /// <param name="testOutputDetails">Details to be concatenated to the test output file, describing the parameters of the test.</param>
         /// <param name="extension">The extension</param>
         /// <param name="grayscale">A boolean indicating whether we should debug save + compare against a grayscale image, smaller in size.</param>
         /// <param name="appendPixelTypeToFileName">A boolean indicating whether to append the pixel type to the  output file name.</param>
         /// <param name="appendSourceFileOrDescription">A boolean indicating whether to append <see cref="ITestImageProvider.SourceFileOrDescription"/> to the test output file name.</param>
         /// <param name="decoder">A custom decoder.</param>
-        /// <returns></returns>
+        /// <returns>The image.</returns>
         public static Image<TPixel> CompareToReferenceOutput<TPixel>(
             this Image<TPixel> image,
             ImageComparer comparer,
@@ -327,12 +327,13 @@ namespace SixLabors.ImageSharp.Tests
             return image;
         }
 
-        public static Image<TPixel> GetReferenceOutputImage<TPixel>(this ITestImageProvider provider,
-                                                                    object testOutputDetails = null,
-                                                                    string extension = "png",
-                                                                    bool appendPixelTypeToFileName = true,
-                                                                    bool appendSourceFileOrDescription = true,
-                                                                    IImageDecoder decoder = null)
+        public static Image<TPixel> GetReferenceOutputImage<TPixel>(
+            this ITestImageProvider provider,
+            object testOutputDetails = null,
+            string extension = "png",
+            bool appendPixelTypeToFileName = true,
+            bool appendSourceFileOrDescription = true,
+            IImageDecoder decoder = null)
             where TPixel : struct, IPixel<TPixel>
         {
             string referenceOutputFile = provider.Utility.GetReferenceOutputFileName(
@@ -351,11 +352,12 @@ namespace SixLabors.ImageSharp.Tests
             return Image.Load<TPixel>(referenceOutputFile, decoder);
         }
 
-        public static Image<TPixel> GetReferenceOutputImageMultiFrame<TPixel>(this ITestImageProvider provider,
-                                                                             int frameCount,
-                                                                    object testOutputDetails = null,
-                                                                    string extension = "png",
-                                                                    bool appendPixelTypeToFileName = true)
+        public static Image<TPixel> GetReferenceOutputImageMultiFrame<TPixel>(
+            this ITestImageProvider provider,
+            int frameCount,
+            object testOutputDetails = null,
+            string extension = "png",
+            bool appendPixelTypeToFileName = true)
             where TPixel : struct, IPixel<TPixel>
         {
             string[] frameFiles = provider.Utility.GetReferenceOutputFileNamesMultiFrame(
@@ -389,7 +391,7 @@ namespace SixLabors.ImageSharp.Tests
                 fi.Dispose();
             }
 
-            // remove the initial empty frame:
+            // Remove the initial empty frame:
             result.Frames.RemoveFrame(0);
             return result;
         }
@@ -441,6 +443,8 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// All pixels in all frames should be exactly equal to 'expectedPixel'.
         /// </summary>
+        /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
+        /// <returns>The image.</returns>
         public static Image<TPixel> ComparePixelBufferTo<TPixel>(this Image<TPixel> image, TPixel expectedPixel)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -455,6 +459,8 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// All pixels in all frames should be exactly equal to 'expectedPixelColor.ToPixel()'.
         /// </summary>
+        /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
+        /// <returns>The image.</returns>
         public static Image<TPixel> ComparePixelBufferTo<TPixel>(this Image<TPixel> image, Color expectedPixelColor)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -469,6 +475,8 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// All pixels in the frame should be exactly equal to 'expectedPixel'.
         /// </summary>
+        /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
+        /// <returns>The image.</returns>
         public static ImageFrame<TPixel> ComparePixelBufferTo<TPixel>(this ImageFrame<TPixel> imageFrame, TPixel expectedPixel)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -558,7 +566,8 @@ namespace SixLabors.ImageSharp.Tests
                     appendPixelTypeToFileName: appendPixelTypeToFileName,
                     appendSourceFileOrDescription: appendSourceFileOrDescription);
 
-                image.CompareToReferenceOutput(comparer,
+                image.CompareToReferenceOutput(
+                    comparer,
                     provider,
                     testOutputDetails,
                     appendPixelTypeToFileName: appendPixelTypeToFileName,
@@ -689,14 +698,15 @@ namespace SixLabors.ImageSharp.Tests
             public MakeOpaqueProcessor(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
                 : base(configuration, source, sourceRectangle)
             {
-
             }
 
             protected override void OnFrameApply(ImageFrame<TPixel> source)
             {
                 Rectangle sourceRectangle = this.SourceRectangle;
                 Configuration configuration = this.Configuration;
-                ParallelHelper.IterateRowsWithTempBuffer<Vector4>(sourceRectangle, configuration,
+                ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
+                    sourceRectangle,
+                    configuration,
                     (rows, temp) =>
                         {
                             Span<Vector4> tempSpan = temp.Span;
@@ -709,6 +719,7 @@ namespace SixLabors.ImageSharp.Tests
                                     ref Vector4 v = ref tempSpan[i];
                                     v.W = 1F;
                                 }
+
                                 PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, tempSpan, rowSpan, PixelConversionModifiers.Scale);
                             }
                         });

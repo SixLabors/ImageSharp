@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
 {
     public class GlowTest : BaseImageOperationsExtensionTest
     {
-        private static readonly GraphicsOptionsComparer graphicsOptionsComparer = new GraphicsOptionsComparer();
+        private static readonly GraphicsOptionsComparer GraphicsOptionsComparer = new GraphicsOptionsComparer();
 
         [Fact]
         public void Glow_GlowProcessorWithDefaultValues()
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
             this.operations.Glow();
             GlowProcessor p = this.Verify<GlowProcessor>();
 
-            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, graphicsOptionsComparer);
+            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, GraphicsOptionsComparer);
             Assert.Equal(Color.Black, p.GlowColor);
             Assert.Equal(ValueSize.PercentageOfWidth(.5f), p.Radius);
         }
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
             this.operations.Glow(Rgba32.Aquamarine);
             GlowProcessor p = this.Verify<GlowProcessor>();
 
-            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, graphicsOptionsComparer);
+            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, GraphicsOptionsComparer);
             Assert.Equal(Color.Aquamarine, p.GlowColor);
             Assert.Equal(ValueSize.PercentageOfWidth(.5f), p.Radius);
         }
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
             this.operations.Glow(3.5f);
             GlowProcessor p = this.Verify<GlowProcessor>();
 
-            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, graphicsOptionsComparer);
+            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, GraphicsOptionsComparer);
             Assert.Equal(Color.Black, p.GlowColor);
             Assert.Equal(ValueSize.Absolute(3.5f), p.Radius);
         }
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
             this.operations.Glow(rect);
             GlowProcessor p = this.Verify<GlowProcessor>(rect);
 
-            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, graphicsOptionsComparer);
+            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, GraphicsOptionsComparer);
             Assert.Equal(Color.Black, p.GlowColor);
             Assert.Equal(ValueSize.PercentageOfWidth(.5f), p.Radius);
         }

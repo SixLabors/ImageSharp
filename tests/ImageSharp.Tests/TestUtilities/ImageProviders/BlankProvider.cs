@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -34,7 +34,6 @@ namespace SixLabors.ImageSharp.Tests
             protected int Width { get; private set; }
 
             public override Image<TPixel> GetImage() => new Image<TPixel>(this.Configuration, this.Width, this.Height);
-
 
             public override void Deserialize(IXunitSerializationInfo info)
             {

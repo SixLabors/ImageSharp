@@ -85,18 +85,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
         new TheoryData<string, int, int, PixelResolutionUnit>
         {
-            { TestImages.Png.Splash, 11810, 11810 , PixelResolutionUnit.PixelsPerMeter},
-            { TestImages.Png.Ratio1x4, 1, 4 , PixelResolutionUnit.AspectRatio},
+            { TestImages.Png.Splash, 11810, 11810, PixelResolutionUnit.PixelsPerMeter },
+            { TestImages.Png.Ratio1x4, 1, 4, PixelResolutionUnit.AspectRatio },
             { TestImages.Png.Ratio4x1, 4, 1, PixelResolutionUnit.AspectRatio }
         };
 
         [Theory]
         [WithFile(TestImages.Png.Palette8Bpp, nameof(PngColorTypes), PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(PngColorTypes), 48, 24, PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(PngColorTypes), 47, 8, PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(PngColorTypes), 49, 7, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(PngColorTypes), 48, 24, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(PngColorTypes), 47, 8, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(PngColorTypes), 49, 7, PixelTypes.Rgba32)]
         [WithSolidFilledImages(nameof(PngColorTypes), 1, 1, 255, 100, 50, 255, PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(PngColorTypes), 7, 5, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(PngColorTypes), 7, 5, PixelTypes.Rgba32)]
         public void WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(PngColorTypes), 24, 24, PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Rgb24)]
+        [WithTestPatternImage(nameof(PngColorTypes), 24, 24, PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Rgb24)]
         public void IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(PngFilterMethods), 24, 24, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(PngFilterMethods), 24, 24, PixelTypes.Rgba32)]
         public void WorksWithAllFilterMethods<TPixel>(TestImageProvider<TPixel> provider, PngFilterMethod pngFilterMethod)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -145,7 +145,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(CompressionLevels), 24, 24, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(CompressionLevels), 24, 24, PixelTypes.Rgba32)]
         public void WorksWithAllCompressionLevels<TPixel>(TestImageProvider<TPixel> provider, int compressionLevel)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -163,21 +163,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
-        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.Rgb, PngBitDepth.Bit8)]
-        [WithTestPatternImages(24, 24, PixelTypes.Rgba64, PngColorType.Rgb, PngBitDepth.Bit16)]
-        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-        [WithTestPatternImages(24, 24, PixelTypes.Rgba64, PngColorType.RgbWithAlpha, PngBitDepth.Bit16)]
-        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.Palette, PngBitDepth.Bit1)]
-        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.Palette, PngBitDepth.Bit2)]
-        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.Palette, PngBitDepth.Bit4)]
-        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.Palette, PngBitDepth.Bit8)]
-        [WithTestPatternImages(24, 24, PixelTypes.Rgb24, PngColorType.Grayscale, PngBitDepth.Bit1)]
-        [WithTestPatternImages(24, 24, PixelTypes.Rgb24, PngColorType.Grayscale, PngBitDepth.Bit2)]
-        [WithTestPatternImages(24, 24, PixelTypes.Rgb24, PngColorType.Grayscale, PngBitDepth.Bit4)]
-        [WithTestPatternImages(24, 24, PixelTypes.Rgb24, PngColorType.Grayscale, PngBitDepth.Bit8)]
-        [WithTestPatternImages(24, 24, PixelTypes.Rgb48, PngColorType.Grayscale, PngBitDepth.Bit16)]
-        [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit8)]
-        [WithTestPatternImages(24, 24, PixelTypes.Rgba64, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit16)]
+        [WithTestPatternImage(24, 24, PixelTypes.Rgba32, PngColorType.Rgb, PngBitDepth.Bit8)]
+        [WithTestPatternImage(24, 24, PixelTypes.Rgba64, PngColorType.Rgb, PngBitDepth.Bit16)]
+        [WithTestPatternImage(24, 24, PixelTypes.Rgba32, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
+        [WithTestPatternImage(24, 24, PixelTypes.Rgba64, PngColorType.RgbWithAlpha, PngBitDepth.Bit16)]
+        [WithTestPatternImage(24, 24, PixelTypes.Rgba32, PngColorType.Palette, PngBitDepth.Bit1)]
+        [WithTestPatternImage(24, 24, PixelTypes.Rgba32, PngColorType.Palette, PngBitDepth.Bit2)]
+        [WithTestPatternImage(24, 24, PixelTypes.Rgba32, PngColorType.Palette, PngBitDepth.Bit4)]
+        [WithTestPatternImage(24, 24, PixelTypes.Rgba32, PngColorType.Palette, PngBitDepth.Bit8)]
+        [WithTestPatternImage(24, 24, PixelTypes.Rgb24, PngColorType.Grayscale, PngBitDepth.Bit1)]
+        [WithTestPatternImage(24, 24, PixelTypes.Rgb24, PngColorType.Grayscale, PngBitDepth.Bit2)]
+        [WithTestPatternImage(24, 24, PixelTypes.Rgb24, PngColorType.Grayscale, PngBitDepth.Bit4)]
+        [WithTestPatternImage(24, 24, PixelTypes.Rgb24, PngColorType.Grayscale, PngBitDepth.Bit8)]
+        [WithTestPatternImage(24, 24, PixelTypes.Rgb48, PngColorType.Grayscale, PngBitDepth.Bit16)]
+        [WithTestPatternImage(24, 24, PixelTypes.Rgba32, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit8)]
+        [WithTestPatternImage(24, 24, PixelTypes.Rgba64, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit16)]
         public void WorksWithAllBitDepths<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType, PngBitDepth pngBitDepth)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -236,7 +236,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 image.Save(ms, new PngEncoder());
 
                 byte[] data = ms.ToArray().Take(8).ToArray();
-                byte[] expected = {
+                byte[] expected =
+                {
                     0x89, // Set the high bit.
                     0x50, // P
                     0x4E, // N
@@ -396,6 +397,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
                 // Compare to the Magick reference decoder.
                 IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
+
                 // We compare using both our decoder and the reference decoder as pixel transformation
                 // occurs within the encoder itself leaving the input image unaffected.
                 // This means we are benefiting from testing our decoder also.

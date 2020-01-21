@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -7,7 +7,6 @@ using SixLabors.ImageSharp.Processing;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
-
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
     [GroupOutput("Transforms")]
@@ -22,9 +21,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 };
 
         [Theory]
-        [WithTestPatternImages(nameof(FlipValues), 20, 37, PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(FlipValues), 53, 37, PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(FlipValues), 17, 32, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(FlipValues), 20, 37, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(FlipValues), 53, 37, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(FlipValues), 17, 32, PixelTypes.Rgba32)]
         public void Flip<TPixel>(TestImageProvider<TPixel> provider, FlipMode flipMode)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -35,8 +34,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(FlipValues), 53, 37, PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(FlipValues), 17, 32, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(FlipValues), 53, 37, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(FlipValues), 17, 32, PixelTypes.Rgba32)]
         public void Flip_WorksOnWrappedMemoryImage<TPixel>(TestImageProvider<TPixel> provider, FlipMode flipMode)
             where TPixel : struct, IPixel<TPixel>
         {

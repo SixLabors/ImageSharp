@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
             // arrange
             var halfVector2 = default(HalfVector2);
-            
+
             // act
             halfVector2.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
 

@@ -58,9 +58,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 sum += Block8x8.GetScalarAt(&block, i);
             }
+
             Assert.Equal(sum, 64 * 63 / 2);
         }
-
 
         [Fact]
         public void AsFloatBlock()
@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void IndexerXY()
         {
             Block8x8 block = default;
-            block[8 * 3 + 5] = 42;
+            block[(8 * 3) + 5] = 42;
 
             short value = block[5, 3];
 

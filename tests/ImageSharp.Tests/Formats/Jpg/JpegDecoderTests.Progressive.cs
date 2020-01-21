@@ -3,8 +3,8 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     public partial class JpegDecoderTests

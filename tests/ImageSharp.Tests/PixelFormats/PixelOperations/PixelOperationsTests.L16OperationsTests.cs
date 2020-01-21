@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -19,7 +19,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 
             [Fact]
             public void IsSpecialImplementation() => Assert.IsType<L16.PixelOperations>(PixelOperations<L16>.Instance);
-
         }
     }
 }

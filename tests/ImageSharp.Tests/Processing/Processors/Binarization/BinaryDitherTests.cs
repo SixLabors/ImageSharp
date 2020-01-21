@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -8,8 +8,8 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
 
 using Xunit;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 {
     public class BinaryDitherTests
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), nameof(OrderedDitherers), PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(OrderedDitherers), 100, 100, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(OrderedDitherers), 100, 100, PixelTypes.Rgba32)]
         public void BinaryDitherFilter_WorksWithAllDitherers<TPixel>(TestImageProvider<TPixel> provider, string name, IOrderedDither ditherer)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), nameof(ErrorDiffusers), PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(ErrorDiffusers), 100, 100, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(ErrorDiffusers), 100, 100, PixelTypes.Rgba32)]
         public void DiffusionFilter_WorksWithAllErrorDiffusers<TPixel>(TestImageProvider<TPixel> provider, string name, IErrorDiffuser diffuser)
             where TPixel : struct, IPixel<TPixel>
         {

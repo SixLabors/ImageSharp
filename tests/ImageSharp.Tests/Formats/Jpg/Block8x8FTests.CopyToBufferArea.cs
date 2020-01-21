@@ -1,9 +1,8 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 // Uncomment this to turn unit tests into benchmarks:
-//#define BENCHMARKING
-
+// #define BENCHMARKING
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
@@ -12,8 +11,8 @@ using SixLabors.Primitives;
 
 using Xunit;
 using Xunit.Abstractions;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     public partial class Block8x8FTests
@@ -31,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 {
                     for (int x = 0; x < 20; x++)
                     {
-                        if (x < subX || x >= subX + 8 * horizontalFactor || y < subY || y >= subY + 8 * verticalFactor)
+                        if (x < subX || x >= subX + (8 * horizontalFactor) || y < subY || y >= subY + (8 * verticalFactor))
                         {
                             Assert.Equal(0, buffer[x, y]);
                         }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // arrange
             var halfSingle = new HalfSingle(-1F);
 
-            // act 
+            // act
             Vector4 actual = halfSingle.ToScaledVector4();
 
             // assert
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [Fact]
         public void HalfSingle_FromScaledVector4()
         {
-            // arrange 
+            // arrange
             Vector4 scaled = new HalfSingle(-1F).ToScaledVector4();
             int expected = 48128;
             var halfSingle = default(HalfSingle);

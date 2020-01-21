@@ -9,7 +9,7 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
     public class ResamplerTests
-    {   
+    {
         [Theory]
         [InlineData(-2, 0)]
         [InlineData(-1, 0)]

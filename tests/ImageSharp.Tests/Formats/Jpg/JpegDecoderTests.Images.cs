@@ -17,7 +17,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 // BUG: The following image has a high difference compared to the expected output: 1.0096%
                 // TestImages.Jpeg.Baseline.Jpeg420Small,
-
                 TestImages.Jpeg.Issues.Fuzz.AccessViolationException922,
                 TestImages.Jpeg.Baseline.Jpeg444,
                 TestImages.Jpeg.Baseline.Bad.BadEOF,
@@ -65,8 +64,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Issues.OrderedInterleavedProgressive723C
             };
 
-        public static string[] UnrecoverableTestJpegs = {
-
+        public static string[] UnrecoverableTestJpegs =
+        {
             TestImages.Jpeg.Issues.CriticalEOF214,
             TestImages.Jpeg.Issues.Fuzz.NullReferenceException797,
             TestImages.Jpeg.Issues.Fuzz.AccessViolationException798,

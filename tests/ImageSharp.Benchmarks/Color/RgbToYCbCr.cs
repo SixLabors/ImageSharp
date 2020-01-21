@@ -98,6 +98,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                     {
                         result.Data[i] = data[i];
                     }
+
                     return result;
                 }
             }
@@ -125,6 +126,7 @@ namespace SixLabors.ImageSharp.Benchmarks
             {
                 this.inputSourceRGB[i] = (byte)(42 + i);
             }
+
             this.inputSourceRGBAsInteger = new int[InputByteCount + Vector<int>.Count]; // Filling this should be part of the measured operation
         }
 
@@ -139,7 +141,6 @@ namespace SixLabors.ImageSharp.Benchmarks
             var yPtr = (float*)&result.Y;
             var cbPtr = (float*)&result.Cb;
             var crPtr = (float*)&result.Cr;
-            // end of code-bloat block :)
 
             for (int i = 0; i < InputColorCount; i++)
             {
@@ -165,7 +166,6 @@ namespace SixLabors.ImageSharp.Benchmarks
             var yPtr = (float*)&result.Y;
             var cbPtr = (float*)&result.Cb;
             var crPtr = (float*)&result.Cr;
-            // end of code-bloat block :)
 
             for (int i = 0; i < InputColorCount; i++)
             {
@@ -174,8 +174,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                 var vectorRgb = new Vector3(
                     input.Data[i3 + 0],
                     input.Data[i3 + 1],
-                    input.Data[i3 + 2]
-                    );
+                    input.Data[i3 + 2]);
 
                 Vector3 vectorY = VectorY * vectorRgb;
                 Vector3 vectorCb = VectorCb * vectorRgb;
@@ -197,7 +196,6 @@ namespace SixLabors.ImageSharp.Benchmarks
             var yPtr = (float*)&result.Y;
             var cbPtr = (float*)&result.Cb;
             var crPtr = (float*)&result.Cr;
-            // end of code-bloat block :)
 
             var yCoeffs = new Vector<int>(ScaledCoeffs.Y);
             var cbCoeffs = new Vector<int>(ScaledCoeffs.Cb);
@@ -243,7 +241,6 @@ namespace SixLabors.ImageSharp.Benchmarks
             float* yPtr = (float*)&result.Y;
             float* cbPtr = (float*)&result.Cb;
             float* crPtr = (float*)&result.Cr;
-            // end of code-bloat block :)
 
             var yCoeffs = new Vector<int>(ScaledCoeffs.Y);
             var cbCoeffs = new Vector<int>(ScaledCoeffs.Cb);
@@ -306,7 +303,6 @@ namespace SixLabors.ImageSharp.Benchmarks
             float* yPtr = (float*)&result.Y;
             float* cbPtr = (float*)&result.Cb;
             float* crPtr = (float*)&result.Cr;
-            // end of code-bloat block :)
 
             for (int i = 0; i < InputColorCount; i++)
             {
@@ -345,7 +341,6 @@ namespace SixLabors.ImageSharp.Benchmarks
             float* yPtr = (float*)&result.Y;
             float* cbPtr = (float*)&result.Cb;
             float* crPtr = (float*)&result.Cr;
-            // end of code-bloat block :)
 
             for (int i = 0; i < InputColorCount; i++)
             {

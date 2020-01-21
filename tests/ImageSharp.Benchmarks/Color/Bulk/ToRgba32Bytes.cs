@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -9,7 +9,6 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 // ReSharper disable InconsistentNaming
-
 namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
     public abstract class ToRgba32Bytes<TPixel>
@@ -39,7 +38,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             this.destination.Dispose();
         }
 
-        //[Benchmark]
+        // [Benchmark]
         public void Naive()
         {
             Span<TPixel> s = this.source.GetSpan();

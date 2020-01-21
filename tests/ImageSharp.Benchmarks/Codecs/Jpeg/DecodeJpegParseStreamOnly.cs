@@ -1,9 +1,10 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using BenchmarkDotNet.Attributes;
 using System.Drawing;
 using System.IO;
+using BenchmarkDotNet.Attributes;
+
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Tests;
 

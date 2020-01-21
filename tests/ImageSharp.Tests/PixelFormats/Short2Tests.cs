@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -13,11 +13,12 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         public void Short2_PackedValues()
         {
             // Test ordering
-            Assert.Equal((uint)0x361d2db1, new Short2(0x2db1, 0x361d).PackedValue);
+            Assert.Equal(0x361d2db1U, new Short2(0x2db1, 0x361d).PackedValue);
             Assert.Equal(4294639744, new Short2(127.5f, -5.3f).PackedValue);
+
             // Test the limits.
-            Assert.Equal((uint)0x0, new Short2(Vector2.Zero).PackedValue);
-            Assert.Equal((uint)0x7FFF7FFF, new Short2(Vector2.One * 0x7FFF).PackedValue);
+            Assert.Equal(0x0U, new Short2(Vector2.Zero).PackedValue);
+            Assert.Equal(0x7FFF7FFFU, new Short2(Vector2.One * 0x7FFF).PackedValue);
             Assert.Equal(0x80008000, new Short2(Vector2.One * -0x8000).PackedValue);
         }
 
@@ -34,9 +35,9 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [Fact]
         public void Short2_ToVector4()
         {
-            Assert.Equal(new Vector4(0x7FFF, 0x7FFF, 0, 1), (new Short2(Vector2.One * 0x7FFF)).ToVector4());
-            Assert.Equal(new Vector4(0, 0, 0, 1), (new Short2(Vector2.Zero)).ToVector4());
-            Assert.Equal(new Vector4(-0x8000, -0x8000, 0, 1), (new Short2(Vector2.One * -0x8000)).ToVector4());
+            Assert.Equal(new Vector4(0x7FFF, 0x7FFF, 0, 1), new Short2(Vector2.One * 0x7FFF).ToVector4());
+            Assert.Equal(new Vector4(0, 0, 0, 1), new Short2(Vector2.Zero).ToVector4());
+            Assert.Equal(new Vector4(-0x8000, -0x8000, 0, 1), new Short2(Vector2.One * -0x8000).ToVector4());
         }
 
         [Fact]
@@ -70,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var short2 = new Short2(Vector2.One * 0x7FFF);
             const ulong expected = 0x7FFF7FFF;
 
-            // act 
+            // act
             Vector4 scaled = short2.ToScaledVector4();
             pixel.FromScaledVector4(scaled);
             uint actual = pixel.PackedValue;
@@ -102,7 +103,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var actual = default(Rgba32);
             var expected = new Rgba32(20, 38, 0, 255);
 
-            // act 
+            // act
             short2.FromRgba32(expected);
             short2.ToRgba32(ref actual);
 
@@ -147,7 +148,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
             // arrange
             var short2 = default(Short2);
-            
+
             // act
             short2.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
 

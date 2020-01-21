@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Tests
@@ -52,7 +52,6 @@ namespace SixLabors.ImageSharp.Tests
         public static readonly byte[] UInt32_8 = { 0x00, 0x00, 0x00, 0x08 };
         public static readonly byte[] UInt32_9 = { 0x00, 0x00, 0x00, 0x09 };
         public static readonly byte[] UInt32_Max = { 0xFF, 0xFF, 0xFF, 0xFF };
-
 
         public static readonly uint UInt32_ValRand1 = 1749014123;
         public static readonly uint UInt32_ValRand2 = 3870560989;
@@ -145,7 +144,7 @@ namespace SixLabors.ImageSharp.Tests
         #region Fix16
 
         public const float Fix16_ValMin = short.MinValue;
-        public const float Fix16_ValMax = short.MaxValue + 65535f / 65536f;
+        public const float Fix16_ValMax = short.MaxValue + (65535f / 65536f);
 
         public static readonly byte[] Fix16_Min = { 0x80, 0x00, 0x00, 0x00 };
         public static readonly byte[] Fix16_0 = { 0x00, 0x00, 0x00, 0x00 };
@@ -173,7 +172,7 @@ namespace SixLabors.ImageSharp.Tests
         #region UFix16
 
         public const float UFix16_ValMin = 0;
-        public const float UFix16_ValMax = ushort.MaxValue + 65535f / 65536f;
+        public const float UFix16_ValMax = ushort.MaxValue + (65535f / 65536f);
 
         public static readonly byte[] UFix16_0 = { 0x00, 0x00, 0x00, 0x00 };
         public static readonly byte[] UFix16_1 = { 0x00, 0x01, 0x00, 0x00 };
@@ -199,7 +198,7 @@ namespace SixLabors.ImageSharp.Tests
         #region U1Fix15
 
         public const float U1Fix15_ValMin = 0;
-        public const float U1Fix15_ValMax = 1f + 32767f / 32768f;
+        public const float U1Fix15_ValMax = 1f + (32767f / 32768f);
 
         public static readonly byte[] U1Fix15_0 = { 0x00, 0x00 };
         public static readonly byte[] U1Fix15_1 = { 0x80, 0x00 };
@@ -217,7 +216,7 @@ namespace SixLabors.ImageSharp.Tests
         #region UFix8
 
         public const float UFix8_ValMin = 0;
-        public const float UFix8_ValMax = byte.MaxValue + 255f / 256f;
+        public const float UFix8_ValMax = byte.MaxValue + (255f / 256f);
 
         public static readonly byte[] UFix8_0 = { 0x00, 0x00 };
         public static readonly byte[] UFix8_1 = { 0x01, 0x00 };

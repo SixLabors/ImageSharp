@@ -1,14 +1,12 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-
-using SixLabors.ImageSharp.PixelFormats;
 
 using System.Drawing;
 using System.Drawing.Drawing2D;
-
 using BenchmarkDotNet.Attributes;
-using SixLabors.ImageSharp.Processing;
 
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using CoreSize = SixLabors.Primitives.Size;
 
 namespace SixLabors.ImageSharp.Benchmarks
@@ -26,7 +24,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                 graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
                 graphics.CompositingQuality = CompositingQuality.HighQuality;
                 graphics.DrawImage(source, new Rectangle(0, 0, 100, 100), 0, 0, 100, 100, GraphicsUnit.Pixel);
-         
+
                 return destination.Size;
             }
         }

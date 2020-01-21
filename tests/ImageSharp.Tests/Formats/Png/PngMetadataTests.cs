@@ -16,8 +16,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
             new TheoryData<string, int, int, PixelResolutionUnit>
             {
-                { TestImages.Png.Splash, 11810, 11810 , PixelResolutionUnit.PixelsPerMeter},
-                { TestImages.Png.Ratio1x4, 1, 4 , PixelResolutionUnit.AspectRatio},
+                { TestImages.Png.Splash, 11810, 11810, PixelResolutionUnit.PixelsPerMeter },
+                { TestImages.Png.Ratio1x4, 1, 4, PixelResolutionUnit.AspectRatio },
                 { TestImages.Png.Ratio4x1, 4, 1, PixelResolutionUnit.AspectRatio }
             };
 
@@ -126,9 +126,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             using (Image<TPixel> input = provider.GetImage(decoder))
             using (var memoryStream = new MemoryStream())
             {
-                // this will be a zTXt chunk.
+                // This will be a zTXt chunk.
                 var expectedText = new PngTextData("large-text", new string('c', 100), string.Empty, string.Empty);
-                // this will be a iTXt chunk.
+
+                // This will be a iTXt chunk.
                 var expectedTextNoneLatin = new PngTextData("large-text-non-latin", new string('Ф', 100), "language-tag", "translated-keyword");
                 PngMetadata inputMetadata = input.Metadata.GetFormatMetadata(PngFormat.Instance);
                 inputMetadata.TextData.Add(expectedText);

@@ -19,7 +19,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 
             [Fact]
             public void IsSpecialImplementation() => Assert.IsType<La32.PixelOperations>(PixelOperations<La32>.Instance);
-
         }
     }
 }

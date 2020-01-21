@@ -4,8 +4,8 @@
 using System;
 
 using Xunit;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Helpers
 {
     public class TolerantMathTests

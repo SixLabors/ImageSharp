@@ -120,9 +120,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         [Theory]
         [WithFileCollection(nameof(TestFiles), nameof(BokehBlurValues), PixelTypes.Rgba32)]
         [WithSolidFilledImages(nameof(BokehBlurValues), 50, 50, "Red", PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(BokehBlurValues), 200, 100, PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(BokehBlurValues), 23, 31, PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(BokehBlurValues), 30, 20, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(BokehBlurValues), 200, 100, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(BokehBlurValues), 23, 31, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(BokehBlurValues), 30, 20, PixelTypes.Rgba32)]
         public void BokehBlurFilterProcessor<TPixel>(TestImageProvider<TPixel> provider, BokehBlurInfo value)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -133,9 +133,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         }
 
         [Theory]
-        // TODO: Re-enable L8 when we update the reference images.
-        // [WithTestPatternImages(200, 200, PixelTypes.Bgr24 | PixelTypes.Bgra32 | PixelTypes.L8)]
-        [WithTestPatternImages(200, 200, PixelTypes.Bgr24 | PixelTypes.Bgra32)]
+        /*
+         TODO: Re-enable L8 when we update the reference images.
+         [WithTestPatternImages(200, 200, PixelTypes.Bgr24 | PixelTypes.Bgra32 | PixelTypes.L8)]
+        */
+        [WithTestPatternImage(200, 200, PixelTypes.Bgr24 | PixelTypes.Bgra32)]
         public void BokehBlurFilterProcessor_WorksWithAllPixelTypes<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -143,7 +145,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
                 x => x.BokehBlur(8, 2, 3),
                 appendSourceFileOrDescription: false);
         }
-
 
         [Theory]
         [WithFileCollection(nameof(TestFiles), nameof(BokehBlurValues), PixelTypes.Rgba32)]

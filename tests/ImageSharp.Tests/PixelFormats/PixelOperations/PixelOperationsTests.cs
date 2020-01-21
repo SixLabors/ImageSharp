@@ -18,11 +18,13 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 {
     public partial class PixelOperationsTests
     {
+#pragma warning disable SA1313 // Parameter names should begin with lower-case letter
         [Theory]
         [WithBlankImages(1, 1, PixelTypes.All)]
         public void GetGlobalInstance<T>(TestImageProvider<T> _)
             where T : struct, IPixel<T> => Assert.NotNull(PixelOperations<T>.Instance);
     }
+#pragma warning restore SA1313 // Parameter names should begin with lower-case letter
 
     public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         where TPixel : struct, IPixel<TPixel>
@@ -113,8 +115,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromVector4Destructive(this.Configuration, s, d.GetSpan())
-            );
+                (s, d) => Operations.FromVector4Destructive(this.Configuration, s, d.GetSpan()));
         }
 
         [Theory]
@@ -138,18 +139,18 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         [MemberData(nameof(ArraySizesData))]
         public void FromCompandedScaledVector4(int count)
         {
-            void sourceAction(ref Vector4 v)
+            void SourceAction(ref Vector4 v)
             {
                 SRgbCompanding.Expand(ref v);
             }
 
-            void expectedAction(ref Vector4 v)
+            void ExpectedAction(ref Vector4 v)
             {
                 SRgbCompanding.Compress(ref v);
             }
 
-            Vector4[] source = CreateVector4TestData(count, (ref Vector4 v) => sourceAction(ref v));
-            TPixel[] expected = CreateScaledExpectedPixelData(source, (ref Vector4 v) => expectedAction(ref v));
+            Vector4[] source = CreateVector4TestData(count, (ref Vector4 v) => SourceAction(ref v));
+            TPixel[] expected = CreateScaledExpectedPixelData(source, (ref Vector4 v) => ExpectedAction(ref v));
 
             TestOperation(
                 source,
@@ -158,15 +159,14 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                     this.Configuration,
                     s,
                     d.GetSpan(),
-                    PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Scale)
-            );
+                    PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Scale));
         }
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
         public void FromPremultipliedVector4(int count)
         {
-            void sourceAction(ref Vector4 v)
+            void SourceAction(ref Vector4 v)
             {
                 if (this.HasAlpha)
                 {
@@ -174,7 +174,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 }
             }
 
-            void expectedAction(ref Vector4 v)
+            void ExpectedAction(ref Vector4 v)
             {
                 if (this.HasAlpha)
                 {
@@ -182,21 +182,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 }
             }
 
-            Vector4[] source = CreateVector4TestData(count, (ref Vector4 v) => sourceAction(ref v));
-            TPixel[] expected = CreateExpectedPixelData(source, (ref Vector4 v) => expectedAction(ref v));
+            Vector4[] source = CreateVector4TestData(count, (ref Vector4 v) => SourceAction(ref v));
+            TPixel[] expected = CreateExpectedPixelData(source, (ref Vector4 v) => ExpectedAction(ref v));
 
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromVector4Destructive(this.Configuration, s, d.GetSpan(), PixelConversionModifiers.Premultiply)
-            );
+                (s, d) => Operations.FromVector4Destructive(this.Configuration, s, d.GetSpan(), PixelConversionModifiers.Premultiply));
         }
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
         public void FromPremultipliedScaledVector4(int count)
         {
-            void sourceAction(ref Vector4 v)
+            void SourceAction(ref Vector4 v)
             {
                 if (this.HasAlpha)
                 {
@@ -204,7 +203,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 }
             }
 
-            void expectedAction(ref Vector4 v)
+            void ExpectedAction(ref Vector4 v)
             {
                 if (this.HasAlpha)
                 {
@@ -212,8 +211,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 }
             }
 
-            Vector4[] source = CreateVector4TestData(count, (ref Vector4 v) => sourceAction(ref v));
-            TPixel[] expected = CreateScaledExpectedPixelData(source, (ref Vector4 v) => expectedAction(ref v));
+            Vector4[] source = CreateVector4TestData(count, (ref Vector4 v) => SourceAction(ref v));
+            TPixel[] expected = CreateScaledExpectedPixelData(source, (ref Vector4 v) => ExpectedAction(ref v));
 
             TestOperation(
                 source,
@@ -222,15 +221,14 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                     this.Configuration,
                     s,
                     d.GetSpan(),
-                    PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale)
-            );
+                    PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale));
         }
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
         public void FromCompandedPremultipliedScaledVector4(int count)
         {
-            void sourceAction(ref Vector4 v)
+            void SourceAction(ref Vector4 v)
             {
                 SRgbCompanding.Expand(ref v);
 
@@ -240,7 +238,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 }
             }
 
-            void expectedAction(ref Vector4 v)
+            void ExpectedAction(ref Vector4 v)
             {
                 if (this.HasAlpha)
                 {
@@ -250,8 +248,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 SRgbCompanding.Compress(ref v);
             }
 
-            Vector4[] source = CreateVector4TestData(count, (ref Vector4 v) => sourceAction(ref v));
-            TPixel[] expected = CreateScaledExpectedPixelData(source, (ref Vector4 v) => expectedAction(ref v));
+            Vector4[] source = CreateVector4TestData(count, (ref Vector4 v) => SourceAction(ref v));
+            TPixel[] expected = CreateScaledExpectedPixelData(source, (ref Vector4 v) => ExpectedAction(ref v));
 
             TestOperation(
                 source,
@@ -260,8 +258,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                     this.Configuration,
                     s,
                     d.GetSpan(),
-                    PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale)
-            );
+                    PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale));
         }
 
         [Theory]
@@ -274,10 +271,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToVector4(this.Configuration, s, d.GetSpan())
-            );
+                (s, d) => Operations.ToVector4(this.Configuration, s, d.GetSpan()));
         }
-
 
         public static readonly TheoryData<IPixel> Generic_To_Data = new TheoryData<IPixel>
         {
@@ -304,7 +299,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(source, expected, (s, d) => Operations.To(this.Configuration, (ReadOnlySpan<TPixel>)s, d.GetSpan()));
         }
 
-
         [Theory]
         [MemberData(nameof(ArraySizesData))]
         public void ToScaledVector4(int count)
@@ -326,18 +320,18 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         [MemberData(nameof(ArraySizesData))]
         public void ToCompandedScaledVector4(int count)
         {
-            void sourceAction(ref Vector4 v)
+            void SourceAction(ref Vector4 v)
             {
                 SRgbCompanding.Compress(ref v);
             }
 
-            void expectedAction(ref Vector4 v)
+            void ExpectedAction(ref Vector4 v)
             {
                 SRgbCompanding.Expand(ref v);
             }
 
-            TPixel[] source = CreateScaledPixelTestData(count, (ref Vector4 v) => sourceAction(ref v));
-            Vector4[] expected = CreateExpectedScaledVector4Data(source, (ref Vector4 v) => expectedAction(ref v));
+            TPixel[] source = CreateScaledPixelTestData(count, (ref Vector4 v) => SourceAction(ref v));
+            Vector4[] expected = CreateExpectedScaledVector4Data(source, (ref Vector4 v) => ExpectedAction(ref v));
 
             TestOperation(
                 source,
@@ -346,50 +340,48 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                     this.Configuration,
                     s,
                     d.GetSpan(),
-                    PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Scale)
-            );
+                    PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Scale));
         }
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
         public void ToPremultipliedVector4(int count)
         {
-            void sourceAction(ref Vector4 v)
+            void SourceAction(ref Vector4 v)
             {
                 Vector4Utils.UnPremultiply(ref v);
             }
 
-            void expectedAction(ref Vector4 v)
+            void ExpectedAction(ref Vector4 v)
             {
                 Vector4Utils.Premultiply(ref v);
             }
 
-            TPixel[] source = CreatePixelTestData(count, (ref Vector4 v) => sourceAction(ref v));
-            Vector4[] expected = CreateExpectedVector4Data(source, (ref Vector4 v) => expectedAction(ref v));
+            TPixel[] source = CreatePixelTestData(count, (ref Vector4 v) => SourceAction(ref v));
+            Vector4[] expected = CreateExpectedVector4Data(source, (ref Vector4 v) => ExpectedAction(ref v));
 
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToVector4(this.Configuration, s, d.GetSpan(), PixelConversionModifiers.Premultiply)
-            );
+                (s, d) => Operations.ToVector4(this.Configuration, s, d.GetSpan(), PixelConversionModifiers.Premultiply));
         }
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
         public void ToPremultipliedScaledVector4(int count)
         {
-            void sourceAction(ref Vector4 v)
+            void SourceAction(ref Vector4 v)
             {
                 Vector4Utils.UnPremultiply(ref v);
             }
 
-            void expectedAction(ref Vector4 v)
+            void ExpectedAction(ref Vector4 v)
             {
                 Vector4Utils.Premultiply(ref v);
             }
 
-            TPixel[] source = CreateScaledPixelTestData(count, (ref Vector4 v) => sourceAction(ref v));
-            Vector4[] expected = CreateExpectedScaledVector4Data(source, (ref Vector4 v) => expectedAction(ref v));
+            TPixel[] source = CreateScaledPixelTestData(count, (ref Vector4 v) => SourceAction(ref v));
+            Vector4[] expected = CreateExpectedScaledVector4Data(source, (ref Vector4 v) => ExpectedAction(ref v));
 
             TestOperation(
                 source,
@@ -405,20 +397,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         [MemberData(nameof(ArraySizesData))]
         public void ToCompandedPremultipliedScaledVector4(int count)
         {
-            void sourceAction(ref Vector4 v)
+            void SourceAction(ref Vector4 v)
             {
                 Vector4Utils.UnPremultiply(ref v);
                 SRgbCompanding.Compress(ref v);
             }
 
-            void expectedAction(ref Vector4 v)
+            void ExpectedAction(ref Vector4 v)
             {
                 SRgbCompanding.Expand(ref v);
                 Vector4Utils.Premultiply(ref v);
             }
 
-            TPixel[] source = CreateScaledPixelTestData(count, (ref Vector4 v) => sourceAction(ref v));
-            Vector4[] expected = CreateExpectedScaledVector4Data(source, (ref Vector4 v) => expectedAction(ref v));
+            TPixel[] source = CreateScaledPixelTestData(count, (ref Vector4 v) => SourceAction(ref v));
+            Vector4[] expected = CreateExpectedScaledVector4Data(source, (ref Vector4 v) => ExpectedAction(ref v));
 
             TestOperation(
                 source,
@@ -427,8 +419,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                     this.Configuration,
                     s,
                     d.GetSpan(),
-                    PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale)
-            );
+                    PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale));
         }
 
         [Theory]
@@ -448,8 +439,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromArgb32Bytes(this.Configuration, s, d.GetSpan(), count)
-            );
+                (s, d) => Operations.FromArgb32Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
         [Theory]
@@ -457,7 +447,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         public void ToArgb32Bytes(int count)
         {
             TPixel[] source = CreatePixelTestData(count);
-            var expected = new byte[count * 4];
+            byte[] expected = new byte[count * 4];
             var argb = default(Argb32);
 
             for (int i = 0; i < count; i++)
@@ -474,8 +464,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToArgb32Bytes(this.Configuration, s, d.GetSpan(), count)
-            );
+                (s, d) => Operations.ToArgb32Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
         [Theory]
@@ -495,8 +484,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromBgr24Bytes(this.Configuration, s, d.GetSpan(), count)
-            );
+                (s, d) => Operations.FromBgr24Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
         [Theory]
@@ -504,7 +492,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         public void ToBgr24Bytes(int count)
         {
             TPixel[] source = CreatePixelTestData(count);
-            var expected = new byte[count * 3];
+            byte[] expected = new byte[count * 3];
             var bgr = default(Bgr24);
 
             for (int i = 0; i < count; i++)
@@ -519,8 +507,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToBgr24Bytes(this.Configuration, s, d.GetSpan(), count)
-            );
+                (s, d) => Operations.ToBgr24Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
         [Theory]
@@ -540,8 +527,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromBgra32Bytes(this.Configuration, s, d.GetSpan(), count)
-            );
+                (s, d) => Operations.FromBgra32Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
         [Theory]
@@ -549,7 +535,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         public void ToBgra32Bytes(int count)
         {
             TPixel[] source = CreatePixelTestData(count);
-            var expected = new byte[count * 4];
+            byte[] expected = new byte[count * 4];
             var bgra = default(Bgra32);
 
             for (int i = 0; i < count; i++)
@@ -565,8 +551,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToBgra32Bytes(this.Configuration, s, d.GetSpan(), count)
-            );
+                (s, d) => Operations.ToBgra32Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
         [Theory]
@@ -588,8 +573,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromBgra5551Bytes(this.Configuration, s, d.GetSpan(), count)
-            );
+                (s, d) => Operations.FromBgra5551Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
         [Theory]
@@ -598,7 +582,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         {
             int size = Unsafe.SizeOf<Bgra5551>();
             TPixel[] source = CreatePixelTestData(count);
-            var expected = new byte[count * size];
+            byte[] expected = new byte[count * size];
             Bgra5551 bgra = default;
 
             for (int i = 0; i < count; i++)
@@ -613,8 +597,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToBgra5551Bytes(this.Configuration, s, d.GetSpan(), count)
-            );
+                (s, d) => Operations.ToBgra5551Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
         [Theory]
@@ -625,7 +608,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             L8[] source = sourceBytes.Select(b => new L8(b)).ToArray();
             var expected = new TPixel[count];
 
-
             for (int i = 0; i < count; i++)
             {
                 expected[i].FromL8(source[i]);
@@ -634,8 +616,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromL8(this.Configuration, s, d.GetSpan())
-            );
+                (s, d) => Operations.FromL8(this.Configuration, s, d.GetSpan()));
         }
 
         [Theory]
@@ -653,8 +634,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToL8(this.Configuration, s, d.GetSpan())
-            );
+                (s, d) => Operations.ToL8(this.Configuration, s, d.GetSpan()));
         }
 
         [Theory]
@@ -678,8 +658,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromL16(this.Configuration, s, d.GetSpan())
-            );
+                (s, d) => Operations.FromL16(this.Configuration, s, d.GetSpan()));
         }
 
         [Theory]
@@ -697,8 +676,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToL16(this.Configuration, s, d.GetSpan())
-            );
+                (s, d) => Operations.ToL16(this.Configuration, s, d.GetSpan()));
         }
 
         [Theory]
@@ -720,8 +698,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromLa16Bytes(this.Configuration, s, d.GetSpan(), count)
-            );
+                (s, d) => Operations.FromLa16Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
         [Theory]
@@ -730,7 +707,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         {
             int size = Unsafe.SizeOf<La16>();
             TPixel[] source = CreatePixelTestData(count);
-            var expected = new byte[count * size];
+            byte[] expected = new byte[count * size];
             La16 la = default;
 
             for (int i = 0; i < count; i++)
@@ -745,8 +722,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToLa16Bytes(this.Configuration, s, d.GetSpan(), count)
-            );
+                (s, d) => Operations.ToLa16Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
         [Theory]
@@ -768,17 +744,16 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromLa32Bytes(this.Configuration, s, d.GetSpan(), count)
-            );
+                (s, d) => Operations.FromLa32Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
         public void ToLa32Bytes(int count)
         {
-            var size = Unsafe.SizeOf<La32>();
+            int size = Unsafe.SizeOf<La32>();
             TPixel[] source = CreatePixelTestData(count);
-            var expected = new byte[count * size];
+            byte[] expected = new byte[count * size];
             La32 la = default;
 
             for (int i = 0; i < count; i++)
@@ -795,8 +770,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToLa32Bytes(this.Configuration, s, d.GetSpan(), count)
-            );
+                (s, d) => Operations.ToLa32Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
         [Theory]
@@ -816,8 +790,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromRgb24Bytes(this.Configuration, s, d.GetSpan(), count)
-            );
+                (s, d) => Operations.FromRgb24Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
         [Theory]
@@ -825,7 +798,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         public void ToRgb24Bytes(int count)
         {
             TPixel[] source = CreatePixelTestData(count);
-            var expected = new byte[count * 3];
+            byte[] expected = new byte[count * 3];
             var rgb = default(Rgb24);
 
             for (int i = 0; i < count; i++)
@@ -840,8 +813,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToRgb24Bytes(this.Configuration, s, d.GetSpan(), count)
-            );
+                (s, d) => Operations.ToRgb24Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
         [Theory]
@@ -861,8 +833,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromRgba32Bytes(this.Configuration, s, d.GetSpan(), count)
-            );
+                (s, d) => Operations.FromRgba32Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
         [Theory]
@@ -870,7 +841,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         public void ToRgba32Bytes(int count)
         {
             TPixel[] source = CreatePixelTestData(count);
-            var expected = new byte[count * 4];
+            byte[] expected = new byte[count * 4];
             var rgba = default(Rgba32);
 
             for (int i = 0; i < count; i++)
@@ -886,8 +857,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToRgba32Bytes(this.Configuration, s, d.GetSpan(), count)
-            );
+                (s, d) => Operations.ToRgba32Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
         [Theory]
@@ -907,8 +877,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromRgb48Bytes(this.Configuration, s, d.GetSpan(), count)
-            );
+                (s, d) => Operations.FromRgb48Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
         [Theory]
@@ -916,7 +885,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         public void ToRgb48Bytes(int count)
         {
             TPixel[] source = CreatePixelTestData(count);
-            var expected = new byte[count * 6];
+            byte[] expected = new byte[count * 6];
             Rgb48 rgb = default;
 
             for (int i = 0; i < count; i++)
@@ -935,8 +904,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToRgb48Bytes(this.Configuration, s, d.GetSpan(), count)
-            );
+                (s, d) => Operations.ToRgb48Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
         [Theory]
@@ -956,8 +924,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromRgba64Bytes(this.Configuration, s, d.GetSpan(), count)
-            );
+                (s, d) => Operations.FromRgba64Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
         [Theory]
@@ -965,7 +932,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         public void ToRgba64Bytes(int count)
         {
             TPixel[] source = CreatePixelTestData(count);
-            var expected = new byte[count * 8];
+            byte[] expected = new byte[count * 8];
             Rgba64 rgba = default;
 
             for (int i = 0; i < count; i++)
@@ -986,8 +953,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToRgba64Bytes(this.Configuration, s, d.GetSpan(), count)
-            );
+                (s, d) => Operations.ToRgba64Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
         public delegate void RefAction<T1>(ref T1 arg1);
@@ -1050,6 +1016,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 
                 result[i] = v;
             }
+
             return result;
         }
 
@@ -1091,24 +1058,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 
         internal static byte[] CreateByteTestData(int length)
         {
-            var result = new byte[length];
+            byte[] result = new byte[length];
             var rnd = new Random(42); // Deterministic random values
 
             for (int i = 0; i < result.Length; i++)
             {
                 result[i] = (byte)rnd.Next(255);
             }
+
             return result;
         }
 
         internal static Vector4 GetVector(Random rnd)
         {
-            return new Vector4(
-                (float)rnd.NextDouble(),
-                (float)rnd.NextDouble(),
-                (float)rnd.NextDouble(),
-                (float)rnd.NextDouble()
-            );
+            return new Vector4((float)rnd.NextDouble(), (float)rnd.NextDouble(), (float)rnd.NextDouble(), (float)rnd.NextDouble());
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -1132,7 +1095,9 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             where TDest : struct
         {
             public TSource[] SourceBuffer { get; }
+
             public IMemoryOwner<TDest> ActualDestBuffer { get; }
+
             public TDest[] ExpectedDestBuffer { get; }
 
             public TestBuffers(TSource[] source, TDest[] expectedDest)
@@ -1158,6 +1123,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                     {
                         // ReSharper disable PossibleNullReferenceException
                         Assert.Equal(expected[i], actual[i], comparer);
+
                         // ReSharper restore PossibleNullReferenceException
                     }
                 }

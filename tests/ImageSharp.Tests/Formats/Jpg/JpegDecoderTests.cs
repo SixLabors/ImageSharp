@@ -6,10 +6,10 @@ using System.IO;
 using System.Linq;
 
 using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using SixLabors.Memory;
 
 using Xunit;
 using Xunit.Abstractions;
@@ -110,9 +110,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         // DEBUG ONLY!
         // The PDF.js output should be saved by "tests\ImageSharp.Tests\Formats\Jpg\pdfjs\jpeg-converter.htm"
         // into "\tests\Images\ActualOutput\JpegDecoderTests\"
-        //[Theory]
-        //[WithFile(TestImages.Jpeg.Progressive.Progress, PixelTypes.Rgba32, "PdfJsOriginal_progress.png")]
-        public void ValidateProgressivePdfJsOutput<TPixel>(TestImageProvider<TPixel> provider,
+        // [Theory]
+        // [WithFile(TestImages.Jpeg.Progressive.Progress, PixelTypes.Rgba32, "PdfJsOriginal_progress.png")]
+        public void ValidateProgressivePdfJsOutput<TPixel>(
+            TestImageProvider<TPixel> provider,
             string pdfJsOriginalResultImage)
             where TPixel : struct, IPixel<TPixel>
         {

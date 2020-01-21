@@ -1,11 +1,11 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    internal static class IccTestDataMultiProcessElement
+    internal static class IccTestDataMultiProcessElements
     {
         #region CurveSet
 
@@ -19,16 +19,15 @@ namespace SixLabors.ImageSharp.Tests
             IccTestDataCurves.OneDimensional_ValFormula2,
             IccTestDataCurves.OneDimensional_ValFormula1
         });
+
         /// <summary>
         /// <para>Input Channel Count: 3</para>
         /// <para>Output Channel Count: 3</para>
         /// </summary>
-        public static readonly byte[] CurvePE_Grad = ArrayHelper.Concat
-        (
+        public static readonly byte[] CurvePE_Grad = ArrayHelper.Concat(
             IccTestDataCurves.OneDimensional_Formula1,
             IccTestDataCurves.OneDimensional_Formula2,
-            IccTestDataCurves.OneDimensional_Formula1
-        );
+            IccTestDataCurves.OneDimensional_Formula1);
 
         public static readonly object[][] CurveSetTestData =
         {
@@ -43,26 +42,22 @@ namespace SixLabors.ImageSharp.Tests
         /// <para>Input Channel Count: 3</para>
         /// <para>Output Channel Count: 3</para>
         /// </summary>
-        public static readonly IccMatrixProcessElement MatrixPE_ValGrad = new IccMatrixProcessElement
-        (
+        public static readonly IccMatrixProcessElement MatrixPE_ValGrad = new IccMatrixProcessElement(
             IccTestDataMatrix.Single_2DArray_ValGrad,
-            IccTestDataMatrix.Single_1DArray_ValGrad
-        );
+            IccTestDataMatrix.Single_1DArray_ValGrad);
+
         /// <summary>
         /// <para>Input Channel Count: 3</para>
         /// <para>Output Channel Count: 3</para>
         /// </summary>
-        public static readonly byte[] MatrixPE_Grad = ArrayHelper.Concat
-        (
+        public static readonly byte[] MatrixPE_Grad = ArrayHelper.Concat(
             IccTestDataMatrix.Single_2D_Grad,
-            IccTestDataMatrix.Single_1D_Grad
-        );
+            IccTestDataMatrix.Single_1D_Grad);
 
         public static readonly object[][] MatrixTestData =
         {
             new object[] { MatrixPE_Grad, MatrixPE_ValGrad, 3, 3 },
         };
-
 
         #endregion
 
@@ -73,6 +68,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <para>Output Channel Count: 3</para>
         /// </summary>
         public static readonly IccClutProcessElement CLUTPE_ValGrad = new IccClutProcessElement(IccTestDataLut.CLUT_Valf32);
+
         /// <summary>
         /// <para>Input Channel Count: 2</para>
         /// <para>Output Channel Count: 3</para>
@@ -94,38 +90,32 @@ namespace SixLabors.ImageSharp.Tests
         public static readonly IccMultiProcessElement MPE_ValbACS = new IccBAcsProcessElement(3, 3);
         public static readonly IccMultiProcessElement MPE_ValeACS = new IccEAcsProcessElement(3, 3);
 
-        public static readonly byte[] MPE_Matrix = ArrayHelper.Concat
-        (
+        public static readonly byte[] MPE_Matrix = ArrayHelper.Concat(
             new byte[]
             {
                 0x6D, 0x61, 0x74, 0x66,
                 0x00, 0x03,
                 0x00, 0x03,
             },
-            MatrixPE_Grad
-        );
+            MatrixPE_Grad);
 
-        public static readonly byte[] MPE_CLUT = ArrayHelper.Concat
-        (
+        public static readonly byte[] MPE_CLUT = ArrayHelper.Concat(
             new byte[]
             {
                 0x63, 0x6C, 0x75, 0x74,
                 0x00, 0x02,
                 0x00, 0x03,
             },
-            CLUTPE_Grad
-        );
+            CLUTPE_Grad);
 
-        public static readonly byte[] MPE_Curve = ArrayHelper.Concat
-        (
+        public static readonly byte[] MPE_Curve = ArrayHelper.Concat(
             new byte[]
             {
                 0x6D, 0x66, 0x6C, 0x74,
                 0x00, 0x03,
                 0x00, 0x03,
             },
-            CurvePE_Grad
-        );
+            CurvePE_Grad);
 
         public static readonly byte[] MPE_bACS =
         {

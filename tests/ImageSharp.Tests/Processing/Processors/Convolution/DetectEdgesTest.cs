@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -6,8 +6,8 @@ using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
 using Xunit;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {
     [GroupOutput("Convolution")]
@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0456F);
 
         public static readonly string[] TestImages = { Tests.TestImages.Png.Bike };
-        
+
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
 
         public static readonly TheoryData<EdgeDetectionOperators> DetectEdgesFilters = new TheoryData<EdgeDetectionOperators>
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(DetectEdgesFilters), 100, 100, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(DetectEdgesFilters), 100, 100, PixelTypes.Rgba32)]
         [WithFileCollection(nameof(TestImages), nameof(DetectEdgesFilters), PixelTypes.Rgba32)]
         public void DetectEdges_WorksWithAllFilters<TPixel>(TestImageProvider<TPixel> provider, EdgeDetectionOperators detector)
             where TPixel : struct, IPixel<TPixel>

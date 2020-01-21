@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-// ReSharper disable InconsistentNaming
-
 using System.IO;
 
 using SixLabors.ImageSharp.Formats.Tga;
@@ -10,6 +8,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 using Xunit;
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Tga
 {
     using static TestImages.Tga;
@@ -70,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
                 {
                     input.Save(memStream, options);
                     memStream.Position = 0;
-                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
+                    using (var output = Image.Load<Rgba32>(memStream))
                     {
                         TgaMetadata meta = output.Metadata.GetTgaMetadata();
                         Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
@@ -82,7 +81,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Bit32, PixelTypes.Rgba32)]
         public void Encode_Bit8_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel8)
-            // using tolerant comparer here. The results from magick differ slightly. Maybe a different ToGrey method is used. The image looks otherwise ok.
+
+            // Using tolerant comparer here. The results from magick differ slightly. Maybe a different ToGrey method is used. The image looks otherwise ok.
             where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, TgaCompression.None, useExactComparer: false, compareTolerance: 0.03f);
 
         [Theory]
@@ -103,7 +103,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Bit32, PixelTypes.Rgba32)]
         public void Encode_Bit8_WithRunLengthEncoding_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel8)
-            // using tolerant comparer here. The results from magick differ slightly. Maybe a different ToGrey method is used. The image looks otherwise ok.
+
+            // Using tolerant comparer here. The results from magick differ slightly. Maybe a different ToGrey method is used. The image looks otherwise ok.
             where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, TgaCompression.RunLength, useExactComparer: false, compareTolerance: 0.03f);
 
         [Theory]
@@ -131,7 +132,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                var encoder = new TgaEncoder { BitsPerPixel = bitsPerPixel, Compression = compression};
+                var encoder = new TgaEncoder { BitsPerPixel = bitsPerPixel, Compression = compression };
 
                 using (var memStream = new MemoryStream())
                 {

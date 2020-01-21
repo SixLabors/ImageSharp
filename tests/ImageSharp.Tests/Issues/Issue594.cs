@@ -1,4 +1,7 @@
-﻿using System;
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -13,8 +16,8 @@ namespace SixLabors.ImageSharp.Tests.Issues
         public void NormalizedByte4()
         {
             // Test PackedValue
-            Assert.Equal((uint)0x0, new NormalizedByte4(Vector4.Zero).PackedValue);
-            Assert.Equal((uint)0x7F7F7F7F, new NormalizedByte4(Vector4.One).PackedValue);
+            Assert.Equal(0x0U, new NormalizedByte4(Vector4.Zero).PackedValue);
+            Assert.Equal(0x7F7F7F7FU, new NormalizedByte4(Vector4.One).PackedValue);
             Assert.Equal(0x81818181, new NormalizedByte4(-Vector4.One).PackedValue);
 
             // Test ToVector4
@@ -46,48 +49,48 @@ namespace SixLabors.ImageSharp.Tests.Issues
             n.FromRgba32(new Rgba32(141, 90, 192, 39));
             Assert.Equal(0xA740DA0D, n.PackedValue);
 
-            Assert.Equal((uint)958796544, new NormalizedByte4(0.0008f, 0.15f, 0.30f, 0.45f).PackedValue);
+            Assert.Equal(958796544U, new NormalizedByte4(0.0008f, 0.15f, 0.30f, 0.45f).PackedValue);
 
-            //var rgb = default(Rgb24);
-            //var rgba = default(Rgba32);
-            //var bgr = default(Bgr24);
-            //var bgra = default(Bgra32);
-            //var argb = default(Argb32);
+            // var rgb = default(Rgb24);
+            // var rgba = default(Rgba32);
+            // var bgr = default(Bgr24);
+            // var bgra = default(Bgra32);
+            // var argb = default(Argb32);
 
-            //new NormalizedByte4(x, y, z, w).ToRgb24(ref rgb);
-            //Assert.Equal(rgb, new Rgb24(141, 90, 192));
+            // new NormalizedByte4(x, y, z, w).ToRgb24(ref rgb);
+            // Assert.Equal(rgb, new Rgb24(141, 90, 192));
 
-            //new NormalizedByte4(x, y, z, w).ToRgba32(ref rgba);
-            //Assert.Equal(rgba, new Rgba32(141, 90, 192, 39));
+            // new NormalizedByte4(x, y, z, w).ToRgba32(ref rgba);
+            // Assert.Equal(rgba, new Rgba32(141, 90, 192, 39));
 
-            //new NormalizedByte4(x, y, z, w).ToBgr24(ref bgr);
-            //Assert.Equal(bgr, new Bgr24(141, 90, 192));
+            // new NormalizedByte4(x, y, z, w).ToBgr24(ref bgr);
+            // Assert.Equal(bgr, new Bgr24(141, 90, 192));
 
-            //new NormalizedByte4(x, y, z, w).ToBgra32(ref bgra);
-            //Assert.Equal(bgra, new Bgra32(141, 90, 192, 39));  // this assert fails in Release build on linux (#594)
+            // new NormalizedByte4(x, y, z, w).ToBgra32(ref bgra);
+            // Assert.Equal(bgra, new Bgra32(141, 90, 192, 39));  // this assert fails in Release build on linux (#594)
 
-            //new NormalizedByte4(x, y, z, w).ToArgb32(ref argb);
-            //Assert.Equal(argb, new Argb32(141, 90, 192, 39));
+            // new NormalizedByte4(x, y, z, w).ToArgb32(ref argb);
+            // Assert.Equal(argb, new Argb32(141, 90, 192, 39));
 
             // http://community.monogame.net/t/normalizedbyte4-texture2d-gives-different-results-from-xna/8012/8
-            //var r = default(NormalizedByte4);
-            //r.FromRgba32(new Rgba32(9, 115, 202, 127));
-            //r.ToRgba32(ref rgba);
-            //Assert.Equal(rgba, new Rgba32(9, 115, 202, 127));
+            // var r = default(NormalizedByte4);
+            // r.FromRgba32(new Rgba32(9, 115, 202, 127));
+            // r.ToRgba32(ref rgba);
+            // Assert.Equal(rgba, new Rgba32(9, 115, 202, 127));
 
-            //r.PackedValue = 0xff4af389;
-            //r.ToRgba32(ref rgba);
-            //Assert.Equal(rgba, new Rgba32(9, 115, 202, 127));
+            // r.PackedValue = 0xff4af389;
+            // r.ToRgba32(ref rgba);
+            // Assert.Equal(rgba, new Rgba32(9, 115, 202, 127));
 
-            //r = default(NormalizedByte4);
-            //r.FromArgb32(new Argb32(9, 115, 202, 127));
-            //r.ToArgb32(ref argb);
-            //Assert.Equal(argb, new Argb32(9, 115, 202, 127));
+            // r = default(NormalizedByte4);
+            // r.FromArgb32(new Argb32(9, 115, 202, 127));
+            // r.ToArgb32(ref argb);
+            // Assert.Equal(argb, new Argb32(9, 115, 202, 127));
 
-            //r = default(NormalizedByte4);
-            //r.FromBgra32(new Bgra32(9, 115, 202, 127));
-            //r.ToBgra32(ref bgra);
-            //Assert.Equal(bgra, new Bgra32(9, 115, 202, 127));
+            // r = default(NormalizedByte4);
+            // r.FromBgra32(new Bgra32(9, 115, 202, 127));
+            // r.ToBgra32(ref bgra);
+            // Assert.Equal(bgra, new Bgra32(9, 115, 202, 127));
         }
 
         // This test fails for unknown reason in Release mode on linux and is meant to help reproducing the issue
@@ -96,8 +99,8 @@ namespace SixLabors.ImageSharp.Tests.Issues
         public void NormalizedShort4()
         {
             // Test PackedValue
-            Assert.Equal((ulong)0x0, new NormalizedShort4(Vector4.Zero).PackedValue);
-            Assert.Equal((ulong)0x7FFF7FFF7FFF7FFF, new NormalizedShort4(Vector4.One).PackedValue);
+            Assert.Equal(0x0UL, new NormalizedShort4(Vector4.Zero).PackedValue);
+            Assert.Equal(0x7FFF7FFF7FFF7FFFUL, new NormalizedShort4(Vector4.One).PackedValue);
             Assert.Equal(0x8001800180018001, new NormalizedShort4(-Vector4.One).PackedValue);
 
             // Test ToVector4
@@ -117,7 +120,7 @@ namespace SixLabors.ImageSharp.Tests.Issues
             // Test FromScaledVector4.
             var pixel = default(NormalizedShort4);
             pixel.FromScaledVector4(scaled);
-            Assert.Equal((ulong)0x7FFF7FFF7FFF7FFF, pixel.PackedValue);
+            Assert.Equal(0x7FFF7FFF7FFF7FFFUL, pixel.PackedValue);
 
             // Test Ordering
             float x = 0.1f;
@@ -125,43 +128,43 @@ namespace SixLabors.ImageSharp.Tests.Issues
             float z = 0.5f;
             float w = -0.7f;
             Assert.Equal(0xa6674000d99a0ccd, new NormalizedShort4(x, y, z, w).PackedValue);
-            Assert.Equal((ulong)4150390751449251866, new NormalizedShort4(0.0008f, 0.15f, 0.30f, 0.45f).PackedValue);
+            Assert.Equal(4150390751449251866UL, new NormalizedShort4(0.0008f, 0.15f, 0.30f, 0.45f).PackedValue);
 
-            //var rgb = default(Rgb24);
-            //var rgba = default(Rgba32);
-            //var bgr = default(Bgr24);
-            //var bgra = default(Bgra32);
-            //var argb = default(Argb32);
+            // var rgb = default(Rgb24);
+            // var rgba = default(Rgba32);
+            // var bgr = default(Bgr24);
+            // var bgra = default(Bgra32);
+            // var argb = default(Argb32);
 
-            //new NormalizedShort4(x, y, z, w).ToRgb24(ref rgb);
-            //Assert.Equal(rgb, new Rgb24(141, 90, 192));
+            // new NormalizedShort4(x, y, z, w).ToRgb24(ref rgb);
+            // Assert.Equal(rgb, new Rgb24(141, 90, 192));
 
-            //new NormalizedShort4(x, y, z, w).ToRgba32(ref rgba);
-            //Assert.Equal(rgba, new Rgba32(141, 90, 192, 39)); // this assert fails in Release build on linux (#594)
+            // new NormalizedShort4(x, y, z, w).ToRgba32(ref rgba);
+            // Assert.Equal(rgba, new Rgba32(141, 90, 192, 39)); // this assert fails in Release build on linux (#594)
 
-            //new NormalizedShort4(x, y, z, w).ToBgr24(ref bgr);
-            //Assert.Equal(bgr, new Bgr24(141, 90, 192));
+            // new NormalizedShort4(x, y, z, w).ToBgr24(ref bgr);
+            // Assert.Equal(bgr, new Bgr24(141, 90, 192));
 
-            //new NormalizedShort4(x, y, z, w).ToBgra32(ref bgra);
-            //Assert.Equal(bgra, new Bgra32(141, 90, 192, 39));
+            // new NormalizedShort4(x, y, z, w).ToBgra32(ref bgra);
+            // Assert.Equal(bgra, new Bgra32(141, 90, 192, 39));
 
-            //new NormalizedShort4(x, y, z, w).ToArgb32(ref argb);
-            //Assert.Equal(argb, new Argb32(141, 90, 192, 39));
+            // new NormalizedShort4(x, y, z, w).ToArgb32(ref argb);
+            // Assert.Equal(argb, new Argb32(141, 90, 192, 39));
 
-            //var r = default(NormalizedShort4);
-            //r.FromRgba32(new Rgba32(9, 115, 202, 127));
-            //r.ToRgba32(ref rgba);
-            //Assert.Equal(rgba, new Rgba32(9, 115, 202, 127));
+            // var r = default(NormalizedShort4);
+            // r.FromRgba32(new Rgba32(9, 115, 202, 127));
+            // r.ToRgba32(ref rgba);
+            // Assert.Equal(rgba, new Rgba32(9, 115, 202, 127));
 
-            //r = default(NormalizedShort4);
-            //r.FromBgra32(new Bgra32(9, 115, 202, 127));
-            //r.ToBgra32(ref bgra);
-            //Assert.Equal(bgra, new Bgra32(9, 115, 202, 127));
+            // r = default(NormalizedShort4);
+            // r.FromBgra32(new Bgra32(9, 115, 202, 127));
+            // r.ToBgra32(ref bgra);
+            // Assert.Equal(bgra, new Bgra32(9, 115, 202, 127));
 
-            //r = default(NormalizedShort4);
-            //r.FromArgb32(new Argb32(9, 115, 202, 127));
-            //r.ToArgb32(ref argb);
-            //Assert.Equal(argb, new Argb32(9, 115, 202, 127));
+            // r = default(NormalizedShort4);
+            // r.FromArgb32(new Argb32(9, 115, 202, 127));
+            // r.ToArgb32(ref argb);
+            // Assert.Equal(argb, new Argb32(9, 115, 202, 127));
         }
 
         // This test fails for unknown reason in Release mode on linux and is meant to help reproducing the issue
@@ -170,8 +173,8 @@ namespace SixLabors.ImageSharp.Tests.Issues
         public void Short4()
         {
             // Test the limits.
-            Assert.Equal((ulong)0x0, new Short4(Vector4.Zero).PackedValue);
-            Assert.Equal((ulong)0x7FFF7FFF7FFF7FFF, new Short4(Vector4.One * 0x7FFF).PackedValue);
+            Assert.Equal(0x0UL, new Short4(Vector4.Zero).PackedValue);
+            Assert.Equal(0x7FFF7FFF7FFF7FFFUL, new Short4(Vector4.One * 0x7FFF).PackedValue);
             Assert.Equal(0x8000800080008000, new Short4(Vector4.One * -0x8000).PackedValue);
 
             // Test ToVector4.
@@ -193,7 +196,7 @@ namespace SixLabors.ImageSharp.Tests.Issues
             // Test FromScaledVector4.
             var pixel = default(Short4);
             pixel.FromScaledVector4(scaled);
-            Assert.Equal((ulong)0x7FFF7FFF7FFF7FFF, pixel.PackedValue);
+            Assert.Equal(0x7FFF7FFF7FFF7FFFUL, pixel.PackedValue);
 
             // Test clamping.
             Assert.Equal(Vector4.One * 0x7FFF, new Short4(Vector4.One * 1234567.0f).ToVector4());
@@ -210,43 +213,43 @@ namespace SixLabors.ImageSharp.Tests.Issues
             y = 12653;
             z = 29623;
             w = 193;
-            Assert.Equal((ulong)0x00c173b7316d2d1b, new Short4(x, y, z, w).PackedValue);
+            Assert.Equal(0x00c173b7316d2d1bUL, new Short4(x, y, z, w).PackedValue);
 
-            //var rgb = default(Rgb24);
-            //var rgba = default(Rgba32);
-            //var bgr = default(Bgr24);
-            //var bgra = default(Bgra32);
-            //var argb = default(Argb32);
+            // var rgb = default(Rgb24);
+            // var rgba = default(Rgba32);
+            // var bgr = default(Bgr24);
+            // var bgra = default(Bgra32);
+            // var argb = default(Argb32);
 
-            //new Short4(x, y, z, w).ToRgb24(ref rgb);
-            //Assert.Equal(rgb, new Rgb24(172, 177, 243)); // this assert fails in Release build on linux (#594)
+            // new Short4(x, y, z, w).ToRgb24(ref rgb);
+            // Assert.Equal(rgb, new Rgb24(172, 177, 243)); // this assert fails in Release build on linux (#594)
 
-            //new Short4(x, y, z, w).ToRgba32(ref rgba);
-            //Assert.Equal(rgba, new Rgba32(172, 177, 243, 128));
+            // new Short4(x, y, z, w).ToRgba32(ref rgba);
+            // Assert.Equal(rgba, new Rgba32(172, 177, 243, 128));
 
-            //new Short4(x, y, z, w).ToBgr24(ref bgr);
-            //Assert.Equal(bgr, new Bgr24(172, 177, 243));
+            // new Short4(x, y, z, w).ToBgr24(ref bgr);
+            // Assert.Equal(bgr, new Bgr24(172, 177, 243));
 
-            //new Short4(x, y, z, w).ToBgra32(ref bgra);
-            //Assert.Equal(bgra, new Bgra32(172, 177, 243, 128));
+            // new Short4(x, y, z, w).ToBgra32(ref bgra);
+            // Assert.Equal(bgra, new Bgra32(172, 177, 243, 128));
 
-            //new Short4(x, y, z, w).ToArgb32(ref argb);
-            //Assert.Equal(argb, new Argb32(172, 177, 243, 128));
+            // new Short4(x, y, z, w).ToArgb32(ref argb);
+            // Assert.Equal(argb, new Argb32(172, 177, 243, 128));
 
-            //var r = default(Short4);
-            //r.FromRgba32(new Rgba32(20, 38, 0, 255));
-            //r.ToRgba32(ref rgba);
-            //Assert.Equal(rgba, new Rgba32(20, 38, 0, 255));
+            // var r = default(Short4);
+            // r.FromRgba32(new Rgba32(20, 38, 0, 255));
+            // r.ToRgba32(ref rgba);
+            // Assert.Equal(rgba, new Rgba32(20, 38, 0, 255));
 
-            //r = default(Short4);
-            //r.FromBgra32(new Bgra32(20, 38, 0, 255));
-            //r.ToBgra32(ref bgra);
-            //Assert.Equal(bgra, new Bgra32(20, 38, 0, 255));
+            // r = default(Short4);
+            // r.FromBgra32(new Bgra32(20, 38, 0, 255));
+            // r.ToBgra32(ref bgra);
+            // Assert.Equal(bgra, new Bgra32(20, 38, 0, 255));
 
-            //r = default(Short4);
-            //r.FromArgb32(new Argb32(20, 38, 0, 255));
-            //r.ToArgb32(ref argb);
-            //Assert.Equal(argb, new Argb32(20, 38, 0, 255));
+            // r = default(Short4);
+            // r.FromArgb32(new Argb32(20, 38, 0, 255));
+            // r.ToArgb32(ref argb);
+            // Assert.Equal(argb, new Argb32(20, 38, 0, 255));
         }
 
         // Comparison helpers with small tolerance to allow for floating point rounding during computations.

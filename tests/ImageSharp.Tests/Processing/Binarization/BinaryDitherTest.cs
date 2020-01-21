@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Processing;
@@ -39,6 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
             Assert.Equal(Color.White, p.UpperColor);
             Assert.Equal(Color.Black, p.LowerColor);
         }
+
         [Fact]
         public void BinaryDither_index_CorrectProcessor()
         {
@@ -57,7 +58,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
             Assert.Equal(this.orderedDither, p.Dither);
             Assert.Equal(Color.HotPink, p.LowerColor);
         }
-
 
         [Fact]
         public void BinaryDither_ErrorDiffuser_CorrectProcessor()

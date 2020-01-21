@@ -1,4 +1,7 @@
-﻿using System;
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.Globalization;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing;
@@ -8,7 +11,7 @@ namespace SixLabors.ImageSharp.Tests.Primitives
 {
     public class ColorMatrixTests
     {
-        private readonly ApproximateFloatComparer ApproximateFloatComparer = new ApproximateFloatComparer(1e-6f);
+        private readonly ApproximateFloatComparer approximateFloatComparer = new ApproximateFloatComparer(1e-6f);
 
         [Fact]
         public void ColorMatrixIdentityIsCorrect()
@@ -16,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Primitives
             ColorMatrix val = default;
             val.M11 = val.M22 = val.M33 = val.M44 = 1F;
 
-            Assert.Equal(val, ColorMatrix.Identity, this.ApproximateFloatComparer);
+            Assert.Equal(val, ColorMatrix.Identity, this.approximateFloatComparer);
         }
 
         [Fact]
@@ -80,14 +83,14 @@ namespace SixLabors.ImageSharp.Tests.Primitives
             m.M53 = (value1.M51 * value2.M13) + (value1.M52 * value2.M23) + (value1.M53 * value2.M33) + (value1.M54 * value2.M53) + value2.M53;
             m.M54 = (value1.M51 * value2.M14) + (value1.M52 * value2.M24) + (value1.M53 * value2.M34) + (value1.M54 * value2.M54) + value2.M54;
 
-            Assert.Equal(m, value1 * value2, this.ApproximateFloatComparer);
+            Assert.Equal(m, value1 * value2, this.approximateFloatComparer);
         }
 
         [Fact]
         public void ColorMatrixMultiplyScalar()
         {
             ColorMatrix m = this.CreateAllTwos();
-            Assert.Equal(this.CreateAllFours(), m * 2, this.ApproximateFloatComparer);
+            Assert.Equal(this.CreateAllFours(), m * 2, this.approximateFloatComparer);
         }
 
         [Fact]
@@ -149,12 +152,14 @@ namespace SixLabors.ImageSharp.Tests.Primitives
 
             CultureInfo ci = CultureInfo.CurrentCulture;
 
+#pragma warning disable SA1117 // Parameters should be on same line or separate lines
             string expected = string.Format(ci, "{{ {{M11:{0} M12:{1} M13:{2} M14:{3}}} {{M21:{4} M22:{5} M23:{6} M24:{7}}} {{M31:{8} M32:{9} M33:{10} M34:{11}}} {{M41:{12} M42:{13} M43:{14} M44:{15}}} {{M51:{16} M52:{17} M53:{18} M54:{19}}} }}",
-                                 m.M11.ToString(ci), m.M12.ToString(ci), m.M13.ToString(ci), m.M14.ToString(ci),
-                                 m.M21.ToString(ci), m.M22.ToString(ci), m.M23.ToString(ci), m.M24.ToString(ci),
-                                 m.M31.ToString(ci), m.M32.ToString(ci), m.M33.ToString(ci), m.M34.ToString(ci),
-                                 m.M41.ToString(ci), m.M42.ToString(ci), m.M43.ToString(ci), m.M44.ToString(ci),
-                                 m.M51.ToString(ci), m.M52.ToString(ci), m.M53.ToString(ci), m.M54.ToString(ci));
+                m.M11.ToString(ci), m.M12.ToString(ci), m.M13.ToString(ci), m.M14.ToString(ci),
+                m.M21.ToString(ci), m.M22.ToString(ci), m.M23.ToString(ci), m.M24.ToString(ci),
+                m.M31.ToString(ci), m.M32.ToString(ci), m.M33.ToString(ci), m.M34.ToString(ci),
+                m.M41.ToString(ci), m.M42.ToString(ci), m.M43.ToString(ci), m.M44.ToString(ci),
+                m.M51.ToString(ci), m.M52.ToString(ci), m.M53.ToString(ci), m.M54.ToString(ci));
+#pragma warning restore SA1117 // Parameters should be on same line or separate lines
 
             Assert.Equal(expected, m.ToString());
         }

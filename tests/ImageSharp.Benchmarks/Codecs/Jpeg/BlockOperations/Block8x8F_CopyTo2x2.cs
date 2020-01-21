@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -8,8 +8,8 @@ using BenchmarkDotNet.Attributes;
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Memory;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
 {
     public class Block8x8F_CopyTo2x2
@@ -334,7 +334,6 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
             Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dBottomLeft, 6)) = zRight;
             Unsafe.Add(ref dBottomLeft, 7) = wRight;
         }
-
 
         [Benchmark]
         public void UseVector4_V2()

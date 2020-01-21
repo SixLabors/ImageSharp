@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -12,9 +12,9 @@ namespace SixLabors.ImageSharp.Benchmarks.General
         [Params(4, 16, 32)]
         public int Count { get; set; }
 
-        byte[] source;
+        private byte[] source;
 
-        byte[] destination;
+        private byte[] destination;
 
         [GlobalSetup]
         public void SetUp()
@@ -34,12 +34,13 @@ namespace SixLabors.ImageSharp.Benchmarks.General
         {
             this.ReverseBytes(this.source, 0, this.Count);
 
-            //for (int i = 0; i < this.source.Length / 2; i++)
-            //{
-            //    byte tmp = this.source[i];
-            //    this.source[i] = this.source[this.source.Length - i - 1];
-            //    this.source[this.source.Length - i - 1] = tmp;
-            //}
+            /*
+             for (int i = 0; i < this.source.Length / 2; i++)
+            {
+                byte tmp = this.source[i];
+                this.source[i] = this.source[this.source.Length - i - 1];
+                this.source[this.source.Length - i - 1] = tmp;
+            }*/
         }
 
         public void ReverseBytes(byte[] source, int index, int length)

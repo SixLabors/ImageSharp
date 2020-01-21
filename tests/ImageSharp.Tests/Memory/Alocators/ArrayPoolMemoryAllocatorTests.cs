@@ -4,9 +4,11 @@
 // ReSharper disable InconsistentNaming
 using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.DotNet.RemoteExecutor;
+using Microsoft.Win32;
 using SixLabors.ImageSharp.Tests;
 using Xunit;
 
@@ -31,7 +33,7 @@ namespace SixLabors.ImageSharp.Memory.Tests
 
         static ArrayPoolMemoryAllocatorTests()
         {
-            TestEnvironment.InitRemoteExecutorAssemblyRedirects();
+            TestEnvironment.PrepareRemoteExecutor();
         }
 
         public class BufferTests : BufferTestSuite

@@ -18,6 +18,11 @@ namespace SixLabors.ImageSharp.Tests
         {
             private readonly Func<Image<TPixel>> factoryFunc;
 
+            public LambdaProvider()
+            {
+                throw new NotSupportedException();
+            }
+
             public LambdaProvider(Func<Image<TPixel>> factoryFunc)
             {
                 this.factoryFunc = factoryFunc;

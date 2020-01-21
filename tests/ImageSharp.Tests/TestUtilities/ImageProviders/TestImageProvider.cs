@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests
     /// Provides <see cref="Image{TPixel}" /> instances for parametric unit tests.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format of the image</typeparam>
-    public abstract partial class TestImageProvider<TPixel> : ITestImageProvider
+    public abstract partial class TestImageProvider<TPixel> : ITestImageProvider, IXunitSerializable
         where TPixel : struct, IPixel<TPixel>
     {
         public PixelTypes PixelType { get; private set; } = typeof(TPixel).GetPixelType();

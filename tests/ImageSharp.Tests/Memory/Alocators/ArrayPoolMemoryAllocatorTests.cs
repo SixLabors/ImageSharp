@@ -29,6 +29,11 @@ namespace SixLabors.ImageSharp.Memory.Tests
         /// </summary>
         private static MemoryAllocatorFixture StaticFixture { get; } = new MemoryAllocatorFixture();
 
+        static ArrayPoolMemoryAllocatorTests()
+        {
+            TestEnvironment.InitRemoteExecutorAssemblyRedirects();
+        }
+
         public class BufferTests : BufferTestSuite
         {
             public BufferTests()

@@ -4,11 +4,12 @@
 using System;
 using System.IO;
 using System.Linq;
-
+using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using Xunit;
@@ -23,7 +24,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.RgbaVector;
 
         private const float BaselineTolerance = 0.001F / 100;
+
         private const float ProgressiveTolerance = 0.2F / 100;
+
+        static JpegDecoderTests()
+        {
+            TestEnvironment.InitRemoteExecutorAssemblyRedirects();
+        }
 
         private static ImageComparer GetImageComparer<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
@@ -88,23 +95,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void JpegDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (SkipTest(provider))
+            static void RunTest(string providerDump)
             {
-                return;
-            }
-
-            // For 32 bit test environments:
-            provider.Configuration.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithModeratePooling();
-
-            using (Image<TPixel> image = provider.GetImage(JpegDecoder))
-            {
+                TestImageProvider<TPixel> provider =
+                    BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
+                using Image<TPixel> image = provider.GetImage(JpegDecoder);
                 image.DebugSave(provider);
 
                 provider.Utility.TestName = DecodeBaselineJpegOutputName;
                 image.CompareToReferenceOutput(ImageComparer.Tolerant(BaselineTolerance), provider, appendPixelTypeToFileName: false);
             }
 
-            provider.Configuration.MemoryAllocator.ReleaseRetainedResources();
+            string dump = BasicSerializer.Serialize(provider);
+            RemoteExecutor.Invoke(RunTest, dump).Dispose();
         }
 
         // DEBUG ONLY!

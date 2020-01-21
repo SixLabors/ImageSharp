@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         static JpegDecoderTests()
         {
-            TestEnvironment.InitRemoteExecutorAssemblyRedirects();
+            TestEnvironment.PrepareRemoteExecutor();
         }
 
         private static ImageComparer GetImageComparer<TPixel>(TestImageProvider<TPixel> provider)

@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
     {
         static BokehBlurTest()
         {
-            TestEnvironment.InitRemoteExecutorAssemblyRedirects();
+            TestEnvironment.PrepareRemoteExecutor();
         }
 
         private static readonly string Components10x2 = @"

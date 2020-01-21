@@ -15,13 +15,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\ImageSharp.Tests\**\*.cs" Link="Tests\%(RecursiveDir)%(Filename)%(Extension)" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Magick.NET-Q16-AnyCPU" />
     <PackageReference Include="Moq" />
     <PackageReference Include="System.Drawing.Common" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ImageSharp.Tests\ImageSharp.Tests.csproj" />
   </ItemGroup>
 
 </Project>

@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Tests
             return directory.FullName;
         }
 
-        private static string GetFullPath(string relativePath) => 
+        private static string GetFullPath(string relativePath) =>
             Path.Combine(SolutionDirectoryFullPath, relativePath)
             .Replace('\\', Path.DirectorySeparatorChar);
 
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Tests
         /// Gets the correct full path to the Input Images directory.
         /// </summary>
         internal static string InputImagesDirectoryFullPath => GetFullPath(InputImagesRelativePath);
-        
+
         /// <summary>
         /// Gets the correct full path to the Actual Output directory. (To be written to by the test cases.)
         /// </summary>
@@ -100,12 +100,14 @@ namespace SixLabors.ImageSharp.Tests
             actualOutputFileName.Replace("ActualOutput", @"External\ReferenceOutput").Replace('\\', Path.DirectorySeparatorChar);
 
         internal static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
-        
+
         internal static bool IsMono => Type.GetType("Mono.Runtime") != null; // https://stackoverflow.com/a/721194
 
         internal static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
         internal static bool Is64BitProcess => IntPtr.Size == 8;
+
+        internal static bool IsFramework => string.IsNullOrEmpty(NetCoreVersion);
 
         /// <summary>
         /// Creates the image output directory.
@@ -130,6 +132,30 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             return path;
+        }
+
+        /// <summary>
+        /// Need to create Microsoft.DotNet.RemoteExecutor.exe.config on .NET 4.7.2 (-_-)
+        /// </summary>
+        internal static void InitRemoteExecutorAssemblyRedirects()
+        {
+            if (!IsFramework)
+            {
+                return;
+            }
+
+            var assemblyFile = new FileInfo(typeof(TestEnvironment).GetTypeInfo().Assembly.Location);
+            string remoteExecutorConfigPath =
+                Path.Combine(assemblyFile.DirectoryName, "Microsoft.DotNet.RemoteExecutor.exe.config");
+
+            if (File.Exists(remoteExecutorConfigPath))
+            {
+                return;
+            }
+
+            string testProjectConfigPath = assemblyFile.FullName + ".config";
+
+            File.Copy(testProjectConfigPath, remoteExecutorConfigPath);
         }
 
         /// <summary>

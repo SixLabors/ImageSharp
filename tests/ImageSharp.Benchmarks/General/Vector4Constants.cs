@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Numerics;
 
@@ -28,8 +31,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
                 this.GetRandomFloat(),
                 this.GetRandomFloat(),
                 this.GetRandomFloat(),
-                this.GetRandomFloat()
-                );
+                this.GetRandomFloat());
         }
 
         [Benchmark(Baseline = true)]
@@ -37,10 +39,10 @@ namespace SixLabors.ImageSharp.Benchmarks.General
         {
             Vector4 p = this.parameter;
 
-            Vector4 x = p * A / B + p * C / D;
-            Vector4 y = p / A * B + p / C * D;
-            Vector4 z = Vector4.Min(p, A);
-            Vector4 w = Vector4.Max(p, B);
+            Vector4 x = (p * A / B) + (p * C / D);
+            Vector4 y = (p / A * B) + (p / C * D);
+            var z = Vector4.Min(p, A);
+            var w = Vector4.Max(p, B);
             return x + y + z + w;
         }
 
@@ -49,10 +51,10 @@ namespace SixLabors.ImageSharp.Benchmarks.General
         {
             Vector4 p = this.parameter;
 
-            Vector4 x = p * new Vector4(1.2f) / new Vector4(2.3f) + p * new Vector4(4.5f) / new Vector4(6.7f);
-            Vector4 y = p / new Vector4(1.2f) * new Vector4(2.3f) + p / new Vector4(4.5f) * new Vector4(6.7f);
-            Vector4 z = Vector4.Min(p, new Vector4(1.2f));
-            Vector4 w = Vector4.Max(p, new Vector4(2.3f));
+            Vector4 x = (p * new Vector4(1.2f) / new Vector4(2.3f)) + (p * new Vector4(4.5f) / new Vector4(6.7f));
+            Vector4 y = (p / new Vector4(1.2f) * new Vector4(2.3f)) + (p / new Vector4(4.5f) * new Vector4(6.7f));
+            var z = Vector4.Min(p, new Vector4(1.2f));
+            var w = Vector4.Max(p, new Vector4(2.3f));
             return x + y + z + w;
         }
 

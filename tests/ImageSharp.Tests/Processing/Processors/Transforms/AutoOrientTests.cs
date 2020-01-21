@@ -21,8 +21,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         {
             { ExifDataType.Byte, new byte[] { 1 } },
             { ExifDataType.SignedByte, new byte[] { 2 } },
-            { ExifDataType.SignedShort, BitConverter.GetBytes((short) 3) },
-            { ExifDataType.Long, BitConverter.GetBytes((uint) 4) },
+            { ExifDataType.SignedShort, BitConverter.GetBytes((short)3) },
+            { ExifDataType.Long, BitConverter.GetBytes(4U) },
             { ExifDataType.SignedLong, BitConverter.GetBytes(5) }
         };
 
@@ -64,11 +64,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             profile.SetValue(ExifTag.JPEGTables, orientation);
 
             byte[] bytes = profile.ToByteArray();
+
             // Change the tag into ExifTag.Orientation
             bytes[16] = 18;
             bytes[17] = 1;
+
             // Change the data type
             bytes[18] = (byte)dataType;
+
             // Change the number of components
             bytes[20] = 1;
 

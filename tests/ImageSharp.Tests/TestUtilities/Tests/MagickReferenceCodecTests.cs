@@ -1,9 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using Xunit;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
 {
     using SixLabors.ImageSharp.PixelFormats;

@@ -31,8 +31,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 float[] dest = new float[64];
                 float[] temp = new float[64];
 
-                ReferenceImplementations.LLM_FloatingPoint_DCT.fDCT2D_llm(src, dest, temp, true);
-                ReferenceImplementations.LLM_FloatingPoint_DCT.iDCT2D_llm(dest, src, temp);
+                ReferenceImplementations.LLM_FloatingPoint_DCT.FDCT2D_llm(src, dest, temp, true);
+                ReferenceImplementations.LLM_FloatingPoint_DCT.IDCT2D_llm(dest, src, temp);
 
                 this.CompareBlocks(original, src, 0.1f);
             }
@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 float[] dest = new float[64];
 
-                ReferenceImplementations.GT_FloatingPoint_DCT.iDCT8x8GT(floatSrc, dest);
+                ReferenceImplementations.GT_FloatingPoint_DCT.IDCT8x8GT(floatSrc, dest);
 
                 this.CompareBlocks(intData.ConvertAllToFloat(), dest, 1f);
             }

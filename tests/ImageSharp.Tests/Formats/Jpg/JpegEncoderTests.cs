@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public static readonly TheoryData<string, int> QualityFiles =
         new TheoryData<string, int>
         {
-            { TestImages.Jpeg.Baseline.Calliphora, 80},
+            { TestImages.Jpeg.Baseline.Calliphora, 80 },
             { TestImages.Jpeg.Progressive.Fb, 75 }
         };
 
@@ -27,7 +27,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             { JpegSubsample.Ratio420, 40 },
             { JpegSubsample.Ratio420, 60 },
             { JpegSubsample.Ratio420, 100 },
-
             { JpegSubsample.Ratio444, 40 },
             { JpegSubsample.Ratio444, 60 },
             { JpegSubsample.Ratio444, 100 },
@@ -36,8 +35,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
         new TheoryData<string, int, int, PixelResolutionUnit>
         {
-            { TestImages.Jpeg.Baseline.Ratio1x1, 1, 1 , PixelResolutionUnit.AspectRatio},
-            { TestImages.Jpeg.Baseline.Snake, 300, 300 , PixelResolutionUnit.PixelsPerInch},
+            { TestImages.Jpeg.Baseline.Ratio1x1, 1, 1, PixelResolutionUnit.AspectRatio },
+            { TestImages.Jpeg.Baseline.Snake, 300, 300, PixelResolutionUnit.PixelsPerInch },
             { TestImages.Jpeg.Baseline.GammaDalaiLamaGray, 72, 72, PixelResolutionUnit.PixelsPerInch }
         };
 
@@ -66,17 +65,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, nameof(BitsPerPixel_Quality), PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 73, 71, PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 48, 24, PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 46, 8, PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 51, 7, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(BitsPerPixel_Quality), 73, 71, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(BitsPerPixel_Quality), 48, 24, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(BitsPerPixel_Quality), 46, 8, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(BitsPerPixel_Quality), 51, 7, PixelTypes.Rgba32)]
         [WithSolidFilledImages(nameof(BitsPerPixel_Quality), 1, 1, 255, 100, 50, 255, PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 7, 5, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(BitsPerPixel_Quality), 7, 5, PixelTypes.Rgba32)]
         public void EncodeBaseline_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample, int quality)
             where TPixel : struct, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality);
 
         [Theory]
-        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 48, 48, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
+        [WithTestPatternImage(nameof(BitsPerPixel_Quality), 48, 48, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
         public void EncodeBaseline_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample, int quality)
             where TPixel : struct, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality);
 

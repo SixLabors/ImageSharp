@@ -8,8 +8,8 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.IO;
 
 using Xunit;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests
 {
     /// <summary>
@@ -18,6 +18,7 @@ namespace SixLabors.ImageSharp.Tests
     public class ConfigurationTests
     {
         public Configuration ConfigurationEmpty { get; }
+
         public Configuration DefaultConfiguration { get; }
 
         private readonly int expectedDefaultConfigurationCount = 5;
@@ -87,7 +88,6 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-
         [Fact]
         public void ConstructorCallConfigureOnFormatProvider()
         {
@@ -112,11 +112,11 @@ namespace SixLabors.ImageSharp.Tests
         {
             Configuration config = this.DefaultConfiguration;
 
-            Assert.Equal(expectedDefaultConfigurationCount, config.ImageFormats.Count());
+            Assert.Equal(this.expectedDefaultConfigurationCount, config.ImageFormats.Count());
 
             config.ImageFormatsManager.AddImageFormat(BmpFormat.Instance);
 
-            Assert.Equal(expectedDefaultConfigurationCount, config.ImageFormats.Count());
+            Assert.Equal(this.expectedDefaultConfigurationCount, config.ImageFormats.Count());
         }
 
         [Fact]
@@ -124,14 +124,14 @@ namespace SixLabors.ImageSharp.Tests
         {
             Configuration config = Configuration.CreateDefaultInstance();
 
-            Assert.Equal(expectedDefaultConfigurationCount, config.ImageFormats.Count());
+            Assert.Equal(this.expectedDefaultConfigurationCount, config.ImageFormats.Count());
         }
 
         [Fact]
         public void WorkingBufferSizeHint_DefaultIsCorrect()
         {
             Configuration config = this.DefaultConfiguration;
-            Assert.True(config.WorkingBufferSizeHintInBytes  > 1024);
+            Assert.True(config.WorkingBufferSizeHintInBytes > 1024);
         }
     }
 }

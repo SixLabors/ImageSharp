@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -16,11 +16,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         = new TheoryData<int>
         {
             180,
-           -180
+            -180
         };
 
         [Theory]
-        [WithTestPatternImages(nameof(HueValues), 48, 48, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(HueValues), 48, 48, PixelTypes.Rgba32)]
         public void ApplyHueFilter<TPixel>(TestImageProvider<TPixel> provider, int value)
             where TPixel : struct, IPixel<TPixel>
         {

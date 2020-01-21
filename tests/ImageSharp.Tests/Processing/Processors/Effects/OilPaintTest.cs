@@ -13,9 +13,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
     {
         public static readonly TheoryData<int, int> OilPaintValues = new TheoryData<int, int>
                                                                          {
-                                                                             { 15, 10 }, 
+                                                                             { 15, 10 },
                                                                              { 6, 5 }
                                                                          };
+
         public static readonly string[] InputImages =
             {
                 TestImages.Png.CalliphoraPartial,
@@ -35,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
 
         [Theory]
         [WithFileCollection(nameof(InputImages), nameof(OilPaintValues), PixelTypes.Rgba32)]
-        [WithTestPatternImages(nameof(OilPaintValues), 100, 100, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(OilPaintValues), 100, 100, PixelTypes.Rgba32)]
         public void InBox<TPixel>(TestImageProvider<TPixel> provider, int levels, int brushSize)
             where TPixel : struct, IPixel<TPixel>
         {

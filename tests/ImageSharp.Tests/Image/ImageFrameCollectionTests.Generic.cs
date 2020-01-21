@@ -1,5 +1,5 @@
-// // Copyright (c) Six Labors and contributors.
-// // Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Linq;
@@ -104,11 +104,7 @@ namespace SixLabors.ImageSharp.Tests
                     {
                         new ImageFrameCollection<Rgba32>(
                             this.Image,
-                            new[]
-                            {
-                                new ImageFrame<Rgba32>(Configuration.Default, 10, 10),
-                                new ImageFrame<Rgba32>(Configuration.Default, 1, 1)
-                            });
+                            new[] { new ImageFrame<Rgba32>(Configuration.Default, 10, 10), new ImageFrame<Rgba32>(Configuration.Default, 1, 1) });
                     });
 
                 Assert.StartsWith("Frame must have the same dimensions as the image.", ex.Message);
@@ -134,11 +130,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 var collection = new ImageFrameCollection<Rgba32>(
                     this.Image,
-                    new[]
-                    {
-                        new ImageFrame<Rgba32>(Configuration.Default, 10, 10),
-                        new ImageFrame<Rgba32>(Configuration.Default, 10, 10)
-                    });
+                    new[] { new ImageFrame<Rgba32>(Configuration.Default, 10, 10), new ImageFrame<Rgba32>(Configuration.Default, 10, 10) });
 
                 collection.RemoveFrame(0);
                 Assert.Equal(1, collection.Count);
@@ -149,11 +141,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 var collection = new ImageFrameCollection<Rgba32>(
                     this.Image,
-                    new[]
-                    {
-                        new ImageFrame<Rgba32>(Configuration.Default, 10, 10),
-                        new ImageFrame<Rgba32>(Configuration.Default, 10, 10)
-                    });
+                    new[] { new ImageFrame<Rgba32>(Configuration.Default, 10, 10), new ImageFrame<Rgba32>(Configuration.Default, 10, 10) });
 
                 Assert.Equal(collection.RootFrame, collection[0]);
             }
@@ -163,11 +151,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 var collection = new ImageFrameCollection<Rgba32>(
                     this.Image,
-                    new[]
-                    {
-                        new ImageFrame<Rgba32>(Configuration.Default, 10, 10),
-                        new ImageFrame<Rgba32>(Configuration.Default, 10, 10)
-                    });
+                    new[] { new ImageFrame<Rgba32>(Configuration.Default, 10, 10), new ImageFrame<Rgba32>(Configuration.Default, 10, 10) });
 
                 Assert.Equal(2, collection.Count);
             }
@@ -177,11 +161,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 var collection = new ImageFrameCollection<Rgba32>(
                     this.Image,
-                    new[]
-                    {
-                        new ImageFrame<Rgba32>(Configuration.Default, 10, 10),
-                        new ImageFrame<Rgba32>(Configuration.Default, 10, 10)
-                    });
+                    new[] { new ImageFrame<Rgba32>(Configuration.Default, 10, 10), new ImageFrame<Rgba32>(Configuration.Default, 10, 10) });
 
                 collection.Dispose();
 
@@ -193,11 +173,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 var collection = new ImageFrameCollection<Rgba32>(
                     this.Image,
-                    new[]
-                    {
-                        new ImageFrame<Rgba32>(Configuration.Default, 10, 10),
-                        new ImageFrame<Rgba32>(Configuration.Default, 10, 10)
-                    });
+                    new[] { new ImageFrame<Rgba32>(Configuration.Default, 10, 10), new ImageFrame<Rgba32>(Configuration.Default, 10, 10) });
 
                 IPixelSource<Rgba32>[] framesSnapShot = collection.OfType<IPixelSource<Rgba32>>().ToArray();
                 collection.Dispose();
@@ -206,13 +182,13 @@ namespace SixLabors.ImageSharp.Tests
                     framesSnapShot,
                     f =>
                     {
-                        // the pixel source of the frame is null after its been disposed.
+                        // The pixel source of the frame is null after its been disposed.
                         Assert.Null(f.PixelBuffer);
                     });
             }
 
             [Theory]
-            [WithTestPatternImages(10, 10, PixelTypes.Rgba32)]
+            [WithTestPatternImage(10, 10, PixelTypes.Rgba32)]
             public void CloneFrame<TPixel>(TestImageProvider<TPixel> provider)
                 where TPixel : struct, IPixel<TPixel>
             {
@@ -228,7 +204,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Theory]
-            [WithTestPatternImages(10, 10, PixelTypes.Rgba32)]
+            [WithTestPatternImage(10, 10, PixelTypes.Rgba32)]
             public void ExtractFrame<TPixel>(TestImageProvider<TPixel> provider)
                 where TPixel : struct, IPixel<TPixel>
             {

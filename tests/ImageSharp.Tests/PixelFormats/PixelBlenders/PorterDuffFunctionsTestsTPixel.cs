@@ -17,9 +17,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             return new Span<T>(new[] { value });
         }
 
-        public static TheoryData<object, object, float, object> NormalBlendFunctionData = new TheoryData<object, object, float, object> {
-            { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(1,1,1,1) },
-            { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(0.6f, 0.6f, 0.6f, 1) },
+        public static TheoryData<object, object, float, object> NormalBlendFunctionData = new TheoryData<object, object, float, object>
+        {
+            { new TestPixel<Rgba32>(1, 1, 1, 1), new TestPixel<Rgba32>(1, 1, 1, 1), 1, new TestPixel<Rgba32>(1, 1, 1, 1) },
+            { new TestPixel<Rgba32>(1, 1, 1, 1), new TestPixel<Rgba32>(0, 0, 0, .8f), .5f, new TestPixel<Rgba32>(0.6f, 0.6f, 0.6f, 1) }
         };
 
         private Configuration Configuration => Configuration.Default;
@@ -52,12 +53,13 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
-        public static TheoryData<object, object, float, object> MultiplyFunctionData = new TheoryData<object, object, float, object> {
-            { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(1,1,1,1) },
-            { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(0.6f, 0.6f, 0.6f, 1) },
+        public static TheoryData<object, object, float, object> MultiplyFunctionData = new TheoryData<object, object, float, object>
+        {
+            { new TestPixel<Rgba32>(1, 1, 1, 1), new TestPixel<Rgba32>(1, 1, 1, 1), 1, new TestPixel<Rgba32>(1, 1, 1, 1) },
+            { new TestPixel<Rgba32>(1, 1, 1, 1), new TestPixel<Rgba32>(0, 0, 0, .8f), .5f, new TestPixel<Rgba32>(0.6f, 0.6f, 0.6f, 1) },
             {
-                new TestPixel<Rgba32>(0.9f,0.9f,0.9f,0.9f),
-                new TestPixel<Rgba32>(0.4f,0.4f,0.4f,0.4f),
+                new TestPixel<Rgba32>(0.9f, 0.9f, 0.9f, 0.9f),
+                new TestPixel<Rgba32>(0.4f, 0.4f, 0.4f, 0.4f),
                 .5f,
                 new TestPixel<Rgba32>(0.7834783f, 0.7834783f, 0.7834783f, 0.92f)
             },
@@ -91,15 +93,26 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
-        public static TheoryData<object, object, float, object> AddFunctionData = new TheoryData<object, object, float, object> {
-            { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(1,1,1,1) },
-            { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(1f, 1f, 1f, 1f) },
+        public static TheoryData<object, object, float, object> AddFunctionData = new TheoryData<object, object, float, object>
+        {
             {
-                new TestPixel<Rgba32>(0.2f,0.2f,0.2f,0.3f),
-                new TestPixel<Rgba32>(0.3f,0.3f,0.3f,0.2f),
+                new TestPixel<Rgba32>(1, 1, 1, 1),
+                new TestPixel<Rgba32>(1, 1, 1, 1),
+                1,
+                new TestPixel<Rgba32>(1, 1, 1, 1)
+            },
+            {
+                new TestPixel<Rgba32>(1, 1, 1, 1),
+                new TestPixel<Rgba32>(0, 0, 0, .8f),
+                .5f,
+                new TestPixel<Rgba32>(1f, 1f, 1f, 1f)
+            },
+            {
+                new TestPixel<Rgba32>(0.2f, 0.2f, 0.2f, 0.3f),
+                new TestPixel<Rgba32>(0.3f, 0.3f, 0.3f, 0.2f),
                 .5f,
                 new TestPixel<Rgba32>(.2431373f, .2431373f, .2431373f, .372549f)
-            },
+            }
         };
 
         [Theory]
@@ -130,12 +143,13 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
-        public static TheoryData<object, object, float, object> SubtractFunctionData = new TheoryData<object, object, float, object> {
-            { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(0,0,0,1) },
-            { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(1,1,1, 1f) },
+        public static TheoryData<object, object, float, object> SubtractFunctionData = new TheoryData<object, object, float, object>
+        {
+            { new TestPixel<Rgba32>(1, 1, 1, 1), new TestPixel<Rgba32>(1, 1, 1, 1), 1, new TestPixel<Rgba32>(0, 0, 0, 1) },
+            { new TestPixel<Rgba32>(1, 1, 1, 1), new TestPixel<Rgba32>(0, 0, 0, .8f), .5f, new TestPixel<Rgba32>(1, 1, 1, 1f) },
             {
-                new TestPixel<Rgba32>(0.2f,0.2f,0.2f,0.3f),
-                new TestPixel<Rgba32>(0.3f,0.3f,0.3f,0.2f),
+                new TestPixel<Rgba32>(0.2f, 0.2f, 0.2f, 0.3f),
+                new TestPixel<Rgba32>(0.3f, 0.3f, 0.3f, 0.2f),
                 .5f,
                 new TestPixel<Rgba32>(.2027027f, .2027027f, .2027027f, .37f)
             },
@@ -169,12 +183,13 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
-        public static TheoryData<object, object, float, object> ScreenFunctionData = new TheoryData<object, object, float, object> {
-            { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(1,1,1,1) },
-            { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(1,1,1, 1f) },
+        public static TheoryData<object, object, float, object> ScreenFunctionData = new TheoryData<object, object, float, object>
+        {
+            { new TestPixel<Rgba32>(1, 1, 1, 1), new TestPixel<Rgba32>(1, 1, 1, 1), 1, new TestPixel<Rgba32>(1, 1, 1, 1) },
+            { new TestPixel<Rgba32>(1, 1, 1, 1), new TestPixel<Rgba32>(0, 0, 0, .8f), .5f, new TestPixel<Rgba32>(1, 1, 1, 1f) },
             {
-                new TestPixel<Rgba32>(0.2f,0.2f,0.2f,0.3f),
-                new TestPixel<Rgba32>(0.3f,0.3f,0.3f,0.2f),
+                new TestPixel<Rgba32>(0.2f, 0.2f, 0.2f, 0.3f),
+                new TestPixel<Rgba32>(0.3f, 0.3f, 0.3f, 0.2f),
                 .5f,
                 new TestPixel<Rgba32>(.2383784f, .2383784f, .2383784f, .37f)
             },
@@ -208,12 +223,13 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
-        public static TheoryData<object, object, float, object> DarkenFunctionData = new TheoryData<object, object, float, object> {
-            { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(1,1,1,1) },
-            { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(.6f,.6f,.6f, 1f) },
+        public static TheoryData<object, object, float, object> DarkenFunctionData = new TheoryData<object, object, float, object>
+        {
+            { new TestPixel<Rgba32>(1, 1, 1, 1), new TestPixel<Rgba32>(1, 1, 1, 1), 1, new TestPixel<Rgba32>(1, 1, 1, 1) },
+            { new TestPixel<Rgba32>(1, 1, 1, 1), new TestPixel<Rgba32>(0, 0, 0, .8f), .5f, new TestPixel<Rgba32>(.6f, .6f, .6f, 1f) },
             {
-                new TestPixel<Rgba32>(0.2f,0.2f,0.2f,0.3f),
-                new TestPixel<Rgba32>(0.3f,0.3f,0.3f,0.2f),
+                new TestPixel<Rgba32>(0.2f, 0.2f, 0.2f, 0.3f),
+                new TestPixel<Rgba32>(0.3f, 0.3f, 0.3f, 0.2f),
                 .5f,
                 new TestPixel<Rgba32>(.2189189f, .2189189f, .2189189f, .37f)
             },
@@ -247,15 +263,16 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
-        public static TheoryData<object, object, float, object> LightenFunctionData = new TheoryData<object, object, float, object> {
-            { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(1,1,1,1) },
-            { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(1,1,1,1f) },
+        public static TheoryData<object, object, float, object> LightenFunctionData = new TheoryData<object, object, float, object>
+        {
+            { new TestPixel<Rgba32>(1, 1, 1, 1), new TestPixel<Rgba32>(1, 1, 1, 1), 1, new TestPixel<Rgba32>(1, 1, 1, 1) },
+            { new TestPixel<Rgba32>(1, 1, 1, 1), new TestPixel<Rgba32>(0, 0, 0, .8f), .5f, new TestPixel<Rgba32>(1, 1, 1, 1f) },
             {
-                new TestPixel<Rgba32>(0.2f,0.2f,0.2f,0.3f),
-                new TestPixel<Rgba32>(0.3f,0.3f,0.3f,0.2f),
+                new TestPixel<Rgba32>(0.2f, 0.2f, 0.2f, 0.3f),
+                new TestPixel<Rgba32>(0.3f, 0.3f, 0.3f, 0.2f),
                 .5f,
                 new TestPixel<Rgba32>(.227027f, .227027f, .227027f, .37f)
-            },
+            }
         };
 
         [Theory]
@@ -286,15 +303,16 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
-        public static TheoryData<object, object, float, object> OverlayFunctionData = new TheoryData<object, object, float, object> {
-            { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(1,1,1,1) },
-            { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(1,1,1,1f) },
+        public static TheoryData<object, object, float, object> OverlayFunctionData = new TheoryData<object, object, float, object>
+        {
+            { new TestPixel<Rgba32>(1, 1, 1, 1), new TestPixel<Rgba32>(1, 1, 1, 1), 1, new TestPixel<Rgba32>(1, 1, 1, 1) },
+            { new TestPixel<Rgba32>(1, 1, 1, 1), new TestPixel<Rgba32>(0, 0, 0, .8f), .5f, new TestPixel<Rgba32>(1, 1, 1, 1f) },
             {
-                new TestPixel<Rgba32>(0.2f,0.2f,0.2f,0.3f),
-                new TestPixel<Rgba32>(0.3f,0.3f,0.3f,0.2f),
+                new TestPixel<Rgba32>(0.2f, 0.2f, 0.2f, 0.3f),
+                new TestPixel<Rgba32>(0.3f, 0.3f, 0.3f, 0.2f),
                 .5f,
                 new TestPixel<Rgba32>(.2124324f, .2124324f, .2124324f, .37f)
-            },
+            }
         };
 
         [Theory]
@@ -325,12 +343,13 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             VectorAssert.Equal(expected, dest[0], 2);
         }
 
-        public static TheoryData<object, object, float, object> HardLightFunctionData = new TheoryData<object, object, float, object> {
-            { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(1,1,1,1), 1, new TestPixel<Rgba32>(1,1,1,1) },
-            { new TestPixel<Rgba32>(1,1,1,1), new TestPixel<Rgba32>(0,0,0,.8f), .5f, new TestPixel<Rgba32>(0.6f,0.6f,0.6f,1f) },
+        public static TheoryData<object, object, float, object> HardLightFunctionData = new TheoryData<object, object, float, object>
+        {
+            { new TestPixel<Rgba32>(1, 1, 1, 1), new TestPixel<Rgba32>(1, 1, 1, 1), 1, new TestPixel<Rgba32>(1, 1, 1, 1) },
+            { new TestPixel<Rgba32>(1, 1, 1, 1), new TestPixel<Rgba32>(0, 0, 0, .8f), .5f, new TestPixel<Rgba32>(0.6f, 0.6f, 0.6f, 1f) },
             {
-                new TestPixel<Rgba32>(0.2f,0.2f,0.2f,0.3f),
-                new TestPixel<Rgba32>(0.3f,0.3f,0.3f,0.2f),
+                new TestPixel<Rgba32>(0.2f, 0.2f, 0.2f, 0.3f),
+                new TestPixel<Rgba32>(0.3f, 0.3f, 0.3f, 0.2f),
                 .5f,
                 new TestPixel<Rgba32>(.2124324f, .2124324f, .2124324f, .37f)
             },

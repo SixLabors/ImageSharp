@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -105,8 +105,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Returns the <see cref="PixelTypes"/> enumerations for the given type.
         /// </summary>
-        /// <param name="colorStructClrType"></param>
-        /// <returns></returns>
+        /// <returns>The pixel type.</returns>
         public static PixelTypes GetPixelType(this Type colorStructClrType) => ClrTypes2PixelTypes[colorStructClrType];
 
         public static IEnumerable<KeyValuePair<PixelTypes, Type>> ExpandAllTypes(this PixelTypes pixelTypes)
@@ -129,6 +128,7 @@ namespace SixLabors.ImageSharp.Tests
                     result[pt] = pt.GetClrType();
                 }
             }
+
             return result;
         }
 
@@ -161,8 +161,8 @@ namespace SixLabors.ImageSharp.Tests
         /// <param name="process">The image processing method to test. (As a delegate)</param>
         /// <param name="testOutputDetails">The value to append to the test output.</param>
         /// <param name="comparer">The custom image comparer to use</param>
-        /// <param name="appendPixelTypeToFileName"></param>
-        /// <param name="appendSourceFileOrDescription"></param>
+        /// <param name="appendPixelTypeToFileName">If true, the pixel type will by appended to the output file.</param>
+        /// <param name="appendSourceFileOrDescription">A boolean indicating whether to append <see cref="ITestImageProvider.SourceFileOrDescription"/> to the test output file name.</param>
         internal static void RunValidatingProcessorTest<TPixel>(
             this TestImageProvider<TPixel> provider,
             Action<IImageProcessingContext> process,
@@ -216,9 +216,7 @@ namespace SixLabors.ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage())
             {
                 FormattableString testOutputDetails = $"";
-                image.Mutate(
-                    ctx => { testOutputDetails = processAndGetTestOutputDetails(ctx); }
-                    );
+                image.Mutate(ctx => { testOutputDetails = processAndGetTestOutputDetails(ctx); });
 
                 image.DebugSave(
                     provider,

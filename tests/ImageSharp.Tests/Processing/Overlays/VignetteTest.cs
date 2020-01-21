@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
 {
     public class VignetteTest : BaseImageOperationsExtensionTest
     {
-        private static readonly GraphicsOptionsComparer graphicsOptionsComparer = new GraphicsOptionsComparer();
+        private static readonly GraphicsOptionsComparer GraphicsOptionsComparer = new GraphicsOptionsComparer();
 
         [Fact]
         public void Vignette_VignetteProcessorWithDefaultValues()
@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
             this.operations.Vignette();
             VignetteProcessor p = this.Verify<VignetteProcessor>();
 
-            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, graphicsOptionsComparer);
+            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, GraphicsOptionsComparer);
             Assert.Equal(Color.Black, p.VignetteColor);
             Assert.Equal(ValueSize.PercentageOfWidth(.5f), p.RadiusX);
             Assert.Equal(ValueSize.PercentageOfHeight(.5f), p.RadiusY);
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
             this.operations.Vignette(Color.Aquamarine);
             VignetteProcessor p = this.Verify<VignetteProcessor>();
 
-            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, graphicsOptionsComparer);
+            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, GraphicsOptionsComparer);
             Assert.Equal(Color.Aquamarine, p.VignetteColor);
             Assert.Equal(ValueSize.PercentageOfWidth(.5f), p.RadiusX);
             Assert.Equal(ValueSize.PercentageOfHeight(.5f), p.RadiusY);
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
             this.operations.Vignette(3.5f, 12123f);
             VignetteProcessor p = this.Verify<VignetteProcessor>();
 
-            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, graphicsOptionsComparer);
+            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, GraphicsOptionsComparer);
             Assert.Equal(Color.Black, p.VignetteColor);
             Assert.Equal(ValueSize.Absolute(3.5f), p.RadiusX);
             Assert.Equal(ValueSize.Absolute(12123f), p.RadiusY);
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
             this.operations.Vignette(rect);
             VignetteProcessor p = this.Verify<VignetteProcessor>(rect);
 
-            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, graphicsOptionsComparer);
+            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, GraphicsOptionsComparer);
             Assert.Equal(Color.Black, p.VignetteColor);
             Assert.Equal(ValueSize.PercentageOfWidth(.5f), p.RadiusX);
             Assert.Equal(ValueSize.PercentageOfHeight(.5f), p.RadiusY);

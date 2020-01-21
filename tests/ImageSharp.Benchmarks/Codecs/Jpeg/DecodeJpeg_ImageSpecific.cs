@@ -14,8 +14,8 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
 using CoreSize = SixLabors.Primitives.Size;
 using SDImage = System.Drawing.Image;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
     /// <summary>
@@ -35,10 +35,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             {
                 public ShortClr()
                 {
-                    this.Add(
-                        // Job.Default.With(ClrRuntime.Net472).WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3),
-                        Job.Default.With(CoreRuntime.Core21).WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3)
-                    );
+                    // Job.Default.With(ClrRuntime.Net472).WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3),
+                    this.Add(Job.Default.With(CoreRuntime.Core21).WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3));
                 }
             }
         }
@@ -50,17 +48,14 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         [Params(
             TestImages.Jpeg.BenchmarkSuite.Lake_Small444YCbCr,
             TestImages.Jpeg.BenchmarkSuite.BadRstProgressive518_Large444YCbCr,
+            /* The scaled result for the large image "ExifGetString750Transform_Huge420YCbCr"
+             is almost the same as the result for Jpeg420Exif,
+             which proves that the execution time for the most common YCbCr 420 path scales linearly.
+             TestImages.Jpeg.BenchmarkSuite.ExifGetString750Transform_Huge420YCbCr,
+             */
+            TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr)]
 
-            // The scaled result for the large image "ExifGetString750Transform_Huge420YCbCr"
-            // is almost the same as the result for Jpeg420Exif,
-            // which proves that the execution time for the most common YCbCr 420 path scales linearly.
-            //
-            // TestImages.Jpeg.BenchmarkSuite.ExifGetString750Transform_Huge420YCbCr,
-
-            TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr
-            )]
         public string TestImage { get; set; }
-
 
         [GlobalSetup]
         public void ReadImages()
@@ -102,7 +97,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         // Frequency=2742191 Hz, Resolution=364.6719 ns, Timer=TSC
         // .NET Core SDK=2.1.403
         //   [Host]     : .NET Core 2.1.5 (CoreCLR 4.6.26919.02, CoreFX 4.6.26919.02), 64bit RyuJIT
-        // 
+        //
         //                          Method |                                   TestImage |       Mean |      Error |    StdDev | Scaled | ScaledSD |     Gen 0 |    Gen 1 |    Gen 2 |   Allocated |
         // ------------------------------- |-------------------------------------------- |-----------:|-----------:|----------:|-------:|---------:|----------:|---------:|---------:|------------:|
         //  'Decode Jpeg - System.Drawing' |                       Jpg/baseline/Lake.jpg |   6.117 ms |  0.3923 ms | 0.0222 ms |   1.00 |     0.00 |   62.5000 |        - |        - |   205.83 KB |
@@ -119,21 +114,21 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 
         // RESULTS (2019 April 23):
         //
-        //BenchmarkDotNet=v0.11.5, OS=Windows 10.0.17763.437 (1809/October2018Update/Redstone5)
-        //Intel Core i7-6600U CPU 2.60GHz (Skylake), 1 CPU, 4 logical and 2 physical cores
-        //.NET Core SDK=2.2.202
+        // BenchmarkDotNet=v0.11.5, OS=Windows 10.0.17763.437 (1809/October2018Update/Redstone5)
+        // Intel Core i7-6600U CPU 2.60GHz (Skylake), 1 CPU, 4 logical and 2 physical cores
+        // .NET Core SDK=2.2.202
         //  [Host] : .NET Core 2.1.9 (CoreCLR 4.6.27414.06, CoreFX 4.6.27415.01), 64bit RyuJIT
         //  Core   : .NET Core 2.1.9 (CoreCLR 4.6.27414.06, CoreFX 4.6.27415.01), 64bit RyuJIT
         //
-        //|                         Method |            TestImage |       Mean |      Error |     StdDev | Ratio | RatioSD |     Gen 0 | Gen 1 | Gen 2 |   Allocated |
-        //|------------------------------- |--------------------- |-----------:|-----------:|-----------:|------:|--------:|----------:|------:|------:|------------:|
-        //| 'Decode Jpeg - System.Drawing' | Jpg/b(...)e.jpg [21] |   6.957 ms |   9.618 ms |  0.5272 ms |  1.00 |    0.00 |   93.7500 |     - |     - |   205.83 KB |
-        //|     'Decode Jpeg - ImageSharp' | Jpg/b(...)e.jpg [21] |  18.348 ms |   8.876 ms |  0.4865 ms |  2.65 |    0.23 |         - |     - |     - |    14.49 KB |
-        //|                                |                      |            |            |            |       |         |           |       |       |             |
-        //| 'Decode Jpeg - System.Drawing' | Jpg/b(...)f.jpg [28] |  18.687 ms |  11.632 ms |  0.6376 ms |  1.00 |    0.00 |  343.7500 |     - |     - |   757.04 KB |
-        //|     'Decode Jpeg - ImageSharp' | Jpg/b(...)f.jpg [28] |  41.990 ms |  25.514 ms |  1.3985 ms |  2.25 |    0.10 |         - |     - |     - |    15.48 KB |
-        //|                                |                      |            |            |            |       |         |           |       |       |             |
-        //| 'Decode Jpeg - System.Drawing' | Jpg/i(...)e.jpg [43] | 477.265 ms | 732.126 ms | 40.1303 ms |  1.00 |    0.00 | 3000.0000 |     - |     - |  7403.76 KB |
-        //|     'Decode Jpeg - ImageSharp' | Jpg/i(...)e.jpg [43] | 348.545 ms |  91.480 ms |  5.0143 ms |  0.73 |    0.06 |         - |     - |     - | 35177.21 KB |
+        // |                         Method |            TestImage |       Mean |      Error |     StdDev | Ratio | RatioSD |     Gen 0 | Gen 1 | Gen 2 |   Allocated |
+        // |------------------------------- |--------------------- |-----------:|-----------:|-----------:|------:|--------:|----------:|------:|------:|------------:|
+        // | 'Decode Jpeg - System.Drawing' | Jpg/b(...)e.jpg [21] |   6.957 ms |   9.618 ms |  0.5272 ms |  1.00 |    0.00 |   93.7500 |     - |     - |   205.83 KB |
+        // |     'Decode Jpeg - ImageSharp' | Jpg/b(...)e.jpg [21] |  18.348 ms |   8.876 ms |  0.4865 ms |  2.65 |    0.23 |         - |     - |     - |    14.49 KB |
+        // |                                |                      |            |            |            |       |         |           |       |       |             |
+        // | 'Decode Jpeg - System.Drawing' | Jpg/b(...)f.jpg [28] |  18.687 ms |  11.632 ms |  0.6376 ms |  1.00 |    0.00 |  343.7500 |     - |     - |   757.04 KB |
+        // |     'Decode Jpeg - ImageSharp' | Jpg/b(...)f.jpg [28] |  41.990 ms |  25.514 ms |  1.3985 ms |  2.25 |    0.10 |         - |     - |     - |    15.48 KB |
+        // |                                |                      |            |            |            |       |         |           |       |       |             |
+        // | 'Decode Jpeg - System.Drawing' | Jpg/i(...)e.jpg [43] | 477.265 ms | 732.126 ms | 40.1303 ms |  1.00 |    0.00 | 3000.0000 |     - |     - |  7403.76 KB |
+        // |     'Decode Jpeg - ImageSharp' | Jpg/i(...)e.jpg [43] | 348.545 ms |  91.480 ms |  5.0143 ms |  0.73 |    0.06 |         - |     - |     - | 35177.21 KB |
     }
 }

@@ -38,6 +38,7 @@ namespace SixLabors.ImageSharp.Tests
         internal static string NetCoreVersion => NetCoreVersionLazy.Value;
 
         // ReSharper disable once InconsistentNaming
+
         /// <summary>
         /// Gets a value indicating whether test execution runs on CI.
         /// </summary>
@@ -75,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests
             return directory.FullName;
         }
 
-        private static string GetFullPath(string relativePath) => 
+        private static string GetFullPath(string relativePath) =>
             Path.Combine(SolutionDirectoryFullPath, relativePath)
             .Replace('\\', Path.DirectorySeparatorChar);
 
@@ -83,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests
         /// Gets the correct full path to the Input Images directory.
         /// </summary>
         internal static string InputImagesDirectoryFullPath => GetFullPath(InputImagesRelativePath);
-        
+
         /// <summary>
         /// Gets the correct full path to the Actual Output directory. (To be written to by the test cases.)
         /// </summary>
@@ -100,7 +101,7 @@ namespace SixLabors.ImageSharp.Tests
             actualOutputFileName.Replace("ActualOutput", @"External\ReferenceOutput").Replace('\\', Path.DirectorySeparatorChar);
 
         internal static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
-        
+
         internal static bool IsMono => Type.GetType("Mono.Runtime") != null; // https://stackoverflow.com/a/721194
 
         internal static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
@@ -142,8 +143,11 @@ namespace SixLabors.ImageSharp.Tests
             string[] assemblyPath = assembly.CodeBase.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
             int netCoreAppIndex = Array.IndexOf(assemblyPath, "Microsoft.NETCore.App");
             if (netCoreAppIndex > 0 && netCoreAppIndex < assemblyPath.Length - 2)
+            {
                 return assemblyPath[netCoreAppIndex + 1];
-            return "";
+            }
+
+            return string.Empty;
         }
     }
 }

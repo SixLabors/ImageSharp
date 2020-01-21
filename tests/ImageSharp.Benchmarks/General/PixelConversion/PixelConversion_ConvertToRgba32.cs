@@ -1,4 +1,7 @@
-﻿using System.Runtime.CompilerServices;
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Runtime.CompilerServices;
 
 using BenchmarkDotNet.Attributes;
 
@@ -8,14 +11,14 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 {
     /// <summary>
     /// When implementing TPixel --> Rgba32 style conversions on IPixel, should which API should we prefer?
-    /// 1. Rgba32 ToRgba32(); 
+    /// 1. Rgba32 ToRgba32();
     /// OR
     /// 2. void CopyToRgba32(ref Rgba32 dest);
     /// ?
     /// </summary>
     public class PixelConversion_ConvertToRgba32
     {
-        struct ConversionRunner<T>
+        private struct ConversionRunner<T>
             where T : struct, ITestPixel<T>
         {
             private T[] source;
@@ -98,7 +101,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 
     /*
      * Results:
-     * 
+     *
      *            Method | Count |        Mean |    StdDev | Scaled | Scaled-StdDev |
      *   --------------- |------ |------------ |---------- |------- |-------------- |
      *  CompatibleRetval |   128 |  89.7358 ns | 2.2389 ns |   1.00 |          0.00 |

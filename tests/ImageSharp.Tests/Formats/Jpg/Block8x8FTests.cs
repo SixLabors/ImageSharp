@@ -2,8 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 // Uncomment this to turn unit tests into benchmarks:
-//#define BENCHMARKING
-
+// #define BENCHMARKING
 using System;
 using System.Diagnostics;
 
@@ -35,6 +34,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 this.Output.WriteLine("AVX2 not supported, skipping!");
                 return true;
             }
+
             return false;
         }
 
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Times,
                 () =>
                     {
-                        var block = new Block8x8F();
+                        var block = default(Block8x8F);
 
                         for (int i = 0; i < Block8x8F.Size; i++)
                         {
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 () =>
                     {
                         // Block8x8F block = new Block8x8F();
-                        var block = new float[64];
+                        float[] block = new float[64];
                         for (int i = 0; i < Block8x8F.Size; i++)
                         {
                             block[i] = i;
@@ -90,8 +90,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void Load_Store_FloatArray()
         {
-            var data = new float[Block8x8F.Size];
-            var mirror = new float[Block8x8F.Size];
+            float[] data = new float[Block8x8F.Size];
+            float[] mirror = new float[Block8x8F.Size];
 
             for (int i = 0; i < Block8x8F.Size; i++)
             {
@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Times,
                 () =>
                     {
-                        var b = new Block8x8F();
+                        var b = default(Block8x8F);
                         b.LoadFrom(data);
                         b.CopyTo(mirror);
                     });
@@ -115,8 +115,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public unsafe void Load_Store_FloatArray_Ptr()
         {
-            var data = new float[Block8x8F.Size];
-            var mirror = new float[Block8x8F.Size];
+            float[] data = new float[Block8x8F.Size];
+            float[] mirror = new float[Block8x8F.Size];
 
             for (int i = 0; i < Block8x8F.Size; i++)
             {
@@ -127,7 +127,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Times,
                 () =>
                     {
-                        var b = new Block8x8F();
+                        var b = default(Block8x8F);
                         Block8x8F.LoadFrom(&b, data);
                         Block8x8F.CopyTo(&b, mirror);
                     });
@@ -140,8 +140,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void Load_Store_IntArray()
         {
-            var data = new int[Block8x8F.Size];
-            var mirror = new int[Block8x8F.Size];
+            int[] data = new int[Block8x8F.Size];
+            int[] mirror = new int[Block8x8F.Size];
 
             for (int i = 0; i < Block8x8F.Size; i++)
             {
@@ -152,7 +152,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Times,
                 () =>
                     {
-                        var v = new Block8x8F();
+                        var v = default(Block8x8F);
                         v.LoadFrom(data);
                         v.CopyTo(mirror);
                     });
@@ -168,13 +168,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             float[] expected = Create8x8FloatData();
             ReferenceImplementations.Transpose8x8(expected);
 
-            var source = new Block8x8F();
+            var source = default(Block8x8F);
             source.LoadFrom(Create8x8FloatData());
 
-            var dest = new Block8x8F();
+            var dest = default(Block8x8F);
             source.TransposeInto(ref dest);
 
-            var actual = new float[64];
+            float[] actual = new float[64];
             dest.CopyTo(actual);
 
             Assert.Equal(expected, actual);
@@ -206,12 +206,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private static float[] Create8x8ColorCropTestData()
         {
-            var result = new float[64];
+            float[] result = new float[64];
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)
                 {
-                    result[i * 8 + j] = -300 + i * 100 + j * 10;
+                    result[(i * 8) + j] = -300 + (i * 100) + (j * 10);
                 }
             }
 
@@ -230,7 +230,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Block8x8F dest = block;
             dest.NormalizeColorsInplace(255);
 
-            var array = new float[64];
+            float[] array = new float[64];
             dest.CopyTo(array);
             this.Output.WriteLine("Result:");
             this.PrintLinearData(array);
@@ -269,10 +269,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(2)]
         public unsafe void Quantize(int seed)
         {
-            var block = new Block8x8F();
+            var block = default(Block8x8F);
             block.LoadFrom(Create8x8RoundedRandomFloatData(-2000, 2000, seed));
 
-            var qt = new Block8x8F();
+            var qt = default(Block8x8F);
             qt.LoadFrom(Create8x8RoundedRandomFloatData(-2000, 2000, seed));
 
             var unzig = ZigZag.CreateUnzigTable();

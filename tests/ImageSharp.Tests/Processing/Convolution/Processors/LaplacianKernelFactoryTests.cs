@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -23,11 +23,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         private static readonly DenseMatrix<float> Expected5x5Matrix = new DenseMatrix<float>(
             new float[,]
                 {
-                    { -1, -1, -1,-1, -1 },
-                    { -1, -1, -1,-1, -1 },
-                    { -1, -1, 24,-1, -1 },
-                    { -1, -1, -1,-1, -1 },
-                    { -1, -1, -1,-1, -1 }
+                    { -1, -1, -1, -1, -1 },
+                    { -1, -1, -1, -1, -1 },
+                    { -1, -1, 24, -1, -1 },
+                    { -1, -1, -1, -1, -1 },
+                    { -1, -1, -1, -1, -1 }
                 });
 
         [Fact]

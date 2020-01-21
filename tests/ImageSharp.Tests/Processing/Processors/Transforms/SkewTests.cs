@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.01f);
 
         [Theory]
-        [WithTestPatternImages(nameof(SkewValues), 100, 50, CommonPixelTypes)]
+        [WithTestPatternImage(nameof(SkewValues), 100, 50, CommonPixelTypes)]
         public void Skew_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, float x, float y)
             where TPixel : struct, IPixel<TPixel>
         {

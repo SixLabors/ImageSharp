@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [MemberData(nameof(IccTestDataMatrix.Matrix2D_FloatArrayTestData), MemberType = typeof(IccTestDataMatrix))]
         public void ReadMatrix2D(byte[] data, int xCount, int yCount, bool isSingle, float[,] expected)
         {
-            IccDataReader reader = CreateReader(data);
+            IccDataReader reader = this.CreateReader(data);
 
             float[,] output = reader.ReadMatrix(xCount, yCount, isSingle);
 
@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [MemberData(nameof(IccTestDataMatrix.Matrix1D_ArrayTestData), MemberType = typeof(IccTestDataMatrix))]
         public void ReadMatrix1D(byte[] data, int yCount, bool isSingle, float[] expected)
         {
-            IccDataReader reader = CreateReader(data);
+            IccDataReader reader = this.CreateReader(data);
 
             float[] output = reader.ReadMatrix(yCount, isSingle);
 

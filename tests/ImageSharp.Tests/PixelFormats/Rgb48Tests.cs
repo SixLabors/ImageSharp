@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var short3 = new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue);
             var expected = new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue);
 
-            // act 
+            // act
             Vector4 scaled = short3.ToScaledVector4();
             pixel.FromScaledVector4(scaled);
 

@@ -1,5 +1,5 @@
-// // Copyright (c) Six Labors and contributors.
-// // Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Linq;
@@ -61,7 +61,6 @@ namespace SixLabors.ImageSharp.Tests
                 var actualFrame = (ImageFrame<Rgba32>)this.Collection[0];
 
                 actualFrame.ComparePixelBufferTo(expectedAllBlue);
-
             }
 
             [Fact]
@@ -118,11 +117,9 @@ namespace SixLabors.ImageSharp.Tests
                 Assert.StartsWith("Value cannot be null.", ex.Message);
             }
 
-
             [Fact]
             public void RemoveAtFrame_ThrowIfRemovingLastFrame()
             {
-
                 InvalidOperationException ex = Assert.Throws<InvalidOperationException>(
                     () =>
                     {
@@ -147,7 +144,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Theory]
-            [WithTestPatternImages(10, 10, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
+            [WithTestPatternImage(10, 10, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
             public void CloneFrame<TPixel>(TestImageProvider<TPixel> provider)
                 where TPixel : struct, IPixel<TPixel>
             {
@@ -168,7 +165,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Theory]
-            [WithTestPatternImages(10, 10, PixelTypes.Rgba32)]
+            [WithTestPatternImage(10, 10, PixelTypes.Rgba32)]
             public void ExtractFrame<TPixel>(TestImageProvider<TPixel> provider)
                 where TPixel : struct, IPixel<TPixel>
             {
@@ -267,6 +264,7 @@ namespace SixLabors.ImageSharp.Tests
             /// <summary>
             /// Integration test for end-to end API validation.
             /// </summary>
+            /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
             [Theory]
             [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
             public void ConstructGif_FromDifferentPixelTypes<TPixel>(TestImageProvider<TPixel> provider)
@@ -276,7 +274,6 @@ namespace SixLabors.ImageSharp.Tests
                 using (var dest = new Image<TPixel>(source.GetConfiguration(), source.Width, source.Height))
                 {
                     // Giphy.gif has 5 frames
-
                     ImportFrameAs<Bgra32>(source.Frames, dest.Frames, 0);
                     ImportFrameAs<Argb32>(source.Frames, dest.Frames, 1);
                     ImportFrameAs<Rgba64>(source.Frames, dest.Frames, 2);
@@ -311,7 +308,6 @@ namespace SixLabors.ImageSharp.Tests
             private static void CompareGifMetadata(ImageFrame a, ImageFrame b)
             {
                 // TODO: all metadata classes should be equatable!
-
                 GifFrameMetadata aData = a.Metadata.GetGifMetadata();
                 GifFrameMetadata bData = b.Metadata.GetGifMetadata();
 

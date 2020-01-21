@@ -149,7 +149,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Assert.Equal(255, gray.A);
         }
 
-
         [Theory]
         [MemberData(nameof(LuminanceData))]
         public void La16_ToRgba32(byte luminance)
@@ -203,7 +202,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 Assert.Equal(original, mirror);
             }
 
-
             [Theory]
             [MemberData(nameof(LuminanceData))]
             public void Rgba32_ToLa16_IsInverseOf_La16_ToRgba32(byte luminance)
@@ -228,10 +226,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 Rgba32 rgba = default;
                 original.ToRgba32(ref rgba);
 
-                var La16Vector = original.ToVector4();
+                var la16Vector = original.ToVector4();
                 var rgbaVector = original.ToVector4();
 
-                Assert.Equal(La16Vector, rgbaVector, new ApproximateFloatComparer(1e-5f));
+                Assert.Equal(la16Vector, rgbaVector, new ApproximateFloatComparer(1e-5f));
             }
 
             [Theory]
@@ -260,10 +258,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 Rgba32 rgba = default;
                 original.ToRgba32(ref rgba);
 
-                Vector4 La16Vector = original.ToScaledVector4();
+                Vector4 la16Vector = original.ToScaledVector4();
                 Vector4 rgbaVector = original.ToScaledVector4();
 
-                Assert.Equal(La16Vector, rgbaVector, new ApproximateFloatComparer(1e-5f));
+                Assert.Equal(la16Vector, rgbaVector, new ApproximateFloatComparer(1e-5f));
             }
 
             [Theory]

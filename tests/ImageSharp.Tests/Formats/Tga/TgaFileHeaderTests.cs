@@ -11,11 +11,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
 {
     public class TgaFileHeaderTests
     {
-        private static readonly byte[] Data = {
+        private static readonly byte[] Data =
+        {
                                                   0,
                                                   0,
                                                   15 // invalid tga image type
-                                              };
+        };
 
         private MemoryStream Stream { get; } = new MemoryStream(Data);
 

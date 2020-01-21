@@ -1,4 +1,7 @@
-﻿using BenchmarkDotNet.Attributes;
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using BenchmarkDotNet.Attributes;
 
 using Colourful;
 using Colourful.Conversion;
@@ -17,7 +20,6 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces
         private static readonly ColorSpaceConverter ColorSpaceConverter = new ColorSpaceConverter();
 
         private static readonly ColourfulConverter ColourfulConverter = new ColourfulConverter();
-
 
         [Benchmark(Baseline = true, Description = "Colourful Convert")]
         public double ColourfulConvert()

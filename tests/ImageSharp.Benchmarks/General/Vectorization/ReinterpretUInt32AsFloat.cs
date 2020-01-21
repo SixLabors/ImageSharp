@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System.Numerics;
 using System.Runtime.InteropServices;
 
@@ -15,22 +18,20 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
         public int InputSize { get; set; }
 
         [StructLayout(LayoutKind.Explicit)]
-        struct UIntFloatUnion
+        private struct UIntFloatUnion
         {
             [FieldOffset(0)]
-            public float f;
+            public float F;
 
             [FieldOffset(0)]
-            public uint i;
+            public uint I;
         }
-
 
         [GlobalSetup]
         public void Setup()
         {
             this.input = new uint[this.InputSize];
             this.result = new float[this.InputSize];
-            
             for (int i = 0; i < this.InputSize; i++)
             {
                 this.input[i] = (uint)i;
@@ -43,8 +44,8 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
             UIntFloatUnion u = default;
             for (int i = 0; i < this.input.Length; i++)
             {
-                u.i = this.input[i];
-                this.result[i] = u.f;
+                u.I = this.input[i];
+                this.result[i] = u.F;
             }
         }
 
@@ -54,7 +55,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
             for (int i = 0; i < this.input.Length; i += Vector<uint>.Count)
             {
                 var a = new Vector<uint>(this.input, i);
-                Vector<float> b = Vector.AsVectorSingle(a);
+                var b = Vector.AsVectorSingle(a);
                 b.CopyTo(this.result, i);
             }
         }

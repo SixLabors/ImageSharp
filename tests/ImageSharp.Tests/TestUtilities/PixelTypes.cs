@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -12,6 +12,7 @@ namespace SixLabors.ImageSharp.Tests
     [Flags]
     public enum PixelTypes
     {
+#pragma warning disable SA1602 // Enumeration items should be documented
         Undefined = 0,
 
         A8 = 1 << 0,
@@ -66,5 +67,7 @@ namespace SixLabors.ImageSharp.Tests
 
         // "All" is handled as a separate, individual case instead of using bitwise OR
         All = 30
+
+#pragma warning restore SA1602 // Enumeration items should be documented
     }
 }

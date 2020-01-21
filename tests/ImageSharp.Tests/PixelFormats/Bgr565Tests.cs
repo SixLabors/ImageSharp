@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -45,6 +45,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Assert.Equal(6160, new Bgr565(0.1F, -0.3F, 0.5F).PackedValue);
             Assert.Equal(0x0, new Bgr565(Vector3.Zero).PackedValue);
             Assert.Equal(0xFFFF, new Bgr565(Vector3.One).PackedValue);
+
             // Make sure the swizzle is correct.
             Assert.Equal(0xF800, new Bgr565(Vector3.UnitX).PackedValue);
             Assert.Equal(0x07E0, new Bgr565(Vector3.UnitY).PackedValue);
@@ -191,10 +192,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // arrange
             var bgr = default(Bgr565);
             ushort expected = ushort.MaxValue;
-            
+
             // act
             bgr.FromBgr24(new Bgr24(byte.MaxValue, byte.MaxValue, byte.MaxValue));
-            
+
             // assert
             Assert.Equal(expected, bgr.PackedValue);
         }

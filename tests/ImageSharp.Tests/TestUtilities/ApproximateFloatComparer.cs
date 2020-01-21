@@ -16,20 +16,20 @@ namespace SixLabors.ImageSharp.Tests
         IEqualityComparer<Vector4>,
         IEqualityComparer<ColorMatrix>
     {
-        private readonly float Epsilon;
+        private readonly float epsilon;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ApproximateFloatComparer"/> class.
         /// </summary>
         /// <param name="epsilon">The comparison error difference epsilon to use.</param>
-        public ApproximateFloatComparer(float epsilon = 1F) => this.Epsilon = epsilon;
+        public ApproximateFloatComparer(float epsilon = 1F) => this.epsilon = epsilon;
 
         /// <inheritdoc/>
         public bool Equals(float x, float y)
         {
             float d = x - y;
 
-            return d >= -this.Epsilon && d <= this.Epsilon;
+            return d >= -this.epsilon && d <= this.epsilon;
         }
 
         /// <inheritdoc/>

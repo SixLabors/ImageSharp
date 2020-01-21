@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -19,12 +19,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             .25F,
             .75F
         };
-        
+
         public static readonly string[] CommonTestImages =
             {
                 TestImages.Png.CalliphoraPartial, TestImages.Png.Bike
             };
-        
+
         public const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Rgb24;
 
         [Theory]
@@ -44,14 +44,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         public void ImageShouldApplyBinaryThresholdInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
-
             using (Image<TPixel> source = provider.GetImage())
             using (var image = source.Clone())
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
                 image.Mutate(x => x.BinaryThreshold(value, bounds));
-                     image.DebugSave(provider, value);
+                image.DebugSave(provider, value);
 
                 ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
             }

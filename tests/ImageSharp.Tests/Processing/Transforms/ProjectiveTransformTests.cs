@@ -10,8 +10,8 @@ using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 using Xunit.Abstractions;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
     public class ProjectiveTransformTests
@@ -45,25 +45,21 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             { TaperSide.Bottom, TaperCorner.Both },
             { TaperSide.Bottom, TaperCorner.LeftOrTop },
             { TaperSide.Bottom, TaperCorner.RightOrBottom },
-
             { TaperSide.Top, TaperCorner.Both },
             { TaperSide.Top, TaperCorner.LeftOrTop },
             { TaperSide.Top, TaperCorner.RightOrBottom },
-
             { TaperSide.Left, TaperCorner.Both },
             { TaperSide.Left, TaperCorner.LeftOrTop },
             { TaperSide.Left, TaperCorner.RightOrBottom },
-
             { TaperSide.Right, TaperCorner.Both },
             { TaperSide.Right, TaperCorner.LeftOrTop },
             { TaperSide.Right, TaperCorner.RightOrBottom },
-
         };
 
         public ProjectiveTransformTests(ITestOutputHelper output) => this.Output = output;
 
         [Theory]
-        [WithTestPatternImages(nameof(ResamplerNames), 150, 150, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(ResamplerNames), 150, 150, PixelTypes.Rgba32)]
         public void Transform_WithSampler<TPixel>(TestImageProvider<TPixel> provider, string resamplerName)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -132,11 +128,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             // https://github.com/SixLabors/ImageSharp/issues/787
             using (Image<TPixel> image = provider.GetImage())
             {
+#pragma warning disable SA1117 // Parameters should be on same line or separate lines
                 var matrix = new Matrix4x4(
                    0.260987f, -0.434909f, 0, -0.0022184f,
                    0.373196f, 0.949882f, 0, -0.000312129f,
                    0, 0, 1, 0,
                    52, 165, 0, 1);
+#pragma warning restore SA1117 // Parameters should be on same line or separate lines
 
                 ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
                 .AppendMatrix(matrix);

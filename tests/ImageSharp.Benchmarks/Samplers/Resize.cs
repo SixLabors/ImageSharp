@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Drawing;
@@ -14,7 +14,9 @@ using SixLabors.ImageSharp.Processing;
 namespace SixLabors.ImageSharp.Benchmarks
 {
     [Config(typeof(Config.ShortClr))]
+#pragma warning disable SA1649 // File name should match first type name
     public abstract class ResizeBenchmarkBase<TPixel>
+#pragma warning restore SA1649 // File name should match first type name
         where TPixel : struct, IPixel<TPixel>
     {
         protected readonly Configuration Configuration = new Configuration(new JpegConfigurationModule());
@@ -24,12 +26,11 @@ namespace SixLabors.ImageSharp.Benchmarks
         private Bitmap sourceBitmap;
 
         [Params("3032-400")]
-        public virtual string SourceToDest { get; set; } 
-        
+        public virtual string SourceToDest { get; set; }
+
         protected int SourceSize { get; private set; }
 
         protected int DestSize { get; private set; }
-
 
         [GlobalSetup]
         public virtual void Setup()
@@ -37,7 +38,6 @@ namespace SixLabors.ImageSharp.Benchmarks
             string[] stuff = this.SourceToDest.Split('-');
             this.SourceSize = int.Parse(stuff[0], CultureInfo.InvariantCulture);
             this.DestSize = int.Parse(stuff[1], CultureInfo.InvariantCulture);
-            
             this.sourceImage = new Image<TPixel>(this.Configuration, this.SourceSize, this.SourceSize);
             this.sourceBitmap = new Bitmap(this.SourceSize, this.SourceSize);
         }
@@ -75,11 +75,13 @@ namespace SixLabors.ImageSharp.Benchmarks
         // Parallel cases have been disabled for fast benchmark execution.
         // Uncomment, if you are interested in parallel speedup
 
-        //[Benchmark(Description = "ImageSharp, MaxDegreeOfParallelism = 4")]
-        //public int ImageSharp_P4() => this.RunImageSharpResize(4);
+        /*
+        [Benchmark(Description = "ImageSharp, MaxDegreeOfParallelism = 4")]
+        public int ImageSharp_P4() => this.RunImageSharpResize(4);
 
-        //[Benchmark(Description = "ImageSharp, MaxDegreeOfParallelism = 8")]
-        //public int ImageSharp_P8() => this.RunImageSharpResize(8);
+        [Benchmark(Description = "ImageSharp, MaxDegreeOfParallelism = 8")]
+         public int ImageSharp_P8() => this.RunImageSharpResize(8);
+        */
 
         protected int RunImageSharpResize(int maxDegreeOfParallelism)
         {
@@ -110,9 +112,9 @@ namespace SixLabors.ImageSharp.Benchmarks
         //   [Host] : .NET Core 2.1.9 (CoreCLR 4.6.27414.06, CoreFX 4.6.27415.01), 64bit RyuJIT
         //   Clr    : .NET Framework 4.7.2 (CLR 4.0.30319.42000), 64bit RyuJIT-v4.7.3394.0
         //   Core   : .NET Core 2.1.9 (CoreCLR 4.6.27414.06, CoreFX 4.6.27415.01), 64bit RyuJIT
-        // 
-        // IterationCount=3  LaunchCount=1  WarmupCount=3  
-        // 
+        //
+        // IterationCount=3  LaunchCount=1  WarmupCount=3
+        //
         //                                    Method |  Job | Runtime | SourceToDest |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
         // ----------------------------------------- |----- |-------- |------------- |----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
         //                             SystemDrawing |  Clr |     Clr |     3032-400 | 120.11 ms |  1.435 ms | 0.0786 ms |  1.00 |    0.00 |           - |           - |           - |              1638 B |
@@ -157,9 +159,9 @@ namespace SixLabors.ImageSharp.Benchmarks
         //   [Host] : .NET Core 2.1.9 (CoreCLR 4.6.27414.06, CoreFX 4.6.27415.01), 64bit RyuJIT
         //   Clr    : .NET Framework 4.7.2 (CLR 4.0.30319.42000), 64bit RyuJIT-v4.7.3362.0
         //   Core   : .NET Core 2.1.9 (CoreCLR 4.6.27414.06, CoreFX 4.6.27415.01), 64bit RyuJIT
-        // 
+        //
         // IterationCount=3  LaunchCount=1  WarmupCount=3
-        // 
+        //
         //                                    Method |  Job | Runtime | SourceSize | DestSize |      Mean |     Error |    StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
         // ----------------------------------------- |----- |-------- |----------- |--------- |----------:|----------:|----------:|------:|------------:|------------:|------------:|--------------------:|
         //                             SystemDrawing |  Clr |     Clr |       3032 |      400 | 119.01 ms | 18.513 ms | 1.0147 ms |  1.00 |           - |           - |           - |              1638 B |
@@ -185,7 +187,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         //   [Host] : .NET Core 2.1.9 (CoreCLR 4.6.27414.06, CoreFX 4.6.27415.01), 64bit RyuJIT
         //   Clr    : .NET Framework 4.7.2 (CLR 4.0.30319.42000), 64bit RyuJIT-v4.7.3362.0
         //   Core   : .NET Core 2.1.9 (CoreCLR 4.6.27414.06, CoreFX 4.6.27415.01), 64bit RyuJIT
-        // 
+        //
         //                                    Method |  Job | Runtime | SourceSize | DestSize |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
         // ----------------------------------------- |----- |-------- |----------- |--------- |----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
         //                             SystemDrawing |  Clr |     Clr |       3032 |      400 | 121.37 ms | 48.580 ms | 2.6628 ms |  1.00 |    0.00 |           - |           - |           - |              2048 B |
@@ -194,7 +196,6 @@ namespace SixLabors.ImageSharp.Benchmarks
         //                             SystemDrawing | Core |    Core |       3032 |      400 | 118.06 ms | 15.667 ms | 0.8587 ms |  1.00 |    0.00 |           - |           - |           - |                96 B |
         //  'ImageSharp, MaxDegreeOfParallelism = 1' | Core |    Core |       3032 |      400 |  92.47 ms |  5.683 ms | 0.3115 ms |  0.78 |    0.01 |           - |           - |           - |             44512 B |
     }
-
 
     public class Resize_BicubicCompand_Rgba32 : ResizeBenchmarkBase<Rgba32>
     {
@@ -212,9 +213,9 @@ namespace SixLabors.ImageSharp.Benchmarks
         //   [Host] : .NET Core 2.1.9 (CoreCLR 4.6.27414.06, CoreFX 4.6.27415.01), 64bit RyuJIT
         //   Clr    : .NET Framework 4.7.2 (CLR 4.0.30319.42000), 64bit RyuJIT-v4.7.3362.0
         //   Core   : .NET Core 2.1.9 (CoreCLR 4.6.27414.06, CoreFX 4.6.27415.01), 64bit RyuJIT
-        // 
+        //
         // IterationCount=3  LaunchCount=1  WarmupCount=3
-        // 
+        //
         //                                    Method |  Job | Runtime | SourceSize | DestSize |     Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
         // ----------------------------------------- |----- |-------- |----------- |--------- |---------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
         //                             SystemDrawing |  Clr |     Clr |       3032 |      400 | 120.7 ms | 68.985 ms | 3.7813 ms |  1.00 |    0.00 |           - |           - |           - |              1638 B |

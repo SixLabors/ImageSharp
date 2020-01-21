@@ -11,7 +11,6 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
-
 namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 {
     using SixLabors.ImageSharp.Metadata;
@@ -28,8 +27,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
         new TheoryData<string, int, int, PixelResolutionUnit>
         {
-            { Car, 3780, 3780 , PixelResolutionUnit.PixelsPerMeter },
-            { V5Header, 3780, 3780 , PixelResolutionUnit.PixelsPerMeter },
+            { Car, 3780, 3780, PixelResolutionUnit.PixelsPerMeter },
+            { V5Header, 3780, 3780, PixelResolutionUnit.PixelsPerMeter },
             { RLE8, 2835, 2835, PixelResolutionUnit.PixelsPerMeter }
         };
 
@@ -94,6 +93,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
                 image.DebugSave(provider);
+
                 // The Magick Reference Decoder can not decode 4-Bit bitmaps, so only execute this on windows.
                 if (TestEnvironment.IsWindows)
                 {
@@ -160,6 +160,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
             {
                 image.DebugSave(provider);
+
                 // The Magick Reference Decoder can not decode 4-Bit bitmaps, so only execute this on windows.
                 if (TestEnvironment.IsWindows)
                 {
@@ -176,6 +177,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
             {
                 image.DebugSave(provider);
+
                 // The Magick Reference Decoder can not decode 4-Bit bitmaps, so only execute this on windows.
                 if (TestEnvironment.IsWindows)
                 {
@@ -346,7 +348,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_ThrowsImageFormatException_OnInvalidPaletteSize<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            Assert.Throws<ImageFormatException>( () => { using (provider.GetImage(new BmpDecoder())) { } });
+            Assert.Throws<ImageFormatException>(() =>
+            {
+                using (provider.GetImage(new BmpDecoder()))
+                {
+                }
+            });
         }
 
         [Theory]
@@ -355,7 +362,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_ThrowsNotSupportedException_OnUnsupportedBitmaps<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            Assert.Throws<NotSupportedException>(() => { using (provider.GetImage(new BmpDecoder())) { } });
+            Assert.Throws<NotSupportedException>(() =>
+            {
+                using (provider.GetImage(new BmpDecoder()))
+                {
+                }
+            });
         }
 
         [Theory]

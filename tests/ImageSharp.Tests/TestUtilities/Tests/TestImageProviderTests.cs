@@ -14,7 +14,6 @@ using Xunit;
 using Xunit.Abstractions;
 
 // ReSharper disable InconsistentNaming
-
 namespace SixLabors.ImageSharp.Tests
 {
     public class TestImageProviderTests
@@ -40,9 +39,8 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Need to us <see cref="GenericFactory{TPixel}"/> to create instance of <see cref="Image"/> when pixelType is StandardImageClass
         /// </summary>
-        /// <typeparam name="TPixel"></typeparam>
-        /// <param name="factory"></param>
-        /// <returns></returns>
+        /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
+        /// <returns>A test image.</returns>
         public static Image<TPixel> CreateTestImage<TPixel>()
             where TPixel : struct, IPixel<TPixel> =>
             new Image<TPixel>(3, 3);
@@ -310,7 +308,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [WithTestPatternImages(49, 20, PixelTypes.Rgba32)]
+        [WithTestPatternImage(49, 20, PixelTypes.Rgba32)]
         public void Use_WithTestPatternImages<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -321,7 +319,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [WithTestPatternImages(20, 20, PixelTypes.Rgba32)]
+        [WithTestPatternImage(20, 20, PixelTypes.Rgba32)]
         public void Use_WithTestPatternImages_CustomConfiguration<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -348,8 +346,7 @@ namespace SixLabors.ImageSharp.Tests
         private class TestDecoder : IImageDecoder
         {
             // Couldn't make xUnit happy without this hackery:
-
-            private static readonly ConcurrentDictionary<string, int> invocationCounts =
+            private static readonly ConcurrentDictionary<string, int> InvocationCounts =
                 new ConcurrentDictionary<string, int>();
 
             private static readonly object Monitor = new object();
@@ -367,16 +364,16 @@ namespace SixLabors.ImageSharp.Tests
             public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
                 where TPixel : struct, IPixel<TPixel>
             {
-                invocationCounts[this.callerName]++;
+                InvocationCounts[this.callerName]++;
                 return new Image<TPixel>(42, 42);
             }
 
-            internal static int GetInvocationCount(string callerName) => invocationCounts[callerName];
+            internal static int GetInvocationCount(string callerName) => InvocationCounts[callerName];
 
             internal void InitCaller(string name)
             {
                 this.callerName = name;
-                invocationCounts[name] = 0;
+                InvocationCounts[name] = 0;
             }
 
             public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
@@ -384,7 +381,7 @@ namespace SixLabors.ImageSharp.Tests
 
         private class TestDecoderWithParameters : IImageDecoder
         {
-            private static readonly ConcurrentDictionary<string, int> invocationCounts =
+            private static readonly ConcurrentDictionary<string, int> InvocationCounts =
                 new ConcurrentDictionary<string, int>();
 
             private static readonly object Monitor = new object();
@@ -406,16 +403,16 @@ namespace SixLabors.ImageSharp.Tests
             public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
                 where TPixel : struct, IPixel<TPixel>
             {
-                invocationCounts[this.callerName]++;
+                InvocationCounts[this.callerName]++;
                 return new Image<TPixel>(42, 42);
             }
 
-            internal static int GetInvocationCount(string callerName) => invocationCounts[callerName];
+            internal static int GetInvocationCount(string callerName) => InvocationCounts[callerName];
 
             internal void InitCaller(string name)
             {
                 this.callerName = name;
-                invocationCounts[name] = 0;
+                InvocationCounts[name] = 0;
             }
 
             public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Primitives;
@@ -10,6 +10,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
 {
     public class OrderedDitherFactoryTests
     {
+#pragma warning disable SA1025 // Code should not contain multiple whitespace in a row
+
         private static readonly DenseMatrix<uint> Expected2x2Matrix = new DenseMatrix<uint>(
         new uint[2, 2]
         {
@@ -47,6 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
             { 63, 31, 55, 23, 61, 29, 53, 21 }
         });
 
+#pragma warning restore SA1025 // Code should not contain multiple whitespace in a row
 
         [Fact]
         public void OrderedDitherFactoryCreatesCorrect2x2Matrix()

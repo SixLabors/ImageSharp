@@ -1,11 +1,5 @@
-// // Copyright (c) Six Labors and contributors.
-// // Licensed under the Apache License, Version 2.0.
-
-// // Copyright (c) Six Labors and contributors.
-// // Licensed under the Apache License, Version 2.0.
-
-// // Copyright (c) Six Labors and contributors.
-// // Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Runtime.CompilerServices;
@@ -53,7 +47,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 Configuration configuration,
                 ReadOnlySpan<TSourcePixel> sourcePixels,
                 Span<TDestinationPixel> destinationPixels)
-                where TSourcePixel : struct, IPixel<TSourcePixel> where TDestinationPixel : struct, IPixel<TDestinationPixel>
+                where TSourcePixel : struct, IPixel<TSourcePixel>
+                where TDestinationPixel : struct, IPixel<TDestinationPixel>
             {
                 Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
@@ -75,12 +70,11 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 // packs/unpacks the pixel without and conversion so we employ custom methods do do this.
                 if (typeof(TDestinationPixel) == typeof(L16))
                 {
-                    ref L16 L16Ref = ref MemoryMarshal.GetReference(
-                                               MemoryMarshal.Cast<TDestinationPixel, L16>(destinationPixels));
+                    ref L16 l16Ref = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<TDestinationPixel, L16>(destinationPixels));
                     for (int i = 0; i < count; i++)
                     {
                         ref TSourcePixel sp = ref Unsafe.Add(ref sourceRef, i);
-                        ref L16 dp = ref Unsafe.Add(ref L16Ref, i);
+                        ref L16 dp = ref Unsafe.Add(ref l16Ref, i);
                         dp.ConvertFromRgbaScaledVector4(sp.ToScaledVector4());
                     }
 
@@ -89,12 +83,12 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
                 if (typeof(TDestinationPixel) == typeof(L8))
                 {
-                    ref L8 L8Ref = ref MemoryMarshal.GetReference(
+                    ref L8 l8Ref = ref MemoryMarshal.GetReference(
                                              MemoryMarshal.Cast<TDestinationPixel, L8>(destinationPixels));
                     for (int i = 0; i < count; i++)
                     {
                         ref TSourcePixel sp = ref Unsafe.Add(ref sourceRef, i);
-                        ref L8 dp = ref Unsafe.Add(ref L8Ref, i);
+                        ref L8 dp = ref Unsafe.Add(ref l8Ref, i);
                         dp.ConvertFromRgbaScaledVector4(sp.ToScaledVector4());
                     }
 

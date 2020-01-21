@@ -12,15 +12,13 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [Fact]
         public void Rgba64_PackedValues()
         {
-            Assert.Equal((ulong)0x73334CCC2666147B, new Rgba64(5243, 9830, 19660, 29491).PackedValue);
+            Assert.Equal(0x73334CCC2666147BUL, new Rgba64(5243, 9830, 19660, 29491).PackedValue);
 
             // Test the limits.
-            Assert.Equal((ulong)0x0, new Rgba64(0, 0, 0, 0).PackedValue);
-            Assert.Equal(0xFFFFFFFFFFFFFFFF, new Rgba64(
-                ushort.MaxValue,
-                ushort.MaxValue,
-                ushort.MaxValue,
-                ushort.MaxValue).PackedValue);
+            Assert.Equal(0x0UL, new Rgba64(0, 0, 0, 0).PackedValue);
+            Assert.Equal(
+                0xFFFFFFFFFFFFFFFF,
+                new Rgba64(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue).PackedValue);
 
             // Test data ordering
             Assert.Equal(0xC7AD8F5C570A1EB8, new Rgba64(0x1EB8, 0x570A, 0x8F5C, 0xC7AD).PackedValue);
@@ -36,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [Theory]
         [InlineData(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue)]
         [InlineData(0, 0, 0, 0)]
-        [InlineData(ushort.MaxValue/2, 100, 2222, 33333)]
+        [InlineData(ushort.MaxValue / 2, 100, 2222, 33333)]
         public void Rgba64_ToScaledVector4(ushort r, ushort g, ushort b, ushort a)
         {
             // arrange
@@ -61,16 +59,14 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [Theory]
         [InlineData(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue)]
         [InlineData(0, 0, 0, 0)]
-        [InlineData(ushort.MaxValue/2, 100, 2222, 33333)]
+        [InlineData(ushort.MaxValue / 2, 100, 2222, 33333)]
         public void Rgba64_FromScaledVector4(ushort r, ushort g, ushort b, ushort a)
         {
             // arrange
-
             var source = new Rgba64(r, g, b, a);
 
             // act
             Vector4 scaled = source.ToScaledVector4();
-
 
             Rgba64 actual = default;
             actual.FromScaledVector4(scaled);
@@ -104,7 +100,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // assert
             Assert.Equal(expected, actual);
         }
-
 
         [Fact]
         public void Rgba64_FromBgra5551()
@@ -218,7 +213,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             Assert.Equal(expected, actual);
         }
-
 
         [Fact]
         public void ToRgba32_Retval()

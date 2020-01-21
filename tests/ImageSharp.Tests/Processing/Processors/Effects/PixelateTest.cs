@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(PixelateValues), 320, 240, PixelTypes.Rgba32)]
+        [WithTestPatternImage(nameof(PixelateValues), 320, 240, PixelTypes.Rgba32)]
         [WithFile(TestImages.Png.CalliphoraPartial, nameof(PixelateValues), PixelTypes.Rgba32)]
         public void InBox<TPixel>(TestImageProvider<TPixel> provider, int value)
             where TPixel : struct, IPixel<TPixel>

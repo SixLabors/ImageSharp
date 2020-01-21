@@ -1,8 +1,11 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
-using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.IO;
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 

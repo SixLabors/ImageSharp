@@ -18,14 +18,14 @@ namespace SixLabors.ImageSharp.Tests
         public class Load_FromStream_UseDefaultConfiguration : IDisposable
         {
             private static readonly byte[] Data = TestFile.Create(TestImages.Bmp.Bit8).Bytes;
-            
+
             private MemoryStream Stream { get; } = new MemoryStream(Data);
-            
+
             private static void VerifyDecodedImage(Image img)
             {
                 Assert.Equal(new Size(127, 64), img.Size());
             }
-            
+
             [Fact]
             public void Stream_Specific()
             {
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests
                     VerifyDecodedImage(img);
                 }
             }
-            
+
             [Fact]
             public void Stream_Agnostic()
             {
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests
                     VerifyDecodedImage(img);
                 }
             }
-            
+
             [Fact]
             public void Stream_OutFormat_Specific()
             {
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Tests
                     Assert.IsType<BmpFormat>(format);
                 }
             }
-            
+
             [Fact]
             public void Stream_Decoder_Specific()
             {
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests
                     VerifyDecodedImage(img);
                 }
             }
-            
+
             [Fact]
             public void Stream_Decoder_Agnostic()
             {
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests
                     VerifyDecodedImage(img);
                 }
             }
-            
+
             [Fact]
             public void Stream_OutFormat_Agnostic()
             {

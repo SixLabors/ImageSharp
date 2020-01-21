@@ -1,4 +1,6 @@
-// ReSharper disable InconsistentNaming
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -7,6 +9,7 @@ using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 using Xunit.Abstractions;
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
     internal static partial class ReferenceImplementations
@@ -29,12 +32,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         {
             public static Block8x8F TransformIDCT(ref Block8x8F source)
             {
-                var s = new float[64];
+                float[] s = new float[64];
                 source.CopyTo(s);
-                var d = new float[64];
-                var temp = new float[64];
+                float[] d = new float[64];
+                float[] temp = new float[64];
 
-                iDCT2D_llm(s, d, temp);
+                IDCT2D_llm(s, d, temp);
                 Block8x8F result = default;
                 result.LoadFrom(d);
                 return result;
@@ -42,12 +45,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public static Block8x8F TransformFDCT_UpscaleBy8(ref Block8x8F source)
             {
-                var s = new float[64];
+                float[] s = new float[64];
                 source.CopyTo(s);
-                var d = new float[64];
-                var temp = new float[64];
+                float[] d = new float[64];
+                float[] temp = new float[64];
 
-                fDCT2D_llm(s, d, temp);
+                FDCT2D_llm(s, d, temp);
                 Block8x8F result = default;
                 result.LoadFrom(d);
                 return result;
@@ -61,12 +64,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public static float[] PrintConstants(ITestOutputHelper output)
             {
-                var r = new float[8];
+                float[] r = new float[8];
                 for (int i = 0; i < 8; i++)
                 {
                     r[i] = (float)(Cos(i / 16.0 * M_PI) * M_SQRT2);
                     output?.WriteLine($"float r{i} = {r[i]:R}f;");
                 }
+
                 return r;
             }
 
@@ -75,15 +79,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             /// <summary>
             /// https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L200
             /// </summary>
-            /// <param name="y"></param>
-            /// <param name="x"></param>
-            private static void iDCT1Dllm_32f(Span<float> y, Span<float> x)
+            private static void IDCT1Dllm_32f(Span<float> y, Span<float> x)
             {
                 float a0, a1, a2, a3, b0, b1, b2, b3;
                 float z0, z1, z2, z3, z4;
 
                 // see: PrintConstants()
-
                 float r0 = 1.41421354f;
                 float r1 = 1.3870399f;
                 float r2 = 1.306563f;
@@ -101,19 +102,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
                 z0 = z0 * (-r3 + r7);
                 z1 = z1 * (-r3 - r1);
-                z2 = z2 * (-r3 - r5) + z4;
-                z3 = z3 * (-r3 + r5) + z4;
+                z2 = (z2 * (-r3 - r5)) + z4;
+                z3 = (z3 * (-r3 + r5)) + z4;
 
-                b3 = y[7] * (-r1 + r3 + r5 - r7) + z0 + z2;
-                b2 = y[5] * (r1 + r3 - r5 + r7) + z1 + z3;
-                b1 = y[3] * (r1 + r3 + r5 - r7) + z1 + z2;
-                b0 = y[1] * (r1 + r3 - r5 - r7) + z0 + z3;
+                b3 = (y[7] * (-r1 + r3 + r5 - r7)) + z0 + z2;
+                b2 = (y[5] * (r1 + r3 - r5 + r7)) + z1 + z3;
+                b1 = (y[3] * (r1 + r3 + r5 - r7)) + z1 + z2;
+                b0 = (y[1] * (r1 + r3 - r5 - r7)) + z0 + z3;
 
                 z4 = (y[2] + y[6]) * r6;
                 z0 = y[0] + y[4];
                 z1 = y[0] - y[4];
-                z2 = z4 - y[6] * (r2 + r6);
-                z3 = z4 + y[2] * (r2 - r6);
+                z2 = z4 - (y[6] * (r2 + r6));
+                z3 = z4 + (y[2] * (r2 - r6));
                 a0 = z0 + z3;
                 a3 = z0 - z3;
                 a1 = z1 + z2;
@@ -133,23 +134,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             /// Original: https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L239
             /// Applies IDCT transformation on "s" copying transformed values to "d", using temporary block "temp"
             /// </summary>
-            /// <param name="s"></param>
-            /// <param name="d"></param>
-            /// <param name="temp"></param>
-            internal static void iDCT2D_llm(Span<float> s, Span<float> d, Span<float> temp)
+            internal static void IDCT2D_llm(Span<float> s, Span<float> d, Span<float> temp)
             {
                 int j;
 
                 for (j = 0; j < 8; j++)
                 {
-                    iDCT1Dllm_32f(s.Slice(j * 8), temp.Slice(j * 8));
+                    IDCT1Dllm_32f(s.Slice(j * 8), temp.Slice(j * 8));
                 }
 
                 Transpose8x8(temp, d);
 
                 for (j = 0; j < 8; j++)
                 {
-                    iDCT1Dllm_32f(d.Slice(j * 8), temp.Slice(j * 8));
+                    IDCT1Dllm_32f(d.Slice(j * 8), temp.Slice(j * 8));
                 }
 
                 Transpose8x8(temp, d);
@@ -168,27 +166,27 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             /// </summary>
             /// <param name="s">Source</param>
             /// <param name="d">Destination</param>
-            public static void fDCT2D8x4_32f(Span<float> s, Span<float> d)
+            public static void FDCT2D8x4_32f(Span<float> s, Span<float> d)
             {
-                Vector4 c0 = _mm_load_ps(s, 0);
-                Vector4 c1 = _mm_load_ps(s, 56);
-                Vector4 t0 = (c0 + c1);
-                Vector4 t7 = (c0 - c1);
+                Vector4 c0 = Mm_load_ps(s, 0);
+                Vector4 c1 = Mm_load_ps(s, 56);
+                Vector4 t0 = c0 + c1;
+                Vector4 t7 = c0 - c1;
 
-                c1 = _mm_load_ps(s, 48);
-                c0 = _mm_load_ps(s, 8);
-                Vector4 t1 = (c0 + c1);
-                Vector4 t6 = (c0 - c1);
+                c1 = Mm_load_ps(s, 48);
+                c0 = Mm_load_ps(s, 8);
+                Vector4 t1 = c0 + c1;
+                Vector4 t6 = c0 - c1;
 
-                c1 = _mm_load_ps(s, 40);
-                c0 = _mm_load_ps(s, 16);
-                Vector4 t2 = (c0 + c1);
-                Vector4 t5 = (c0 - c1);
+                c1 = Mm_load_ps(s, 40);
+                c0 = Mm_load_ps(s, 16);
+                Vector4 t2 = c0 + c1;
+                Vector4 t5 = c0 - c1;
 
-                c0 = _mm_load_ps(s, 24);
-                c1 = _mm_load_ps(s, 32);
-                Vector4 t3 = (c0 + c1);
-                Vector4 t4 = (c0 - c1);
+                c0 = Mm_load_ps(s, 24);
+                c1 = Mm_load_ps(s, 32);
+                Vector4 t3 = c0 + c1;
+                Vector4 t4 = c0 - c1;
 
                 /*
                 c1 = x[0]; c2 = x[7]; t0 = c1 + c2; t7 = c1 - c2;
@@ -197,19 +195,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 c1 = x[3]; c2 = x[4]; t3 = c1 + c2; t4 = c1 - c2;
                 */
 
-                c0 = (t0 + t3);
-                Vector4 c3 = (t0 - t3);
-                c1 = (t1 + t2);
-                Vector4 c2 = (t1 - t2);
+                c0 = t0 + t3;
+                Vector4 c3 = t0 - t3;
+                c1 = t1 + t2;
+                Vector4 c2 = t1 - t2;
 
                 /*
                 c0 = t0 + t3; c3 = t0 - t3;
                 c1 = t1 + t2; c2 = t1 - t2;
                 */
 
-                _mm_store_ps(d, 0, (c0 + c1));
+                Mm_store_ps(d, 0, c0 + c1);
 
-                _mm_store_ps(d, 32, (c0 - c1));
+                Mm_store_ps(d, 32, c0 - c1);
 
                 /*y[0] = c0 + c1;
                 y[4] = c0 - c1;*/
@@ -217,9 +215,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 var w0 = new Vector4(0.541196f);
                 var w1 = new Vector4(1.306563f);
 
-                _mm_store_ps(d, 16, ((w0 * c2) + (w1 * c3)));
+                Mm_store_ps(d, 16, (w0 * c2) + (w1 * c3));
 
-                _mm_store_ps(d, 48, ((w0 * c3) - (w1 * c2)));
+                Mm_store_ps(d, 48, (w0 * c3) - (w1 * c2));
                 /*
                 y[2] = c2 * r[6] + c3 * r[2];
                 y[6] = c3 * r[6] - c2 * r[2];
@@ -227,8 +225,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
                 w0 = new Vector4(1.175876f);
                 w1 = new Vector4(0.785695f);
-                c3 = ((w0 * t4) + (w1 * t7));
-                c0 = ((w0 * t7) - (w1 * t4));
+                c3 = (w0 * t4) + (w1 * t7);
+                c0 = (w0 * t7) - (w1 * t4);
                 /*
                 c3 = t4 * r[3] + t7 * r[5];
                 c0 = t7 * r[3] - t4 * r[5];
@@ -236,78 +234,94 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
                 w0 = new Vector4(1.387040f);
                 w1 = new Vector4(0.275899f);
-                c2 = ((w0 * t5) + (w1 * t6));
-                c1 = ((w0 * t6) - (w1 * t5));
+                c2 = (w0 * t5) + (w1 * t6);
+                c1 = (w0 * t6) - (w1 * t5);
                 /*
                 c2 = t5 * r[1] + t6 * r[7];
                 c1 = t6 * r[1] - t5 * r[7];
                 */
 
-                _mm_store_ps(d, 24, (c0 - c2));
+                Mm_store_ps(d, 24, c0 - c2);
 
-                _mm_store_ps(d, 40, (c3 - c1));
-                //y[5] = c3 - c1; y[3] = c0 - c2;
+                Mm_store_ps(d, 40, c3 - c1);
 
+                // y[5] = c3 - c1; y[3] = c0 - c2;
                 var invsqrt2 = new Vector4(0.707107f);
-                c0 = ((c0 + c2) * invsqrt2);
-                c3 = ((c3 + c1) * invsqrt2);
-                //c0 = (c0 + c2) * invsqrt2;
-                //c3 = (c3 + c1) * invsqrt2;
+                c0 = (c0 + c2) * invsqrt2;
+                c3 = (c3 + c1) * invsqrt2;
+                /* c0 = (c0 + c2) * invsqrt2;
+                c3 = (c3 + c1) * invsqrt2; */
 
-                _mm_store_ps(d, 8, (c0 + c3));
+                Mm_store_ps(d, 8, c0 + c3);
 
-                _mm_store_ps(d, 56, (c0 - c3));
-                //y[1] = c0 + c3; y[7] = c0 - c3;
+                Mm_store_ps(d, 56, c0 - c3);
+                /* y[1] = c0 + c3; y[7] = c0 - c3;
 
-                /*for(i = 0;i < 8;i++)
+                for(i = 0;i < 8;i++)
                 {
                 y[i] *= invsqrt2h;
                 }*/
             }
 
-            public static void fDCT8x8_llm_sse(Span<float> s, Span<float> d, Span<float> temp)
+            public static void FDCT8x8_llm_sse(Span<float> s, Span<float> d, Span<float> temp)
             {
                 Transpose8x8(s, temp);
 
-                fDCT2D8x4_32f(temp, d);
+                FDCT2D8x4_32f(temp, d);
 
-                fDCT2D8x4_32f(temp.Slice(4), d.Slice(4));
+                FDCT2D8x4_32f(temp.Slice(4), d.Slice(4));
 
                 Transpose8x8(d, temp);
 
-                fDCT2D8x4_32f(temp, d);
+                FDCT2D8x4_32f(temp, d);
 
-                fDCT2D8x4_32f(temp.Slice(4), d.Slice(4));
+                FDCT2D8x4_32f(temp.Slice(4), d.Slice(4));
 
                 var c = new Vector4(0.1250f);
 
-                _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//0
-                _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//1
-                _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//2
-                _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//3
-                _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//4
-                _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//5
-                _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//6
-                _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//7
-                _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//8
-                _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//9
-                _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//10
-                _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//11
-                _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//12
-                _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//13
-                _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//14
-                _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//15
+                Mm_store_ps(d, 0, Mm_load_ps(d, 0) * c);
+                d = d.Slice(4); // 0
+                Mm_store_ps(d, 0, Mm_load_ps(d, 0) * c);
+                d = d.Slice(4); // 1
+                Mm_store_ps(d, 0, Mm_load_ps(d, 0) * c);
+                d = d.Slice(4); // 2
+                Mm_store_ps(d, 0, Mm_load_ps(d, 0) * c);
+                d = d.Slice(4); // 3
+                Mm_store_ps(d, 0, Mm_load_ps(d, 0) * c);
+                d = d.Slice(4); // 4
+                Mm_store_ps(d, 0, Mm_load_ps(d, 0) * c);
+                d = d.Slice(4); // 5
+                Mm_store_ps(d, 0, Mm_load_ps(d, 0) * c);
+                d = d.Slice(4); // 6
+                Mm_store_ps(d, 0, Mm_load_ps(d, 0) * c);
+                d = d.Slice(4); // 7
+                Mm_store_ps(d, 0, Mm_load_ps(d, 0) * c);
+                d = d.Slice(4); // 8
+                Mm_store_ps(d, 0, Mm_load_ps(d, 0) * c);
+                d = d.Slice(4); // 9
+                Mm_store_ps(d, 0, Mm_load_ps(d, 0) * c);
+                d = d.Slice(4); // 10
+                Mm_store_ps(d, 0, Mm_load_ps(d, 0) * c);
+                d = d.Slice(4); // 11
+                Mm_store_ps(d, 0, Mm_load_ps(d, 0) * c);
+                d = d.Slice(4); // 12
+                Mm_store_ps(d, 0, Mm_load_ps(d, 0) * c);
+                d = d.Slice(4); // 13
+                Mm_store_ps(d, 0, Mm_load_ps(d, 0) * c);
+                d = d.Slice(4); // 14
+                Mm_store_ps(d, 0, Mm_load_ps(d, 0) * c);
+                d = d.Slice(4); // 15
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private static Vector4 _mm_load_ps(Span<float> src, int offset)
+            private static Vector4 Mm_load_ps(Span<float> src, int offset)
             {
                 src = src.Slice(offset);
                 return new Vector4(src[0], src[1], src[2], src[3]);
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private static void _mm_store_ps(Span<float> dest, int offset, Vector4 src)
+            private static void Mm_store_ps(Span<float> dest, int offset, Vector4 src)
             {
                 dest = dest.Slice(offset);
                 dest[0] = src.X;
@@ -318,7 +332,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             // Accurate variants of constants from:
             // https://github.com/mozilla/mozjpeg/blob/master/simd/jfdctint-altivec.c
-
+#pragma warning disable SA1309 // Field names should not begin with underscore
             private static readonly Vector4 _1_175876 = new Vector4(1.175875602f);
 
             private static readonly Vector4 _1_961571 = new Vector4(-1.961570560f);
@@ -342,20 +356,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             private static readonly Vector4 _1_847759 = new Vector4(-1.847759065f);
 
             private static readonly Vector4 _0_765367 = new Vector4(0.765366865f);
+#pragma warning restore SA1309 // Field names should not begin with underscore
 
             /// <summary>
             /// Original:
             /// https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L261
             /// Does a part of the IDCT job on the given parts of the blocks
             /// </summary>
-            /// <param name="y"></param>
-            /// <param name="x"></param>
-            internal static void iDCT2D8x4_32f(Span<float> y, Span<float> x)
+            internal static void IDCT2D8x4_32f(Span<float> y, Span<float> x)
             {
                 /*
                 float a0,a1,a2,a3,b0,b1,b2,b3; float z0,z1,z2,z3,z4; float r[8]; int i;
                 for(i = 0;i < 8;i++){ r[i] = (float)(cos((double)i / 16.0 * M_PI) * M_SQRT2); }
                 */
+
                 /*
                 0: 1.414214
                 1: 1.387040
@@ -367,22 +381,22 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 7: 0.275899
                 */
 
-                Vector4 my1 = _mm_load_ps(y, 8);
-                Vector4 my7 = _mm_load_ps(y, 56);
+                Vector4 my1 = Mm_load_ps(y, 8);
+                Vector4 my7 = Mm_load_ps(y, 56);
                 Vector4 mz0 = my1 + my7;
 
-                Vector4 my3 = _mm_load_ps(y, 24);
+                Vector4 my3 = Mm_load_ps(y, 24);
                 Vector4 mz2 = my3 + my7;
-                Vector4 my5 = _mm_load_ps(y, 40);
+                Vector4 my5 = Mm_load_ps(y, 40);
                 Vector4 mz1 = my3 + my5;
                 Vector4 mz3 = my1 + my5;
 
-                Vector4 mz4 = ((mz0 + mz1) * _1_175876);
-                //z0 = y[1] + y[7]; z1 = y[3] + y[5]; z2 = y[3] + y[7]; z3 = y[1] + y[5];
-                //z4 = (z0 + z1) * r[3];
+                Vector4 mz4 = (mz0 + mz1) * _1_175876;
+                /* z0 = y[1] + y[7]; z1 = y[3] + y[5]; z2 = y[3] + y[7]; z3 = y[1] + y[5];
+                z4 = (z0 + z1) * r[3];*/
 
-                mz2 = mz2 * _1_961571 + mz4;
-                mz3 = mz3 * _0_390181 + mz4;
+                mz2 = (mz2 * _1_961571) + mz4;
+                mz3 = (mz3 * _0_390181) + mz4;
                 mz0 = mz0 * _0_899976;
                 mz1 = mz1 * _2_562915;
 
@@ -396,10 +410,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 z2 = z2 * (-r[3] - r[5]) + z4;
                 z3 = z3 * (-r[3] + r[5]) + z4;*/
 
-                Vector4 mb3 = my7 * _0_298631 + mz0 + mz2;
-                Vector4 mb2 = my5 * _2_053120 + mz1 + mz3;
-                Vector4 mb1 = my3 * _3_072711 + mz1 + mz2;
-                Vector4 mb0 = my1 * _1_501321 + mz0 + mz3;
+                Vector4 mb3 = (my7 * _0_298631) + mz0 + mz2;
+                Vector4 mb2 = (my5 * _2_053120) + mz1 + mz3;
+                Vector4 mb1 = (my3 * _3_072711) + mz1 + mz2;
+                Vector4 mb0 = (my1 * _1_501321) + mz0 + mz3;
 
                 /*
                 0.298631
@@ -412,21 +426,22 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 b0 = y[1] * ( r[1] + r[3] - r[5] - r[7]) + z0 + z3;
                 */
 
-                Vector4 my2 = _mm_load_ps(y, 16);
-                Vector4 my6 = _mm_load_ps(y, 48);
+                Vector4 my2 = Mm_load_ps(y, 16);
+                Vector4 my6 = Mm_load_ps(y, 48);
                 mz4 = (my2 + my6) * _0_541196;
-                Vector4 my0 = _mm_load_ps(y, 0);
-                Vector4 my4 = _mm_load_ps(y, 32);
+                Vector4 my0 = Mm_load_ps(y, 0);
+                Vector4 my4 = Mm_load_ps(y, 32);
                 mz0 = my0 + my4;
                 mz1 = my0 - my4;
 
-                mz2 = mz4 + my6 * _1_847759;
-                mz3 = mz4 + my2 * _0_765367;
+                mz2 = mz4 + (my6 * _1_847759);
+                mz3 = mz4 + (my2 * _0_765367);
 
                 my0 = mz0 + mz3;
                 my3 = mz0 - mz3;
                 my1 = mz1 + mz2;
                 my2 = mz1 - mz2;
+
                 /*
                 1.847759
                 0.765367
@@ -438,21 +453,22 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 a1 = z1 + z2; a2 = z1 - z2;
                 */
 
-                _mm_store_ps(x, 0, my0 + mb0);
+                Mm_store_ps(x, 0, my0 + mb0);
 
-                _mm_store_ps(x, 56, my0 - mb0);
+                Mm_store_ps(x, 56, my0 - mb0);
 
-                _mm_store_ps(x, 8, my1 + mb1);
+                Mm_store_ps(x, 8, my1 + mb1);
 
-                _mm_store_ps(x, 48, my1 - mb1);
+                Mm_store_ps(x, 48, my1 - mb1);
 
-                _mm_store_ps(x, 16, my2 + mb2);
+                Mm_store_ps(x, 16, my2 + mb2);
 
-                _mm_store_ps(x, 40, my2 - mb2);
+                Mm_store_ps(x, 40, my2 - mb2);
 
-                _mm_store_ps(x, 24, my3 + mb3);
+                Mm_store_ps(x, 24, my3 + mb3);
 
-                _mm_store_ps(x, 32, my3 - mb3);
+                Mm_store_ps(x, 32, my3 - mb3);
+
                 /*
                 x[0] = a0 + b0; x[7] = a0 - b0;
                 x[1] = a1 + b1; x[6] = a1 - b1;
@@ -462,13 +478,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 */
             }
 
-            internal static void fDCT1Dllm_32f(Span<float> x, Span<float> y)
+            internal static void FDCT1Dllm_32f(Span<float> x, Span<float> y)
             {
                 float t0, t1, t2, t3, t4, t5, t6, t7;
                 float c0, c1, c2, c3;
-                var r = new float[8];
+                float[] r = new float[8];
 
-                //for(i = 0;i < 8;i++){ r[i] = (float)(cos((double)i / 16.0 * M_PI) * M_SQRT2); }
+                // for(i = 0;i < 8;i++){ r[i] = (float)(cos((double)i / 16.0 * M_PI) * M_SQRT2); }
                 r[0] = 1.414214f;
                 r[1] = 1.387040f;
                 r[2] = 1.306563f;
@@ -478,9 +494,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 r[6] = 0.541196f;
                 r[7] = 0.275899f;
 
-                const float invsqrt2 = 0.707107f; //(float)(1.0f / M_SQRT2);
-                //const float invsqrt2h = 0.353554f; //invsqrt2*0.5f;
+                const float invsqrt2 = 0.707107f; // (float)(1.0f / M_SQRT2);
 
+                // const float invsqrt2h = 0.353554f; // invsqrt2*0.5f;
                 c1 = x[0];
                 c2 = x[7];
                 t0 = c1 + c2;
@@ -505,13 +521,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
                 y[0] = c0 + c1;
                 y[4] = c0 - c1;
-                y[2] = c2 * r[6] + c3 * r[2];
-                y[6] = c3 * r[6] - c2 * r[2];
+                y[2] = (c2 * r[6]) + (c3 * r[2]);
+                y[6] = (c3 * r[6]) - (c2 * r[2]);
 
-                c3 = t4 * r[3] + t7 * r[5];
-                c0 = t7 * r[3] - t4 * r[5];
-                c2 = t5 * r[1] + t6 * r[7];
-                c1 = t6 * r[1] - t5 * r[7];
+                c3 = (t4 * r[3]) + (t7 * r[5]);
+                c0 = (t7 * r[3]) - (t4 * r[5]);
+                c2 = (t5 * r[1]) + (t6 * r[7]);
+                c1 = (t6 * r[1]) - (t5 * r[7]);
 
                 y[5] = c3 - c1;
                 y[3] = c0 - c2;
@@ -521,7 +537,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 y[7] = c0 - c3;
             }
 
-            internal static void fDCT2D_llm(
+            internal static void FDCT2D_llm(
                 Span<float> s,
                 Span<float> d,
                 Span<float> temp,
@@ -532,14 +548,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
                 for (int j = 0; j < 8; j++)
                 {
-                    fDCT1Dllm_32f(sWorker.Slice(j * 8), temp.Slice(j * 8));
+                    FDCT1Dllm_32f(sWorker.Slice(j * 8), temp.Slice(j * 8));
                 }
 
                 Transpose8x8(temp, d);
 
                 for (int j = 0; j < 8; j++)
                 {
-                    fDCT1Dllm_32f(d.Slice(j * 8), temp.Slice(j * 8));
+                    FDCT1Dllm_32f(d.Slice(j * 8), temp.Slice(j * 8));
                 }
 
                 Transpose8x8(temp, d);

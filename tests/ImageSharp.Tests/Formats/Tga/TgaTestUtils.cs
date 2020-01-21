@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.IO;
 
@@ -11,10 +14,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
 {
     public static class TgaTestUtils
     {
-        public static void CompareWithReferenceDecoder<TPixel>(TestImageProvider<TPixel> provider,
-                                                               Image<TPixel> image,
-                                                               bool useExactComparer = true,
-                                                               float compareTolerance = 0.01f)
+        public static void CompareWithReferenceDecoder<TPixel>(
+            TestImageProvider<TPixel> provider,
+            Image<TPixel> image,
+            bool useExactComparer = true,
+            float compareTolerance = 0.01f)
             where TPixel : struct, IPixel<TPixel>
         {
             string path = TestImageProvider<TPixel>.GetFilePathOrNull(provider);
@@ -23,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
                 throw new InvalidOperationException("CompareToOriginal() works only with file providers!");
             }
 
-            TestFile testFile = TestFile.Create(path);
+            var testFile = TestFile.Create(path);
             Image<Rgba32> magickImage = DecodeWithMagick<Rgba32>(Configuration.Default, new FileInfo(testFile.FullPath));
             if (useExactComparer)
             {

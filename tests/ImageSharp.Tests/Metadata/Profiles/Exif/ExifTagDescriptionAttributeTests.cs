@@ -6,7 +6,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    public class ExifDescriptionAttributeTests
+    public class ExifTagDescriptionAttributeTests
     {
         [Fact]
         public void TestExifTag()

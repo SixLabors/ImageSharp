@@ -3,22 +3,21 @@
 
 using System;
 using System.IO;
-
+using Moq;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
-using Moq;
 using Xunit;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests
 {
     /// <summary>
-    /// Tests the <see cref="Image"/> class.
+    /// Tests the <see cref="image"/> class.
     /// </summary>
     public class ImageSaveTests : IDisposable
     {
-        private readonly Image<Rgba32> Image;
+        private readonly Image<Rgba32> image;
         private readonly Mock<IFileSystem> fileSystem;
         private readonly Mock<IImageEncoder> encoder;
         private readonly Mock<IImageEncoder> encoderNotInFormat;
@@ -42,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests
             };
             config.ImageFormatsManager.AddImageFormatDetector(this.localMimeTypeDetector);
             config.ImageFormatsManager.SetEncoder(this.localImageFormat.Object, this.encoder.Object);
-            this.Image = new Image<Rgba32>(config, 1, 1);
+            this.image = new Image<Rgba32>(config, 1, 1);
         }
 
         [Fact]
@@ -50,11 +49,10 @@ namespace SixLabors.ImageSharp.Tests
         {
             var stream = new MemoryStream();
             this.fileSystem.Setup(x => x.Create("path.png")).Returns(stream);
-            this.Image.Save("path.png");
+            this.image.Save("path.png");
 
-            this.encoder.Verify(x => x.Encode(this.Image, stream));
+            this.encoder.Verify(x => x.Encode(this.image, stream));
         }
-
 
         [Fact]
         public void SavePathWithEncoder()
@@ -62,26 +60,26 @@ namespace SixLabors.ImageSharp.Tests
             var stream = new MemoryStream();
             this.fileSystem.Setup(x => x.Create("path.jpg")).Returns(stream);
 
-            this.Image.Save("path.jpg", this.encoderNotInFormat.Object);
+            this.image.Save("path.jpg", this.encoderNotInFormat.Object);
 
-            this.encoderNotInFormat.Verify(x => x.Encode(this.Image, stream));
+            this.encoderNotInFormat.Verify(x => x.Encode(this.image, stream));
         }
 
         [Fact]
         public void ToBase64String()
         {
-            string str = this.Image.ToBase64String(this.localImageFormat.Object);
+            string str = this.image.ToBase64String(this.localImageFormat.Object);
 
-            this.encoder.Verify(x => x.Encode(this.Image, It.IsAny<Stream>()));
+            this.encoder.Verify(x => x.Encode(this.image, It.IsAny<Stream>()));
         }
 
         [Fact]
         public void SaveStreamWithMime()
         {
             var stream = new MemoryStream();
-            this.Image.Save(stream, this.localImageFormat.Object);
+            this.image.Save(stream, this.localImageFormat.Object);
 
-            this.encoder.Verify(x => x.Encode(this.Image, stream));
+            this.encoder.Verify(x => x.Encode(this.image, stream));
         }
 
         [Fact]
@@ -89,14 +87,14 @@ namespace SixLabors.ImageSharp.Tests
         {
             var stream = new MemoryStream();
 
-            this.Image.Save(stream, this.encoderNotInFormat.Object);
+            this.image.Save(stream, this.encoderNotInFormat.Object);
 
-            this.encoderNotInFormat.Verify(x => x.Encode(this.Image, stream));
+            this.encoderNotInFormat.Verify(x => x.Encode(this.image, stream));
         }
 
         public void Dispose()
         {
-            this.Image.Dispose();
+            this.image.Dispose();
         }
     }
 }

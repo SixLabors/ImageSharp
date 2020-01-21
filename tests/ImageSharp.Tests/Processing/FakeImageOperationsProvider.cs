@@ -12,16 +12,18 @@ namespace SixLabors.ImageSharp.Tests.Processing
 {
     internal class FakeImageOperationsProvider : IImageProcessingContextFactory
     {
-        private List<object> ImageOperators = new List<object>();
+        private readonly List<object> imageOperators = new List<object>();
 
         public bool HasCreated<TPixel>(Image<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
         {
             return this.Created(source).Any();
         }
-        public IEnumerable<FakeImageOperations<TPixel>> Created<TPixel>(Image<TPixel> source) where TPixel : struct, IPixel<TPixel>
+
+        public IEnumerable<FakeImageOperations<TPixel>> Created<TPixel>(Image<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
         {
-            return this.ImageOperators.OfType<FakeImageOperations<TPixel>>()
+            return this.imageOperators.OfType<FakeImageOperations<TPixel>>()
                 .Where(x => x.Source == source);
         }
 
@@ -36,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Processing
             where TPixel : struct, IPixel<TPixel>
         {
             var op = new FakeImageOperations<TPixel>(configuration, source, mutate);
-            this.ImageOperators.Add(op);
+            this.imageOperators.Add(op);
             return op;
         }
 
@@ -87,6 +89,7 @@ namespace SixLabors.ImageSharp.Tests.Processing
             public struct AppliedOperation
             {
                 public Rectangle? Rectangle { get; set; }
+
                 public IImageProcessor<TPixel> GenericProcessor { get; set; }
 
                 public IImageProcessor NonGenericProcessor { get; set; }

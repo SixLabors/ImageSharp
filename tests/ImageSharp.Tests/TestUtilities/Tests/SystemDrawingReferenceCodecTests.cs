@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         }
 
         [Theory]
-        [WithTestPatternImages(20, 20, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
+        [WithTestPatternImage(20, 20, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
         public void To32bppArgbSystemDrawingBitmap<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         }
 
         [Theory]
-        [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
+        [WithTestPatternImage(100, 100, PixelTypes.Rgba32)]
         public void From32bppArgbSystemDrawingBitmap2<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         }
 
         [Theory]
-        [WithTestPatternImages(100, 100, PixelTypes.Rgb24)]
+        [WithTestPatternImage(100, 100, PixelTypes.Rgb24)]
         public void From24bppRgbSystemDrawingBitmap<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         }
 
         [Theory]
-        [WithTestPatternImages(20, 20, PixelTypes.Rgba32 | PixelTypes.Argb32)]
+        [WithTestPatternImage(20, 20, PixelTypes.Rgba32 | PixelTypes.Argb32)]
         public void SaveWithReferenceEncoder<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -9,8 +9,8 @@ using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Benchmarks.General
 {
-    /**
-     *                                Method | Count |     Mean |    Error |   StdDev | Scaled | ScaledSD |
+    /*
+                                      Method | Count |     Mean |    Error |   StdDev | Scaled | ScaledSD |
 -------------------------------------------- |------ |---------:|---------:|---------:|-------:|---------:|
  'Emulated 2D array access using flat array' |    32 | 224.2 ns | 4.739 ns | 13.75 ns |   0.65 |     0.07 |
                'Array access using 2D array' |    32 | 346.6 ns | 9.225 ns | 26.91 ns |   1.00 |     0.00 |
@@ -19,7 +19,6 @@ namespace SixLabors.ImageSharp.Benchmarks.General
 
      *
      */
-
     public class Array2D
     {
         private float[] flatArray;
@@ -34,6 +33,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
         public int Count { get; set; }
 
         public int Min { get; private set; }
+
         public int Max { get; private set; }
 
         [GlobalSetup]
@@ -65,11 +65,12 @@ namespace SixLabors.ImageSharp.Benchmarks.General
             {
                 for (int j = this.Min; j < this.Max; j++)
                 {
-                    ref float v = ref a[count * i + j];
+                    ref float v = ref a[(count * i) + j];
                     v = i * j;
                     s += v;
                 }
             }
+
             return s;
         }
 
@@ -87,6 +88,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
                     s += v;
                 }
             }
+
             return s;
         }
 
@@ -104,6 +106,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
                     s += v;
                 }
             }
+
             return s;
         }
 
@@ -121,6 +124,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
                     s += v;
                 }
             }
+
             return s;
         }
     }

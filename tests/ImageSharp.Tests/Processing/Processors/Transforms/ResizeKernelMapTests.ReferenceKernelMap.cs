@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 TolerantMath tolerantMath = TolerantMath.Default;
 
                 double radius = tolerantMath.Ceiling(scale * sampler.Radius);
-                
+
                 var result = new List<ReferenceKernel>();
 
                 for (int i = 0; i < destinationSize; i++)
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
                     double sum = 0;
 
-                    var values = new double[right - left + 1];
+                    double[] values = new double[right - left + 1];
 
                     for (int j = left; j <= right; j++)
                     {

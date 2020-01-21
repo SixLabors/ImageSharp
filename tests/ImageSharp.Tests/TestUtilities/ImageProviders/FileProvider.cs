@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -48,8 +48,10 @@ namespace SixLabors.ImageSharp.Tests
                             object value = p.GetValue(customDecoder);
                             data[key] = value;
                         }
+
                         type = type.GetTypeInfo().BaseType;
                     }
+
                     return data;
                 }
 
@@ -81,11 +83,13 @@ namespace SixLabors.ImageSharp.Tests
                         {
                             return false;
                         }
+
                         if (!object.Equals(kv.Value, otherVal))
                         {
                             return false;
                         }
                     }
+
                     return true;
                 }
 
@@ -116,7 +120,7 @@ namespace SixLabors.ImageSharp.Tests
                 public static bool operator !=(Key left, Key right) => !Equals(left, right);
             }
 
-            private static readonly ConcurrentDictionary<Key, Image<TPixel>> cache = new ConcurrentDictionary<Key, Image<TPixel>>();
+            private static readonly ConcurrentDictionary<Key, Image<TPixel>> Cache = new ConcurrentDictionary<Key, Image<TPixel>>();
 
             // Needed for deserialization!
             // ReSharper disable once UnusedMember.Local
@@ -150,7 +154,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 var key = new Key(this.PixelType, this.FilePath, decoder);
 
-                Image<TPixel> cachedImage = cache.GetOrAdd(key, _ => this.LoadImage(decoder));
+                Image<TPixel> cachedImage = Cache.GetOrAdd(key, _ => this.LoadImage(decoder));
 
                 return cachedImage.Clone(this.Configuration);
             }

@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System.Numerics;
 
 using BenchmarkDotNet.Attributes;
@@ -24,7 +27,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
 
             for (int i = 0; i < this.InputSize; i++)
             {
-                this.input[i] = (uint) i;
+                this.input[i] = (uint)i;
             }
         }
 
@@ -43,7 +46,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
         {
             var v = new Vector<uint>(this.testValue);
 
-            for (int i = 0; i < this.input.Length; i+=Vector<uint>.Count)
+            for (int i = 0; i < this.input.Length; i += Vector<uint>.Count)
             {
                 var a = new Vector<uint>(this.input, i);
                 a = Vector.BitwiseOr(a, v);

@@ -11,7 +11,6 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
@@ -25,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests
             /// A <see cref="MemoryManager{T}"/> exposing the locked pixel memory of a <see cref="Bitmap"/> instance.
             /// TODO: This should be an example in https://github.com/SixLabors/Samples
             /// </summary>
-            class BitmapMemoryManager : MemoryManager<Bgra32>
+            public class BitmapMemoryManager : MemoryManager<Bgra32>
             {
                 private readonly Bitmap bitmap;
 

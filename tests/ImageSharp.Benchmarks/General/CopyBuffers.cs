@@ -34,7 +34,6 @@ namespace SixLabors.ImageSharp.Benchmarks.General
         [Params(10, 50, 100, 1000, 10000)]
         public int Count { get; set; }
 
-
         [GlobalSetup]
         public void Setup()
         {
@@ -73,7 +72,6 @@ namespace SixLabors.ImageSharp.Benchmarks.General
             void* pinnedSource = this.sourceHandle.Pointer;
             Buffer.MemoryCopy(pinnedSource, pinnedDestination, this.Count, this.Count);
         }
-
 
         [Benchmark(Description = "Marshal.Copy()")]
         public unsafe void MarshalCopy()

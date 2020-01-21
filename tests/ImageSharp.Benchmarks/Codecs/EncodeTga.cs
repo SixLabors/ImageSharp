@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         {
             if (this.tgaCore == null)
             {
-                this.tgaCore = Image.Load<Rgba32>(TestImageFullPath);
+                this.tgaCore = Image.Load<Rgba32>(this.TestImageFullPath);
                 this.tgaMagick = new MagickImage(this.TestImageFullPath);
             }
         }

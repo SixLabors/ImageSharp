@@ -150,9 +150,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 sourceOwner.Memory.Span[10] = color;
 
                 // Act:
-                Assert.ThrowsAny<InvalidOperationException>(
-                    () => MemorySource<Rgba32>.SwapOrCopyContent(ref dest, ref source)
-                );
+                Assert.ThrowsAny<InvalidOperationException>(() => MemorySource<Rgba32>.SwapOrCopyContent(ref dest, ref source));
 
                 Assert.Equal(color, source.Memory.Span[10]);
                 Assert.NotEqual(color, dest.Memory.Span[10]);

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -68,7 +68,6 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 
             // Assert
             Assert.Equal(expected, actual, ColorSpaceComparer);
-
 
             for (int i = 0; i < actualSpan.Length; i++)
             {

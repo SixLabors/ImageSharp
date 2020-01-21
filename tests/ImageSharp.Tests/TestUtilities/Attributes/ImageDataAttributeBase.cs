@@ -21,9 +21,6 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageDataAttributeBase"/> class.
         /// </summary>
-        /// <param name="memberName"></param>
-        /// <param name="pixelTypes"></param>
-        /// <param name="additionalParameters"></param>
         protected ImageDataAttributeBase(string memberName, PixelTypes pixelTypes, object[] additionalParameters)
         {
             this.PixelTypes = pixelTypes;
@@ -32,12 +29,12 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         /// <summary>
-        /// Gets the member name
+        /// Gets the member name.
         /// </summary>
         public string MemberName { get; }
 
         /// <summary>
-        /// Gets the member type
+        /// Gets or sets the member type.
         /// </summary>
         public Type MemberType { get; set; }
 
@@ -84,8 +81,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Returns a value indicating whether the first parameter of the method is a test provider.
         /// </summary>
-        /// <param name="testMethod"></param>
-        /// <returns></returns>
+        /// <returns>True, if the first parameter is a test provider.</returns>
         private bool FirstIsProvider(MethodInfo testMethod)
         {
             TypeInfo dataType = testMethod.GetParameters().First().ParameterType.GetTypeInfo();
@@ -102,7 +98,7 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     foreach (object[] row in memberData)
                     {
-                        var actualFactoryMethodArgs = new object[originalFactoryMethodArgs.Length + 2];
+                        object[] actualFactoryMethodArgs = new object[originalFactoryMethodArgs.Length + 2];
                         Array.Copy(originalFactoryMethodArgs, actualFactoryMethodArgs, originalFactoryMethodArgs.Length);
                         actualFactoryMethodArgs[actualFactoryMethodArgs.Length - 2] = testMethod;
                         actualFactoryMethodArgs[actualFactoryMethodArgs.Length - 1] = kv.Key;
@@ -110,7 +106,7 @@ namespace SixLabors.ImageSharp.Tests
                         object factory = factoryType.GetMethod(this.GetFactoryMethodName(testMethod))
                             .Invoke(null, actualFactoryMethodArgs);
 
-                        var result = new object[this.AdditionalParameters.Length + 1 + row.Length];
+                        object[] result = new object[this.AdditionalParameters.Length + 1 + row.Length];
                         result[0] = factory;
                         Array.Copy(row, 0, result, 1, row.Length);
                         Array.Copy(this.AdditionalParameters, 0, result, 1 + row.Length, this.AdditionalParameters.Length);
@@ -153,6 +149,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Gets the field accessor for the given type.
         /// </summary>
+        /// <returns>The field accessor.</returns>
         protected Func<object> GetFieldAccessor(Type type, string memberName)
         {
             FieldInfo fieldInfo = null;
@@ -160,11 +157,15 @@ namespace SixLabors.ImageSharp.Tests
             {
                 fieldInfo = reflectionType.GetRuntimeField(memberName);
                 if (fieldInfo != null)
+                {
                     break;
+                }
             }
 
-            if (fieldInfo == null || !fieldInfo.IsStatic)
+            if (fieldInfo is null || !fieldInfo.IsStatic)
+            {
                 return null;
+            }
 
             return () => fieldInfo.GetValue(null);
         }
@@ -172,6 +173,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Gets the property accessor for the given type.
         /// </summary>
+        /// <returns>The property accessor.</returns>
         protected Func<object> GetPropertyAccessor(Type type, string memberName)
         {
             PropertyInfo propInfo = null;
@@ -184,7 +186,7 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
 
-            if (propInfo?.GetMethod == null || !propInfo.GetMethod.IsStatic)
+            if (propInfo?.GetMethod is null || !propInfo.GetMethod.IsStatic)
             {
                 return null;
             }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var color2 = new Bgra5551(new Vector4(0.0f));
             var color3 = new Bgra5551(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
             var color4 = new Bgra5551(1.0f, 0.0f, 0.0f, 1.0f);
-            
+
             Assert.Equal(color1, color2);
             Assert.Equal(color3, color4);
         }
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // arrange
             var bgra = new Bgra5551(Vector4.One);
 
-            // act 
+            // act
             Vector4 actual = bgra.ToScaledVector4();
 
             // assert
@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var actual = default(Bgra5551);
             var expected = new Bgra5551(1.0f, 0.0f, 1.0f, 1.0f);
 
-            // act 
+            // act
             bgra.FromBgra5551(expected);
             actual.FromBgra5551(bgra);
 
@@ -171,10 +171,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // arrange
             var bgra = default(Bgra5551);
             ushort expectedPackedValue = ushort.MaxValue;
-            
+
             // act
             bgra.FromArgb32(new Argb32(255, 255, 255, 255));
-            
+
             // assert
             Assert.Equal(expectedPackedValue, bgra.PackedValue);
         }

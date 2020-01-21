@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
 {
     using System;
@@ -18,13 +21,13 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
 
         [Params(64)]
         public int InputSize { get; set; }
-        
+
         [GlobalSetup]
         public void Setup()
         {
             this.data = new float[this.InputSize];
             this.testValue = 42;
-            
+
             for (int i = 0; i < this.InputSize; i++)
             {
                 this.data[i] = i;

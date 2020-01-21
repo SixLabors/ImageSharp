@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-// ReSharper disable InconsistentNaming
-
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -14,11 +12,13 @@ using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using Xunit;
 using Xunit.Abstractions;
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
     public class JpegFixture : MeasureFixture
     {
-        public JpegFixture(ITestOutputHelper output) : base(output)
+        public JpegFixture(ITestOutputHelper output)
+            : base(output)
         {
         }
 
@@ -30,9 +30,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             {
                 for (int j = 0; j < 8; j++)
                 {
-                    result[i * 8 + j] = i * 10 + j;
+                    result[(i * 8) + j] = (i * 10) + j;
                 }
             }
+
             return result;
         }
 
@@ -44,9 +45,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             {
                 for (int j = 0; j < 8; j++)
                 {
-                    result[i * 8 + j] = i * 10 + j;
+                    result[(i * 8) + j] = (i * 10) + j;
                 }
             }
+
             return result;
         }
 
@@ -58,14 +60,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             {
                 for (int j = 0; j < 8; j++)
                 {
-                    short val = (short)(i * 10 + j);
+                    short val = (short)((i * 10) + j);
                     if ((i + j) % 2 == 0)
                     {
                         val *= -1;
                     }
-                    result[i * 8 + j] = val;
+
+                    result[(i * 8) + j] = val;
                 }
             }
+
             return result;
         }
 
@@ -78,9 +82,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             {
                 for (int j = 0; j < 8; j++)
                 {
-                    result[i * 8 + j] = rnd.Next(minValue, maxValue);
+                    result[(i * 8) + j] = rnd.Next(minValue, maxValue);
                 }
             }
+
             return result;
         }
 
@@ -99,9 +104,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                     val *= maxValue - minValue;
                     val += minValue;
 
-                    result[i * 8 + j] = (float)val;
+                    result[(i * 8) + j] = (float)val;
                 }
             }
+
             return result;
         }
 
@@ -120,8 +126,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             {
                 for (int j = 0; j < 8; j++)
                 {
-                    bld.Append($"{data[i * 8 + j],3} ");
+                    bld.Append($"{data[(i * 8) + j],3} ");
                 }
+
                 bld.AppendLine();
             }
 
@@ -132,13 +139,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
         internal void PrintLinearData<T>(Span<T> data, int count = -1)
         {
-            if (count < 0) count = data.Length;
+            if (count < 0)
+            {
+                count = data.Length;
+            }
 
             var sb = new StringBuilder();
             for (int i = 0; i < count; i++)
             {
                 sb.Append($"{data[i],3} ");
             }
+
             this.Output.WriteLine(sb.ToString());
         }
 

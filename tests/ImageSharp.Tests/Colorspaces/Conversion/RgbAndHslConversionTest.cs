@@ -72,7 +72,6 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
             var input = new Rgb(r, g, b);
             var expected = new Hsl(h, s, l);
 
-
             Span<Rgb> inputSpan = new Rgb[5];
             inputSpan.Fill(input);
 

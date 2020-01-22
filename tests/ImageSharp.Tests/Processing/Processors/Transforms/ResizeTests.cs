@@ -12,7 +12,6 @@ using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-using SixLabors.Primitives;
 
 using Xunit;
 
@@ -43,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [Fact]
         public void Resize_PixelAgnostic()
         {
-            var filePath = TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora);
+            string filePath = TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora);
 
             using var image = Image.Load(filePath);
             image.Mutate(x => x.Resize(image.Size() / 2));
@@ -68,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
             provider.Configuration.WorkingBufferSizeHintInBytes = workingBufferSizeHintInKilobytes * 1024;
 
-            using var image = provider.GetImage();
+            using Image<TPixel> image = provider.GetImage();
             image.Mutate(x => x.Resize(destSize, destSize));
             image.DebugSave(provider, appendPixelTypeToFileName: false);
         }

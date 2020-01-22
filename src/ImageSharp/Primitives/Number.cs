@@ -5,7 +5,7 @@ using System;
 using System.Globalization;
 using System.Runtime.InteropServices;
 
-namespace SixLabors.ImageSharp.Primitives
+namespace SixLabors.ImageSharp
 {
     /// <summary>
     /// Represents an integral number.

@@ -4,8 +4,6 @@
 using System;
 using System.Numerics;
 
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     /// <summary>

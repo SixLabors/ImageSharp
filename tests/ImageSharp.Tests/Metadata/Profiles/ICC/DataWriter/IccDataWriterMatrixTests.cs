@@ -8,7 +8,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Icc
 {
-    using SixLabors.ImageSharp.Primitives;
+    using SixLabors.ImageSharp;
 
     public class IccDataWriterMatrixTests
     {

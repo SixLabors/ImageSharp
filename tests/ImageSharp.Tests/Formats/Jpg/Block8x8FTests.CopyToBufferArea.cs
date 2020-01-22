@@ -6,8 +6,6 @@
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
-using SixLabors.Memory;
-using SixLabors.Primitives;
 
 using Xunit;
 using Xunit.Abstractions;

@@ -3,7 +3,6 @@
 
 using System.Collections.Generic;
 using System.Numerics;
-using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Tests
 {

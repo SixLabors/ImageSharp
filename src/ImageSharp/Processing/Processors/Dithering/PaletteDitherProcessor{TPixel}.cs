@@ -8,7 +8,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 {

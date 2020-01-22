@@ -2,20 +2,20 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using System.Linq;
+using System.Reflection;
+
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Linq;
-    using System.Reflection;
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Processors.Quantization;
-    using SixLabors.Memory;
-
     public class GeneralFormatTests : FileTestBase
     {
         [Theory]

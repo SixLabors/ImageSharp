@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
 
-using SixLabors.Memory;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Tests.Memory
 {

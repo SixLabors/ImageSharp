@@ -5,7 +5,6 @@ using System;
 using System.Numerics;
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Effects
 {

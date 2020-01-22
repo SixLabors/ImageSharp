@@ -9,7 +9,6 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
 
 // TODO: Isn't an AOS ("array of structures") layout more efficient & more readable than SOA ("structure of arrays") for this particular use case?
 // (T, R, G, B, A, M2) could be grouped together! Investigate a ColorMoment struct.

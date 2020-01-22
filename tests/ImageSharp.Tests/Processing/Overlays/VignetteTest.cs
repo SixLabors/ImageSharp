@@ -1,11 +1,9 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Overlays;
 using SixLabors.ImageSharp.Tests.TestUtilities;
-using SixLabors.Primitives;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Overlays

@@ -80,7 +80,7 @@ jobs:
 
             - name: Test
               shell: pwsh
-              run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}" Debug
+              run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
               env:
                   CI: True
                   XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit

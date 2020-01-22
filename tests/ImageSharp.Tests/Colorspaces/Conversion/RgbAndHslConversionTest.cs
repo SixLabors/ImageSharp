@@ -5,7 +5,6 @@ using System;
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 {
@@ -21,13 +20,6 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
     {
         private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();
         private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0001F);
-
-        private readonly ITestOutputHelper output;
-
-        public RgbAndHslConversionTest(ITestOutputHelper output)
-        {
-            this.output = output;
-        }
 
         /// <summary>
         /// Tests conversion from <see cref="Hsl"/> to <see cref="Rgb"/>.
@@ -62,8 +54,6 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
             {
                 Assert.Equal(expected, actualSpan[i], ColorSpaceComparer);
             }
-
-            this.output.WriteLine("Y No Coverage??");
         }
 
         /// <summary>

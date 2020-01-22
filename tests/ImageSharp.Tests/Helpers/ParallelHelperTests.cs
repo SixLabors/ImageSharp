@@ -297,43 +297,41 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         {
             MemoryAllocator memoryAllocator = Configuration.Default.MemoryAllocator;
 
-            using (Buffer2D<Point> expected = memoryAllocator.Allocate2D<Point>(bufferWidth, bufferHeight, AllocationOptions.Clean))
-            using (Buffer2D<Point> actual = memoryAllocator.Allocate2D<Point>(bufferWidth, bufferHeight, AllocationOptions.Clean))
+            using Buffer2D<Point> expected = memoryAllocator.Allocate2D<Point>(bufferWidth, bufferHeight, AllocationOptions.Clean);
+            using Buffer2D<Point> actual = memoryAllocator.Allocate2D<Point>(bufferWidth, bufferHeight, AllocationOptions.Clean);
+            var rect = new Rectangle(rectX, rectY, rectWidth, rectHeight);
+
+            void FillRow(int y, Buffer2D<Point> buffer)
             {
-                var rect = new Rectangle(rectX, rectY, rectWidth, rectHeight);
-
-                void FillRow(int y, Buffer2D<Point> buffer)
+                for (int x = rect.Left; x < rect.Right; x++)
                 {
-                    for (int x = rect.Left; x < rect.Right; x++)
-                    {
-                        buffer[x, y] = new Point(x, y);
-                    }
+                    buffer[x, y] = new Point(x, y);
                 }
-
-                // Fill Expected data:
-                for (int y = rectY; y < rect.Bottom; y++)
-                {
-                    FillRow(y, expected);
-                }
-
-                // Fill actual data using IterateRows:
-                var settings = new ParallelExecutionSettings(maxDegreeOfParallelism, memoryAllocator);
-
-                ParallelHelper.IterateRows(
-                    rect,
-                    settings,
-                    rows =>
-                        {
-                            this.output.WriteLine(rows.ToString());
-                            for (int y = rows.Min; y < rows.Max; y++)
-                            {
-                                FillRow(y, actual);
-                            }
-                        });
-
-                // Assert:
-                TestImageExtensions.CompareBuffers(expected.GetSpan(), actual.GetSpan());
             }
+
+            // Fill Expected data:
+            for (int y = rectY; y < rect.Bottom; y++)
+            {
+                FillRow(y, expected);
+            }
+
+            // Fill actual data using IterateRows:
+            var settings = new ParallelExecutionSettings(maxDegreeOfParallelism, memoryAllocator);
+
+            ParallelHelper.IterateRows(
+                rect,
+                settings,
+                rows =>
+                {
+                    this.output.WriteLine(rows.ToString());
+                    for (int y = rows.Min; y < rows.Max; y++)
+                    {
+                        FillRow(y, actual);
+                    }
+                });
+
+            // Assert:
+            TestImageExtensions.CompareBuffers(expected.GetSpan(), actual.GetSpan());
         }
 
         [Theory]

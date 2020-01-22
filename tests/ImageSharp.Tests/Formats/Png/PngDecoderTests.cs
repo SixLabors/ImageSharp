@@ -87,22 +87,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Decode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
-            {
-                image.DebugSave(provider);
+            using Image<TPixel> image = provider.GetImage(new PngDecoder());
+            image.DebugSave(provider);
 
-                // We don't have another x-plat reference decoder that can be compared for this image.
-                if (provider.Utility.SourceFileOrDescription == TestImages.Png.Bad.Issue1047_BadEndChunk)
+            // We don't have another x-plat reference decoder that can be compared for this image.
+            if (provider.Utility.SourceFileOrDescription == TestImages.Png.Bad.Issue1047_BadEndChunk)
+            {
+                if (TestEnvironment.IsWindows)
                 {
-                    if (TestEnvironment.IsWindows)
-                    {
-                        image.CompareToOriginal(provider, ImageComparer.Exact, (IImageDecoder)SystemDrawingReferenceDecoder.Instance);
-                    }
+                    image.CompareToOriginal(provider, ImageComparer.Exact, (IImageDecoder)SystemDrawingReferenceDecoder.Instance);
                 }
-                else
-                {
-                    image.CompareToOriginal(provider, ImageComparer.Exact);
-                }
+            }
+            else
+            {
+                image.CompareToOriginal(provider, ImageComparer.Exact);
             }
         }
 
@@ -111,11 +109,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Decode_Interlaced_ImageIsCorrect<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ImageComparer.Exact);
-            }
+            using Image<TPixel> image = provider.GetImage(new PngDecoder());
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ImageComparer.Exact);
         }
 
         [Theory]
@@ -123,11 +119,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Decode_48Bpp<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ImageComparer.Exact);
-            }
+            using Image<TPixel> image = provider.GetImage(new PngDecoder());
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ImageComparer.Exact);
         }
 
         [Theory]
@@ -135,11 +129,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Decode_64Bpp<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ImageComparer.Exact);
-            }
+            using Image<TPixel> image = provider.GetImage(new PngDecoder());
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ImageComparer.Exact);
         }
 
         [Theory]
@@ -147,11 +139,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Decoder_L8bitInterlaced<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ImageComparer.Exact);
-            }
+            using Image<TPixel> image = provider.GetImage(new PngDecoder());
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ImageComparer.Exact);
         }
 
         [Theory]
@@ -159,11 +149,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Decode_L16Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ImageComparer.Exact);
-            }
+            using Image<TPixel> image = provider.GetImage(new PngDecoder());
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ImageComparer.Exact);
         }
 
         [Theory]
@@ -171,11 +159,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Decode_GrayAlpha16Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ImageComparer.Exact);
-            }
+            using Image<TPixel> image = provider.GetImage(new PngDecoder());
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ImageComparer.Exact);
         }
 
         [Theory]
@@ -183,11 +169,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Decoder_CanDecodeGrey8bitWithAlpha<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ImageComparer.Exact);
-            }
+            using Image<TPixel> image = provider.GetImage(new PngDecoder());
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ImageComparer.Exact);
         }
 
         [Theory]
@@ -195,11 +179,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Decoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ImageComparer.Exact);
-            }
+            using Image<TPixel> image = provider.GetImage(new PngDecoder());
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ImageComparer.Exact);
         }
 
         [Theory]
@@ -213,10 +195,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Identify(string imagePath, int expectedPixelSize)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                Assert.Equal(expectedPixelSize, Image.Identify(stream)?.PixelType?.BitsPerPixel);
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            Assert.Equal(expectedPixelSize, Image.Identify(stream)?.PixelType?.BitsPerPixel);
         }
 
         [Theory]
@@ -227,11 +207,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             System.Exception ex = Record.Exception(
                 () =>
                 {
-                    using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
-                    {
-                        image.DebugSave(provider);
-                        image.CompareToOriginal(provider, ImageComparer.Exact);
-                    }
+                    using Image<TPixel> image = provider.GetImage(new PngDecoder());
+                    image.DebugSave(provider);
+                    image.CompareToOriginal(provider, ImageComparer.Exact);
                 });
             Assert.Null(ex);
         }

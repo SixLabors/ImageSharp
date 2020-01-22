@@ -23,12 +23,10 @@ namespace SixLabors.ImageSharp.Tests
         public void ResolutionShouldChange<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Metadata.VerticalResolution = 150;
-                image.Metadata.HorizontalResolution = 150;
-                image.DebugSave(provider);
-            }
+            using Image<TPixel> image = provider.GetImage();
+            image.Metadata.VerticalResolution = 150;
+            image.Metadata.HorizontalResolution = 150;
+            image.DebugSave(provider);
         }
 
         [Fact]
@@ -38,11 +36,9 @@ namespace SixLabors.ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                using (Image<Rgba32> image = file.CreateRgba32Image())
-                {
-                    string filename = path + "/" + file.FileNameWithoutExtension + ".txt";
-                    File.WriteAllText(filename, image.ToBase64String(PngFormat.Instance));
-                }
+                using Image<Rgba32> image = file.CreateRgba32Image();
+                string filename = path + "/" + file.FileNameWithoutExtension + ".txt";
+                File.WriteAllText(filename, image.ToBase64String(PngFormat.Instance));
             }
         }
 
@@ -53,10 +49,8 @@ namespace SixLabors.ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                using (Image<Rgba32> image = file.CreateRgba32Image())
-                {
-                    image.Save($"{path}/{file.FileName}");
-                }
+                using Image<Rgba32> image = file.CreateRgba32Image();
+                image.Save($"{path}/{file.FileName}");
             }
         }
 
@@ -100,27 +94,25 @@ namespace SixLabors.ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                using (Image<Rgba32> image = file.CreateRgba32Image())
+                using Image<Rgba32> image = file.CreateRgba32Image();
+                using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.bmp"))
                 {
-                    using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.bmp"))
-                    {
-                        image.SaveAsBmp(output);
-                    }
+                    image.SaveAsBmp(output);
+                }
 
-                    using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.jpg"))
-                    {
-                        image.SaveAsJpeg(output);
-                    }
+                using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.jpg"))
+                {
+                    image.SaveAsJpeg(output);
+                }
 
-                    using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.png"))
-                    {
-                        image.SaveAsPng(output);
-                    }
+                using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.png"))
+                {
+                    image.SaveAsPng(output);
+                }
 
-                    using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.gif"))
-                    {
-                        image.SaveAsGif(output);
-                    }
+                using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.gif"))
+                {
+                    image.SaveAsGif(output);
                 }
             }
         }
@@ -132,19 +124,14 @@ namespace SixLabors.ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                byte[] serialized;
-                using (var image = Image.Load(file.Bytes, out IImageFormat mimeType))
-                using (var memoryStream = new MemoryStream())
-                {
-                    image.Save(memoryStream, mimeType);
-                    memoryStream.Flush();
-                    serialized = memoryStream.ToArray();
-                }
+                using var image = Image.Load(file.Bytes, out IImageFormat mimeType);
+                using var memoryStream = new MemoryStream();
+                image.Save(memoryStream, mimeType);
+                memoryStream.Flush();
+                byte[] serialized = memoryStream.ToArray();
 
-                using (var image2 = Image.Load<Rgba32>(serialized))
-                {
-                    image2.Save($"{path}/{file.FileName}");
-                }
+                using var image2 = Image.Load<Rgba32>(serialized);
+                image2.Save($"{path}/{file.FileName}");
             }
         }
 
@@ -170,25 +157,21 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData(10, 100, "tga")]
         public void CanIdentifyImageLoadedFromBytes(int width, int height, string extension)
         {
-            using (var image = Image.LoadPixelData(new Rgba32[width * height], width, height))
-            {
-                using (var memoryStream = new MemoryStream())
-                {
-                    IImageFormat format = GetFormat(extension);
-                    image.Save(memoryStream, format);
-                    memoryStream.Position = 0;
+            using var image = Image.LoadPixelData(new Rgba32[width * height], width, height);
+            using var memoryStream = new MemoryStream();
+            IImageFormat format = GetFormat(extension);
+            image.Save(memoryStream, format);
+            memoryStream.Position = 0;
 
-                    IImageInfo imageInfo = Image.Identify(memoryStream);
+            IImageInfo imageInfo = Image.Identify(memoryStream);
 
-                    Assert.Equal(imageInfo.Width, width);
-                    Assert.Equal(imageInfo.Height, height);
-                    memoryStream.Position = 0;
+            Assert.Equal(imageInfo.Width, width);
+            Assert.Equal(imageInfo.Height, height);
+            memoryStream.Position = 0;
 
-                    imageInfo = Image.Identify(memoryStream, out IImageFormat detectedFormat);
+            imageInfo = Image.Identify(memoryStream, out IImageFormat detectedFormat);
 
-                    Assert.Equal(format, detectedFormat);
-                }
-            }
+            Assert.Equal(format, detectedFormat);
         }
 
         [Fact]
@@ -196,13 +179,11 @@ namespace SixLabors.ImageSharp.Tests
         {
             byte[] invalid = new byte[10];
 
-            using (var memoryStream = new MemoryStream(invalid))
-            {
-                IImageInfo imageInfo = Image.Identify(memoryStream, out IImageFormat format);
+            using var memoryStream = new MemoryStream(invalid);
+            IImageInfo imageInfo = Image.Identify(memoryStream, out IImageFormat format);
 
-                Assert.Null(imageInfo);
-                Assert.Null(format);
-            }
+            Assert.Null(imageInfo);
+            Assert.Null(format);
         }
 
         private static IImageFormat GetFormat(string format)

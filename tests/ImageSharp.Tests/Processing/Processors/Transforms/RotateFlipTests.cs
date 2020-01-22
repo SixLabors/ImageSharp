@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -29,11 +29,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void RotateFlip<TPixel>(TestImageProvider<TPixel> provider, RotateMode rotateType, FlipMode flipType)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.RotateFlip(rotateType, flipType));
-                image.DebugSave(provider, string.Join("_", rotateType, flipType));
-            }
+            using Image<TPixel> image = provider.GetImage();
+            image.Mutate(x => x.RotateFlip(rotateType, flipType));
+            image.DebugSave(provider, string.Join("_", rotateType, flipType));
         }
     }
 }

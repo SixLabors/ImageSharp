@@ -30,10 +30,8 @@ namespace SixLabors.ImageSharp.Tests
             [InlineData(true)]
             public void Bytes_Specific(bool useSpan)
             {
-                using (var img = useSpan ? Image.Load<Rgba32>(ByteSpan) : Image.Load<Rgba32>(ByteArray))
-                {
-                    VerifyDecodedImage(img);
-                }
+                using var img = useSpan ? Image.Load<Rgba32>(ByteSpan) : Image.Load<Rgba32>(ByteArray);
+                VerifyDecodedImage(img);
             }
 
             [Theory]
@@ -41,10 +39,8 @@ namespace SixLabors.ImageSharp.Tests
             [InlineData(true)]
             public void Bytes_Agnostic(bool useSpan)
             {
-                using (var img = useSpan ? Image.Load(ByteSpan) : Image.Load(ByteArray))
-                {
-                    VerifyDecodedImage(img);
-                }
+                using var img = useSpan ? Image.Load(ByteSpan) : Image.Load(ByteArray);
+                VerifyDecodedImage(img);
             }
 
             [Theory]
@@ -52,10 +48,8 @@ namespace SixLabors.ImageSharp.Tests
             [InlineData(true)]
             public void Bytes_Decoder_Specific(bool useSpan)
             {
-                using (var img = useSpan ? Image.Load<Rgba32>(ByteSpan, new BmpDecoder()) : Image.Load<Rgba32>(ByteArray, new BmpDecoder()))
-                {
-                    VerifyDecodedImage(img);
-                }
+                using var img = useSpan ? Image.Load<Rgba32>(ByteSpan, new BmpDecoder()) : Image.Load<Rgba32>(ByteArray, new BmpDecoder());
+                VerifyDecodedImage(img);
             }
 
             [Theory]
@@ -63,10 +57,8 @@ namespace SixLabors.ImageSharp.Tests
             [InlineData(true)]
             public void Bytes_Decoder_Agnostic(bool useSpan)
             {
-                using (var img = useSpan ? Image.Load(ByteSpan, new BmpDecoder()) : Image.Load(ByteArray, new BmpDecoder()))
-                {
-                    VerifyDecodedImage(img);
-                }
+                using var img = useSpan ? Image.Load(ByteSpan, new BmpDecoder()) : Image.Load(ByteArray, new BmpDecoder());
+                VerifyDecodedImage(img);
             }
 
             [Theory]
@@ -75,11 +67,9 @@ namespace SixLabors.ImageSharp.Tests
             public void Bytes_OutFormat_Specific(bool useSpan)
             {
                 IImageFormat format;
-                using (var img = useSpan ? Image.Load<Rgba32>(ByteSpan, out format) : Image.Load<Rgba32>(ByteArray, out format))
-                {
-                    VerifyDecodedImage(img);
-                    Assert.IsType<BmpFormat>(format);
-                }
+                using var img = useSpan ? Image.Load<Rgba32>(ByteSpan, out format) : Image.Load<Rgba32>(ByteArray, out format);
+                VerifyDecodedImage(img);
+                Assert.IsType<BmpFormat>(format);
             }
 
             [Theory]
@@ -88,11 +78,9 @@ namespace SixLabors.ImageSharp.Tests
             public void Bytes_OutFormat_Agnostic(bool useSpan)
             {
                 IImageFormat format;
-                using (var img = useSpan ? Image.Load(ByteSpan, out format) : Image.Load(ByteArray, out format))
-                {
-                    VerifyDecodedImage(img);
-                    Assert.IsType<BmpFormat>(format);
-                }
+                using var img = useSpan ? Image.Load(ByteSpan, out format) : Image.Load(ByteArray, out format);
+                VerifyDecodedImage(img);
+                Assert.IsType<BmpFormat>(format);
             }
         }
     }

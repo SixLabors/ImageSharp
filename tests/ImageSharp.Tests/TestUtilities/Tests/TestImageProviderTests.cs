@@ -179,16 +179,14 @@ namespace SixLabors.ImageSharp.Tests
         public void SaveTestOutputFileMultiFrame<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                string[] files = provider.Utility.SaveTestOutputFileMultiFrame(image);
+            using Image<TPixel> image = provider.GetImage();
+            string[] files = provider.Utility.SaveTestOutputFileMultiFrame(image);
 
-                Assert.True(files.Length > 2);
-                foreach (string path in files)
-                {
-                    this.Output.WriteLine(path);
-                    Assert.True(File.Exists(path));
-                }
+            Assert.True(files.Length > 2);
+            foreach (string path in files)
+            {
+                this.Output.WriteLine(path);
+                Assert.True(File.Exists(path));
             }
         }
 
@@ -199,10 +197,8 @@ namespace SixLabors.ImageSharp.Tests
         public void Use_WithBasicTestPatternImages<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> img = provider.GetImage())
-            {
-                img.DebugSave(provider);
-            }
+            using Image<TPixel> img = provider.GetImage();
+            img.DebugSave(provider);
         }
 
         [Theory]
@@ -238,15 +234,13 @@ namespace SixLabors.ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             Assert.NotNull(provider.Utility.SourceFileOrDescription);
-            using (Image<TPixel> img = provider.GetImage())
-            {
-                Assert.True(img.Width * img.Height > 0);
+            using Image<TPixel> img = provider.GetImage();
+            Assert.True(img.Width * img.Height > 0);
 
-                Assert.Equal(123, yo);
+            Assert.Equal(123, yo);
 
-                string fn = provider.Utility.GetTestOutputFileName("jpg");
-                this.Output.WriteLine(fn);
-            }
+            string fn = provider.Utility.GetTestOutputFileName("jpg");
+            this.Output.WriteLine(fn);
         }
 
         [Theory]
@@ -263,10 +257,8 @@ namespace SixLabors.ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             Assert.NotNull(provider.Utility.SourceFileOrDescription);
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                provider.Utility.SaveTestOutputFile(image, "png");
-            }
+            using Image<TPixel> image = provider.GetImage();
+            provider.Utility.SaveTestOutputFile(image, "png");
         }
 
         [Theory]
@@ -334,12 +326,10 @@ namespace SixLabors.ImageSharp.Tests
                 var customConfiguration = Configuration.CreateDefaultInstance();
                 provider.Configuration = customConfiguration;
 
-                using (Image<TPixel> image2 = provider.GetImage())
-                using (Image<TPixel> image3 = provider.GetImage())
-                {
-                    Assert.Same(customConfiguration, image2.GetConfiguration());
-                    Assert.Same(customConfiguration, image3.GetConfiguration());
-                }
+                using Image<TPixel> image2 = provider.GetImage();
+                using Image<TPixel> image3 = provider.GetImage();
+                Assert.Same(customConfiguration, image2.GetConfiguration());
+                Assert.Same(customConfiguration, image3.GetConfiguration());
             }
         }
 

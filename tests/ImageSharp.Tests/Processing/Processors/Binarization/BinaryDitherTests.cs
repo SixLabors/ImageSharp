@@ -52,11 +52,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         public void BinaryDitherFilter_WorksWithAllDitherers<TPixel>(TestImageProvider<TPixel> provider, string name, IOrderedDither ditherer)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.BinaryDither(ditherer));
-                image.DebugSave(provider, name);
-            }
+            using Image<TPixel> image = provider.GetImage();
+            image.Mutate(x => x.BinaryDither(ditherer));
+            image.DebugSave(provider, name);
         }
 
         [Theory]
@@ -65,11 +63,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         public void DiffusionFilter_WorksWithAllErrorDiffusers<TPixel>(TestImageProvider<TPixel> provider, string name, IErrorDiffuser diffuser)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.BinaryDiffuse(diffuser, .5F));
-                image.DebugSave(provider, name);
-            }
+            using Image<TPixel> image = provider.GetImage();
+            image.Mutate(x => x.BinaryDiffuse(diffuser, .5F));
+            image.DebugSave(provider, name);
         }
 
         [Theory]
@@ -77,11 +73,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         public void BinaryDitherFilter_ShouldNotDependOnSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.BinaryDither(DefaultDitherer));
-                image.DebugSave(provider);
-            }
+            using Image<TPixel> image = provider.GetImage();
+            image.Mutate(x => x.BinaryDither(DefaultDitherer));
+            image.DebugSave(provider);
         }
 
         [Theory]
@@ -89,11 +83,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         public void DiffusionFilter_ShouldNotDependOnSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.BinaryDiffuse(DefaultErrorDiffuser, 0.5f));
-                image.DebugSave(provider);
-            }
+            using Image<TPixel> image = provider.GetImage();
+            image.Mutate(x => x.BinaryDiffuse(DefaultErrorDiffuser, 0.5f));
+            image.DebugSave(provider);
         }
 
         [Theory]
@@ -101,16 +93,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         public void ApplyDitherFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (Image<TPixel> image = source.Clone())
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+            using Image<TPixel> source = provider.GetImage();
+            using Image<TPixel> image = source.Clone();
+            var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.Mutate(x => x.BinaryDither(DefaultDitherer, bounds));
-                image.DebugSave(provider);
+            image.Mutate(x => x.BinaryDither(DefaultDitherer, bounds));
+            image.DebugSave(provider);
 
-                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
-            }
+            ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
         }
 
         [Theory]
@@ -118,16 +108,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         public void ApplyDiffusionFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (Image<TPixel> image = source.Clone())
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+            using Image<TPixel> source = provider.GetImage();
+            using Image<TPixel> image = source.Clone();
+            var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.Mutate(x => x.BinaryDiffuse(DefaultErrorDiffuser, .5F, bounds));
-                image.DebugSave(provider);
+            image.Mutate(x => x.BinaryDiffuse(DefaultErrorDiffuser, .5F, bounds));
+            image.DebugSave(provider);
 
-                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
-            }
+            ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
         }
     }
 }

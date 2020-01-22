@@ -192,12 +192,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         internal static JpegDecoderCore ParseJpegStream(string testFileName, bool metaDataOnly = false)
         {
             byte[] bytes = TestFile.Create(testFileName).Bytes;
-            using (var ms = new MemoryStream(bytes))
-            {
-                var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
-                decoder.ParseStream(ms, metaDataOnly);
-                return decoder;
-            }
+            using var ms = new MemoryStream(bytes);
+            var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+            decoder.ParseStream(ms, metaDataOnly);
+            return decoder;
         }
     }
 }

@@ -44,15 +44,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void AutoOrient_WorksForAllExifOrientations<TPixel>(TestImageProvider<TPixel> provider, ushort orientation)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Metadata.ExifProfile = new ExifProfile();
-                image.Metadata.ExifProfile.SetValue(ExifTag.Orientation, orientation);
+            using Image<TPixel> image = provider.GetImage();
+            image.Metadata.ExifProfile = new ExifProfile();
+            image.Metadata.ExifProfile.SetValue(ExifTag.Orientation, orientation);
 
-                image.Mutate(x => x.AutoOrient());
-                image.DebugSave(provider, orientation, appendPixelTypeToFileName: false);
-                image.CompareToReferenceOutput(provider, orientation, appendPixelTypeToFileName: false);
-            }
+            image.Mutate(x => x.AutoOrient());
+            image.DebugSave(provider, orientation, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(provider, orientation, appendPixelTypeToFileName: false);
         }
 
         [Theory]
@@ -80,14 +78,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
             ulong orientationCode = BitConverter.ToUInt64(orientationCodeData, 0);
 
-            using (Image<TPixel> image = provider.GetImage())
-            using (Image<TPixel> reference = image.Clone())
-            {
-                image.Metadata.ExifProfile = new ExifProfile(bytes);
-                image.Mutate(x => x.AutoOrient());
-                image.DebugSave(provider, $"{dataType}-{orientationCode}", appendPixelTypeToFileName: false);
-                ImageComparer.Exact.VerifySimilarity(image, reference);
-            }
+            using Image<TPixel> image = provider.GetImage();
+            using Image<TPixel> reference = image.Clone();
+            image.Metadata.ExifProfile = new ExifProfile(bytes);
+            image.Mutate(x => x.AutoOrient());
+            image.DebugSave(provider, $"{dataType}-{orientationCode}", appendPixelTypeToFileName: false);
+            ImageComparer.Exact.VerifySimilarity(image, reference);
         }
     }
 }

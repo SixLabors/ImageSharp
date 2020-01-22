@@ -63,19 +63,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         {
             string chunkName = GetChunkTypeName(chunkType);
 
-            using (var memStream = new MemoryStream())
-            {
-                WriteHeaderChunk(memStream);
-                WriteChunk(memStream, chunkName);
-                WriteDataChunk(memStream);
+            using var memStream = new MemoryStream();
+            WriteHeaderChunk(memStream);
+            WriteChunk(memStream, chunkName);
+            WriteDataChunk(memStream);
 
-                var decoder = new PngDecoder();
+            var decoder = new PngDecoder();
 
-                ImageFormatException exception =
-                    Assert.Throws<ImageFormatException>(() => decoder.Decode<Rgb24>(null, memStream));
+            ImageFormatException exception =
+                Assert.Throws<ImageFormatException>(() => decoder.Decode<Rgb24>(null, memStream));
 
-                Assert.Equal($"CRC Error. PNG {chunkName} chunk is corrupt!", exception.Message);
-            }
+            Assert.Equal($"CRC Error. PNG {chunkName} chunk is corrupt!", exception.Message);
         }
 
         private static string GetChunkTypeName(uint value)

@@ -26,21 +26,19 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
 
             byte[] imageBytes = TestFile.Create(imagePath).Bytes;
 
-            using (var ms = new MemoryStream())
-            {
-                this.Measure(
-                    30,
-                    () =>
-                        {
-                            using (var image = Image.Load(configuration, imageBytes))
-                            {
-                                image.Mutate(x => x.Resize(image.Size() / 4));
-                                image.SaveAsJpeg(ms);
-                            }
+            using var ms = new MemoryStream();
+            this.Measure(
+                30,
+                () =>
+                {
+                    using (var image = Image.Load(configuration, imageBytes))
+                    {
+                        image.Mutate(x => x.Resize(image.Size() / 4));
+                        image.SaveAsJpeg(ms);
+                    }
 
-                            ms.Seek(0, SeekOrigin.Begin);
-                        });
-            }
+                    ms.Seek(0, SeekOrigin.Begin);
+                });
         }
     }
 }

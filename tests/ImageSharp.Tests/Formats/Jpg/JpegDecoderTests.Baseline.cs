@@ -20,16 +20,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 return;
             }
 
-            using (Image<TPixel> image = provider.GetImage(JpegDecoder))
-            {
-                image.DebugSave(provider);
+            using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            image.DebugSave(provider);
 
-                provider.Utility.TestName = DecodeBaselineJpegOutputName;
-                image.CompareToReferenceOutput(
-                    this.GetImageComparer(provider),
-                    provider,
-                    appendPixelTypeToFileName: false);
-            }
+            provider.Utility.TestName = DecodeBaselineJpegOutputName;
+            image.CompareToReferenceOutput(
+                this.GetImageComparer(provider),
+                provider,
+                appendPixelTypeToFileName: false);
         }
 
         [Theory]

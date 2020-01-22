@@ -19,20 +19,18 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         [InlineData(10, 20, 0, 1)]
         public void GetMultiRowSpan(int width, int height, int min, int max)
         {
-            using (Buffer2D<int> buffer = Configuration.Default.MemoryAllocator.Allocate2D<int>(width, height))
-            {
-                var rows = new RowInterval(min, max);
+            using Buffer2D<int> buffer = Configuration.Default.MemoryAllocator.Allocate2D<int>(width, height);
+            var rows = new RowInterval(min, max);
 
-                Span<int> span = buffer.GetMultiRowSpan(rows);
+            Span<int> span = buffer.GetMultiRowSpan(rows);
 
-                ref int expected0 = ref buffer.GetSpan()[min * width];
-                int expectedLength = (max - min) * width;
+            ref int expected0 = ref buffer.GetSpan()[min * width];
+            int expectedLength = (max - min) * width;
 
-                ref int actual0 = ref span[0];
+            ref int actual0 = ref span[0];
 
-                Assert.Equal(span.Length, expectedLength);
-                Assert.True(Unsafe.AreSame(ref expected0, ref actual0));
-            }
+            Assert.Equal(span.Length, expectedLength);
+            Assert.True(Unsafe.AreSame(ref expected0, ref actual0));
         }
 
         [Fact]

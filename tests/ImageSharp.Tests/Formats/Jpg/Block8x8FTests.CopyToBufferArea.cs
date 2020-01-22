@@ -43,19 +43,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 Block8x8F block = CreateRandomFloatBlock(0, 100);
 
-                using (Buffer2D<float> buffer = Configuration.Default.MemoryAllocator.Allocate2D<float>(20, 20, AllocationOptions.Clean))
-                {
-                    BufferArea<float> area = buffer.GetArea(5, 10, 8, 8);
-                    block.Copy1x1Scale(area);
+                using Buffer2D<float> buffer = Configuration.Default.MemoryAllocator.Allocate2D<float>(20, 20, AllocationOptions.Clean);
+                BufferArea<float> area = buffer.GetArea(5, 10, 8, 8);
+                block.Copy1x1Scale(area);
 
-                    Assert.Equal(block[0, 0], buffer[5, 10]);
-                    Assert.Equal(block[1, 0], buffer[6, 10]);
-                    Assert.Equal(block[0, 1], buffer[5, 11]);
-                    Assert.Equal(block[0, 7], buffer[5, 17]);
-                    Assert.Equal(block[63], buffer[12, 17]);
+                Assert.Equal(block[0, 0], buffer[5, 10]);
+                Assert.Equal(block[1, 0], buffer[6, 10]);
+                Assert.Equal(block[0, 1], buffer[5, 11]);
+                Assert.Equal(block[0, 7], buffer[5, 17]);
+                Assert.Equal(block[63], buffer[12, 17]);
 
-                    VerifyAllZeroOutsideSubArea(buffer, 5, 10);
-                }
+                VerifyAllZeroOutsideSubArea(buffer, 5, 10);
             }
 
             [Theory]
@@ -71,27 +69,25 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 var start = new Point(50, 50);
 
-                using (Buffer2D<float> buffer = Configuration.Default.MemoryAllocator.Allocate2D<float>(100, 100, AllocationOptions.Clean))
+                using Buffer2D<float> buffer = Configuration.Default.MemoryAllocator.Allocate2D<float>(100, 100, AllocationOptions.Clean);
+                BufferArea<float> area = buffer.GetArea(start.X, start.Y, 8 * horizontalFactor, 8 * verticalFactor);
+                block.CopyTo(area, horizontalFactor, verticalFactor);
+
+                for (int y = 0; y < 8 * verticalFactor; y++)
                 {
-                    BufferArea<float> area = buffer.GetArea(start.X, start.Y, 8 * horizontalFactor, 8 * verticalFactor);
-                    block.CopyTo(area, horizontalFactor, verticalFactor);
-
-                    for (int y = 0; y < 8 * verticalFactor; y++)
+                    for (int x = 0; x < 8 * horizontalFactor; x++)
                     {
-                        for (int x = 0; x < 8 * horizontalFactor; x++)
-                        {
-                            int yy = y / verticalFactor;
-                            int xx = x / horizontalFactor;
+                        int yy = y / verticalFactor;
+                        int xx = x / horizontalFactor;
 
-                            float expected = block[xx, yy];
-                            float actual = area[x, y];
+                        float expected = block[xx, yy];
+                        float actual = area[x, y];
 
-                            Assert.Equal(expected, actual);
-                        }
+                        Assert.Equal(expected, actual);
                     }
-
-                    VerifyAllZeroOutsideSubArea(buffer, start.X, start.Y, horizontalFactor, verticalFactor);
                 }
+
+                VerifyAllZeroOutsideSubArea(buffer, start.X, start.Y, horizontalFactor, verticalFactor);
             }
         }
     }

@@ -997,11 +997,9 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             where TSource : struct
             where TDest : struct
         {
-            using (var buffers = new TestBuffers<TSource, TDest>(source, expected))
-            {
-                action(buffers.SourceBuffer, buffers.ActualDestBuffer);
-                buffers.Verify();
-            }
+            using var buffers = new TestBuffers<TSource, TDest>(source, expected);
+            action(buffers.SourceBuffer, buffers.ActualDestBuffer);
+            buffers.Verify();
         }
 
         internal static Vector4[] CreateVector4TestData(int length, RefAction<Vector4> vectorModifier = null)

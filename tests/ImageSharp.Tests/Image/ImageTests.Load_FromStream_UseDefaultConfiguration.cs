@@ -29,57 +29,45 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void Stream_Specific()
             {
-                using (var img = Image.Load<Rgba32>(this.Stream))
-                {
-                    VerifyDecodedImage(img);
-                }
+                using var img = Image.Load<Rgba32>(this.Stream);
+                VerifyDecodedImage(img);
             }
 
             [Fact]
             public void Stream_Agnostic()
             {
-                using (var img = Image.Load(this.Stream))
-                {
-                    VerifyDecodedImage(img);
-                }
+                using var img = Image.Load(this.Stream);
+                VerifyDecodedImage(img);
             }
 
             [Fact]
             public void Stream_OutFormat_Specific()
             {
-                using (var img = Image.Load<Rgba32>(this.Stream, out IImageFormat format))
-                {
-                    VerifyDecodedImage(img);
-                    Assert.IsType<BmpFormat>(format);
-                }
+                using var img = Image.Load<Rgba32>(this.Stream, out IImageFormat format);
+                VerifyDecodedImage(img);
+                Assert.IsType<BmpFormat>(format);
             }
 
             [Fact]
             public void Stream_Decoder_Specific()
             {
-                using (var img = Image.Load<Rgba32>(this.Stream, new BmpDecoder()))
-                {
-                    VerifyDecodedImage(img);
-                }
+                using var img = Image.Load<Rgba32>(this.Stream, new BmpDecoder());
+                VerifyDecodedImage(img);
             }
 
             [Fact]
             public void Stream_Decoder_Agnostic()
             {
-                using (var img = Image.Load(this.Stream, new BmpDecoder()))
-                {
-                    VerifyDecodedImage(img);
-                }
+                using var img = Image.Load(this.Stream, new BmpDecoder());
+                VerifyDecodedImage(img);
             }
 
             [Fact]
             public void Stream_OutFormat_Agnostic()
             {
-                using (var img = Image.Load(this.Stream, out IImageFormat format))
-                {
-                    VerifyDecodedImage(img);
-                    Assert.IsType<BmpFormat>(format);
-                }
+                using var img = Image.Load(this.Stream, out IImageFormat format);
+                VerifyDecodedImage(img);
+                Assert.IsType<BmpFormat>(format);
             }
 
             public void Dispose()

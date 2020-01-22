@@ -64,16 +64,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             where TPixel : struct, IPixel<TPixel>
         {
             IResampler sampler = GetResampler(resamplerName);
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
-                    .AppendTaper(TaperSide.Right, TaperCorner.Both, .5F);
+            using Image<TPixel> image = provider.GetImage();
+            ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
+                .AppendTaper(TaperSide.Right, TaperCorner.Both, .5F);
 
-                image.Mutate(i => i.Transform(builder, sampler));
+            image.Mutate(i => i.Transform(builder, sampler));
 
-                image.DebugSave(provider, resamplerName);
-                image.CompareToReferenceOutput(ValidatorComparer, provider, resamplerName);
-            }
+            image.DebugSave(provider, resamplerName);
+            image.CompareToReferenceOutput(ValidatorComparer, provider, resamplerName);
         }
 
         [Theory]
@@ -81,17 +79,15 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public void Transform_WithTaperMatrix<TPixel>(TestImageProvider<TPixel> provider, TaperSide taperSide, TaperCorner taperCorner)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
-                    .AppendTaper(taperSide, taperCorner, .5F);
+            using Image<TPixel> image = provider.GetImage();
+            ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
+                .AppendTaper(taperSide, taperCorner, .5F);
 
-                image.Mutate(i => i.Transform(builder));
+            image.Mutate(i => i.Transform(builder));
 
-                FormattableString testOutputDetails = $"{taperSide}-{taperCorner}";
-                image.DebugSave(provider, testOutputDetails);
-                image.CompareFirstFrameToReferenceOutput(TolerantComparer, provider, testOutputDetails);
-            }
+            FormattableString testOutputDetails = $"{taperSide}-{taperCorner}";
+            image.DebugSave(provider, testOutputDetails);
+            image.CompareFirstFrameToReferenceOutput(TolerantComparer, provider, testOutputDetails);
         }
 
         [Theory]
@@ -104,19 +100,17 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
             // This test matches the output described in the example at
             // https://docs.microsoft.com/en-us/xamarin/xamarin-forms/user-interface/graphics/skiasharp/transforms/non-affine
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                Matrix4x4 matrix = Matrix4x4.Identity;
-                matrix.M14 = 0.01F;
+            using Image<TPixel> image = provider.GetImage();
+            Matrix4x4 matrix = Matrix4x4.Identity;
+            matrix.M14 = 0.01F;
 
-                ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
+            ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
                 .AppendMatrix(matrix);
 
-                image.Mutate(i => i.Transform(builder));
+            image.Mutate(i => i.Transform(builder));
 
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(TolerantComparer, provider);
-            }
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(TolerantComparer, provider);
         }
 
         [Theory]
@@ -126,24 +120,22 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         {
             // https://jsfiddle.net/dFrHS/545/
             // https://github.com/SixLabors/ImageSharp/issues/787
-            using (Image<TPixel> image = provider.GetImage())
-            {
+            using Image<TPixel> image = provider.GetImage();
 #pragma warning disable SA1117 // Parameters should be on same line or separate lines
-                var matrix = new Matrix4x4(
-                   0.260987f, -0.434909f, 0, -0.0022184f,
-                   0.373196f, 0.949882f, 0, -0.000312129f,
-                   0, 0, 1, 0,
-                   52, 165, 0, 1);
+            var matrix = new Matrix4x4(
+                0.260987f, -0.434909f, 0, -0.0022184f,
+                0.373196f, 0.949882f, 0, -0.000312129f,
+                0, 0, 1, 0,
+                52, 165, 0, 1);
 #pragma warning restore SA1117 // Parameters should be on same line or separate lines
 
-                ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
+            ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
                 .AppendMatrix(matrix);
 
-                image.Mutate(i => i.Transform(builder));
+            image.Mutate(i => i.Transform(builder));
 
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(TolerantComparer, provider);
-            }
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(TolerantComparer, provider);
         }
 
         private static IResampler GetResampler(string name)

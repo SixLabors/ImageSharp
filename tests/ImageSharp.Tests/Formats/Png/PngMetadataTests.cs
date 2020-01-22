@@ -53,21 +53,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Decoder_CanReadTextData<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
-            {
-                PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("Comment") && m.Value.Equals("comment"));
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("Author") && m.Value.Equals("ImageSharp"));
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("Copyright") && m.Value.Equals("ImageSharp"));
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("Title") && m.Value.Equals("unittest"));
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("Description") && m.Value.Equals("compressed-text"));
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("International") && m.Value.Equals("'e', mu'tlheghvam, ghaH yu'") && m.LanguageTag.Equals("x-klingon") && m.TranslatedKeyword.Equals("warning"));
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("International2") && m.Value.Equals("ИМАГЕШАРП") && m.LanguageTag.Equals("rus"));
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("CompressedInternational") && m.Value.Equals("la plume de la mante") && m.LanguageTag.Equals("fra") && m.TranslatedKeyword.Equals("foobar"));
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("CompressedInternational2") && m.Value.Equals("這是一個考驗") && m.LanguageTag.Equals("chinese"));
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("NoLang") && m.Value.Equals("this text chunk is missing a language tag"));
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("NoTranslatedKeyword") && m.Value.Equals("dieser chunk hat kein übersetztes Schlüßelwort"));
-            }
+            using Image<TPixel> image = provider.GetImage(new PngDecoder());
+            PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Comment") && m.Value.Equals("comment"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Author") && m.Value.Equals("ImageSharp"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Copyright") && m.Value.Equals("ImageSharp"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Title") && m.Value.Equals("unittest"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Description") && m.Value.Equals("compressed-text"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("International") && m.Value.Equals("'e', mu'tlheghvam, ghaH yu'") && m.LanguageTag.Equals("x-klingon") && m.TranslatedKeyword.Equals("warning"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("International2") && m.Value.Equals("ИМАГЕШАРП") && m.LanguageTag.Equals("rus"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("CompressedInternational") && m.Value.Equals("la plume de la mante") && m.LanguageTag.Equals("fra") && m.TranslatedKeyword.Equals("foobar"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("CompressedInternational2") && m.Value.Equals("這是一個考驗") && m.LanguageTag.Equals("chinese"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("NoLang") && m.Value.Equals("this text chunk is missing a language tag"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("NoTranslatedKeyword") && m.Value.Equals("dieser chunk hat kein übersetztes Schlüßelwort"));
         }
 
         [Theory]
@@ -76,28 +74,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             where TPixel : struct, IPixel<TPixel>
         {
             var decoder = new PngDecoder();
-            using (Image<TPixel> input = provider.GetImage(decoder))
-            using (var memoryStream = new MemoryStream())
-            {
-                input.Save(memoryStream, new PngEncoder());
+            using Image<TPixel> input = provider.GetImage(decoder);
+            using var memoryStream = new MemoryStream();
+            input.Save(memoryStream, new PngEncoder());
 
-                memoryStream.Position = 0;
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, memoryStream))
-                {
-                    PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("Comment") && m.Value.Equals("comment"));
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("Author") && m.Value.Equals("ImageSharp"));
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("Copyright") && m.Value.Equals("ImageSharp"));
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("Title") && m.Value.Equals("unittest"));
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("Description") && m.Value.Equals("compressed-text"));
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("International") && m.Value.Equals("'e', mu'tlheghvam, ghaH yu'") && m.LanguageTag.Equals("x-klingon") && m.TranslatedKeyword.Equals("warning"));
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("International2") && m.Value.Equals("ИМАГЕШАРП") && m.LanguageTag.Equals("rus"));
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("CompressedInternational") && m.Value.Equals("la plume de la mante") && m.LanguageTag.Equals("fra") && m.TranslatedKeyword.Equals("foobar"));
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("CompressedInternational2") && m.Value.Equals("這是一個考驗") && m.LanguageTag.Equals("chinese"));
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("NoLang") && m.Value.Equals("this text chunk is missing a language tag"));
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("NoTranslatedKeyword") && m.Value.Equals("dieser chunk hat kein übersetztes Schlüßelwort"));
-                }
-            }
+            memoryStream.Position = 0;
+            using Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, memoryStream);
+            PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Comment") && m.Value.Equals("comment"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Author") && m.Value.Equals("ImageSharp"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Copyright") && m.Value.Equals("ImageSharp"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Title") && m.Value.Equals("unittest"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Description") && m.Value.Equals("compressed-text"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("International") && m.Value.Equals("'e', mu'tlheghvam, ghaH yu'") && m.LanguageTag.Equals("x-klingon") && m.TranslatedKeyword.Equals("warning"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("International2") && m.Value.Equals("ИМАГЕШАРП") && m.LanguageTag.Equals("rus"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("CompressedInternational") && m.Value.Equals("la plume de la mante") && m.LanguageTag.Equals("fra") && m.TranslatedKeyword.Equals("foobar"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("CompressedInternational2") && m.Value.Equals("這是一個考驗") && m.LanguageTag.Equals("chinese"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("NoLang") && m.Value.Equals("this text chunk is missing a language tag"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("NoTranslatedKeyword") && m.Value.Equals("dieser chunk hat kein übersetztes Schlüßelwort"));
         }
 
         [Theory]
@@ -105,16 +99,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Decoder_IgnoresInvalidTextData<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
-            {
-                PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
-                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("leading space"));
-                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("trailing space"));
-                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("space"));
-                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("empty"));
-                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("invalid characters"));
-                Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("too large"));
-            }
+            using Image<TPixel> image = provider.GetImage(new PngDecoder());
+            PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
+            Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("leading space"));
+            Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("trailing space"));
+            Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("space"));
+            Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("empty"));
+            Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("invalid characters"));
+            Assert.DoesNotContain(meta.TextData, m => m.Value.Equals("too large"));
         }
 
         [Theory]
@@ -123,30 +115,27 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             where TPixel : struct, IPixel<TPixel>
         {
             var decoder = new PngDecoder();
-            using (Image<TPixel> input = provider.GetImage(decoder))
-            using (var memoryStream = new MemoryStream())
+            using Image<TPixel> input = provider.GetImage(decoder);
+            using var memoryStream = new MemoryStream();
+
+            // This will be a zTXt chunk.
+            var expectedText = new PngTextData("large-text", new string('c', 100), string.Empty, string.Empty);
+
+            // This will be a iTXt chunk.
+            var expectedTextNoneLatin = new PngTextData("large-text-non-latin", new string('Ф', 100), "language-tag", "translated-keyword");
+            PngMetadata inputMetadata = input.Metadata.GetFormatMetadata(PngFormat.Instance);
+            inputMetadata.TextData.Add(expectedText);
+            inputMetadata.TextData.Add(expectedTextNoneLatin);
+            input.Save(memoryStream, new PngEncoder
             {
-                // This will be a zTXt chunk.
-                var expectedText = new PngTextData("large-text", new string('c', 100), string.Empty, string.Empty);
+                TextCompressionThreshold = 50
+            });
 
-                // This will be a iTXt chunk.
-                var expectedTextNoneLatin = new PngTextData("large-text-non-latin", new string('Ф', 100), "language-tag", "translated-keyword");
-                PngMetadata inputMetadata = input.Metadata.GetFormatMetadata(PngFormat.Instance);
-                inputMetadata.TextData.Add(expectedText);
-                inputMetadata.TextData.Add(expectedTextNoneLatin);
-                input.Save(memoryStream, new PngEncoder
-                {
-                    TextCompressionThreshold = 50
-                });
-
-                memoryStream.Position = 0;
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, memoryStream))
-                {
-                    PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
-                    Assert.Contains(meta.TextData, m => m.Equals(expectedText));
-                    Assert.Contains(meta.TextData, m => m.Equals(expectedTextNoneLatin));
-                }
-            }
+            memoryStream.Position = 0;
+            using Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, memoryStream);
+            PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
+            Assert.Contains(meta.TextData, m => m.Equals(expectedText));
+            Assert.Contains(meta.TextData, m => m.Equals(expectedTextNoneLatin));
         }
 
         [Fact]
@@ -159,15 +148,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             var testFile = TestFile.Create(TestImages.Png.Blur);
 
-            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
-            {
-                PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
+            using Image<Rgba32> image = testFile.CreateRgba32Image(options);
+            PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
 
-                Assert.Equal(1, meta.TextData.Count);
-                Assert.Equal("Software", meta.TextData[0].Keyword);
-                Assert.Equal("paint.net 4.0.6", meta.TextData[0].Value);
-                Assert.Equal(0.4545d, meta.Gamma, precision: 4);
-            }
+            Assert.Equal(1, meta.TextData.Count);
+            Assert.Equal("Software", meta.TextData[0].Keyword);
+            Assert.Equal("paint.net 4.0.6", meta.TextData[0].Value);
+            Assert.Equal(0.4545d, meta.Gamma, precision: 4);
         }
 
         [Fact]
@@ -180,11 +167,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
             var testFile = TestFile.Create(TestImages.Png.Blur);
 
-            using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
-            {
-                PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
-                Assert.Equal(0, meta.TextData.Count);
-            }
+            using Image<Rgba32> image = testFile.CreateRgba32Image(options);
+            PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
+            Assert.Equal(0, meta.TextData.Count);
         }
 
         [Theory]
@@ -192,17 +177,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Decode_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                var decoder = new PngDecoder();
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
-                {
-                    ImageMetadata meta = image.Metadata;
-                    Assert.Equal(xResolution, meta.HorizontalResolution);
-                    Assert.Equal(yResolution, meta.VerticalResolution);
-                    Assert.Equal(resolutionUnit, meta.ResolutionUnits);
-                }
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            var decoder = new PngDecoder();
+            using Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream);
+            ImageMetadata meta = image.Metadata;
+            Assert.Equal(xResolution, meta.HorizontalResolution);
+            Assert.Equal(yResolution, meta.VerticalResolution);
+            Assert.Equal(resolutionUnit, meta.ResolutionUnits);
         }
 
         [Theory]
@@ -210,15 +191,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Identify_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                var decoder = new PngDecoder();
-                IImageInfo image = decoder.Identify(Configuration.Default, stream);
-                ImageMetadata meta = image.Metadata;
-                Assert.Equal(xResolution, meta.HorizontalResolution);
-                Assert.Equal(yResolution, meta.VerticalResolution);
-                Assert.Equal(resolutionUnit, meta.ResolutionUnits);
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            var decoder = new PngDecoder();
+            IImageInfo image = decoder.Identify(Configuration.Default, stream);
+            ImageMetadata meta = image.Metadata;
+            Assert.Equal(xResolution, meta.HorizontalResolution);
+            Assert.Equal(yResolution, meta.VerticalResolution);
+            Assert.Equal(resolutionUnit, meta.ResolutionUnits);
         }
     }
 }

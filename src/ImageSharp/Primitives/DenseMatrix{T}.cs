@@ -4,9 +4,8 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Primitives
+namespace SixLabors.ImageSharp
 {
     /// <summary>
     /// Represents a dense matrix with arbitrary elements.

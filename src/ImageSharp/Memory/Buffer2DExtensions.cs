@@ -6,8 +6,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>

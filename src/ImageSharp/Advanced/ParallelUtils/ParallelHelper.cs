@@ -7,8 +7,6 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 using SixLabors.ImageSharp.Memory;
-using SixLabors.Memory;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Advanced.ParallelUtils
 {

@@ -95,42 +95,40 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData(TestImageWriteFormat.Png)]
         public void WriteFraction(TestImageWriteFormat imageFormat)
         {
-            using (var memStream = new MemoryStream())
-            {
-                double exposureTime = 1.0 / 1600;
+            using var memStream = new MemoryStream();
+            double exposureTime = 1.0 / 1600;
 
-                ExifProfile profile = GetExifProfile();
+            ExifProfile profile = GetExifProfile();
 
-                profile.SetValue(ExifTag.ExposureTime, new Rational(exposureTime));
+            profile.SetValue(ExifTag.ExposureTime, new Rational(exposureTime));
 
-                var image = new Image<Rgba32>(1, 1);
-                image.Metadata.ExifProfile = profile;
+            var image = new Image<Rgba32>(1, 1);
+            image.Metadata.ExifProfile = profile;
 
-                image = WriteAndRead(image, imageFormat);
+            image = WriteAndRead(image, imageFormat);
 
-                profile = image.Metadata.ExifProfile;
-                Assert.NotNull(profile);
+            profile = image.Metadata.ExifProfile;
+            Assert.NotNull(profile);
 
-                IExifValue<Rational> value = profile.GetValue(ExifTag.ExposureTime);
-                Assert.NotNull(value);
-                Assert.NotEqual(exposureTime, value.Value.ToDouble());
+            IExifValue<Rational> value = profile.GetValue(ExifTag.ExposureTime);
+            Assert.NotNull(value);
+            Assert.NotEqual(exposureTime, value.Value.ToDouble());
 
-                memStream.Position = 0;
-                profile = GetExifProfile();
+            memStream.Position = 0;
+            profile = GetExifProfile();
 
-                profile.SetValue(ExifTag.ExposureTime, new Rational(exposureTime, true));
-                image.Metadata.ExifProfile = profile;
+            profile.SetValue(ExifTag.ExposureTime, new Rational(exposureTime, true));
+            image.Metadata.ExifProfile = profile;
 
-                image = WriteAndRead(image, imageFormat);
+            image = WriteAndRead(image, imageFormat);
 
-                profile = image.Metadata.ExifProfile;
-                Assert.NotNull(profile);
+            profile = image.Metadata.ExifProfile;
+            Assert.NotNull(profile);
 
-                value = profile.GetValue(ExifTag.ExposureTime);
-                Assert.Equal(exposureTime, value.Value.ToDouble());
+            value = profile.GetValue(ExifTag.ExposureTime);
+            Assert.Equal(exposureTime, value.Value.ToDouble());
 
-                image.Dispose();
-            }
+            image.Dispose();
         }
 
         [Theory]
@@ -454,26 +452,22 @@ namespace SixLabors.ImageSharp.Tests
 
         private static Image<Rgba32> WriteAndReadJpeg(Image<Rgba32> image)
         {
-            using (var memStream = new MemoryStream())
-            {
-                image.SaveAsJpeg(memStream);
-                image.Dispose();
+            using var memStream = new MemoryStream();
+            image.SaveAsJpeg(memStream);
+            image.Dispose();
 
-                memStream.Position = 0;
-                return Image.Load<Rgba32>(memStream);
-            }
+            memStream.Position = 0;
+            return Image.Load<Rgba32>(memStream);
         }
 
         private static Image<Rgba32> WriteAndReadPng(Image<Rgba32> image)
         {
-            using (var memStream = new MemoryStream())
-            {
-                image.SaveAsPng(memStream);
-                image.Dispose();
+            using var memStream = new MemoryStream();
+            image.SaveAsPng(memStream);
+            image.Dispose();
 
-                memStream.Position = 0;
-                return Image.Load<Rgba32>(memStream);
-            }
+            memStream.Position = 0;
+            return Image.Load<Rgba32>(memStream);
         }
 
         private static void TestProfile(ExifProfile profile)

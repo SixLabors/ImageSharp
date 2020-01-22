@@ -54,22 +54,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             var options = new BmpEncoder();
 
             var testFile = TestFile.Create(imagePath);
-            using (Image<Rgba32> input = testFile.CreateRgba32Image())
-            {
-                using (var memStream = new MemoryStream())
-                {
-                    input.Save(memStream, options);
+            using Image<Rgba32> input = testFile.CreateRgba32Image();
+            using var memStream = new MemoryStream();
+            input.Save(memStream, options);
 
-                    memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
-                    {
-                        ImageMetadata meta = output.Metadata;
-                        Assert.Equal(xResolution, meta.HorizontalResolution);
-                        Assert.Equal(yResolution, meta.VerticalResolution);
-                        Assert.Equal(resolutionUnit, meta.ResolutionUnits);
-                    }
-                }
-            }
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(memStream);
+            ImageMetadata meta = output.Metadata;
+            Assert.Equal(xResolution, meta.HorizontalResolution);
+            Assert.Equal(yResolution, meta.VerticalResolution);
+            Assert.Equal(resolutionUnit, meta.ResolutionUnits);
         }
 
         [Theory]
@@ -79,21 +73,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             var options = new BmpEncoder();
 
             var testFile = TestFile.Create(imagePath);
-            using (Image<Rgba32> input = testFile.CreateRgba32Image())
-            {
-                using (var memStream = new MemoryStream())
-                {
-                    input.Save(memStream, options);
+            using Image<Rgba32> input = testFile.CreateRgba32Image();
+            using var memStream = new MemoryStream();
+            input.Save(memStream, options);
 
-                    memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
-                    {
-                        BmpMetadata meta = output.Metadata.GetBmpMetadata();
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(memStream);
+            BmpMetadata meta = output.Metadata.GetBmpMetadata();
 
-                        Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
-                    }
-                }
-            }
+            Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
         }
 
         [Theory]
@@ -192,20 +180,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 return;
             }
 
-            using (Image<TPixel> image = provider.GetImage())
+            using Image<TPixel> image = provider.GetImage();
+            var encoder = new BmpEncoder
             {
-                var encoder = new BmpEncoder
-                {
-                    BitsPerPixel = BmpBitsPerPixel.Pixel8,
-                    Quantizer = new WuQuantizer(256)
-                };
-                string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "bmp", encoder, appendPixelTypeToFileName: false);
-                IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
-                using (var referenceImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
-                {
-                    referenceImage.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.01f), provider, extension: "bmp", appendPixelTypeToFileName: false);
-                }
-            }
+                BitsPerPixel = BmpBitsPerPixel.Pixel8,
+                Quantizer = new WuQuantizer(256)
+            };
+            string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "bmp", encoder, appendPixelTypeToFileName: false);
+            IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
+            using var referenceImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder);
+            referenceImage.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.01f), provider, extension: "bmp", appendPixelTypeToFileName: false);
         }
 
         [Theory]
@@ -218,20 +202,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 return;
             }
 
-            using (Image<TPixel> image = provider.GetImage())
+            using Image<TPixel> image = provider.GetImage();
+            var encoder = new BmpEncoder
             {
-                var encoder = new BmpEncoder
-                {
-                    BitsPerPixel = BmpBitsPerPixel.Pixel8,
-                    Quantizer = new OctreeQuantizer(256)
-                };
-                string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "bmp", encoder, appendPixelTypeToFileName: false);
-                IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
-                using (var referenceImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
-                {
-                    referenceImage.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.01f), provider, extension: "bmp", appendPixelTypeToFileName: false);
-                }
-            }
+                BitsPerPixel = BmpBitsPerPixel.Pixel8,
+                Quantizer = new OctreeQuantizer(256)
+            };
+            string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "bmp", encoder, appendPixelTypeToFileName: false);
+            IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
+            using var referenceImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder);
+            referenceImage.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.01f), provider, extension: "bmp", appendPixelTypeToFileName: false);
         }
 
         [Theory]
@@ -247,19 +227,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             ImageComparer customComparer = null)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
+            using Image<TPixel> image = provider.GetImage();
+
+            // There is no alpha in bmp with less then 32 bits per pixels, so the reference image will be made opaque.
+            if (bitsPerPixel != BmpBitsPerPixel.Pixel32)
             {
-                // There is no alpha in bmp with less then 32 bits per pixels, so the reference image will be made opaque.
-                if (bitsPerPixel != BmpBitsPerPixel.Pixel32)
-                {
-                    image.Mutate(c => c.MakeOpaque());
-                }
-
-                var encoder = new BmpEncoder { BitsPerPixel = bitsPerPixel, SupportTransparency = supportTransparency };
-
-                // Does DebugSave & load reference CompareToReferenceInput():
-                image.VerifyEncoder(provider, "bmp", bitsPerPixel, encoder, customComparer);
+                image.Mutate(c => c.MakeOpaque());
             }
+
+            var encoder = new BmpEncoder { BitsPerPixel = bitsPerPixel, SupportTransparency = supportTransparency };
+
+            // Does DebugSave & load reference CompareToReferenceInput():
+            image.VerifyEncoder(provider, "bmp", bitsPerPixel, encoder, customComparer);
         }
     }
 }

@@ -47,20 +47,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var options = new JpegEncoder();
 
             var testFile = TestFile.Create(imagePath);
-            using (Image<Rgba32> input = testFile.CreateRgba32Image())
-            {
-                using (var memStream = new MemoryStream())
-                {
-                    input.Save(memStream, options);
+            using Image<Rgba32> input = testFile.CreateRgba32Image();
+            using var memStream = new MemoryStream();
+            input.Save(memStream, options);
 
-                    memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
-                    {
-                        JpegMetadata meta = output.Metadata.GetJpegMetadata();
-                        Assert.Equal(quality, meta.Quality);
-                    }
-                }
-            }
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(memStream);
+            JpegMetadata meta = output.Metadata.GetJpegMetadata();
+            Assert.Equal(quality, meta.Quality);
         }
 
         [Theory]
@@ -108,22 +102,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             int quality = 100)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
+            using Image<TPixel> image = provider.GetImage();
+
+            // There is no alpha in Jpeg!
+            image.Mutate(c => c.MakeOpaque());
+
+            var encoder = new JpegEncoder
             {
-                // There is no alpha in Jpeg!
-                image.Mutate(c => c.MakeOpaque());
+                Subsample = subsample,
+                Quality = quality
+            };
+            string info = $"{subsample}-Q{quality}";
+            ImageComparer comparer = GetComparer(quality, subsample);
 
-                var encoder = new JpegEncoder
-                {
-                    Subsample = subsample,
-                    Quality = quality
-                };
-                string info = $"{subsample}-Q{quality}";
-                ImageComparer comparer = GetComparer(quality, subsample);
-
-                // Does DebugSave & load reference CompareToReferenceInput():
-                image.VerifyEncoder(provider, "jpeg", info, encoder, comparer, referenceImageExtension: "png");
-            }
+            // Does DebugSave & load reference CompareToReferenceInput():
+            image.VerifyEncoder(provider, "jpeg", info, encoder, comparer, referenceImageExtension: "png");
         }
 
         [Fact]
@@ -136,17 +129,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Calliphora);
 
-            using (Image<Rgba32> input = testFile.CreateRgba32Image())
-            using (var memStream0 = new MemoryStream())
-            using (var memStream1 = new MemoryStream())
-            {
-                input.SaveAsJpeg(memStream0, options);
+            using Image<Rgba32> input = testFile.CreateRgba32Image();
+            using var memStream0 = new MemoryStream();
+            using var memStream1 = new MemoryStream();
+            input.SaveAsJpeg(memStream0, options);
 
-                options.Quality = 1;
-                input.SaveAsJpeg(memStream1, options);
+            options.Quality = 1;
+            input.SaveAsJpeg(memStream1, options);
 
-                Assert.Equal(memStream0.ToArray(), memStream1.ToArray());
-            }
+            Assert.Equal(memStream0.ToArray(), memStream1.ToArray());
         }
 
         [Fact]
@@ -159,17 +150,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Calliphora);
 
-            using (Image<Rgba32> input = testFile.CreateRgba32Image())
-            using (var memStream0 = new MemoryStream())
-            using (var memStream1 = new MemoryStream())
-            {
-                input.SaveAsJpeg(memStream0, options);
+            using Image<Rgba32> input = testFile.CreateRgba32Image();
+            using var memStream0 = new MemoryStream();
+            using var memStream1 = new MemoryStream();
+            input.SaveAsJpeg(memStream0, options);
 
-                options.Quality = 100;
-                input.SaveAsJpeg(memStream1, options);
+            options.Quality = 100;
+            input.SaveAsJpeg(memStream1, options);
 
-                Assert.NotEqual(memStream0.ToArray(), memStream1.ToArray());
-            }
+            Assert.NotEqual(memStream0.ToArray(), memStream1.ToArray());
         }
 
         [Theory]
@@ -179,22 +168,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var options = new JpegEncoder();
 
             var testFile = TestFile.Create(imagePath);
-            using (Image<Rgba32> input = testFile.CreateRgba32Image())
-            {
-                using (var memStream = new MemoryStream())
-                {
-                    input.Save(memStream, options);
+            using Image<Rgba32> input = testFile.CreateRgba32Image();
+            using var memStream = new MemoryStream();
+            input.Save(memStream, options);
 
-                    memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
-                    {
-                        ImageMetadata meta = output.Metadata;
-                        Assert.Equal(xResolution, meta.HorizontalResolution);
-                        Assert.Equal(yResolution, meta.VerticalResolution);
-                        Assert.Equal(resolutionUnit, meta.ResolutionUnits);
-                    }
-                }
-            }
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(memStream);
+            ImageMetadata meta = output.Metadata;
+            Assert.Equal(xResolution, meta.HorizontalResolution);
+            Assert.Equal(yResolution, meta.VerticalResolution);
+            Assert.Equal(resolutionUnit, meta.ResolutionUnits);
         }
     }
 }

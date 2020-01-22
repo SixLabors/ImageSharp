@@ -56,23 +56,19 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
             }
 
             // Make sure the kernel components are the same
-            using (var image = new Image<Rgb24>(1, 1))
+            using var image = new Image<Rgb24>(1, 1);
+            Configuration configuration = image.GetConfiguration();
+            var definition = new BokehBlurProcessor(10, BokehBlurProcessor.DefaultComponents, BokehBlurProcessor.DefaultGamma);
+            using var processor = (BokehBlurProcessor<Rgb24>)definition.CreatePixelSpecificProcessor(configuration, image, image.Bounds());
+            Assert.Equal(components.Count, processor.Kernels.Count);
+            foreach ((Complex64[] a, Complex64[] b) in components.Zip(processor.Kernels, (a, b) => (a, b)))
             {
-                Configuration configuration = image.GetConfiguration();
-                var definition = new BokehBlurProcessor(10, BokehBlurProcessor.DefaultComponents, BokehBlurProcessor.DefaultGamma);
-                using (var processor = (BokehBlurProcessor<Rgb24>)definition.CreatePixelSpecificProcessor(configuration, image, image.Bounds()))
+                Span<Complex64> spanA = a.AsSpan(), spanB = b.AsSpan();
+                Assert.Equal(spanA.Length, spanB.Length);
+                for (int i = 0; i < spanA.Length; i++)
                 {
-                    Assert.Equal(components.Count, processor.Kernels.Count);
-                    foreach ((Complex64[] a, Complex64[] b) in components.Zip(processor.Kernels, (a, b) => (a, b)))
-                    {
-                        Span<Complex64> spanA = a.AsSpan(), spanB = b.AsSpan();
-                        Assert.Equal(spanA.Length, spanB.Length);
-                        for (int i = 0; i < spanA.Length; i++)
-                        {
-                            Assert.True(Math.Abs(Math.Abs(spanA[i].Real) - Math.Abs(spanB[i].Real)) < 0.0001f);
-                            Assert.True(Math.Abs(Math.Abs(spanA[i].Imaginary) - Math.Abs(spanB[i].Imaginary)) < 0.0001f);
-                        }
-                    }
+                    Assert.True(Math.Abs(Math.Abs(spanA[i].Real) - Math.Abs(spanB[i].Real)) < 0.0001f);
+                    Assert.True(Math.Abs(Math.Abs(spanA[i].Imaginary) - Math.Abs(spanB[i].Imaginary)) < 0.0001f);
                 }
             }
         }

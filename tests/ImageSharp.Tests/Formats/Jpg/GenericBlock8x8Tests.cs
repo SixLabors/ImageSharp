@@ -38,23 +38,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void LoadAndStretchCorners_FromOrigo<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> s = provider.GetImage())
-            {
-                var d = default(GenericBlock8x8<TPixel>);
-                d.LoadAndStretchEdges(s.Frames.RootFrame, 0, 0);
+            using Image<TPixel> s = provider.GetImage();
+            var d = default(GenericBlock8x8<TPixel>);
+            d.LoadAndStretchEdges(s.Frames.RootFrame, 0, 0);
 
-                TPixel a = s.Frames.RootFrame[0, 0];
-                TPixel b = d[0, 0];
+            TPixel a = s.Frames.RootFrame[0, 0];
+            TPixel b = d[0, 0];
 
-                Assert.Equal(s[0, 0], d[0, 0]);
-                Assert.Equal(s[1, 0], d[1, 0]);
-                Assert.Equal(s[7, 0], d[7, 0]);
-                Assert.Equal(s[0, 1], d[0, 1]);
-                Assert.Equal(s[1, 1], d[1, 1]);
-                Assert.Equal(s[7, 0], d[7, 0]);
-                Assert.Equal(s[0, 7], d[0, 7]);
-                Assert.Equal(s[7, 7], d[7, 7]);
-            }
+            Assert.Equal(s[0, 0], d[0, 0]);
+            Assert.Equal(s[1, 0], d[1, 0]);
+            Assert.Equal(s[7, 0], d[7, 0]);
+            Assert.Equal(s[0, 1], d[0, 1]);
+            Assert.Equal(s[1, 1], d[1, 1]);
+            Assert.Equal(s[7, 0], d[7, 0]);
+            Assert.Equal(s[0, 7], d[0, 7]);
+            Assert.Equal(s[7, 7], d[7, 7]);
         }
 
         [Theory]
@@ -62,38 +60,36 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void LoadAndStretchCorners_WithOffset<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> s = provider.GetImage())
-            {
-                var d = default(GenericBlock8x8<TPixel>);
-                d.LoadAndStretchEdges(s.Frames.RootFrame, 6, 7);
+            using Image<TPixel> s = provider.GetImage();
+            var d = default(GenericBlock8x8<TPixel>);
+            d.LoadAndStretchEdges(s.Frames.RootFrame, 6, 7);
 
-                Assert.Equal(s[6, 7], d[0, 0]);
-                Assert.Equal(s[6, 8], d[0, 1]);
-                Assert.Equal(s[7, 8], d[1, 1]);
+            Assert.Equal(s[6, 7], d[0, 0]);
+            Assert.Equal(s[6, 8], d[0, 1]);
+            Assert.Equal(s[7, 8], d[1, 1]);
 
-                Assert.Equal(s[6, 9], d[0, 2]);
-                Assert.Equal(s[6, 9], d[0, 3]);
-                Assert.Equal(s[6, 9], d[0, 7]);
+            Assert.Equal(s[6, 9], d[0, 2]);
+            Assert.Equal(s[6, 9], d[0, 3]);
+            Assert.Equal(s[6, 9], d[0, 7]);
 
-                Assert.Equal(s[7, 9], d[1, 2]);
-                Assert.Equal(s[7, 9], d[1, 3]);
-                Assert.Equal(s[7, 9], d[1, 7]);
+            Assert.Equal(s[7, 9], d[1, 2]);
+            Assert.Equal(s[7, 9], d[1, 3]);
+            Assert.Equal(s[7, 9], d[1, 7]);
 
-                Assert.Equal(s[9, 9], d[3, 2]);
-                Assert.Equal(s[9, 9], d[3, 3]);
-                Assert.Equal(s[9, 9], d[3, 7]);
+            Assert.Equal(s[9, 9], d[3, 2]);
+            Assert.Equal(s[9, 9], d[3, 3]);
+            Assert.Equal(s[9, 9], d[3, 7]);
 
-                Assert.Equal(s[9, 7], d[3, 0]);
-                Assert.Equal(s[9, 7], d[4, 0]);
-                Assert.Equal(s[9, 7], d[7, 0]);
+            Assert.Equal(s[9, 7], d[3, 0]);
+            Assert.Equal(s[9, 7], d[4, 0]);
+            Assert.Equal(s[9, 7], d[7, 0]);
 
-                Assert.Equal(s[9, 9], d[3, 2]);
-                Assert.Equal(s[9, 9], d[4, 2]);
-                Assert.Equal(s[9, 9], d[7, 2]);
+            Assert.Equal(s[9, 9], d[3, 2]);
+            Assert.Equal(s[9, 9], d[4, 2]);
+            Assert.Equal(s[9, 9], d[7, 2]);
 
-                Assert.Equal(s[9, 9], d[4, 3]);
-                Assert.Equal(s[9, 9], d[7, 7]);
-            }
+            Assert.Equal(s[9, 9], d[4, 3]);
+            Assert.Equal(s[9, 9], d[7, 7]);
         }
 
         [Fact]

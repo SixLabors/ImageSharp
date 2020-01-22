@@ -37,24 +37,20 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(1025, 17)]
         public void Construct(int width, int height)
         {
-            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
-            {
-                Assert.Equal(width, buffer.Width);
-                Assert.Equal(height, buffer.Height);
-                Assert.Equal(width * height, buffer.GetMemory().Length);
-            }
+            using Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height);
+            Assert.Equal(width, buffer.Width);
+            Assert.Equal(height, buffer.Height);
+            Assert.Equal(width * height, buffer.GetMemory().Length);
         }
 
         [Fact]
         public void CreateClean()
         {
-            using (Buffer2D<int> buffer = this.MemoryAllocator.Allocate2D<int>(42, 42, AllocationOptions.Clean))
+            using Buffer2D<int> buffer = this.MemoryAllocator.Allocate2D<int>(42, 42, AllocationOptions.Clean);
+            Span<int> span = buffer.GetSpan();
+            for (int j = 0; j < span.Length; j++)
             {
-                Span<int> span = buffer.GetSpan();
-                for (int j = 0; j < span.Length; j++)
-                {
-                    Assert.Equal(0, span[j]);
-                }
+                Assert.Equal(0, span[j]);
             }
         }
 
@@ -64,14 +60,12 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(17, 42, 41)]
         public void GetRowSpanY(int width, int height, int y)
         {
-            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
-            {
-                Span<TestStructs.Foo> span = buffer.GetRowSpan(y);
+            using Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height);
+            Span<TestStructs.Foo> span = buffer.GetRowSpan(y);
 
-                // Assert.Equal(width * y, span.Start);
-                Assert.Equal(width, span.Length);
-                Assert.SpanPointsTo(span, buffer.MemorySource.MemoryOwner, width * y);
-            }
+            // Assert.Equal(width * y, span.Start);
+            Assert.Equal(width, span.Length);
+            Assert.SpanPointsTo(span, buffer.MemorySource.MemoryOwner, width * y);
         }
 
         [Theory]
@@ -80,35 +74,31 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(99, 88, 98, 87)]
         public void Indexer(int width, int height, int x, int y)
         {
-            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
-            {
-                Span<TestStructs.Foo> span = buffer.MemorySource.GetSpan();
+            using Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height);
+            Span<TestStructs.Foo> span = buffer.MemorySource.GetSpan();
 
-                ref TestStructs.Foo actual = ref buffer[x, y];
+            ref TestStructs.Foo actual = ref buffer[x, y];
 
-                ref TestStructs.Foo expected = ref span[(y * width) + x];
+            ref TestStructs.Foo expected = ref span[(y * width) + x];
 
-                Assert.True(Unsafe.AreSame(ref expected, ref actual));
-            }
+            Assert.True(Unsafe.AreSame(ref expected, ref actual));
         }
 
         [Fact]
         public void SwapOrCopyContent()
         {
-            using (Buffer2D<int> a = this.MemoryAllocator.Allocate2D<int>(10, 5))
-            using (Buffer2D<int> b = this.MemoryAllocator.Allocate2D<int>(3, 7))
-            {
-                IMemoryOwner<int> aa = a.MemorySource.MemoryOwner;
-                IMemoryOwner<int> bb = b.MemorySource.MemoryOwner;
+            using Buffer2D<int> a = this.MemoryAllocator.Allocate2D<int>(10, 5);
+            using Buffer2D<int> b = this.MemoryAllocator.Allocate2D<int>(3, 7);
+            IMemoryOwner<int> aa = a.MemorySource.MemoryOwner;
+            IMemoryOwner<int> bb = b.MemorySource.MemoryOwner;
 
-                Buffer2D<int>.SwapOrCopyContent(a, b);
+            Buffer2D<int>.SwapOrCopyContent(a, b);
 
-                Assert.Equal(bb, a.MemorySource.MemoryOwner);
-                Assert.Equal(aa, b.MemorySource.MemoryOwner);
+            Assert.Equal(bb, a.MemorySource.MemoryOwner);
+            Assert.Equal(aa, b.MemorySource.MemoryOwner);
 
-                Assert.Equal(new Size(3, 7), a.Size());
-                Assert.Equal(new Size(10, 5), b.Size());
-            }
+            Assert.Equal(new Size(3, 7), a.Size());
+            Assert.Equal(new Size(10, 5), b.Size());
         }
 
         [Theory]
@@ -121,21 +111,19 @@ namespace SixLabors.ImageSharp.Tests.Memory
         public void CopyColumns(int width, int height, int startIndex, int destIndex, int columnCount)
         {
             var rnd = new Random(123);
-            using (Buffer2D<float> b = this.MemoryAllocator.Allocate2D<float>(width, height))
+            using Buffer2D<float> b = this.MemoryAllocator.Allocate2D<float>(width, height);
+            rnd.RandomFill(b.GetSpan(), 0, 1);
+
+            b.CopyColumns(startIndex, destIndex, columnCount);
+
+            for (int y = 0; y < b.Height; y++)
             {
-                rnd.RandomFill(b.GetSpan(), 0, 1);
+                Span<float> row = b.GetRowSpan(y);
 
-                b.CopyColumns(startIndex, destIndex, columnCount);
+                Span<float> s = row.Slice(startIndex, columnCount);
+                Span<float> d = row.Slice(destIndex, columnCount);
 
-                for (int y = 0; y < b.Height; y++)
-                {
-                    Span<float> row = b.GetRowSpan(y);
-
-                    Span<float> s = row.Slice(startIndex, columnCount);
-                    Span<float> d = row.Slice(destIndex, columnCount);
-
-                    Xunit.Assert.True(s.SequenceEqual(d));
-                }
+                Xunit.Assert.True(s.SequenceEqual(d));
             }
         }
 
@@ -143,22 +131,20 @@ namespace SixLabors.ImageSharp.Tests.Memory
         public void CopyColumns_InvokeMultipleTimes()
         {
             var rnd = new Random(123);
-            using (Buffer2D<float> b = this.MemoryAllocator.Allocate2D<float>(100, 100))
+            using Buffer2D<float> b = this.MemoryAllocator.Allocate2D<float>(100, 100);
+            rnd.RandomFill(b.GetSpan(), 0, 1);
+
+            b.CopyColumns(0, 50, 22);
+            b.CopyColumns(0, 50, 22);
+
+            for (int y = 0; y < b.Height; y++)
             {
-                rnd.RandomFill(b.GetSpan(), 0, 1);
+                Span<float> row = b.GetRowSpan(y);
 
-                b.CopyColumns(0, 50, 22);
-                b.CopyColumns(0, 50, 22);
+                Span<float> s = row.Slice(0, 22);
+                Span<float> d = row.Slice(50, 22);
 
-                for (int y = 0; y < b.Height; y++)
-                {
-                    Span<float> row = b.GetRowSpan(y);
-
-                    Span<float> s = row.Slice(0, 22);
-                    Span<float> d = row.Slice(50, 22);
-
-                    Xunit.Assert.True(s.SequenceEqual(d));
-                }
+                Xunit.Assert.True(s.SequenceEqual(d));
             }
         }
     }

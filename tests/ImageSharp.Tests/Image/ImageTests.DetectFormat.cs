@@ -71,11 +71,9 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void FromStream_GlobalConfiguration()
             {
-                using (var stream = new MemoryStream(this.ActualImageBytes))
-                {
-                    IImageFormat type = Image.DetectFormat(stream);
-                    Assert.Equal(ExpectedGlobalFormat, type);
-                }
+                using var stream = new MemoryStream(this.ActualImageBytes);
+                IImageFormat type = Image.DetectFormat(stream);
+                Assert.Equal(ExpectedGlobalFormat, type);
             }
 
             [Fact]

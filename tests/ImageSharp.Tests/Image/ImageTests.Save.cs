@@ -44,12 +44,10 @@ namespace SixLabors.ImageSharp.Tests
 
                 Assert.Throws<NotSupportedException>(
                     () =>
-                        {
-                            using (var image = new Image<Rgba32>(10, 10))
-                            {
-                                image.Save(file);
-                            }
-                        });
+                    {
+                        using var image = new Image<Rgba32>(10, 10);
+                        image.Save(file);
+                    });
             }
 
             [Fact]
@@ -58,15 +56,11 @@ namespace SixLabors.ImageSharp.Tests
                 string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
                 string file = System.IO.Path.Combine(dir, "SetEncoding.dat");
 
-                using (var image = new Image<Rgba32>(10, 10))
-                {
-                    image.Save(file, new PngEncoder());
-                }
+                using var image = new Image<Rgba32>(10, 10);
+                image.Save(file, new PngEncoder());
 
-                using (Image.Load(file, out var mime))
-                {
-                    Assert.Equal("image/png", mime.DefaultMimeType);
-                }
+                using var load = Image.Load(file, out var mime);
+                Assert.Equal("image/png", mime.DefaultMimeType);
             }
 
             [Fact]
@@ -75,10 +69,8 @@ namespace SixLabors.ImageSharp.Tests
                 var image = new Image<Rgba32>(5, 5);
                 image.Dispose();
                 IImageEncoder encoder = Mock.Of<IImageEncoder>();
-                using (var stream = new MemoryStream())
-                {
-                    Assert.Throws<ObjectDisposedException>(() => image.Save(stream, encoder));
-                }
+                using var stream = new MemoryStream();
+                Assert.Throws<ObjectDisposedException>(() => image.Save(stream, encoder));
             }
         }
     }

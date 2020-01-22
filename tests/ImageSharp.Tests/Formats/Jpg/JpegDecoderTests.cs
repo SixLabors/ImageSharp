@@ -69,16 +69,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void ParseStream_BasicPropertiesAreCorrect()
         {
             byte[] bytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
-            using (var ms = new MemoryStream(bytes))
-            {
-                var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
-                decoder.ParseStream(ms);
+            using var ms = new MemoryStream(bytes);
+            var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+            decoder.ParseStream(ms);
 
-                // I don't know why these numbers are different. All I know is that the decoder works
-                // and spectral data is exactly correct also.
-                // VerifyJpeg.VerifyComponentSizes3(decoder.Frame.Components, 43, 61, 22, 31, 22, 31);
-                VerifyJpeg.VerifyComponentSizes3(decoder.Frame.Components, 44, 62, 22, 31, 22, 31);
-            }
+            // I don't know why these numbers are different. All I know is that the decoder works
+            // and spectral data is exactly correct also.
+            // VerifyJpeg.VerifyComponentSizes3(decoder.Frame.Components, 43, 61, 22, 31, 22, 31);
+            VerifyJpeg.VerifyComponentSizes3(decoder.Frame.Components, 44, 62, 22, 31, 22, 31);
         }
 
         public const string DecodeBaselineJpegOutputName = "DecodeBaselineJpeg";
@@ -128,16 +126,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             var comparer = ImageComparer.Tolerant(0, 0);
 
-            using (Image<TPixel> expectedImage = provider.GetReferenceOutputImage<TPixel>(appendPixelTypeToFileName: false))
-            using (var pdfJsOriginalResult = Image.Load<Rgba32>(pdfJsOriginalResultPath))
-            using (var pdfJsPortResult = Image.Load<Rgba32>(sourceBytes, JpegDecoder))
-            {
-                ImageSimilarityReport originalReport = comparer.CompareImagesOrFrames(expectedImage, pdfJsOriginalResult);
-                ImageSimilarityReport portReport = comparer.CompareImagesOrFrames(expectedImage, pdfJsPortResult);
+            using Image<TPixel> expectedImage = provider.GetReferenceOutputImage<TPixel>(appendPixelTypeToFileName: false);
+            using var pdfJsOriginalResult = Image.Load<Rgba32>(pdfJsOriginalResultPath);
+            using var pdfJsPortResult = Image.Load<Rgba32>(sourceBytes, JpegDecoder);
+            ImageSimilarityReport originalReport = comparer.CompareImagesOrFrames(expectedImage, pdfJsOriginalResult);
+            ImageSimilarityReport portReport = comparer.CompareImagesOrFrames(expectedImage, pdfJsPortResult);
 
-                this.Output.WriteLine($"Difference for PDF.js ORIGINAL: {originalReport.DifferencePercentageString}");
-                this.Output.WriteLine($"Difference for PORT: {portReport.DifferencePercentageString}");
-            }
+            this.Output.WriteLine($"Difference for PDF.js ORIGINAL: {originalReport.DifferencePercentageString}");
+            this.Output.WriteLine($"Difference for PORT: {portReport.DifferencePercentageString}");
         }
     }
 }

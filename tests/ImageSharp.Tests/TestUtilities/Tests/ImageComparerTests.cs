@@ -34,14 +34,10 @@ namespace SixLabors.ImageSharp.Tests
             int pixelThreshold)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                using (Image<TPixel> clone = image.Clone())
-                {
-                    var comparer = ImageComparer.Tolerant(imageThreshold, pixelThreshold);
-                    comparer.VerifySimilarity(image, clone);
-                }
-            }
+            using Image<TPixel> image = provider.GetImage();
+            using Image<TPixel> clone = image.Clone();
+            var comparer = ImageComparer.Tolerant(imageThreshold, pixelThreshold);
+            comparer.VerifySimilarity(image, clone);
         }
 
         [Theory]
@@ -49,16 +45,12 @@ namespace SixLabors.ImageSharp.Tests
         public void TolerantImageComparer_ApprovesSimilarityBelowTolerance<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                using (Image<TPixel> clone = image.Clone())
-                {
-                    ImagingTestCaseUtility.ModifyPixel(clone, 0, 0, 1);
+            using Image<TPixel> image = provider.GetImage();
+            using Image<TPixel> clone = image.Clone();
+            ImagingTestCaseUtility.ModifyPixel(clone, 0, 0, 1);
 
-                    var comparer = ImageComparer.Tolerant();
-                    comparer.VerifySimilarity(image, clone);
-                }
-            }
+            var comparer = ImageComparer.Tolerant();
+            comparer.VerifySimilarity(image, clone);
         }
 
         [Theory]
@@ -66,22 +58,18 @@ namespace SixLabors.ImageSharp.Tests
         public void TolerantImageComparer_DoesNotApproveSimilarityAboveTolerance<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                using (Image<TPixel> clone = image.Clone())
-                {
-                    byte perChannelChange = 20;
-                    ImagingTestCaseUtility.ModifyPixel(clone, 3, 1, perChannelChange);
+            using Image<TPixel> image = provider.GetImage();
+            using Image<TPixel> clone = image.Clone();
+            byte perChannelChange = 20;
+            ImagingTestCaseUtility.ModifyPixel(clone, 3, 1, perChannelChange);
 
-                    var comparer = ImageComparer.Tolerant();
+            var comparer = ImageComparer.Tolerant();
 
-                    ImageDifferenceIsOverThresholdException ex = Assert.ThrowsAny<ImageDifferenceIsOverThresholdException>(
-                        () => comparer.VerifySimilarity(image, clone));
+            ImageDifferenceIsOverThresholdException ex = Assert.ThrowsAny<ImageDifferenceIsOverThresholdException>(
+                () => comparer.VerifySimilarity(image, clone));
 
-                    PixelDifference diff = ex.Reports.Single().Differences.Single();
-                    Assert.Equal(new Point(3, 1), diff.Position);
-                }
-            }
+            PixelDifference diff = ex.Reports.Single().Differences.Single();
+            Assert.Equal(new Point(3, 1), diff.Position);
         }
 
         [Theory]
@@ -89,18 +77,14 @@ namespace SixLabors.ImageSharp.Tests
         public void TolerantImageComparer_TestPerPixelThreshold<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                using (Image<TPixel> clone = image.Clone())
-                {
-                    ImagingTestCaseUtility.ModifyPixel(clone, 0, 0, 1);
-                    ImagingTestCaseUtility.ModifyPixel(clone, 1, 0, 1);
-                    ImagingTestCaseUtility.ModifyPixel(clone, 2, 0, 1);
+            using Image<TPixel> image = provider.GetImage();
+            using Image<TPixel> clone = image.Clone();
+            ImagingTestCaseUtility.ModifyPixel(clone, 0, 0, 1);
+            ImagingTestCaseUtility.ModifyPixel(clone, 1, 0, 1);
+            ImagingTestCaseUtility.ModifyPixel(clone, 2, 0, 1);
 
-                    var comparer = ImageComparer.Tolerant(perPixelManhattanThreshold: 257 * 3);
-                    comparer.VerifySimilarity(image, clone);
-                }
-            }
+            var comparer = ImageComparer.Tolerant(perPixelManhattanThreshold: 257 * 3);
+            comparer.VerifySimilarity(image, clone);
         }
 
         [Theory]
@@ -109,19 +93,15 @@ namespace SixLabors.ImageSharp.Tests
         public void VerifySimilarity_ThrowsOnSizeMismatch<TPixel>(TestImageProvider<TPixel> provider, int w, int h)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                using (Image<TPixel> clone = image.Clone(ctx => ctx.Resize(w, h)))
+            using Image<TPixel> image = provider.GetImage();
+            using Image<TPixel> clone = image.Clone(ctx => ctx.Resize(w, h));
+            ImageDimensionsMismatchException ex = Assert.ThrowsAny<ImageDimensionsMismatchException>(
+                () =>
                 {
-                    ImageDimensionsMismatchException ex = Assert.ThrowsAny<ImageDimensionsMismatchException>(
-                        () =>
-                            {
-                                ImageComparer comparer = Mock.Of<ImageComparer>();
-                                comparer.VerifySimilarity(image, clone);
-                            });
-                    this.Output.WriteLine(ex.Message);
-                }
-            }
+                    ImageComparer comparer = Mock.Of<ImageComparer>();
+                    comparer.VerifySimilarity(image, clone);
+                });
+            this.Output.WriteLine(ex.Message);
         }
 
         [Theory]
@@ -129,18 +109,14 @@ namespace SixLabors.ImageSharp.Tests
         public void VerifySimilarity_WhenAnImageFrameIsDifferent_Reports<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                using (Image<TPixel> clone = image.Clone())
-                {
-                    ImagingTestCaseUtility.ModifyPixel(clone.Frames[0], 42, 43, 1);
+            using Image<TPixel> image = provider.GetImage();
+            using Image<TPixel> clone = image.Clone();
+            ImagingTestCaseUtility.ModifyPixel(clone.Frames[0], 42, 43, 1);
 
-                    IEnumerable<ImageSimilarityReport> reports = ImageComparer.Exact.CompareImages(image, clone);
+            IEnumerable<ImageSimilarityReport> reports = ImageComparer.Exact.CompareImages(image, clone);
 
-                    PixelDifference difference = reports.Single().Differences.Single();
-                    Assert.Equal(new Point(42, 43), difference.Position);
-                }
-            }
+            PixelDifference difference = reports.Single().Differences.Single();
+            Assert.Equal(new Point(42, 43), difference.Position);
         }
 
         [Theory]

@@ -32,11 +32,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         public void ImageShouldApplyBinaryThresholdFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.BinaryThreshold(value));
-                image.DebugSave(provider, value);
-            }
+            using Image<TPixel> image = provider.GetImage();
+            image.Mutate(x => x.BinaryThreshold(value));
+            image.DebugSave(provider, value);
         }
 
         [Theory]
@@ -44,16 +42,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         public void ImageShouldApplyBinaryThresholdInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (var image = source.Clone())
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+            using Image<TPixel> source = provider.GetImage();
+            using var image = source.Clone();
+            var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.Mutate(x => x.BinaryThreshold(value, bounds));
-                image.DebugSave(provider, value);
+            image.Mutate(x => x.BinaryThreshold(value, bounds));
+            image.DebugSave(provider, value);
 
-                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
-            }
+            ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
         }
     }
 }

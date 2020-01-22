@@ -287,19 +287,17 @@ namespace SixLabors.ImageSharp.Tests
             bool appendSourceFileOrDescription = true)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var firstFrameOnlyImage = new Image<TPixel>(image.Width, image.Height))
-            using (Image<TPixel> referenceImage = GetReferenceOutputImage<TPixel>(
+            using var firstFrameOnlyImage = new Image<TPixel>(image.Width, image.Height);
+            using Image<TPixel> referenceImage = GetReferenceOutputImage<TPixel>(
                 provider,
                 testOutputDetails,
                 extension,
                 appendPixelTypeToFileName,
-                appendSourceFileOrDescription))
-            {
-                firstFrameOnlyImage.Frames.AddFrame(image.Frames.RootFrame);
-                firstFrameOnlyImage.Frames.RemoveFrame(0);
+                appendSourceFileOrDescription);
+            firstFrameOnlyImage.Frames.AddFrame(image.Frames.RootFrame);
+            firstFrameOnlyImage.Frames.RemoveFrame(0);
 
-                comparer.VerifySimilarity(referenceImage, firstFrameOnlyImage);
-            }
+            comparer.VerifySimilarity(referenceImage, firstFrameOnlyImage);
 
             return image;
         }
@@ -405,13 +403,11 @@ namespace SixLabors.ImageSharp.Tests
             bool appendPixelTypeToFileName = true)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> referenceImage = provider.GetReferenceOutputImage<TPixel>(
+            using Image<TPixel> referenceImage = provider.GetReferenceOutputImage<TPixel>(
                 testOutputDetails,
                 extension,
-                appendPixelTypeToFileName))
-            {
-                return comparer.CompareImages(referenceImage, image);
-            }
+                appendPixelTypeToFileName);
+            return comparer.CompareImages(referenceImage, image);
         }
 
         public static Image<TPixel> ComparePixelBufferTo<TPixel>(
@@ -556,23 +552,21 @@ namespace SixLabors.ImageSharp.Tests
             bool appendSourceFileOrDescription = true)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                operation(image);
+            using Image<TPixel> image = provider.GetImage();
+            operation(image);
 
-                image.DebugSave(
-                    provider,
-                    testOutputDetails,
-                    appendPixelTypeToFileName: appendPixelTypeToFileName,
-                    appendSourceFileOrDescription: appendSourceFileOrDescription);
+            image.DebugSave(
+                provider,
+                testOutputDetails,
+                appendPixelTypeToFileName: appendPixelTypeToFileName,
+                appendSourceFileOrDescription: appendSourceFileOrDescription);
 
-                image.CompareToReferenceOutput(
-                    comparer,
-                    provider,
-                    testOutputDetails,
-                    appendPixelTypeToFileName: appendPixelTypeToFileName,
-                    appendSourceFileOrDescription: appendSourceFileOrDescription);
-            }
+            image.CompareToReferenceOutput(
+                comparer,
+                provider,
+                testOutputDetails,
+                appendPixelTypeToFileName: appendPixelTypeToFileName,
+                appendSourceFileOrDescription: appendSourceFileOrDescription);
         }
 
         /// <summary>
@@ -660,11 +654,9 @@ namespace SixLabors.ImageSharp.Tests
 
             referenceDecoder = referenceDecoder ?? TestEnvironment.GetReferenceDecoder(actualOutputFile);
 
-            using (var actualImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
-            {
-                ImageComparer comparer = customComparer ?? ImageComparer.Exact;
-                comparer.VerifySimilarity(actualImage, image);
-            }
+            using var actualImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder);
+            ImageComparer comparer = customComparer ?? ImageComparer.Exact;
+            comparer.VerifySimilarity(actualImage, image);
         }
 
         internal static Image<Rgba32> ToGrayscaleImage(this Buffer2D<float> buffer, float scale)

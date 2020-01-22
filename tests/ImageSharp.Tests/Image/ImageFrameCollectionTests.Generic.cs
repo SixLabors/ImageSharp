@@ -192,15 +192,11 @@ namespace SixLabors.ImageSharp.Tests
             public void CloneFrame<TPixel>(TestImageProvider<TPixel> provider)
                 where TPixel : struct, IPixel<TPixel>
             {
-                using (Image<TPixel> img = provider.GetImage())
-                {
-                    img.Frames.AddFrame(new ImageFrame<TPixel>(Configuration.Default, 10, 10)); // add a frame anyway
-                    using (Image<TPixel> cloned = img.Frames.CloneFrame(0))
-                    {
-                        Assert.Equal(2, img.Frames.Count);
-                        cloned.ComparePixelBufferTo(img.GetPixelSpan());
-                    }
-                }
+                using Image<TPixel> img = provider.GetImage();
+                img.Frames.AddFrame(new ImageFrame<TPixel>(Configuration.Default, 10, 10)); // add a frame anyway
+                using Image<TPixel> cloned = img.Frames.CloneFrame(0);
+                Assert.Equal(2, img.Frames.Count);
+                cloned.ComparePixelBufferTo(img.GetPixelSpan());
             }
 
             [Theory]
@@ -208,17 +204,13 @@ namespace SixLabors.ImageSharp.Tests
             public void ExtractFrame<TPixel>(TestImageProvider<TPixel> provider)
                 where TPixel : struct, IPixel<TPixel>
             {
-                using (Image<TPixel> img = provider.GetImage())
-                {
-                    var sourcePixelData = img.GetPixelSpan().ToArray();
+                using Image<TPixel> img = provider.GetImage();
+                var sourcePixelData = img.GetPixelSpan().ToArray();
 
-                    img.Frames.AddFrame(new ImageFrame<TPixel>(Configuration.Default, 10, 10));
-                    using (Image<TPixel> cloned = img.Frames.ExportFrame(0))
-                    {
-                        Assert.Equal(1, img.Frames.Count);
-                        cloned.ComparePixelBufferTo(sourcePixelData);
-                    }
-                }
+                img.Frames.AddFrame(new ImageFrame<TPixel>(Configuration.Default, 10, 10));
+                using Image<TPixel> cloned = img.Frames.ExportFrame(0);
+                Assert.Equal(1, img.Frames.Count);
+                cloned.ComparePixelBufferTo(sourcePixelData);
             }
 
             [Fact]

@@ -230,26 +230,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void WritesFileMarker<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            using (var ms = new MemoryStream())
+            using Image<TPixel> image = provider.GetImage();
+            using var ms = new MemoryStream();
+            image.Save(ms, new PngEncoder());
+
+            byte[] data = ms.ToArray().Take(8).ToArray();
+            byte[] expected =
             {
-                image.Save(ms, new PngEncoder());
+                0x89, // Set the high bit.
+                0x50, // P
+                0x4E, // N
+                0x47, // G
+                0x0D, // Line ending CRLF
+                0x0A, // Line ending CRLF
+                0x1A, // EOF
+                0x0A // LF
+            };
 
-                byte[] data = ms.ToArray().Take(8).ToArray();
-                byte[] expected =
-                {
-                    0x89, // Set the high bit.
-                    0x50, // P
-                    0x4E, // N
-                    0x47, // G
-                    0x0D, // Line ending CRLF
-                    0x0A, // Line ending CRLF
-                    0x1A, // EOF
-                    0x0A // LF
-                };
-
-                Assert.Equal(expected, data);
-            }
+            Assert.Equal(expected, data);
         }
 
         [Theory]
@@ -259,22 +257,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             var options = new PngEncoder();
 
             var testFile = TestFile.Create(imagePath);
-            using (Image<Rgba32> input = testFile.CreateRgba32Image())
-            {
-                using (var memStream = new MemoryStream())
-                {
-                    input.Save(memStream, options);
+            using Image<Rgba32> input = testFile.CreateRgba32Image();
+            using var memStream = new MemoryStream();
+            input.Save(memStream, options);
 
-                    memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
-                    {
-                        ImageMetadata meta = output.Metadata;
-                        Assert.Equal(xResolution, meta.HorizontalResolution);
-                        Assert.Equal(yResolution, meta.VerticalResolution);
-                        Assert.Equal(resolutionUnit, meta.ResolutionUnits);
-                    }
-                }
-            }
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(memStream);
+            ImageMetadata meta = output.Metadata;
+            Assert.Equal(xResolution, meta.HorizontalResolution);
+            Assert.Equal(yResolution, meta.VerticalResolution);
+            Assert.Equal(resolutionUnit, meta.ResolutionUnits);
         }
 
         [Theory]
@@ -284,21 +276,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             var options = new PngEncoder();
 
             var testFile = TestFile.Create(imagePath);
-            using (Image<Rgba32> input = testFile.CreateRgba32Image())
-            {
-                using (var memStream = new MemoryStream())
-                {
-                    input.Save(memStream, options);
+            using Image<Rgba32> input = testFile.CreateRgba32Image();
+            using var memStream = new MemoryStream();
+            input.Save(memStream, options);
 
-                    memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
-                    {
-                        PngMetadata meta = output.Metadata.GetPngMetadata();
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(memStream);
+            PngMetadata meta = output.Metadata.GetPngMetadata();
 
-                        Assert.Equal(pngBitDepth, meta.BitDepth);
-                    }
-                }
-            }
+            Assert.Equal(pngBitDepth, meta.BitDepth);
         }
 
         [Theory]
@@ -308,51 +294,45 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             var options = new PngEncoder();
 
             var testFile = TestFile.Create(imagePath);
-            using (Image<Rgba32> input = testFile.CreateRgba32Image())
+            using Image<Rgba32> input = testFile.CreateRgba32Image();
+            PngMetadata inMeta = input.Metadata.GetPngMetadata();
+            Assert.True(inMeta.HasTransparency);
+
+            using var memStream = new MemoryStream();
+            input.Save(memStream, options);
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(memStream);
+            PngMetadata outMeta = output.Metadata.GetPngMetadata();
+            Assert.True(outMeta.HasTransparency);
+
+            switch (pngColorType)
             {
-                PngMetadata inMeta = input.Metadata.GetPngMetadata();
-                Assert.True(inMeta.HasTransparency);
-
-                using (var memStream = new MemoryStream())
-                {
-                    input.Save(memStream, options);
-                    memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
+                case PngColorType.Grayscale:
+                    if (pngBitDepth.Equals(PngBitDepth.Bit16))
                     {
-                        PngMetadata outMeta = output.Metadata.GetPngMetadata();
-                        Assert.True(outMeta.HasTransparency);
-
-                        switch (pngColorType)
-                        {
-                            case PngColorType.Grayscale:
-                                if (pngBitDepth.Equals(PngBitDepth.Bit16))
-                                {
-                                    Assert.True(outMeta.TransparentL16.HasValue);
-                                    Assert.Equal(inMeta.TransparentL16, outMeta.TransparentL16);
-                                }
-                                else
-                                {
-                                    Assert.True(outMeta.TransparentL8.HasValue);
-                                    Assert.Equal(inMeta.TransparentL8, outMeta.TransparentL8);
-                                }
-
-                                break;
-                            case PngColorType.Rgb:
-                                if (pngBitDepth.Equals(PngBitDepth.Bit16))
-                                {
-                                    Assert.True(outMeta.TransparentRgb48.HasValue);
-                                    Assert.Equal(inMeta.TransparentRgb48, outMeta.TransparentRgb48);
-                                }
-                                else
-                                {
-                                    Assert.True(outMeta.TransparentRgb24.HasValue);
-                                    Assert.Equal(inMeta.TransparentRgb24, outMeta.TransparentRgb24);
-                                }
-
-                                break;
-                        }
+                        Assert.True(outMeta.TransparentL16.HasValue);
+                        Assert.Equal(inMeta.TransparentL16, outMeta.TransparentL16);
                     }
-                }
+                    else
+                    {
+                        Assert.True(outMeta.TransparentL8.HasValue);
+                        Assert.Equal(inMeta.TransparentL8, outMeta.TransparentL8);
+                    }
+
+                    break;
+                case PngColorType.Rgb:
+                    if (pngBitDepth.Equals(PngBitDepth.Bit16))
+                    {
+                        Assert.True(outMeta.TransparentRgb48.HasValue);
+                        Assert.Equal(inMeta.TransparentRgb48, outMeta.TransparentRgb48);
+                    }
+                    else
+                    {
+                        Assert.True(outMeta.TransparentRgb24.HasValue);
+                        Assert.Equal(inMeta.TransparentRgb24, outMeta.TransparentRgb24);
+                    }
+
+                    break;
             }
         }
 
@@ -372,41 +352,37 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             bool appendPngBitDepth = false)
         where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
+            using Image<TPixel> image = provider.GetImage();
+            var encoder = new PngEncoder
             {
-                var encoder = new PngEncoder
-                {
-                    ColorType = pngColorType,
-                    FilterMethod = pngFilterMethod,
-                    CompressionLevel = compressionLevel,
-                    BitDepth = bitDepth,
-                    Quantizer = new WuQuantizer(paletteSize),
-                    InterlaceMethod = interlaceMode
-                };
+                ColorType = pngColorType,
+                FilterMethod = pngFilterMethod,
+                CompressionLevel = compressionLevel,
+                BitDepth = bitDepth,
+                Quantizer = new WuQuantizer(paletteSize),
+                InterlaceMethod = interlaceMode
+            };
 
-                string pngColorTypeInfo = appendPngColorType ? pngColorType.ToString() : string.Empty;
-                string pngFilterMethodInfo = appendPngFilterMethod ? pngFilterMethod.ToString() : string.Empty;
-                string compressionLevelInfo = appendCompressionLevel ? $"_C{compressionLevel}" : string.Empty;
-                string paletteSizeInfo = appendPaletteSize ? $"_PaletteSize-{paletteSize}" : string.Empty;
-                string pngBitDepthInfo = appendPngBitDepth ? bitDepth.ToString() : string.Empty;
-                string pngInterlaceModeInfo = interlaceMode != PngInterlaceMode.None ? $"_{interlaceMode}" : string.Empty;
+            string pngColorTypeInfo = appendPngColorType ? pngColorType.ToString() : string.Empty;
+            string pngFilterMethodInfo = appendPngFilterMethod ? pngFilterMethod.ToString() : string.Empty;
+            string compressionLevelInfo = appendCompressionLevel ? $"_C{compressionLevel}" : string.Empty;
+            string paletteSizeInfo = appendPaletteSize ? $"_PaletteSize-{paletteSize}" : string.Empty;
+            string pngBitDepthInfo = appendPngBitDepth ? bitDepth.ToString() : string.Empty;
+            string pngInterlaceModeInfo = interlaceMode != PngInterlaceMode.None ? $"_{interlaceMode}" : string.Empty;
 
-                string debugInfo = $"{pngColorTypeInfo}{pngFilterMethodInfo}{compressionLevelInfo}{paletteSizeInfo}{pngBitDepthInfo}{pngInterlaceModeInfo}";
+            string debugInfo = $"{pngColorTypeInfo}{pngFilterMethodInfo}{compressionLevelInfo}{paletteSizeInfo}{pngBitDepthInfo}{pngInterlaceModeInfo}";
 
-                string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "png", encoder, debugInfo, appendPixelType);
+            string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "png", encoder, debugInfo, appendPixelType);
 
-                // Compare to the Magick reference decoder.
-                IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
+            // Compare to the Magick reference decoder.
+            IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
 
-                // We compare using both our decoder and the reference decoder as pixel transformation
-                // occurs within the encoder itself leaving the input image unaffected.
-                // This means we are benefiting from testing our decoder also.
-                using (var imageSharpImage = Image.Load<TPixel>(actualOutputFile, new PngDecoder()))
-                using (var referenceImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
-                {
-                    ImageComparer.Exact.VerifySimilarity(referenceImage, imageSharpImage);
-                }
-            }
+            // We compare using both our decoder and the reference decoder as pixel transformation
+            // occurs within the encoder itself leaving the input image unaffected.
+            // This means we are benefiting from testing our decoder also.
+            using var imageSharpImage = Image.Load<TPixel>(actualOutputFile, new PngDecoder());
+            using var referenceImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder);
+            ImageComparer.Exact.VerifySimilarity(referenceImage, imageSharpImage);
         }
     }
 }

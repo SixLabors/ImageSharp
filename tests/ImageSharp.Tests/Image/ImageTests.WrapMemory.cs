@@ -88,14 +88,12 @@ namespace SixLabors.ImageSharp.Tests
                 var array = new Rgba32[25];
                 var memory = new Memory<Rgba32>(array);
 
-                using (var image = Image.WrapMemory(cfg, memory, 5, 5, metaData))
-                {
-                    ref Rgba32 pixel0 = ref image.GetPixelSpan()[0];
-                    Assert.True(Unsafe.AreSame(ref array[0], ref pixel0));
+                using var image = Image.WrapMemory(cfg, memory, 5, 5, metaData);
+                ref Rgba32 pixel0 = ref image.GetPixelSpan()[0];
+                Assert.True(Unsafe.AreSame(ref array[0], ref pixel0));
 
-                    Assert.Equal(cfg, image.GetConfiguration());
-                    Assert.Equal(metaData, image.Metadata);
-                }
+                Assert.Equal(cfg, image.GetConfiguration());
+                Assert.Equal(metaData, image.Metadata);
             }
 
             [Fact]
@@ -106,33 +104,27 @@ namespace SixLabors.ImageSharp.Tests
                     return;
                 }
 
-                using (var bmp = new Bitmap(51, 23))
+                using var bmp = new Bitmap(51, 23);
+                using var memoryManager = new BitmapMemoryManager(bmp);
+                Memory<Bgra32> memory = memoryManager.Memory;
+                Bgra32 bg = Color.Red;
+                Bgra32 fg = Color.Green;
+
+                using var image = Image.WrapMemory(memory, bmp.Width, bmp.Height);
+                Assert.Equal(memory, image.GetPixelMemory());
+                image.GetPixelSpan().Fill(bg);
+                for (var i = 10; i < 20; i++)
                 {
-                    using (var memoryManager = new BitmapMemoryManager(bmp))
-                    {
-                        Memory<Bgra32> memory = memoryManager.Memory;
-                        Bgra32 bg = Color.Red;
-                        Bgra32 fg = Color.Green;
-
-                        using (var image = Image.WrapMemory(memory, bmp.Width, bmp.Height))
-                        {
-                            Assert.Equal(memory, image.GetPixelMemory());
-                            image.GetPixelSpan().Fill(bg);
-                            for (var i = 10; i < 20; i++)
-                            {
-                                image.GetPixelRowSpan(i).Slice(10, 10).Fill(fg);
-                            }
-                        }
-
-                        Assert.False(memoryManager.IsDisposed);
-                    }
-
-                    string fn = System.IO.Path.Combine(
-                        TestEnvironment.ActualOutputDirectoryFullPath,
-                        $"{nameof(this.WrapSystemDrawingBitmap_WhenObserved)}.bmp");
-
-                    bmp.Save(fn, ImageFormat.Bmp);
+                    image.GetPixelRowSpan(i).Slice(10, 10).Fill(fg);
                 }
+
+                Assert.False(memoryManager.IsDisposed);
+
+                string fn = System.IO.Path.Combine(
+                    TestEnvironment.ActualOutputDirectoryFullPath,
+                    $"{nameof(this.WrapSystemDrawingBitmap_WhenObserved)}.bmp");
+
+                bmp.Save(fn, ImageFormat.Bmp);
             }
 
             [Fact]
@@ -143,31 +135,29 @@ namespace SixLabors.ImageSharp.Tests
                     return;
                 }
 
-                using (var bmp = new Bitmap(51, 23))
+                using var bmp = new Bitmap(51, 23);
+                var memoryManager = new BitmapMemoryManager(bmp);
+                Bgra32 bg = Color.Red;
+                Bgra32 fg = Color.Green;
+
+                using (var image = Image.WrapMemory(memoryManager, bmp.Width, bmp.Height))
                 {
-                    var memoryManager = new BitmapMemoryManager(bmp);
-                    Bgra32 bg = Color.Red;
-                    Bgra32 fg = Color.Green;
+                    Assert.Equal(memoryManager.Memory, image.GetPixelMemory());
 
-                    using (var image = Image.WrapMemory(memoryManager, bmp.Width, bmp.Height))
+                    image.GetPixelSpan().Fill(bg);
+                    for (var i = 10; i < 20; i++)
                     {
-                        Assert.Equal(memoryManager.Memory, image.GetPixelMemory());
-
-                        image.GetPixelSpan().Fill(bg);
-                        for (var i = 10; i < 20; i++)
-                        {
-                            image.GetPixelRowSpan(i).Slice(10, 10).Fill(fg);
-                        }
+                        image.GetPixelRowSpan(i).Slice(10, 10).Fill(fg);
                     }
-
-                    Assert.True(memoryManager.IsDisposed);
-
-                    string fn = System.IO.Path.Combine(
-                        TestEnvironment.ActualOutputDirectoryFullPath,
-                        $"{nameof(this.WrapSystemDrawingBitmap_WhenOwned)}.bmp");
-
-                    bmp.Save(fn, ImageFormat.Bmp);
                 }
+
+                Assert.True(memoryManager.IsDisposed);
+
+                string fn = System.IO.Path.Combine(
+                    TestEnvironment.ActualOutputDirectoryFullPath,
+                    $"{nameof(this.WrapSystemDrawingBitmap_WhenOwned)}.bmp");
+
+                bmp.Save(fn, ImageFormat.Bmp);
             }
 
             private static bool ShouldSkipBitmapTest =>

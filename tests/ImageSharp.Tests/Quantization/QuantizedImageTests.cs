@@ -41,20 +41,18 @@ namespace SixLabors.ImageSharp.Tests
             bool dither)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
+            using Image<TPixel> image = provider.GetImage();
+            Assert.True(image[0, 0].Equals(default(TPixel)));
+
+            var quantizer = new OctreeQuantizer(dither);
+
+            foreach (ImageFrame<TPixel> frame in image.Frames)
             {
-                Assert.True(image[0, 0].Equals(default(TPixel)));
+                IQuantizedFrame<TPixel> quantized =
+                    quantizer.CreateFrameQuantizer<TPixel>(this.Configuration).QuantizeFrame(frame);
 
-                var quantizer = new OctreeQuantizer(dither);
-
-                foreach (ImageFrame<TPixel> frame in image.Frames)
-                {
-                    IQuantizedFrame<TPixel> quantized =
-                        quantizer.CreateFrameQuantizer<TPixel>(this.Configuration).QuantizeFrame(frame);
-
-                    int index = this.GetTransparentIndex(quantized);
-                    Assert.Equal(index, quantized.GetPixelSpan()[0]);
-                }
+                int index = this.GetTransparentIndex(quantized);
+                Assert.Equal(index, quantized.GetPixelSpan()[0]);
             }
         }
 
@@ -64,20 +62,18 @@ namespace SixLabors.ImageSharp.Tests
         public void WuQuantizerYieldsCorrectTransparentPixel<TPixel>(TestImageProvider<TPixel> provider, bool dither)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
+            using Image<TPixel> image = provider.GetImage();
+            Assert.True(image[0, 0].Equals(default(TPixel)));
+
+            var quantizer = new WuQuantizer(dither);
+
+            foreach (ImageFrame<TPixel> frame in image.Frames)
             {
-                Assert.True(image[0, 0].Equals(default(TPixel)));
+                IQuantizedFrame<TPixel> quantized =
+                    quantizer.CreateFrameQuantizer<TPixel>(this.Configuration).QuantizeFrame(frame);
 
-                var quantizer = new WuQuantizer(dither);
-
-                foreach (ImageFrame<TPixel> frame in image.Frames)
-                {
-                    IQuantizedFrame<TPixel> quantized =
-                        quantizer.CreateFrameQuantizer<TPixel>(this.Configuration).QuantizeFrame(frame);
-
-                    int index = this.GetTransparentIndex(quantized);
-                    Assert.Equal(index, quantized.GetPixelSpan()[0]);
-                }
+                int index = this.GetTransparentIndex(quantized);
+                Assert.Equal(index, quantized.GetPixelSpan()[0]);
             }
         }
 

@@ -45,15 +45,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         {
             var filePath = TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora);
 
-            using (var image = Image.Load(filePath))
-            {
-                image.Mutate(x => x.Resize(image.Size() / 2));
-                string path = System.IO.Path.Combine(
-                    TestEnvironment.CreateOutputDirectory(nameof(ResizeTests)),
-                    nameof(this.Resize_PixelAgnostic) + ".png");
+            using var image = Image.Load(filePath);
+            image.Mutate(x => x.Resize(image.Size() / 2));
+            string path = System.IO.Path.Combine(
+                TestEnvironment.CreateOutputDirectory(nameof(ResizeTests)),
+                nameof(this.Resize_PixelAgnostic) + ".png");
 
-                image.Save(path);
-            }
+            image.Save(path);
         }
 
         [Theory(Skip = "Debug only, enable manually")]
@@ -70,11 +68,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
             provider.Configuration.WorkingBufferSizeHintInBytes = workingBufferSizeHintInKilobytes * 1024;
 
-            using (var image = provider.GetImage())
-            {
-                image.Mutate(x => x.Resize(destSize, destSize));
-                image.DebugSave(provider, appendPixelTypeToFileName: false);
-            }
+            using var image = provider.GetImage();
+            image.Mutate(x => x.Resize(destSize, destSize));
+            image.DebugSave(provider, appendPixelTypeToFileName: false);
         }
 
         [Theory]
@@ -88,14 +84,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             // [WithBasicTestPatternImages(15, 12, PixelTypes.Rgba32, 2, 3, 1, 2)] means:
             // resizing: (15, 12) -> (10, 6)
             // kernel dimensions: (3, 4)
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                var destSize = new Size(image.Width * wN / wD, image.Height * hN / hD);
-                image.Mutate(x => x.Resize(destSize, KnownResamplers.Bicubic, false));
-                FormattableString outputInfo = $"({wN}÷{wD},{hN}÷{hD})";
-                image.DebugSave(provider, outputInfo, appendPixelTypeToFileName: false);
-                image.CompareToReferenceOutput(provider, outputInfo, appendPixelTypeToFileName: false);
-            }
+            using Image<TPixel> image = provider.GetImage();
+            var destSize = new Size(image.Width * wN / wD, image.Height * hN / hD);
+            image.Mutate(x => x.Resize(destSize, KnownResamplers.Bicubic, false));
+            FormattableString outputInfo = $"({wN}÷{wD},{hN}÷{hD})";
+            image.DebugSave(provider, outputInfo, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(provider, outputInfo, appendPixelTypeToFileName: false);
         }
 
         private static readonly int SizeOfVector4 = Unsafe.SizeOf<Vector4>();
@@ -113,47 +107,43 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             int workingBufferLimitInRows)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image0 = provider.GetImage())
-            {
-                Size destSize = image0.Size() / 4;
+            using Image<TPixel> image0 = provider.GetImage();
+            Size destSize = image0.Size() / 4;
 
-                Configuration configuration = Configuration.CreateDefaultInstance();
+            var configuration = Configuration.CreateDefaultInstance();
 
-                int workingBufferSizeHintInBytes = workingBufferLimitInRows * destSize.Width * SizeOfVector4;
-                TestMemoryAllocator allocator = new TestMemoryAllocator();
-                configuration.MemoryAllocator = allocator;
-                configuration.WorkingBufferSizeHintInBytes = workingBufferSizeHintInBytes;
+            int workingBufferSizeHintInBytes = workingBufferLimitInRows * destSize.Width * SizeOfVector4;
+            var allocator = new TestMemoryAllocator();
+            configuration.MemoryAllocator = allocator;
+            configuration.WorkingBufferSizeHintInBytes = workingBufferSizeHintInBytes;
 
-                var verticalKernelMap = ResizeKernelMap.Calculate(
-                    KnownResamplers.Bicubic,
-                    destSize.Height,
-                    image0.Height,
-                    Configuration.Default.MemoryAllocator);
-                int minimumWorkerAllocationInBytes = verticalKernelMap.MaxDiameter * 2 * destSize.Width * SizeOfVector4;
-                verticalKernelMap.Dispose();
+            var verticalKernelMap = ResizeKernelMap.Calculate(
+                KnownResamplers.Bicubic,
+                destSize.Height,
+                image0.Height,
+                Configuration.Default.MemoryAllocator);
+            int minimumWorkerAllocationInBytes = verticalKernelMap.MaxDiameter * 2 * destSize.Width * SizeOfVector4;
+            verticalKernelMap.Dispose();
 
-                using (Image<TPixel> image = image0.Clone(configuration))
-                {
-                    image.Mutate(x => x.Resize(destSize, KnownResamplers.Bicubic, false));
+            using Image<TPixel> image = image0.Clone(configuration);
+            image.Mutate(x => x.Resize(destSize, KnownResamplers.Bicubic, false));
 
-                    image.DebugSave(
-                        provider,
-                        testOutputDetails: workingBufferLimitInRows,
-                        appendPixelTypeToFileName: false);
-                    image.CompareToReferenceOutput(
-                        ImageComparer.TolerantPercentage(0.001f),
-                        provider,
-                        testOutputDetails: workingBufferLimitInRows,
-                        appendPixelTypeToFileName: false);
+            image.DebugSave(
+                provider,
+                testOutputDetails: workingBufferLimitInRows,
+                appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(
+                ImageComparer.TolerantPercentage(0.001f),
+                provider,
+                testOutputDetails: workingBufferLimitInRows,
+                appendPixelTypeToFileName: false);
 
-                    Assert.NotEmpty(allocator.AllocationLog);
+            Assert.NotEmpty(allocator.AllocationLog);
 
-                    int maxAllocationSize = allocator.AllocationLog.Where(
-                        e => e.ElementType == typeof(Vector4)).Max(e => e.LengthInBytes);
+            int maxAllocationSize = allocator.AllocationLog.Where(
+                e => e.ElementType == typeof(Vector4)).Max(e => e.LengthInBytes);
 
-                    Assert.True(maxAllocationSize <= Math.Max(workingBufferSizeHintInBytes, minimumWorkerAllocationInBytes));
-                }
-            }
+            Assert.True(maxAllocationSize <= Math.Max(workingBufferSizeHintInBytes, minimumWorkerAllocationInBytes));
         }
 
         [Theory]
@@ -161,13 +151,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void Resize_Compand<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Resize(image.Size() / 2, true));
+            using Image<TPixel> image = provider.GetImage();
+            image.Mutate(x => x.Resize(image.Size() / 2, true));
 
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
-            }
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(ValidatorComparer, provider);
         }
 
         [Theory]
@@ -190,13 +178,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void Resize_IsAppliedToAllFrames<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2, KnownResamplers.Bicubic));
+            using Image<TPixel> image = provider.GetImage();
+            image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2, KnownResamplers.Bicubic));
 
-                // Comparer fights decoder with gif-s. Could not use CompareToReferenceOutput here :(
-                image.DebugSave(provider, extension: "gif");
-            }
+            // Comparer fights decoder with gif-s. Could not use CompareToReferenceOutput here :(
+            image.DebugSave(provider, extension: "gif");
         }
 
         [Theory]
@@ -212,16 +198,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void Resize_ThrowsForWrappedMemoryImage<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image0 = provider.GetImage())
-            {
-                var mmg = TestMemoryManager<TPixel>.CreateAsCopyOf(image0.GetPixelSpan());
+            using Image<TPixel> image0 = provider.GetImage();
+            var mmg = TestMemoryManager<TPixel>.CreateAsCopyOf(image0.GetPixelSpan());
 
-                using (var image1 = Image.WrapMemory(mmg.Memory, image0.Width, image0.Height))
-                {
-                    Assert.ThrowsAny<Exception>(
-                        () => { image1.Mutate(x => x.Resize(image0.Width / 2, image0.Height / 2, true)); });
-                }
-            }
+            using var image1 = Image.WrapMemory(mmg.Memory, image0.Width, image0.Height);
+            Assert.ThrowsAny<Exception>(
+                () => { image1.Mutate(x => x.Resize(image0.Width / 2, image0.Height / 2, true)); });
         }
 
         [Theory]
@@ -328,27 +310,25 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void ResizeFromSourceRectangle<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                var sourceRectangle = new Rectangle(
-                    image.Width / 8,
-                    image.Height / 8,
-                    image.Width / 4,
-                    image.Height / 4);
-                var destRectangle = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
+            using Image<TPixel> image = provider.GetImage();
+            var sourceRectangle = new Rectangle(
+                image.Width / 8,
+                image.Height / 8,
+                image.Width / 4,
+                image.Height / 4);
+            var destRectangle = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
 
-                image.Mutate(
-                    x => x.Resize(
-                        image.Width,
-                        image.Height,
-                        KnownResamplers.Bicubic,
-                        sourceRectangle,
-                        destRectangle,
-                        false));
+            image.Mutate(
+                x => x.Resize(
+                    image.Width,
+                    image.Height,
+                    KnownResamplers.Bicubic,
+                    sourceRectangle,
+                    destRectangle,
+                    false));
 
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
-            }
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(ValidatorComparer, provider);
         }
 
         [Theory]
@@ -356,13 +336,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void ResizeHeightAndKeepAspect<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Resize(0, image.Height / 3, false));
+            using Image<TPixel> image = provider.GetImage();
+            image.Mutate(x => x.Resize(0, image.Height / 3, false));
 
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
-            }
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(ValidatorComparer, provider);
         }
 
         [Theory]
@@ -370,12 +348,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void ResizeHeightCannotKeepAspectKeepsOnePixel<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Resize(0, 5));
-                Assert.Equal(1, image.Width);
-                Assert.Equal(5, image.Height);
-            }
+            using Image<TPixel> image = provider.GetImage();
+            image.Mutate(x => x.Resize(0, 5));
+            Assert.Equal(1, image.Width);
+            Assert.Equal(5, image.Height);
         }
 
         [Theory]
@@ -383,13 +359,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void ResizeWidthAndKeepAspect<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Resize(image.Width / 3, 0, false));
+            using Image<TPixel> image = provider.GetImage();
+            image.Mutate(x => x.Resize(image.Width / 3, 0, false));
 
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
-            }
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(ValidatorComparer, provider);
         }
 
         [Theory]
@@ -397,12 +371,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void ResizeWidthCannotKeepAspectKeepsOnePixel<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Resize(5, 0));
-                Assert.Equal(5, image.Width);
-                Assert.Equal(1, image.Height);
-            }
+            using Image<TPixel> image = provider.GetImage();
+            image.Mutate(x => x.Resize(5, 0));
+            Assert.Equal(5, image.Width);
+            Assert.Equal(1, image.Height);
         }
 
         [Theory]
@@ -410,19 +382,17 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void ResizeWithBoxPadMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
+            using Image<TPixel> image = provider.GetImage();
+            var options = new ResizeOptions
             {
-                var options = new ResizeOptions
-                {
-                    Size = new Size(image.Width + 200, image.Height + 200),
-                    Mode = ResizeMode.BoxPad
-                };
+                Size = new Size(image.Width + 200, image.Height + 200),
+                Mode = ResizeMode.BoxPad
+            };
 
-                image.Mutate(x => x.Resize(options));
+            image.Mutate(x => x.Resize(options));
 
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
-            }
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(ValidatorComparer, provider);
         }
 
         [Theory]
@@ -430,15 +400,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void ResizeWithCropHeightMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                var options = new ResizeOptions { Size = new Size(image.Width, image.Height / 2) };
+            using Image<TPixel> image = provider.GetImage();
+            var options = new ResizeOptions { Size = new Size(image.Width, image.Height / 2) };
 
-                image.Mutate(x => x.Resize(options));
+            image.Mutate(x => x.Resize(options));
 
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
-            }
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(ValidatorComparer, provider);
         }
 
         [Theory]
@@ -446,15 +414,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void ResizeWithCropWidthMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                var options = new ResizeOptions { Size = new Size(image.Width / 2, image.Height) };
+            using Image<TPixel> image = provider.GetImage();
+            var options = new ResizeOptions { Size = new Size(image.Width / 2, image.Height) };
 
-                image.Mutate(x => x.Resize(options));
+            image.Mutate(x => x.Resize(options));
 
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
-            }
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(ValidatorComparer, provider);
         }
 
         [Theory]
@@ -462,19 +428,17 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void CanResizeLargeImageWithCropMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
+            using Image<TPixel> image = provider.GetImage();
+            var options = new ResizeOptions
             {
-                var options = new ResizeOptions
-                {
-                    Size = new Size(480, 600),
-                    Mode = ResizeMode.Crop
-                };
+                Size = new Size(480, 600),
+                Mode = ResizeMode.Crop
+            };
 
-                image.Mutate(x => x.Resize(options));
+            image.Mutate(x => x.Resize(options));
 
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
-            }
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(ValidatorComparer, provider);
         }
 
         [Theory]
@@ -482,15 +446,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void ResizeWithMaxMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                var options = new ResizeOptions { Size = new Size(300, 300), Mode = ResizeMode.Max };
+            using Image<TPixel> image = provider.GetImage();
+            var options = new ResizeOptions { Size = new Size(300, 300), Mode = ResizeMode.Max };
 
-                image.Mutate(x => x.Resize(options));
+            image.Mutate(x => x.Resize(options));
 
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
-            }
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(ValidatorComparer, provider);
         }
 
         [Theory]
@@ -498,21 +460,19 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void ResizeWithMinMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
+            using Image<TPixel> image = provider.GetImage();
+            var options = new ResizeOptions
             {
-                var options = new ResizeOptions
-                {
-                    Size = new Size(
-                                          (int)Math.Round(image.Width * .75F),
-                                          (int)Math.Round(image.Height * .95F)),
-                    Mode = ResizeMode.Min
-                };
+                Size = new Size(
+                    (int)Math.Round(image.Width * .75F),
+                    (int)Math.Round(image.Height * .95F)),
+                Mode = ResizeMode.Min
+            };
 
-                image.Mutate(x => x.Resize(options));
+            image.Mutate(x => x.Resize(options));
 
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
-            }
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(ValidatorComparer, provider);
         }
 
         [Theory]
@@ -520,19 +480,17 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void ResizeWithPadMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
+            using Image<TPixel> image = provider.GetImage();
+            var options = new ResizeOptions
             {
-                var options = new ResizeOptions
-                {
-                    Size = new Size(image.Width + 200, image.Height),
-                    Mode = ResizeMode.Pad
-                };
+                Size = new Size(image.Width + 200, image.Height),
+                Mode = ResizeMode.Pad
+            };
 
-                image.Mutate(x => x.Resize(options));
+            image.Mutate(x => x.Resize(options));
 
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
-            }
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(ValidatorComparer, provider);
         }
 
         [Theory]
@@ -540,19 +498,17 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void ResizeWithStretchMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
+            using Image<TPixel> image = provider.GetImage();
+            var options = new ResizeOptions
             {
-                var options = new ResizeOptions
-                {
-                    Size = new Size(image.Width / 2, image.Height),
-                    Mode = ResizeMode.Stretch
-                };
+                Size = new Size(image.Width / 2, image.Height),
+                Mode = ResizeMode.Stretch
+            };
 
-                image.Mutate(x => x.Resize(options));
+            image.Mutate(x => x.Resize(options));
 
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
-            }
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(ValidatorComparer, provider);
         }
 
         [Theory]
@@ -568,11 +524,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 return;
             }
 
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                // Don't bother saving, we're testing the EXIF metadata updates.
-                image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
-            }
+            using Image<TPixel> image = provider.GetImage();
+
+            // Don't bother saving, we're testing the EXIF metadata updates.
+            image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
         }
     }
 }

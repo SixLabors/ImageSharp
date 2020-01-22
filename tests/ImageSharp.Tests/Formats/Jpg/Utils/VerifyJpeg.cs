@@ -59,11 +59,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 output?.WriteLine("Min: " + comp.MinVal);
                 output?.WriteLine("Max: " + comp.MaxVal);
 
-                using (Image<Rgba32> image = comp.CreateGrayScaleImage())
-                {
-                    string details = $"C{comp.Index}";
-                    image.DebugSave(provider, details, appendPixelTypeToFileName: false);
-                }
+                using Image<Rgba32> image = comp.CreateGrayScaleImage();
+                string details = $"C{comp.Index}";
+                image.DebugSave(provider, details, appendPixelTypeToFileName: false);
             }
 
             Image<Rgba32> fullImage = data.TryCreateRGBSpectralImage();

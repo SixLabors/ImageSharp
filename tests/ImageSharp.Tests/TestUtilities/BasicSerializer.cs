@@ -11,7 +11,9 @@ using Xunit.Abstractions;
 namespace SixLabors.ImageSharp.Tests.TestUtilities
 {
     /// <summary>
-    /// <see cref="IXunitSerializationInfo"/>-compatible serialization for cross-process use-cases.
+    /// RemoteExecutor can only execute static methods, which can only consume static arguments.
+    /// To overcome this, data has to be serialized to string. This utility allows serialization
+    /// of <see cref="IXunitSerializable"/> types to strings.
     /// </summary>
     internal class BasicSerializer : IXunitSerializationInfo
     {

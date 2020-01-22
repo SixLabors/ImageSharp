@@ -6,7 +6,6 @@ using System.Linq;
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 using Xunit;
 using Xunit.Abstractions;

@@ -3,7 +3,6 @@
 
 using System;
 using System.Globalization;
-using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing;
 using Xunit;
 

@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Processing;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {

@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Primitives;
 
 // Many of these matrices are translated from Chromium project where
 // SkScalar[] is memory-mapped to a row-major matrix.

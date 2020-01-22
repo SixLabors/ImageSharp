@@ -4,14 +4,12 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Tga
 {

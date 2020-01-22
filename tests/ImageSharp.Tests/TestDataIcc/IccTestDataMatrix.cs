@@ -5,7 +5,7 @@ using System.Numerics;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using SixLabors.ImageSharp.Primitives;
+    using SixLabors.ImageSharp;
 
     internal static class IccTestDataMatrix
     {

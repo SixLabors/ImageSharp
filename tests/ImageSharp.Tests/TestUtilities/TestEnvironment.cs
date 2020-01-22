@@ -196,8 +196,12 @@ namespace SixLabors.ImageSharp.Tests
             proc.WaitForExit();
             string standardOutput = proc.StandardOutput.ReadToEnd();
             string standardError = proc.StandardError.ReadToEnd();
-            Debug.Print(standardOutput);
-            Debug.Print(standardError);
+
+            if (proc.ExitCode != 0)
+            {
+                throw new Exception(
+                    $@"Failed to run {si.FileName} {si.Arguments}:\n STDOUT: {standardOutput}\n STDERR: {standardError}");
+            }
 
             static FileInfo Find(DirectoryInfo root, string name)
             {

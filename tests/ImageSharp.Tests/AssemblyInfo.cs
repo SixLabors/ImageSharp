@@ -3,4 +3,4 @@
 
 using System.Runtime.CompilerServices;
 
-[assembly:InternalsVisibleTo("SixLabors.ImageSharp.Sandbox46")]
+[assembly:InternalsVisibleTo("ImageSharp.Tests.ProfilingSandbox")]

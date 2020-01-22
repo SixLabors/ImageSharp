@@ -50,13 +50,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
 
-            using (var ms = new MemoryStream(sourceBytes))
-            {
-                decoder.ParseStream(ms);
+            using var ms = new MemoryStream(sourceBytes);
+            decoder.ParseStream(ms);
 
-                var data = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
-                VerifyJpeg.SaveSpectralImage(provider, data);
-            }
+            var data = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
+            VerifyJpeg.SaveSpectralImage(provider, data);
         }
 
         [Theory]
@@ -73,13 +71,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
 
-            using (var ms = new MemoryStream(sourceBytes))
-            {
-                decoder.ParseStream(ms);
-                var imageSharpData = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
+            using var ms = new MemoryStream(sourceBytes);
+            decoder.ParseStream(ms);
+            var imageSharpData = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
 
-                this.VerifySpectralCorrectnessImpl(provider, imageSharpData);
-            }
+            this.VerifySpectralCorrectnessImpl(provider, imageSharpData);
         }
 
         private void VerifySpectralCorrectnessImpl<TPixel>(

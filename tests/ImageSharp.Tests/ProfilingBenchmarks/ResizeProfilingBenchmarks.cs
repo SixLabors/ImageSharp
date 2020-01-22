@@ -29,12 +29,10 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
             this.Measure(
                 this.ExecutionCount,
                 () =>
-                    {
-                        using (var image = new Image<Rgba32>(this.configuration, width, height))
-                        {
-                            image.Mutate(x => x.Resize(width / 5, height / 5));
-                        }
-                    });
+                {
+                    using var image = new Image<Rgba32>(this.configuration, width, height);
+                    image.Mutate(x => x.Resize(width / 5, height / 5));
+                });
         }
     }
 }

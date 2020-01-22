@@ -36,14 +36,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void Identify_DetectsCorrectBitmapInfoHeaderType(string imagePath, BmpInfoHeaderType expectedInfoHeaderType)
         {
             var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                IImageInfo imageInfo = Image.Identify(stream);
-                Assert.NotNull(imageInfo);
-                BmpMetadata bitmapMetadata = imageInfo.Metadata.GetBmpMetadata();
-                Assert.NotNull(bitmapMetadata);
-                Assert.Equal(expectedInfoHeaderType, bitmapMetadata.InfoHeaderType);
-            }
+            using var stream = new MemoryStream(testFile.Bytes, false);
+            IImageInfo imageInfo = Image.Identify(stream);
+            Assert.NotNull(imageInfo);
+            BmpMetadata bitmapMetadata = imageInfo.Metadata.GetBmpMetadata();
+            Assert.NotNull(bitmapMetadata);
+            Assert.Equal(expectedInfoHeaderType, bitmapMetadata.InfoHeaderType);
         }
     }
 }

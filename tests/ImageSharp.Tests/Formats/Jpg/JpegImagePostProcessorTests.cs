@@ -34,10 +34,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         private static void SaveBuffer<TPixel>(JpegComponentPostProcessor cp, TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<Rgba32> image = cp.ColorBuffer.ToGrayscaleImage(1f / 255f))
-            {
-                image.DebugSave(provider, $"-C{cp.Component.Index}-");
-            }
+            using Image<Rgba32> image = cp.ColorBuffer.ToGrayscaleImage(1f / 255f);
+            image.DebugSave(provider, $"-C{cp.Component.Index}-");
         }
 
         [Theory]
@@ -47,18 +45,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             where TPixel : struct, IPixel<TPixel>
         {
             string imageFile = provider.SourceFileOrDescription;
-            using (JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile))
-            using (var pp = new JpegImagePostProcessor(Configuration.Default, decoder))
-            using (var imageFrame = new ImageFrame<Rgba32>(Configuration.Default, decoder.ImageWidth, decoder.ImageHeight))
-            {
-                pp.DoPostProcessorStep(imageFrame);
+            using JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile);
+            using var pp = new JpegImagePostProcessor(Configuration.Default, decoder);
+            using var imageFrame = new ImageFrame<Rgba32>(Configuration.Default, decoder.ImageWidth, decoder.ImageHeight);
+            pp.DoPostProcessorStep(imageFrame);
 
-                JpegComponentPostProcessor[] cp = pp.ComponentProcessors;
+            JpegComponentPostProcessor[] cp = pp.ComponentProcessors;
 
-                SaveBuffer(cp[0], provider);
-                SaveBuffer(cp[1], provider);
-                SaveBuffer(cp[2], provider);
-            }
+            SaveBuffer(cp[0], provider);
+            SaveBuffer(cp[1], provider);
+            SaveBuffer(cp[2], provider);
         }
 
         [Theory]
@@ -67,30 +63,26 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             where TPixel : struct, IPixel<TPixel>
         {
             string imageFile = provider.SourceFileOrDescription;
-            using (JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile))
-            using (var pp = new JpegImagePostProcessor(Configuration.Default, decoder))
-            using (var image = new Image<Rgba32>(decoder.ImageWidth, decoder.ImageHeight))
-            {
-                pp.PostProcess(image.Frames.RootFrame);
+            using JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile);
+            using var pp = new JpegImagePostProcessor(Configuration.Default, decoder);
+            using var image = new Image<Rgba32>(decoder.ImageWidth, decoder.ImageHeight);
+            pp.PostProcess(image.Frames.RootFrame);
 
-                image.DebugSave(provider);
+            image.DebugSave(provider);
 
-                ImagingTestCaseUtility testUtil = provider.Utility;
-                testUtil.TestGroupName = nameof(JpegDecoderTests);
-                testUtil.TestName = JpegDecoderTests.DecodeBaselineJpegOutputName;
+            ImagingTestCaseUtility testUtil = provider.Utility;
+            testUtil.TestGroupName = nameof(JpegDecoderTests);
+            testUtil.TestName = JpegDecoderTests.DecodeBaselineJpegOutputName;
 
-                using (Image<TPixel> referenceImage =
-                    provider.GetReferenceOutputImage<TPixel>(appendPixelTypeToFileName: false))
-                {
-                    ImageSimilarityReport report = ImageComparer.Exact.CompareImagesOrFrames(referenceImage, image);
+            using Image<TPixel> referenceImage =
+                provider.GetReferenceOutputImage<TPixel>(appendPixelTypeToFileName: false);
+            ImageSimilarityReport report = ImageComparer.Exact.CompareImagesOrFrames(referenceImage, image);
 
-                    this.Output.WriteLine($"*** {imageFile} ***");
-                    this.Output.WriteLine($"Difference: {report.DifferencePercentageString}");
+            this.Output.WriteLine($"*** {imageFile} ***");
+            this.Output.WriteLine($"Difference: {report.DifferencePercentageString}");
 
-                    // ReSharper disable once PossibleInvalidOperationException
-                    Assert.True(report.TotalNormalizedDifference.Value < 0.005f);
-                }
-            }
+            // ReSharper disable once PossibleInvalidOperationException
+            Assert.True(report.TotalNormalizedDifference.Value < 0.005f);
         }
     }
 }

@@ -148,20 +148,16 @@ namespace SixLabors.ImageSharp.Tests
             public void CloneFrame<TPixel>(TestImageProvider<TPixel> provider)
                 where TPixel : struct, IPixel<TPixel>
             {
-                using (Image<TPixel> img = provider.GetImage())
-                {
-                    ImageFrameCollection nonGenericFrameCollection = img.Frames;
+                using Image<TPixel> img = provider.GetImage();
+                ImageFrameCollection nonGenericFrameCollection = img.Frames;
 
-                    nonGenericFrameCollection.AddFrame(new ImageFrame<TPixel>(Configuration.Default, 10, 10)); // add a frame anyway
-                    using (Image cloned = nonGenericFrameCollection.CloneFrame(0))
-                    {
-                        Assert.Equal(2, img.Frames.Count);
+                nonGenericFrameCollection.AddFrame(new ImageFrame<TPixel>(Configuration.Default, 10, 10)); // add a frame anyway
+                using Image cloned = nonGenericFrameCollection.CloneFrame(0);
+                Assert.Equal(2, img.Frames.Count);
 
-                        var expectedClone = (Image<TPixel>)cloned;
+                var expectedClone = (Image<TPixel>)cloned;
 
-                        expectedClone.ComparePixelBufferTo(img.GetPixelSpan());
-                    }
-                }
+                expectedClone.ComparePixelBufferTo(img.GetPixelSpan());
             }
 
             [Theory]
@@ -169,21 +165,17 @@ namespace SixLabors.ImageSharp.Tests
             public void ExtractFrame<TPixel>(TestImageProvider<TPixel> provider)
                 where TPixel : struct, IPixel<TPixel>
             {
-                using (Image<TPixel> img = provider.GetImage())
-                {
-                    var sourcePixelData = img.GetPixelSpan().ToArray();
+                using Image<TPixel> img = provider.GetImage();
+                var sourcePixelData = img.GetPixelSpan().ToArray();
 
-                    ImageFrameCollection nonGenericFrameCollection = img.Frames;
+                ImageFrameCollection nonGenericFrameCollection = img.Frames;
 
-                    nonGenericFrameCollection.AddFrame(new ImageFrame<TPixel>(Configuration.Default, 10, 10));
-                    using (Image cloned = nonGenericFrameCollection.ExportFrame(0))
-                    {
-                        Assert.Equal(1, img.Frames.Count);
+                nonGenericFrameCollection.AddFrame(new ImageFrame<TPixel>(Configuration.Default, 10, 10));
+                using Image cloned = nonGenericFrameCollection.ExportFrame(0);
+                Assert.Equal(1, img.Frames.Count);
 
-                        var expectedClone = (Image<TPixel>)cloned;
-                        expectedClone.ComparePixelBufferTo(sourcePixelData);
-                    }
-                }
+                var expectedClone = (Image<TPixel>)cloned;
+                expectedClone.ComparePixelBufferTo(sourcePixelData);
             }
 
             [Fact]
@@ -270,39 +262,34 @@ namespace SixLabors.ImageSharp.Tests
             public void ConstructGif_FromDifferentPixelTypes<TPixel>(TestImageProvider<TPixel> provider)
                 where TPixel : struct, IPixel<TPixel>
             {
-                using (Image source = provider.GetImage())
-                using (var dest = new Image<TPixel>(source.GetConfiguration(), source.Width, source.Height))
+                using Image source = provider.GetImage();
+                using var dest = new Image<TPixel>(source.GetConfiguration(), source.Width, source.Height);
+
+                // Giphy.gif has 5 frames
+                ImportFrameAs<Bgra32>(source.Frames, dest.Frames, 0);
+                ImportFrameAs<Argb32>(source.Frames, dest.Frames, 1);
+                ImportFrameAs<Rgba64>(source.Frames, dest.Frames, 2);
+                ImportFrameAs<Rgba32>(source.Frames, dest.Frames, 3);
+                ImportFrameAs<Bgra32>(source.Frames, dest.Frames, 4);
+
+                // Drop the original empty root frame:
+                dest.Frames.RemoveFrame(0);
+
+                dest.DebugSave(provider, appendSourceFileOrDescription: false, extension: "gif");
+                dest.CompareToOriginal(provider);
+
+                for (int i = 0; i < 5; i++)
                 {
-                    // Giphy.gif has 5 frames
-                    ImportFrameAs<Bgra32>(source.Frames, dest.Frames, 0);
-                    ImportFrameAs<Argb32>(source.Frames, dest.Frames, 1);
-                    ImportFrameAs<Rgba64>(source.Frames, dest.Frames, 2);
-                    ImportFrameAs<Rgba32>(source.Frames, dest.Frames, 3);
-                    ImportFrameAs<Bgra32>(source.Frames, dest.Frames, 4);
-
-                    // Drop the original empty root frame:
-                    dest.Frames.RemoveFrame(0);
-
-                    dest.DebugSave(provider, appendSourceFileOrDescription: false, extension: "gif");
-                    dest.CompareToOriginal(provider);
-
-                    for (int i = 0; i < 5; i++)
-                    {
-                        CompareGifMetadata(source.Frames[i], dest.Frames[i]);
-                    }
+                    CompareGifMetadata(source.Frames[i], dest.Frames[i]);
                 }
             }
 
             private static void ImportFrameAs<TPixel>(ImageFrameCollection source, ImageFrameCollection destination, int index)
                 where TPixel : struct, IPixel<TPixel>
             {
-                using (Image temp = source.CloneFrame(index))
-                {
-                    using (Image<TPixel> temp2 = temp.CloneAs<TPixel>())
-                    {
-                        destination.AddFrame(temp2.Frames.RootFrame);
-                    }
-                }
+                using Image temp = source.CloneFrame(index);
+                using Image<TPixel> temp2 = temp.CloneAs<TPixel>();
+                destination.AddFrame(temp2.Frames.RootFrame);
             }
 
             private static void CompareGifMetadata(ImageFrame a, ImageFrame b)

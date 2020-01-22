@@ -223,14 +223,10 @@ namespace SixLabors.ImageSharp.Tests
 
             for (int i = 0; i < image.Frames.Count; i++)
             {
-                using (Image<TPixel> frameImage = image.Frames.CloneFrame(i))
-                {
-                    string filePath = files[i];
-                    using (FileStream stream = File.OpenWrite(filePath))
-                    {
-                        frameImage.Save(stream, encoder);
-                    }
-                }
+                using Image<TPixel> frameImage = image.Frames.CloneFrame(i);
+                string filePath = files[i];
+                using FileStream stream = File.OpenWrite(filePath);
+                frameImage.Save(stream, encoder);
             }
 
             return files;

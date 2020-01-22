@@ -15,51 +15,43 @@ namespace SixLabors.ImageSharp.Tests.Common
         [InlineData(-1)]
         public void Skip_CountZeroOrLower_PositionNotChanged(int count)
         {
-            using (var memStream = new MemoryStream(5))
-            {
-                memStream.Position = 4;
-                memStream.Skip(count);
+            using var memStream = new MemoryStream(5);
+            memStream.Position = 4;
+            memStream.Skip(count);
 
-                Assert.Equal(4, memStream.Position);
-            }
+            Assert.Equal(4, memStream.Position);
         }
 
         [Fact]
         public void Skip_SeekableStream_SeekIsCalled()
         {
-            using (var seekableStream = new SeekableStream(4))
-            {
-                seekableStream.Skip(4);
+            using var seekableStream = new SeekableStream(4);
+            seekableStream.Skip(4);
 
-                Assert.Equal(4, seekableStream.Offset);
-                Assert.Equal(SeekOrigin.Current, seekableStream.Loc);
-            }
+            Assert.Equal(4, seekableStream.Offset);
+            Assert.Equal(SeekOrigin.Current, seekableStream.Loc);
         }
 
         [Fact]
         public void Skip_NonSeekableStream_BytesAreRead()
         {
-            using (var nonSeekableStream = new NonSeekableStream())
-            {
-                nonSeekableStream.Skip(5);
+            using var nonSeekableStream = new NonSeekableStream();
+            nonSeekableStream.Skip(5);
 
-                Assert.Equal(3, nonSeekableStream.Counts.Count);
+            Assert.Equal(3, nonSeekableStream.Counts.Count);
 
-                Assert.Equal(5, nonSeekableStream.Counts[0]);
-                Assert.Equal(3, nonSeekableStream.Counts[1]);
-                Assert.Equal(1, nonSeekableStream.Counts[2]);
-            }
+            Assert.Equal(5, nonSeekableStream.Counts[0]);
+            Assert.Equal(3, nonSeekableStream.Counts[1]);
+            Assert.Equal(1, nonSeekableStream.Counts[2]);
         }
 
         [Fact]
         public void Skip_EofStream_NoExceptionIsThrown()
         {
-            using (var eofStream = new EofStream(7))
-            {
-                eofStream.Skip(7);
+            using var eofStream = new EofStream(7);
+            eofStream.Skip(7);
 
-                Assert.Equal(0, eofStream.Position);
-            }
+            Assert.Equal(0, eofStream.Position);
         }
 
         private class SeekableStream : MemoryStream

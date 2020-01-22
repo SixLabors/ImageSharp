@@ -128,14 +128,10 @@ namespace SixLabors.ImageSharp.Tests
         public void DetectFormatAllocatesCleanBuffer()
         {
             byte[] jpegImage;
-            using (var buffer = new MemoryStream())
-            {
-                using (var image = new Image<Rgba32>(100, 100))
-                {
-                    image.SaveAsJpeg(buffer);
-                    jpegImage = buffer.ToArray();
-                }
-            }
+            using var buffer = new MemoryStream();
+            using var image = new Image<Rgba32>(100, 100);
+            image.SaveAsJpeg(buffer);
+            jpegImage = buffer.ToArray();
 
             byte[] invalidImage = { 1, 2, 3 };
 

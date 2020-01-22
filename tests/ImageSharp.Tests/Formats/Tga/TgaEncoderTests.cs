@@ -37,20 +37,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         {
             var options = new TgaEncoder();
 
-            TestFile testFile = TestFile.Create(imagePath);
-            using (Image<Rgba32> input = testFile.CreateRgba32Image())
-            {
-                using (var memStream = new MemoryStream())
-                {
-                    input.Save(memStream, options);
-                    memStream.Position = 0;
-                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
-                    {
-                        TgaMetadata meta = output.Metadata.GetTgaMetadata();
-                        Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
-                    }
-                }
-            }
+            var testFile = TestFile.Create(imagePath);
+            using Image<Rgba32> input = testFile.CreateRgba32Image();
+            using var memStream = new MemoryStream();
+            input.Save(memStream, options);
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(memStream);
+            TgaMetadata meta = output.Metadata.GetTgaMetadata();
+            Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
         }
 
         [Theory]
@@ -62,20 +56,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
                               Compression = TgaCompression.RunLength
                           };
 
-            TestFile testFile = TestFile.Create(imagePath);
-            using (Image<Rgba32> input = testFile.CreateRgba32Image())
-            {
-                using (var memStream = new MemoryStream())
-                {
-                    input.Save(memStream, options);
-                    memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
-                    {
-                        TgaMetadata meta = output.Metadata.GetTgaMetadata();
-                        Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
-                    }
-                }
-            }
+            var testFile = TestFile.Create(imagePath);
+            using Image<Rgba32> input = testFile.CreateRgba32Image();
+            using var memStream = new MemoryStream();
+            input.Save(memStream, options);
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(memStream);
+            TgaMetadata meta = output.Metadata.GetTgaMetadata();
+            Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
         }
 
         [Theory]
@@ -130,20 +118,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
             float compareTolerance = 0.01f)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                var encoder = new TgaEncoder { BitsPerPixel = bitsPerPixel, Compression = compression };
+            using Image<TPixel> image = provider.GetImage();
+            var encoder = new TgaEncoder { BitsPerPixel = bitsPerPixel, Compression = compression };
 
-                using (var memStream = new MemoryStream())
-                {
-                    image.Save(memStream, encoder);
-                    memStream.Position = 0;
-                    using (var encodedImage = (Image<TPixel>)Image.Load(memStream))
-                    {
-                        TgaTestUtils.CompareWithReferenceDecoder(provider, encodedImage, useExactComparer, compareTolerance);
-                    }
-                }
-            }
+            using var memStream = new MemoryStream();
+            image.Save(memStream, encoder);
+            memStream.Position = 0;
+            using var encodedImage = (Image<TPixel>)Image.Load(memStream);
+            TgaTestUtils.CompareWithReferenceDecoder(provider, encodedImage, useExactComparer, compareTolerance);
         }
     }
 }

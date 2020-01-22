@@ -20,10 +20,8 @@ namespace SixLabors.ImageSharp.Tests
             TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.CompareToReferenceOutput(provider);
-            }
+            using Image<TPixel> image = provider.GetImage();
+            image.CompareToReferenceOutput(provider);
         }
 
         [Theory]
@@ -32,10 +30,8 @@ namespace SixLabors.ImageSharp.Tests
             TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                Assert.ThrowsAny<Exception>(() => image.CompareToReferenceOutput(provider));
-            }
+            using Image<TPixel> image = provider.GetImage();
+            Assert.ThrowsAny<Exception>(() => image.CompareToReferenceOutput(provider));
         }
 
         [Theory]
@@ -44,11 +40,9 @@ namespace SixLabors.ImageSharp.Tests
             TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.DebugSave(provider, appendPixelTypeToFileName: false);
-                image.CompareToReferenceOutput(provider, appendPixelTypeToFileName: false);
-            }
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSave(provider, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(provider, appendPixelTypeToFileName: false);
         }
 
         [Theory]
@@ -56,10 +50,8 @@ namespace SixLabors.ImageSharp.Tests
         public void CompareToReferenceOutput_WhenReferenceFileMissing_Throws<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                Assert.ThrowsAny<Exception>(() => image.CompareToReferenceOutput(provider));
-            }
+            using Image<TPixel> image = provider.GetImage();
+            Assert.ThrowsAny<Exception>(() => image.CompareToReferenceOutput(provider));
         }
 
         [Theory]
@@ -67,13 +59,9 @@ namespace SixLabors.ImageSharp.Tests
         public void CompareToOriginal_WhenSimilar<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                using (Image<TPixel> clone = image.Clone())
-                {
-                    clone.CompareToOriginal(provider, ImageComparer.Exact);
-                }
-            }
+            using Image<TPixel> image = provider.GetImage();
+            using Image<TPixel> clone = image.Clone();
+            clone.CompareToOriginal(provider, ImageComparer.Exact);
         }
 
         [Theory]
@@ -81,15 +69,13 @@ namespace SixLabors.ImageSharp.Tests
         public void CompareToOriginal_WhenDifferent_Throws<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                ImagingTestCaseUtility.ModifyPixel(image, 3, 1, 1);
+            using Image<TPixel> image = provider.GetImage();
+            ImagingTestCaseUtility.ModifyPixel(image, 3, 1, 1);
 
-                Assert.ThrowsAny<ImageDifferenceIsOverThresholdException>(() =>
-                {
-                    image.CompareToOriginal(provider, ImageComparer.Exact);
-                });
-            }
+            Assert.ThrowsAny<ImageDifferenceIsOverThresholdException>(() =>
+            {
+                image.CompareToOriginal(provider, ImageComparer.Exact);
+            });
         }
 
         [Theory]
@@ -97,13 +83,11 @@ namespace SixLabors.ImageSharp.Tests
         public void CompareToOriginal_WhenInputIsNotFromFile_Throws<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
+            using Image<TPixel> image = provider.GetImage();
+            Assert.ThrowsAny<Exception>(() =>
             {
-                Assert.ThrowsAny<Exception>(() =>
-                {
-                    image.CompareToOriginal(provider, Mock.Of<ImageComparer>());
-                });
-            }
+                image.CompareToOriginal(provider, Mock.Of<ImageComparer>());
+            });
         }
     }
 }

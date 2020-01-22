@@ -26,57 +26,45 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void Path_Specific()
             {
-                using (var img = Image.Load<Rgba32>(this.Path))
-                {
-                    VerifyDecodedImage(img);
-                }
+                using var img = Image.Load<Rgba32>(this.Path);
+                VerifyDecodedImage(img);
             }
 
             [Fact]
             public void Path_Agnostic()
             {
-                using (var img = Image.Load(this.Path))
-                {
-                    VerifyDecodedImage(img);
-                }
+                using var img = Image.Load(this.Path);
+                VerifyDecodedImage(img);
             }
 
             [Fact]
             public void Path_Decoder_Specific()
             {
-                using (var img = Image.Load<Rgba32>(this.Path, new BmpDecoder()))
-                {
-                    VerifyDecodedImage(img);
-                }
+                using var img = Image.Load<Rgba32>(this.Path, new BmpDecoder());
+                VerifyDecodedImage(img);
             }
 
             [Fact]
             public void Path_Decoder_Agnostic()
             {
-                using (var img = Image.Load(this.Path, new BmpDecoder()))
-                {
-                    VerifyDecodedImage(img);
-                }
+                using var img = Image.Load(this.Path, new BmpDecoder());
+                VerifyDecodedImage(img);
             }
 
             [Fact]
             public void Path_OutFormat_Specific()
             {
-                using (var img = Image.Load<Rgba32>(this.Path, out IImageFormat format))
-                {
-                    VerifyDecodedImage(img);
-                    Assert.IsType<BmpFormat>(format);
-                }
+                using var img = Image.Load<Rgba32>(this.Path, out IImageFormat format);
+                VerifyDecodedImage(img);
+                Assert.IsType<BmpFormat>(format);
             }
 
             [Fact]
             public void Path_OutFormat_Agnostic()
             {
-                using (var img = Image.Load(this.Path, out IImageFormat format))
-                {
-                    VerifyDecodedImage(img);
-                    Assert.IsType<BmpFormat>(format);
-                }
+                using var img = Image.Load(this.Path, out IImageFormat format);
+                VerifyDecodedImage(img);
+                Assert.IsType<BmpFormat>(format);
             }
 
             [Fact]

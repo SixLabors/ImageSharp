@@ -91,17 +91,15 @@ namespace SixLabors.ImageSharp.Tests.Metadata
             exifProfile.SetValue(ExifTag.XResolution, new Rational(200));
             exifProfile.SetValue(ExifTag.YResolution, new Rational(300));
 
-            using (var image = new Image<Rgba32>(1, 1))
-            {
-                image.Metadata.ExifProfile = exifProfile;
-                image.Metadata.HorizontalResolution = 400;
-                image.Metadata.VerticalResolution = 500;
+            using var image = new Image<Rgba32>(1, 1);
+            image.Metadata.ExifProfile = exifProfile;
+            image.Metadata.HorizontalResolution = 400;
+            image.Metadata.VerticalResolution = 500;
 
-                image.Metadata.SyncProfiles();
+            image.Metadata.SyncProfiles();
 
-                Assert.Equal(400, ((Rational)image.Metadata.ExifProfile.GetValue(ExifTag.XResolution).Value).ToDouble());
-                Assert.Equal(500, ((Rational)image.Metadata.ExifProfile.GetValue(ExifTag.YResolution).Value).ToDouble());
-            }
+            Assert.Equal(400, ((Rational)image.Metadata.ExifProfile.GetValue(ExifTag.XResolution).Value).ToDouble());
+            Assert.Equal(500, ((Rational)image.Metadata.ExifProfile.GetValue(ExifTag.YResolution).Value).ToDouble());
         }
     }
 }

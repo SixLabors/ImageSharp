@@ -54,9 +54,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory(Skip = "Debug only, enable manually")]
-        [WithTestPatternImage(4000, 4000, PixelTypes.Rgba32, 300, 1024)]
-        [WithTestPatternImage(3032, 3032, PixelTypes.Rgba32, 400, 1024)]
-        [WithTestPatternImage(3032, 3032, PixelTypes.Rgba32, 400, 128)]
+        [WithTestPatternImages(4000, 4000, PixelTypes.Rgba32, 300, 1024)]
+        [WithTestPatternImages(3032, 3032, PixelTypes.Rgba32, 400, 1024)]
+        [WithTestPatternImages(3032, 3032, PixelTypes.Rgba32, 400, 128)]
         public void LargeImage<TPixel>(TestImageProvider<TPixel> provider, int destSize, int workingBufferSizeHintInKilobytes)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -94,13 +94,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         private static readonly int SizeOfVector4 = Unsafe.SizeOf<Vector4>();
 
         [Theory]
-        [WithTestPatternImage(100, 100, PixelTypes.Rgba32, 50)]
-        [WithTestPatternImage(100, 100, PixelTypes.Rgba32, 60)]
-        [WithTestPatternImage(100, 400, PixelTypes.Rgba32, 110)]
-        [WithTestPatternImage(79, 97, PixelTypes.Rgba32, 73)]
-        [WithTestPatternImage(79, 97, PixelTypes.Rgba32, 5)]
-        [WithTestPatternImage(47, 193, PixelTypes.Rgba32, 73)]
-        [WithTestPatternImage(23, 211, PixelTypes.Rgba32, 31)]
+        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 50)]
+        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 60)]
+        [WithTestPatternImages(100, 400, PixelTypes.Rgba32, 110)]
+        [WithTestPatternImages(79, 97, PixelTypes.Rgba32, 73)]
+        [WithTestPatternImages(79, 97, PixelTypes.Rgba32, 5)]
+        [WithTestPatternImages(47, 193, PixelTypes.Rgba32, 73)]
+        [WithTestPatternImages(23, 211, PixelTypes.Rgba32, 31)]
         public void WorkingBufferSizeHintInBytes_IsAppliedCorrectly<TPixel>(
             TestImageProvider<TPixel> provider,
             int workingBufferLimitInRows)
@@ -146,7 +146,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithTestPatternImage(100, 100, DefaultPixelType)]
+        [WithTestPatternImages(100, 100, DefaultPixelType)]
         public void Resize_Compand<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -185,7 +185,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithTestPatternImage(50, 50, CommonNonDefaultPixelTypes)]
+        [WithTestPatternImages(50, 50, CommonNonDefaultPixelTypes)]
         public void Resize_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -243,12 +243,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             1.8f,
             null,
             null)]
-        [WithTestPatternImage(nameof(SmokeTestResamplerNames), 100, 100, DefaultPixelType, 0.5f, null, null)]
-        [WithTestPatternImage(nameof(SmokeTestResamplerNames), 100, 100, DefaultPixelType, 1f, null, null)]
-        [WithTestPatternImage(nameof(SmokeTestResamplerNames), 50, 50, DefaultPixelType, 8f, null, null)]
-        [WithTestPatternImage(nameof(SmokeTestResamplerNames), 201, 199, DefaultPixelType, null, 100, 99)]
-        [WithTestPatternImage(nameof(SmokeTestResamplerNames), 301, 1180, DefaultPixelType, null, 300, 480)]
-        [WithTestPatternImage(nameof(SmokeTestResamplerNames), 49, 80, DefaultPixelType, null, 301, 100)]
+        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 100, 100, DefaultPixelType, 0.5f, null, null)]
+        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 100, 100, DefaultPixelType, 1f, null, null)]
+        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 50, 50, DefaultPixelType, 8f, null, null)]
+        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 201, 199, DefaultPixelType, null, 100, 99)]
+        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 301, 1180, DefaultPixelType, null, 300, 480)]
+        [WithTestPatternImages(nameof(SmokeTestResamplerNames), 49, 80, DefaultPixelType, null, 301, 100)]
         public void Resize_WorksWithAllResamplers<TPixel>(
             TestImageProvider<TPixel> provider,
             string samplerName,
@@ -343,7 +343,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithTestPatternImage(10, 100, DefaultPixelType)]
+        [WithTestPatternImages(10, 100, DefaultPixelType)]
         public void ResizeHeightCannotKeepAspectKeepsOnePixel<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -366,7 +366,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithTestPatternImage(100, 10, DefaultPixelType)]
+        [WithTestPatternImages(100, 10, DefaultPixelType)]
         public void ResizeWidthCannotKeepAspectKeepsOnePixel<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

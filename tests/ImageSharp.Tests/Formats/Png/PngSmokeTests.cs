@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
     public class PngSmokeTests
     {
         [Theory]
-        [WithTestPatternImage(300, 300, PixelTypes.Rgba32)]
+        [WithTestPatternImages(300, 300, PixelTypes.Rgba32)]
         public void GeneralTest<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }*/
 
         [Theory]
-        [WithTestPatternImage(300, 300, PixelTypes.Rgba32)]
+        [WithTestPatternImages(300, 300, PixelTypes.Rgba32)]
         public void Resize<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

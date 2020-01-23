@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         };
 
         [Theory]
-        [WithTestPatternImage(100, 100, TestPixelTypes)]
+        [WithTestPatternImages(100, 100, TestPixelTypes)]
         public void EncodeGeneratedPatterns<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

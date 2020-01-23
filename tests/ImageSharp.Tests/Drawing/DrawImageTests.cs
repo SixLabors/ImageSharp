@@ -57,9 +57,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, TestImages.Png.Splash, PixelColorBlendingMode.Normal, 0.75f)]
         [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, TestImages.Png.Splash, PixelColorBlendingMode.Normal, 0.25f)]
 
-        [WithTestPatternImage(400, 400, PixelTypes.Rgba32, TestImages.Png.Splash, PixelColorBlendingMode.Multiply, 0.5f)]
-        [WithTestPatternImage(400, 400, PixelTypes.Rgba32, TestImages.Png.Splash, PixelColorBlendingMode.Add, 0.5f)]
-        [WithTestPatternImage(400, 400, PixelTypes.Rgba32, TestImages.Png.Splash, PixelColorBlendingMode.Subtract, 0.5f)]
+        [WithTestPatternImages(400, 400, PixelTypes.Rgba32, TestImages.Png.Splash, PixelColorBlendingMode.Multiply, 0.5f)]
+        [WithTestPatternImages(400, 400, PixelTypes.Rgba32, TestImages.Png.Splash, PixelColorBlendingMode.Add, 0.5f)]
+        [WithTestPatternImages(400, 400, PixelTypes.Rgba32, TestImages.Png.Splash, PixelColorBlendingMode.Subtract, 0.5f)]
 
         [WithFile(TestImages.Png.Rgb48Bpp, PixelTypes.Rgba64, TestImages.Png.Splash, PixelColorBlendingMode.Normal, 1f)]
         [WithFile(TestImages.Png.Rgb48Bpp, PixelTypes.Rgba64, TestImages.Png.Splash, PixelColorBlendingMode.Normal, 0.25f)]
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         }
 
         [Theory]
-        [WithTestPatternImage(200, 200, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
+        [WithTestPatternImages(200, 200, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
         public void DrawImageOfDifferentPixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

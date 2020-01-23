@@ -5,18 +5,12 @@ namespace SixLabors.ImageSharp.Tests
 {
     internal static class IccTestDataArray
     {
-        #region Byte
-
         public static readonly byte[] UInt8 = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
         public static readonly object[][] UInt8TestData =
         {
             new object[] { UInt8, UInt8 }
         };
-
-        #endregion
-
-        #region UInt16
 
         public static readonly ushort[] UInt16_Val = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
@@ -37,10 +31,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { UInt16_Arr, UInt16_Val }
         };
 
-        #endregion
-
-        #region Int16
-
         public static readonly short[] Int16_Val = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
         public static readonly byte[] Int16_Arr = ArrayHelper.Concat(
@@ -59,10 +49,6 @@ namespace SixLabors.ImageSharp.Tests
         {
             new object[] { Int16_Arr, Int16_Val }
         };
-
-        #endregion
-
-        #region UInt32
 
         public static readonly uint[] UInt32_Val = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
@@ -83,10 +69,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { UInt32_Arr, UInt32_Val }
         };
 
-        #endregion
-
-        #region Int32
-
         public static readonly int[] Int32_Val = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
         public static readonly byte[] Int32_Arr = ArrayHelper.Concat(
@@ -106,10 +88,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { Int32_Arr, Int32_Val }
         };
 
-        #endregion
-
-        #region UInt64
-
         public static readonly ulong[] UInt64_Val = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
         public static readonly byte[] UInt64_Arr = ArrayHelper.Concat(
@@ -128,7 +106,5 @@ namespace SixLabors.ImageSharp.Tests
         {
             new object[] { UInt64_Arr, UInt64_Val }
         };
-
-        #endregion
     }
 }

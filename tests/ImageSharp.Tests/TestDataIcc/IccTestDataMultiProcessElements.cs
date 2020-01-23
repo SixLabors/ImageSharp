@@ -7,8 +7,6 @@ namespace SixLabors.ImageSharp.Tests
 {
     internal static class IccTestDataMultiProcessElements
     {
-        #region CurveSet
-
         /// <summary>
         /// <para>Input Channel Count: 3</para>
         /// <para>Output Channel Count: 3</para>
@@ -34,10 +32,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { CurvePE_Grad, CurvePE_ValGrad, 3, 3 },
         };
 
-        #endregion
-
-        #region Matrix
-
         /// <summary>
         /// <para>Input Channel Count: 3</para>
         /// <para>Output Channel Count: 3</para>
@@ -59,10 +53,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { MatrixPE_Grad, MatrixPE_ValGrad, 3, 3 },
         };
 
-        #endregion
-
-        #region CLUT
-
         /// <summary>
         /// <para>Input Channel Count: 2</para>
         /// <para>Output Channel Count: 3</para>
@@ -79,10 +69,6 @@ namespace SixLabors.ImageSharp.Tests
         {
             new object[] { CLUTPE_Grad, CLUTPE_ValGrad, 2, 3 },
         };
-
-        #endregion
-
-        #region MultiProcessElement
 
         public static readonly IccMultiProcessElement MPE_ValMatrix = MatrixPE_ValGrad;
         public static readonly IccMultiProcessElement MPE_ValCLUT = CLUTPE_ValGrad;
@@ -141,7 +127,5 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { MPE_bACS, MPE_ValbACS },
             new object[] { MPE_eACS, MPE_ValeACS },
         };
-
-        #endregion
     }
 }

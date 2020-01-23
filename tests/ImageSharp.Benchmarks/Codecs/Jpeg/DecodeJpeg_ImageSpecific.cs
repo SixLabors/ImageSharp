@@ -47,12 +47,15 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         [Params(
             TestImages.Jpeg.BenchmarkSuite.Lake_Small444YCbCr,
             TestImages.Jpeg.BenchmarkSuite.BadRstProgressive518_Large444YCbCr,
-            /* The scaled result for the large image "ExifGetString750Transform_Huge420YCbCr"
-             is almost the same as the result for Jpeg420Exif,
-             which proves that the execution time for the most common YCbCr 420 path scales linearly.
-             TestImages.Jpeg.BenchmarkSuite.ExifGetString750Transform_Huge420YCbCr,
-             */
+
+#pragma warning disable SA1115 // Parameter should follow comma
+
+            // The scaled result for the large image "ExifGetString750Transform_Huge420YCbCr"
+            // is almost the same as the result for Jpeg420Exif,
+            // which proves that the execution time for the most common YCbCr 420 path scales linearly.
+            // TestImages.Jpeg.BenchmarkSuite.ExifGetString750Transform_Huge420YCbCr,
             TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr)]
+#pragma warning restore SA1115 // Parameter should follow comma
 
         public string TestImage { get; set; }
 

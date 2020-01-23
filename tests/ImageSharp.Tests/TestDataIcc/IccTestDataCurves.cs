@@ -8,8 +8,6 @@ namespace SixLabors.ImageSharp.Tests
 {
     internal static class IccTestDataCurves
     {
-        #region Response
-
 #pragma warning disable SA1118 // Parameter should not span multiple lines
         /// <summary>
         /// Channels: 3
@@ -52,10 +50,6 @@ namespace SixLabors.ImageSharp.Tests
         {
             new object[] { Response_Grad, Response_ValGrad, 3 },
         };
-
-        #endregion
-
-        #region Parametric
 
         public static readonly IccParametricCurve Parametric_ValVar1 = new IccParametricCurve(1);
         public static readonly IccParametricCurve Parametric_ValVar2 = new IccParametricCurve(1, 2, 3);
@@ -127,10 +121,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { Parametric_Var5, Parametric_ValVar5 },
         };
 
-        #endregion
-
-        #region Formula Segment
-
+        // Formula Segment
         public static readonly IccFormulaCurveElement Formula_ValVar1 = new IccFormulaCurveElement(IccFormulaCurveType.Type1, 1, 2, 3, 4, 0, 0);
         public static readonly IccFormulaCurveElement Formula_ValVar2 = new IccFormulaCurveElement(IccFormulaCurveType.Type2, 1, 2, 3, 4, 5, 0);
         public static readonly IccFormulaCurveElement Formula_ValVar3 = new IccFormulaCurveElement(IccFormulaCurveType.Type3, 0, 2, 3, 4, 5, 6);
@@ -177,10 +168,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { Formula_Var3, Formula_ValVar3 },
         };
 
-        #endregion
-
-        #region Sampled Segment
-
+        // Sampled Segment
         public static readonly IccSampledCurveElement Sampled_ValGrad1 = new IccSampledCurveElement(new float[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 });
         public static readonly IccSampledCurveElement Sampled_ValGrad2 = new IccSampledCurveElement(new float[] { 9, 8, 7, 6, 5, 4, 3, 2, 1 });
 
@@ -213,10 +201,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { Sampled_Grad1, Sampled_ValGrad1 },
             new object[] { Sampled_Grad2, Sampled_ValGrad2 },
         };
-
-        #endregion
-
-        #region Segment
 
         public static readonly IccCurveSegment Segment_ValFormula1 = Formula_ValVar1;
         public static readonly IccCurveSegment Segment_ValFormula2 = Formula_ValVar2;
@@ -273,10 +257,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { Segment_Sampled2, Segment_ValSampled2 },
         };
 
-        #endregion
-
-        #region One Dimensional
-
         public static readonly IccOneDimensionalCurve OneDimensional_ValFormula1 = new IccOneDimensionalCurve(
             new float[] { 0, 1 },
             new IccCurveSegment[] { Segment_ValFormula1, Segment_ValFormula2, Segment_ValFormula3 });
@@ -331,7 +311,5 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { OneDimensional_Formula2, OneDimensional_ValFormula2 },
             new object[] { OneDimensional_Sampled, OneDimensional_ValSampled },
         };
-
-        #endregion
     }
 }

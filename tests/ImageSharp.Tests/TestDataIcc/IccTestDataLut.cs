@@ -7,8 +7,6 @@ namespace SixLabors.ImageSharp.Tests
 {
     internal static class IccTestDataLut
     {
-        #region LUT8
-
         public static readonly IccLut LUT8_ValGrad = CreateLUT8Val();
         public static readonly byte[] LUT8_Grad = CreateLUT8();
 
@@ -38,10 +36,6 @@ namespace SixLabors.ImageSharp.Tests
         {
             new object[] { LUT8_Grad, LUT8_ValGrad },
         };
-
-        #endregion
-
-        #region LUT16
 
         public static readonly IccLut LUT16_ValGrad = new IccLut(new float[]
         {
@@ -75,10 +69,6 @@ namespace SixLabors.ImageSharp.Tests
         {
             new object[] { LUT16_Grad, LUT16_ValGrad, 11 },
         };
-
-        #endregion
-
-        #region CLUT8
 
         public static readonly IccClut CLUT8_ValGrad = new IccClut(
             new float[][]
@@ -123,10 +113,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { CLUT8_Grad, CLUT8_ValGrad, 2, 3, new byte[] { 3, 3 } },
         };
 
-        #endregion
-
-        #region CLUT16
-
         public static readonly IccClut CLUT16_ValGrad = new IccClut(
             new float[][]
             {
@@ -169,10 +155,6 @@ namespace SixLabors.ImageSharp.Tests
         {
             new object[] { CLUT16_Grad, CLUT16_ValGrad, 2, 3, new byte[] { 3, 3 } },
         };
-
-        #endregion
-
-        #region CLUTf32
 
         public static readonly IccClut CLUTf32_ValGrad = new IccClut(
             new float[][]
@@ -231,10 +213,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { CLUTf32_Grad, CLUTf32_ValGrad, 2, 3, new byte[] { 3, 3 } },
         };
 
-        #endregion
-
-        #region CLUT
-
         public static readonly IccClut CLUT_Val8 = CLUT8_ValGrad;
         public static readonly IccClut CLUT_Val16 = CLUT16_ValGrad;
         public static readonly IccClut CLUT_Valf32 = CLUTf32_ValGrad;
@@ -259,7 +237,5 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { CLUT_16, CLUT_Val16, 2, 3, false },
             new object[] { CLUT_f32, CLUT_Valf32, 2, 3, true },
         };
-
-        #endregion
     }
 }

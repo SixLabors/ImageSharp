@@ -116,8 +116,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
         /// </summary>
         /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
         [Theory]
-        [WithTestPatternImage(110, 110, PixelTypes.Rgb24)]
-        [WithTestPatternImage(170, 170, PixelTypes.Rgb24)]
+        [WithTestPatternImages(110, 110, PixelTypes.Rgb24)]
+        [WithTestPatternImages(170, 170, PixelTypes.Rgb24)]
         public void Issue984<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

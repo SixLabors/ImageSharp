@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         };
 
         [Theory]
-        [WithTestPatternImage(nameof(SaturationValues), 48, 48, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(SaturationValues), 48, 48, PixelTypes.Rgba32)]
         public void ApplySaturationFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {

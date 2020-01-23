@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         };
 
         [Theory]
-        [WithTestPatternImage(nameof(AlphaValues), 48, 48, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(AlphaValues), 48, 48, PixelTypes.Rgba32)]
         public void ApplyAlphaFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {

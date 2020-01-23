@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [WithTestPatternImage(9, 9, PixelTypes.Rgba32)]
+        [WithTestPatternImages(9, 9, PixelTypes.Rgba32)]
         public void CloneAs_ToBgra32(TestImageProvider<Rgba32> provider)
         {
             using Image<Rgba32> image = provider.GetImage();
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [WithTestPatternImage(9, 9, PixelTypes.Rgba32)]
+        [WithTestPatternImages(9, 9, PixelTypes.Rgba32)]
         public void CloneAs_ToBgr24(TestImageProvider<Rgba32> provider)
         {
             using Image<Rgba32> image = provider.GetImage();
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [WithTestPatternImage(9, 9, PixelTypes.Rgba32)]
+        [WithTestPatternImages(9, 9, PixelTypes.Rgba32)]
         public void CloneAs_ToArgb32(TestImageProvider<Rgba32> provider)
         {
             using Image<Rgba32> image = provider.GetImage();
@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [WithTestPatternImage(9, 9, PixelTypes.Rgba32)]
+        [WithTestPatternImages(9, 9, PixelTypes.Rgba32)]
         public void CloneAs_ToRgb24(TestImageProvider<Rgba32> provider)
         {
             using Image<Rgba32> image = provider.GetImage();

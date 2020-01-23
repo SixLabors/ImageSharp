@@ -15,8 +15,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
     public class CropTest
     {
         [Theory]
-        [WithTestPatternImage(70, 30, PixelTypes.Rgba32, 0, 0, 70, 30)]
-        [WithTestPatternImage(30, 70, PixelTypes.Rgba32, 7, 13, 20, 50)]
+        [WithTestPatternImages(70, 30, PixelTypes.Rgba32, 0, 0, 70, 30)]
+        [WithTestPatternImages(30, 70, PixelTypes.Rgba32, 7, 13, 20, 50)]
         public void Crop<TPixel>(TestImageProvider<TPixel> provider, int x, int y, int w, int h)
             where TPixel : struct, IPixel<TPixel>
         {

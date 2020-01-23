@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), nameof(OrderedDitherers), PixelTypes.Rgba32)]
-        [WithTestPatternImage(nameof(OrderedDitherers), 100, 100, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(OrderedDitherers), 100, 100, PixelTypes.Rgba32)]
         public void BinaryDitherFilter_WorksWithAllDitherers<TPixel>(TestImageProvider<TPixel> provider, string name, IOrderedDither ditherer)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), nameof(ErrorDiffusers), PixelTypes.Rgba32)]
-        [WithTestPatternImage(nameof(ErrorDiffusers), 100, 100, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(ErrorDiffusers), 100, 100, PixelTypes.Rgba32)]
         public void DiffusionFilter_WorksWithAllErrorDiffusers<TPixel>(TestImageProvider<TPixel> provider, string name, IErrorDiffuser diffuser)
             where TPixel : struct, IPixel<TPixel>
         {

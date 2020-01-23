@@ -188,7 +188,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Theory]
-            [WithTestPatternImage(10, 10, PixelTypes.Rgba32)]
+            [WithTestPatternImages(10, 10, PixelTypes.Rgba32)]
             public void CloneFrame<TPixel>(TestImageProvider<TPixel> provider)
                 where TPixel : struct, IPixel<TPixel>
             {
@@ -200,7 +200,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Theory]
-            [WithTestPatternImage(10, 10, PixelTypes.Rgba32)]
+            [WithTestPatternImages(10, 10, PixelTypes.Rgba32)]
             public void ExtractFrame<TPixel>(TestImageProvider<TPixel> provider)
                 where TPixel : struct, IPixel<TPixel>
             {

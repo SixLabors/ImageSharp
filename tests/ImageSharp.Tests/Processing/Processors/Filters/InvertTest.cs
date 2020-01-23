@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
     public class InvertTest
     {
         [Theory]
-        [WithTestPatternImage(48, 48, PixelTypes.Rgba32)]
+        [WithTestPatternImages(48, 48, PixelTypes.Rgba32)]
         public void ApplyInvertFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

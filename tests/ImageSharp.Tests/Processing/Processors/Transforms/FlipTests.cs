@@ -21,9 +21,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 };
 
         [Theory]
-        [WithTestPatternImage(nameof(FlipValues), 20, 37, PixelTypes.Rgba32)]
-        [WithTestPatternImage(nameof(FlipValues), 53, 37, PixelTypes.Rgba32)]
-        [WithTestPatternImage(nameof(FlipValues), 17, 32, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(FlipValues), 20, 37, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(FlipValues), 53, 37, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(FlipValues), 17, 32, PixelTypes.Rgba32)]
         public void Flip<TPixel>(TestImageProvider<TPixel> provider, FlipMode flipMode)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -34,8 +34,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithTestPatternImage(nameof(FlipValues), 53, 37, PixelTypes.Rgba32)]
-        [WithTestPatternImage(nameof(FlipValues), 17, 32, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(FlipValues), 53, 37, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(FlipValues), 17, 32, PixelTypes.Rgba32)]
         public void Flip_WorksOnWrappedMemoryImage<TPixel>(TestImageProvider<TPixel> provider, FlipMode flipMode)
             where TPixel : struct, IPixel<TPixel>
         {

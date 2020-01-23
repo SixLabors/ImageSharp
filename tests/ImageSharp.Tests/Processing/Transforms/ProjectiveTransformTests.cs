@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public ProjectiveTransformTests(ITestOutputHelper output) => this.Output = output;
 
         [Theory]
-        [WithTestPatternImage(nameof(ResamplerNames), 150, 150, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(ResamplerNames), 150, 150, PixelTypes.Rgba32)]
         public void Transform_WithSampler<TPixel>(TestImageProvider<TPixel> provider, string resamplerName)
             where TPixel : struct, IPixel<TPixel>
         {

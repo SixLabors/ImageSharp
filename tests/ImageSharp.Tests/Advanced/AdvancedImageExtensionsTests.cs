@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
         {
             [Theory]
             [WithSolidFilledImages(1, 1, "Red", PixelTypes.Rgba32)]
-            [WithTestPatternImage(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
+            [WithTestPatternImages(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
             public void WhenMemoryIsOwned<TPixel>(TestImageProvider<TPixel> provider)
                 where TPixel : struct, IPixel<TPixel>
             {
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
 
             [Theory]
             [WithSolidFilledImages(1, 1, "Red", PixelTypes.Rgba32 | PixelTypes.Bgr24)]
-            [WithTestPatternImage(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
+            [WithTestPatternImages(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
             public void WhenMemoryIsConsumed<TPixel>(TestImageProvider<TPixel> provider)
                 where TPixel : struct, IPixel<TPixel>
             {
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
 
         [Theory]
         [WithSolidFilledImages(1, 1, "Red", PixelTypes.Rgba32)]
-        [WithTestPatternImage(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
+        [WithTestPatternImages(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
         public void GetPixelRowMemory<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
 
         [Theory]
         [WithSolidFilledImages(1, 1, "Red", PixelTypes.Rgba32)]
-        [WithTestPatternImage(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
+        [WithTestPatternImages(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
         public void GetPixelRowSpan<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
         #pragma warning disable 0618
 
         [Theory]
-        [WithTestPatternImage(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
+        [WithTestPatternImages(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
         public unsafe void DangerousGetPinnableReference_CopyToBuffer<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

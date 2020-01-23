@@ -300,7 +300,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [WithTestPatternImage(49, 20, PixelTypes.Rgba32)]
+        [WithTestPatternImages(49, 20, PixelTypes.Rgba32)]
         public void Use_WithTestPatternImages<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -311,7 +311,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [WithTestPatternImage(20, 20, PixelTypes.Rgba32)]
+        [WithTestPatternImages(20, 20, PixelTypes.Rgba32)]
         public void Use_WithTestPatternImages_CustomConfiguration<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         }
 
         [Theory]
-        [WithTestPatternImage(nameof(TransformValues), 100, 50, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(TransformValues), 100, 50, PixelTypes.Rgba32)]
         public void Transform_RotateScaleTranslate<TPixel>(
             TestImageProvider<TPixel> provider,
             float angleDeg,
@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         }
 
         [Theory]
-        [WithTestPatternImage(96, 96, PixelTypes.Rgba32, 50, 0.8f)]
+        [WithTestPatternImages(96, 96, PixelTypes.Rgba32, 50, 0.8f)]
         public void Transform_RotateScale_ManuallyCentered<TPixel>(TestImageProvider<TPixel> provider, float angleDeg, float s)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -150,7 +150,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         /// </summary>
         /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
         [Theory]
-        [WithTestPatternImage(96, 48, PixelTypes.Rgba32)]
+        [WithTestPatternImages(96, 48, PixelTypes.Rgba32)]
         public void Transform_FromSourceRectangle1<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -168,7 +168,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         }
 
         [Theory]
-        [WithTestPatternImage(96, 48, PixelTypes.Rgba32)]
+        [WithTestPatternImages(96, 48, PixelTypes.Rgba32)]
         public void Transform_FromSourceRectangle2<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -185,7 +185,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         }
 
         [Theory]
-        [WithTestPatternImage(nameof(ResamplerNames), 150, 150, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(ResamplerNames), 150, 150, PixelTypes.Rgba32)]
         public void Transform_WithSampler<TPixel>(TestImageProvider<TPixel> provider, string resamplerName)
             where TPixel : struct, IPixel<TPixel>
         {

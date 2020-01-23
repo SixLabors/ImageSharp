@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
     public class SepiaTest
     {
         [Theory]
-        [WithTestPatternImage(48, 48, PixelTypes.Rgba32)]
+        [WithTestPatternImages(48, 48, PixelTypes.Rgba32)]
         public void ApplySepiaFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

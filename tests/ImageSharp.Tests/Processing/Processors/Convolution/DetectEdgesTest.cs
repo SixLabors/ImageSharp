@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         }
 
         [Theory]
-        [WithTestPatternImage(nameof(DetectEdgesFilters), 100, 100, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(DetectEdgesFilters), 100, 100, PixelTypes.Rgba32)]
         [WithFileCollection(nameof(TestImages), nameof(DetectEdgesFilters), PixelTypes.Rgba32)]
         public void DetectEdges_WorksWithAllFilters<TPixel>(TestImageProvider<TPixel> provider, EdgeDetectionOperators detector)
             where TPixel : struct, IPixel<TPixel>

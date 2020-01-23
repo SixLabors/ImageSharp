@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         /// </summary>
         /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
         [Theory]
-        [WithTestPatternImage(nameof(GrayscaleModeTypes), 48, 48, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(GrayscaleModeTypes), 48, 48, PixelTypes.Rgba32)]
         public void ApplyGrayscaleFilter<TPixel>(TestImageProvider<TPixel> provider, GrayscaleMode value)
             where TPixel : struct, IPixel<TPixel>
         {

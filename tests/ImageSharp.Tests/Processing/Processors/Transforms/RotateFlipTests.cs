@@ -24,8 +24,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         };
 
         [Theory]
-        [WithTestPatternImage(nameof(RotateFlipValues), 100, 50, PixelTypes.Rgba32)]
-        [WithTestPatternImage(nameof(RotateFlipValues), 50, 100, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(RotateFlipValues), 100, 50, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(RotateFlipValues), 50, 100, PixelTypes.Rgba32)]
         public void RotateFlip<TPixel>(TestImageProvider<TPixel> provider, RotateMode rotateType, FlipMode flipType)
             where TPixel : struct, IPixel<TPixel>
         {

@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         // Testing the generic FilterProcessor with more than one pixel type intentionally.
         // There is no need to do this with the specialized ones.
         [Theory]
-        [WithTestPatternImage(48, 48, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
+        [WithTestPatternImages(48, 48, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
         public void ApplyFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         }
 
         [Theory]
-        [WithTestPatternImage(48, 48, PixelTypes.Rgba32)]
+        [WithTestPatternImages(48, 48, PixelTypes.Rgba32)]
         public void ApplyFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

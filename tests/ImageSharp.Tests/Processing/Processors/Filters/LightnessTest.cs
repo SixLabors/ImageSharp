@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         };
 
         [Theory]
-        [WithTestPatternImage(nameof(LightnessValues), 48, 48, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(LightnessValues), 48, 48, PixelTypes.Rgba32)]
         public void ApplyLightnessFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel> => provider.RunValidatingProcessorTest(ctx => ctx.Lightness(value), value, this.imageComparer);
     }

@@ -59,17 +59,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, nameof(BitsPerPixel_Quality), PixelTypes.Rgba32)]
-        [WithTestPatternImage(nameof(BitsPerPixel_Quality), 73, 71, PixelTypes.Rgba32)]
-        [WithTestPatternImage(nameof(BitsPerPixel_Quality), 48, 24, PixelTypes.Rgba32)]
-        [WithTestPatternImage(nameof(BitsPerPixel_Quality), 46, 8, PixelTypes.Rgba32)]
-        [WithTestPatternImage(nameof(BitsPerPixel_Quality), 51, 7, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 73, 71, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 48, 24, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 46, 8, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 51, 7, PixelTypes.Rgba32)]
         [WithSolidFilledImages(nameof(BitsPerPixel_Quality), 1, 1, 255, 100, 50, 255, PixelTypes.Rgba32)]
-        [WithTestPatternImage(nameof(BitsPerPixel_Quality), 7, 5, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 7, 5, PixelTypes.Rgba32)]
         public void EncodeBaseline_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample, int quality)
             where TPixel : struct, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality);
 
         [Theory]
-        [WithTestPatternImage(nameof(BitsPerPixel_Quality), 48, 48, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
+        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 48, 48, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
         public void EncodeBaseline_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample, int quality)
             where TPixel : struct, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality);
 

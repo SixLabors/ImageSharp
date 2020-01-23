@@ -9,8 +9,6 @@ namespace SixLabors.ImageSharp.Tests
 
     internal static class IccTestDataMatrix
     {
-        #region 2D
-
         /// <summary>
         /// 3x3 Matrix
         /// </summary>
@@ -114,10 +112,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { Single_2D_Grad, 3, 3, true, Single_Matrix4x4_ValGrad },
         };
 
-        #endregion
-
-        #region 1D
-
         /// <summary>
         /// 3x1 Matrix
         /// </summary>
@@ -155,7 +149,5 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { Fix16_1D_Grad, 3, false, Single_Vector3_ValGrad },
             new object[] { Single_1D_Grad, 3, true, Single_Vector3_ValGrad },
         };
-
-        #endregion
     }
 }

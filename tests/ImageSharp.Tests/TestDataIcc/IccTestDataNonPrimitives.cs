@@ -10,8 +10,6 @@ namespace SixLabors.ImageSharp.Tests
 {
     internal static class IccTestDataNonPrimitives
     {
-        #region DateTime
-
         public static readonly DateTime DateTime_ValMin = new DateTime(1, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         public static readonly DateTime DateTime_ValMax = new DateTime(9999, 12, 31, 23, 59, 59, DateTimeKind.Utc);
         public static readonly DateTime DateTime_ValRand1 = new DateTime(1990, 11, 26, 3, 19, 47, DateTimeKind.Utc);
@@ -63,10 +61,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { DateTime_Rand1, DateTime_ValRand1 },
         };
 
-        #endregion
-
-        #region VersionNumber
-
         public static readonly IccVersion VersionNumber_ValMin = new IccVersion(0, 0, 0);
         public static readonly IccVersion VersionNumber_Val211 = new IccVersion(2, 1, 1);
         public static readonly IccVersion VersionNumber_Val430 = new IccVersion(4, 3, 0);
@@ -84,10 +78,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { VersionNumber_430, VersionNumber_Val430 },
             new object[] { VersionNumber_Max, VersionNumber_ValMax },
         };
-
-        #endregion
-
-        #region XyzNumber
 
         public static readonly Vector3 XyzNumber_ValMin = new Vector3(IccTestDataPrimitives.Fix16_ValMin, IccTestDataPrimitives.Fix16_ValMin, IccTestDataPrimitives.Fix16_ValMin);
         public static readonly Vector3 XyzNumber_Val0 = new Vector3(0, 0, 0);
@@ -113,10 +103,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { XyzNumber_Max, XyzNumber_ValMax },
         };
 
-        #endregion
-
-        #region ProfileId
-
         public static readonly IccProfileId ProfileId_ValMin = new IccProfileId(0, 0, 0, 0);
         public static readonly IccProfileId ProfileId_ValRand = new IccProfileId(IccTestDataPrimitives.UInt32_ValRand1, IccTestDataPrimitives.UInt32_ValRand2, IccTestDataPrimitives.UInt32_ValRand3, IccTestDataPrimitives.UInt32_ValRand4);
         public static readonly IccProfileId ProfileId_ValMax = new IccProfileId(uint.MaxValue, uint.MaxValue, uint.MaxValue, uint.MaxValue);
@@ -132,10 +118,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { ProfileId_Max, ProfileId_ValMax },
         };
 
-        #endregion
-
-        #region PositionNumber
-
         public static readonly IccPositionNumber PositionNumber_ValMin = new IccPositionNumber(0, 0);
         public static readonly IccPositionNumber PositionNumber_ValRand = new IccPositionNumber(IccTestDataPrimitives.UInt32_ValRand1, IccTestDataPrimitives.UInt32_ValRand2);
         public static readonly IccPositionNumber PositionNumber_ValMax = new IccPositionNumber(uint.MaxValue, uint.MaxValue);
@@ -150,10 +132,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { PositionNumber_Rand, PositionNumber_ValRand },
             new object[] { PositionNumber_Max, PositionNumber_ValMax },
         };
-
-        #endregion
-
-        #region ResponseNumber
 
         public static readonly IccResponseNumber ResponseNumber_ValMin = new IccResponseNumber(0, IccTestDataPrimitives.Fix16_ValMin);
         public static readonly IccResponseNumber ResponseNumber_Val1 = new IccResponseNumber(1, 1);
@@ -186,10 +164,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { ResponseNumber_4, ResponseNumber_Val4 },
             new object[] { ResponseNumber_Max, ResponseNumber_ValMax },
         };
-
-        #endregion
-
-        #region NamedColor
 
         public static readonly IccNamedColor NamedColor_ValMin = new IccNamedColor(
             ArrayHelper.Fill('A', 31),
@@ -242,10 +216,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { NamedColor_Rand, NamedColor_ValRand, 5u },
             new object[] { NamedColor_Max, NamedColor_ValMax, 4u },
         };
-
-        #endregion
-
-        #region ProfileDescription
 
         private static readonly CultureInfo CultureEnUs = new CultureInfo("en-US");
         private static readonly CultureInfo CultureDeAT = new CultureInfo("de-AT");
@@ -342,10 +312,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { ProfileDescription_Rand1, ProfileDescription_ValRand1 },
         };
 
-        #endregion
-
-        #region ColorantTableEntry
-
         public static readonly IccColorantTableEntry ColorantTableEntry_ValRand1 = new IccColorantTableEntry(ArrayHelper.Fill('A', 31), 1, 2, 3);
         public static readonly IccColorantTableEntry ColorantTableEntry_ValRand2 = new IccColorantTableEntry(ArrayHelper.Fill('4', 31), 4, 5, 6);
 
@@ -369,10 +335,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { ColorantTableEntry_Rand2, ColorantTableEntry_ValRand2 },
         };
 
-        #endregion
-
-        #region ScreeningChannel
-
         public static readonly IccScreeningChannel ScreeningChannel_ValRand1 = new IccScreeningChannel(4, 6, IccScreeningSpotType.Cross);
         public static readonly IccScreeningChannel ScreeningChannel_ValRand2 = new IccScreeningChannel(8, 5, IccScreeningSpotType.Diamond);
 
@@ -391,7 +353,5 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { ScreeningChannel_Rand1, ScreeningChannel_ValRand1 },
             new object[] { ScreeningChannel_Rand2, ScreeningChannel_ValRand2 },
         };
-
-        #endregion
     }
 }

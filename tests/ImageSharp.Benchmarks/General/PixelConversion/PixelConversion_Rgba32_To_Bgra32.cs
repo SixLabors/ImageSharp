@@ -242,31 +242,19 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             }
         }
 
+#pragma warning disable SA1132 // Do not combine fields
         [StructLayout(LayoutKind.Sequential)]
         private struct B
         {
-            public uint Tmp2;
-            public uint Tmp5;
-            public uint Tmp8;
-            public uint Tmp11;
-            public uint Tmp14;
-            public uint Tmp17;
-            public uint Tmp20;
-            public uint Tmp23;
+            public uint Tmp2, Tmp5, Tmp8, Tmp11, Tmp14, Tmp17, Tmp20, Tmp23;
         }
 
         [StructLayout(LayoutKind.Sequential)]
         private struct C
         {
-            public uint Tmp3;
-            public uint Tmp6;
-            public uint Tmp9;
-            public uint Tmp12;
-            public uint Tmp15;
-            public uint Tmp18;
-            public uint Tmp21;
-            public uint Tmp24;
+            public uint Tmp3, Tmp6, Tmp9, Tmp12, Tmp15, Tmp18, Tmp21, Tmp24;
         }
+#pragma warning restore SA1132 // Do not combine fields
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void BitopsSimdImpl(ref Octet.OfUInt32 s, ref Octet.OfUInt32 d)

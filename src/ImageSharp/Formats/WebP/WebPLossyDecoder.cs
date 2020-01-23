@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
+using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;

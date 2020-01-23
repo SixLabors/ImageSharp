@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             private static double[,] InitCosLut()
             {
-                var coslu = new double[8, 8];
+                double[,] coslu = new double[8, 8];
                 int a, b;
                 double tmp;
 

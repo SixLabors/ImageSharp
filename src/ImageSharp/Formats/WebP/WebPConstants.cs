@@ -90,15 +90,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public const int LengthTableBits = 7;
 
-        public const uint KCodeLengthLiterals = 16;
+        public const uint CodeLengthLiterals = 16;
 
-        public const int KCodeLengthRepeatCode = 16;
+        public const int CodeLengthRepeatCode = 16;
 
-        public static readonly int[] KCodeLengthExtraBits = { 2, 3, 7 };
+        public static readonly int[] CodeLengthExtraBits = { 2, 3, 7 };
 
-        public static readonly int[] KCodeLengthRepeatOffsets = { 3, 3, 11 };
+        public static readonly int[] CodeLengthRepeatOffsets = { 3, 3, 11 };
 
-        public static readonly int[] KAlphabetSize =
+        public static readonly int[] AlphabetSize =
         {
                                                          NumLiteralCodes + NumLengthCodes,
                                                          NumLiteralCodes, NumLiteralCodes, NumLiteralCodes,
@@ -131,6 +131,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             138, 140, 143, 145, 148, 151, 154, 157
         };
 
+        // Paragraph 14.1
         public static readonly int[] AcTable =
         {
             4,     5,   6,   7,   8,   9,  10,  11,
@@ -149,6 +150,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             181, 185, 189, 193, 197, 201, 205, 209,
             213, 217, 221, 225, 229, 234, 239, 245,
             249, 254, 259, 264, 269, 274, 279, 284
+        };
+
+        // Paragraph 9.9
+        public static readonly int[] Bands =
+        {
+            0, 1, 2, 3, 6, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7, 0
         };
     }
 }

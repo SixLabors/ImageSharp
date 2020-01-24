@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// </summary>
     internal class ColorCache
     {
-        private const uint KHashMul = 0x1e35a7bdu;
+        private const uint HashMul = 0x1e35a7bdu;
 
         /// <summary>
         /// Gets the color entries.
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private int HashPix(uint argb, int shift)
         {
-            return (int)((argb * KHashMul) >> shift);
+            return (int)((argb * HashMul) >> shift);
         }
     }
 }

@@ -5,7 +5,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 {
     internal enum LoopFilter
     {
-        Normal,
+        Complex,
         Simple,
         None
     }

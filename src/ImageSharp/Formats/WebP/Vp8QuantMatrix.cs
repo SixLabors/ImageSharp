@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public int[] Y2Mat { get; set; }
 
-        public int[] UVMat { get; set; }
+        public int[] UvMat { get; set; }
 
         /// <summary>
         /// Gets or sets the U/V quantizer value.

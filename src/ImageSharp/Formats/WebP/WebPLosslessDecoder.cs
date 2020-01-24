@@ -380,7 +380,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // Find maximum alphabet size for the hTree group.
             for (int j = 0; j < WebPConstants.HuffmanCodesPerMetaCode; j++)
             {
-                int alphabetSize = WebPConstants.KAlphabetSize[j];
+                int alphabetSize = WebPConstants.AlphabetSize[j];
                 if (j == 0 && colorCacheBits > 0)
                 {
                     alphabetSize += 1 << colorCacheBits;
@@ -406,7 +406,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 var codeLengths = new int[maxAlphabetSize];
                 for (int j = 0; j < WebPConstants.HuffmanCodesPerMetaCode; j++)
                 {
-                    int alphabetSize = WebPConstants.KAlphabetSize[j];
+                    int alphabetSize = WebPConstants.AlphabetSize[j];
                     if (j == 0 && colorCacheBits > 0)
                     {
                         alphabetSize += 1 << colorCacheBits;
@@ -560,7 +560,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 HuffmanCode huffmanCode = table[idx];
                 this.bitReader.AdvanceBitPosition(huffmanCode.BitsUsed);
                 uint codeLen = huffmanCode.Value;
-                if (codeLen < WebPConstants.KCodeLengthLiterals)
+                if (codeLen < WebPConstants.CodeLengthLiterals)
                 {
                     codeLengths[symbol++] = (int)codeLen;
                     if (codeLen != 0)
@@ -570,10 +570,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
                 else
                 {
-                    bool usePrev = codeLen == WebPConstants.KCodeLengthRepeatCode;
-                    uint slot = codeLen - WebPConstants.KCodeLengthLiterals;
-                    int extraBits = WebPConstants.KCodeLengthExtraBits[slot];
-                    int repeatOffset = WebPConstants.KCodeLengthRepeatOffsets[slot];
+                    bool usePrev = codeLen == WebPConstants.CodeLengthRepeatCode;
+                    uint slot = codeLen - WebPConstants.CodeLengthLiterals;
+                    int extraBits = WebPConstants.CodeLengthExtraBits[slot];
+                    int repeatOffset = WebPConstants.CodeLengthRepeatOffsets[slot];
                     int repeat = (int)(this.bitReader.ReadValue(extraBits) + repeatOffset);
                     if (symbol + repeat > numSymbols)
                     {

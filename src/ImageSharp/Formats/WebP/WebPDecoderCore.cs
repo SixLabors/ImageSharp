@@ -492,8 +492,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     m.Y2Mat[1] = 8;
                 }
 
-                m.UVMat[0] = WebPConstants.DcTable[this.Clip(q + dquvDc, 117)];
-                m.UVMat[1] = WebPConstants.AcTable[this.Clip(q + dquvAc, 127)];
+                m.UvMat[0] = WebPConstants.DcTable[this.Clip(q + dquvDc, 117)];
+                m.UvMat[1] = WebPConstants.AcTable[this.Clip(q + dquvAc, 127)];
 
                 // For dithering strength evaluation.
                 m.UvQuant = q + dquvAc;

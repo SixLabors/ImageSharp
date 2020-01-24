@@ -374,6 +374,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // Paragraph 9.3: Parse the segment header.
             var vp8SegmentHeader = new Vp8SegmentHeader();
             vp8SegmentHeader.UseSegment = bitReader.ReadBool();
+            bool hasValue = false;
             if (vp8SegmentHeader.UseSegment)
             {
                 vp8SegmentHeader.UpdateMap = bitReader.ReadBool();
@@ -383,14 +384,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     vp8SegmentHeader.Delta = bitReader.ReadBool();
                     for (int i = 0; i < vp8SegmentHeader.Quantizer.Length; i++)
                     {
-                        bool hasValue = bitReader.ReadBool();
+                        hasValue = bitReader.ReadBool();
                         uint quantizeValue = hasValue ? bitReader.ReadValue(7) : 0;
                         vp8SegmentHeader.Quantizer[i] = (byte)quantizeValue;
                     }
 
                     for (int i = 0; i < vp8SegmentHeader.FilterStrength.Length; i++)
                     {
-                        bool hasValue = bitReader.ReadBool();
+                        hasValue = bitReader.ReadBool();
                         uint filterStrengthValue = hasValue ? bitReader.ReadValue(6) : 0;
                         vp8SegmentHeader.FilterStrength[i] = (byte)filterStrengthValue;
                     }
@@ -419,7 +420,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 {
                     for (int i = 0; i < vp8FilterHeader.RefLfDelta.Length; i++)
                     {
-                        bool hasValue = bitReader.ReadBool();
+                        hasValue = bitReader.ReadBool();
                         if (hasValue)
                         {
                             vp8FilterHeader.RefLfDelta[i] = bitReader.ReadSignedValue(6);
@@ -428,7 +429,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                     for (int i = 0; i < vp8FilterHeader.ModeLfDelta.Length; i++)
                     {
-                        bool hasValue = bitReader.ReadBool();
+                        hasValue = bitReader.ReadBool();
                         if (hasValue)
                         {
                             vp8FilterHeader.ModeLfDelta[i] = bitReader.ReadSignedValue(6);
@@ -442,7 +443,61 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int lastPart = numPartsMinusOne;
             // TODO: check if we have enough data available here, throw exception if not
 
+            // Paragraph 9.6: Dequantization Indices
+            int baseQ0 = (int)bitReader.ReadValue(7);
+            hasValue = bitReader.ReadBool();
+            int dqy1Dc = hasValue ? bitReader.ReadSignedValue(4) : 0;
+            hasValue = bitReader.ReadBool();
+            int dqy2Dc = hasValue ? bitReader.ReadSignedValue(4) : 0;
+            hasValue = bitReader.ReadBool();
+            int dqy2Ac = hasValue ? bitReader.ReadSignedValue(4) : 0;
+            hasValue = bitReader.ReadBool();
+            int dquvDc = hasValue ? bitReader.ReadSignedValue(4) : 0;
+            hasValue = bitReader.ReadBool();
+            int dquvAc = hasValue ? bitReader.ReadSignedValue(4) : 0;
+            for (int i = 0; i < WebPConstants.NumMbSegments; ++i)
+            {
+                int q;
+                if (vp8SegmentHeader.UseSegment)
+                {
+                    q = vp8SegmentHeader.Quantizer[i];
+                    if (!vp8SegmentHeader.Delta)
+                    {
+                        q += baseQ0;
+                    }
+                }
+                else
+                {
+                    if (i > 0)
+                    {
+                        // dec->dqm_[i] = dec->dqm_[0];
+                        continue;
+                    }
+                    else
+                    {
+                        q = baseQ0;
+                    }
+                }
 
+                var m = new Vp8QuantMatrix();
+                m.Y1Mat[0] = WebPConstants.DcTable[this.Clip(q + dqy1Dc, 127)];
+                m.Y1Mat[1] = WebPConstants.AcTable[this.Clip(q + 0, 127)];
+                m.Y2Mat[0] = WebPConstants.DcTable[this.Clip(q + dqy2Dc, 127)] * 2;
+
+                // For all x in [0..284], x*155/100 is bitwise equal to (x*101581) >> 16.
+                // The smallest precision for that is '(x*6349) >> 12' but 16 is a good word size.
+                m.Y2Mat[1] = (WebPConstants.AcTable[this.Clip(q + dqy2Ac, 127)] * 101581) >> 16;
+                if (m.Y2Mat[1] < 8)
+                {
+                    m.Y2Mat[1] = 8;
+                }
+
+                m.UVMat[0] = WebPConstants.DcTable[this.Clip(q + dquvDc, 117)];
+                m.UVMat[1] = WebPConstants.AcTable[this.Clip(q + dquvAc, 127)];
+
+                // For dithering strength evaluation.
+                m.UvQuant = q + dquvAc;
+            }
 
             return new WebPImageInfo()
                    {
@@ -577,6 +632,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             throw new ImageFormatException("Invalid WebP data.");
+        }
+
+        private int Clip(int v, int M)
+        {
+            return v < 0 ? 0 : v > M ? M : v;
         }
     }
 }

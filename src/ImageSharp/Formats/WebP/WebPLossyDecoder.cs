@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             switch (version)
             {
                 case 0:
-                    return new Vp8Profile { ReconstructionFilter = ReconstructionFilter.Bicubic, LoopFilter = LoopFilter.Normal };
+                    return new Vp8Profile { ReconstructionFilter = ReconstructionFilter.Bicubic, LoopFilter = LoopFilter.Complex };
                 case 1:
                     return new Vp8Profile { ReconstructionFilter = ReconstructionFilter.Bilinear, LoopFilter = LoopFilter.Simple };
                 case 2:

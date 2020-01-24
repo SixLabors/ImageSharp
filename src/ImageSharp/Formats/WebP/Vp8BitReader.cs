@@ -37,16 +37,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private byte buf;
 
         /// <summary>
-        /// End of read buffer.
-        /// </summary>
-        // private byte bufEnd;
-
-        /// <summary>
-        /// Max packed-read position on buffer.
-        /// </summary>
-        // private byte bufMax;
-
-        /// <summary>
         /// True if input is exhausted.
         /// </summary>
         private bool eof;
@@ -68,7 +58,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             this.range = 255 - 1;
             this.value = 0;
-            this.bits = -8; // to load the very first 8bits;
+            this.bits = -8; // to load the very first 8bits.
             this.eof = false;
             this.pos = 0;
 
@@ -87,7 +77,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             int pos = this.bits;
             uint split = (uint)((range * prob) >> 8);
-            bool bit = this.value > split;
+            ulong value = this.value >> pos;
+            bool bit = value > split;
             if (bit)
             {
                 range -= split;
@@ -117,9 +108,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Guard.MustBeGreaterThan(nBits, 0, nameof(nBits));
 
             uint v = 0;
-            while (this.bits-- > 0)
+            while (nBits-- > 0)
             {
-                v |= (uint)this.GetBit(0x80) << this.bits;
+                v |= (uint)this.GetBit(0x80) << nBits;
             }
 
             return v;
@@ -140,7 +131,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 ulong bits;
                 ulong inBits = BinaryPrimitives.ReadUInt64LittleEndian(this.Data.AsSpan().Slice((int)this.pos, 8));
                 this.pos += BitsCount >> 3;
-                this.buf = this.Data[BitsCount >> 3];
+                this.buf = this.Data[this.pos];
                 bits = this.ByteSwap64(inBits);
                 bits >>= 64 - BitsCount;
                 this.value = bits | (this.value << BitsCount);
@@ -182,9 +173,20 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private int BitsLog2Floor(uint n)
         {
-            long firstSetBit;
-            throw new NotImplementedException();
-            // BitScanReverse(firstSetBit, n);
+            // Search the mask data from most significant bit (MSB) to least significant bit (LSB) for a set bit (1).
+            // https://docs.microsoft.com/en-us/cpp/intrinsics/bitscanreverse-bitscanreverse64?view=vs-2019
+            uint mask = 1;
+            for (int y = 0; y < 32; y++)
+            {
+                if ((mask & n) == mask)
+                {
+                    return y;
+                }
+
+                mask <<= 1;
+            }
+
+            return 0;
         }
     }
 }

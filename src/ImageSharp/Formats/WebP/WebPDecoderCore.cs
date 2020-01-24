@@ -284,7 +284,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             this.webpMetadata.Format = WebPFormatType.Lossy;
 
-            // VP8 data size.
+            // VP8 data size (not including this 4 bytes).
             this.currentStream.Read(this.buffer, 0, 4);
             uint dataSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
 
@@ -339,6 +339,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 WebPThrowHelper.ThrowImageFormatException("width or height can not be zero");
             }
 
+            // The size of the encoded image data payload.
+            uint imageDataSize = dataSize - 10; // we have read 10 bytes already.
+            if (partitionLength > imageDataSize)
+            {
+                WebPThrowHelper.ThrowImageFormatException("bad partition length");
+            }
+
             var vp8FrameHeader = new Vp8FrameHeader()
                                  {
                                      KeyFrame = true,
@@ -346,7 +353,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                                      PartitionLength = partitionLength
                                  };
 
-            var bitReader = new Vp8BitReader(this.currentStream, dataSize - 10, this.memoryAllocator);
+            var bitReader = new Vp8BitReader(
+                this.currentStream,
+                imageDataSize,
+                this.memoryAllocator);
 
             // Paragraph 9.2: color space and clamp type follow
             sbyte colorSpace = (sbyte)bitReader.ReadValue(1);
@@ -394,10 +404,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             // Paragraph 9.4: Parse the filter specs.
             var vp8FilterHeader = new Vp8FilterHeader();
-            vp8FilterHeader.LoopFilter = bitReader.ReadBool() ? LoopFilter.Simple : LoopFilter.Normal;
+            vp8FilterHeader.LoopFilter = bitReader.ReadBool() ? LoopFilter.Simple : LoopFilter.Complex;
             vp8FilterHeader.Level = (int)bitReader.ReadValue(6);
             vp8FilterHeader.Sharpness = (int)bitReader.ReadValue(3);
             vp8FilterHeader.UseLfDelta = bitReader.ReadBool();
+
+            // TODO: use enum here?
+            // 0 = 0ff, 1 = simple, 2 = complex
+            int filterType = (vp8FilterHeader.Level is 0) ? 0 : vp8FilterHeader.LoopFilter is LoopFilter.Simple ? 1 : 2;
             if (vp8FilterHeader.UseLfDelta)
             {
                 // Update lf-delta?
@@ -423,7 +437,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
             }
 
-            // TODO: ParsePartitions
+            // Paragraph 9.5: ParsePartitions.
+            int numPartsMinusOne = (1 << (int)bitReader.ReadValue(2)) - 1;
+            int lastPart = numPartsMinusOne;
+            // TODO: check if we have enough data available here, throw exception if not
+
+
 
             return new WebPImageInfo()
                    {

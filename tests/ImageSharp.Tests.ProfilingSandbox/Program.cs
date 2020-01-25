@@ -1,18 +1,14 @@
-// <copyright file="Program.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
+using System;
+using SixLabors.ImageSharp.Tests.Formats.Jpg;
 using SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations;
 using SixLabors.ImageSharp.Tests.ProfilingBenchmarks;
+using Xunit.Abstractions;
 
-namespace SixLabors.ImageSharp.Sandbox46
+namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 {
-    using System;
-    using SixLabors.ImageSharp.Tests.Formats.Jpg;
-
-    using Xunit.Abstractions;
-
     public class Program
     {
         private class ConsoleOutput : ITestOutputHelper

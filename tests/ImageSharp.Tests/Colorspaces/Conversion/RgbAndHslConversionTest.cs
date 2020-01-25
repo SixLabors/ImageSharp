@@ -5,7 +5,6 @@ using System;
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 {
@@ -22,24 +21,6 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();
         private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0001F);
 
-        public static TheoryData<float, float, float, float, float, float> Hsl_To_Rgb
-        = new TheoryData<float, float, float, float, float, float>
-        {
-            { 0, 0, 0, 0, 0, 0 },
-            { 0, 1, 1, 1, 1, 1 },
-            { 360, 1, 1, 1, 1, 1 },
-            { 0, 1, .5F, 1, 0, 0 },
-            { 120, 1, .5F, 0, 1, 0 },
-            { 240, 1, .5F, 0, 0, 1 }
-        };
-
-        private readonly ITestOutputHelper output;
-
-        public RgbAndHslConversionTest(ITestOutputHelper output)
-        {
-            this.output = output;
-        }
-
         /// <summary>
         /// Tests conversion from <see cref="Hsl"/> to <see cref="Rgb"/>.
         /// </summary>
@@ -50,8 +31,6 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         [InlineData(0, 1, .5F, 1, 0, 0)]
         [InlineData(120, 1, .5F, 0, 1, 0)]
         [InlineData(240, 1, .5F, 0, 0, 1)]
-        //[Theory]
-        //[MemberData(nameof(Hsl_To_Rgb))]
         public void Convert_Hsl_To_Rgb(float h, float s, float l, float r, float g, float b)
         {
             // Arrange
@@ -75,8 +54,6 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
             {
                 Assert.Equal(expected, actualSpan[i], ColorSpaceComparer);
             }
-
-            this.output.WriteLine("Verifying Convert_Hsl_To_Rgb is run");
         }
 
         /// <summary>

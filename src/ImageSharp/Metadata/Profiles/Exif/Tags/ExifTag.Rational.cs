@@ -132,11 +132,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         public static ExifTag<Rational> DigitalZoomRatio { get; } = new ExifTag<Rational>(ExifTagValue.DigitalZoomRatio);
 
         /// <summary>
-        /// Gets the LensInfo exif tag.
-        /// </summary>
-        public static ExifTag<Rational> LensInfo { get; } = new ExifTag<Rational>(ExifTagValue.LensInfo);
-
-        /// <summary>
         /// Gets the GPSAltitude exif tag.
         /// </summary>
         public static ExifTag<Rational> GPSAltitude { get; } = new ExifTag<Rational>(ExifTagValue.GPSAltitude);

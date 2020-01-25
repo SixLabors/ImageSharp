@@ -4,39 +4,36 @@
 // ReSharper disable InconsistentNaming
 using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Microsoft.DotNet.RemoteExecutor;
+using Microsoft.Win32;
 using SixLabors.ImageSharp.Tests;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Memory.Tests
 {
-    // TODO: Re-enable memory-intensive tests with arcade RemoteExecutor:
-    // https://github.com/dotnet/runtime/blob/master/docs/project/writing-tests.md#remoteexecutor
     public class ArrayPoolMemoryAllocatorTests
     {
         private const int MaxPooledBufferSizeInBytes = 2048;
 
         private const int PoolSelectorThresholdInBytes = MaxPooledBufferSizeInBytes / 2;
 
-        private MemoryAllocator MemoryAllocator { get; set; } =
-            new ArrayPoolMemoryAllocator(MaxPooledBufferSizeInBytes, PoolSelectorThresholdInBytes);
+        /// <summary>
+        /// Contains SUT for in-process tests.
+        /// </summary>
+        private MemoryAllocatorFixture LocalFixture { get; } = new MemoryAllocatorFixture();
 
         /// <summary>
-        /// Rent a buffer -> return it -> re-rent -> verify if it's span points to the previous location.
+        /// Contains SUT for tests executed by <see cref="RemoteExecutor"/>,
+        /// recreated in each external process.
         /// </summary>
-        private bool CheckIsRentingPooledBuffer<T>(int length)
-            where T : struct
+        private static MemoryAllocatorFixture StaticFixture { get; } = new MemoryAllocatorFixture();
+
+        static ArrayPoolMemoryAllocatorTests()
         {
-            IMemoryOwner<T> buffer = this.MemoryAllocator.Allocate<T>(length);
-            ref T ptrToPrevPosition0 = ref buffer.GetReference();
-            buffer.Dispose();
-
-            buffer = this.MemoryAllocator.Allocate<T>(length);
-            bool sameBuffers = Unsafe.AreSame(ref ptrToPrevPosition0, ref buffer.GetReference());
-            buffer.Dispose();
-
-            return sameBuffers;
+            TestEnvironment.PrepareRemoteExecutor();
         }
 
         public class BufferTests : BufferTestSuite
@@ -78,21 +75,21 @@ namespace SixLabors.ImageSharp.Memory.Tests
         [InlineData(MaxPooledBufferSizeInBytes - 1)]
         public void SmallBuffersArePooled_OfByte(int size)
         {
-            Assert.True(this.CheckIsRentingPooledBuffer<byte>(size));
+            Assert.True(this.LocalFixture.CheckIsRentingPooledBuffer<byte>(size));
         }
 
-        [Theory(Skip = "Should be executed from a separate process.")]
+        [Theory]
         [InlineData(128 * 1024 * 1024)]
         [InlineData(MaxPooledBufferSizeInBytes + 1)]
         public void LargeBuffersAreNotPooled_OfByte(int size)
         {
-            if (!TestEnvironment.Is64BitProcess)
+            static void RunTest(string sizeStr)
             {
-                // can lead to OutOfMemoryException
-                return;
+                int size = int.Parse(sizeStr);
+                StaticFixture.CheckIsRentingPooledBuffer<byte>(size);
             }
 
-            Assert.False(this.CheckIsRentingPooledBuffer<byte>(size));
+            RemoteExecutor.Invoke(RunTest, size.ToString()).Dispose();
         }
 
         [Fact]
@@ -100,21 +97,15 @@ namespace SixLabors.ImageSharp.Memory.Tests
         {
             int count = (MaxPooledBufferSizeInBytes / sizeof(LargeStruct)) - 1;
 
-            Assert.True(this.CheckIsRentingPooledBuffer<LargeStruct>(count));
+            Assert.True(this.LocalFixture.CheckIsRentingPooledBuffer<LargeStruct>(count));
         }
 
-        [Fact(Skip = "Should be executed from a separate process.")]
+        [Fact]
         public unsafe void LaregeBuffersAreNotPooled_OfBigValueType()
         {
-            if (!TestEnvironment.Is64BitProcess)
-            {
-                // can lead to OutOfMemoryException
-                return;
-            }
-
             int count = (MaxPooledBufferSizeInBytes / sizeof(LargeStruct)) + 1;
 
-            Assert.False(this.CheckIsRentingPooledBuffer<LargeStruct>(count));
+            Assert.False(this.LocalFixture.CheckIsRentingPooledBuffer<LargeStruct>(count));
         }
 
         [Theory]
@@ -122,12 +113,13 @@ namespace SixLabors.ImageSharp.Memory.Tests
         [InlineData(AllocationOptions.Clean)]
         public void CleaningRequests_AreControlledByAllocationParameter_Clean(AllocationOptions options)
         {
-            using (IMemoryOwner<int> firstAlloc = this.MemoryAllocator.Allocate<int>(42))
+            MemoryAllocator memoryAllocator = this.LocalFixture.MemoryAllocator;
+            using (IMemoryOwner<int> firstAlloc = memoryAllocator.Allocate<int>(42))
             {
                 firstAlloc.GetSpan().Fill(666);
             }
 
-            using (IMemoryOwner<int> secondAlloc = this.MemoryAllocator.Allocate<int>(42, options))
+            using (IMemoryOwner<int> secondAlloc = memoryAllocator.Allocate<int>(42, options))
             {
                 int expected = options == AllocationOptions.Clean ? 0 : 666;
                 Assert.Equal(expected, secondAlloc.GetSpan()[0]);
@@ -139,7 +131,8 @@ namespace SixLabors.ImageSharp.Memory.Tests
         [InlineData(true)]
         public void ReleaseRetainedResources_ReplacesInnerArrayPool(bool keepBufferAlive)
         {
-            IMemoryOwner<int> buffer = this.MemoryAllocator.Allocate<int>(32);
+            MemoryAllocator memoryAllocator = this.LocalFixture.MemoryAllocator;
+            IMemoryOwner<int> buffer = memoryAllocator.Allocate<int>(32);
             ref int ptrToPrev0 = ref MemoryMarshal.GetReference(buffer.GetSpan());
 
             if (!keepBufferAlive)
@@ -147,9 +140,9 @@ namespace SixLabors.ImageSharp.Memory.Tests
                 buffer.Dispose();
             }
 
-            this.MemoryAllocator.ReleaseRetainedResources();
+            memoryAllocator.ReleaseRetainedResources();
 
-            buffer = this.MemoryAllocator.Allocate<int>(32);
+            buffer = memoryAllocator.Allocate<int>(32);
 
             Assert.False(Unsafe.AreSame(ref ptrToPrev0, ref buffer.GetReference()));
         }
@@ -157,78 +150,115 @@ namespace SixLabors.ImageSharp.Memory.Tests
         [Fact]
         public void ReleaseRetainedResources_DisposingPreviouslyAllocatedBuffer_IsAllowed()
         {
-            IMemoryOwner<int> buffer = this.MemoryAllocator.Allocate<int>(32);
-            this.MemoryAllocator.ReleaseRetainedResources();
+            MemoryAllocator memoryAllocator = this.LocalFixture.MemoryAllocator;
+            IMemoryOwner<int> buffer = memoryAllocator.Allocate<int>(32);
+            memoryAllocator.ReleaseRetainedResources();
             buffer.Dispose();
         }
 
 
-        [Fact(Skip = "Should be executed from a separate process.")]
+        [Fact]
         public void AllocationOverLargeArrayThreshold_UsesDifferentPool()
         {
-            if (!TestEnvironment.Is64BitProcess)
+            static void RunTest()
             {
-                // can lead to OutOfMemoryException
-                return;
+                const int ArrayLengthThreshold = PoolSelectorThresholdInBytes / sizeof(int);
+
+                IMemoryOwner<int> small = StaticFixture.MemoryAllocator.Allocate<int>(ArrayLengthThreshold - 1);
+                ref int ptr2Small = ref small.GetReference();
+                small.Dispose();
+
+                IMemoryOwner<int> large = StaticFixture.MemoryAllocator.Allocate<int>(ArrayLengthThreshold + 1);
+
+                Assert.False(Unsafe.AreSame(ref ptr2Small, ref large.GetReference()));
             }
 
-            const int ArrayLengthThreshold = PoolSelectorThresholdInBytes / sizeof(int);
-
-            IMemoryOwner<int> small = this.MemoryAllocator.Allocate<int>(ArrayLengthThreshold - 1);
-            ref int ptr2Small = ref small.GetReference();
-            small.Dispose();
-
-            IMemoryOwner<int> large = this.MemoryAllocator.Allocate<int>(ArrayLengthThreshold + 1);
-
-            Assert.False(Unsafe.AreSame(ref ptr2Small, ref large.GetReference()));
+            RemoteExecutor.Invoke(RunTest).Dispose();
         }
 
-        [Fact(Skip = "Should be executed from a separate process.")]
+        [Fact]
         public void CreateWithAggressivePooling()
         {
-            if (!TestEnvironment.Is64BitProcess)
+            static void RunTest()
             {
-                // can lead to OutOfMemoryException
-                return;
+                StaticFixture.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithAggressivePooling();
+                Assert.True(StaticFixture.CheckIsRentingPooledBuffer<SmallStruct>(4096 * 4096));
             }
 
-            this.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithAggressivePooling();
-
-            Assert.True(this.CheckIsRentingPooledBuffer<Rgba32>(4096 * 4096));
+            RemoteExecutor.Invoke(RunTest).Dispose();
         }
 
-        [Fact(Skip = "Should be executed from a separate process.")]
+        [Fact]
         public void CreateDefault()
         {
-            if (!TestEnvironment.Is64BitProcess)
+            static void RunTest()
             {
-                // can lead to OutOfMemoryException
-                return;
+                StaticFixture.MemoryAllocator = ArrayPoolMemoryAllocator.CreateDefault();
+
+                Assert.False(StaticFixture.CheckIsRentingPooledBuffer<SmallStruct>(2 * 4096 * 4096));
+                Assert.True(StaticFixture.CheckIsRentingPooledBuffer<SmallStruct>(2048 * 2048));
             }
 
-            this.MemoryAllocator = ArrayPoolMemoryAllocator.CreateDefault();
-
-            Assert.False(this.CheckIsRentingPooledBuffer<Rgba32>(2 * 4096 * 4096));
-            Assert.True(this.CheckIsRentingPooledBuffer<Rgba32>(2048 * 2048));
+            RemoteExecutor.Invoke(RunTest).Dispose();
         }
 
         [Fact]
         public void CreateWithModeratePooling()
         {
-            if (!TestEnvironment.Is64BitProcess)
+            static void RunTest()
             {
-                // can lead to OutOfMemoryException
-                return;
+                StaticFixture.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithModeratePooling();
+                Assert.False(StaticFixture.CheckIsRentingPooledBuffer<SmallStruct>(2048 * 2048));
+                Assert.True(StaticFixture.CheckIsRentingPooledBuffer<SmallStruct>(1024 * 16));
             }
 
-            this.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithModeratePooling();
+            RemoteExecutor.Invoke(RunTest).Dispose();
+        }
 
-            Assert.False(this.CheckIsRentingPooledBuffer<Rgba32>(2048 * 2048));
-            Assert.True(this.CheckIsRentingPooledBuffer<Rgba32>(1024 * 16));
+        [Theory]
+        [InlineData(-1)]
+        [InlineData((int.MaxValue / SizeOfLargeStruct) + 1)]
+        public void AllocateIncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
+        {
+            ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                this.LocalFixture.MemoryAllocator.Allocate<LargeStruct>(length));
+            Assert.Equal("length", ex.ParamName);
+        }
+
+        [Theory]
+        [InlineData(-1)]
+        public void AllocateManagedByteBuffer_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
+        {
+            ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                this.LocalFixture.MemoryAllocator.AllocateManagedByteBuffer(length));
+            Assert.Equal("length", ex.ParamName);
+        }
+
+        private class MemoryAllocatorFixture
+        {
+            public MemoryAllocator MemoryAllocator { get; set; } =
+                new ArrayPoolMemoryAllocator(MaxPooledBufferSizeInBytes, PoolSelectorThresholdInBytes);
+
+            /// <summary>
+            /// Rent a buffer -> return it -> re-rent -> verify if it's span points to the previous location.
+            /// </summary>
+            public bool CheckIsRentingPooledBuffer<T>(int length)
+                where T : struct
+            {
+                IMemoryOwner<T> buffer = MemoryAllocator.Allocate<T>(length);
+                ref T ptrToPrevPosition0 = ref buffer.GetReference();
+                buffer.Dispose();
+
+                buffer = MemoryAllocator.Allocate<T>(length);
+                bool sameBuffers = Unsafe.AreSame(ref ptrToPrevPosition0, ref buffer.GetReference());
+                buffer.Dispose();
+
+                return sameBuffers;
+            }
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        private struct Rgba32
+        private struct SmallStruct
         {
             private readonly uint dummy;
         }
@@ -238,23 +268,6 @@ namespace SixLabors.ImageSharp.Memory.Tests
         [StructLayout(LayoutKind.Explicit, Size = SizeOfLargeStruct)]
         private struct LargeStruct
         {
-        }
-
-        [Theory]
-        [InlineData(-1)]
-        [InlineData((int.MaxValue / SizeOfLargeStruct) + 1)]
-        public void AllocateIncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
-        {
-            ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.Allocate<LargeStruct>(length));
-            Assert.Equal("length", ex.ParamName);
-        }
-
-        [Theory]
-        [InlineData(-1)]
-        public void AllocateManagedByteBuffer_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
-        {
-            ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.AllocateManagedByteBuffer(length));
-            Assert.Equal("length", ex.ParamName);
         }
     }
 }

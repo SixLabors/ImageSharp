@@ -73,10 +73,11 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         public static TestImageProvider<TPixel> Lambda(
-                Func<Image<TPixel>> factoryFunc,
+                string declaringTypeName,
+                string methodName,
                 MethodInfo testMethod = null,
                 PixelTypes pixelTypeOverride = PixelTypes.Undefined)
-            => new LambdaProvider(factoryFunc).Init(testMethod, pixelTypeOverride);
+            => new MemberMethodProvider(declaringTypeName, methodName).Init(testMethod, pixelTypeOverride);
 
         public static TestImageProvider<TPixel> Solid(
             int width,

@@ -122,7 +122,6 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
             { ExifTag.FocalPlaneYResolution },
             { ExifTag.ExposureIndex },
             { ExifTag.DigitalZoomRatio },
-            { ExifTag.LensInfo },
             { ExifTag.GPSAltitude },
             { ExifTag.GPSDOP },
             { ExifTag.GPSSpeed },
@@ -142,7 +141,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
             { ExifTag.GPSLongitude },
             { ExifTag.GPSTimestamp },
             { ExifTag.GPSDestLatitude },
-            { ExifTag.GPSDestLongitude }
+            { ExifTag.GPSDestLongitude },
+            { ExifTag.LensSpecification }
         };
 
         public static TheoryData<ExifTag> ShortTags => new TheoryData<ExifTag>

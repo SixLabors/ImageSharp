@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Primitives;
-
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
     /// <content/>
@@ -132,11 +130,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// Gets the DigitalZoomRatio exif tag.
         /// </summary>
         public static ExifTag<Rational> DigitalZoomRatio { get; } = new ExifTag<Rational>(ExifTagValue.DigitalZoomRatio);
-
-        /// <summary>
-        /// Gets the LensInfo exif tag.
-        /// </summary>
-        public static ExifTag<Rational> LensInfo { get; } = new ExifTag<Rational>(ExifTagValue.LensInfo);
 
         /// <summary>
         /// Gets the GPSAltitude exif tag.

@@ -1,11 +1,11 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using BenchmarkDotNet.Attributes;
-using System.Drawing;
 using System.IO;
+using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Tests;
+using SDSize = System.Drawing.Size;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         }
 
         [Benchmark(Baseline = true, Description = "System.Drawing FULL")]
-        public Size JpegSystemDrawing()
+        public SDSize JpegSystemDrawing()
         {
             using (var memoryStream = new MemoryStream(this.jpegBytes))
             {

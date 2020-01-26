@@ -9,7 +9,6 @@ using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Tga
 {
@@ -565,11 +564,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
         {
             this.currentStream = stream;
 
-#if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[TgaFileHeader.Size];
-#else
-            var buffer = new byte[TgaFileHeader.Size];
-#endif
+
             this.currentStream.Read(buffer, 0, TgaFileHeader.Size);
             this.fileHeader = TgaFileHeader.Parse(buffer);
             this.metadata = new ImageMetadata();

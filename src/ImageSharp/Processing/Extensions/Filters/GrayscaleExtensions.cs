@@ -3,7 +3,6 @@
 
 using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.ImageSharp.Processing.Processors.Filters;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing
 {

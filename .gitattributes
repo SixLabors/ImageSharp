@@ -62,15 +62,28 @@
 #   normalize to Windows-style line endings and
 *.sln               text        eol=crlf        merge=union
 #   treat as binary
+*.basis             binary
 *.bmp               binary
+*.dds               binary
 *.dll               binary
+*.eot               binary
 *.exe               binary
 *.gif               binary
 *.jpg               binary
+*.ktx               binary
+*.pbm               binary
+*.pdf               binary
 *.png               binary
-*.tga               binary
+*.ppt               binary
+*.pptx              binary
+*.pvr               binary
 *.ttf               binary
 *.snk               binary
+*.tga               binary
+*.woff              binary
+*.woff2             binary
+*.xls               binary
+*.xlsx              binary
 #   diff as plain text
 *.doc               diff=astextplain
 *.docx              diff=astextplain
@@ -78,6 +91,7 @@
 *.pdf               diff=astextplain
 *.pptx              diff=astextplain
 *.rtf               diff=astextplain
+*.svg               diff=astextplain
 *.jpg filter=lfs diff=lfs merge=lfs -text
 *.jpeg filter=lfs diff=lfs merge=lfs -text
 *.bmp filter=lfs diff=lfs merge=lfs -text

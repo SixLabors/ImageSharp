@@ -2,12 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-using SixLabors.Primitives;
 
 using Xunit;
 
@@ -127,7 +126,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             using (Image<Rgba32> background = provider.GetImage())
             using (var overlay = new Image<Rgba32>(50, 50))
             {
-                overlay.Mutate(c => c.Fill(Rgba32.Black));
+                overlay.GetPixelSpan().Fill(Rgba32.Black);
 
                 background.Mutate(c => c.DrawImage(overlay, new Point(x, y), PixelColorBlendingMode.Normal, 1F));
 

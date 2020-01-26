@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests
     /// Provides <see cref="Image{TPixel}" /> instances for parametric unit tests.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format of the image</typeparam>
-    public abstract partial class TestImageProvider<TPixel> : ITestImageProvider
+    public abstract partial class TestImageProvider<TPixel> : ITestImageProvider, IXunitSerializable
         where TPixel : struct, IPixel<TPixel>
     {
         public PixelTypes PixelType { get; private set; } = typeof(TPixel).GetPixelType();
@@ -73,10 +73,11 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         public static TestImageProvider<TPixel> Lambda(
-                Func<Image<TPixel>> factoryFunc,
+                string declaringTypeName,
+                string methodName,
                 MethodInfo testMethod = null,
                 PixelTypes pixelTypeOverride = PixelTypes.Undefined)
-            => new LambdaProvider(factoryFunc).Init(testMethod, pixelTypeOverride);
+            => new MemberMethodProvider(declaringTypeName, methodName).Init(testMethod, pixelTypeOverride);
 
         public static TestImageProvider<TPixel> Solid(
             int width,

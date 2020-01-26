@@ -86,15 +86,5 @@ namespace SixLabors.ImageSharp.Tests
 
             Assert.NotEqual(expected, actual, graphicsOptionsComparer);
         }
-
-        [Fact]
-        public void IsOpaqueColor()
-        {
-            Assert.True(new GraphicsOptions().IsOpaqueColorWithoutBlending(Rgba32.Red));
-            Assert.False(new GraphicsOptions { BlendPercentage = .5F }.IsOpaqueColorWithoutBlending(Rgba32.Red));
-            Assert.False(new GraphicsOptions().IsOpaqueColorWithoutBlending(Rgba32.Transparent));
-            Assert.False(new GraphicsOptions { ColorBlendingMode = PixelColorBlendingMode.Lighten, BlendPercentage = 1F }.IsOpaqueColorWithoutBlending(Rgba32.Red));
-            Assert.False(new GraphicsOptions { ColorBlendingMode = PixelColorBlendingMode.Normal, AlphaCompositionMode = PixelAlphaCompositionMode.DestOver, BlendPercentage = 1f }.IsOpaqueColorWithoutBlending(Rgba32.Red));
-        }
     }
 }

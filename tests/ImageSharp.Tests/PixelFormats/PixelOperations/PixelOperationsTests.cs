@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorSpaces.Companding;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -279,20 +279,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         }
 
 
-        public static readonly TheoryData<IPixel> Generic_To_Data = new TheoryData<IPixel>
+        public static readonly TheoryData<object> Generic_To_Data = new TheoryData<object>
         {
-            default(Rgba32),
-            default(Bgra32),
-            default(Rgb24),
-            default(L8),
-            default(L16),
-            default(Rgb48),
-            default(Rgba64)
+            new TestPixel<Rgba32>(),
+            new TestPixel<Bgra32>(),
+            new TestPixel<Rgb24>(),
+            new TestPixel<L8>(),
+            new TestPixel<L16>(),
+            new TestPixel<Rgb48>(),
+            new TestPixel<Rgba64>()
         };
 
         [Theory]
         [MemberData(nameof(Generic_To_Data))]
-        public void Generic_To<TDestPixel>(TDestPixel dummy)
+        public void Generic_To<TDestPixel>(TestPixel<TDestPixel> dummy)
             where TDestPixel : struct, IPixel<TDestPixel>
         {
             const int Count = 2134;

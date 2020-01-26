@@ -1,9 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests
                 Image<TPixel> image = base.GetImage();
                 Color color = new Rgba32(this.r, this.g, this.b, this.a);
 
-                image.Mutate(x => x.Fill(color));
+                image.GetPixelSpan().Fill(color.ToPixel<TPixel>());
                 return image;
             }
 

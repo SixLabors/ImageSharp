@@ -1,0 +1,7 @@
+continuous-delivery-fallback-tag: ci
+branches:
+    master:
+        tag: unstable
+        mode: ContinuousDeployment
+    pull-request:
+        tag: pr
